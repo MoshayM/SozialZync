@@ -249,7 +249,7 @@ export default function CopilotPage() {
   const currentAction = QUICK_ACTIONS.find((a) => a.id === activeAction);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-[#faf9ff]">
+    <div className="cf-copilot-page flex bg-[#faf9ff]">
       <style>{`
         @keyframes cfVoiceBar { 0%,100%{transform:scaleY(0.25);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
       `}</style>
@@ -391,6 +391,60 @@ export default function CopilotPage() {
           )}
         </div>
 
+        {/* Mobile Quick Actions strip — visible only on small screens */}
+        <div className="md:hidden flex-shrink-0 overflow-x-auto no-scrollbar flex gap-2 px-3 py-2 bg-white border-b border-[#e3ddf8]">
+          {QUICK_ACTIONS.map((action) => {
+            const Icon = action.icon;
+            const isActive = activeAction === action.id;
+            return (
+              <button
+                key={action.id}
+                onClick={() => { setActiveAction(isActive ? null : action.id); setActionInput(''); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold shrink-0 transition-all active:scale-95 touch-manipulation"
+                style={isActive
+                  ? { background: '#6D4AE0', color: '#fff', border: '1.5px solid #6D4AE0' }
+                  : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }
+                }
+              >
+                <Icon className="w-3 h-3" />
+                {action.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Mobile expanded quick-action input */}
+        {currentAction && (
+          <div className="md:hidden flex-shrink-0 px-3 pb-2 pt-1 bg-white border-b border-[#e3ddf8]">
+            <div className="flex gap-2 items-center">
+              <input
+                autoFocus
+                value={actionInput}
+                onChange={(e) => setActionInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleQuickActionSubmit(currentAction); }}
+                placeholder={currentAction.placeholder}
+                className="flex-1 text-sm px-3 py-2 bg-[#faf9ff] rounded-xl outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                style={{ border: '1.5px solid #e3e0f0' }}
+              />
+              <button
+                onClick={() => handleQuickActionSubmit(currentAction)}
+                disabled={!actionInput.trim()}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+              >
+                Go
+              </button>
+              <button
+                onClick={() => { setActiveAction(null); setActionInput(''); }}
+                className="p-2 rounded-xl"
+                style={{ border: '1.5px solid #e3ddf8' }}
+              >
+                <X className="w-3.5 h-3.5 text-gray-400" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 bg-[#faf9ff]">
           {messages.map((msg) => (
@@ -521,7 +575,7 @@ export default function CopilotPage() {
               <Send className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-center text-[11px] text-gray-400 mt-1.5">Enter to send · Shift+Enter for new line</p>
+          <p className="hidden sm:block text-center text-[11px] text-gray-400 mt-1.5">Enter to send · Shift+Enter for new line</p>
         </div>
       </div>
     </div>

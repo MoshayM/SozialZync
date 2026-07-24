@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import {
   Bot, X, Send, Mic, MicOff, ShieldCheck, Building2,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
-  BookOpen, FileText, Calendar, Search, Clock, Sparkles,
+  BookOpen, FileText, Calendar, Search, Clock, Sparkles, Volume2, VolumeX,
 } from 'lucide-react';
 import { apiClient, api, type Org } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
@@ -284,12 +284,12 @@ export function CopilotPanel() {
   // voice
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking]   = useState(false);
-  const [speakReplies]            = useState(true);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [recording, setRecording] = useState(false);
   const [micError, setMicError]   = useState<string|null>(null);
   const [serverStt, setServerStt] = useState<boolean|null>(null);
   const [lang, setLang]           = useState<string>(() => typeof navigator !== 'undefined' ? navigator.language : 'en-US');
+  const [speakingIdx, setSpeakingIdx] = useState<number|null>(null);
 
   // quick actions
   const [activeAction, setActiveAction] = useState<string|null>(null);
@@ -365,8 +365,9 @@ export function CopilotPanel() {
 
   const startListeningRef = useRef<() => void>(() => undefined);
 
-  const speak = useCallback((text: string, replyLang?: string, onDone?: () => void) => {
-    if (!speakReplies || typeof window === 'undefined' || !window.speechSynthesis) { onDone?.(); return; }
+  const speak = useCallback((text: string, replyLang?: string, onDone?: () => void, msgIdx?: number) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) { onDone?.(); return; }
+    if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
 
     // Always default to en-US; only switch if API is confident AND a good voice exists
     const target = replyLang ?? lang;
@@ -388,6 +389,7 @@ export function CopilotPanel() {
         if (chunkIdx >= chunks.length) {
           if (keepAlive) clearInterval(keepAlive);
           setSpeaking(false);
+          setSpeakingIdx(null);
           onDone?.();
           return;
         }
@@ -400,7 +402,7 @@ export function CopilotPanel() {
         if (bestVoice) utt.voice = bestVoice;
         if (chunkIdx === 1) utt.onstart = () => setSpeaking(true);
         utt.onend   = next;
-        utt.onerror = () => { if (keepAlive) clearInterval(keepAlive); setSpeaking(false); onDone?.(); };
+        utt.onerror = () => { if (keepAlive) clearInterval(keepAlive); setSpeaking(false); setSpeakingIdx(null); onDone?.(); };
         window.speechSynthesis.speak(utt);
       }
 
@@ -422,7 +424,7 @@ export function CopilotPanel() {
         doSpeak();
       };
     }
-  }, [speakReplies, lang]);
+  }, [lang]);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
@@ -471,7 +473,11 @@ export function CopilotPanel() {
       if (data.language) setLang(data.language);
       if (data.plan)     setCurrentPlan(data.plan);
       if (data.navigate) router.push(data.navigate);
-      speak(data.reply, data.language, () => { if (conversationRef.current) startListeningRef.current(); });
+      // Only auto-speak in voice conversation mode; text mode uses per-message buttons
+      if (conversationRef.current) {
+        const newIdx = nextMessages.length; // index of the assistant reply just added
+        speak(data.reply, data.language, () => { if (conversationRef.current) startListeningRef.current(); }, newIdx);
+      }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = status ? httpErrorMessage(status) : 'Something went wrong. Try again.';
@@ -656,9 +662,10 @@ export function CopilotPanel() {
       {/* Drawer */}
       <div
         onClick={e => e.stopPropagation()}
+        className="cf-copilot-drawer"
         style={{
           position:'fixed', top:0, right:0, bottom:0,
-          width:'460px', zIndex:46,
+          zIndex:46,
           background:'#faf9ff',
           borderLeft:'1px solid #E2DCF5',
           boxShadow:'-24px 0 60px -20px rgba(30,27,46,.18)',
@@ -814,6 +821,38 @@ export function CopilotPanel() {
                       {m.content}
                       {m.fromCache && <span style={{ fontSize:'10px',color:'rgba(255,255,255,.45)',marginLeft:'6px' }}>cached</span>}
                     </div>
+                    {/* Read-aloud button on assistant messages */}
+                    {m.role === 'assistant' && typeof window !== 'undefined' && 'speechSynthesis' in window && (
+                      <button
+                        type="button"
+                        title={speakingIdx === i ? 'Stop' : 'Read aloud'}
+                        onClick={() => {
+                          if (speakingIdx === i) {
+                            window.speechSynthesis.cancel();
+                            setSpeaking(false);
+                            setSpeakingIdx(null);
+                          } else {
+                            speak(m.content, lang, undefined, i);
+                          }
+                        }}
+                        style={{
+                          display:'flex',alignItems:'center',gap:'4px',
+                          padding:'3px 8px',borderRadius:'8px',
+                          background: speakingIdx === i ? '#F5F2FD' : 'transparent',
+                          border: `1px solid ${speakingIdx === i ? '#C4B5FD' : 'transparent'}`,
+                          color: speakingIdx === i ? '#7C3AED' : '#b8b5c8',
+                          fontSize:'11px',fontWeight:500,cursor:'pointer',
+                          transition:'background .15s,color .15s,border-color .15s',
+                        }}
+                        onMouseEnter={e => { if (speakingIdx !== i) { (e.currentTarget as HTMLElement).style.background='#F5F2FD'; (e.currentTarget as HTMLElement).style.color='#7C3AED'; (e.currentTarget as HTMLElement).style.borderColor='#DDD6FE'; } }}
+                        onMouseLeave={e => { if (speakingIdx !== i) { (e.currentTarget as HTMLElement).style.background='transparent'; (e.currentTarget as HTMLElement).style.color='#b8b5c8'; (e.currentTarget as HTMLElement).style.borderColor='transparent'; } }}
+                      >
+                        {speakingIdx === i
+                          ? <><VolumeX style={{ width:'11px',height:'11px' }} /> Stop</>
+                          : <><Volume2 style={{ width:'11px',height:'11px' }} /> Listen</>
+                        }
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

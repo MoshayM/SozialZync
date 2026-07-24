@@ -24,6 +24,28 @@
   }
 }
 
+/* ── Copilot full-page height (accounts for topbar + mobile nav) ─────────── */
+.cf-copilot-page {
+  height: calc(100vh - 62px);
+  height: calc(100dvh - 62px);
+}
+@media (max-width: 1023px) {
+  .cf-copilot-page {
+    height: calc(100vh - 62px - 3.5rem - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 62px - 3.5rem - env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Copilot drawer panel (side panel on desktop, full-screen on mobile) ── */
+.cf-copilot-drawer {
+  width: 460px;
+}
+@media (max-width: 767px) {
+  .cf-copilot-drawer {
+    width: 100vw;
+  }
+}
+
 /* ── Notification panel: cap width on small screens ─────────────────────── */
 @media (max-width: 480px) {
   .notif-panel {
