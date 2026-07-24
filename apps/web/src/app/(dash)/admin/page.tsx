@@ -5,6 +5,7 @@ import {
   BarChart2,
   Cpu,
   DollarSign,
+  Monitor,
   PiggyBank,
   RefreshCw,
   ShieldAlert,
@@ -13,8 +14,11 @@ import {
   Users,
 } from 'lucide-react';
 import { StatCard, PastelBars } from '@/components/stat-card';
+import { DevicePreview } from '@/components/device-preview';
 import { api, type AdminProvider, type EnterpriseMetrics, type ForecastRow } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+
+type AdminTab = 'dashboard' | 'device-preview';
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
@@ -73,6 +77,7 @@ function formatForecastValue(metric: string, v: number): string {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  const [adminTab, setAdminTab] = useState<AdminTab>('dashboard');
   const [metrics, setMetrics] = useState<EnterpriseMetrics | null>(null);
   const [forecasts, setForecasts] = useState<ForecastRow[]>([]);
   const [providers, setProviders] = useState<AdminProvider[]>([]);
@@ -134,6 +139,37 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-full bg-[#faf9ff]">
+      {/* Top-level tab bar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex gap-2 overflow-x-auto no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setAdminTab('dashboard')}
+          className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
+          style={adminTab === 'dashboard'
+            ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
+            : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
+          }
+        >
+          <BarChart2 className="w-4 h-4" />
+          Enterprise Dashboard
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdminTab('device-preview')}
+          className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
+          style={adminTab === 'device-preview'
+            ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
+            : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
+          }
+        >
+          <Monitor className="w-4 h-4" />
+          Device Preview
+        </button>
+      </div>
+
+      {adminTab === 'device-preview' && <DevicePreview />}
+
+      {adminTab === 'dashboard' && (
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         <div className="flex items-center justify-between">
           <div>
@@ -300,6 +336,7 @@ export default function AdminDashboardPage() {
           </>
         ) : null}
       </div>
+      )}
     </div>
   );
 }

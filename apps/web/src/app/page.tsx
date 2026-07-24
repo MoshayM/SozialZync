@@ -96,7 +96,7 @@ export default function LandingPage() {
 
       <main>
         {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-        <section aria-label="Hero" style={{background:'linear-gradient(160deg,#0e0924 0%,#1a0f4a 40%,#2d1b6e 100%)'}}>
+        <section aria-label="Hero" className="relative overflow-hidden" style={{background:'linear-gradient(160deg,#0e0924 0%,#1a0f4a 40%,#2d1b6e 100%)'}}>
           {/* Background decorations */}
           <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full opacity-20" style={{background:'radial-gradient(ellipse,#7C3AED 0%,transparent 70%)',filter:'blur(40px)'}} />
@@ -112,7 +112,7 @@ export default function LandingPage() {
             </div>
 
             {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight max-w-5xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight max-w-5xl mx-auto">
               Create. Edit. Publish.
               <br />
               <span style={{background:'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
@@ -120,7 +120,7 @@ export default function LandingPage() {
               </span>
             </h1>
 
-            <p className="mt-6 text-lg sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-6 text-base sm:text-lg sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
               From a single conversation to a published video — Blueforce handles research, scripting, voice, music, editing, and publishing.{' '}
               <span className="text-white/80">No forms. No menus. Just results.</span>
             </p>
@@ -148,8 +148,8 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex h-80 lg:h-96">
-                  {/* Sidebar */}
-                  <div className="w-44 shrink-0 border-r border-white/8 p-3 flex flex-col gap-1 hidden sm:flex">
+                  {/* Sidebar — hidden on small screens */}
+                  <div className="w-36 lg:w-44 shrink-0 border-r border-white/8 p-3 hidden sm:flex flex-col gap-1">
                     {['Home','Projects','Copilot','Shorts Studio','Video Editor','Publish','Analytics'].map((item, i) => (
                       <div key={item} className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold" style={{background: i===2?'rgba(124,58,237,.35)':'transparent',color: i===2?'#c4b5fd':'rgba(255,255,255,.5)'}}>
                         <div className="w-3 h-3 rounded-sm shrink-0" style={{background:i===2?'#a78bfa':'rgba(255,255,255,.2)'}} />
@@ -279,7 +279,7 @@ export default function LandingPage() {
             </div>
 
             {/* Step grid — 5 columns × 2 rows */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 sm:gap-4">
               {WORKFLOW.map(({ icon: Icon, label, sub }, idx) => (
                 <div key={label} className="relative flex flex-col items-center text-center group">
                   {/* Connector (right side) */}

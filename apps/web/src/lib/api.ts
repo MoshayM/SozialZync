@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-const BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+// Browser requests go through the Next.js server-side proxy at /api/proxy so
+// the real backend URL is never exposed to the client and CORS is not needed.
+// SSR / local dev fall back to the direct API URL via env var.
+const BASE =
+  typeof window !== 'undefined'
+    ? '/api/proxy'
+    : (process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1');
 
 export const apiClient = axios.create({ baseURL: BASE, withCredentials: true });
 
