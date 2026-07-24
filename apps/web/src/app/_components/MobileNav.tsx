@@ -1,117 +1,127 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { LogoMark } from '@/components/logo-mark';
 
 const NAV_LINKS = [
-  { label: 'Features', href: '#features' },
-  { label: 'How it works', href: '#how-it-works' },
-  { label: 'Download', href: '#download' },
+  { label: 'Features',     href: '#features' },
+  { label: 'How it works', href: '#workflow' },
+  { label: 'Pricing',      href: '#pricing' },
 ];
 
 export function MobileNav() {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen]       = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const btnRef                = useRef<HTMLButtonElement>(null);
 
-  // Close on outside click
+  // Only enable the portal after client hydration (document exists).
+  useEffect(() => { setMounted(true); }, []);
+
+  // Close on Escape key
   useEffect(() => {
     if (!open) return;
-    function onOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', onOutside);
-    return () => document.removeEventListener('mousedown', onOutside);
-  }, [open]);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  // Prevent body scroll when open
+  // Lock body scroll while menu is open
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  return (
-    <div ref={menuRef} className="md:hidden">
-      <button
-        type="button"
-        aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
-        aria-expanded={open}
-        aria-controls="mobile-menu"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors"
-      >
-        {open ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
-      </button>
-
-      {open && (
-        <div
-          id="mobile-menu"
-          role="dialog"
-          aria-label="Navigation menu"
-          className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-[#9d6ff0] to-[#7c4fd8] px-6 pt-5 pb-8"
-        >
-          {/* Top row in overlay */}
-          <div className="flex items-center justify-between mb-10">
-            <div className="flex items-center gap-2.5">
-              <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-              <span className="font-bold text-white text-lg">Blueforce</span>
+  // ── Overlay (rendered via portal so backdrop-filter on <header> doesn't
+  //    trap position:fixed and collapse the overlay to header height) ──────
+  const overlay =
+    open && mounted
+      ? createPortal(
+          <div
+            id="mobile-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            className="fixed inset-0 flex flex-col px-6 pt-5 pb-8 overflow-y-auto"
+            style={{ zIndex: 9999, background: 'linear-gradient(160deg,#8b5cf6 0%,#7c3aed 100%)' }}
+          >
+            {/* Top row: logo + close button */}
+            <div className="flex items-center justify-between mb-10 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <LogoMark className="w-9 h-9 shrink-0" style={{ borderRadius: '10px' }} />
+                <span className="font-bold text-white text-lg tracking-tight">Blueforce</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Close navigation menu"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors touch-manipulation"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label="Close navigation menu"
-              onClick={() => setOpen(false)}
-              className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors"
-            >
-              <X className="w-5 h-5 text-white" />
-            </button>
-          </div>
 
-          <nav aria-label="Mobile navigation">
-            <ul className="space-y-1">
-              {NAV_LINKS.map(({ label, href }) => (
-                <li key={href}>
-                  <a
-                    href={href}
-                    onClick={() => setOpen(false)}
-                    className="block px-4 py-3.5 rounded-xl text-white/90 text-lg font-medium hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors"
-                  >
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+            {/* Nav links */}
+            <nav aria-label="Mobile navigation" className="flex-1">
+              <ul className="space-y-1">
+                {NAV_LINKS.map(({ label, href }) => (
+                  <li key={href}>
+                    <a
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center px-4 py-4 rounded-2xl text-white text-xl font-semibold hover:bg-white/10 active:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors touch-manipulation"
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
 
-          <div className="mt-auto flex flex-col gap-3">
-            <Link
-              href="/login"
-              onClick={() => setOpen(false)}
-              className="w-full py-3.5 text-center rounded-xl text-white/90 font-semibold border border-white/30 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/login"
-              onClick={() => setOpen(false)}
-              className="w-full py-3.5 text-center rounded-xl bg-white text-brand-600 font-bold shadow hover:bg-purple-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors"
-            >
-              Get started free
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
+            {/* CTA buttons pinned to bottom */}
+            <div className="shrink-0 flex flex-col gap-3 pt-8">
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="w-full py-4 text-center rounded-2xl text-white font-semibold text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors touch-manipulation"
+                style={{ border: '1.5px solid rgba(255,255,255,0.35)' }}
+              >
+                Log in
+              </Link>
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="w-full py-4 text-center rounded-2xl bg-white font-bold text-base shadow-lg hover:bg-purple-50 active:bg-purple-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors touch-manipulation"
+                style={{ color: '#7C3AED' }}
+              >
+                Get started free
+              </Link>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <>
+      {/* Hamburger button (always in the header) */}
+      <div className="md:hidden">
+        <button
+          ref={btnRef}
+          type="button"
+          aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={open}
+          aria-controls="mobile-menu"
+          onClick={() => setOpen(v => !v)}
+          className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors touch-manipulation"
+        >
+          {open ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+        </button>
+      </div>
+
+      {/* Full-screen overlay — portalled to <body> */}
+      {overlay}
+    </>
   );
 }

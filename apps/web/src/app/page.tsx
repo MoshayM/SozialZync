@@ -104,7 +104,7 @@ export default function LandingPage() {
             <div className="absolute top-1/4 right-[8%] w-52 h-52 rounded-full opacity-10" style={{background:'#818cf8',filter:'blur(50px)'}} />
           </div>
 
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-36 text-center">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36 text-center">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-8 text-sm font-medium text-white/80" style={{background:'rgba(124,58,237,.15)'}}>
               <Zap className="w-3.5 h-3.5 text-purple-400" />
@@ -120,7 +120,7 @@ export default function LandingPage() {
               </span>
             </h1>
 
-            <p className="mt-6 text-base sm:text-lg sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-6 text-base sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
               From a single conversation to a published video — Blueforce handles research, scripting, voice, music, editing, and publishing.{' '}
               <span className="text-white/80">No forms. No menus. Just results.</span>
             </p>
@@ -137,7 +137,7 @@ export default function LandingPage() {
             </div>
 
             {/* Hero visual — AI workspace mockup */}
-            <div className="mt-20 max-w-4xl mx-auto float-slow">
+            <div className="mt-10 sm:mt-20 max-w-4xl mx-auto float-slow">
               <div className="glow-ring rounded-3xl overflow-hidden" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
                 {/* Browser chrome */}
                 <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/8">
