@@ -1,7 +1,10 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { ExternalLink, LayoutGrid, Laptop, Maximize2, RefreshCw, Smartphone, Tablet } from 'lucide-react';
+import {
+  ExternalLink, LayoutGrid, Laptop, Maximize2,
+  Monitor, RefreshCw, Smartphone, Tablet, ChevronDown,
+} from 'lucide-react';
 
 // ── Device catalogue ──────────────────────────────────────────────────────────
 
@@ -11,106 +14,94 @@ type NotchKind  = 'android-pill' | 'dynamic-island' | 'camera-dot' | 'webcam-dot
 interface DeviceDef {
   id: string;
   label: string;
+  shortLabel: string;
   icon: React.ComponentType<{ className?: string }>;
-  w: number;       // screen / viewport width
-  h: number;       // screen / viewport height
-  bt: number;      // bezel top
-  br: number;      // bezel right
-  bb: number;      // bezel bottom
-  bl: number;      // bezel left
-  radius: number;  // outer shell border-radius
+  w: number;
+  h: number;
+  bt: number; br: number; bb: number; bl: number;
+  radius: number;
   type: DeviceType;
   notch: NotchKind;
-  shell: string;   // shell background colour
+  shell: string;
 }
 
 const DEVICES: DeviceDef[] = [
   {
-    id: 'android', label: 'Android', icon: Smartphone,
-    w: 393, h: 851,
-    bt: 54, br: 14, bb: 46, bl: 14, radius: 46,
-    type: 'phone', notch: 'android-pill', shell: '#1a1a2e',
+    id: 'android', label: 'Android', shortLabel: 'Android',
+    icon: Smartphone,
+    w: 393, h: 851, bt: 54, br: 14, bb: 46, bl: 14,
+    radius: 46, type: 'phone', notch: 'android-pill', shell: '#1a1a2e',
   },
   {
-    id: 'iphone', label: 'iPhone', icon: Smartphone,
-    w: 393, h: 852,
-    bt: 54, br: 14, bb: 46, bl: 14, radius: 50,
-    type: 'phone', notch: 'dynamic-island', shell: '#1c1c24',
+    id: 'iphone', label: 'iPhone', shortLabel: 'iPhone',
+    icon: Smartphone,
+    w: 393, h: 852, bt: 54, br: 14, bb: 46, bl: 14,
+    radius: 50, type: 'phone', notch: 'dynamic-island', shell: '#1c1c24',
   },
   {
-    id: 'ipad', label: 'iPad', icon: Tablet,
-    w: 820, h: 1180,
-    bt: 26, br: 22, bb: 26, bl: 22, radius: 22,
-    type: 'tablet', notch: 'camera-dot', shell: '#2a2a38',
+    id: 'ipad', label: 'iPad', shortLabel: 'Tablet',
+    icon: Tablet,
+    w: 820, h: 1180, bt: 26, br: 22, bb: 26, bl: 22,
+    radius: 22, type: 'tablet', notch: 'camera-dot', shell: '#2a2a38',
   },
   {
-    id: 'macbook', label: 'MacBook', icon: Laptop,
-    w: 1280, h: 800,
-    bt: 30, br: 18, bb: 18, bl: 18, radius: 10,
-    type: 'laptop', notch: 'webcam-dot', shell: '#d2d2da',
+    id: 'macbook', label: 'MacBook', shortLabel: 'Desktop',
+    icon: Laptop,
+    w: 1280, h: 800, bt: 30, br: 18, bb: 18, bl: 18,
+    radius: 10, type: 'laptop', notch: 'webcam-dot', shell: '#d2d2da',
+  },
+  {
+    id: 'desktop', label: 'Desktop 1920', shortLabel: 'Full HD',
+    icon: Monitor,
+    w: 1920, h: 1080, bt: 28, br: 20, bb: 20, bl: 20,
+    radius: 8, type: 'laptop', notch: 'webcam-dot', shell: '#2a2a38',
   },
 ];
 
 const PAGES = [
+  { id: '/home',     label: 'Dashboard' },
   { id: '/',         label: 'Landing' },
   { id: '/login',    label: 'Login' },
-  { id: '/home',     label: 'Dashboard' },
   { id: '/content',  label: 'Content' },
   { id: '/projects', label: 'Projects' },
   { id: '/publish',  label: 'Publish' },
+  { id: '/insights', label: 'Insights' },
   { id: '/settings', label: 'Settings' },
 ];
+
+const BASE_EXTRA = 20;
+const BASE_H     = 54;
 
 // ── Notch ─────────────────────────────────────────────────────────────────────
 
 function Notch({ dev }: { dev: DeviceDef }) {
-  const dot = dev.shell === '#d2d2da' ? '#909098' : '#07070f';
-
-  if (dev.notch === 'android-pill') {
-    return (
-      <div style={{
-        position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)',
-        width: 90, height: 24, borderRadius: 12, background: dot,
-      }} />
-    );
-  }
-  if (dev.notch === 'dynamic-island') {
-    return (
-      <div style={{
-        position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-        width: 74, height: 24, borderRadius: 14, background: dot,
-      }} />
-    );
-  }
-  if (dev.notch === 'camera-dot') {
-    return (
-      <div style={{
-        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-        width: 10, height: 10, borderRadius: '50%', background: '#484858',
-      }} />
-    );
-  }
-  if (dev.notch === 'webcam-dot') {
-    return (
-      <div style={{
-        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-        width: 8, height: 8, borderRadius: '50%', background: '#a0a0a8',
-      }} />
-    );
-  }
+  const dot = dev.shell === '#d2d2da' || dev.shell === '#2a2a38' ? '#585868' : '#07070f';
+  if (dev.notch === 'android-pill') return (
+    <div style={{ position:'absolute', top:18, left:'50%', transform:'translateX(-50%)',
+      width:90, height:24, borderRadius:12, background:dot }} />
+  );
+  if (dev.notch === 'dynamic-island') return (
+    <div style={{ position:'absolute', top:16, left:'50%', transform:'translateX(-50%)',
+      width:74, height:24, borderRadius:14, background:dot }} />
+  );
+  if (dev.notch === 'camera-dot') return (
+    <div style={{ position:'absolute', top:12, left:'50%', transform:'translateX(-50%)',
+      width:10, height:10, borderRadius:'50%', background:'#484858' }} />
+  );
+  if (dev.notch === 'webcam-dot') return (
+    <div style={{ position:'absolute', top:12, left:'50%', transform:'translateX(-50%)',
+      width:8, height:8, borderRadius:'50%', background:'#a0a0a8' }} />
+  );
   return null;
 }
 
 // ── Device frame ──────────────────────────────────────────────────────────────
 
-const BASE_EXTRA = 20; // keyboard deck extends this many px on each side of the screen shell
-const BASE_H     = 54; // total keyboard deck height
-
 const DeviceFrame = memo(function DeviceFrame({
-  dev, page, scale, refreshKey,
+  dev, url, scale, refreshKey,
 }: {
   dev: DeviceDef;
-  page: string;
+  url: string;
   scale: number;
   refreshKey: number;
 }) {
@@ -121,67 +112,42 @@ const DeviceFrame = memo(function DeviceFrame({
   const outerH = isMac ? shellH + BASE_H : shellH;
 
   return (
-    // Outer div reserves the scaled display area
     <div style={{ width: outerW * scale, height: outerH * scale, flexShrink: 0 }}>
-      {/* Single scale transform wrapper */}
-      <div style={{ transformOrigin: '0 0', transform: `scale(${scale})`, width: outerW, height: outerH }}>
-
-        {/* Screen shell */}
+      <div style={{ transformOrigin:'0 0', transform:`scale(${scale})`, width:outerW, height:outerH }}>
         <div style={{
-          position: 'relative',
-          width: shellW,
-          height: shellH,
+          position:'relative', width:shellW, height:shellH,
           marginLeft: isMac ? BASE_EXTRA : 0,
-          background: dev.shell,
-          borderRadius: dev.radius,
+          background: dev.shell, borderRadius: dev.radius,
           boxShadow: isMac
             ? '0 4px 20px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08)'
             : '0 20px 60px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(255,255,255,0.07) inset',
         }}>
           <Notch dev={dev} />
-
-          {/* Iframe viewport */}
           <div style={{
-            position: 'absolute',
-            top: dev.bt, left: dev.bl,
-            width: dev.w, height: dev.h,
-            overflow: 'hidden',
+            position:'absolute', top:dev.bt, left:dev.bl,
+            width:dev.w, height:dev.h, overflow:'hidden',
             borderRadius: isMac ? 4 : Math.max(2, dev.radius - 14),
-            background: '#111',
+            background:'#111',
           }}>
             <iframe
-              key={`${refreshKey}::${page}`}
-              src={page}
-              title={`${dev.label} — ${page}`}
-              style={{ width: dev.w, height: dev.h, border: 'none', display: 'block' }}
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              key={`${refreshKey}::${url}`}
+              src={url}
+              title={`${dev.label} preview`}
+              style={{ width:dev.w, height:dev.h, border:'none', display:'block' }}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
             />
           </div>
         </div>
-
-        {/* MacBook keyboard deck */}
         {isMac && (
           <>
-            {/* Hinge */}
+            <div style={{ marginLeft:BASE_EXTRA, width:shellW, height:4, background:'#b4b4bc' }} />
             <div style={{
-              marginLeft: BASE_EXTRA,
-              width: shellW,
-              height: 4,
-              background: '#b4b4bc',
-            }} />
-            {/* Deck */}
-            <div style={{
-              width: outerW,
-              height: BASE_H - 4,
-              background: '#c6c6ce',
-              borderRadius: '0 0 14px 14px',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              paddingBottom: 10,
+              width:outerW, height:BASE_H - 4,
+              background: dev.shell === '#d2d2da' ? '#c6c6ce' : '#222232',
+              borderRadius:'0 0 14px 14px',
+              display:'flex', alignItems:'flex-end', justifyContent:'center', paddingBottom:10,
             }}>
-              {/* Trackpad */}
-              <div style={{ width: 190, height: 28, background: '#b4b4bc', borderRadius: 6 }} />
+              <div style={{ width:190, height:28, background: dev.shell === '#d2d2da' ? '#b4b4bc' : '#333348', borderRadius:6 }} />
             </div>
           </>
         )}
@@ -190,27 +156,111 @@ const DeviceFrame = memo(function DeviceFrame({
   );
 });
 
-// ── Compare-mode grid ─────────────────────────────────────────────────────────
+// ── Compare grid ──────────────────────────────────────────────────────────────
 
-function CompareGrid({ page, containerWidth, refreshKey }: { page: string; containerWidth: number; refreshKey: number }) {
-  function scaleFor(dev: DeviceDef): number {
+function CompareGrid({ url, containerWidth, refreshKey }: { url:string; containerWidth:number; refreshKey:number }) {
+  function scaleFor(dev: DeviceDef) {
     const slot = Math.max(containerWidth / 2 - 56, 100);
     const shellW = dev.type === 'laptop' ? dev.w + dev.bl + dev.br + BASE_EXTRA * 2 : dev.w + dev.bl + dev.br;
     return Math.min(slot / shellW, 0.3);
   }
-
   return (
     <div className="grid grid-cols-2 gap-8 place-items-center">
-      {DEVICES.map(d => (
-        <div key={d.id} className="flex flex-col items-center gap-2.5">
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+      {DEVICES.filter(d => ['android', 'iphone', 'ipad', 'macbook'].includes(d.id)).map(d => (
+        <div key={d.id} className="flex flex-col items-center gap-2">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
             <d.icon className="w-3.5 h-3.5" />
             {d.label}
             <span className="text-gray-400 font-normal">({d.w}×{d.h})</span>
           </span>
-          <DeviceFrame dev={d} page={page} scale={scaleFor(d)} refreshKey={refreshKey} />
+          <DeviceFrame dev={d} url={url} scale={scaleFor(d)} refreshKey={refreshKey} />
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Floating bottom toolbar (Emergent-style) ──────────────────────────────────
+
+function BottomToolbar({
+  activeDev, devices, onSwitch, scale, onRefresh, onCompare, onOpen, page, compareMode,
+}: {
+  activeDev: DeviceDef;
+  devices: DeviceDef[];
+  onSwitch: (id: string) => void;
+  scale: number;
+  onRefresh: () => void;
+  onCompare: () => void;
+  onOpen: () => void;
+  page: string;
+  compareMode: boolean;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-0 rounded-2xl overflow-hidden shadow-2xl"
+      style={{ background:'rgba(30,27,46,0.92)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.10)' }}>
+      {/* Refresh */}
+      <button type="button" onClick={onRefresh} title="Reload"
+        className="flex items-center justify-center w-10 h-10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+      >
+        <RefreshCw className="w-4 h-4" />
+      </button>
+
+      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)' }} />
+
+      {/* Device switcher pill */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setMenuOpen(o => !o)}
+          className="flex items-center gap-2 px-4 h-10 text-white hover:bg-white/10 transition-colors"
+        >
+          <activeDev.icon className="w-4 h-4 text-white/70" />
+          <span className="text-sm font-semibold">{activeDev.shortLabel} view</span>
+          <ChevronDown className={`w-3.5 h-3.5 text-white/50 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {menuOpen && (
+          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 rounded-2xl overflow-hidden shadow-2xl min-w-[180px]"
+            style={{ background:'rgba(24,22,40,0.97)', border:'1px solid rgba(255,255,255,0.12)' }}>
+            {devices.map(d => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => { onSwitch(d.id); setMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/10 transition-colors"
+                style={{ color: d.id === activeDev.id ? '#a78bfa' : 'rgba(255,255,255,0.8)', fontWeight: d.id === activeDev.id ? 700 : 400 }}
+              >
+                <d.icon className="w-4 h-4 shrink-0" />
+                <span>{d.label}</span>
+                <span className="ml-auto text-xs text-white/30">{d.w}px</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)' }} />
+
+      {/* Compare / Expand */}
+      <button type="button" onClick={onCompare} title={compareMode ? 'Single view' : 'Compare all'}
+        className="flex items-center justify-center w-10 h-10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        style={{ color: compareMode ? '#a78bfa' : undefined }}
+      >
+        {compareMode ? <Maximize2 className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
+      </button>
+
+      {/* Open in new tab */}
+      <a href={page} target="_blank" rel="noopener noreferrer" title="Open in new tab"
+        className="flex items-center justify-center w-10 h-10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+      >
+        <ExternalLink className="w-4 h-4" />
+      </a>
+
+      {/* Scale indicator */}
+      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)' }} />
+      <span className="px-3 text-xs text-white/40 font-mono select-none">{Math.round(scale * 100)}%</span>
     </div>
   );
 }
@@ -218,13 +268,17 @@ function CompareGrid({ page, containerWidth, refreshKey }: { page: string; conta
 // ── Public component ──────────────────────────────────────────────────────────
 
 export function DevicePreview() {
-  const [deviceId,   setDeviceId]   = useState<string>('android');
-  const [page,       setPage]       = useState<string>('/home');
-  const [mode,       setMode]       = useState<'single' | 'compare'>('single');
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [cw,         setCw]         = useState(800);  // container width
+  const [deviceId,    setDeviceId]   = useState('android');
+  const [page,        setPage]       = useState('/home');
+  const [mode,        setMode]       = useState<'single'|'compare'>('single');
+  const [refreshKey,  setRefreshKey] = useState(0);
+  const [cw,          setCw]         = useState(800);
+  const [origin,      setOrigin]     = useState('');
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Resolve absolute origin so iframe src is always absolute (avoids about:blank edge-cases)
+  useEffect(() => { setOrigin(window.location.origin); }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -235,121 +289,65 @@ export function DevicePreview() {
     return () => ro.disconnect();
   }, []);
 
-  const activeDev = DEVICES.find(d => d.id === deviceId) ?? DEVICES[0]!;
-
-  const shellW    = activeDev.w + activeDev.bl + activeDev.br;
-  const macOffset = activeDev.type === 'laptop' ? BASE_EXTRA * 2 : 0;
+  const activeDev  = DEVICES.find(d => d.id === deviceId) ?? DEVICES[0]!;
+  const shellW     = activeDev.w + activeDev.bl + activeDev.br;
+  const macOffset  = activeDev.type === 'laptop' ? BASE_EXTRA * 2 : 0;
+  const macH       = activeDev.type === 'laptop' ? BASE_H : 0;
+  const shellH     = activeDev.h + activeDev.bt + activeDev.bb;
+  const frameH     = (shellH + macH) + 80; // +80 for bottom toolbar clearance
   const singleScale = Math.min((cw - 48) / (shellW + macOffset), 1);
+  const url        = origin ? origin + page : page;
 
-  const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
+  const refresh    = useCallback(() => setRefreshKey(k => k + 1), []);
+  const toggleMode = useCallback(() => setMode(m => m === 'single' ? 'compare' : 'single'), []);
 
   return (
-    <div className="min-h-full bg-[#faf9ff]">
-      {/* Controls bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2">
-        {/* Page pills */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-          {PAGES.map(p => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPage(p.id)}
-              className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all touch-manipulation"
-              style={page === p.id
-                ? { background: '#7C3AED', color: '#fff', border: '1.5px solid #7C3AED' }
-                : { background: '#faf9ff', color: '#374151', border: '1.5px solid #e3ddf8' }
-              }
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Icon buttons */}
-        <button
-          type="button"
-          onClick={refresh}
-          title="Reload iframes"
-          className="p-2 rounded-xl transition-colors touch-manipulation"
-          style={{ border: '1.5px solid #e3ddf8', background: '#fff', color: '#6D4AE0' }}
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-
-        <a
-          href={page}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Open page in new tab"
-          className="p-2 rounded-xl transition-colors touch-manipulation"
-          style={{ border: '1.5px solid #e3ddf8', background: '#fff', color: '#6D4AE0' }}
-        >
-          <ExternalLink className="w-4 h-4" />
-        </a>
-
-        <button
-          type="button"
-          onClick={() => setMode(m => m === 'single' ? 'compare' : 'single')}
-          title={mode === 'single' ? 'Compare all devices' : 'Single device'}
-          className="p-2 rounded-xl transition-colors touch-manipulation"
-          style={mode === 'compare'
-            ? { border: '1.5px solid #7C3AED', background: '#f5f2fd', color: '#7C3AED' }
-            : { border: '1.5px solid #e3ddf8', background: '#fff', color: '#6D4AE0' }
-          }
-        >
-          {mode === 'compare'
-            ? <Maximize2 className="w-4 h-4" />
-            : <LayoutGrid className="w-4 h-4" />
-          }
-        </button>
+    <div className="min-h-full bg-[#faf9ff] flex flex-col">
+      {/* Page selector bar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        {PAGES.map(p => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setPage(p.id)}
+            className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all touch-manipulation"
+            style={page === p.id
+              ? { background:'#7C3AED', color:'#fff', border:'1.5px solid #7C3AED' }
+              : { background:'#faf9ff', color:'#374151', border:'1.5px solid #e3ddf8' }
+            }
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
-      <div ref={containerRef} className="p-4 sm:p-6">
+      {/* Preview area */}
+      <div ref={containerRef} className="flex-1 relative overflow-auto p-6" style={{ minHeight: frameH * singleScale + 80 }}>
         {mode === 'single' ? (
-          <>
-            {/* Device tabs */}
-            <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
-              {DEVICES.map(d => (
-                <button
-                  key={d.id}
-                  type="button"
-                  onClick={() => setDeviceId(d.id)}
-                  className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold transition-all touch-manipulation"
-                  style={deviceId === d.id
-                    ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
-                    : { background: '#fff', color: '#374151', border: '1.5px solid #e3ddf8' }
-                  }
-                >
-                  <d.icon className="w-4 h-4" />
-                  {d.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Centred frame */}
-            <div className="flex justify-center">
-              <DeviceFrame
-                dev={activeDev}
-                page={page}
-                scale={singleScale}
-                refreshKey={refreshKey}
-              />
-            </div>
-
-            {/* Info strip */}
-            <p className="text-center text-xs text-gray-400 mt-4 space-x-2">
-              <span>{activeDev.w} × {activeDev.h} px</span>
-              <span>·</span>
-              <span>{Math.round(singleScale * 100)}% scale</span>
-              <span>·</span>
-              <span>{activeDev.label}</span>
-            </p>
-          </>
+          <div className="flex justify-center items-start">
+            <DeviceFrame
+              dev={activeDev}
+              url={url}
+              scale={singleScale}
+              refreshKey={refreshKey}
+            />
+          </div>
         ) : (
-          <CompareGrid page={page} containerWidth={cw} refreshKey={refreshKey} />
+          <CompareGrid url={url} containerWidth={cw} refreshKey={refreshKey} />
         )}
+
+        {/* Floating Emergent-style bottom toolbar */}
+        <BottomToolbar
+          activeDev={activeDev}
+          devices={DEVICES}
+          onSwitch={setDeviceId}
+          scale={singleScale}
+          onRefresh={refresh}
+          onCompare={toggleMode}
+          onOpen={() => window.open(url, '_blank')}
+          page={page}
+          compareMode={mode === 'compare'}
+        />
       </div>
     </div>
   );
