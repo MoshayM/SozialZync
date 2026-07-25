@@ -41,31 +41,43 @@ function detectLocaleKey(): string {
   return LOCALE_CONFIG[country] ? country : 'DEFAULT';
 }
 
-// ── Plans ────────────────────────────────────────────────────────────────────
+// ── Access Tiers (credit-based, not subscription) ─────────────────────────────
 
-interface PlanDef {
-  id: string; name: string; monthlyUsd: number; desc: string;
-  features: string[]; color: string; popular?: boolean;
+interface AccessTier {
+  id: string;
+  name: string;
+  color: string;
+  unlockLabel: string;
+  unlockSub: string;
+  features: string[];
+  highlight?: boolean;
 }
 
-const PLANS: PlanDef[] = [
+const ACCESS_TIERS: AccessTier[] = [
   {
-    id: 'FREE', name: 'Free', monthlyUsd: 0,
-    desc: 'Get started with AI content creation',
-    features: ['3 projects', '10 AI credits/day', 'Basic analytics', 'Shorts editor'],
+    id: 'FREE',
+    name: 'Free',
     color: '#6B7280',
+    unlockLabel: 'Always free',
+    unlockSub: 'No top-up needed · 0 credits required',
+    features: ['3 projects', '10 AI actions/day', 'Basic analytics', 'Single platform', 'Community support'],
   },
   {
-    id: 'PRO', name: 'Pro', monthlyUsd: 29,
-    desc: 'For serious creators growing their audience',
-    features: ['Unlimited projects', '5,000 credits/mo', 'All 6 platforms', 'Priority AI', 'Full analytics', 'Auto-scheduling'],
-    color: '#7C3AED', popular: true,
+    id: 'PRO',
+    name: 'Pro',
+    color: '#7C3AED',
+    unlockLabel: 'Top up any amount',
+    unlockSub: 'Credits > 0 → Pro instantly · pay as you go',
+    features: ['Unlimited projects', 'All 6 platforms', 'Priority AI generation', 'Full analytics dashboard', 'Auto-scheduling', 'Short-form editor', 'AI Copilot'],
+    highlight: true,
   },
   {
-    id: 'ENTERPRISE', name: 'Enterprise', monthlyUsd: 99,
-    desc: 'For agencies managing multiple brands',
-    features: ['Everything in Pro', 'Team seats', 'White-label', 'Dedicated support', 'Custom AI budget', 'SLA'],
+    id: 'ENTERPRISE',
+    name: 'Enterprise',
     color: '#D97706',
+    unlockLabel: 'Apply for access',
+    unlockSub: 'Reviewed by admin · payment activated on approval',
+    features: ['Everything in Pro', 'Team seats & workspaces', 'White-label dashboard', 'Dedicated account manager', 'Custom AI credit budget', 'SLA guarantee'],
   },
 ];
 
@@ -554,111 +566,194 @@ function SmartTopUp() {
   );
 }
 
-// ── 4. Plans Grid ────────────────────────────────────────────────────────────
+// ── 4. Plans Grid (credit-based access tiers) ─────────────────────────────────
 
-function PlansGrid({ localeKey }: { localeKey: string }) {
-  const conf = LOCALE_CONFIG[localeKey] ?? LOCALE_CONFIG['DEFAULT']!;
-  const qc = useQueryClient();
+function PlansGrid() {
+  const { plan, credits, hasCreditsPro } = usePlan();
+  const [localeKey, setLocaleKey] = useState<string>('DEFAULT');
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
   const [enterpriseForm, setEnterpriseForm] = useState({ company: '', teamSize: '', useCase: '', budget: '' });
-  const [enterpriseSubmitted, setEnterpriseSubmitted] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('cf_enterprise_requested') === 'true';
-  });
+  const [enterpriseSubmitted, setEnterpriseSubmitted] = useState(false);
   const [enterpriseSubmitting, setEnterpriseSubmitting] = useState(false);
 
-  const { data: sub } = useQuery<{ plan: string; status: string; currentPeriodEnd: string }>({
-    queryKey: ['subscription'],
-    queryFn: () => api.billing.getSubscription().then((r) => r.data as { plan: string; status: string; currentPeriodEnd: string }),
-  });
+  useEffect(() => {
+    fetch('https://ipapi.co/json/')
+      .then((r) => r.json())
+      .then((d: { country_code?: string }) => {
+        const c = d.country_code ?? '';
+        if (EU_CODES.has(c)) setLocaleKey('EU');
+        else setLocaleKey(LOCALE_CONFIG[c] ? c : 'DEFAULT');
+      })
+      .catch(() => setLocaleKey(detectLocaleKey()));
+    setEnterpriseSubmitted(localStorage.getItem('cf_enterprise_requested') === 'true');
+  }, []);
 
-  const upgradeMutation = useMutation({
-    mutationFn: (planId: string) => api.billing.createCheckout(planId),
-    onSuccess: (res) => {
-      const data = res.data as { url: string };
-      if (data.url) window.location.href = data.url;
-      else void qc.invalidateQueries({ queryKey: ['subscription'] });
-    },
-  });
+  const conf = LOCALE_CONFIG[localeKey] ?? LOCALE_CONFIG['DEFAULT']!;
+  const minTopUp = conf.amounts[0] ?? 5;
 
   return (
-    <div>
-      {sub && (
-        <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-2" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
-          <Sparkles className="w-4 h-4" style={{ color: '#7C3AED' }} />
-          <span className="text-sm font-semibold" style={{ color: '#6D4AE0' }}>
-            Current plan: <strong>{sub.plan}</strong>
-          </span>
-          <span className="text-xs text-gray-500 ml-1">
-            · Renews {new Date(sub.currentPeriodEnd).toLocaleDateString()}
-          </span>
+    <div className="space-y-5">
+      {/* Current access level banner */}
+      <div
+        className="rounded-2xl p-4 flex items-center gap-3"
+        style={{
+          background: hasCreditsPro ? 'linear-gradient(135deg,#f5f2fd,#ede9fb)' : '#f9fafb',
+          border: `1.5px solid ${hasCreditsPro ? '#d8d0f7' : '#e5e7eb'}`,
+        }}
+      >
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: hasCreditsPro ? 'linear-gradient(135deg,#7C3AED,#6D4AE0)' : '#e5e7eb' }}
+        >
+          {hasCreditsPro
+            ? <Sparkles className="w-5 h-5 text-white" />
+            : <Wallet className="w-5 h-5 text-gray-500" />}
         </div>
-      )}
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-gray-900 text-sm">
+            {hasCreditsPro ? 'Pro access — active via credits' : 'Free tier'}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {hasCreditsPro
+              ? `${credits?.toLocaleString() ?? '—'} credits remaining · all Pro features unlocked`
+              : `Top up AI credits from ${conf.symbol}${minTopUp} to unlock Pro instantly`}
+          </p>
+        </div>
+        {!hasCreditsPro && plan !== 'pro' && (
+          <button
+            type="button"
+            onClick={() => document.getElementById('credits-tab-btn')?.click()}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0 transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg,#7C3AED,#6D4AE0)' }}
+          >
+            Top Up →
+          </button>
+        )}
+      </div>
 
+      {/* Pay-as-you-go explainer */}
+      <div className="rounded-2xl px-4 py-3 flex items-start gap-2.5" style={{ background: '#fffbeb', border: '1.5px solid #fde68a' }}>
+        <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-800 leading-relaxed">
+          <strong>No subscription, no monthly charge.</strong> Buy credits whenever you need them — from {conf.symbol}{minTopUp}. Your Pro access stays active as long as your balance is above zero. Credits never expire.
+        </p>
+      </div>
+
+      {/* Access tier cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {PLANS.map((plan) => {
-          const isCurrent = sub?.plan?.toLowerCase() === plan.id.toLowerCase() || sub?.plan?.toLowerCase() === plan.name.toLowerCase();
-          const localPrice = plan.monthlyUsd === 0 ? 'Free' : `${conf.symbol}${Math.round(plan.monthlyUsd * conf.usdRate)}/mo`;
+        {ACCESS_TIERS.map((tier) => {
+          const isActive =
+            tier.id === 'PRO' ? hasCreditsPro || plan === 'pro'
+            : tier.id === 'FREE' ? plan === 'free' && !hasCreditsPro
+            : false;
+
           return (
-            <div key={plan.id} className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-              {/* Color top bar */}
-              <div className="h-1.5" style={{ background: plan.color }} />
-              <div className="p-5 flex flex-col gap-3 relative">
-                {plan.popular && (
-                  <span className="absolute top-4 right-4 text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#ede9fe', color: '#6D4AE0' }}>
-                    Popular
-                  </span>
-                )}
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">{plan.name}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{plan.desc}</p>
+            <div
+              key={tier.id}
+              className="rounded-2xl overflow-hidden flex flex-col bg-white"
+              style={{
+                border: isActive ? `2px solid ${tier.color}` : '1.5px solid #e3ddf8',
+                boxShadow: isActive ? `0 8px 24px -8px ${tier.color}40` : 'none',
+              }}
+            >
+              <div className="h-1.5" style={{ background: tier.color }} />
+              <div className="p-5 flex flex-col gap-3 flex-1">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-900">{tier.name}</h3>
+                    {tier.highlight && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: '#ede9fe', color: '#6D4AE0' }}>
+                        Most popular
+                      </span>
+                    )}
+                  </div>
+                  {isActive && (
+                    <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${tier.color}18`, color: tier.color }}>
+                      <CheckCircle className="w-3 h-3" /> Active
+                    </span>
+                  )}
                 </div>
-                <p className="text-2xl font-extrabold tabular-nums" style={{ color: plan.color }}>{localPrice}</p>
-                {plan.monthlyUsd > 0 && conf.usdRate !== 1 && (
-                  <p className="text-[11px] text-gray-400 -mt-2">(${plan.monthlyUsd}/mo USD)</p>
-                )}
-                <ul className="space-y-1.5">
-                  {plan.features.map((f) => (
+
+                {/* Unlock label */}
+                <div
+                  className="rounded-xl px-3 py-2.5"
+                  style={{ background: tier.id === 'PRO' ? '#f5f2fd' : tier.id === 'ENTERPRISE' ? '#fffbeb' : '#f9fafb' }}
+                >
+                  <p className="text-sm font-extrabold" style={{ color: tier.color }}>{tier.unlockLabel}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{tier.unlockSub}</p>
+                </div>
+
+                {/* Features */}
+                <ul className="space-y-1.5 flex-1">
+                  {tier.features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
-                      <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: plan.color }} />
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: tier.color }} />
                       {f}
                     </li>
                   ))}
                 </ul>
-                {plan.id === 'ENTERPRISE' ? (
-                  enterpriseSubmitted ? (
-                    <button disabled className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold" style={{ background: '#fef3c7', color: '#b45309' }}>
-                      Request Pending · Under review
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setShowEnterpriseModal(true)}
-                      className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[.98]"
-                      style={{ background: plan.color, color: '#fff', boxShadow: `0 4px 16px -4px ${plan.color}80` }}
-                    >
-                      Request Access
-                    </button>
-                  )
-                ) : (
-                  <button
-                    onClick={() => upgradeMutation.mutate(plan.id)}
-                    disabled={upgradeMutation.isPending || isCurrent}
-                    className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[.98] disabled:opacity-60"
-                    style={isCurrent
-                      ? { background: '#f3f4f6', color: '#6b7280' }
-                      : { background: plan.color, color: '#fff', boxShadow: `0 4px 16px -4px ${plan.color}80` }}
+
+                {/* CTA */}
+                {tier.id === 'FREE' && (
+                  <div
+                    className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold text-center"
+                    style={{ background: '#f3f4f6', color: '#6b7280' }}
                   >
-                    {isCurrent ? 'Current plan' : plan.monthlyUsd === 0 ? 'Downgrade' : 'Upgrade'}
-                  </button>
+                    {plan === 'free' && !hasCreditsPro ? 'Current plan' : 'Included'}
+                  </div>
+                )}
+
+                {tier.id === 'PRO' && (
+                  <div className="mt-auto space-y-2">
+                    {hasCreditsPro || plan === 'pro' ? (
+                      <div
+                        className="w-full py-2.5 rounded-2xl text-sm font-bold text-center"
+                        style={{ background: '#ede9fe', color: '#6D4AE0' }}
+                      >
+                        Pro active ✓
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('credits-tab-btn')?.click()}
+                        className="w-full py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[.98]"
+                        style={{ background: 'linear-gradient(135deg,#7C3AED,#6D4AE0)', boxShadow: '0 4px 16px -4px #7C3AED80' }}
+                      >
+                        Top up to unlock Pro
+                      </button>
+                    )}
+                    <p className="text-[10px] text-center text-gray-400">
+                      From {conf.symbol}{minTopUp} · no subscription · credits never expire
+                    </p>
+                  </div>
+                )}
+
+                {tier.id === 'ENTERPRISE' && (
+                  <div className="mt-auto">
+                    {enterpriseSubmitted ? (
+                      <div
+                        className="w-full py-2.5 rounded-2xl text-sm font-bold text-center"
+                        style={{ background: '#fef3c7', color: '#b45309' }}
+                      >
+                        Request Pending · Under review
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowEnterpriseModal(true)}
+                        className="w-full py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[.98]"
+                        style={{ background: 'linear-gradient(135deg,#D97706,#b45309)', boxShadow: '0 4px 16px -4px #D9770680' }}
+                      >
+                        Request Access
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
           );
         })}
       </div>
-      {upgradeMutation.isError && (
-        <p className="text-xs text-red-500 mt-2">{getErrorMessage(upgradeMutation.error) || 'Checkout failed'}</p>
-      )}
 
       {/* Enterprise Request Modal */}
       {showEnterpriseModal && (
@@ -669,16 +764,16 @@ function PlansGrid({ localeKey }: { localeKey: string }) {
                 <h2 className="text-lg font-bold text-gray-900">Request Enterprise Access</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Our team will review and activate payment within 24h</p>
               </div>
-              <button onClick={() => setShowEnterpriseModal(false)} className="p-2 rounded-xl hover:bg-gray-100">
+              <button type="button" onClick={() => setShowEnterpriseModal(false)} className="p-2 rounded-xl hover:bg-gray-100">
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
             <div className="space-y-3">
               {(
                 [
-                  { key: 'company',  label: 'Company / Brand name',      placeholder: 'Acme Corp'   },
-                  { key: 'teamSize', label: 'Team size',                  placeholder: 'e.g. 10–50'  },
-                  { key: 'budget',   label: 'Monthly AI budget (USD)',    placeholder: 'e.g. $500'   },
+                  { key: 'company',  label: 'Company / Brand name',   placeholder: 'Acme Corp'  },
+                  { key: 'teamSize', label: 'Team size',               placeholder: 'e.g. 10–50' },
+                  { key: 'budget',   label: 'Monthly AI budget (USD)', placeholder: 'e.g. $500'  },
                 ] as { key: keyof typeof enterpriseForm; label: string; placeholder: string }[]
               ).map(({ key, label, placeholder }) => (
                 <div key={key}>
@@ -704,6 +799,7 @@ function PlansGrid({ localeKey }: { localeKey: string }) {
               </div>
             </div>
             <button
+              type="button"
               disabled={!enterpriseForm.company || !enterpriseForm.useCase || enterpriseSubmitting}
               onClick={() => {
                 setEnterpriseSubmitting(true);
@@ -1085,6 +1181,7 @@ export default function WalletPage() {
           ] as { id: WalletTab; label: string; icon: React.ReactNode }[]).map(({ id, label, icon }) => (
             <button
               key={id}
+              id={id === 'credits' ? 'credits-tab-btn' : undefined}
               type="button"
               onClick={() => setTab(id)}
               className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold rounded-t-2xl transition-all -mb-px"
@@ -1134,7 +1231,7 @@ export default function WalletPage() {
         {/* ── Plan tab ───────────────────────────────────────────────────── */}
         {tab === 'plan' && (
           <div className="space-y-5">
-            <PlansGrid localeKey={localeKey} />
+            <PlansGrid />
 
             {isAdmin && <OwnerPanel />}
           </div>
