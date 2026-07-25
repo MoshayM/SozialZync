@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { MobileNav } from './_components/MobileNav';
 import { LogoMark } from '@/components/logo-mark';
+import { PwaInstallButtonLanding } from '@/components/pwa-install';
 
 // ── Capabilities ──────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ const WORKFLOW = [
 const NAV_LINKS = [
   { label: 'Features',    href: '#features' },
   { label: 'How it works',href: '#workflow' },
+  { label: 'Get the App', href: '#download' },
   { label: 'Pricing',     href: '#pricing' },
 ];
 
@@ -397,6 +399,102 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── GET THE APP ───────────────────────────────────────────────────────── */}
+        <section id="download" aria-label="Download the app" style={{background:'linear-gradient(160deg,#0e0924 0%,#130a3a 100%)'}}>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-6 text-sm font-medium text-white/80" style={{background:'rgba(124,58,237,.15)'}}>
+                <span>📲</span> Available everywhere
+              </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
+                Take Blueforce<br />
+                <span style={{background:'linear-gradient(90deg,#c4b5fd,#a78bfa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
+                  wherever you create
+                </span>
+              </h2>
+              <p className="text-white/55 text-base sm:text-lg max-w-xl mx-auto">
+                Install as a native app on any device. Works offline, launches in seconds, feels like a real app.
+              </p>
+            </div>
+
+            {/* Platform cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
+              {/* Web / Desktop */}
+              <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(124,58,237,.2)'}}>🌐</div>
+                <div>
+                  <p className="text-white font-bold text-base mb-1">Web App</p>
+                  <p className="text-white/45 text-sm leading-relaxed">Install directly from Chrome, Edge, or Safari. Works on Windows, Mac, and Linux.</p>
+                </div>
+                <PwaInstallButtonLanding />
+              </div>
+
+              {/* Android */}
+              <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(52,168,83,.15)'}}>🤖</div>
+                <div>
+                  <p className="text-white font-bold text-base mb-1">Android</p>
+                  <p className="text-white/45 text-sm leading-relaxed">Download from Google Play. Full offline support, push notifications, and home screen shortcut.</p>
+                </div>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.blueforce.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-auto"
+                >
+                  <img
+                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                    alt="Get it on Google Play"
+                    className="h-12 w-auto"
+                    style={{filter:'brightness(0.95)'}}
+                  />
+                </a>
+              </div>
+
+              {/* iOS */}
+              <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(0,122,255,.15)'}}>🍎</div>
+                <div>
+                  <p className="text-white font-bold text-base mb-1">iPhone & iPad</p>
+                  <p className="text-white/45 text-sm leading-relaxed">Download from the App Store, or open in Safari and tap Share → Add to Home Screen.</p>
+                </div>
+                <a
+                  href="https://apps.apple.com/app/blueforce/id000000000"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-auto"
+                >
+                  <img
+                    src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+                    alt="Download on the App Store"
+                    className="h-10 w-auto"
+                  />
+                </a>
+              </div>
+            </div>
+
+            {/* Feature pills */}
+            <div className="flex flex-wrap justify-center gap-3">
+              {[
+                '⚡ Instant launch',
+                '📴 Works offline',
+                '🔔 Push notifications',
+                '🔒 Secure & private',
+                '🔄 Auto-updates',
+                '📱 Native feel',
+              ].map((feat) => (
+                <span
+                  key={feat}
+                  className="text-sm font-medium px-4 py-2 rounded-full"
+                  style={{background:'rgba(255,255,255,.06)',color:'rgba(255,255,255,.6)',border:'1px solid rgba(255,255,255,.1)'}}
+                >
+                  {feat}
+                </span>
+              ))}
             </div>
           </div>
         </section>

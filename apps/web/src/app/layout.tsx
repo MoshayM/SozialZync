@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { Providers } from '@/components/providers';
+import { SwRegister } from '@/components/sw-register';
+import { PwaInstallBanner } from '@/components/pwa-install';
 import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','600','700','800'], variable: '--font-plus-jakarta' });
@@ -12,6 +14,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: 'cover',
+  themeColor: '#6D4AE0',
 };
 
 export const metadata: Metadata = {
@@ -25,6 +28,13 @@ export const metadata: Metadata = {
     shortcut: '/icon.svg',
     apple: '/icon.svg',
   },
+  // PWA / mobile app meta
+  appleWebApp: {
+    capable: true,
+    title: 'Blueforce',
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: { telephone: false },
   openGraph: {
     type: 'website',
     url: SITE_URL,
@@ -44,6 +54,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={plusJakarta.className}>
         <Providers>{children}</Providers>
+        <SwRegister />
+        <PwaInstallBanner />
       </body>
     </html>
   );
