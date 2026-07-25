@@ -7,7 +7,7 @@ import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','600','700','800'], variable: '--font-plus-jakarta' });
 
-const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://aicreatorforce.net';
+const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://sozialzync.vercel.app';
 
 export const viewport: Viewport = {
   width: 'device-width',
