@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 
-export type Plan = 'free' | 'pro';
+export type Plan = 'free' | 'pro' | 'enterprise';
 
 export const FREE_LIMITS = {
   maxProjects: 3,
@@ -18,8 +18,20 @@ const LOW_CREDIT_THRESHOLD = 500;
 /** localStorage key that marks a user as having actively topped up credits. */
 const CREDIT_PRO_KEY = 'cf_credit_pro_active';
 
+function isAdminFromToken(): boolean {
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
+    if (!token) return false;
+    const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { role?: string };
+    return payload.role === 'SUPER_ADMIN' || payload.role === 'OWNER';
+  } catch {
+    return false;
+  }
+}
+
 export function usePlan() {
   const [storedPlan, setStoredPlan] = useState<Plan>('free');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [creditProWasActive, setCreditProWasActive] = useState(false);
 
   // Fetch live credit balance — deduplicates with wallet page query via shared key.
@@ -32,15 +44,23 @@ export function usePlan() {
 
   useEffect(() => {
     const stored = localStorage.getItem('cf_plan') as Plan | null;
-    if (stored === 'pro') setStoredPlan('pro');
+    if (stored === 'enterprise') setStoredPlan('enterprise');
+    else if (stored === 'pro') setStoredPlan('pro');
     setCreditProWasActive(localStorage.getItem(CREDIT_PRO_KEY) === 'true');
+    setIsAdmin(isAdminFromToken());
   }, []);
 
   const credits = balance?.balanceCredits ?? null;
   const hasCreditBalance = credits !== null && credits > 0;
 
+  // SUPER_ADMIN / OWNER always get Enterprise access.
+  // Enterprise stored plan stays enterprise regardless of credit balance.
   // Credits > 0 grants Pro access on top of any subscription plan.
-  const plan: Plan = storedPlan === 'pro' || hasCreditBalance ? 'pro' : 'free';
+  const plan: Plan = isAdmin || storedPlan === 'enterprise'
+    ? 'enterprise'
+    : storedPlan === 'pro' || hasCreditBalance
+    ? 'pro'
+    : 'free';
 
   // True when user topped up before but credits are now gone and no subscription.
   const creditsExhausted = storedPlan !== 'pro' && credits !== null && credits === 0 && creditProWasActive;
@@ -76,16 +96,24 @@ export function usePlan() {
     setStoredPlan('free');
   }
 
+  function upgradeToEnterprise() {
+    localStorage.setItem('cf_plan', 'enterprise');
+    setStoredPlan('enterprise');
+  }
+
   return {
     plan,
     isFreeTier: plan === 'free',
-    isPro: plan === 'pro',
+    isPro: plan === 'pro' || plan === 'enterprise',
+    isEnterprise: plan === 'enterprise',
+    isSuperAdmin: isAdmin,
     hasCreditsPro,
     creditsExhausted,
     lowCredits,
     credits,
     limits: FREE_LIMITS,
     upgradeToPro,
+    upgradeToEnterprise,
     downgradeToFree,
     activateCreditPro,
     clearCreditProFlag,

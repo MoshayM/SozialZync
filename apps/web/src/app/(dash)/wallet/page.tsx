@@ -159,7 +159,7 @@ function UsageRing({ pct }: { pct: number }) {
 // ── 1. Financial Hero ────────────────────────────────────────────────────────
 
 function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBudget: () => void }) {
-  const { hasCreditsPro } = usePlan();
+  const { hasCreditsPro, isEnterprise, isSuperAdmin } = usePlan();
   const { data: balance } = useQuery<{ balanceCredits: number; buckets: Record<string, number>; lifetimePurchased: number; lifetimeUsed: number }>({
     queryKey: ['wallet-balance'],
     queryFn: () => api.wallet.balance().then((r) => r.data),
@@ -191,9 +191,20 @@ function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBud
           {/* Plan badge */}
           <div className="inline-flex items-center gap-2 mb-4">
             <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-              {hasCreditsPro ? 'Pro (Credits)' : (sub?.plan ?? 'Free')} Plan
+              {isSuperAdmin ? 'Super Admin'
+                : isEnterprise ? 'Enterprise'
+                : hasCreditsPro ? 'Pro (Credits)'
+                : (sub?.plan ?? 'Free')} Plan
             </span>
-            {hasCreditsPro ? (
+            {isSuperAdmin ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1" style={{ background: '#fef3c7', color: '#92400e' }}>
+                <ShieldCheck className="w-3 h-3" /> Full access
+              </span>
+            ) : isEnterprise ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1" style={{ background: '#ecfdf5', color: '#065f46' }}>
+                <Crown className="w-3 h-3" /> Enterprise
+              </span>
+            ) : hasCreditsPro ? (
               <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1" style={{ background: '#fef3c7', color: '#92400e' }}>
                 <Zap className="w-3 h-3" /> Credit-powered
               </span>
@@ -569,7 +580,7 @@ function SmartTopUp() {
 // ── 4. Plans Grid (credit-based access tiers) ─────────────────────────────────
 
 function PlansGrid() {
-  const { plan, credits, hasCreditsPro } = usePlan();
+  const { plan, credits, hasCreditsPro, isEnterprise, isSuperAdmin } = usePlan();
   const [localeKey, setLocaleKey] = useState<string>('DEFAULT');
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
   const [enterpriseForm, setEnterpriseForm] = useState({ company: '', teamSize: '', useCase: '', budget: '' });
@@ -597,24 +608,32 @@ function PlansGrid() {
       <div
         className="rounded-2xl p-4 flex items-center gap-3"
         style={{
-          background: hasCreditsPro ? 'linear-gradient(135deg,#f5f2fd,#ede9fb)' : '#f9fafb',
-          border: `1.5px solid ${hasCreditsPro ? '#d8d0f7' : '#e5e7eb'}`,
+          background: isSuperAdmin || isEnterprise ? 'linear-gradient(135deg,#fffbeb,#fef3c7)' : hasCreditsPro ? 'linear-gradient(135deg,#f5f2fd,#ede9fb)' : '#f9fafb',
+          border: `1.5px solid ${isSuperAdmin || isEnterprise ? '#fde68a' : hasCreditsPro ? '#d8d0f7' : '#e5e7eb'}`,
         }}
       >
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: hasCreditsPro ? 'linear-gradient(135deg,#7C3AED,#6D4AE0)' : '#e5e7eb' }}
+          style={{ background: isSuperAdmin || isEnterprise ? 'linear-gradient(135deg,#d97706,#f59e0b)' : hasCreditsPro ? 'linear-gradient(135deg,#7C3AED,#6D4AE0)' : '#e5e7eb' }}
         >
-          {hasCreditsPro
-            ? <Sparkles className="w-5 h-5 text-white" />
+          {isSuperAdmin ? <ShieldCheck className="w-5 h-5 text-white" />
+            : isEnterprise ? <Crown className="w-5 h-5 text-white" />
+            : hasCreditsPro ? <Sparkles className="w-5 h-5 text-white" />
             : <Wallet className="w-5 h-5 text-gray-500" />}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-900 text-sm">
-            {hasCreditsPro ? 'Pro access — active via credits' : 'Free tier'}
+            {isSuperAdmin ? 'Super Admin — full platform access'
+              : isEnterprise ? 'Enterprise plan — all features unlocked'
+              : hasCreditsPro ? 'Pro access — active via credits'
+              : 'Free tier'}
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {hasCreditsPro
+            {isSuperAdmin
+              ? 'Owner/developer account · bypasses all plan gates · full access to all features'
+              : isEnterprise
+              ? `Enterprise features active · ${credits?.toLocaleString() ?? '—'} credits remaining`
+              : hasCreditsPro
               ? `${credits?.toLocaleString() ?? '—'} credits remaining · all Pro features unlocked`
               : `Top up AI credits from ${conf.symbol}${minTopUp} to unlock Pro instantly`}
           </p>
@@ -643,8 +662,9 @@ function PlansGrid() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {ACCESS_TIERS.map((tier) => {
           const isActive =
-            tier.id === 'PRO' ? hasCreditsPro || plan === 'pro'
-            : tier.id === 'FREE' ? plan === 'free' && !hasCreditsPro
+            tier.id === 'ENTERPRISE' ? isSuperAdmin || isEnterprise
+            : tier.id === 'PRO' ? !isSuperAdmin && !isEnterprise && (hasCreditsPro || plan === 'pro')
+            : tier.id === 'FREE' ? !isSuperAdmin && !isEnterprise && plan === 'free' && !hasCreditsPro
             : false;
 
           return (

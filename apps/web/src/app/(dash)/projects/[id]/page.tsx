@@ -764,10 +764,13 @@ export default function ProjectDetailPage() {
     }
   }
 
-  const contentType: ContentType =
-    typeof window !== 'undefined'
-      ? ((localStorage.getItem(`cf_ct_${id}`) as ContentType | null) ?? 'VIDEO')
-      : 'VIDEO';
+  // Read from localStorage after mount only — direct access at render time causes
+  // a Next.js SSR hydration mismatch (server has no window, client does).
+  const [contentType, setContentType] = useState<ContentType>('VIDEO');
+  useEffect(() => {
+    const saved = localStorage.getItem(`cf_ct_${id}`) as ContentType | null;
+    if (saved === 'VIDEO' || saved === 'MUSIC' || saved === 'SHORT') setContentType(saved);
+  }, [id]);
 
   const { data: project, isLoading } = useQuery<ProjectDetail>({
     queryKey: ['project', id],

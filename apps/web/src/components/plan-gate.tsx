@@ -3,25 +3,61 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Lock } from 'lucide-react';
 
-export type Plan = 'FREE' | 'STARTER' | 'PRO' | 'AGENCY';
+// ── Tier definitions ──────────────────────────────────────────────────────────
 
-const PLAN_ORDER: Record<Plan, number> = { FREE: 0, STARTER: 1, PRO: 2, AGENCY: 3 };
-const PLAN_LABEL: Record<Plan, string> = { FREE: 'Free', STARTER: 'Starter', PRO: 'Pro', AGENCY: 'Agency' };
-const PLAN_PRICE: Record<Plan, string> = { FREE: '', STARTER: '$29/mo', PRO: '$79/mo', AGENCY: '$199/mo' };
+export type Plan = 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' | 'AGENCY';
 
-export function planFromToken(): Plan {
+const PLAN_ORDER: Record<Plan, number> = {
+  FREE: 0, STARTER: 1, PRO: 2, ENTERPRISE: 3, AGENCY: 4,
+};
+const PLAN_LABEL: Record<Plan, string> = {
+  FREE: 'Free', STARTER: 'Starter', PRO: 'Pro', ENTERPRISE: 'Enterprise', AGENCY: 'Agency',
+};
+const PLAN_PRICE: Record<Plan, string> = {
+  FREE: '', STARTER: '$29/mo', PRO: '$79/mo', ENTERPRISE: '$199/mo', AGENCY: '$399/mo',
+};
+const PLAN_DESC: Record<Plan, string> = {
+  FREE: 'Start with 3 projects, basic AI tools, and 10 Copilot queries/day.',
+  STARTER: 'Unlock AI agent workflows, 5 videos/month, and basic analytics.',
+  PRO: 'Unlock all 15 AI agents, unlimited publishing, and full SEO suite.',
+  ENTERPRISE: 'Unlimited everything, advanced analytics, multi-channel, priority support.',
+  AGENCY: 'Team seats, white-label, client workspaces, and dedicated SLA.',
+};
+
+// ── Role helpers ──────────────────────────────────────────────────────────────
+
+function parseToken(): { plan?: string; role?: string } {
   try {
     const token = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
-    if (!token) return 'FREE';
-    const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { plan?: string };
-    const p = ((payload.plan ?? 'FREE') as string).toUpperCase() as Plan;
-    return p in PLAN_ORDER ? p : 'FREE';
+    if (!token) return {};
+    return JSON.parse(atob(token.split('.')[1] ?? '')) as { plan?: string; role?: string };
   } catch {
-    return 'FREE';
+    return {};
   }
 }
 
-export function usePlan(): Plan {
+/** Returns true if the current user is a SUPER_ADMIN or OWNER — bypasses all plan gates. */
+export function isAdminRole(): boolean {
+  const { role } = parseToken();
+  return role === 'SUPER_ADMIN' || role === 'OWNER';
+}
+
+/** Hook version — safe for SSR (reads after mount). */
+export function useIsAdmin(): boolean {
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => { setAdmin(isAdminRole()); }, []);
+  return admin;
+}
+
+// ── Plan hook ─────────────────────────────────────────────────────────────────
+
+export function planFromToken(): Plan {
+  const { plan } = parseToken();
+  const p = (plan ?? 'FREE').toUpperCase() as Plan;
+  return p in PLAN_ORDER ? p : 'FREE';
+}
+
+export function usePlanGate(): Plan {
   const [plan, setPlan] = useState<Plan>('FREE');
   useEffect(() => { setPlan(planFromToken()); }, []);
   return plan;
@@ -31,24 +67,27 @@ export function planAtLeast(userPlan: Plan, required: Plan): boolean {
   return PLAN_ORDER[userPlan] >= PLAN_ORDER[required];
 }
 
+// ── PlanGate component ────────────────────────────────────────────────────────
+
 interface PlanGateProps {
-  /** Minimum plan required to see the children. */
   requiredPlan: Plan;
   children?: React.ReactNode;
-  /** Short label shown in the locked overlay, e.g. "AI Analysis". */
   featureLabel?: string;
   /** Blur + dim the children when locked (default true). */
   preview?: boolean;
 }
 
 /**
- * Wraps content that requires a minimum subscription plan.
- * Shows a locked overlay with an upgrade CTA for users below the required tier.
+ * Shows a locked overlay for users below the required plan tier.
+ * SUPER_ADMIN / OWNER bypass all gates — they see everything.
  * The API always enforces the real gate; this is a UI affordance only.
  */
 export function PlanGate({ requiredPlan, children, featureLabel, preview = true }: PlanGateProps) {
-  const userPlan = usePlan();
-  const allowed = planAtLeast(userPlan, requiredPlan);
+  const userPlan = usePlanGate();
+  const isAdmin  = useIsAdmin();
+
+  // Super Admin and Owner always have full access
+  const allowed = isAdmin || planAtLeast(userPlan, requiredPlan);
 
   if (allowed) return <>{children}</>;
 
@@ -83,11 +122,7 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
           )}
         </p>
         <p className="text-xs text-gray-400 mb-5 text-center px-10 leading-relaxed">
-          {requiredPlan === 'PRO'
-            ? 'Unlock AI-powered analytics, growth reports, all 15 AI agents, and unlimited publishing.'
-            : requiredPlan === 'AGENCY'
-            ? 'Unlock team seats, white-label, and dedicated support for your agency.'
-            : 'Unlock AI agent workflows, 5 videos/month, and basic analytics.'}
+          {PLAN_DESC[requiredPlan]}
         </p>
 
         <Link
