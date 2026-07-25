@@ -363,15 +363,28 @@ export function CopilotPanel() {
     return () => clearTimeout(id);
   }, [micError]);
 
-  // ── Audio priming (iOS requires speak() in a user gesture to unlock TTS) ──
+  // ── Audio priming ──────────────────────────────────────────────────────────
+  // iOS requires speechSynthesis.speak() inside a user gesture to unlock TTS.
+  // Android Chrome additionally needs AudioContext.resume() to unblock audio.
+  // Both must run synchronously from the click handler — not from async callbacks.
   const primeAudio = useCallback(() => {
-    if (speechPrimedRef.current || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (speechPrimedRef.current || typeof window === 'undefined') return;
     speechPrimedRef.current = true;
+    // Unlock Web Audio (Android requirement)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const AC: typeof AudioContext = (window as any).AudioContext ?? (window as any).webkitAudioContext;
+      if (AC) { const ctx = new AC(); ctx.resume().catch(() => {}); }
+    } catch {}
+    // Unlock speechSynthesis (iOS requirement)
+    if (!('speechSynthesis' in window)) return;
     try {
       const silent = new SpeechSynthesisUtterance('');
       silent.volume = 0;
       window.speechSynthesis.speak(silent);
     } catch {}
+    // Pre-warm voices so they're available synchronously on the first real speak()
+    try { window.speechSynthesis.getVoices(); } catch {}
   }, []);
 
   // ── TTS ────────────────────────────────────────────────────────────────────
@@ -427,15 +440,28 @@ export function CopilotPanel() {
       next();
     };
 
-    // Voices may not be loaded yet on first call (Chrome async)
+    // Voices may not be loaded yet on first call (Chrome async).
+    // On some Android versions, calling speak() from onvoiceschanged (async) is
+    // treated as outside a user gesture and silently blocked. Poll as fallback.
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
       doSpeak();
     } else {
+      let fired = false;
       window.speechSynthesis.onvoiceschanged = () => {
         window.speechSynthesis.onvoiceschanged = null;
-        doSpeak();
+        if (!fired) { fired = true; doSpeak(); }
       };
+      // Polling fallback for Android: voices often arrive within 100-300 ms
+      let attempts = 0;
+      const poll = setInterval(() => {
+        if (fired || ++attempts > 20) { clearInterval(poll); return; }
+        if (window.speechSynthesis.getVoices().length > 0) {
+          clearInterval(poll);
+          window.speechSynthesis.onvoiceschanged = null;
+          if (!fired) { fired = true; doSpeak(); }
+        }
+      }, 150);
     }
   }, [lang]);
 
@@ -852,6 +878,7 @@ export function CopilotPanel() {
                             setSpeaking(false);
                             setSpeakingIdx(null);
                           } else {
+                            primeAudio(); // unlock iOS TTS + Android AudioContext from user gesture
                             speak(m.content, lang, undefined, i);
                           }
                         }}
