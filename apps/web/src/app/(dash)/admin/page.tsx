@@ -3,6 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Activity,
   BarChart2,
+  Bot,
+  Building2,
+  CheckCircle,
+  Clock,
   Cpu,
   DollarSign,
   Eye,
@@ -20,13 +24,16 @@ import {
   UserCheck,
   XCircle,
   Apple,
+  AlertTriangle,
+  Send,
+  Loader2,
 } from 'lucide-react';
 import { StatCard, PastelBars } from '@/components/stat-card';
 import { DevicePreview } from '@/components/device-preview';
 import { api, type AdminProvider, type EnterpriseMetrics, type ForecastRow } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
-type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users';
+type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests';
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
@@ -189,6 +196,95 @@ function HBar({ label, icon, value, max, color, suffix = '' }: {
   );
 }
 
+// ── Enterprise request types ──────────────────────────────────────────────────
+
+type EnterpriseRequestStatus = 'pending' | 'validating' | 'approved' | 'rejected';
+
+interface EnterpriseRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  company: string;
+  teamSize: string;
+  useCase: string;
+  budget: string;
+  status: EnterpriseRequestStatus;
+  submittedAt: string;
+  aiAssessment?: AiAssessment;
+  paymentActivated?: boolean;
+}
+
+interface AiAssessment {
+  riskScore: number;       // 0-100
+  recommendation: 'approve' | 'review' | 'reject';
+  summary: string;
+  signals: string[];
+}
+
+// Seeded mock requests for demo
+const SEED_REQUESTS: EnterpriseRequest[] = [
+  {
+    id: 'req_001', userId: 'u_102', userName: 'Lena Hoffmann', userEmail: 'lena@contentco.de',
+    company: 'ContentCo GmbH', teamSize: '25–50', useCase: 'Agency managing 30+ brand channels across YouTube, Instagram & TikTok. Need white-label + team seats for our creators.',
+    budget: '$800', status: 'pending', submittedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'req_002', userId: 'u_207', userName: 'Marcus Owusu', userEmail: 'marcus@growthlab.io',
+    company: 'GrowthLab Media', teamSize: '10–25', useCase: 'We produce high-volume short-form content for 15 clients. Need custom AI budgets and SLA guarantee.',
+    budget: '$400', status: 'validating', submittedAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
+    aiAssessment: {
+      riskScore: 22, recommendation: 'approve',
+      summary: 'Legitimate B2B agency with consistent usage patterns. Team size and budget are proportionate to stated use case. Low churn risk.',
+      signals: ['Verified business email domain', 'Budget aligns with 15-client scale', 'Use case is platform-compliant', 'No policy red flags detected'],
+    },
+  },
+  {
+    id: 'req_003', userId: 'u_055', userName: 'Yuki Tanaka', userEmail: 'yuki@viralhq.co',
+    company: 'ViralHQ', teamSize: '1–5', useCase: 'Solo creator with large audience. Need enterprise AI limits for my personal brand and podcast network.',
+    budget: '$150', status: 'rejected', submittedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    aiAssessment: {
+      riskScore: 68, recommendation: 'reject',
+      summary: 'Request does not meet enterprise tier criteria. Team size of 1–5 and $150 budget is below enterprise threshold. Pro plan is the appropriate tier.',
+      signals: ['Team size below enterprise minimum (10+)', 'Budget insufficient for enterprise pricing', 'No multi-brand or agency use case', 'Pro plan covers stated needs'],
+    },
+  },
+];
+
+// AI assessment mock generator
+function generateAiAssessment(req: EnterpriseRequest): AiAssessment {
+  const teamNum = parseInt(req.teamSize.split('–')[0] ?? '0', 10);
+  const budgetNum = parseInt((req.budget ?? '0').replace(/[^0-9]/g, ''), 10);
+  const wordCount = req.useCase.split(' ').length;
+
+  let riskScore = 30;
+  if (teamNum < 10) riskScore += 30;
+  if (budgetNum < 200) riskScore += 25;
+  if (wordCount < 15) riskScore += 15;
+  if (req.company.length < 5) riskScore += 10;
+  riskScore = Math.min(95, Math.max(5, riskScore));
+
+  const recommendation: AiAssessment['recommendation'] =
+    riskScore < 35 ? 'approve' : riskScore < 65 ? 'review' : 'reject';
+
+  const signals: string[] = [];
+  if (teamNum >= 10) signals.push('Team size meets enterprise threshold');
+  else signals.push('Team size below recommended enterprise minimum (10+)');
+  if (budgetNum >= 300) signals.push('Budget is proportionate for enterprise tier');
+  else signals.push('Budget may be below enterprise pricing floor');
+  if (wordCount >= 20) signals.push('Detailed use case description — genuine intent likely');
+  else signals.push('Brief use case — request additional detail before approval');
+  signals.push('Email domain and company name cross-referenced');
+
+  const summaryMap: Record<AiAssessment['recommendation'], string> = {
+    approve: `Strong enterprise candidate. ${req.company} presents a credible multi-user use case with proportionate budget. Recommend immediate approval.`,
+    review: `Moderate confidence. ${req.company} shows some enterprise signals but has gaps — review use case and verify team size before activating payment.`,
+    reject: `Below enterprise criteria. ${req.company}'s stated team size and budget indicate Pro plan is the appropriate tier. Suggest redirecting.`,
+  };
+
+  return { riskScore, recommendation, summary: summaryMap[recommendation], signals };
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
@@ -208,6 +304,11 @@ export default function AdminDashboardPage() {
   const [userSearch, setUserSearch] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'pro' | 'enterprise'>('all');
   const [impersonating, setImpersonating] = useState<MockUser | null>(null);
+
+  // Enterprise Requests state
+  const [enterpriseRequests, setEnterpriseRequests] = useState<EnterpriseRequest[]>(SEED_REQUESTS);
+  const [validatingId, setValidatingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -234,6 +335,51 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Merge localStorage enterprise requests with seed data
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('cf_enterprise_requests') ?? '[]') as EnterpriseRequest[];
+      if (stored.length > 0) {
+        setEnterpriseRequests((prev) => {
+          const ids = new Set(prev.map((r) => r.id));
+          return [...stored.filter((r) => !ids.has(r.id)), ...prev];
+        });
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
+
+  function handleViewRequest(id: string) {
+    setExpandedId((prev) => (prev === id ? null : id));
+    setEnterpriseRequests((prev) =>
+      prev.map((r) => r.id === id && r.status === 'pending' ? { ...r, status: 'validating' } : r)
+    );
+  }
+
+  function handleAiValidate(id: string) {
+    setValidatingId(id);
+    setTimeout(() => {
+      setEnterpriseRequests((prev) =>
+        prev.map((r) => {
+          if (r.id !== id) return r;
+          return { ...r, aiAssessment: generateAiAssessment(r) };
+        })
+      );
+      setValidatingId(null);
+    }, 2200);
+  }
+
+  function handleApprove(id: string) {
+    setEnterpriseRequests((prev) =>
+      prev.map((r) => r.id === id ? { ...r, status: 'approved', paymentActivated: true } : r)
+    );
+  }
+
+  function handleReject(id: string) {
+    setEnterpriseRequests((prev) =>
+      prev.map((r) => r.id === id ? { ...r, status: 'rejected' } : r)
+    );
+  }
 
   async function handleGenerateForecasts() {
     setGenerating(true);
@@ -295,10 +441,15 @@ export default function AdminDashboardPage() {
       <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex gap-2 overflow-x-auto no-scrollbar" style={{ top: impersonating ? '48px' : '0' }}>
         {(
           [
-            { id: 'dashboard',     label: 'Enterprise Dashboard', icon: <BarChart2 className="w-4 h-4" /> },
-            { id: 'page-views',    label: 'Page Views',           icon: <Eye className="w-4 h-4" /> },
-            { id: 'users',         label: 'User Accounts',        icon: <Users className="w-4 h-4" /> },
-            { id: 'device-preview',label: 'Device Preview',       icon: <Monitor className="w-4 h-4" /> },
+            { id: 'dashboard',           label: 'Enterprise Dashboard', icon: <BarChart2 className="w-4 h-4" /> },
+            { id: 'page-views',          label: 'Page Views',           icon: <Eye className="w-4 h-4" /> },
+            { id: 'users',               label: 'User Accounts',        icon: <Users className="w-4 h-4" /> },
+            {
+              id: 'enterprise-requests',
+              label: `Enterprise Requests${enterpriseRequests.filter((r) => r.status === 'pending').length > 0 ? ` (${enterpriseRequests.filter((r) => r.status === 'pending').length})` : ''}`,
+              icon: <Building2 className="w-4 h-4" />,
+            },
+            { id: 'device-preview',      label: 'Device Preview',       icon: <Monitor className="w-4 h-4" /> },
           ] as { id: AdminTab; label: string; icon: React.ReactNode }[]
         ).map(({ id, label, icon }) => (
           <button
@@ -534,6 +685,238 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Enterprise Requests ─────────────────────────────────────────────── */}
+      {adminTab === 'enterprise-requests' && (
+        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+          <div>
+            <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Enterprise Access Requests</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Review, AI-validate, and approve or reject enterprise tier applications</p>
+          </div>
+
+          {/* Status legend */}
+          <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+            {([
+              { label: 'Pending', color: '#6B7280', bg: '#f3f4f6' },
+              { label: 'Validating', color: '#0891B2', bg: '#e0f2fe' },
+              { label: 'Approved', color: '#065f46', bg: '#ecfdf5' },
+              { label: 'Rejected', color: '#9f1239', bg: '#fff1f2' },
+            ] as const).map(({ label, color, bg }) => (
+              <span key={label} className="px-2.5 py-1 rounded-full" style={{ background: bg, color }}>{label}</span>
+            ))}
+          </div>
+
+          {enterpriseRequests.length === 0 && (
+            <div className="bg-white rounded-2xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+              <Building2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+              <p className="text-sm text-gray-400">No enterprise requests yet</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {enterpriseRequests.map((req) => {
+              const isExpanded = expandedId === req.id;
+              const statusStyles: Record<EnterpriseRequestStatus, React.CSSProperties> = {
+                pending:    { background: '#f3f4f6', color: '#4b5563' },
+                validating: { background: '#e0f2fe', color: '#0369a1' },
+                approved:   { background: '#ecfdf5', color: '#065f46' },
+                rejected:   { background: '#fff1f2', color: '#9f1239' },
+              };
+              const statusIcons: Record<EnterpriseRequestStatus, React.ReactNode> = {
+                pending:    <Clock className="w-3.5 h-3.5" />,
+                validating: <Eye className="w-3.5 h-3.5" />,
+                approved:   <CheckCircle className="w-3.5 h-3.5" />,
+                rejected:   <XCircle className="w-3.5 h-3.5" />,
+              };
+
+              return (
+                <div key={req.id} className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+                  {/* Request header row */}
+                  <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                    {/* Avatar + info */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg,#D97706,#b45309)' }}>
+                        {req.userName.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{req.userName}</p>
+                        <p className="text-xs text-gray-400 truncate">{req.userEmail}</p>
+                        <p className="text-xs font-semibold text-amber-700 mt-0.5">{req.company} · {req.teamSize} people · {req.budget}/mo budget</p>
+                      </div>
+                    </div>
+
+                    {/* Status + date */}
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize" style={statusStyles[req.status]}>
+                        {statusIcons[req.status]} {req.status}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(req.submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleViewRequest(req.id)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                        style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+                      >
+                        {isExpanded ? 'Collapse' : 'Review'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded detail */}
+                  {isExpanded && (
+                    <div className="border-t border-[#f0edf9] p-5 space-y-4">
+                      {/* Use case */}
+                      <div>
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Use Case</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{req.useCase}</p>
+                      </div>
+
+                      {/* AI Assessment */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">AI Validation</p>
+                          {!req.aiAssessment && (
+                            <button
+                              type="button"
+                              onClick={() => handleAiValidate(req.id)}
+                              disabled={validatingId === req.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 disabled:opacity-60"
+                              style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff' }}
+                            >
+                              {validatingId === req.id
+                                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analysing…</>
+                                : <><Bot className="w-3.5 h-3.5" /> Validate with AI</>
+                              }
+                            </button>
+                          )}
+                        </div>
+
+                        {validatingId === req.id && (
+                          <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+                            <Loader2 className="w-4 h-4 animate-spin text-purple-500 shrink-0" />
+                            <span className="text-sm text-purple-700">AI is analysing company profile, use case patterns, budget signals and platform fit…</span>
+                          </div>
+                        )}
+
+                        {req.aiAssessment && (
+                          <div className="rounded-2xl p-4 space-y-3" style={{ background: '#faf9ff', border: '1.5px solid #e3ddf8' }}>
+                            {/* Risk score + recommendation */}
+                            <div className="flex items-center gap-4">
+                              <div className="flex flex-col items-center">
+                                <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-extrabold text-white" style={{
+                                  background: req.aiAssessment.riskScore < 35 ? '#16a34a' : req.aiAssessment.riskScore < 65 ? '#d97706' : '#dc2626',
+                                }}>
+                                  {req.aiAssessment.riskScore}
+                                </div>
+                                <span className="text-[10px] text-gray-400 mt-1">Risk score</span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Bot className="w-4 h-4 text-purple-500" />
+                                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                    AI Recommendation:&nbsp;
+                                    <span style={{
+                                      color: req.aiAssessment.recommendation === 'approve' ? '#16a34a'
+                                        : req.aiAssessment.recommendation === 'reject' ? '#dc2626' : '#d97706'
+                                    }}>
+                                      {req.aiAssessment.recommendation.toUpperCase()}
+                                    </span>
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-600 leading-relaxed">{req.aiAssessment.summary}</p>
+                              </div>
+                            </div>
+
+                            {/* Signals */}
+                            <div>
+                              <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1.5">Signals detected</p>
+                              <ul className="space-y-1">
+                                {req.aiAssessment.signals.map((s, i) => (
+                                  <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                                    <span className="mt-0.5 shrink-0" style={{ color: '#7C3AED' }}>·</span>
+                                    {s}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Approve / Reject actions */}
+                      {(req.status === 'pending' || req.status === 'validating') && (
+                        <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(req.id)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
+                            style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)' }}
+                          >
+                            <CheckCircle className="w-4 h-4" /> Approve &amp; Activate Payment
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReject(req.id)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90"
+                            style={{ background: '#fff1f2', color: '#9f1239', border: '1.5px solid #fecdd3' }}
+                          >
+                            <XCircle className="w-4 h-4" /> Reject Request
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Approved state */}
+                      {req.status === 'approved' && (
+                        <div className="rounded-2xl px-4 py-3 space-y-2" style={{ background: '#ecfdf5', border: '1.5px solid #6ee7b7' }}>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                            <span className="text-sm font-bold text-emerald-800">Approved — payment gateway activated</span>
+                          </div>
+                          <p className="text-xs text-emerald-700">
+                            {req.userName} can now complete Enterprise payment. Enterprise access activates automatically after successful payment.
+                          </p>
+                          <button
+                            type="button"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90"
+                            style={{ background: '#16a34a' }}
+                          >
+                            <Send className="w-3.5 h-3.5" /> Send payment link to {req.userEmail}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Rejected state */}
+                      {req.status === 'rejected' && (
+                        <div className="rounded-2xl px-4 py-3 flex items-start gap-2" style={{ background: '#fff1f2', border: '1.5px solid #fecdd3' }}>
+                          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-bold text-rose-800">Request rejected</p>
+                            <p className="text-xs text-rose-600 mt-0.5">User has been notified. They can re-apply after 30 days or upgrade to Pro via the standard flow.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Info strip */}
+          <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+            <Bot className="w-4 h-4 text-[#9d6ff0] mt-0.5 shrink-0" />
+            <p className="text-sm text-gray-600">
+              AI Validation analyses the applicant&apos;s company profile, use case, team size, and budget against enterprise tier criteria. It is an <strong>advisory signal</strong> — final approval is always a human decision.
+            </p>
+          </div>
         </div>
       )}
 

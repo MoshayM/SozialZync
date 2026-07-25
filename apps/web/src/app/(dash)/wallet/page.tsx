@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertCircle, AlertTriangle, CalendarClock, CheckCircle, ChevronDown,
+  AlertCircle, AlertTriangle, CalendarClock, CheckCircle,
   Crown, Lightbulb, Loader2, PlusCircle, ShieldCheck, Sparkles, TrendingDown,
-  TrendingUp, Wallet, Zap,
+  TrendingUp, Wallet, X, Zap,
 } from 'lucide-react';
 import {
   api,
@@ -388,12 +388,20 @@ function SmartTopUp() {
   const qc = useQueryClient();
   const { activateCreditPro } = usePlan();
   const [localeKey, setLocaleKey] = useState<string>('DEFAULT');
-  const [showLocaleMenu, setShowLocaleMenu] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [customAmt, setCustomAmt] = useState('');
   const [activated, setActivated] = useState(false);
 
-  useEffect(() => { setLocaleKey(detectLocaleKey()); }, []);
+  useEffect(() => {
+    fetch('https://ipapi.co/json/')
+      .then((r) => r.json())
+      .then((d: { country_code?: string }) => {
+        const c = d.country_code ?? '';
+        if (EU_CODES.has(c)) setLocaleKey('EU');
+        else setLocaleKey(LOCALE_CONFIG[c] ? c : 'DEFAULT');
+      })
+      .catch(() => setLocaleKey(detectLocaleKey()));
+  }, []);
 
   const conf = LOCALE_CONFIG[localeKey] ?? LOCALE_CONFIG['DEFAULT']!;
 
@@ -436,27 +444,11 @@ function SmartTopUp() {
           <span className="text-sm font-semibold text-gray-800">Top Up Credits</span>
         </div>
 
-        {/* Locale detector badge */}
-        <div className="relative">
-          <button
-            onClick={() => setShowLocaleMenu((v) => !v)}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors"
-            style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
-          >
-            {conf.flag} {conf.label}
-            <ChevronDown className="w-3 h-3" />
-          </button>
-          {showLocaleMenu && (
-            <div className="absolute right-0 mt-1 z-20 bg-white rounded-2xl shadow-lg overflow-hidden" style={{ border: '1.5px solid #e3ddf8', minWidth: '160px' }}>
-              {Object.entries(LOCALE_CONFIG).filter(([k]) => k !== 'DEFAULT').map(([key, c]) => (
-                <button key={key} onClick={() => { setLocaleKey(key); setShowLocaleMenu(false); }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left hover:bg-[#faf9ff] transition-colors"
-                  style={{ color: localeKey === key ? '#6D4AE0' : '#374151' }}>
-                  <span>{c.flag}</span> {c.label}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Auto-detected locale badge */}
+        <div className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+          <span>{conf.flag}</span>
+          <span>{conf.label}</span>
+          <span className="text-[10px] text-purple-400">· auto</span>
         </div>
       </div>
 
@@ -567,6 +559,13 @@ function SmartTopUp() {
 function PlansGrid({ localeKey }: { localeKey: string }) {
   const conf = LOCALE_CONFIG[localeKey] ?? LOCALE_CONFIG['DEFAULT']!;
   const qc = useQueryClient();
+  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
+  const [enterpriseForm, setEnterpriseForm] = useState({ company: '', teamSize: '', useCase: '', budget: '' });
+  const [enterpriseSubmitted, setEnterpriseSubmitted] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('cf_enterprise_requested') === 'true';
+  });
+  const [enterpriseSubmitting, setEnterpriseSubmitting] = useState(false);
 
   const { data: sub } = useQuery<{ plan: string; status: string; currentPeriodEnd: string }>({
     queryKey: ['subscription'],
@@ -626,16 +625,32 @@ function PlansGrid({ localeKey }: { localeKey: string }) {
                     </li>
                   ))}
                 </ul>
-                <button
-                  onClick={() => upgradeMutation.mutate(plan.id)}
-                  disabled={upgradeMutation.isPending || isCurrent}
-                  className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[.98] disabled:opacity-60"
-                  style={isCurrent
-                    ? { background: '#f3f4f6', color: '#6b7280' }
-                    : { background: plan.color, color: '#fff', boxShadow: `0 4px 16px -4px ${plan.color}80` }}
-                >
-                  {isCurrent ? 'Current plan' : plan.monthlyUsd === 0 ? 'Downgrade' : 'Upgrade'}
-                </button>
+                {plan.id === 'ENTERPRISE' ? (
+                  enterpriseSubmitted ? (
+                    <button disabled className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold" style={{ background: '#fef3c7', color: '#b45309' }}>
+                      Request Pending · Under review
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowEnterpriseModal(true)}
+                      className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[.98]"
+                      style={{ background: plan.color, color: '#fff', boxShadow: `0 4px 16px -4px ${plan.color}80` }}
+                    >
+                      Request Access
+                    </button>
+                  )
+                ) : (
+                  <button
+                    onClick={() => upgradeMutation.mutate(plan.id)}
+                    disabled={upgradeMutation.isPending || isCurrent}
+                    className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[.98] disabled:opacity-60"
+                    style={isCurrent
+                      ? { background: '#f3f4f6', color: '#6b7280' }
+                      : { background: plan.color, color: '#fff', boxShadow: `0 4px 16px -4px ${plan.color}80` }}
+                  >
+                    {isCurrent ? 'Current plan' : plan.monthlyUsd === 0 ? 'Downgrade' : 'Upgrade'}
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -643,6 +658,80 @@ function PlansGrid({ localeKey }: { localeKey: string }) {
       </div>
       {upgradeMutation.isError && (
         <p className="text-xs text-red-500 mt-2">{getErrorMessage(upgradeMutation.error) || 'Checkout failed'}</p>
+      )}
+
+      {/* Enterprise Request Modal */}
+      {showEnterpriseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Request Enterprise Access</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Our team will review and activate payment within 24h</p>
+              </div>
+              <button onClick={() => setShowEnterpriseModal(false)} className="p-2 rounded-xl hover:bg-gray-100">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {(
+                [
+                  { key: 'company',  label: 'Company / Brand name',      placeholder: 'Acme Corp'   },
+                  { key: 'teamSize', label: 'Team size',                  placeholder: 'e.g. 10–50'  },
+                  { key: 'budget',   label: 'Monthly AI budget (USD)',    placeholder: 'e.g. $500'   },
+                ] as { key: keyof typeof enterpriseForm; label: string; placeholder: string }[]
+              ).map(({ key, label, placeholder }) => (
+                <div key={key}>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">{label}</label>
+                  <input
+                    type="text"
+                    placeholder={placeholder}
+                    value={enterpriseForm[key]}
+                    onChange={(e) => setEnterpriseForm((f) => ({ ...f, [key]: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Use case / Why enterprise?</label>
+                <textarea
+                  placeholder="Describe your use case..."
+                  rows={3}
+                  value={enterpriseForm.useCase}
+                  onChange={(e) => setEnterpriseForm((f) => ({ ...f, useCase: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 resize-none"
+                />
+              </div>
+            </div>
+            <button
+              disabled={!enterpriseForm.company || !enterpriseForm.useCase || enterpriseSubmitting}
+              onClick={() => {
+                setEnterpriseSubmitting(true);
+                const existing = JSON.parse(localStorage.getItem('cf_enterprise_requests') ?? '[]') as unknown[];
+                existing.push({
+                  id: Date.now().toString(),
+                  userId: localStorage.getItem('cf_user_id') ?? 'anonymous',
+                  userName: localStorage.getItem('cf_user_name') ?? 'User',
+                  userEmail: localStorage.getItem('cf_user_email') ?? '',
+                  ...enterpriseForm,
+                  status: 'pending',
+                  submittedAt: new Date().toISOString(),
+                });
+                localStorage.setItem('cf_enterprise_requests', JSON.stringify(existing));
+                localStorage.setItem('cf_enterprise_requested', 'true');
+                setTimeout(() => {
+                  setEnterpriseSubmitting(false);
+                  setEnterpriseSubmitted(true);
+                  setShowEnterpriseModal(false);
+                }, 1200);
+              }}
+              className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
+              style={{ background: 'linear-gradient(135deg,#D97706,#b45309)' }}
+            >
+              {enterpriseSubmitting ? 'Submitting…' : 'Submit Request'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
