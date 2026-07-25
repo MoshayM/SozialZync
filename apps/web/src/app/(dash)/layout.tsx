@@ -101,6 +101,76 @@ function relativeTime(dateStr: string): string {
 
 const BELL_POLL_MS = 60_000;
 
+// ── Global search bar ─────────────────────────────────────────────────────────
+
+const SEARCH_DESTINATIONS: Array<{ pattern: RegExp; label: string; path: (q: string) => string }> = [
+  { pattern: /video|short|clip|reel/i,   label: 'videos',   path: q => `/library?q=${encodeURIComponent(q)}` },
+  { pattern: /channel|youtube|account/i, label: 'channels', path: q => `/library?tab=channels&q=${encodeURIComponent(q)}` },
+];
+
+function GlobalSearch() {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const submit = (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    const dest = SEARCH_DESTINATIONS.find(d => d.pattern.test(trimmed));
+    router.push(dest ? dest.path(trimmed) : `/projects?q=${encodeURIComponent(trimmed)}`);
+    setQuery('');
+    inputRef.current?.blur();
+  };
+
+  return (
+    <form
+      role="search"
+      onSubmit={e => { e.preventDefault(); submit(query); }}
+      className="hidden md:flex flex-1 max-w-[400px] ml-3 items-center gap-2 rounded-[12px] px-3 py-2 transition-all"
+      style={{
+        background: focused ? '#fff' : '#F7F6FB',
+        border: focused ? '1.5px solid #6D4AE0' : '1px solid #ECECF3',
+        boxShadow: focused ? '0 0 0 3px rgba(109,74,224,.1)' : 'none',
+      }}
+    >
+      <Search className="w-[16px] h-[16px] shrink-0" style={{ color: focused ? '#6D4AE0' : '#9a97ab' }} />
+      <input
+        ref={inputRef}
+        type="search"
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder="Search projects, videos, channels…"
+        className="border-none outline-none bg-transparent text-sm flex-1 min-w-0 text-[#1E1B2E] placeholder:text-[#9a97ab]"
+        style={{ fontFamily: 'inherit' }}
+        aria-label="Search"
+      />
+      {query ? (
+        <button
+          type="submit"
+          aria-label="Search"
+          className="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg transition-all hover:opacity-80"
+          style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)', color: 'white' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+      ) : (
+        <kbd
+          className="shrink-0 text-[11px] font-medium select-none"
+          style={{ color: '#c4b0f5' }}
+          title="Press Enter to search"
+        >
+          ⏎
+        </kbd>
+      )}
+    </form>
+  );
+}
+
 export default function DashLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -373,15 +443,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* Search bar — hidden on small screens */}
-        <div className="hidden md:flex flex-1 max-w-[400px] ml-3 items-center gap-2.5 rounded-[12px] px-3.5 py-2.5" style={{ background: '#F7F6FB', border: '1px solid #ECECF3' }}>
-          <Search className="w-[18px] h-[18px] shrink-0" style={{ color: '#9a97ab' }} />
-          <input
-            type="text"
-            placeholder="Search projects, videos, channels…"
-            className="border-none outline-none bg-transparent text-sm flex-1 text-[#1E1B2E] placeholder:text-[#9a97ab]"
-            style={{ fontFamily: 'inherit' }}
-          />
-        </div>
+        <GlobalSearch />
 
         <div className="flex-1" />
 

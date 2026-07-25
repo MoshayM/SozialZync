@@ -1,6 +1,6 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
@@ -476,8 +476,14 @@ function DeleteModal({ project, onClose, onSuccess }: DeleteModalProps) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProjectsPage() {
+  return <Suspense><ProjectsInner /></Suspense>;
+}
+
+function ProjectsInner() {
   const qc = useQueryClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('q')?.trim() ?? '';
   const { isFreeTier, limits } = usePlan();
   const [showCreate, setShowCreate] = useState(false);
   const [createStep, setCreateStep] = useState<1 | 2>(1);
@@ -560,6 +566,14 @@ export default function ProjectsPage() {
 
   const atProjectLimit = isFreeTier && projects.length >= limits.maxProjects;
 
+  const filteredProjects = searchQuery
+    ? projects.filter(p =>
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.niche ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.channel?.title ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : projects;
+
   const activeCount = projects.filter((p) => p.status === 'ACTIVE').length;
   const totalJobs   = projects.reduce((s, p) => s + p._count.jobs, 0);
   const totalVideos = projects.reduce((s, p) => s + p._count.videos, 0);
@@ -620,10 +634,34 @@ export default function ProjectsPage() {
           </div>
         )}
 
+        {/* ── Search result indicator ──────────────────────────────────── */}
+        {searchQuery && !isLoading && (
+          <div className="flex items-center justify-between text-sm">
+            <p className="text-gray-500">
+              {filteredProjects.length > 0
+                ? <><span className="font-semibold text-gray-800">{filteredProjects.length}</span> result{filteredProjects.length !== 1 ? 's' : ''} for &ldquo;<span className="text-[#6D4AE0] font-semibold">{searchQuery}</span>&rdquo;</>
+                : <>No projects match &ldquo;<span className="text-[#6D4AE0] font-semibold">{searchQuery}</span>&rdquo;</>}
+            </p>
+            <button
+              type="button"
+              onClick={() => router.replace('/projects')}
+              className="text-xs font-semibold text-[#6D4AE0] hover:underline"
+            >
+              Clear search
+            </button>
+          </div>
+        )}
+
         {/* ── Project grid ─────────────────────────────────────────────── */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => <ProjectSkeleton key={i} />)}
+          </div>
+        ) : filteredProjects.length === 0 && searchQuery ? (
+          <div className="rounded-3xl flex flex-col items-center justify-center py-16 px-6 text-center" style={{ background: 'white', border: '1.5px solid #e3ddf8' }}>
+            <div className="text-4xl mb-4">🔍</div>
+            <h2 className="text-lg font-extrabold text-gray-900 mb-1">No results</h2>
+            <p className="text-gray-400 text-sm">Try a different keyword or <button type="button" onClick={() => router.replace('/projects')} className="text-[#6D4AE0] font-semibold hover:underline">clear the search</button>.</p>
           </div>
         ) : projects.length === 0 ? (
           /* ── Empty state ─────────────────────────────────────────────── */
@@ -655,7 +693,7 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {projects.map((p) => {
+            {filteredProjects.map((p) => {
               const { platform, format } = getProjectMeta(p.id);
               const pdCfg = PLATFORMS.find(d => d.platform === platform) ?? PLATFORMS[0]!;
               const crossPosts = getCrossPosts(p.id);
