@@ -338,7 +338,7 @@ export default function HomePage() {
                     <h3 className="font-extrabold text-gray-900 text-base leading-tight truncate">{lastProject.title}</h3>
                     <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                       <Youtube className="w-3.5 h-3.5 text-red-500" />
-                      {lastProject.channel.title}
+                      {lastProject.channel?.title ?? 'No channel'}
                     </p>
                     <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
                       <span className="flex items-center gap-1"><Video className="w-3 h-3" /> {lastProject._count.videos} videos</span>
@@ -400,7 +400,7 @@ export default function HomePage() {
                       <div className="flex flex-col min-w-0">
                         <span className="font-semibold text-gray-900 text-sm truncate">{p.title}</span>
                         <span className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                          <Youtube className="w-3 h-3 text-red-400" /> {p.channel.title}
+                          <Youtube className="w-3 h-3 text-red-400" /> {p.channel?.title ?? 'No channel'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 ml-3 shrink-0">

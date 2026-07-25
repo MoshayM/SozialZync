@@ -133,10 +133,11 @@ type ContentType = 'VIDEO' | 'MUSIC' | 'SHORT';
  */
 function BillingOrgPicker({ projectId, billingOrgId }: { projectId: string; billingOrgId: string | null | undefined }) {
   const qc = useQueryClient();
-  const { data: orgs = [] } = useQuery({
+  const { data: orgsRaw } = useQuery({
     queryKey: ['orgs-mine'],
     queryFn: () => api.orgs.mine().then((r) => r.data),
   });
+  const orgs = Array.isArray(orgsRaw) ? orgsRaw : [];
   const save = useMutation({
     mutationFn: (orgId: string) => api.projects.update(projectId, { billingOrgId: orgId }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['project', projectId] }),
