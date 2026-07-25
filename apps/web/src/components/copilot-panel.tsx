@@ -1011,7 +1011,7 @@ export function CopilotPanel() {
                       <Send style={{ width:'15px',height:'15px' }} />
                     </button>
                   </div>
-                  <p style={{ fontSize:'11px',color:'#b8b5c8',textAlign:'center',marginTop:'7px',fontWeight:500 }}>Enter to send  ·  Shift+Enter to break</p>
+                  <p className="hidden sm:block" style={{ fontSize:'11px',color:'#b8b5c8',textAlign:'center',marginTop:'7px',fontWeight:500 }}>Enter to send  ·  Shift+Enter to break</p>
                 </>
               )}
             </div>

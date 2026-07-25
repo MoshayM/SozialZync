@@ -839,17 +839,17 @@ export default function ProjectDetailPage() {
     : undefined;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="px-4 py-6 sm:p-8 max-w-5xl mx-auto">
 
       {/* Header */}
       <div className="mb-6">
         <Link href="/projects" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-600 mb-4">
           <ArrowLeft className="w-3.5 h-3.5" /> All Projects
         </Link>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
-            <p className="text-gray-500 mt-1">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">{project.title}</h1>
+            <p className="text-gray-500 mt-1 text-sm">
               {project.channel ? project.channel.title : (
                 <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                   No channel connected
@@ -858,7 +858,7 @@ export default function ProjectDetailPage() {
               {project.niche ? ` · ${project.niche}` : ''}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap">
             <BillingOrgPicker projectId={id} billingOrgId={project.billingOrgId} />
             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${CT_META[contentType].color}`}>
               {CT_META[contentType].label}
@@ -876,8 +876,9 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex bg-gray-100 rounded-full p-1 mb-6 w-fit">
+      {/* Tab bar — horizontally scrollable on mobile */}
+      <div className="overflow-x-auto no-scrollbar -mx-4 sm:mx-0 mb-6">
+      <div className="flex bg-gray-100 rounded-full p-1 w-fit min-w-max mx-4 sm:mx-0">
         <button
           type="button"
           onClick={() => setActiveTab('pipeline')}
@@ -917,6 +918,7 @@ export default function ProjectDetailPage() {
           <ShieldCheck className="w-3.5 h-3.5" /> Checks
           {(hasDoneFactCheck || hasDoneCompliance) && <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />}
         </button>
+      </div>
       </div>
 
       {/* ── Script Writer tab ─────────────────────────────────────────────── */}

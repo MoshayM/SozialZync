@@ -489,12 +489,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
         <div className="flex-1" />
 
-        {/* Admin button */}
+        {/* Admin button — hidden on xs to prevent header overflow on narrow phones */}
         {isAdmin && (
           <Link
             href="/admin"
             title="Admin panel"
-            className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
+            className="hidden sm:flex w-[42px] h-[42px] rounded-[12px] items-center justify-center transition-colors shrink-0 touch-manipulation"
             style={{ border: '1px solid #E4DEFB', background: '#F6F2FF', color: '#7C3AED' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EDE9FD'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F6F2FF'; }}
