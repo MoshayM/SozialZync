@@ -617,8 +617,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               </div>
             )}
             {/* Name — shown on sm+ screens */}
-            <div className="hidden sm:block" style={{ lineHeight: 1.2, textAlign: 'left', paddingRight: '6px' }}>
-              <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{meData?.name ?? userName}</div>
+            <div className="hidden sm:block max-w-[120px]" style={{ lineHeight: 1.2, textAlign: 'left', paddingRight: '6px' }}>
+              <div className="truncate" style={{ fontWeight: 700, fontSize: '13.5px' }}>{meData?.name ?? userName}</div>
               <div style={{ fontSize: '11.5px', color: '#8b88a0', fontWeight: 500 }}>Creator</div>
             </div>
             <ChevronDown className="hidden sm:block w-3.5 h-3.5 shrink-0 mr-2" style={{ color: '#9a97ab', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />

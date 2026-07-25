@@ -236,14 +236,15 @@ function LibraryPageInner() {
           )}
         </div>
 
-        {/* Tabs — Channel Access works without a selected channel */}
-        <div className="flex gap-2 flex-wrap">
+        {/* Tabs — horizontally scrollable on mobile */}
+        <div className="overflow-x-auto no-scrollbar -mx-4 sm:mx-0">
+        <div className="flex gap-2 px-4 sm:px-0 min-w-max">
           {([['videos', 'Videos'], ['playlists', 'Playlists'], ['channels', 'Channel Access'], ['assets', 'Media Assets']] as Array<[TabId, string]>).map(([t, label]) => (
             <button
               key={t}
               type="button"
               onClick={() => { setTab(t); }}
-              className="px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
+              className="px-4 py-2 text-sm font-semibold rounded-2xl transition-all whitespace-nowrap"
               style={
                 tab === t
                   ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
@@ -253,6 +254,7 @@ function LibraryPageInner() {
               {label}
             </button>
           ))}
+        </div>
         </div>
 
         {/* Assets tab */}

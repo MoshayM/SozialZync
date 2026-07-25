@@ -286,11 +286,12 @@ function ChannelAccessContent() {
             {/* Active / connected channels */}
             {activeChannels.map((ch) => (
               <div key={ch.id} className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="flex items-center gap-4">
+              {/* Info row */}
+              <div className="flex items-center gap-3">
                 {ch.thumbnailUrl ? (
-                  <img src={ch.thumbnailUrl} alt={ch.title} className="w-10 h-10 rounded-full object-cover" />
+                  <img src={ch.thumbnailUrl} alt={ch.title} className="w-10 h-10 rounded-full object-cover shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
                     <Youtube className="w-5 h-5 text-red-600" />
                   </div>
                 )}
@@ -308,18 +309,20 @@ function ChannelAccessContent() {
                   )}
                 </div>
                 {ch.readOnly ? (
-                  <span className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                  <span className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5 shrink-0">
                     <Eye className="w-3 h-3" /> Read-only
                   </span>
                 ) : (
-                  <span className={`flex items-center gap-1 text-xs border rounded-full px-2 py-0.5 ${ACCESS_META[(ch.accessLevel && ch.accessLevel !== 'NONE' ? ch.accessLevel : 'PUBLISH') as AccessLevel].badge}`}>
+                  <span className={`flex items-center gap-1 text-xs border rounded-full px-2 py-0.5 shrink-0 ${ACCESS_META[(ch.accessLevel && ch.accessLevel !== 'NONE' ? ch.accessLevel : 'PUBLISH') as AccessLevel].badge}`}>
                     <CheckCircle className="w-3 h-3" />
                     {ACCESS_META[(ch.accessLevel && ch.accessLevel !== 'NONE' ? ch.accessLevel : 'PUBLISH') as AccessLevel].label}
                   </span>
                 )}
-
+              </div>
+              {/* Action row — separate line so buttons never overflow on narrow screens */}
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
                 {confirmDisconnect === ch.id ? (
-                  <div className="flex items-center gap-2">
+                  <>
                     <span className="text-xs text-gray-500">Sign out?</span>
                     <button
                       onClick={() => disconnectMutation.mutate(ch.id)}
@@ -335,9 +338,9 @@ function ChannelAccessContent() {
                     >
                       Cancel
                     </button>
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <>
                     {!ch.readOnly && (
                       <button
                         onClick={() => refreshTokenMutation.mutate(ch.id)}
@@ -359,7 +362,7 @@ function ChannelAccessContent() {
                       <LogOut className="w-4 h-4" />
                       Sign out
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
 
