@@ -76,9 +76,13 @@ export default function LoginPage() {
       } else if (status === 429) {
         setError('Too many attempts. Please wait a minute and try again.');
       } else if (!status) {
-        setError('Cannot reach the server. Make sure the API is running.');
+        setError('Cannot reach the server — check your connection and try again.');
+      } else if (status === 502 || status === 503 || status === 504) {
+        setError('Server is starting up — please wait a moment and try again.');
+      } else if (status >= 500) {
+        setError('Server error. Please try again in a moment.');
       } else {
-        setError('Login failed. Please try again.');
+        setError('Login failed. Please check your credentials and try again.');
       }
     } finally {
       setLoading(false);

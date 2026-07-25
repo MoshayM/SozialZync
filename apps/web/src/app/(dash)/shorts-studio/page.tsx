@@ -9,6 +9,8 @@ import {
   Search, X, FolderDown, ListVideo, Trash2,
 } from 'lucide-react';
 import { api, type LibraryVideo, type LibraryPlaylist, type LibraryVideosPage, type LibraryPlaylistsPage, type LibraryPlaylistItemsPage } from '@/lib/api';
+import { usePlan } from '@/lib/plan';
+import { ProBanner } from '@/components/pro-gate';
 import { JobErrorCard } from '@/components/job-error-card';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -572,6 +574,7 @@ function LibraryImportModal({
 
 export default function ShortsStudioPage() {
   const qc = useQueryClient();
+  const { isFreeTier } = usePlan();
   const [channelId, setChannelId]     = useState('');
   const [importedOpen, setImportedOpen] = useState(true);
   const [openVideoIds, setOpenVideoIds] = useState<Set<string>>(new Set());
@@ -622,37 +625,58 @@ export default function ShortsStudioPage() {
             <p className="text-sm text-gray-400 mt-0.5">Turn long-form videos into publish-ready vertical Shorts</p>
           </div>
 
-          {/* Channel selector */}
-          <div className="relative">
-            <select
-              value={channelId}
-              onChange={(e) => selectChannel(e.target.value)}
-              aria-label="Channel"
-              className="bg-white rounded-2xl pl-4 pr-10 py-2.5 text-sm font-semibold text-gray-700 outline-none appearance-none cursor-pointer transition-all focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0]"
-              style={{ border: '1.5px solid #e3e0f0' }}
-            >
-              <option value="">Select a channel…</option>
-              {channels.map((c) => (
-                <option key={c.id} value={c.id}>{c.title}</option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          {/* Channel selector — Pro only */}
+          {isFreeTier ? (
+            <ProBanner
+              feature="YouTube channel import"
+              description="Connect a YouTube channel to import your videos. Upgrade to Pro."
+            />
+          ) : (
+            <div className="relative">
+              <select
+                value={channelId}
+                onChange={(e) => selectChannel(e.target.value)}
+                aria-label="Channel"
+                className="bg-white rounded-2xl pl-4 pr-10 py-2.5 text-sm font-semibold text-gray-700 outline-none appearance-none cursor-pointer transition-all focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0]"
+                style={{ border: '1.5px solid #e3e0f0' }}
+              >
+                <option value="">Select a channel…</option>
+                {channels.map((c) => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          )}
         </div>
 
-        {/* ── No channel selected ──────────────────────────────────── */}
-        {!channelId && (
+        {/* ── No channel selected (or free user) ───────────────────── */}
+        {(isFreeTier || !channelId) && (
           <div className="bg-white rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
               ✂️
             </div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-2">Pick a channel to start</h2>
-            <p className="text-gray-400 text-sm max-w-xs leading-relaxed">Select a connected YouTube channel above to import long-form videos and clip them into Shorts.</p>
+            {isFreeTier ? (
+              <>
+                <h2 className="text-xl font-extrabold text-gray-900 mb-2">Shorts Studio</h2>
+                <p className="text-gray-400 text-sm max-w-xs leading-relaxed mb-2">
+                  Upload a video directly to cut Shorts — no channel connection needed.
+                </p>
+                <p className="text-[12px] text-gray-300 max-w-xs leading-relaxed">
+                  Want to import from your YouTube library? Upgrade to Pro to connect a channel.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-extrabold text-gray-900 mb-2">Pick a channel to start</h2>
+                <p className="text-gray-400 text-sm max-w-xs leading-relaxed">Select a connected YouTube channel above to import long-form videos and clip them into Shorts.</p>
+              </>
+            )}
           </div>
         )}
 
         {/* ── Channel selected but no imports ─────────────────────── */}
-        {channelId && imported.length === 0 && (
+        {!isFreeTier && channelId && imported.length === 0 && (
           <div className="bg-white rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
               📥
@@ -670,7 +694,7 @@ export default function ShortsStudioPage() {
         )}
 
         {/* ── Imported videos section ──────────────────────────────── */}
-        {channelId && imported.length > 0 && (
+        {!isFreeTier && channelId && imported.length > 0 && (
           <section className="space-y-2">
             {/* Section bar */}
             <div

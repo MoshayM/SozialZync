@@ -2,6 +2,7 @@
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Upload, CheckCircle, CalendarClock, Sparkles, FlaskConical } from 'lucide-react';
+import { ProBanner } from '@/components/pro-gate';
 import PublishingPage from '../publishing/page';
 import ApprovalsPage from '../approvals/page';
 import SchedulerPage from '../scheduler/page';
@@ -30,6 +31,11 @@ function PublishContent() {
 
   return (
     <div>
+      <ProBanner
+        feature="Direct publishing"
+        description="Connect your YouTube, Instagram, TikTok and other accounts to publish directly. Upgrade to Pro to unlock channel connections and one-click publishing."
+        className="mx-4 mt-4 sm:mx-6"
+      />
       <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex gap-2 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
         {TABS.map((t) => (
           <button

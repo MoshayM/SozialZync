@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
+import { usePlan } from '@/lib/plan';
+import { ProBanner, ProLockBadge } from '@/components/pro-gate';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -476,6 +478,7 @@ function DeleteModal({ project, onClose, onSuccess }: DeleteModalProps) {
 export default function ProjectsPage() {
   const qc = useQueryClient();
   const router = useRouter();
+  const { isFreeTier, limits } = usePlan();
   const [showCreate, setShowCreate] = useState(false);
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -555,6 +558,8 @@ export default function ProjectsPage() {
     void qc.invalidateQueries({ queryKey: ['projects'] });
   }
 
+  const atProjectLimit = isFreeTier && projects.length >= limits.maxProjects;
+
   const activeCount = projects.filter((p) => p.status === 'ACTIVE').length;
   const totalJobs   = projects.reduce((s, p) => s + p._count.jobs, 0);
   const totalVideos = projects.reduce((s, p) => s + p._count.videos, 0);
@@ -577,12 +582,24 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Projects</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage your content campaigns</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-sm text-gray-400">Manage your content campaigns</p>
+              {isFreeTier && (
+                <span
+                  className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: '#f5f2fd', color: '#6D4AE0' }}
+                >
+                  {projects.length}/{limits.maxProjects} Free
+                </span>
+              )}
+            </div>
           </div>
           <button
             type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            onClick={() => { if (!atProjectLimit) setShowCreate(true); }}
+            disabled={atProjectLimit}
+            title={atProjectLimit ? `Free plan: max ${limits.maxProjects} projects. Upgrade to Pro for unlimited.` : undefined}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
               boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
@@ -781,28 +798,40 @@ export default function ProjectsPage() {
                   <div>
                     <p className="text-xs font-semibold text-gray-600 mb-3">Platform</p>
                     <div className="grid grid-cols-4 gap-3">
-                      {PLATFORMS.map((pd) => (
-                        <button
-                          key={pd.platform}
-                          type="button"
-                          onClick={() => {
-                            setForm(f => ({
-                              ...f,
-                              platform: pd.platform,
-                              contentFormat: pd.formats[0]!.type,
-                              primaryChannelId: '',
-                              crossPostChannelIds: [],
-                            }));
-                          }}
-                          style={form.platform === pd.platform
-                            ? { background: pd.bg, border: `2px solid ${pd.color}` }
-                            : { background: '#faf9ff', border: '1.5px solid #e3ddf8' }}
-                          className="flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl text-center transition-all hover:border-gray-300"
-                        >
-                          <span style={{ fontSize: 22 }}>{pd.emoji}</span>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: form.platform === pd.platform ? pd.textColor : '#374151' }}>{pd.label}</span>
-                        </button>
-                      ))}
+                      {PLATFORMS.map((pd) => {
+                        const isLocked = isFreeTier && pd.platform !== 'YOUTUBE';
+                        return (
+                          <button
+                            key={pd.platform}
+                            type="button"
+                            onClick={() => {
+                              if (isLocked) return;
+                              setForm(f => ({
+                                ...f,
+                                platform: pd.platform,
+                                contentFormat: pd.formats[0]!.type,
+                                primaryChannelId: '',
+                                crossPostChannelIds: [],
+                              }));
+                            }}
+                            title={isLocked ? 'Upgrade to Pro to create projects for this platform' : undefined}
+                            style={form.platform === pd.platform
+                              ? { background: pd.bg, border: `2px solid ${pd.color}` }
+                              : isLocked
+                              ? { background: '#f9fafb', border: '1.5px solid #e5e7eb', opacity: 0.65, cursor: 'not-allowed' }
+                              : { background: '#faf9ff', border: '1.5px solid #e3ddf8' }}
+                            className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl text-center transition-all hover:border-gray-300"
+                          >
+                            {isLocked && (
+                              <span className="absolute top-1.5 right-1.5">
+                                <ProLockBadge />
+                              </span>
+                            )}
+                            <span style={{ fontSize: 22 }}>{pd.emoji}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: form.platform === pd.platform ? pd.textColor : '#374151' }}>{pd.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -860,6 +889,12 @@ export default function ProjectsPage() {
             {createStep === 2 && (
               <>
                 <div className="px-7 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                  {isFreeTier && (
+                    <ProBanner
+                      feature="Connect social accounts"
+                      description="Free plan: content will be created without a connected account. Upgrade to Pro to link YouTube, Instagram, TikTok, and publish directly."
+                    />
+                  )}
                   {/* Primary account */}
                   <Field
                     label={

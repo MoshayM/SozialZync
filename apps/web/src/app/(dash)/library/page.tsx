@@ -8,6 +8,7 @@ import { VirtualVideoGrid } from '@/components/library/VirtualVideoGrid';
 import { PlaylistsTab } from '@/components/library/PlaylistsTab';
 import { SyncBadge } from '@/components/library/SyncBadge';
 import { ChannelAccessPanel } from '@/components/channel-access-panel';
+import { ProGate } from '@/components/pro-gate';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -337,7 +338,12 @@ function LibraryPageInner() {
 
         {tab === 'channels' && (
           <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <ChannelAccessPanel />
+            <ProGate
+              feature="Channel Access"
+              description="Connect and manage your YouTube, Instagram, TikTok, and other social channels. Upgrade to Pro to unlock channel management and direct publishing."
+            >
+              <ChannelAccessPanel />
+            </ProGate>
           </div>
         )}
 
