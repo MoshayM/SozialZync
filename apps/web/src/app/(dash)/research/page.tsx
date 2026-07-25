@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { BookOpen, Loader2, AlertTriangle, Clock, Copy, Check } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { ResultActions } from '@/components/result-actions';
+import { ContentToolbar } from '@/components/result-actions';
 import { AiWorkingCard, formatDuration } from '@/components/ai-activity';
 
 interface ContentAngle {
@@ -115,6 +115,34 @@ export default function ResearchPage() {
   const [error, setError] = useState('');
   const [durationMs, setDurationMs] = useState<number | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  const LS_KEY = 'cf_research';
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const stored = JSON.parse(raw) as { result: ResearchResult; savedAt: string };
+        setResult(stored.result);
+        setSavedAt(stored.savedAt);
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSavedAt(ts);
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ result, savedAt: ts })); } catch {}
+  }, [result]);
+
+  function clearResult() {
+    setResult(null);
+    setSavedAt(null);
+    try { localStorage.removeItem(LS_KEY); } catch {}
+  }
 
   async function research() {
     if (!topic.trim()) return;
@@ -391,7 +419,12 @@ export default function ResearchPage() {
               </div>
             )}
 
-            <ResultActions data={resultText} filename={`research-${result.topic.slice(0, 30).replace(/\s+/g, '-').toLowerCase()}`} />
+            <ContentToolbar
+              text={resultText}
+              filename={`research-${result.topic.slice(0, 30).replace(/\s+/g, '-').toLowerCase()}`}
+              savedAt={savedAt}
+              onNew={clearResult}
+            />
           </div>
         )}
       </div>

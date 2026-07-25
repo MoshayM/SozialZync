@@ -1,10 +1,28 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ArrowRightLeft, Loader2, Copy, Check, ChevronDown, ChevronUp,
   Film, Instagram, Twitter, Linkedin, Mail, Smartphone, Sparkles,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { ContentToolbar } from '@/components/result-actions';
+
+const LS_KEY = 'cf_repurpose';
+
+function repurposeToText(r: RepurposeResult): string {
+  return [
+    `# Content Repurpose: ${r.originalTitle}`,
+    r.summary ? `\n${r.summary}` : '',
+    '',
+    ...r.items.map(item => [
+      `## ${item.platform.toUpperCase()} — ${item.headline}`,
+      item.hook ? `Hook: ${item.hook}` : '',
+      item.content,
+      item.hashtags.length > 0 ? item.hashtags.map(h => `#${h}`).join(' ') : '',
+      item.callToAction ? `CTA: ${item.callToAction}` : '',
+    ].filter(Boolean).join('\n')),
+  ].filter(Boolean).join('\n\n');
+}
 
 type Platform = 'shorts' | 'instagram' | 'tiktok' | 'twitter' | 'linkedin' | 'newsletter';
 
@@ -149,6 +167,31 @@ export default function RepurposePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RepurposeResult | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const stored = JSON.parse(raw) as { result: RepurposeResult; savedAt: string };
+        setResult(stored.result);
+        setSavedAt(stored.savedAt);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSavedAt(ts);
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ result, savedAt: ts })); } catch {}
+  }, [result]);
+
+  function clearResult() {
+    setResult(null);
+    setSavedAt(null);
+    try { localStorage.removeItem(LS_KEY); } catch {}
+  }
 
   const togglePlatform = (p: Platform) => {
     setSelectedPlatforms((prev) => {
@@ -286,6 +329,12 @@ export default function RepurposePage() {
 
             {result && (
               <div className="space-y-4">
+                <ContentToolbar
+                  text={repurposeToText(result)}
+                  filename={`repurpose-${result.originalTitle.slice(0, 30).replace(/\s+/g, '-').toLowerCase()}`}
+                  savedAt={savedAt}
+                  onNew={clearResult}
+                />
                 {result.summary && (
                   <div className="bg-[#f5f2fd] rounded-2xl px-4 py-3" style={{ border: '1.5px solid #e3ddf8' }}>
                     <p className="text-sm text-gray-700">{result.summary}</p>

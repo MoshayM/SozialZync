@@ -1,7 +1,27 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Award, Loader2, CheckCircle2, ArrowRight, ChevronDown, ChevronUp, Zap, Target } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { ContentToolbar } from '@/components/result-actions';
+
+const LS_KEY = 'cf_score_script';
+
+function scoreToText(r: ScriptQualityResult): string {
+  return [
+    `# Script Quality Score: ${r.grade} (${r.overallScore}/100)`,
+    r.summary,
+    r.estimatedRetentionPct > 0 ? `Estimated Retention: ${r.estimatedRetentionPct}%` : '',
+    '',
+    '## Quality Dimensions',
+    ...r.dimensions.map(d => `### ${d.name}: ${d.score}/100\n${d.feedback}`),
+    '',
+    '## Strengths',
+    ...r.strengths.map(s => `• ${s}`),
+    '',
+    '## Improvements',
+    ...r.improvements.map(i => `→ ${i}`),
+  ].filter(Boolean).join('\n');
+}
 
 interface QualityDimension {
   name: string;
@@ -84,6 +104,31 @@ export default function ScoreScriptPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScriptQualityResult | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const stored = JSON.parse(raw) as { result: ScriptQualityResult; savedAt: string };
+        setResult(stored.result);
+        setSavedAt(stored.savedAt);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSavedAt(ts);
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ result, savedAt: ts })); } catch {}
+  }, [result]);
+
+  function clearResult() {
+    setResult(null);
+    setSavedAt(null);
+    try { localStorage.removeItem(LS_KEY); } catch {}
+  }
 
   const wordCount = scriptText.trim().split(/\s+/).filter(Boolean).length;
 
@@ -198,6 +243,12 @@ export default function ScoreScriptPage() {
 
             {result && grade && (
               <div className="space-y-5">
+                <ContentToolbar
+                  text={scoreToText(result)}
+                  filename={`script-score-${result.grade}`}
+                  savedAt={savedAt}
+                  onNew={clearResult}
+                />
                 {/* Grade card */}
                 <div className="bg-white rounded-2xl p-6" style={{ border: '1.5px solid #e3ddf8' }}>
                   <div className="flex items-center gap-6">

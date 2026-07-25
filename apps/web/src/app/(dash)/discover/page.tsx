@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, TrendingUp, Loader2, Lightbulb, AlertCircle, Tag, Users, Clock, Copy, Check, Zap } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
-import { ResultActions } from '@/components/result-actions';
+import { ContentToolbar } from '@/components/result-actions';
 import { AiWorkingCard, formatDuration } from '@/components/ai-activity';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -135,6 +135,32 @@ function TrendsTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [durationMs, setDurationMs] = useState<number | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('cf_discover_trends');
+      if (raw) {
+        const stored = JSON.parse(raw) as { result: TrendsResult; niche: string; savedAt: string };
+        setResult(stored.result);
+        if (stored.niche) setNiche(stored.niche);
+        setSavedAt(stored.savedAt);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSavedAt(ts);
+    try { localStorage.setItem('cf_discover_trends', JSON.stringify({ result, niche, savedAt: ts })); } catch {}
+  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function clearTrends() {
+    setResult(null);
+    setSavedAt(null);
+    try { localStorage.removeItem('cf_discover_trends'); } catch {}
+  }
 
   async function analyze() {
     if (!niche.trim()) return;
@@ -171,7 +197,20 @@ function TrendsTab() {
               Analysis date: {result.analysisDate}
               {durationMs != null && ` · analyzed in ${formatDuration(durationMs)}`}
             </p>
-            <ResultActions data={result} filename={`trends-${niche.trim().toLowerCase() || 'analysis'}`} />
+            <ContentToolbar
+                text={[
+                  `# Trend Analysis: ${niche.trim()}`,
+                  `Date: ${result.analysisDate}`,
+                  '',
+                  '## Trending Topics',
+                  ...result.trending.map(t => `### ${t.topic} (score: ${t.score})\nKeywords: ${t.relatedKeywords.join(', ')}`),
+                  result.recommendations.length > 0 ? '\n## Recommendations' : '',
+                  ...result.recommendations.map(r => `• ${r}`),
+                ].filter(Boolean).join('\n')}
+                filename={`trends-${niche.trim().toLowerCase() || 'analysis'}`}
+                savedAt={savedAt}
+                onNew={clearTrends}
+              />
           </div>
           <div className="space-y-4">
             {result.trending.map((t, i) => (
@@ -233,6 +272,31 @@ function KeywordsTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState<Set<string>>(new Set());
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('cf_discover_keywords');
+      if (raw) {
+        const stored = JSON.parse(raw) as { result: KeywordResult; savedAt: string };
+        setResult(stored.result);
+        setSavedAt(stored.savedAt);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSavedAt(ts);
+    try { localStorage.setItem('cf_discover_keywords', JSON.stringify({ result, savedAt: ts })); } catch {}
+  }, [result]);
+
+  function clearKeywords() {
+    setResult(null);
+    setSavedAt(null);
+    try { localStorage.removeItem('cf_discover_keywords'); } catch {}
+  }
 
   async function research() {
     if (!kw.trim()) return;
@@ -275,6 +339,16 @@ function KeywordsTab() {
       )}
       {result && !loading && (
         <div className="space-y-6 fade-in">
+          <ContentToolbar
+            text={[
+              `# Keyword Research: ${kw.trim()}`,
+              result.searchKeywords.length > 0 ? `\n## Search Keywords\n${result.searchKeywords.join(', ')}` : '',
+              result.tags.length > 0 ? `\n## Suggested Tags\n${result.tags.join(', ')}` : '',
+            ].filter(Boolean).join('\n')}
+            filename={`keywords-${kw.trim().toLowerCase().replace(/\s+/g, '-') || 'research'}`}
+            savedAt={savedAt}
+            onNew={clearKeywords}
+          />
           {result.searchKeywords.length > 0 && (
             <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
               <div className="flex items-center justify-between mb-3">
@@ -327,6 +401,31 @@ function AudienceTab() {
   const [result, setResult] = useState<AudienceResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('cf_discover_audience');
+      if (raw) {
+        const stored = JSON.parse(raw) as { result: AudienceResult; savedAt: string };
+        setResult(stored.result);
+        setSavedAt(stored.savedAt);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSavedAt(ts);
+    try { localStorage.setItem('cf_discover_audience', JSON.stringify({ result, savedAt: ts })); } catch {}
+  }, [result]);
+
+  function clearAudience() {
+    setResult(null);
+    setSavedAt(null);
+    try { localStorage.removeItem('cf_discover_audience'); } catch {}
+  }
 
   async function analyze() {
     if (!niche.trim()) return;
@@ -355,6 +454,21 @@ function AudienceTab() {
       )}
       {result && !loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 fade-in">
+          <div className="col-span-full">
+            <ContentToolbar
+              text={[
+                `# Audience Analysis: ${niche.trim()}`,
+                result.primaryDemographic ? `\n## Primary Demographic\n${result.primaryDemographic}` : '',
+                result.interestClusters?.length ? `\n## Interest Clusters\n${result.interestClusters.map(c => `• ${c.cluster}`).join('\n')}` : '',
+                result.contentPreferences?.length ? `\n## Content Preferences\n${result.contentPreferences.join(', ')}` : '',
+                result.bestPostingTimes?.length ? `\n## Best Posting Times\n${result.bestPostingTimes.join(', ')}` : '',
+                result.growthTips?.length ? `\n## Growth Tips\n${result.growthTips.map(t => `• ${t}`).join('\n')}` : '',
+              ].filter(Boolean).join('\n')}
+              filename={`audience-${niche.trim().toLowerCase().replace(/\s+/g, '-') || 'analysis'}`}
+              savedAt={savedAt}
+              onNew={clearAudience}
+            />
+          </div>
           {result.primaryDemographic && (
             <div className="bg-white rounded-2xl p-5 col-span-full" style={{ border: '1.5px solid #e3ddf8' }}>
               <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
@@ -435,6 +549,31 @@ function ContentGapsTab() {
   const [result, setResult] = useState<TrendsResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('cf_discover_gaps');
+      if (raw) {
+        const stored = JSON.parse(raw) as { result: TrendsResult; savedAt: string };
+        setResult(stored.result);
+        setSavedAt(stored.savedAt);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSavedAt(ts);
+    try { localStorage.setItem('cf_discover_gaps', JSON.stringify({ result, savedAt: ts })); } catch {}
+  }, [result]);
+
+  function clearGaps() {
+    setResult(null);
+    setSavedAt(null);
+    try { localStorage.removeItem('cf_discover_gaps'); } catch {}
+  }
 
   async function findGaps() {
     if (!niche.trim()) return;
@@ -466,6 +605,16 @@ function ContentGapsTab() {
       )}
       {result && !loading && (
         <div className="space-y-6 fade-in">
+          <ContentToolbar
+            text={[
+              `# Content Gaps: ${niche.trim()}`,
+              result.recommendations.length > 0 ? `\n## Gap Opportunities\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : '',
+              result.trending.filter(t => t.score < 50).length > 0 ? `\n## Emerging Topics\n${result.trending.filter(t => t.score < 50).map(t => `• ${t.topic} (score: ${t.score})`).join('\n')}` : '',
+            ].filter(Boolean).join('\n')}
+            filename={`content-gaps-${niche.trim().toLowerCase().replace(/\s+/g, '-') || 'analysis'}`}
+            savedAt={savedAt}
+            onNew={clearGaps}
+          />
           {result.recommendations.length > 0 && (
             <div>
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">

@@ -1,7 +1,29 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ListOrdered, Loader2, ChevronDown, ChevronUp, Lightbulb, Clock, DollarSign, Search, Sparkles } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { ContentToolbar } from '@/components/result-actions';
+
+const LS_KEY = 'cf_series_plan';
+
+function planToText(p: SeriesPlan): string {
+  return [
+    `# ${p.seriesTitle}`,
+    `"${p.seriesHook}"`,
+    `Target Audience: ${p.targetAudience}`,
+    `Episodes: ${p.estimatedTotalEpisodes}`,
+    '',
+    `## Narrative Arc\n${p.seriesArc}`,
+    '',
+    '## Episodes',
+    ...p.episodes.map(ep =>
+      `### Ep ${ep.episodeNumber}: ${ep.title} [${ep.format}, ${ep.estimatedDurationMins} min]\n"${ep.hook}"\nKey Points:\n${ep.keyPoints.map(pt => `  • ${pt}`).join('\n')}`
+    ),
+    '',
+    `## Monetization\n${p.monetizationTips.map(t => `• ${t}`).join('\n')}`,
+    `\n## SEO Strategy\n${p.seoStrategy}`,
+  ].join('\n');
+}
 
 interface SeriesEpisode {
   episodeNumber: number;
@@ -49,6 +71,32 @@ export default function SeriesPlannerPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expandedEp, setExpandedEp] = useState<number | null>(1);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const stored = JSON.parse(raw) as { plan: SeriesPlan; savedAt: string };
+        setPlan(stored.plan);
+        setSavedAt(stored.savedAt);
+        setExpandedEp(1);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!plan) return;
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSavedAt(ts);
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ plan, savedAt: ts })); } catch {}
+  }, [plan]);
+
+  function clearPlan() {
+    setPlan(null);
+    setSavedAt(null);
+    try { localStorage.removeItem(LS_KEY); } catch {}
+  }
 
   async function generate() {
     if (!topic.trim() || !niche) return;
@@ -156,6 +204,12 @@ export default function SeriesPlannerPage() {
         {/* Results */}
         {plan && (
           <div className="space-y-5">
+            <ContentToolbar
+              text={planToText(plan)}
+              filename={`series-plan-${plan.seriesTitle.slice(0, 30).replace(/\s+/g, '-').toLowerCase()}`}
+              savedAt={savedAt}
+              onNew={clearPlan}
+            />
             {/* Series overview */}
             <div className="rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #f5f2fd, #ede8fc)', border: '1.5px solid #e3ddf8' }}>
               <div className="flex items-start justify-between flex-wrap gap-3">
