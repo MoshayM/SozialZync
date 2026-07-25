@@ -99,14 +99,25 @@ export function PwaInstallBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [iosHint, setIosHint] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('pwa_banner_dismissed') === '1') {
+      setDismissed(true);
+    }
+  }, []);
+
+  const dismiss = () => {
+    setDismissed(true);
+    if (typeof window !== 'undefined') localStorage.setItem('pwa_banner_dismissed', '1');
+  };
+
   if (isStandalone || isInstalled || dismissed) return null;
   if (!canInstall && !isIOS) return null;
 
   return (
     <div
       role="banner"
-      className="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-pop-in"
-      style={{ width: 'min(360px, calc(100vw - 24px))' }}
+      className="fixed bottom-20 lg:bottom-6 left-3 right-3 z-50 animate-pop-in mx-auto"
+      style={{ maxWidth: 360 }}
     >
       <div
         className="rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl"
@@ -153,8 +164,8 @@ export function PwaInstallBanner() {
         ) : null}
 
         <button
-          onClick={() => setDismissed(true)}
-          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-purple-400 hover:text-white transition-colors"
+          onClick={dismiss}
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-purple-400 hover:text-white transition-colors"
           aria-label="Dismiss"
         >
           ✕

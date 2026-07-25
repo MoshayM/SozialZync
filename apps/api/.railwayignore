@@ -1,0 +1,12 @@
+node_modules
+dist
+storage
+.env
+.env.local
+*.log
+coverage
+.turbo
+prisma/dev.db
+prisma/*.db-journal
+build.log
+coverage-final.log

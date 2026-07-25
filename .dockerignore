@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.next
+**/storage
+**/*.log
+**/.env*
+.git
+infra/
+n8n/
+docs/
+scripts/
+apps/web/
+local-db-export.sql
+screenshots/
