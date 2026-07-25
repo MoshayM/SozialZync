@@ -1876,7 +1876,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
   };
 
   if (isLoading) return null;
-  if (!data) return null;
+  if (!data?.project) return null;
 
   // Channel connected but token revoked — show reconnect prompt proactively
   if (data.project.channel && !data.project.channel.active) {
