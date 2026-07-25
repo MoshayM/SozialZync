@@ -181,6 +181,8 @@ function CompareGrid({ url, containerWidth, refreshKey }: { url:string; containe
 }
 
 // ── Floating bottom toolbar (Emergent-style) ──────────────────────────────────
+// NOTE: This component must be rendered OUTSIDE any overflow-auto ancestor so
+// that the device-switcher dropdown is never clipped. See DevicePreview layout.
 
 function BottomToolbar({
   activeDev, devices, onSwitch, scale, onRefresh, onCompare, onOpen, page, compareMode,
@@ -197,19 +199,32 @@ function BottomToolbar({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Close menu when clicking outside
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handle(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [menuOpen]);
+
   return (
-    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-0 rounded-2xl overflow-hidden shadow-2xl"
+    // No absolute positioning here — parent row handles centering
+    <div ref={wrapRef} className="relative flex items-center gap-0 rounded-2xl overflow-visible shadow-2xl"
       style={{ background:'rgba(30,27,46,0.92)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.10)' }}>
+
       {/* Refresh */}
       <button type="button" onClick={onRefresh} title="Reload"
-        className="flex items-center justify-center w-10 h-10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        className="flex items-center justify-center w-10 h-10 text-white/60 hover:text-white hover:bg-white/10 transition-colors rounded-l-2xl"
       >
         <RefreshCw className="w-4 h-4" />
       </button>
 
-      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)' }} />
+      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)', flexShrink:0 }} />
 
-      {/* Device switcher pill */}
+      {/* Device switcher — dropdown opens UPWARD, never clipped because parent has overflow:visible */}
       <div className="relative">
         <button
           type="button"
@@ -218,35 +233,46 @@ function BottomToolbar({
         >
           <activeDev.icon className="w-4 h-4 text-white/70" />
           <span className="text-sm font-semibold">{activeDev.shortLabel} view</span>
-          <ChevronDown className={`w-3.5 h-3.5 text-white/50 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-white/50 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {menuOpen && (
-          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 rounded-2xl overflow-hidden shadow-2xl min-w-[180px]"
-            style={{ background:'rgba(24,22,40,0.97)', border:'1px solid rgba(255,255,255,0.12)' }}>
+          <div
+            className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 rounded-2xl shadow-2xl min-w-[200px] overflow-hidden"
+            style={{ background:'rgba(24,22,40,0.97)', border:'1px solid rgba(255,255,255,0.14)', zIndex:50 }}
+          >
             {devices.map(d => (
               <button
                 key={d.id}
                 type="button"
                 onClick={() => { onSwitch(d.id); setMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/10 transition-colors"
-                style={{ color: d.id === activeDev.id ? '#a78bfa' : 'rgba(255,255,255,0.8)', fontWeight: d.id === activeDev.id ? 700 : 400 }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/10 transition-colors"
+                style={{
+                  color: d.id === activeDev.id ? '#a78bfa' : 'rgba(255,255,255,0.85)',
+                  fontWeight: d.id === activeDev.id ? 700 : 400,
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                }}
               >
                 <d.icon className="w-4 h-4 shrink-0" />
                 <span>{d.label}</span>
-                <span className="ml-auto text-xs text-white/30">{d.w}px</span>
+                {d.id === activeDev.id && (
+                  <span className="ml-auto text-[10px] font-bold tracking-wide" style={{ color:'#a78bfa' }}>ACTIVE</span>
+                )}
+                {d.id !== activeDev.id && (
+                  <span className="ml-auto text-xs text-white/30">{d.w}px</span>
+                )}
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)' }} />
+      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)', flexShrink:0 }} />
 
-      {/* Compare / Expand */}
+      {/* Compare all devices */}
       <button type="button" onClick={onCompare} title={compareMode ? 'Single view' : 'Compare all'}
-        className="flex items-center justify-center w-10 h-10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-        style={{ color: compareMode ? '#a78bfa' : undefined }}
+        className="flex items-center justify-center w-10 h-10 hover:bg-white/10 transition-colors"
+        style={{ color: compareMode ? '#a78bfa' : 'rgba(255,255,255,0.6)' }}
       >
         {compareMode ? <Maximize2 className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
       </button>
@@ -258,9 +284,10 @@ function BottomToolbar({
         <ExternalLink className="w-4 h-4" />
       </a>
 
-      {/* Scale indicator */}
-      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)' }} />
-      <span className="px-3 text-xs text-white/40 font-mono select-none">{Math.round(scale * 100)}%</span>
+      <div style={{ width:1, height:24, background:'rgba(255,255,255,0.12)', flexShrink:0 }} />
+
+      {/* Scale readout */}
+      <span className="px-3 text-xs text-white/40 font-mono select-none rounded-r-2xl">{Math.round(scale * 100)}%</span>
     </div>
   );
 }
@@ -321,33 +348,39 @@ export function DevicePreview() {
         ))}
       </div>
 
-      {/* Preview area */}
-      <div ref={containerRef} className="flex-1 relative overflow-auto p-6" style={{ minHeight: frameH * singleScale + 80 }}>
-        {mode === 'single' ? (
-          <div className="flex justify-center items-start">
-            <DeviceFrame
-              dev={activeDev}
-              url={url}
-              scale={singleScale}
-              refreshKey={refreshKey}
-            />
-          </div>
-        ) : (
-          <CompareGrid url={url} containerWidth={cw} refreshKey={refreshKey} />
-        )}
+      {/* Preview + toolbar — flex column so toolbar is OUTSIDE the overflow-auto area.
+          This is critical: keeping BottomToolbar inside overflow-auto clips its dropdown. */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Scrollable device preview */}
+        <div ref={containerRef} className="flex-1 relative overflow-auto p-6" style={{ minHeight: frameH * singleScale + 40 }}>
+          {mode === 'single' ? (
+            <div className="flex justify-center items-start">
+              <DeviceFrame
+                dev={activeDev}
+                url={url}
+                scale={singleScale}
+                refreshKey={refreshKey}
+              />
+            </div>
+          ) : (
+            <CompareGrid url={url} containerWidth={cw} refreshKey={refreshKey} />
+          )}
+        </div>
 
-        {/* Floating Emergent-style bottom toolbar */}
-        <BottomToolbar
-          activeDev={activeDev}
-          devices={DEVICES}
-          onSwitch={setDeviceId}
-          scale={singleScale}
-          onRefresh={refresh}
-          onCompare={toggleMode}
-          onOpen={() => window.open(url, '_blank')}
-          page={page}
-          compareMode={mode === 'compare'}
-        />
+        {/* Toolbar row — sibling to the scroll container, never clipped */}
+        <div className="relative flex justify-center items-center py-3 bg-[#faf9ff] border-t border-[#ede9f8] shrink-0">
+          <BottomToolbar
+            activeDev={activeDev}
+            devices={DEVICES}
+            onSwitch={setDeviceId}
+            scale={singleScale}
+            onRefresh={refresh}
+            onCompare={toggleMode}
+            onOpen={() => window.open(url, '_blank')}
+            page={page}
+            compareMode={mode === 'compare'}
+          />
+        </div>
       </div>
     </div>
   );
