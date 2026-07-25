@@ -119,7 +119,7 @@ export function LoginShell({
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
             <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">YouTube Growth Intelligence</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
           </div>
         </div>
 
@@ -130,7 +130,7 @@ export function LoginShell({
             style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            Powered by Claude · GPT-4o · Gemini
+            Powered by AI
           </div>
 
           <h1 className="text-5xl xl:text-[3.4rem] font-extrabold text-white leading-[1.1] mb-5">
@@ -311,7 +311,7 @@ export function RegisterShell({
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
             <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">YouTube Growth Intelligence</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
           </div>
         </div>
 
@@ -474,7 +474,7 @@ export function ForgotPasswordShell({
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
             <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">YouTube Growth Intelligence</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
           </div>
         </div>
 
@@ -576,7 +576,7 @@ export function ResetPasswordShell({
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
             <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">YouTube Growth Intelligence</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
           </div>
         </div>
 
@@ -693,7 +693,7 @@ export function OAuthCallbackShell({
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
             <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">YouTube Growth Intelligence</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
           </div>
         </div>
 

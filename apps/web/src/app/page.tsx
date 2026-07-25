@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import {
-  Zap, Clapperboard, Film, Scissors, FileText, Mic2, Music2,
-  BookOpen, BarChart2, LayoutTemplate, TrendingUp, Upload, Layers,
-  Bot, ArrowRight, CheckCircle2, ChevronRight, Sparkles, ShieldCheck,
+  Zap, Film, Bot, ArrowRight, CheckCircle2, ChevronRight, Sparkles, ShieldCheck,
+  Globe2, Repeat2, Clock, Star, Hash, LineChart, MessageSquare, Target, Users, Calendar,
 } from 'lucide-react';
 import { MobileNav } from './_components/MobileNav';
 import { LogoMark } from '@/components/logo-mark';
@@ -11,44 +10,38 @@ import { PwaInstallButtonLanding } from '@/components/pwa-install';
 // ── Capabilities ──────────────────────────────────────────────────────────────
 
 const CAPABILITIES = [
-  { icon: Bot,           color: '#7C3AED', bg: '#F3EEFF', title: 'Natural Language AI Assistant',  desc: 'Describe what you want. The AI handles the rest — no forms, no menus.' },
-  { icon: FileText,      color: '#2563EB', bg: '#EFF6FF', title: 'AI Script Writing',              desc: 'Research-backed scripts crafted for your niche, tone, and target audience.' },
-  { icon: Clapperboard,  color: '#DC2626', bg: '#FFF1F1', title: 'AI Video Creation',              desc: 'Full production pipeline: research → script → voice → music → render.' },
-  { icon: Mic2,          color: '#059669', bg: '#ECFDF5', title: 'Voice Generation',               desc: 'Studio-quality AI voice-over in 30+ languages with natural rhythm and pacing.' },
-  { icon: Music2,        color: '#D97706', bg: '#FFFBEB', title: 'Music Generation',               desc: 'Original background music tuned to mood, genre, and video duration.' },
-  { icon: Scissors,      color: '#7C3AED', bg: '#F3EEFF', title: 'Shorts Generation',              desc: 'AI finds the best highlights from long-form video and auto-creates Shorts.' },
-  { icon: Film,          color: '#0891B2', bg: '#ECFEFF', title: 'Professional Editing',           desc: 'Multi-track timeline with effects, transitions, captions, and export.' },
-  { icon: LayoutTemplate,color: '#BE185D', bg: '#FDF2F8', title: 'Thumbnail Generation',          desc: 'Eye-catching thumbnails designed to maximise click-through rates.' },
-  { icon: BookOpen,      color: '#1D4ED8', bg: '#EFF6FF', title: 'AI Research',                   desc: 'Deep topic research with fact-checking and source verification built in.' },
-  { icon: TrendingUp,    color: '#065F46', bg: '#ECFDF5', title: 'AI SEO Optimisation',           desc: 'Titles, descriptions, and tags engineered to rank and surface to the right audience.' },
-  { icon: BarChart2,     color: '#7C3AED', bg: '#F3EEFF', title: 'Channel Analysis',              desc: 'Understand what is working, what is not, and exactly what to do next.' },
-  { icon: Upload,        color: '#DC2626', bg: '#FFF1F1', title: 'AI Publishing',                 desc: 'Compliance-gated, scheduled publishing to YouTube and beyond.' },
-  { icon: Layers,        color: '#0891B2', bg: '#ECFEFF', title: 'Multi-Channel Management',      desc: 'Manage multiple channels and brands from a single AI-powered workspace.' },
-  { icon: ShieldCheck,   color: '#059669', bg: '#ECFDF5', title: 'Compliance Engine',             desc: 'Every piece of content passes copyright, monetisation, and policy checks.' },
+  { icon: Globe2,        color: '#7C3AED', bg: '#F3EEFF', title: 'Multi-Platform Publishing',   desc: 'Publish to YouTube, Instagram, TikTok, Facebook, LinkedIn, and X in a single click.' },
+  { icon: Repeat2,       color: '#0891B2', bg: '#ECFEFF', title: 'AI Content Repurposing',      desc: 'Turn one long video into 30+ platform-native posts — Reels, Shorts, carousels, threads.' },
+  { icon: Clock,         color: '#059669', bg: '#ECFDF5', title: 'Smart Scheduling',             desc: 'AI picks the best posting time per platform to maximise reach and engagement.' },
+  { icon: Film,          color: '#DC2626', bg: '#FFF1F1', title: 'Short-Form Video Studio',     desc: 'Auto-generate Reels, TikToks, and Shorts from any long-form content.' },
+  { icon: Bot,           color: '#7C3AED', bg: '#F3EEFF', title: 'AI Script & Captions',        desc: 'Platform-optimised captions, hooks, and scripts written in your brand voice.' },
+  { icon: Star,          color: '#D97706', bg: '#FFFBEB', title: 'Thumbnail & Cover Art',       desc: 'Eye-catching visuals sized perfectly for every platform — generated in seconds.' },
+  { icon: Hash,          color: '#BE185D', bg: '#FDF2F8', title: 'Hashtag & SEO Engine',        desc: 'Trending hashtags, keywords, and descriptions that surface your content to more people.' },
+  { icon: LineChart,     color: '#1D4ED8', bg: '#EFF6FF', title: 'Unified Analytics',           desc: 'All your channel metrics in one dashboard — see what works and do more of it.' },
+  { icon: MessageSquare, color: '#065F46', bg: '#ECFDF5', title: 'Engagement AI',               desc: 'Smart reply suggestions and community management so no comment goes unanswered.' },
+  { icon: Target,        color: '#7C3AED', bg: '#F3EEFF', title: 'Trend Intelligence',          desc: 'Spot viral topics before they peak and create content while the audience is growing.' },
+  { icon: Users,         color: '#0891B2', bg: '#ECFEFF', title: 'Brand Voice Trainer',         desc: 'Teach the AI your tone once — every post sounds authentically like you across all platforms.' },
+  { icon: ShieldCheck,   color: '#059669', bg: '#ECFDF5', title: 'Compliance Engine',           desc: 'Every piece of content passes copyright, monetisation, and platform policy checks.' },
 ];
 
 // ── Workflow steps ─────────────────────────────────────────────────────────────
 
 const WORKFLOW = [
-  { icon: Sparkles,      label: 'Idea',                sub: 'Tell the AI what you want to create' },
-  { icon: Bot,           label: 'AI Conversation',     sub: 'Copilot gathers requirements naturally' },
-  { icon: BookOpen,      label: 'Research & Planning', sub: 'AI researches, outlines, and plans' },
-  { icon: FileText,      label: 'Script',              sub: 'Fact-checked, SEO-optimised script' },
-  { icon: Mic2,          label: 'Voice',               sub: 'Natural AI voice-over generated' },
-  { icon: Music2,        label: 'Music',               sub: 'Original background track created' },
-  { icon: Clapperboard,  label: 'Video',               sub: 'Scenes rendered automatically' },
-  { icon: Film,          label: 'Professional Editing',sub: 'Transitions, captions, colour grade' },
-  { icon: ShieldCheck,   label: 'Compliance Review',   sub: 'Copyright and policy checks pass' },
-  { icon: Upload,        label: 'Publishing',          sub: 'Scheduled, approved, published' },
+  { icon: Sparkles,    label: 'Idea',     sub: 'Tell the AI your topic or upload any file' },
+  { icon: Target,      label: 'Strategy', sub: 'AI picks platforms, formats, and best timing' },
+  { icon: Bot,         label: 'Create',   sub: 'Scripts, captions, and visuals generated' },
+  { icon: CheckCircle2,label: 'Review',   sub: 'Approve or edit — one click per platform' },
+  { icon: Calendar,    label: 'Schedule', sub: 'AI queues posts for peak engagement windows' },
+  { icon: LineChart,   label: 'Analyse',  sub: 'See results, learn, and improve automatically' },
 ];
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
-  { label: 'Features',    href: '#features' },
-  { label: 'How it works',href: '#workflow' },
-  { label: 'Get the App', href: '#download' },
-  { label: 'Pricing',     href: '#pricing' },
+  { label: 'Features',     href: '#features' },
+  { label: 'How it works', href: '#workflow' },
+  { label: 'Get the App',  href: '#download' },
+  { label: 'Pricing',      href: '#pricing' },
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -110,21 +103,21 @@ export default function LandingPage() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-8 text-sm font-medium text-white/80" style={{background:'rgba(124,58,237,.15)'}}>
               <Zap className="w-3.5 h-3.5 text-purple-400" />
-              The AI Content Operating System
+              One AI for every platform
             </div>
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight max-w-5xl mx-auto">
-              Create. Edit. Publish.
+              Post smarter.
               <br />
               <span style={{background:'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
-                All with AI.
+                Grow everywhere.
               </span>
             </h1>
 
             <p className="mt-6 text-base sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-              From a single conversation to a published video — Sozialzync handles research, scripting, voice, music, editing, and publishing.{' '}
-              <span className="text-white/80">No forms. No menus. Just results.</span>
+              Create once, publish everywhere. Sozialzync&apos;s AI turns one idea into optimised content for YouTube, Instagram, TikTok, LinkedIn, Facebook, and X — in minutes, not hours.{' '}
+              <span className="text-white/80">No manual repurposing. No burnout.</span>
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
@@ -138,8 +131,26 @@ export default function LandingPage() {
               </a>
             </div>
 
+            {/* Platform logos */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <span className="text-xs font-medium mr-2" style={{color:'rgba(255,255,255,.35)'}}>Works with</span>
+              {[
+                { label: 'YouTube',   bg: '#FF0000',                                                                                                    short: 'YT', border: undefined },
+                { label: 'Instagram', bg: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',                                            short: 'IG', border: undefined },
+                { label: 'TikTok',   bg: '#010101',                                                                                                    short: 'TT', border: '1px solid rgba(255,255,255,.15)' },
+                { label: 'LinkedIn', bg: '#0A66C2',                                                                                                    short: 'LI', border: undefined },
+                { label: 'Facebook', bg: '#1877F2',                                                                                                    short: 'FB', border: undefined },
+                { label: 'X',        bg: '#000000',                                                                                                    short: 'X',  border: '1px solid rgba(255,255,255,.2)' },
+              ].map(({ label, bg, short, border }) => (
+                <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white" style={{background:bg, border: border ?? 'none'}}>
+                  <span className="text-[10px] opacity-90">{short}</span>
+                  <span className="hidden sm:inline opacity-80">{label}</span>
+                </span>
+              ))}
+            </div>
+
             {/* Hero visual — AI workspace mockup */}
-            <div className="mt-10 sm:mt-20 max-w-4xl mx-auto float-slow">
+            <div className="mt-10 sm:mt-16 max-w-4xl mx-auto float-slow">
               <div className="glow-ring rounded-3xl overflow-hidden" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
                 {/* Browser chrome */}
                 <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/8">
@@ -152,7 +163,7 @@ export default function LandingPage() {
                 <div className="flex h-80 lg:h-96">
                   {/* Sidebar — hidden on small screens */}
                   <div className="w-36 lg:w-44 shrink-0 border-r border-white/8 p-3 hidden sm:flex flex-col gap-1">
-                    {['Home','Projects','Copilot','Shorts Studio','Video Editor','Publish','Analytics'].map((item, i) => (
+                    {['Home','Projects','Copilot','Schedule','Analytics','Publish','Settings'].map((item, i) => (
                       <div key={item} className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold" style={{background: i===2?'rgba(124,58,237,.35)':'transparent',color: i===2?'#c4b5fd':'rgba(255,255,255,.5)'}}>
                         <div className="w-3 h-3 rounded-sm shrink-0" style={{background:i===2?'#a78bfa':'rgba(255,255,255,.2)'}} />
                         {item}
@@ -170,7 +181,7 @@ export default function LandingPage() {
                         </div>
                         <div className="flex-1">
                           <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs leading-relaxed" style={{background:'rgba(167,139,250,.15)',color:'#e0d7ff'}}>
-                            Hello! I&apos;m your AI Creative Director. What would you like to create today?
+                            Hello! What would you like to create or repurpose today?
                           </div>
                         </div>
                       </div>
@@ -179,7 +190,7 @@ export default function LandingPage() {
                           U
                         </div>
                         <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-xs" style={{background:'rgba(255,255,255,.08)',color:'rgba(255,255,255,.85)'}}>
-                          Create a 10-minute YouTube video on AI trends in 2026.
+                          Repurpose my latest podcast for all social platforms.
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -188,10 +199,10 @@ export default function LandingPage() {
                         </div>
                         <div className="flex-1 space-y-1.5">
                           <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs leading-relaxed" style={{background:'rgba(167,139,250,.15)',color:'#e0d7ff'}}>
-                            Great choice! I&apos;ll start with research. Who is your target audience?
+                            Got it! I&apos;ll create: a YouTube video, 5 TikToks, 3 Reels, a LinkedIn post, and a tweet thread. Ready?
                           </div>
                           <div className="flex gap-2 flex-wrap">
-                            {['Tech enthusiasts','Business owners','General audience'].map(t => (
+                            {['Yes, go!','Customise','Preview first'].map(t => (
                               <span key={t} className="px-2.5 py-1 rounded-full text-[10px] font-medium cursor-pointer" style={{background:'rgba(167,139,250,.2)',color:'#c4b5fd',border:'1px solid rgba(167,139,250,.3)'}}>
                                 {t}
                               </span>
@@ -206,7 +217,7 @@ export default function LandingPage() {
                       <Sparkles className="w-4 h-4 shrink-0 pulse-soft" style={{color:'#a78bfa'}} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-semibold" style={{color:'rgba(255,255,255,.8)'}}>AI Research in progress…</span>
+                          <span className="text-[10px] font-semibold" style={{color:'rgba(255,255,255,.8)'}}>Generating content for 6 platforms…</span>
                           <span className="text-[10px]" style={{color:'rgba(255,255,255,.5)'}}>42%</span>
                         </div>
                         <div className="h-1 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,.08)'}}>
@@ -223,12 +234,31 @@ export default function LandingPage() {
             <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm font-medium">
               {[
                 { icon: CheckCircle2, label: 'No credit card required' },
-                { icon: ShieldCheck, label: 'Compliance built in' },
-                { icon: Zap, label: 'Publish in minutes' },
+                { icon: ShieldCheck,  label: 'Compliance built in' },
+                { icon: Zap,          label: 'Publish in minutes' },
               ].map(({ icon: Icon, label }) => (
                 <div key={label} className="flex items-center gap-2" style={{color:'rgba(255,255,255,.5)'}}>
                   <Icon className="w-4 h-4" style={{color:'#a78bfa'}} />
                   {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── STATS ────────────────────────────────────────────────────────────── */}
+        <section aria-label="Social proof" className="bg-white border-y border-gray-100 py-10">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+              {[
+                { stat: '6 Platforms',    label: 'From a single workflow' },
+                { stat: '10× Faster',     label: 'Than manual creation' },
+                { stat: '3M+ Posts',      label: 'Scheduled & published' },
+                { stat: '100K+ Creators', label: 'Growing with Sozialzync' },
+              ].map(({ stat, label }) => (
+                <div key={stat} className="flex flex-col items-center gap-1">
+                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight" style={{color:'#7C3AED'}}>{stat}</p>
+                  <p className="text-xs text-gray-400 mt-1">{label}</p>
                 </div>
               ))}
             </div>
@@ -241,12 +271,12 @@ export default function LandingPage() {
             <div className="text-center mb-16">
               <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>Full capability suite</p>
               <h2 id="features-heading" className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
-                Everything a creator needs,
+                Everything you need to grow every channel,
                 <br className="hidden sm:block" />
                 <span style={{color:'#7C3AED'}}> powered by AI</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-                One platform replaces your entire content production stack. Script to publish, in one conversation.
+                One platform replaces your entire social media stack. From content creation to analytics — all connected.
               </p>
             </div>
 
@@ -272,20 +302,20 @@ export default function LandingPage() {
             <div className="text-center mb-16">
               <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>End-to-end AI pipeline</p>
               <h2 id="workflow-heading" className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
-                Idea to published,
-                <span style={{color:'#7C3AED'}}> on autopilot</span>
+                From one idea,
+                <span style={{color:'#7C3AED'}}> to every platform</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">
-                Tell the AI what you want. It handles every step — you stay in control.
+                Tell Sozialzync what you want to create. It plans, writes, schedules, and publishes across all your channels.
               </p>
             </div>
 
-            {/* Step grid — 5 columns × 2 rows */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 sm:gap-4">
+            {/* Step grid — 6 columns */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 sm:gap-4">
               {WORKFLOW.map(({ icon: Icon, label, sub }, idx) => (
                 <div key={label} className="relative flex flex-col items-center text-center group">
-                  {/* Connector (right side) */}
-                  {idx % 5 !== 4 && (
+                  {/* Connector */}
+                  {idx < WORKFLOW.length - 1 && (
                     <div aria-hidden="true" className="hidden lg:block absolute top-8 left-[calc(50%+28px)] right-0 h-px" style={{background:'linear-gradient(90deg,#c4b5fd,transparent)'}} />
                   )}
 
@@ -325,14 +355,14 @@ export default function LandingPage() {
                   <span style={{color:'#7C3AED'}}>Just conversation.</span>
                 </h2>
                 <p className="mt-6 text-lg text-gray-500 leading-relaxed">
-                  Sozialzync&apos;s AI Copilot works like an experienced producer. Tell it what you need — it asks the right questions, fills in the gaps, and gets it done.
+                  Sozialzync&apos;s AI Copilot works like an experienced social media manager. Tell it what you need — it plans your content across platforms, fills in the gaps, and gets it done.
                 </p>
                 <ul className="mt-8 space-y-4">
                   {[
-                    { t: 'Voice & text input', d: 'Speak or type — the Copilot understands both.' },
-                    { t: 'Multi-language support', d: 'Responds in your language: English, Hindi, Tamil, and 30+ more.' },
-                    { t: 'Session memory', d: 'Remembers what you said so you never repeat yourself.' },
-                    { t: 'Action confirmation', d: 'Always asks before launching expensive AI jobs.' },
+                    { t: 'Cross-platform creation', d: 'One conversation generates content for all your channels simultaneously.' },
+                    { t: 'Voice & text input',       d: 'Speak or type — the Copilot understands both.' },
+                    { t: 'Multi-language support',   d: 'Responds in your language: English, Hindi, Tamil, and 30+ more.' },
+                    { t: 'Session memory',            d: 'Remembers your brand voice so every post sounds like you.' },
                   ].map(({ t, d }) => (
                     <li key={t} className="flex items-start gap-3">
                       <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{background:'#EDE9FE'}}>
@@ -374,11 +404,11 @@ export default function LandingPage() {
                     {/* Chat messages */}
                     <div className="space-y-3 pt-2">
                       {[
-                        { role:'ai',  text:"What kind of content do you want to create today?" },
-                        { role:'user',text:"Take last week's sermon and create 10 Shorts for YouTube." },
-                        { role:'ai',  text:"Got it! Preferred duration for each Short? 30s / 45s / 60s?" },
-                        { role:'user',text:"45 seconds each, with subtitles." },
-                        { role:'ai',  text:"Perfect. Should I use the original voice or generate an AI voice-over?" },
+                        { role:'ai',  text:"What would you like to create or repurpose today?" },
+                        { role:'user',text:"Repurpose my latest podcast episode for all platforms." },
+                        { role:'ai',  text:"On it! I'll create a YouTube video, 5 TikToks, 3 Reels, a LinkedIn post, and 10 tweets." },
+                        { role:'user',text:"Perfect. Add captions and schedule for peak times." },
+                        { role:'ai',  text:"Done! Posts are queued for optimal times across all 6 platforms. Review before publishing?" },
                       ].map(({ role, text }, i) => (
                         <div key={i} className={`flex ${role==='user'?'flex-row-reverse':''} items-end gap-2`}>
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${role==='ai'?'':'opacity-90'}`} style={{background:role==='ai'?'linear-gradient(135deg,#a78bfa,#7C3AED)':'linear-gradient(135deg,#f472b6,#ec4899)',color:'#fff'}}>
@@ -393,7 +423,7 @@ export default function LandingPage() {
 
                     {/* Input */}
                     <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 mt-2" style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)'}}>
-                      <Mic2 className="w-4 h-4 shrink-0" style={{color:'#a78bfa'}} />
+                      <Globe2 className="w-4 h-4 shrink-0" style={{color:'#a78bfa'}} />
                       <span className="text-xs flex-1" style={{color:'rgba(255,255,255,.35)'}}>Speak or type a message…</span>
                     </div>
                   </div>
@@ -450,7 +480,7 @@ export default function LandingPage() {
               <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(0,122,255,.15)'}}>🍎</div>
                 <div>
-                  <p className="text-white font-bold text-base mb-1">iPhone & iPad</p>
+                  <p className="text-white font-bold text-base mb-1">iPhone &amp; iPad</p>
                   <p className="text-white/45 text-sm leading-relaxed">App Store listing coming soon. For now, open in Safari and tap Share → Add to Home Screen.</p>
                 </div>
                 <div className="mt-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold" style={{background:'rgba(0,122,255,.1)',border:'1px solid rgba(0,122,255,.25)',color:'rgba(147,197,253,.7)',cursor:'default'}}>
@@ -491,10 +521,10 @@ export default function LandingPage() {
             <div className="relative">
               <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{color:'#a78bfa'}}>Start today</p>
               <h2 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
-                Your AI studio is<br />ready when you are.
+                Your social media,<br />on autopilot.
               </h2>
               <p className="mt-6 text-lg text-white/60 max-w-xl mx-auto">
-                Join creators already building professional content with AI. Free to start — no credit card required.
+                Join 100,000+ creators building their audience across every platform with AI. Free to start — no credit card required.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/login" className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 20px 50px -12px rgba(124,58,237,.6)'}}>
@@ -503,7 +533,7 @@ export default function LandingPage() {
                 </Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm">
-                {['No credit card required','Cancel any time','14-day free trial'].map(t => (
+                {['No credit card required','All platforms included','14-day free trial'].map(t => (
                   <span key={t} className="flex items-center gap-1.5" style={{color:'rgba(255,255,255,.45)'}}>
                     <CheckCircle2 className="w-4 h-4" style={{color:'#a78bfa'}} />
                     {t}
@@ -523,7 +553,7 @@ export default function LandingPage() {
               <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
               <div>
                 <p className="font-bold text-base leading-tight">Sozialzync</p>
-                <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.35)'}}>AI Content Operating System</p>
+                <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.35)'}}>AI Social Media Platform</p>
               </div>
             </div>
             <nav aria-label="Footer navigation">

@@ -155,14 +155,23 @@ export default function LoginPage() {
   return (
     <LoginShell
       footer={
-        tab === 'password' ? (
-          <>
-            Don&rsquo;t have an account?{' '}
-            <Link href="/register" className="text-[#6D4AE0] font-semibold hover:underline">
-              Create one free
-            </Link>
-          </>
-        ) : null
+        <>
+          {tab === 'password' && (
+            <>
+              Don&rsquo;t have an account?{' '}
+              <Link href="/register" className="text-[#6D4AE0] font-semibold hover:underline">
+                Create one free
+              </Link>
+              <br />
+            </>
+          )}
+          <span className="text-xs text-gray-400">
+            By continuing, you agree to our{' '}
+            <Link href="/terms" className="text-[#6D4AE0] hover:underline">Terms of Service</Link>
+            {' '}and{' '}
+            <Link href="/privacy" className="text-[#6D4AE0] hover:underline">Privacy Policy</Link>
+          </span>
+        </>
       }
     >
       {/* ── Tab switcher ────────────────────────────────────────────── */}
