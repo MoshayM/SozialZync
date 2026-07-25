@@ -6,7 +6,7 @@ import {
   FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarClock,
   CheckCircle2, Circle, ChevronRight, Bot, Mic2, MessageSquare, TrendingUp,
   Clock, Activity, PlayCircle, FileText, Music2, Image as ImageIcon, Film,
-  LayoutDashboard, Flame, Scissors,
+  LayoutDashboard, Flame, Scissors, Send,
 } from 'lucide-react';
 import { api, type TrialStatusResponse, type ChannelAutomation } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
@@ -233,23 +233,26 @@ export default function HomePage() {
 
             {/* Prompt input */}
             <div
-              className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-4 max-w-2xl"
-              style={{ background: 'rgba(255,255,255,0.10)', border: '1.5px solid rgba(255,255,255,0.15)' }}
+              className="flex items-stretch rounded-2xl overflow-hidden mb-4 max-w-2xl"
+              style={{ background: 'rgba(255,255,255,0.10)', border: '1.5px solid rgba(255,255,255,0.18)' }}
             >
-              <MessageSquare className="w-4 h-4 text-purple-300 shrink-0" />
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Describe what you want to create…"
-                className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-white/40"
-                style={{ fontFamily: 'inherit' }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
-                    openCopilotWithPrompt((e.target as HTMLInputElement).value.trim());
-                    (e.target as HTMLInputElement).value = '';
-                  }
-                }}
-              />
+              <div className="flex items-center flex-1 gap-2.5 px-4 py-3 min-w-0">
+                <MessageSquare className="w-4 h-4 text-purple-300 shrink-0" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Describe what you want to create…"
+                  className="flex-1 min-w-0 bg-transparent outline-none text-sm text-white placeholder:text-white/40"
+                  style={{ fontFamily: 'inherit' }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                      openCopilotWithPrompt((e.target as HTMLInputElement).value.trim());
+                      (e.target as HTMLInputElement).value = '';
+                    }
+                  }}
+                />
+                <kbd className="hidden sm:inline text-white/30 text-base shrink-0 select-none" title="Press Enter to send">⏎</kbd>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -257,10 +260,11 @@ export default function HomePage() {
                   if (val) { openCopilotWithPrompt(val); if (inputRef.current) inputRef.current.value = ''; }
                   else window.dispatchEvent(new CustomEvent('cf:open-copilot'));
                 }}
-                className="shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold transition-opacity hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #f0c14d, #f5a623)', color: '#3b1f00' }}
+                className="shrink-0 flex items-center gap-1.5 px-4 font-bold text-sm transition-opacity hover:opacity-90 border-l"
+                style={{ background: 'rgba(255,255,255,0.13)', color: 'white', borderColor: 'rgba(255,255,255,0.15)' }}
               >
-                Ask AI
+                <Send className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ask AI</span>
               </button>
               <button
                 type="button"
@@ -269,8 +273,8 @@ export default function HomePage() {
                   window.dispatchEvent(new CustomEvent('cf:open-copilot'));
                   setTimeout(() => document.querySelector<HTMLButtonElement>('button[title="Start listening"]')?.click(), 500);
                 }}
-                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-110"
-                style={{ background: 'rgba(255,255,255,0.15)', color: '#c4b5fd' }}
+                className="shrink-0 w-12 flex items-center justify-center transition-all hover:opacity-80 border-l"
+                style={{ background: 'rgba(255,255,255,0.07)', color: '#c4b5fd', borderColor: 'rgba(255,255,255,0.10)' }}
               >
                 <Mic2 className="w-4 h-4" />
               </button>

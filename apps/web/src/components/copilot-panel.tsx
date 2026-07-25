@@ -321,6 +321,7 @@ export function CopilotPanel() {
   const audioChunksRef    = useRef<Blob[]>([]);
   const messagesEndRef    = useRef<HTMLDivElement>(null);
   const textareaRef       = useRef<HTMLTextAreaElement>(null);
+  const speechPrimedRef   = useRef(false);
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -360,6 +361,17 @@ export function CopilotPanel() {
     const id = setTimeout(() => setMicError(null), 6000);
     return () => clearTimeout(id);
   }, [micError]);
+
+  // ── Audio priming (iOS requires speak() in a user gesture to unlock TTS) ──
+  const primeAudio = useCallback(() => {
+    if (speechPrimedRef.current || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    speechPrimedRef.current = true;
+    try {
+      const silent = new SpeechSynthesisUtterance('');
+      silent.volume = 0;
+      window.speechSynthesis.speak(silent);
+    } catch {}
+  }, []);
 
   // ── TTS ────────────────────────────────────────────────────────────────────
 
@@ -576,6 +588,7 @@ export function CopilotPanel() {
   startListeningRef.current = startListening;
 
   const toggleMic = useCallback(() => {
+    primeAudio(); // unlock iOS speechSynthesis from user gesture
     if (listening || recording) {
       conversationRef.current = false;
       if (mediaRecorderRef.current) stopServerSTT();
@@ -585,7 +598,7 @@ export function CopilotPanel() {
     }
     setListening(true); setMicError(null); conversationRef.current = true;
     startListening();
-  }, [listening, recording, startListening, stopServerSTT]);
+  }, [listening, recording, startListening, stopServerSTT, primeAudio]);
 
   const close = useCallback(() => {
     conversationRef.current = false;

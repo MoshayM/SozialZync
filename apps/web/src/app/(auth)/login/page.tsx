@@ -151,12 +151,14 @@ export default function LoginPage() {
   return (
     <LoginShell
       footer={
-        <>
-          Don&rsquo;t have an account?{' '}
-          <Link href="/register" className="text-[#6D4AE0] font-semibold hover:underline">
-            Create one free
-          </Link>
-        </>
+        tab === 'password' ? (
+          <>
+            Don&rsquo;t have an account?{' '}
+            <Link href="/register" className="text-[#6D4AE0] font-semibold hover:underline">
+              Create one free
+            </Link>
+          </>
+        ) : null
       }
     >
       {/* ── Tab switcher ────────────────────────────────────────────── */}
@@ -421,11 +423,13 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* ── Social sign-in ───────────────────────────────────────────── */}
-      <SocialRow
-        providers={providers}
-        onProviderClick={(p) => { void handleSocialLogin(p); }}
-      />
+      {/* ── Social sign-in — password tab only ──────────────────────── */}
+      {tab === 'password' && (
+        <SocialRow
+          providers={providers}
+          onProviderClick={(p) => { void handleSocialLogin(p); }}
+        />
+      )}
     </LoginShell>
   );
 }
