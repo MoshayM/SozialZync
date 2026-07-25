@@ -6,8 +6,8 @@ interface LogoMarkProps {
 }
 
 /**
- * Blueforce logo mark — shared across every surface.
- * Uses useId() so SVG gradient IDs never collide when rendered multiple times per page.
+ * Sozialzync logo mark — "sync S" icon representing Social + Zync.
+ * Renders across every surface. useId() prevents gradient ID collisions.
  */
 export function LogoMark({ className, style }: LogoMarkProps) {
   const raw = useId();
@@ -22,20 +22,20 @@ export function LogoMark({ className, style }: LogoMarkProps) {
       style={style}
     >
       <defs>
-        {/* Rich violet → deep indigo */}
+        {/* Deep violet → rich purple */}
         <linearGradient id={`${uid}-bg`} x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#A855F7" />
-          <stop offset="1" stopColor="#3B0F9E" />
+          <stop stopColor="#7C3AED" />
+          <stop offset="1" stopColor="#2E0F8C" />
         </linearGradient>
-        {/* Subtle top-left inner highlight for depth */}
-        <radialGradient id={`${uid}-hl`} cx="28%" cy="22%" r="58%">
-          <stop stopColor="white" stopOpacity="0.22" />
+        {/* Top-left inner highlight */}
+        <radialGradient id={`${uid}-hl`} cx="28%" cy="22%" r="55%">
+          <stop stopColor="white" stopOpacity="0.18" />
           <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
-        {/* Soft inner glow at bolt tip */}
-        <radialGradient id={`${uid}-glow`} cx="62%" cy="28%" r="35%">
-          <stop stopColor="#E9D5FF" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#E9D5FF" stopOpacity="0" />
+        {/* Glow at the S crossing point */}
+        <radialGradient id={`${uid}-glow`} cx="50%" cy="50%" r="40%">
+          <stop stopColor="#C4B5FD" stopOpacity="0.25" />
+          <stop offset="1" stopColor="#C4B5FD" stopOpacity="0" />
         </radialGradient>
       </defs>
 
@@ -44,14 +44,33 @@ export function LogoMark({ className, style }: LogoMarkProps) {
       <rect width="40" height="40" rx="10" fill={`url(#${uid}-hl)`} />
       <rect width="40" height="40" rx="10" fill={`url(#${uid}-glow)`} />
 
-      {/*
-        Force bolt — geometric lightning bolt polygon.
-        Centered in the 40×40 canvas with balanced margins.
-        Upper section (top-right) tapers into lower section (bottom-left).
-      */}
+      {/* Sync-S: S-curve with sync arrowheads at each tip suggesting circular motion */}
       <path
-        d="M 21,8 L 28,8 L 20,22 L 27,22 L 12,34 L 20,20 L 13,20 Z"
-        fill="white"
+        d="M 26,10 C 31,6 5,8 5,17 C 5,22 35,18 35,23 C 35,32 9,34 14,30"
+        stroke="white"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      {/* Top arrowhead — clockwise direction */}
+      <path
+        d="M 22,7 L 26,10 L 22,13"
+        stroke="white"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+
+      {/* Bottom arrowhead — clockwise direction */}
+      <path
+        d="M 18,27 L 14,30 L 18,33"
+        stroke="white"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
       />
     </svg>
   );

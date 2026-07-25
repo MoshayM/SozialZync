@@ -152,7 +152,7 @@ function ResetPasswordInner() {
               boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
             }}
           >
-            Sign in to Blueforce
+            Sign in to Sozialzync
           </button>
         </div>
       ) : !token ? (

@@ -366,10 +366,10 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         <div className="flex items-center gap-2 shrink-0">
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" style={{ borderRadius: '11px', boxShadow: '0 6px 14px -6px rgba(124,58,237,.5)' }} />
           <div className="leading-[1.15] hidden sm:block">
-            <div className="font-bold text-[15px] tracking-[-0.3px]">Blueforce</div>
+            <div className="font-bold text-[15px] tracking-[-0.3px]">Sozialzync</div>
             <div className="text-[11px] font-medium" style={{ color: '#8b88a0' }}>AI Content Platform</div>
           </div>
-          <span className="font-bold text-[15px] tracking-[-0.3px] sm:hidden">Blueforce</span>
+          <span className="font-bold text-[15px] tracking-[-0.3px] sm:hidden">Sozialzync</span>
         </div>
 
         {/* Search bar — hidden on small screens */}
@@ -618,7 +618,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             {!sidebarCollapsed && (
               <>
                 <div style={{ overflow: 'hidden', lineHeight: 1.35, flex: '1 1 auto' }}>
-                  <div style={{ fontWeight: 800, fontSize: '16px', color: '#fff', letterSpacing: '-.4px', whiteSpace: 'nowrap' }}>Blueforce</div>
+                  <div style={{ fontWeight: 800, fontSize: '16px', color: '#fff', letterSpacing: '-.4px', whiteSpace: 'nowrap' }}>Sozialzync</div>
                   <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.48)', fontWeight: 500, letterSpacing: '.15px', whiteSpace: 'nowrap' }}>AI Content Platform</div>
                 </div>
                 {/* Close button — only visible on mobile */}

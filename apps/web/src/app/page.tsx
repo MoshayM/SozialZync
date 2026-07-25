@@ -69,9 +69,9 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-white/10 backdrop-blur-xl" style={{background:'rgba(14,9,36,.85)'}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
-            <Link href="/" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Blueforce">
+            <Link href="/" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Sozialzync">
               <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-              <span className="font-bold text-white text-lg leading-none hidden sm:block tracking-tight">Blueforce</span>
+              <span className="font-bold text-white text-lg leading-none hidden sm:block tracking-tight">Sozialzync</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
@@ -123,7 +123,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-6 text-base sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-              From a single conversation to a published video — Blueforce handles research, scripting, voice, music, editing, and publishing.{' '}
+              From a single conversation to a published video — Sozialzync handles research, scripting, voice, music, editing, and publishing.{' '}
               <span className="text-white/80">No forms. No menus. Just results.</span>
             </p>
 
@@ -325,7 +325,7 @@ export default function LandingPage() {
                   <span style={{color:'#7C3AED'}}>Just conversation.</span>
                 </h2>
                 <p className="mt-6 text-lg text-gray-500 leading-relaxed">
-                  Blueforce&apos;s AI Copilot works like an experienced producer. Tell it what you need — it asks the right questions, fills in the gaps, and gets it done.
+                  Sozialzync&apos;s AI Copilot works like an experienced producer. Tell it what you need — it asks the right questions, fills in the gaps, and gets it done.
                 </p>
                 <ul className="mt-8 space-y-4">
                   {[
@@ -411,7 +411,7 @@ export default function LandingPage() {
                 <span>📲</span> Available everywhere
               </div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
-                Take Blueforce<br />
+                Take Sozialzync<br />
                 <span style={{background:'linear-gradient(90deg,#c4b5fd,#a78bfa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
                   wherever you create
                 </span>
@@ -522,7 +522,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
               <div>
-                <p className="font-bold text-base leading-tight">Blueforce</p>
+                <p className="font-bold text-base leading-tight">Sozialzync</p>
                 <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.35)'}}>AI Content Operating System</p>
               </div>
             </div>
@@ -539,7 +539,7 @@ export default function LandingPage() {
             </nav>
           </div>
           <div className="mt-8 pt-8 text-center text-xs" style={{borderTop:'1px solid rgba(255,255,255,.06)',color:'rgba(255,255,255,.25)'}}>
-            &copy; {new Date().getFullYear()} Blueforce. All rights reserved.
+            &copy; {new Date().getFullYear()} Sozialzync. All rights reserved.
           </div>
         </div>
       </footer>

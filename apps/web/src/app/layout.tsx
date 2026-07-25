@@ -19,9 +19,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'Blueforce', template: '%s · Blueforce' },
-  description: 'Turn long videos into publish-ready YouTube Shorts, edit with a full timeline, and publish — AI-assisted end to end.',
-  applicationName: 'Blueforce',
+  title: { default: 'Sozialzync', template: '%s · Sozialzync' },
+  description: 'AI-powered YouTube Content Operating System. Create, grow and publish with AI — from research to viral shorts.',
+  applicationName: 'Sozialzync',
   alternates: { canonical: '/' },
   icons: {
     icon: '/icon.svg',
@@ -31,20 +31,20 @@ export const metadata: Metadata = {
   // PWA / mobile app meta
   appleWebApp: {
     capable: true,
-    title: 'Blueforce',
+    title: 'Sozialzync',
     statusBarStyle: 'black-translucent',
   },
   formatDetection: { telephone: false },
   openGraph: {
     type: 'website',
     url: SITE_URL,
-    siteName: 'Blueforce',
-    title: 'Blueforce — AI YouTube Content Platform',
+    siteName: 'Sozialzync',
+    title: 'Sozialzync — AI YouTube Content Platform',
     description: 'Turn long videos into publish-ready Shorts, edit with a full timeline, and publish — AI-assisted end to end.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Blueforce',
+    title: 'Sozialzync',
     description: 'AI-powered YouTube content creation platform.',
   },
 };

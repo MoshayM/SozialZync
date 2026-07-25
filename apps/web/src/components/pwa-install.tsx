@@ -126,7 +126,7 @@ export function PwaInstallBanner() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm leading-none mb-0.5">Install Blueforce</p>
+          <p className="text-white font-semibold text-sm leading-none mb-0.5">Install Sozialzync</p>
           {isIOS && iosHint ? (
             <p className="text-purple-300 text-xs">Tap Share → &ldquo;Add to Home Screen&rdquo;</p>
           ) : (

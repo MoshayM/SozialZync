@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Blueforce — AI YouTube Platform',
-    short_name: 'Blueforce',
-    description: 'AI-powered YouTube Content Operating System. Create, edit, and publish videos with AI.',
+    name: 'Sozialzync — AI YouTube Platform',
+    short_name: 'Sozialzync',
+    description: 'AI-powered YouTube Content Operating System. Create, grow and publish with AI — research to viral shorts.',
     start_url: '/home',
     scope: '/',
     display: 'standalone',

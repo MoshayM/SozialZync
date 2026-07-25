@@ -1,7 +1,7 @@
-// Blueforce Service Worker
+// Sozialzync Service Worker
 // Handles offline support and caching for PWA install
 
-const CACHE_NAME = 'bf-v1';
+const CACHE_NAME = 'sz-v1';
 const STATIC_ASSETS = ['/', '/login', '/offline'];
 
 // ── Install: pre-cache shell ──────────────────────────────────────────────────
@@ -71,7 +71,7 @@ self.addEventListener('push', (event) => {
   try {
     const data = event.data.json();
     event.waitUntil(
-      self.registration.showNotification(data.title ?? 'Blueforce', {
+      self.registration.showNotification(data.title ?? 'Sozialzync', {
         body: data.body ?? '',
         icon: '/icon.svg',
         badge: '/icon.svg',
