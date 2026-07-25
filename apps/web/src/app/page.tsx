@@ -438,21 +438,12 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(52,168,83,.15)'}}>🤖</div>
                 <div>
                   <p className="text-white font-bold text-base mb-1">Android</p>
-                  <p className="text-white/45 text-sm leading-relaxed">Download from Google Play. Full offline support, push notifications, and home screen shortcut.</p>
+                  <p className="text-white/45 text-sm leading-relaxed">Full native app coming to Google Play. Install the web app above for full offline support right now.</p>
                 </div>
-                <a
-                  href="https://play.google.com/store/apps/details?id=com.blueforce.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-auto"
-                >
-                  <img
-                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-                    alt="Get it on Google Play"
-                    className="h-12 w-auto"
-                    style={{filter:'brightness(0.95)'}}
-                  />
-                </a>
+                <div className="mt-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold" style={{background:'rgba(52,168,83,.1)',border:'1px solid rgba(52,168,83,.25)',color:'rgba(134,239,172,.7)',cursor:'default'}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Coming Soon — Google Play
+                </div>
               </div>
 
               {/* iOS */}
@@ -460,20 +451,12 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(0,122,255,.15)'}}>🍎</div>
                 <div>
                   <p className="text-white font-bold text-base mb-1">iPhone & iPad</p>
-                  <p className="text-white/45 text-sm leading-relaxed">Download from the App Store, or open in Safari and tap Share → Add to Home Screen.</p>
+                  <p className="text-white/45 text-sm leading-relaxed">App Store listing coming soon. For now, open in Safari and tap Share → Add to Home Screen.</p>
                 </div>
-                <a
-                  href="https://apps.apple.com/app/blueforce/id000000000"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-auto"
-                >
-                  <img
-                    src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
-                    alt="Download on the App Store"
-                    className="h-10 w-auto"
-                  />
-                </a>
+                <div className="mt-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold" style={{background:'rgba(0,122,255,.1)',border:'1px solid rgba(0,122,255,.25)',color:'rgba(147,197,253,.7)',cursor:'default'}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Coming Soon — App Store
+                </div>
               </div>
             </div>
 
