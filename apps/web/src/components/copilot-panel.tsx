@@ -322,6 +322,7 @@ export function CopilotPanel() {
   const messagesEndRef    = useRef<HTMLDivElement>(null);
   const textareaRef       = useRef<HTMLTextAreaElement>(null);
   const speechPrimedRef   = useRef(false);
+  const busyRef           = useRef(false);
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -414,7 +415,7 @@ export function CopilotPanel() {
         if (bestVoice) utt.voice = bestVoice;
         if (chunkIdx === 1) utt.onstart = () => setSpeaking(true);
         utt.onend   = next;
-        utt.onerror = () => { if (keepAlive) clearInterval(keepAlive); setSpeaking(false); setSpeakingIdx(null); onDone?.(); };
+        utt.onerror = () => { if (keepAlive) clearInterval(keepAlive); setSpeaking(false); setSpeakingIdx(null); /* do NOT call onDone on cancel/error — prevents spurious auto-listen */ };
         window.speechSynthesis.speak(utt);
       }
 
@@ -469,6 +470,8 @@ export function CopilotPanel() {
       }
     }
 
+    if (busyRef.current) return; // prevent concurrent sends
+    busyRef.current = true;
     setBusy(true);
     setActiveTab('chat');
     try {
@@ -492,9 +495,13 @@ export function CopilotPanel() {
       }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
-      const msg = status ? httpErrorMessage(status) : 'Something went wrong. Try again.';
+      const msg = status ? httpErrorMessage(status) : 'Connection error — check your network and try again.';
       setMessages(m => [...m, { role: 'assistant', content: `⚠️ ${msg}`, fromCache: false }]);
+      // Stop voice loop on error so it doesn't chain into another failed request
+      conversationRef.current = false;
+      window.speechSynthesis?.cancel();
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }, [messages, speak, pending, billingOrgId, router]);
