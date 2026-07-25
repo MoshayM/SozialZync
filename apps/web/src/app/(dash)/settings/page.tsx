@@ -892,7 +892,7 @@ function SettingsContent() {
                 const isVisible = showKeys[entry.key] ?? false;
 
                 return (
-                  <div key={entry.key} className="p-4 flex items-center gap-4 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                  <div key={entry.key} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800">{entry.label}</p>
                       <p className="text-xs text-gray-500 font-mono mt-0.5">
@@ -900,7 +900,7 @@ function SettingsContent() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 w-80">
+                    <div className="flex items-center gap-2 sm:w-80">
                       <div className="relative flex-1">
                         <input
                           type={isVisible ? 'text' : 'password'}

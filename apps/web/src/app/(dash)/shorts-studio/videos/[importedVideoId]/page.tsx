@@ -414,46 +414,48 @@ export default function ShortsVideoDetailPage() {
   const loading = loadingTopics || loadingHighlights;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="px-4 py-6 sm:p-8 max-w-5xl mx-auto">
       <Link href="/shorts-studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-4">
         <ArrowLeft className="w-4 h-4" /> Shorts Studio
       </Link>
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-brand-600" /> Analysis results
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-brand-600" /> Analysis results
         </h1>
-        <div className="flex rounded-xl bg-gray-100 p-1 text-sm">
+        <div className="overflow-x-auto no-scrollbar -mx-4 sm:mx-0">
+        <div className="flex rounded-xl bg-gray-100 p-1 text-sm mx-4 sm:mx-0 min-w-max">
           <button
             onClick={() => setTab('highlights')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg ${tab === 'highlights' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg whitespace-nowrap ${tab === 'highlights' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
           >
             <Trophy className="w-4 h-4" /> Highlights ({highlights.length})
           </button>
           <button
             onClick={() => setTab('topics')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg ${tab === 'topics' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg whitespace-nowrap ${tab === 'topics' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
           >
             <ListTree className="w-4 h-4" /> Topics ({topics.length})
           </button>
           <button
             onClick={() => setTab('chapters')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg ${tab === 'chapters' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg whitespace-nowrap ${tab === 'chapters' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
           >
             <BookOpen className="w-4 h-4" /> Chapters ({chapters.length})
           </button>
           <button
             onClick={() => setTab('search')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg ${tab === 'search' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg whitespace-nowrap ${tab === 'search' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
           >
             <Search className="w-4 h-4" /> Search
           </button>
           <button
             onClick={() => setTab('social')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg ${tab === 'social' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg whitespace-nowrap ${tab === 'social' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
           >
             <Share2 className="w-4 h-4" /> Social ({socialPieces.length})
           </button>
+        </div>
         </div>
       </div>
 

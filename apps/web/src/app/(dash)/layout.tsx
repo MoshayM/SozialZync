@@ -632,6 +632,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #F1EFF7' }}>
                 <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#1E1B2E' }}>{meData?.name ?? userName}</div>
                 <div style={{ fontSize: '11.5px', color: '#8b88a0', fontWeight: 500, marginTop: '1px' }}>{meData?.email ?? 'Creator'}</div>
+                {(meData?.role === 'SUPER_ADMIN' || meData?.role === 'OWNER') && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: meData.role === 'SUPER_ADMIN' ? '#f5f2fd' : '#eff6ff', color: meData.role === 'SUPER_ADMIN' ? '#6D4AE0' : '#1d4ed8', border: `1px solid ${meData.role === 'SUPER_ADMIN' ? '#c4b5fd' : '#bfdbfe'}`, borderRadius: '6px', padding: '2px 7px' }}>
+                    <ShieldCheck style={{ width: '10px', height: '10px' }} />
+                    {meData.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Owner'}
+                  </span>
+                )}
               </div>
               <div style={{ padding: '6px' }}>
                 {BOTTOM_ITEMS.map(({ href, icon: Icon, label }) => (
@@ -648,6 +654,19 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     {label}
                   </Link>
                 ))}
+                {isAdmin && (
+                  <Link
+                    href="/admin?tab=users"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2.5 transition-colors"
+                    style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: '#6D4AE0' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f5f2fd'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                  >
+                    <ShieldCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6D4AE0' }} />
+                    Switch / View Account
+                  </Link>
+                )}
               </div>
               <div style={{ padding: '0 6px 6px', borderTop: '1px solid #F1EFF7', marginTop: '2px', paddingTop: '6px' }}>
                 <button

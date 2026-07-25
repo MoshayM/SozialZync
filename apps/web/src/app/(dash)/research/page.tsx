@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BookOpen, Loader2, AlertTriangle, Clock, Copy, Check } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { ResultActions } from '@/components/result-actions';
@@ -25,11 +25,55 @@ interface ResearchResult {
 }
 
 const LANG_OPTIONS = [
-  { label: 'English', value: 'en' },
-  { label: 'Spanish', value: 'es' },
-  { label: 'French', value: 'fr' },
-  { label: 'German', value: 'de' },
-  { label: 'Japanese', value: 'ja' },
+  { label: 'English',               value: 'en' },
+  { label: 'Spanish',               value: 'es' },
+  { label: 'French',                value: 'fr' },
+  { label: 'German',                value: 'de' },
+  { label: 'Japanese',              value: 'ja' },
+  { label: 'Portuguese',            value: 'pt' },
+  { label: 'Italian',               value: 'it' },
+  { label: 'Dutch',                 value: 'nl' },
+  { label: 'Russian',               value: 'ru' },
+  { label: 'Korean',                value: 'ko' },
+  { label: 'Chinese (Simplified)',  value: 'zh' },
+  { label: 'Chinese (Traditional)', value: 'zh-TW' },
+  { label: 'Arabic',                value: 'ar' },
+  { label: 'Hindi',                 value: 'hi' },
+  { label: 'Bengali',               value: 'bn' },
+  { label: 'Tamil',                 value: 'ta' },
+  { label: 'Telugu',                value: 'te' },
+  { label: 'Kannada',               value: 'kn' },
+  { label: 'Malayalam',             value: 'ml' },
+  { label: 'Marathi',               value: 'mr' },
+  { label: 'Gujarati',              value: 'gu' },
+  { label: 'Punjabi',               value: 'pa' },
+  { label: 'Urdu',                  value: 'ur' },
+  { label: 'Indonesian',            value: 'id' },
+  { label: 'Malay',                 value: 'ms' },
+  { label: 'Vietnamese',            value: 'vi' },
+  { label: 'Thai',                  value: 'th' },
+  { label: 'Turkish',               value: 'tr' },
+  { label: 'Polish',                value: 'pl' },
+  { label: 'Swedish',               value: 'sv' },
+  { label: 'Norwegian',             value: 'no' },
+  { label: 'Danish',                value: 'da' },
+  { label: 'Finnish',               value: 'fi' },
+  { label: 'Greek',                 value: 'el' },
+  { label: 'Czech',                 value: 'cs' },
+  { label: 'Romanian',              value: 'ro' },
+  { label: 'Hungarian',             value: 'hu' },
+  { label: 'Ukrainian',             value: 'uk' },
+  { label: 'Hebrew',                value: 'he' },
+  { label: 'Swahili',               value: 'sw' },
+  { label: 'Filipino (Tagalog)',    value: 'tl' },
+  { label: 'Afrikaans',             value: 'af' },
+  { label: 'Catalan',               value: 'ca' },
+  { label: 'Croatian',              value: 'hr' },
+  { label: 'Slovak',                value: 'sk' },
+  { label: 'Bulgarian',             value: 'bg' },
+  { label: 'Lithuanian',            value: 'lt' },
+  { label: 'Latvian',               value: 'lv' },
+  { label: 'Estonian',              value: 'et' },
 ];
 
 function CopyChip({ text }: { text: string }) {
@@ -56,6 +100,16 @@ export default function ResearchPage() {
   const [topic, setTopic] = useState('');
   const [niche, setNiche] = useState('');
   const [lang, setLang] = useState('en');
+  const [langSearch, setLangSearch] = useState('');
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function onOutside(e: MouseEvent) {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+    }
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, []);
   const [result, setResult] = useState<ResearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -160,14 +214,45 @@ export default function ResearchPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
-              <select
-                value={lang}
-                onChange={e => setLang(e.target.value)}
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
-                style={{ border: '1.5px solid #e3e0f0' }}
-              >
-                {LANG_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <div ref={langRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => { setLangOpen(o => !o); setLangSearch(''); }}
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm text-left flex items-center justify-between outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                  style={{ border: '1.5px solid #e3e0f0' }}
+                >
+                  <span>{LANG_OPTIONS.find(o => o.value === lang)?.label ?? 'English'}</span>
+                  <svg className={`w-4 h-4 text-gray-400 transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {langOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8', maxHeight: '260px' }}>
+                    <div className="p-2 border-b border-gray-100">
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Search language…"
+                        value={langSearch}
+                        onChange={e => setLangSearch(e.target.value)}
+                        className="w-full px-3 py-2 text-sm rounded-xl outline-none bg-gray-50"
+                        style={{ border: '1px solid #e3ddf8' }}
+                      />
+                    </div>
+                    <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                      {LANG_OPTIONS.filter(o => o.label.toLowerCase().includes(langSearch.toLowerCase())).map(o => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => { setLang(o.value); setLangOpen(false); setLangSearch(''); }}
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#f5f2fd] transition-colors"
+                          style={{ color: lang === o.value ? '#6D4AE0' : '#374151', fontWeight: lang === o.value ? 700 : 400 }}
+                        >
+                          {lang === o.value && <span className="mr-2">✓</span>}{o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           {error && (
