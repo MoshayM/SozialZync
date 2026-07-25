@@ -112,6 +112,8 @@ function Card({ children, className = '', href }: { children: React.ReactNode; c
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const [onboardingDone, setOnboardingDone] = useState(false);
+  // greeting uses local time — must be client-only to avoid SSR/client hydration mismatch
+  const [greeting, setGreeting] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -150,6 +152,9 @@ export default function HomePage() {
   });
 
   const displayName = (me?.name ?? 'Creator').split(' ')[0] ?? 'Creator';
+
+  useEffect(() => { setGreeting(greet(displayName)); }, [displayName]);
+
   const activeProjects = projects.filter((p) => p.status === 'ACTIVE');
   const totalVideos = projects.reduce((s, p) => s + p._count.videos, 0);
   const totalJobs = projects.reduce((s, p) => s + p._count.jobs, 0);
@@ -214,7 +219,7 @@ export default function HomePage() {
                   <Bot className="w-5 h-5 text-purple-200" />
                 </div>
                 <div>
-                  <p className="text-white/55 text-sm font-medium leading-none mb-0.5">{greet(displayName)}</p>
+                  <p className="text-white/55 text-sm font-medium leading-none mb-0.5">{greeting}</p>
                   <h1 className="text-white font-extrabold text-xl leading-tight">
                     What would you like to create today?
                   </h1>
