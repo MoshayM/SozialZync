@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle, AlertTriangle, CalendarClock, CheckCircle, ChevronDown,
-  Crown, Lightbulb, Loader2, PlusCircle, Sparkles, TrendingDown,
+  Crown, Lightbulb, Loader2, PlusCircle, ShieldCheck, Sparkles, TrendingDown,
   TrendingUp, Wallet, Zap,
 } from 'lucide-react';
 import {
@@ -13,6 +13,7 @@ import {
   type UsageSummary, type WalletTransaction,
 } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import { usePlan } from '@/lib/plan';
 
 // ── Locale / currency config ─────────────────────────────────────────────────
 
@@ -146,6 +147,7 @@ function UsageRing({ pct }: { pct: number }) {
 // ── 1. Financial Hero ────────────────────────────────────────────────────────
 
 function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBudget: () => void }) {
+  const { hasCreditsPro } = usePlan();
   const { data: balance } = useQuery<{ balanceCredits: number; buckets: Record<string, number>; lifetimePurchased: number; lifetimeUsed: number }>({
     queryKey: ['wallet-balance'],
     queryFn: () => api.wallet.balance().then((r) => r.data),
@@ -177,11 +179,15 @@ function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBud
           {/* Plan badge */}
           <div className="inline-flex items-center gap-2 mb-4">
             <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-              {sub?.plan ?? 'Free'} Plan
+              {hasCreditsPro ? 'Pro (Credits)' : (sub?.plan ?? 'Free')} Plan
             </span>
-            {sub?.status === 'active' && (
+            {hasCreditsPro ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1" style={{ background: '#fef3c7', color: '#92400e' }}>
+                <Zap className="w-3 h-3" /> Credit-powered
+              </span>
+            ) : sub?.status === 'active' ? (
               <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#ecfdf5', color: '#065f46' }}>Active</span>
-            )}
+            ) : null}
           </div>
           <div>
             <p className="text-white/60 text-sm font-medium mb-1">AI credits remaining</p>
@@ -380,10 +386,12 @@ function SpendForecast() {
 
 function SmartTopUp() {
   const qc = useQueryClient();
+  const { activateCreditPro } = usePlan();
   const [localeKey, setLocaleKey] = useState<string>('DEFAULT');
   const [showLocaleMenu, setShowLocaleMenu] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [customAmt, setCustomAmt] = useState('');
+  const [activated, setActivated] = useState(false);
 
   useEffect(() => { setLocaleKey(detectLocaleKey()); }, []);
 
@@ -393,8 +401,17 @@ function SmartTopUp() {
     mutationFn: (amountUsd: number) => api.wallet.recharge(amountUsd),
     onSuccess: (res) => {
       const data = res.data as { checkoutUrl: string | null };
-      if (data.checkoutUrl) window.location.href = data.checkoutUrl;
-      else void qc.invalidateQueries({ queryKey: ['wallet-balance'] });
+      if (data.checkoutUrl) {
+        // Mark credit-pro active before redirecting to Stripe
+        activateCreditPro();
+        window.location.href = data.checkoutUrl;
+      } else {
+        // Instant top-up (no checkout redirect)
+        activateCreditPro();
+        setActivated(true);
+        void qc.invalidateQueries({ queryKey: ['wallet-balance'] });
+        setTimeout(() => setActivated(false), 4000);
+      }
     },
   });
 
@@ -499,6 +516,21 @@ function SmartTopUp() {
           {rechargeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buy'}
         </button>
       </div>
+
+      {/* Pro access unlock badge */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f5f2fd,#ede9fb)', border: '1.5px solid #d8d0f7' }}>
+        <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: '#7C3AED' }} />
+        <span className="text-xs font-semibold" style={{ color: '#5b21b6' }}>
+          Unlocks <span className="font-extrabold">Pro access</span> while credits last — no subscription needed
+        </span>
+      </div>
+
+      {activated && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-2xl animate-pulse" style={{ background: '#ecfdf5', border: '1.5px solid #6ee7b7' }}>
+          <CheckCircle className="w-4 h-4 shrink-0 text-emerald-500" />
+          <span className="text-xs font-semibold text-emerald-700">Pro access activated! Enjoy all features while credits last.</span>
+        </div>
+      )}
 
       {rechargeMutation.isError && (
         <p className="text-xs text-red-500">{getErrorMessage(rechargeMutation.error) || 'Payment failed'}</p>
