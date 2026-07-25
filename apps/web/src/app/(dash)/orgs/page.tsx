@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Users, PiggyBank, PlusCircle, Loader2, AlertCircle, Download, ShieldCheck, Layers } from 'lucide-react';
 import { api, apiClient, type Org, type OrgMember, type OrgBudgetStatus, type OrgTeam } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import { PlanGate } from '@/components/plan-gate';
 
 // Role → capability mirror of the server's orgRoleAllows (UI hint only — the
 // server re-checks every action).
@@ -515,6 +516,7 @@ export default function OrgsPage() {
   const selected = orgs.find((o) => o.id === selectedId) ?? orgs[0] ?? null;
 
   return (
+    <PlanGate requiredPlan="ENTERPRISE" featureLabel="Team Workspaces" preview={false}>
     <div className="min-h-full bg-[#faf9ff]">
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         <div>
@@ -566,5 +568,6 @@ export default function OrgsPage() {
         </section>
       </div>
     </div>
+    </PlanGate>
   );
 }

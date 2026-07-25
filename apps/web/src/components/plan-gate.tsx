@@ -63,6 +63,9 @@ export function usePlanGate(): Plan {
   return plan;
 }
 
+/** Backward-compat alias used by analytics and other pages. */
+export const usePlan = usePlanGate;
+
 export function planAtLeast(userPlan: Plan, required: Plan): boolean {
   return PLAN_ORDER[userPlan] >= PLAN_ORDER[required];
 }

@@ -184,7 +184,12 @@ export class OtpService {
       return;
     }
 
-    // 3. Dev fallback — store in memory for /auth/otp/dev-peek; log to console.
+    // 3. Dev fallback — only allowed outside production.
+    if (process.env['NODE_ENV'] === 'production') {
+      throw new Error(
+        'Email OTP delivery unavailable: set RESEND_API_KEY or SMTP_HOST in your environment.',
+      );
+    }
     DEV_OTP_STORE.set(to, { code, expiresAt: Date.now() + OTP_EXPIRY_MS });
     console.warn(
       `\n╔══════════════════════════════════════════════════════╗\n` +
@@ -202,6 +207,11 @@ export class OtpService {
     const from = this.config.get<string>('TWILIO_FROM');
 
     if (!sid || !token || !from) {
+      if (process.env['NODE_ENV'] === 'production') {
+        throw new Error(
+          'SMS OTP delivery unavailable: set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM in your environment.',
+        );
+      }
       // Dev fallback — store for /auth/otp/dev-peek and log visibly.
       DEV_OTP_STORE.set(to, { code, expiresAt: Date.now() + OTP_EXPIRY_MS });
       console.warn(
