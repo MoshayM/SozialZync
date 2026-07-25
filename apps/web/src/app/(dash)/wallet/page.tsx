@@ -904,7 +904,10 @@ function CreditExpiry() {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
+type WalletTab = 'credits' | 'plan';
+
 export default function WalletPage() {
+  const [tab, setTab] = useState<WalletTab>('credits');
   const [showBudgetEditor, setShowBudgetEditor] = useState(false);
   const [localeKey, setLocaleKey] = useState<string>('DEFAULT');
 
@@ -917,7 +920,7 @@ export default function WalletPage() {
 
   return (
     <div className="min-h-full bg-[#faf9ff]">
-      <div className="p-5 lg:p-7 max-w-4xl mx-auto space-y-6">
+      <div className="p-5 lg:p-7 max-w-4xl mx-auto space-y-5">
 
         {/* Page header */}
         <div className="flex items-center gap-3">
@@ -926,53 +929,95 @@ export default function WalletPage() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Billing &amp; Wallet</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Credits, plans, and AI spend — all in one place</p>
+            <p className="text-sm text-gray-400 mt-0.5">Manage your subscription and AI credits separately</p>
           </div>
         </div>
 
-        {/* 1. Financial hero */}
-        <FinancialHero
-          onTopUp={() => document.getElementById('topup')?.scrollIntoView({ behavior: 'smooth' })}
-          onSetBudget={() => setShowBudgetEditor(true)}
-        />
-
-        {/* 2. AI cost insights (2-col grid) */}
-        <div className="grid sm:grid-cols-2 gap-5">
-          <CostByAction />
-          <SpendForecast />
+        {/* ── How billing works — shown once, above tabs ─────────────────── */}
+        <div className="rounded-2xl px-5 py-4 flex flex-col sm:flex-row gap-4" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+          <div className="flex-1 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#ede9fe' }}>
+              <Sparkles className="w-4 h-4" style={{ color: '#7C3AED' }} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Subscription Plan</p>
+              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">Controls which features you can access — projects, platforms, team seats. Billed monthly.</p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center text-gray-300 font-bold">+</div>
+          <div className="flex-1 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#ede9fe' }}>
+              <Zap className="w-4 h-4" style={{ color: '#7C3AED' }} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">AI Credits</p>
+              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">Fuel for every AI action — scripts, videos, captions. Your plan includes a monthly allowance; top up anytime for more.</p>
+            </div>
+          </div>
         </div>
 
-        {/* 3. Smart top-up */}
-        <div id="topup">
-          <SmartTopUp />
+        {/* ── Tab bar ────────────────────────────────────────────────────── */}
+        <div className="flex gap-2 border-b border-[#ede9f8] pb-0">
+          {([
+            { id: 'credits', label: 'AI Credits', icon: <Zap className="w-4 h-4" /> },
+            { id: 'plan',    label: 'My Plan',    icon: <Sparkles className="w-4 h-4" /> },
+          ] as { id: WalletTab; label: string; icon: React.ReactNode }[]).map(({ id, label, icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold rounded-t-2xl transition-all -mb-px"
+              style={tab === id
+                ? { background: '#fff', border: '1.5px solid #ede9f8', borderBottom: '1.5px solid #fff', color: '#6D4AE0' }
+                : { color: '#9ca3af', border: '1.5px solid transparent' }
+              }
+            >
+              {icon} {label}
+            </button>
+          ))}
         </div>
 
-        {/* 4. Plans */}
-        <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Subscription Plans</p>
-          <PlansGrid localeKey={localeKey} />
-        </section>
+        {/* ── Credits tab ────────────────────────────────────────────────── */}
+        {tab === 'credits' && (
+          <div className="space-y-5">
+            {/* Hero */}
+            <FinancialHero
+              onTopUp={() => document.getElementById('topup-section')?.scrollIntoView({ behavior: 'smooth' })}
+              onSetBudget={() => setShowBudgetEditor(true)}
+            />
 
-        {/* 5. Admin profitability panel */}
-        {isAdmin && (
-          <section>
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Owner Intelligence</p>
-            <OwnerPanel />
-          </section>
+            {/* Budget editor (inline, triggered from hero) */}
+            {showBudgetEditor && (
+              <BudgetEditor onClose={() => setShowBudgetEditor(false)} />
+            )}
+
+            {/* AI cost insights */}
+            <div className="grid sm:grid-cols-2 gap-5">
+              <CostByAction />
+              <SpendForecast />
+            </div>
+
+            {/* Top-up */}
+            <div id="topup-section">
+              <SmartTopUp />
+            </div>
+
+            {/* Credit expiry */}
+            <CreditExpiry />
+
+            {/* Transaction history */}
+            <TransactionHistory />
+          </div>
         )}
 
-        {/* Budget editor (slide in when triggered) */}
-        {showBudgetEditor && (
-          <BudgetEditor onClose={() => setShowBudgetEditor(false)} />
+        {/* ── Plan tab ───────────────────────────────────────────────────── */}
+        {tab === 'plan' && (
+          <div className="space-y-5">
+            <PlansGrid localeKey={localeKey} />
+
+            {isAdmin && <OwnerPanel />}
+          </div>
         )}
-
-        {/* 6. Transactions + expiry */}
-        <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Transaction History</p>
-          <TransactionHistory />
-        </section>
-
-        <CreditExpiry />
 
       </div>
     </div>
