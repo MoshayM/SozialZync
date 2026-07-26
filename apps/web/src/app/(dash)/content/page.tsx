@@ -8,6 +8,7 @@ import {
   Search, ArrowRightLeft, ListOrdered, Award, Sparkles, Copy,
   Check, Hash, Zap, Lightbulb, Globe, RefreshCw,
 } from 'lucide-react';
+import { ResultActionBar } from '@/components/result-actions';
 
 // ── Domain types ──────────────────────────────────────────────────────────────
 
@@ -279,6 +280,17 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
                     </ul>
                   </div>
                 )}
+
+                <ResultActionBar
+                  filename="trends-audience"
+                  onRegenerate={() => void findTrends()}
+                  text={[
+                    audience.primaryDemographic ? `Demographic: ${audience.primaryDemographic}` : '',
+                    audience.interestClusters?.length ? `Interest Clusters: ${audience.interestClusters.map((c) => c.cluster).join(', ')}` : '',
+                    audience.contentPreferences?.length ? `Preferences: ${audience.contentPreferences.join(', ')}` : '',
+                    audience.growthTips?.length ? `Growth Tips:\n${audience.growthTips.map((t) => `• ${t}`).join('\n')}` : '',
+                  ].filter(Boolean).join('\n\n')}
+                />
               </div>
             )}
           </>
@@ -334,6 +346,16 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
                 </div>
               </div>
             )}
+            <ResultActionBar
+              filename="seo-result"
+              onRegenerate={() => void optimizeSeo()}
+              text={[
+                seoResult.optimizedTitle ?? '',
+                seoResult.optimizedDescription ?? '',
+                (seoResult.searchKeywords?.length ?? 0) > 0 ? `Keywords: ${(seoResult.searchKeywords ?? []).join(', ')}` : '',
+                (seoResult.tags?.length ?? 0) > 0 ? `Tags: ${(seoResult.tags ?? []).join(', ')}` : '',
+              ].filter(Boolean).join('\n\n')}
+            />
           </div>
         )}
       </div>
@@ -479,6 +501,18 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           {result.statisticsAndData && result.statisticsAndData.length > 0 && (
             <CollapsibleList title="Statistics & Data" items={result.statisticsAndData} icon={<TrendingUp className="w-3.5 h-3.5 text-[#6D4AE0]" />} />
           )}
+
+          <ResultActionBar
+            filename="research-result"
+            onRegenerate={() => void runResearch()}
+            text={[
+              result.topic,
+              result.summary,
+              (result.keyFacts?.length ?? 0) > 0 ? `Key Facts:\n${(result.keyFacts ?? []).map((f, i) => `${i + 1}. ${f}`).join('\n')}` : '',
+              (result.contentAngles?.length ?? 0) > 0 ? `Content Angles:\n${(result.contentAngles ?? []).map((a) => `• ${a.angle}: ${a.hook}`).join('\n')}` : '',
+              (result.relatedTopics?.length ?? 0) > 0 ? `Related Topics: ${(result.relatedTopics ?? []).join(', ')}` : '',
+            ].filter(Boolean).join('\n\n')}
+          />
         </div>
       )}
     </div>
@@ -602,6 +636,18 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
               </div>
             ))}
           </div>
+
+          <ResultActionBar
+            filename="series-plan"
+            onRegenerate={() => void plan()}
+            text={[
+              result.seriesTitle,
+              result.overview,
+              result.targetAudience ? `Audience: ${result.targetAudience}` : '',
+              result.monetizationStrategy ? `Monetization: ${result.monetizationStrategy}` : '',
+              `Episodes:\n${(result.episodes ?? []).map((ep) => `${ep.episodeNumber}. ${ep.title}\n   Hook: ${ep.hook}\n   CTA: ${ep.callToAction}`).join('\n')}`,
+            ].filter(Boolean).join('\n\n')}
+          />
         </div>
       )}
     </div>
@@ -700,6 +746,16 @@ function RepurposeMode() {
               {p.callToAction && (
                 <p className="text-xs font-medium text-[#6D4AE0] italic">{p.callToAction}</p>
               )}
+              <ResultActionBar
+                filename={`repurpose-${p.platform.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                onRegenerate={() => void repurpose()}
+                text={[
+                  p.platform,
+                  p.content,
+                  p.hashtags?.length ? p.hashtags.join(' ') : '',
+                  p.callToAction ? `CTA: ${p.callToAction}` : '',
+                ].filter(Boolean).join('\n\n')}
+              />
             </div>
           ))}
         </div>
@@ -815,6 +871,17 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
               </ul>
             </div>
           )}
+
+          <ResultActionBar
+            filename="script-score"
+            onRegenerate={() => void score()}
+            text={[
+              `Overall: ${result.overallScore}/100 | Hook: ${result.hookScore} | Retention: ${result.retentionScore} | Clarity: ${result.clarityScore} | CTA: ${result.cta.score}`,
+              (result.strengths?.length ?? 0) > 0 ? `Strengths:\n${(result.strengths ?? []).map((s) => `✓ ${s}`).join('\n')}` : '',
+              (result.improvements?.length ?? 0) > 0 ? `Improvements:\n${(result.improvements ?? []).map((s) => `→ ${s}`).join('\n')}` : '',
+              (result.suggestions?.length ?? 0) > 0 ? `Suggestions:\n${(result.suggestions ?? []).map((s) => `• ${s}`).join('\n')}` : '',
+            ].filter(Boolean).join('\n\n')}
+          />
         </div>
       )}
     </div>

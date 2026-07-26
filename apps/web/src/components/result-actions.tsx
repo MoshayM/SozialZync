@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
-import { Copy, Check, Download, Share2, Trash2, Save } from 'lucide-react';
+import { Copy, Check, Download, Share2, Trash2, Save, Volume2, VolumeX, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface ContentToolbarProps {
   /** Plain-text representation of the result to copy/download/share */
@@ -109,6 +109,113 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
           New
         </button>
       )}
+    </div>
+  );
+}
+
+// ── Claude-style action bar ───────────────────────────────────────────────────
+
+export interface ResultActionBarProps {
+  text: string;
+  filename?: string;
+  onRegenerate?: () => void;
+}
+
+export function ResultActionBar({ text, filename = 'result', onRegenerate }: ResultActionBarProps) {
+  const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [thumbsUp, setThumbsUp] = useState(false);
+  const [thumbsDown, setThumbsDown] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [text]);
+
+  const handleReadAloud = useCallback(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+    setSpeaking(true);
+  }, [text, speaking]);
+
+  const handleShare = useCallback(async () => {
+    const shareData = { title: filename, text };
+    if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare?.(shareData)) {
+      try { await navigator.share(shareData); return; } catch {}
+    }
+    await handleCopy();
+  }, [filename, text, handleCopy]);
+
+  const handleDownload = useCallback(() => {
+    const date = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}-${date}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [text, filename]);
+
+  const base = 'w-8 h-8 rounded-full flex items-center justify-center transition-colors text-gray-400 hover:text-[#6D4AE0] hover:bg-[#f5f2fd]';
+  const active = 'w-8 h-8 rounded-full flex items-center justify-center transition-colors text-[#6D4AE0] bg-[#f5f2fd]';
+
+  return (
+    <div className="border-t border-[#f0edfb] pt-2.5 mt-3 flex items-center gap-0.5">
+      <button type="button" title="Copy" onClick={() => void handleCopy()} className={copied ? active : base}>
+        {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+      </button>
+      <button type="button" title={speaking ? 'Stop' : 'Read aloud'} onClick={handleReadAloud} className={speaking ? active : base}>
+        {speaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+      </button>
+      <button type="button" title="Share" onClick={() => void handleShare()} className={base}>
+        <Share2 className="w-3.5 h-3.5" />
+      </button>
+      <button type="button" title="Download" onClick={handleDownload} className={base}>
+        <Download className="w-3.5 h-3.5" />
+      </button>
+      {onRegenerate && (
+        <button type="button" title="Regenerate" onClick={onRegenerate} className={base}>
+          <RefreshCw className="w-3.5 h-3.5" />
+        </button>
+      )}
+      <span className="flex-1" />
+      <button
+        type="button"
+        title="Good response"
+        onClick={() => { setThumbsUp((v) => !v); setThumbsDown(false); }}
+        className={thumbsUp ? active : base}
+      >
+        <ThumbsUp className="w-3.5 h-3.5" />
+      </button>
+      <button
+        type="button"
+        title="Bad response"
+        onClick={() => { setThumbsDown((v) => !v); setThumbsUp(false); }}
+        className={thumbsDown ? 'w-8 h-8 rounded-full flex items-center justify-center transition-colors text-red-500 bg-red-50' : base}
+      >
+        <ThumbsDown className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
