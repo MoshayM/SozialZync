@@ -57,17 +57,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (smtpHost) {
     const smtpUser = process.env['SMTP_USER'];
     const smtpFrom = process.env['SMTP_FROM'] ?? smtpUser ?? 'noreply@sozialzync.com';
+    // Google App Passwords are displayed with spaces but auth requires them stripped.
+    const rawPass = process.env['SMTP_PASS'] ?? '';
+    const smtpPass = rawPass.replace(/\s/g, '');
+    console.log(`[relay] SMTP config: host=${smtpHost} user=${smtpUser} passLen=${smtpPass.length}`);
     const transport = nodemailer.createTransport({
       host: smtpHost,
       port: Number(process.env['SMTP_PORT'] ?? 587),
       secure: process.env['SMTP_SECURE'] === 'true',
-      auth: { user: smtpUser, pass: process.env['SMTP_PASS'] },
+      auth: { user: smtpUser, pass: smtpPass },
     });
     try {
       await transport.sendMail({ from: smtpFrom, to, subject, text, html });
       return NextResponse.json({ ok: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[relay] SMTP failed: user=${smtpUser} passLen=${smtpPass.length} err=${msg}`);
       return NextResponse.json({ error: `SMTP: ${msg}` }, { status: 502 });
     }
   }
