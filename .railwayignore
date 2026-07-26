@@ -10,7 +10,6 @@ infra/
 n8n/
 docs/
 scripts/
-packages/
 .git
 *.jpeg
 *.jpg
