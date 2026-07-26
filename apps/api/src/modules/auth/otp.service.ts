@@ -158,7 +158,25 @@ export class OtpService {
     const text = `Your Sozialzync sign-in code is: ${code}\n\nExpires in 10 minutes. Never share this code.`;
     const subject = 'Your Sozialzync sign-in code';
 
-    // 1. Brevo HTTP API — HTTPS port 443, no domain verification needed, works from Railway.
+    // 1. Vercel relay — Railway calls Vercel (HTTPS 443) which then sends via SMTP/Resend.
+    //    Needed because Railway blocks all outbound SMTP ports (587, 465) on its network.
+    const relayUrl = this.config.get<string>('VERCEL_EMAIL_URL');
+    const relaySecret = this.config.get<string>('INTERNAL_API_SECRET');
+    if (relayUrl && relaySecret) {
+      const resp = await fetch(relayUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-internal-secret': relaySecret },
+        body: JSON.stringify({ to, subject, html, text }),
+      });
+      if (resp.ok) return;
+      const errBody = await resp.text().catch(() => '');
+      // Non-503 means relay is configured but failed — surface the error.
+      if (resp.status !== 503) throw new Error(`Email relay failed ${resp.status}: ${errBody}`);
+      // 503 = relay has no providers configured — fall through.
+      console.warn(`[OTP] Vercel relay returned 503 — falling through to direct providers.`);
+    }
+
+    // 2. Brevo HTTP API — HTTPS port 443, no domain verification needed, works from Railway.
     const brevoKey = this.config.get<string>('BREVO_API_KEY');
     if (brevoKey) {
       const brevoFrom = this.config.get<string>('BREVO_FROM') ?? this.config.get<string>('SMTP_FROM') ?? 'noreply@sozialzync.com';
@@ -172,7 +190,7 @@ export class OtpService {
       throw new Error(`Brevo email failed ${resp.status}: ${errBody}`);
     }
 
-    // 2. Resend SDK — falls through to next provider on domain-restriction errors (403).
+    // 3. Resend SDK — falls through to next provider on domain-restriction errors (403).
     const resendKey = this.config.get<string>('RESEND_API_KEY');
     if (resendKey) {
       const resendFrom = this.config.get<string>('RESEND_FROM') ?? 'onboarding@resend.dev';

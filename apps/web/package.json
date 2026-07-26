@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@cf/shared": "workspace:*",
+    "nodemailer": "^6.9.16",
+    "resend": "^4.6.0",
     "@floating-ui/react": "^0.27.20",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-dialog": "^1.1.4",
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@cf/eslint-config": "workspace:*",
+    "@types/nodemailer": "^6.4.17",
     "@cf/tsconfig": "workspace:*",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.4",
