@@ -488,18 +488,13 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
 // ── Tab 3 — Series Plan ───────────────────────────────────────────────────────
 
 function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
-  const [topic, setTopic] = useState(ctx.topic || ctx.niche);
-  const [niche, setNiche] = useState(ctx.niche);
   const [episodes, setEpisodes] = useState(5);
   const [audience, setAudience] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<SeriesPlanResult | null>(null);
 
-  useEffect(() => {
-    setTopic((prev) => prev || ctx.topic || ctx.niche);
-    setNiche(ctx.niche);
-  }, [ctx.topic, ctx.niche]);
+  const topic = ctx.topic || ctx.niche;
 
   const plan = useCallback(async () => {
     if (!topic) return;
@@ -509,7 +504,7 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
       // @reason: apiClient returns AxiosResponse<unknown>; we cast via the interface
       const res = await apiClient.post<SeriesPlanResult>('/content/series-plan', {
         topic,
-        niche,
+        niche: ctx.niche,
         episodes,
         audience,
       });
@@ -519,21 +514,21 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
     } finally {
       setLoading(false);
     }
-  }, [topic, niche, episodes, audience]);
+  }, [topic, ctx.niche, episodes, audience]);
 
   return (
     <div className="space-y-5">
       <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Topic</label>
-            <input className={inputCls} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Series topic" />
+        {/* Context chip — shows what's applied from the global bar */}
+        {(ctx.niche || ctx.topic) && (
+          <div className="flex flex-wrap gap-2 text-xs">
+            {ctx.niche && <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-[#6D4AE0] font-medium">📌 {ctx.niche}</span>}
+            {ctx.topic && <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-[#6D4AE0] font-medium">🎯 {ctx.topic}</span>}
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Niche</label>
-            <input className={inputCls} value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="Your niche" />
-          </div>
-        </div>
+        )}
+        {!ctx.niche && !ctx.topic && (
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">Set your niche + topic in the bar above and click Apply first.</p>
+        )}
 
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Episodes</label>
@@ -716,17 +711,10 @@ function RepurposeMode() {
 // ── Tab 3 — Script Scorer ─────────────────────────────────────────────────────
 
 function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
-  const [title, setTitle] = useState(ctx.topic);
-  const [niche, setNiche] = useState(ctx.niche);
   const [scriptText, setScriptText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ScoreResult | null>(null);
-
-  useEffect(() => {
-    setTitle((prev) => prev || ctx.topic);
-    setNiche(ctx.niche);
-  }, [ctx.topic, ctx.niche]);
 
   const score = useCallback(async () => {
     if (!scriptText) return;
@@ -735,9 +723,9 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
     try {
       // @reason: apiClient returns AxiosResponse<unknown>; we cast via the interface
       const res = await apiClient.post<ScoreResult>('/content/score-script', {
-        title,
+        title: ctx.topic,
         scriptText,
-        niche,
+        niche: ctx.niche,
       });
       setResult(res.data);
     } catch (e) {
@@ -745,21 +733,17 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
     } finally {
       setLoading(false);
     }
-  }, [title, scriptText, niche]);
+  }, [ctx.topic, ctx.niche, scriptText]);
 
   return (
     <div className="space-y-5">
       <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Title</label>
-            <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Video title" />
+        {(ctx.niche || ctx.topic) && (
+          <div className="flex flex-wrap gap-2 text-xs">
+            {ctx.niche && <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-[#6D4AE0] font-medium">📌 {ctx.niche}</span>}
+            {ctx.topic && <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-[#6D4AE0] font-medium">🎯 {ctx.topic}</span>}
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Niche</label>
-            <input className={inputCls} value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="Your niche" />
-          </div>
-        </div>
+        )}
 
         <textarea
           className={`${inputCls} resize-none`}
