@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   BotMessageSquare, Send, Zap, ChevronRight,
   BookOpen, FileText, Calendar, Search, ShieldCheck, Clock, X,
+  Volume2, VolumeX,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage } from '@/lib/safety';
@@ -156,8 +157,26 @@ export default function CopilotPage() {
   const [history, setHistory]         = useState<CommandHistory[]>([]);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [actionInput, setActionInput] = useState('');
+  const [speakingId, setSpeakingId]   = useState<string | null>(null);
   const bottomRef   = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Read a message aloud. Must be called synchronously from a click handler
+  // (no await before speak()) so iOS Safari accepts it as a user-gesture.
+  function readAloud(msg: Message) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (speakingId === msg.id) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(msg.content);
+    u.onend = () => setSpeakingId(null);
+    u.onerror = () => setSpeakingId(null);
+    window.speechSynthesis.speak(u);
+    setSpeakingId(msg.id);
+  }
 
   useEffect(() => {
     setHistory(loadHistory());
@@ -490,7 +509,22 @@ export default function CopilotPage() {
                   </div>
                 )}
 
-                <span className="text-[11px] text-gray-400 px-1">{relTime(msg.ts)}</span>
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-[11px] text-gray-400">{relTime(msg.ts)}</span>
+                  {msg.role === 'assistant' && !msg.error && (
+                    <button
+                      type="button"
+                      onClick={() => readAloud(msg)}
+                      title={speakingId === msg.id ? 'Stop' : 'Read aloud'}
+                      className="flex items-center justify-center w-6 h-6 rounded-full transition-colors hover:bg-[#f0edfb]"
+                      style={{ color: speakingId === msg.id ? '#6D4AE0' : '#d1d5db' }}
+                    >
+                      {speakingId === msg.id
+                        ? <VolumeX className="w-3.5 h-3.5" />
+                        : <Volume2 className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

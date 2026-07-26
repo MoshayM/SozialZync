@@ -13,61 +13,121 @@ interface TabDef {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  description: string;
   badge?: 'NEW' | 'BETA';
 }
 
 const TABS: TabDef[] = [
-  { id: 'publishing',  label: 'Publishing',  icon: Upload },
-  { id: 'approvals',   label: 'Approvals',   icon: CheckCircle },
-  { id: 'scheduler',   label: 'Scheduler',   icon: CalendarClock },
-  { id: 'autonomy',    label: 'Autopilot',   icon: Sparkles,    badge: 'NEW' },
-  { id: 'ab-testing',  label: 'A/B Testing', icon: FlaskConical, badge: 'BETA' },
+  {
+    id: 'approvals',
+    label: 'Review',
+    icon: CheckCircle,
+    description: 'Approve content before it goes live',
+  },
+  {
+    id: 'scheduler',
+    label: 'Schedule',
+    icon: CalendarClock,
+    description: 'Plan and time your posting calendar',
+  },
+  {
+    id: 'publishing',
+    label: 'History',
+    icon: Upload,
+    description: 'Published and upcoming videos',
+  },
+  {
+    id: 'autonomy',
+    label: 'Autopilot',
+    icon: Sparkles,
+    description: 'AI-powered auto-publishing settings',
+    badge: 'NEW',
+  },
+  {
+    id: 'ab-testing',
+    label: 'A/B Test',
+    icon: FlaskConical,
+    description: 'Test titles and thumbnails',
+    badge: 'BETA',
+  },
 ];
 
 function PublishContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const activeTab = searchParams.get('tab') ?? 'publishing';
+  const activeTab = searchParams.get('tab') ?? 'approvals';
+  const activeTabDef = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
   return (
-    <div>
-      <ProBanner
-        feature="Direct publishing"
-        description="Connect your YouTube, Instagram, TikTok and other accounts to publish directly. Upgrade to Pro to unlock channel connections and one-click publishing."
-        className="mx-4 mt-4 sm:mx-6"
-      />
-      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex gap-2 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => router.replace(`/publish?tab=${t.id}`)}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all shrink-0"
-            style={
-              activeTab === t.id
-                ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
-                : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
-            }
-          >
-            <t.icon className="w-4 h-4" />
-            {t.label}
-            {t.badge && (
-              <span style={{
-                fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', color: '#fff',
-                background: t.badge === 'NEW' ? 'linear-gradient(135deg,#10B981,#059669)' : 'linear-gradient(135deg,#F59E0B,#D97706)',
-              }}>
-                {t.badge}
-              </span>
-            )}
-          </button>
-        ))}
+    <div className="flex flex-col min-h-full">
+      {/* ── Page header ─────────────────────────────────────────────────── */}
+      <div className="px-5 pt-5 pb-0 sm:px-7">
+        <h1 className="text-xl font-extrabold text-gray-900 leading-tight">Publish Hub</h1>
+        <p className="text-sm text-gray-400 mt-0.5">Manage, schedule and optimise your content</p>
       </div>
 
-      {activeTab === 'publishing'  && <PublishingPage />}
-      {activeTab === 'approvals'   && <ApprovalsPage />}
-      {activeTab === 'scheduler'   && <SchedulerPage />}
-      {activeTab === 'autonomy'    && <AutonomyPage />}
-      {activeTab === 'ab-testing'  && <AbTestingPage />}
+      {/* ── Tab bar ─────────────────────────────────────────────────────── */}
+      <div
+        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 px-4 sm:px-6 flex overflow-x-auto no-scrollbar"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {TABS.map((t) => {
+          const active = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => router.replace(`/publish?tab=${t.id}`)}
+              className={[
+                'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
+                active
+                  ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
+              ].join(' ')}
+            >
+              <t.icon className={`w-4 h-4 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
+              {t.label}
+              {t.badge && (
+                <span
+                  className="text-white font-bold leading-none"
+                  style={{
+                    fontSize: '9px',
+                    padding: '2px 5px',
+                    borderRadius: '99px',
+                    background:
+                      t.badge === 'NEW'
+                        ? 'linear-gradient(135deg,#10B981,#059669)'
+                        : 'linear-gradient(135deg,#F59E0B,#D97706)',
+                  }}
+                >
+                  {t.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Context description strip ────────────────────────────────────── */}
+      <div className="px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9]">
+        <p className="text-xs text-gray-500 leading-none">{activeTabDef.description}</p>
+      </div>
+
+      {/* ── ProBanner — only on History tab ─────────────────────────────── */}
+      {activeTab === 'publishing' && (
+        <ProBanner
+          feature="Direct publishing"
+          description="Connect your YouTube, Instagram, TikTok and other accounts to publish directly. Upgrade to Pro to unlock channel connections and one-click publishing."
+          className="mx-4 mt-4 sm:mx-6"
+        />
+      )}
+
+      {/* ── Tab content ─────────────────────────────────────────────────── */}
+      {activeTab === 'approvals'  && <ApprovalsPage />}
+      {activeTab === 'scheduler'  && <SchedulerPage />}
+      {activeTab === 'publishing' && <PublishingPage />}
+      {activeTab === 'autonomy'   && <AutonomyPage />}
+      {activeTab === 'ab-testing' && <AbTestingPage />}
     </div>
   );
 }
