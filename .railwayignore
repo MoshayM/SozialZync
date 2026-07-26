@@ -2,7 +2,7 @@
 **/dist
 **/.next
 apps/api/storage
-apps/web/.next
+apps/web
 **/*.log
 local-db-export.sql
 screenshots/
@@ -10,4 +10,9 @@ infra/
 n8n/
 docs/
 scripts/
+packages/
 .git
+*.jpeg
+*.jpg
+*.png
+*.txt
