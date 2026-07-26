@@ -11,6 +11,7 @@ import {
 import { ResultActionBar } from '@/components/result-actions';
 import { useContentHistory } from '@/hooks/use-content-history';
 import { ResultHistory } from '@/components/result-history';
+import { LoadingSteps } from '@/components/loading-steps';
 
 // ── Domain types ──────────────────────────────────────────────────────────────
 
@@ -268,6 +269,17 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
               Find Trends
             </button>
 
+            <LoadingSteps
+              active={trendsLoading}
+              steps={[
+                'Scanning niche audience data…',
+                'Mapping interest clusters…',
+                'Identifying content preferences…',
+                'Analysing best posting times…',
+                'Generating growth tips…',
+              ]}
+            />
+
             {trendsError && <ErrorBox message={trendsError} />}
 
             {audience && (
@@ -352,6 +364,16 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
           {seoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hash className="w-4 h-4" />}
           Optimize
         </button>
+
+        <LoadingSteps
+          active={seoLoading}
+          steps={[
+            'Analysing topic & niche…',
+            'Finding high-volume keywords…',
+            'Optimising title & description…',
+            'Generating SEO tags…',
+          ]}
+        />
 
         {seoError && <ErrorBox message={seoError} />}
 
@@ -477,6 +499,17 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lightbulb className="w-4 h-4" />}
           Research Deeply
         </button>
+
+        <LoadingSteps
+          active={loading}
+          steps={[
+            'Searching knowledge databases…',
+            'Extracting key facts…',
+            'Identifying content angles…',
+            'Mapping related topics…',
+            'Compiling expert perspectives…',
+          ]}
+        />
 
         {error && <ErrorBox message={error} />}
       </div>
@@ -669,6 +702,17 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
           Plan Series
         </button>
 
+        <LoadingSteps
+          active={loading}
+          steps={[
+            'Understanding your topic…',
+            'Structuring episode arc…',
+            'Writing hooks for each episode…',
+            'Adding key points & CTAs…',
+            'Finalising series plan…',
+          ]}
+        />
+
         {error && <ErrorBox message={error} />}
       </div>
 
@@ -808,6 +852,18 @@ function RepurposeMode() {
           Repurpose Content
         </button>
 
+        <LoadingSteps
+          active={loading}
+          steps={[
+            'Reading your script…',
+            'Identifying core themes…',
+            'Crafting short-form content…',
+            'Adapting tone per platform…',
+            'Adding hashtags & CTAs…',
+            'Finalising repurposed content…',
+          ]}
+        />
+
         {error && <ErrorBox message={error} />}
       </div>
 
@@ -901,6 +957,18 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
           Score My Script
         </button>
+
+        <LoadingSteps
+          active={loading}
+          steps={[
+            'Parsing your script…',
+            'Analysing hook strength…',
+            'Evaluating retention flow…',
+            'Checking clarity & CTA…',
+            'Calculating scores…',
+            'Writing improvement suggestions…',
+          ]}
+        />
 
         {error && <ErrorBox message={error} />}
       </div>
