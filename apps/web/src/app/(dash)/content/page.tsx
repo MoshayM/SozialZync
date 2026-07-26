@@ -949,21 +949,22 @@ function ContentStudioInner() {
             <span className="text-xs text-gray-400 hidden sm:inline">Your unified AI content workspace</span>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
+          {/* Row 1: niche + topic side-by-side on mobile, all inline on desktop */}
+          <div className="grid grid-cols-2 sm:flex gap-2">
             <input
-              className={`${inputCls} flex-1`}
-              placeholder="Your niche, e.g. Tech tutorials"
+              className={`${inputCls} col-span-1`}
+              placeholder="Niche, e.g. Tech tutorials"
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
             />
             <input
-              className={`${inputCls} flex-1`}
-              placeholder="Topic or keyword (optional)"
+              className={`${inputCls} col-span-1`}
+              placeholder="Topic (optional)"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
             />
             <select
-              className="border border-[#e3ddf8] rounded-xl px-3 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6D4AE0]/30 focus:border-[#6D4AE0]"
+              className="col-span-1 border border-[#e3ddf8] rounded-xl px-3 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6D4AE0]/30 focus:border-[#6D4AE0] sm:w-24"
               value={lang}
               onChange={(e) => setLang(e.target.value)}
             >
@@ -972,14 +973,14 @@ function ContentStudioInner() {
             <button
               type="button"
               onClick={applyContext}
-              className="rounded-2xl font-bold text-white bg-gradient-to-br from-[#6D4AE0] to-[#7c5ae8] shadow-[0_4px_20px_rgba(109,74,224,0.35)] px-5 py-3 text-sm hover:opacity-90 transition-opacity whitespace-nowrap"
+              className="col-span-1 rounded-2xl font-bold text-white bg-gradient-to-br from-[#6D4AE0] to-[#7c5ae8] shadow-[0_4px_20px_rgba(109,74,224,0.35)] px-5 py-3 text-sm hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               Apply
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-2 flex-wrap">
+          {/* Tabs — horizontally scrollable on mobile, no wrap */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -988,8 +989,8 @@ function ContentStudioInner() {
                 className="flex items-center gap-1.5 shrink-0 text-sm font-semibold transition-all"
                 style={
                   activeTab === t.id
-                    ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0', borderRadius: '0.75rem', padding: '0.625rem 1.25rem' }
-                    : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151', borderRadius: '0.75rem', padding: '0.625rem 1.25rem' }
+                    ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0', borderRadius: '0.75rem', padding: '0.5rem 1rem' }
+                    : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151', borderRadius: '0.75rem', padding: '0.5rem 1rem' }
                 }
               >
                 {t.icon}
