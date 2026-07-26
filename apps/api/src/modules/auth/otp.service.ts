@@ -159,15 +159,17 @@ export class OtpService {
     const subject = 'Your Sozialzync sign-in code';
     const from = this.config.get<string>('RESEND_FROM') ?? this.config.get<string>('SMTP_FROM') ?? 'onboarding@resend.dev';
 
-    // 1. Resend SDK (https://resend.com) — preferred provider, no SMTP setup needed.
+    // 1. Resend SDK — falls through to SMTP on domain-restriction errors (403).
     const resendKey = this.config.get<string>('RESEND_API_KEY');
     if (resendKey) {
       const resend = new Resend(resendKey);
       const { error } = await resend.emails.send({ from, to, subject, html, text });
-      if (error) {
+      if (!error) return;
+      // 403 = Resend testing-mode domain restriction — fall through to SMTP.
+      if ((error as unknown as { statusCode?: number }).statusCode !== 403) {
         throw new Error(`Resend email failed: ${error.message}`);
       }
-      return;
+      console.warn(`[OTP] Resend domain restriction for ${to} — falling back to SMTP.`);
     }
 
     // 2. SMTP (nodemailer) — configured via SMTP_HOST + SMTP_USER + SMTP_PASS.
@@ -189,7 +191,7 @@ export class OtpService {
     // 3. Dev fallback — only allowed outside production.
     if (process.env['NODE_ENV'] === 'production') {
       throw new Error(
-        'Email OTP delivery unavailable: set RESEND_API_KEY or SMTP_HOST in your environment.',
+        'Email OTP delivery unavailable: verify a domain at resend.com/domains or set SMTP_HOST in your environment.',
       );
     }
     DEV_OTP_STORE.set(to, { code, expiresAt: Date.now() + OTP_EXPIRY_MS });
