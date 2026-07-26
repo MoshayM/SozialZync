@@ -71,6 +71,7 @@ class AppleReturnDto {
 
 class OtpSendDto {
   @IsString() identifier!: string;
+  @IsEmail() @IsOptional() email?: string;
 }
 
 class OtpVerifyDto {
@@ -274,10 +275,10 @@ export class AuthController {
 
   /** POST /auth/otp/send — send a 6-digit sign-in code to email or phone. */
   @Post('otp/send')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @RateLimit({ bucket: 'auth-otp-send', limit: 5, windowSecs: 600 })
-  async otpSend(@Body() dto: OtpSendDto): Promise<void> {
-    await this.otp.send(dto.identifier);
+  async otpSend(@Body() dto: OtpSendDto): Promise<{ needsEmail: boolean; maskedEmail?: string }> {
+    return this.otp.send(dto.identifier, dto.email);
   }
 
   /** POST /auth/otp/verify — verify code and return session tokens. */

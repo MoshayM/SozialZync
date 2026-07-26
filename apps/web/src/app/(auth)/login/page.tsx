@@ -14,7 +14,7 @@ const LAST_ID_KEY = 'sz_last_otp_identifier';
 const RESEND_SECS = 30;
 
 type Tab = 'password' | 'otp';
-type OtpStep = 'send' | 'verify';
+type OtpStep = 'send' | 'link-email' | 'verify';
 type OtpMode = 'email' | 'phone';
 
 export default function LoginPage() {
@@ -33,6 +33,8 @@ export default function LoginPage() {
   const [otpCountry, setOtpCountry] = useState<Country>(COUNTRIES[0]);
   const [otpCode, setOtpCode] = useState('');
   const [otpStep, setOtpStep] = useState<OtpStep>('send');
+  const [phoneEmail, setPhoneEmail] = useState('');   // email linked to phone (first-time)
+  const [maskedEmail, setMaskedEmail] = useState(''); // displayed in verify step
 
   // Resend countdown
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -148,12 +150,21 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await api.auth.otpSend(otpIdentifier);
-      // Remember identifier for next visit
-      try { localStorage.setItem(LAST_ID_KEY, otpIdentifier); } catch { /* ignore */ }
-      setOtpStep('verify');
-      setInfo('Code sent! Check your ' + (otpMode === 'email' ? 'email.' : 'phone.'));
-      startResendCooldown();
+      const { data } = await api.auth.otpSend(
+        otpIdentifier,
+        otpMode === 'phone' && phoneEmail ? phoneEmail : undefined,
+      );
+      if (data.needsEmail) {
+        setOtpStep('link-email');
+        setInfo('Enter your email so we can send you a sign-in code.');
+      } else {
+        try { localStorage.setItem(LAST_ID_KEY, otpIdentifier); } catch { /* ignore */ }
+        setMaskedEmail(data.maskedEmail ?? '');
+        setOtpStep('verify');
+        const dest = data.maskedEmail ?? (otpMode === 'email' ? otpIdentifier : 'your email');
+        setInfo(`Code sent to ${dest}`);
+        startResendCooldown();
+      }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 400) {
@@ -192,7 +203,10 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await api.auth.otpSend(otpIdentifier);
+      await api.auth.otpSend(
+        otpIdentifier,
+        otpMode === 'phone' && phoneEmail ? phoneEmail : undefined,
+      );
       setInfo('New code sent!');
       startResendCooldown();
     } catch (err: unknown) {
@@ -225,12 +239,16 @@ export default function LoginPage() {
     setInfo('');
     setOtpStep('send');
     setOtpCode('');
+    setPhoneEmail('');
+    setMaskedEmail('');
   }
 
   function switchOtpMode(m: OtpMode) {
     setOtpMode(m);
     setError('');
     setInfo('');
+    setPhoneEmail('');
+    setMaskedEmail('');
   }
 
   return (
@@ -348,7 +366,55 @@ export default function LoginPage() {
       ) : (
         /* ── OTP tab ───────────────────────────────────────────────── */
         <div className="space-y-4">
-          {otpStep === 'send' ? (
+          {otpStep === 'link-email' ? (
+            <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-4">
+              <div className="bg-[#f0edf9] rounded-xl px-4 py-3 text-center">
+                <p className="text-xs text-gray-500">
+                  First time signing in with{' '}
+                  <span className="font-semibold text-[#6D4AE0]">{otpIdentifier}</span>
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">Enter your email to receive the sign-in code.</p>
+              </div>
+              <LoginInput
+                icon={<Mail className="w-4 h-4" />}
+                type="email"
+                aria-label="Email address"
+                placeholder="you@example.com"
+                value={phoneEmail}
+                onChange={(e) => setPhoneEmail(e.target.value)}
+                required
+                autoFocus
+              />
+              {info && (
+                <div className="flex items-center gap-2 bg-[#f0edf9] border border-[#d4c8f5] rounded-xl px-3.5 py-2.5">
+                  <span className="text-[#6D4AE0] text-sm" aria-hidden>✓</span>
+                  <p className="text-[#6D4AE0] text-xs font-medium">{info}</p>
+                </div>
+              )}
+              {error && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
+                  <span className="text-red-400 text-sm" aria-hidden>⚠</span>
+                  <p className="text-red-600 text-xs font-medium">{error}</p>
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={loading || !phoneEmail}
+                className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              >
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loading ? 'Sending…' : 'Send Code'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOtpStep('send'); setError(''); setInfo(''); setPhoneEmail(''); }}
+                className="w-full text-xs text-gray-400 hover:text-gray-600 py-1"
+              >
+                ← Back
+              </button>
+            </form>
+          ) : otpStep === 'send' ? (
             <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-4">
               <p className="text-xs text-gray-400 text-center">
                 Enter your email or phone to receive a one-time sign-in code.
@@ -436,7 +502,9 @@ export default function LoginPage() {
               <div className="bg-[#f0edf9] rounded-xl px-4 py-3 text-center">
                 <p className="text-xs text-gray-500">
                   Code sent to{' '}
-                  <span className="font-semibold text-[#6D4AE0]">{otpIdentifier}</span>
+                  <span className="font-semibold text-[#6D4AE0]">
+                    {maskedEmail || otpIdentifier}
+                  </span>
                 </p>
                 <button
                   type="button"

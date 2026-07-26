@@ -564,8 +564,8 @@ export const api = {
       apiClient.get<AuthLinksResponse>('/auth/links'),
     unlinkProvider: (provider: OAuthProvider) =>
       apiClient.delete(`/auth/link/${provider}`),
-    otpSend: (identifier: string) =>
-      apiClient.post('/auth/otp/send', { identifier }),
+    otpSend: (identifier: string, email?: string) =>
+      apiClient.post<{ needsEmail: boolean; maskedEmail?: string }>('/auth/otp/send', { identifier, ...(email ? { email } : {}) }),
     otpVerify: (identifier: string, code: string) =>
       apiClient.post<{ accessToken: string; refreshToken: string; hasPassword: boolean }>('/auth/otp/verify', { identifier, code }),
     /** Dev only — retrieves the last pending OTP code without email (blocked in production). */

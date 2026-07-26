@@ -14,6 +14,22 @@ const OTP_MAX_PER_WINDOW = 5;
 /** Dev-only in-memory store so /auth/otp/dev-peek can surface codes without email. */
 const DEV_OTP_STORE = new Map<string, { code: string; expiresAt: number }>();
 
+/**
+ * Temporary phone→email links collected during first-time phone OTP sign-in.
+ * Consumed in verify(). Expires with the OTP window.
+ */
+const PENDING_PHONE_EMAIL = new Map<string, { email: string; expiresAt: number }>();
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  const m =
+    local.length <= 2
+      ? local[0] + '***'
+      : local[0] + '***' + local[local.length - 1];
+  return `${m}@${domain}`;
+}
+
 @Injectable()
 export class OtpService {
   constructor(
@@ -23,10 +39,64 @@ export class OtpService {
     private readonly trial: TrialService,
   ) {}
 
-  async send(identifier: string): Promise<void> {
+  async send(
+    identifier: string,
+    email?: string,
+  ): Promise<{ needsEmail: boolean; maskedEmail?: string }> {
     const normalized = identifier.trim().toLowerCase();
     const type: 'EMAIL' | 'PHONE' = normalized.includes('@') ? 'EMAIL' : 'PHONE';
 
+    // ── Phone OTP — sent via email relay (no Twilio required) ────────────────
+    if (type === 'PHONE') {
+      // Purge expired pending links.
+      for (const [k, v] of PENDING_PHONE_EMAIL.entries()) {
+        if (v.expiresAt < Date.now()) PENDING_PHONE_EMAIL.delete(k);
+      }
+
+      const existingUser = await this.prisma.user.findFirst({
+        where: { phone: normalized },
+        select: { email: true },
+      });
+
+      const realEmail =
+        existingUser?.email && !existingUser.email.includes('@placeholder.cf')
+          ? existingUser.email
+          : null;
+
+      // First-time phone user with no email provided — tell frontend to ask.
+      if (!realEmail && !email) return { needsEmail: true };
+
+      const sendTo = realEmail ?? email!;
+
+      // Rate-limit on the phone identifier.
+      const windowStart = new Date(Date.now() - OTP_EXPIRY_MS);
+      const recentCount = await (this.prisma as any).otpCode.count({
+        where: { identifier: normalized, createdAt: { gte: windowStart } },
+      });
+      if (recentCount >= OTP_MAX_PER_WINDOW) {
+        throw new BadRequestException('Too many OTP requests. Please wait a few minutes.');
+      }
+
+      // Store pending link so verify() can create the full account.
+      if (!realEmail && email) {
+        PENDING_PHONE_EMAIL.set(normalized, {
+          email: email.trim().toLowerCase(),
+          expiresAt: Date.now() + OTP_EXPIRY_MS,
+        });
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const codeHash = await bcrypt.hash(code, 10);
+      const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+      await (this.prisma as any).otpCode.create({
+        data: { identifier: normalized, codeHash, type, expiresAt },
+      });
+
+      await this.sendEmail(sendTo, code);
+      return { needsEmail: false, maskedEmail: maskEmail(sendTo) };
+    }
+
+    // ── Email OTP ─────────────────────────────────────────────────────────────
     const windowStart = new Date(Date.now() - OTP_EXPIRY_MS);
     const recentCount = await (this.prisma as any).otpCode.count({
       where: { identifier: normalized, createdAt: { gte: windowStart } },
@@ -35,22 +105,14 @@ export class OtpService {
       throw new BadRequestException('Too many OTP requests. Please wait a few minutes.');
     }
 
-    // No userExists gate — OTP sign-in works for new users too.
-    // If the account doesn't exist yet, verify() will auto-create it.
-
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const codeHash = await bcrypt.hash(code, 10);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
-
     await (this.prisma as any).otpCode.create({
       data: { identifier: normalized, codeHash, type, expiresAt },
     });
-
-    if (type === 'EMAIL') {
-      await this.sendEmail(normalized, code);
-    } else {
-      await this.sendSms(normalized, code);
-    }
+    await this.sendEmail(normalized, code);
+    return { needsEmail: false };
   }
 
   async verify(
@@ -88,7 +150,6 @@ export class OtpService {
           });
 
     if (!user) {
-      // First-time OTP sign-in — auto-create account using identifier as minimum info.
       const isFirst = (await this.prisma.user.count()) === 0;
 
       if (type === 'EMAIL') {
@@ -106,28 +167,80 @@ export class OtpService {
           .catch(() => undefined);
         user = created;
       } else {
-        // Phone-only account: synthesise a unique placeholder email so the
-        // NOT-NULL email constraint is satisfied. The user can add a real email later.
-        const placeholderEmail = `phone.${normalized.replace(/\D/g, '')}@placeholder.cf`;
-        const created = await this.prisma.user.create({
-          data: {
-            email: placeholderEmail,
-            phone: normalized,
-            passwordHash: null,
-            role: isFirst ? 'OWNER' : 'MEMBER',
-          },
-          select: { id: true, email: true },
-        });
-        await this.trial
-          .grantTrial(created.id, created.email, { ...meta, verificationMethod: 'otp' })
-          .catch(() => undefined);
-        user = created;
+        // Phone user — consume pending email link if available.
+        const pending = PENDING_PHONE_EMAIL.get(normalized);
+        const pendingEmail =
+          pending && pending.expiresAt >= Date.now() ? pending.email : null;
+        PENDING_PHONE_EMAIL.delete(normalized);
+
+        if (pendingEmail) {
+          // Check if an account already exists with that email → just link the phone.
+          const byEmail = await this.prisma.user.findUnique({
+            where: { email: pendingEmail },
+            select: { id: true, email: true },
+          });
+          if (byEmail) {
+            await this.prisma.user.update({
+              where: { id: byEmail.id },
+              data: { phone: normalized },
+            });
+            user = byEmail;
+          } else {
+            const created = await this.prisma.user.create({
+              data: {
+                email: pendingEmail,
+                phone: normalized,
+                passwordHash: null,
+                emailVerified: new Date(),
+                role: isFirst ? 'OWNER' : 'MEMBER',
+              },
+              select: { id: true, email: true },
+            });
+            await this.trial
+              .grantTrial(created.id, created.email, { ...meta, verificationMethod: 'otp' })
+              .catch(() => undefined);
+            user = created;
+          }
+        } else {
+          // No pending link — fall back to placeholder email.
+          const placeholderEmail = `phone.${normalized.replace(/\D/g, '')}@placeholder.cf`;
+          const created = await this.prisma.user.create({
+            data: {
+              email: placeholderEmail,
+              phone: normalized,
+              passwordHash: null,
+              role: isFirst ? 'OWNER' : 'MEMBER',
+            },
+            select: { id: true, email: true },
+          });
+          await this.trial
+            .grantTrial(created.id, created.email, { ...meta, verificationMethod: 'otp' })
+            .catch(() => undefined);
+          user = created;
+        }
       }
 
       await this.prisma.auditLog.create({
         data: { userId: user.id, action: 'auth.otp_register', meta: { identifier: normalized, type } },
       });
     } else {
+      // Existing phone user with placeholder email + pending real email → upgrade.
+      if (type === 'PHONE' && user.email.includes('@placeholder.cf')) {
+        const pending = PENDING_PHONE_EMAIL.get(normalized);
+        if (pending && pending.expiresAt >= Date.now()) {
+          PENDING_PHONE_EMAIL.delete(normalized);
+          const emailNorm = pending.email;
+          const taken = await this.prisma.user.findUnique({ where: { email: emailNorm } });
+          if (!taken) {
+            await this.prisma.user.update({
+              where: { id: user.id },
+              data: { email: emailNorm, emailVerified: new Date() },
+            });
+            user = { ...user, email: emailNorm };
+          }
+        }
+      }
+
       await this.prisma.auditLog.create({
         data: { userId: user.id, action: 'auth.otp_login', meta: { identifier: normalized, type } },
       });
@@ -141,11 +254,6 @@ export class OtpService {
     return { ...tokens, hasPassword: fullUser?.passwordHash != null };
   }
 
-  /**
-   * Returns the last OTP code sent to `identifier` — only works when
-   * NODE_ENV !== 'production'. Used by the /auth/otp/dev-peek endpoint so
-   * developers can sign in without configuring an email provider.
-   */
   peekLastCode(identifier: string): string | null {
     if (process.env['NODE_ENV'] === 'production') return null;
     const entry = DEV_OTP_STORE.get(identifier.trim().toLowerCase());
@@ -170,9 +278,7 @@ export class OtpService {
       });
       if (resp.ok) return;
       const errBody = await resp.text().catch(() => '');
-      // Non-503 means relay is configured but failed — surface the error.
       if (resp.status !== 503) throw new Error(`Email relay failed ${resp.status}: ${errBody}`);
-      // 503 = relay has no providers configured — fall through.
       console.warn(`[OTP] Vercel relay returned 503 — falling through to direct providers.`);
     }
 
@@ -197,14 +303,13 @@ export class OtpService {
       const resend = new Resend(resendKey);
       const { error } = await resend.emails.send({ from: resendFrom, to, subject, html, text });
       if (!error) return;
-      // 403 = Resend testing-mode restriction (unverified domain) — fall through.
       if ((error as unknown as { statusCode?: number }).statusCode !== 403) {
         throw new Error(`Resend email failed: ${error.message}`);
       }
       console.warn(`[OTP] Resend domain restriction for ${to} — falling back to SMTP.`);
     }
 
-    // 3. SMTP (nodemailer) — Railway blocks all outbound SMTP; kept for non-Railway environments.
+    // 4. SMTP (nodemailer) — Railway blocks all outbound SMTP; kept for non-Railway environments.
     const host = this.config.get<string>('SMTP_HOST');
     if (host) {
       const smtpUser = this.config.get<string>('SMTP_USER');
@@ -222,7 +327,7 @@ export class OtpService {
       return;
     }
 
-    // 4. Dev fallback — only allowed outside production.
+    // 5. Dev fallback — only allowed outside production.
     if (process.env['NODE_ENV'] === 'production') {
       throw new Error(
         'Email OTP delivery unavailable: set BREVO_API_KEY in Railway environment variables.',
@@ -250,7 +355,6 @@ export class OtpService {
           'SMS OTP delivery unavailable: set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM in your environment.',
         );
       }
-      // Dev fallback — store for /auth/otp/dev-peek and log visibly.
       DEV_OTP_STORE.set(to, { code, expiresAt: Date.now() + OTP_EXPIRY_MS });
       console.warn(
         `\n╔══════════════════════════════════════════════════════╗\n` +
