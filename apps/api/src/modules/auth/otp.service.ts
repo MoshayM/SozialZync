@@ -2,7 +2,6 @@ import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as nodemailer from 'nodemailer';
-import sgMail from '@sendgrid/mail';
 import { Resend } from 'resend';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthService } from './auth.service';
@@ -159,16 +158,7 @@ export class OtpService {
     const text = `Your Sozialzync sign-in code is: ${code}\n\nExpires in 10 minutes. Never share this code.`;
     const subject = 'Your Sozialzync sign-in code';
 
-    // 1. SendGrid HTTP API — works on Railway (no SMTP port required).
-    const sgKey = this.config.get<string>('SENDGRID_API_KEY');
-    if (sgKey) {
-      const sgFrom = this.config.get<string>('SENDGRID_FROM') ?? this.config.get<string>('SMTP_FROM') ?? 'noreply@sozialzync.com';
-      sgMail.setApiKey(sgKey);
-      await sgMail.send({ to, from: sgFrom, subject, text, html });
-      return;
-    }
-
-    // 2. Resend SDK — falls through to next provider on domain-restriction errors (403).
+    // 1. Resend SDK — falls through to next provider on domain-restriction errors (403).
     const resendKey = this.config.get<string>('RESEND_API_KEY');
     if (resendKey) {
       const resendFrom = this.config.get<string>('RESEND_FROM') ?? 'onboarding@resend.dev';
