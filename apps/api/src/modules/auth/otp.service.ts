@@ -177,16 +177,15 @@ export class OtpService {
     if (host) {
       const smtpUser = this.config.get<string>('SMTP_USER');
       const smtpFrom = this.config.get<string>('SMTP_FROM') ?? smtpUser ?? 'noreply@sozialzync.com';
-      const transport = nodemailer.createTransport({
+      const smtpOpts = {
         host,
         port: Number(this.config.get('SMTP_PORT') ?? 587),
         secure: this.config.get('SMTP_SECURE') === 'true',
-        family: 4, // force IPv4 — Railway does not support IPv6
-        auth: {
-          user: smtpUser,
-          pass: this.config.get<string>('SMTP_PASS'),
-        },
-      });
+        auth: { user: smtpUser, pass: this.config.get<string>('SMTP_PASS') },
+      };
+      // @reason: family:4 forces IPv4 — Railway has no IPv6 routing; property absent from @types/nodemailer@8.0.1
+      Object.assign(smtpOpts, { family: 4 });
+      const transport = nodemailer.createTransport(smtpOpts);
       await transport.sendMail({ from: smtpFrom, to, subject, text, html });
       return;
     }
