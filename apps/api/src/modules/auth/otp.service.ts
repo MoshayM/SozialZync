@@ -157,13 +157,13 @@ export class OtpService {
     const html = `<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:24px;border-radius:12px;border:1px solid #ede9f8"><h2 style="color:#7C3AED;margin-top:0">Sozialzync Sign-In Code</h2><p style="font-size:40px;font-weight:700;letter-spacing:10px;color:#1a1a2e;margin:16px 0">${code}</p><p style="color:#555;font-size:14px">This code expires in <strong>10 minutes</strong>. Never share it with anyone.</p><hr style="border:none;border-top:1px solid #ede9f8;margin:20px 0"><p style="color:#999;font-size:12px">If you didn't request this code, you can safely ignore this email.</p></div>`;
     const text = `Your Sozialzync sign-in code is: ${code}\n\nExpires in 10 minutes. Never share this code.`;
     const subject = 'Your Sozialzync sign-in code';
-    const from = this.config.get<string>('RESEND_FROM') ?? this.config.get<string>('SMTP_FROM') ?? 'onboarding@resend.dev';
 
     // 1. Resend SDK — falls through to SMTP on domain-restriction errors (403).
     const resendKey = this.config.get<string>('RESEND_API_KEY');
     if (resendKey) {
+      const resendFrom = this.config.get<string>('RESEND_FROM') ?? 'onboarding@resend.dev';
       const resend = new Resend(resendKey);
-      const { error } = await resend.emails.send({ from, to, subject, html, text });
+      const { error } = await resend.emails.send({ from: resendFrom, to, subject, html, text });
       if (!error) return;
       // 403 = Resend testing-mode domain restriction — fall through to SMTP.
       if ((error as unknown as { statusCode?: number }).statusCode !== 403) {
@@ -175,16 +175,18 @@ export class OtpService {
     // 2. SMTP (nodemailer) — configured via SMTP_HOST + SMTP_USER + SMTP_PASS.
     const host = this.config.get<string>('SMTP_HOST');
     if (host) {
+      const smtpUser = this.config.get<string>('SMTP_USER');
+      const smtpFrom = this.config.get<string>('SMTP_FROM') ?? smtpUser ?? 'noreply@sozialzync.com';
       const transport = nodemailer.createTransport({
         host,
         port: Number(this.config.get('SMTP_PORT') ?? 587),
         secure: this.config.get('SMTP_SECURE') === 'true',
         auth: {
-          user: this.config.get<string>('SMTP_USER'),
+          user: smtpUser,
           pass: this.config.get<string>('SMTP_PASS'),
         },
       });
-      await transport.sendMail({ from, to, subject, text, html });
+      await transport.sendMail({ from: smtpFrom, to, subject, text, html });
       return;
     }
 
