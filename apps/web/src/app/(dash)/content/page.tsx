@@ -316,21 +316,21 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
             {seoResult.optimizedDescription && (
               <p className="text-xs text-gray-600 italic">{seoResult.optimizedDescription}</p>
             )}
-            {seoResult.searchKeywords.length > 0 && (
+            {(seoResult.searchKeywords?.length ?? 0) > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Search Keywords</p>
                 <div className="flex flex-wrap gap-2">
-                  {seoResult.searchKeywords.map((kw, i) => (
+                  {(seoResult.searchKeywords ?? []).map((kw, i) => (
                     <span key={i} className="px-2 py-0.5 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">{kw}</span>
                   ))}
                 </div>
               </div>
             )}
-            {seoResult.tags.length > 0 && (
+            {(seoResult.tags?.length ?? 0) > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tags (click to copy)</p>
                 <div className="flex flex-wrap gap-2">
-                  {seoResult.tags.map((tag, i) => <CopyChip key={i} text={tag} />)}
+                  {(seoResult.tags ?? []).map((tag, i) => <CopyChip key={i} text={tag} />)}
                 </div>
               </div>
             )}
@@ -413,13 +413,13 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           </div>
 
           {/* Key Facts */}
-          {result.keyFacts.length > 0 && (
+          {(result.keyFacts?.length ?? 0) > 0 && (
             <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                 <Award className="w-4 h-4 text-[#6D4AE0]" /> Key Facts
               </h3>
               <ol className="space-y-2">
-                {result.keyFacts.map((fact, i) => (
+                {(result.keyFacts ?? []).map((fact, i) => (
                   <li key={i} className="flex gap-3 text-sm text-gray-700">
                     <span className="shrink-0 w-5 h-5 rounded-full bg-[#f5f2fd] text-[#6D4AE0] text-xs font-bold flex items-center justify-center">
                       {i + 1}
@@ -432,13 +432,13 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           )}
 
           {/* Content Angles */}
-          {result.contentAngles.length > 0 && (
+          {(result.contentAngles?.length ?? 0) > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#6D4AE0]" /> Content Angles
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {result.contentAngles.map((angle, i) => (
+                {(result.contentAngles ?? []).map((angle, i) => (
                   <div key={i} className="bg-white rounded-2xl border border-[#e3ddf8] p-4 space-y-2 flex flex-col">
                     <p className="text-sm font-semibold text-gray-800">{angle.angle}</p>
                     <p className="text-xs text-gray-600 italic flex-1">{angle.hook}</p>
@@ -459,11 +459,11 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           )}
 
           {/* Related Topics */}
-          {result.relatedTopics.length > 0 && (
+          {(result.relatedTopics?.length ?? 0) > 0 && (
             <div className="space-y-2">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Related Topics</h3>
               <div className="flex flex-wrap gap-2">
-                {result.relatedTopics.map((t, i) => (
+                {(result.relatedTopics ?? []).map((t, i) => (
                   <span key={i} className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-xs text-[#6D4AE0]">{t}</span>
                 ))}
               </div>
@@ -581,7 +581,7 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
           </div>
 
           <div className="space-y-3">
-            {result.episodes.map((ep) => (
+            {(result.episodes ?? []).map((ep) => (
               <div key={ep.episodeNumber} className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="w-7 h-7 rounded-full bg-[#6D4AE0] text-white text-xs font-bold flex items-center justify-center shrink-0">
@@ -688,7 +688,7 @@ function RepurposeMode() {
 
       {result && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {result.platforms.map((p, i) => (
+          {(result.platforms ?? []).map((p, i) => (
             <div key={i} className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-3">
               <h3 className="font-semibold text-gray-800 text-sm">{p.platform}</h3>
               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{p.content}</p>
@@ -775,13 +775,13 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           </div>
 
           {/* Strengths */}
-          {result.strengths.length > 0 && (
+          {(result.strengths?.length ?? 0) > 0 && (
             <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-green-700 flex items-center gap-1.5">
                 <Check className="w-4 h-4" /> Strengths
               </h3>
               <ul className="space-y-1.5">
-                {result.strengths.map((s, i) => (
+                {(result.strengths ?? []).map((s, i) => (
                   <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-green-500">✓</span>{s}</li>
                 ))}
               </ul>
@@ -789,13 +789,13 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           )}
 
           {/* Improvements */}
-          {result.improvements.length > 0 && (
+          {(result.improvements?.length ?? 0) > 0 && (
             <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-orange-700 flex items-center gap-1.5">
                 <Zap className="w-4 h-4" /> Improvements
               </h3>
               <ul className="space-y-1.5">
-                {result.improvements.map((s, i) => (
+                {(result.improvements ?? []).map((s, i) => (
                   <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-orange-500">→</span>{s}</li>
                 ))}
               </ul>
@@ -803,13 +803,13 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           )}
 
           {/* Suggestions */}
-          {result.suggestions.length > 0 && (
+          {(result.suggestions?.length ?? 0) > 0 && (
             <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-blue-700 flex items-center gap-1.5">
                 <Lightbulb className="w-4 h-4" /> Suggestions
               </h3>
               <ul className="space-y-1.5">
-                {result.suggestions.map((s, i) => (
+                {(result.suggestions ?? []).map((s, i) => (
                   <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-blue-500">•</span>{s}</li>
                 ))}
               </ul>
