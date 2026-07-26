@@ -96,7 +96,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[relay] Gmail SMTP failed: user=${smtpUser} passLen=${smtpPass.length} err=${msg}`);
-      return NextResponse.json({ error: `SMTP: ${msg}` }, { status: 502 });
+      return NextResponse.json({
+        error: `SMTP: ${msg}`,
+        debug: { smtpUser, passLen: smtpPass.length, host: smtpHost },
+      }, { status: 502 });
     }
   }
 
