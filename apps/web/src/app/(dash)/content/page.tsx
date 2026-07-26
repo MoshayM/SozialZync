@@ -270,14 +270,6 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
 
             {trendsError && <ErrorBox message={trendsError} />}
 
-            <ResultHistory
-              entries={trendsHistory.entries}
-              timeAgo={trendsHistory.timeAgo}
-              onDelete={trendsHistory.removeEntry}
-              onRestore={(e) => setAudience(e.result as AudienceResult)}
-              onRerun={() => { void findTrends(); }}
-            />
-
             {audience && (
               <div className="space-y-4">
                 {audience.interestClusters && audience.interestClusters.length > 0 && (
@@ -330,6 +322,14 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
                 />
               </div>
             )}
+
+            <ResultHistory
+              entries={trendsHistory.entries}
+              timeAgo={trendsHistory.timeAgo}
+              onDelete={trendsHistory.removeEntry}
+              onRestore={(e) => setAudience(e.result as AudienceResult)}
+              onRerun={() => { void findTrends(); }}
+            />
           </>
         )}
       </div>
@@ -354,14 +354,6 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
         </button>
 
         {seoError && <ErrorBox message={seoError} />}
-
-        <ResultHistory
-          entries={seoHistory.entries}
-          timeAgo={seoHistory.timeAgo}
-          onDelete={seoHistory.removeEntry}
-          onRestore={(e) => setSeoResult(e.result as SeoResult)}
-          onRerun={(e) => { setSeoTopic(e.query); void optimizeSeo(); }}
-        />
 
         {seoResult && (
           <div className="space-y-4">
@@ -403,6 +395,14 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
             />
           </div>
         )}
+
+        <ResultHistory
+          entries={seoHistory.entries}
+          timeAgo={seoHistory.timeAgo}
+          onDelete={seoHistory.removeEntry}
+          onRestore={(e) => setSeoResult(e.result as SeoResult)}
+          onRerun={(e) => { setSeoTopic(e.query); void optimizeSeo(); }}
+        />
       </div>
     </div>
   );
@@ -480,14 +480,6 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
 
         {error && <ErrorBox message={error} />}
       </div>
-
-      <ResultHistory
-        entries={researchHistory.entries}
-        timeAgo={researchHistory.timeAgo}
-        onDelete={researchHistory.removeEntry}
-        onRestore={(e) => setResult(e.result as ResearchResult)}
-        onRerun={(e) => { setTopic(e.query); void runResearch(); }}
-      />
 
       {result && (
         <div className="space-y-5">
@@ -577,6 +569,14 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           />
         </div>
       )}
+
+      <ResultHistory
+        entries={researchHistory.entries}
+        timeAgo={researchHistory.timeAgo}
+        onDelete={researchHistory.removeEntry}
+        onRestore={(e) => setResult(e.result as ResearchResult)}
+        onRerun={(e) => { setTopic(e.query); void runResearch(); }}
+      />
     </div>
   );
 }
@@ -672,14 +672,6 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
         {error && <ErrorBox message={error} />}
       </div>
 
-      <ResultHistory
-        entries={seriesHistory.entries}
-        timeAgo={seriesHistory.timeAgo}
-        onDelete={seriesHistory.removeEntry}
-        onRestore={(e) => setResult(e.result as SeriesPlanResult)}
-        onRerun={() => void plan()}
-      />
-
       {result && (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6">
@@ -729,6 +721,14 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
           />
         </div>
       )}
+
+      <ResultHistory
+        entries={seriesHistory.entries}
+        timeAgo={seriesHistory.timeAgo}
+        onDelete={seriesHistory.removeEntry}
+        onRestore={(e) => setResult(e.result as SeriesPlanResult)}
+        onRerun={() => void plan()}
+      />
     </div>
   );
 }
@@ -905,14 +905,6 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
         {error && <ErrorBox message={error} />}
       </div>
 
-      <ResultHistory
-        entries={scoreHistory.entries}
-        timeAgo={scoreHistory.timeAgo}
-        onDelete={scoreHistory.removeEntry}
-        onRestore={(e) => setResult(e.result as ScoreResult)}
-        onRerun={() => void score()}
-      />
-
       {result && (
         <div className="space-y-5">
           {/* Score gauges */}
@@ -980,6 +972,14 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           />
         </div>
       )}
+
+      <ResultHistory
+        entries={scoreHistory.entries}
+        timeAgo={scoreHistory.timeAgo}
+        onDelete={scoreHistory.removeEntry}
+        onRestore={(e) => setResult(e.result as ScoreResult)}
+        onRerun={() => void score()}
+      />
     </div>
   );
 }
