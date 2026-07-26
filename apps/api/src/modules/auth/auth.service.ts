@@ -252,6 +252,30 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  async setPassword(userId: string, newPassword: string, currentPassword?: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    if (user.passwordHash) {
+      if (!currentPassword) {
+        throw new BadRequestException('Current password is required to change your password');
+      }
+      const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!valid) throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash },
+    });
+
+    await this.audit(userId, 'auth.set_password', { hadPassword: user.passwordHash !== null });
+  }
+
   private async audit(
     userId: string,
     action: string,

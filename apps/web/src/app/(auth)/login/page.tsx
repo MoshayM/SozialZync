@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Loader2, KeyRound, Phone, Mail, Lock, AtSign } from 'lucide-react';
@@ -10,6 +10,8 @@ import CountryCodeSelect, { COUNTRIES, type Country } from '@/components/country
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
 const IS_DEV = process.env['NODE_ENV'] === 'development';
+const LAST_ID_KEY = 'sz_last_otp_identifier';
+const RESEND_SECS = 30;
 
 type Tab = 'password' | 'otp';
 type OtpStep = 'send' | 'verify';
@@ -32,6 +34,10 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState('');
   const [otpStep, setOtpStep] = useState<OtpStep>('send');
 
+  // Resend countdown
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,12 +48,59 @@ export default function LoginPage() {
       ? otpEmail.trim()
       : `${otpCountry.dialCode}${otpPhone.trim().replace(/^0+/, '')}`;
 
+  // Prefill last-used identifier from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LAST_ID_KEY);
+      if (saved) {
+        if (saved.includes('@')) {
+          setOtpMode('email');
+          setOtpEmail(saved);
+        } else {
+          setOtpMode('phone');
+          setOtpPhone(saved.replace(/^\+\d+/, ''));
+        }
+      }
+    } catch {
+      // localStorage not available (SSR guard)
+    }
+  }, []);
+
   useEffect(() => {
     if (MOCK_MODE) return;
     api.auth.providers()
       .then((r) => setProviders(r.data))
       .catch(() => setProviders({ google: false, apple: false, facebook: false }));
   }, []);
+
+  // Auto-submit OTP when all 6 digits are entered
+  const verifyFormRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (otpCode.length === 6 && otpStep === 'verify' && !loading) {
+      verifyFormRef.current?.requestSubmit();
+    }
+  }, [otpCode, otpStep, loading]);
+
+  // Countdown timer cleanup
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+    };
+  }, []);
+
+  function startResendCooldown() {
+    setResendCooldown(RESEND_SECS);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((n) => {
+        if (n <= 1) {
+          clearInterval(cooldownRef.current!);
+          return 0;
+        }
+        return n - 1;
+      });
+    }, 1000);
+  }
 
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,8 +149,11 @@ export default function LoginPage() {
     setError('');
     try {
       await api.auth.otpSend(otpIdentifier);
+      // Remember identifier for next visit
+      try { localStorage.setItem(LAST_ID_KEY, otpIdentifier); } catch { /* ignore */ }
       setOtpStep('verify');
-      setInfo('OTP sent! Check your ' + (otpMode === 'email' ? 'email.' : 'phone.'));
+      setInfo('Code sent! Check your ' + (otpMode === 'email' ? 'email.' : 'phone.'));
+      startResendCooldown();
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 400) {
@@ -112,15 +168,40 @@ export default function LoginPage() {
 
   async function handleOtpVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!otpCode.trim()) return;
+    if (!otpCode.trim() || otpCode.length !== 6) return;
     setLoading(true);
     setError('');
     try {
       const { data } = await api.auth.otpVerify(otpIdentifier, otpCode.trim());
       setTokens(data.accessToken, data.refreshToken);
-      router.push('/home');
+      // New user (no password yet) → prompt to set one; existing user → home
+      if (data.hasPassword === false) {
+        router.push('/set-password');
+      } else {
+        router.push('/home');
+      }
     } catch {
-      setError('Invalid or expired OTP. Please try again.');
+      setError('Invalid or expired code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    if (resendCooldown > 0 || loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      await api.auth.otpSend(otpIdentifier);
+      setInfo('New code sent!');
+      startResendCooldown();
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 400) {
+        setError('Too many requests. Please wait a few minutes.');
+      } else {
+        setError('Could not resend. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -270,7 +351,9 @@ export default function LoginPage() {
           {otpStep === 'send' ? (
             <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-4">
               <p className="text-xs text-gray-400 text-center">
-                Enter your registered email or phone to receive a one-time code.
+                Enter your email or phone to receive a one-time sign-in code.
+                <br />
+                <span className="text-[#6D4AE0]">New here? We'll create your account automatically.</span>
               </p>
 
               {/* Email / Phone sub-toggle */}
@@ -345,11 +428,11 @@ export default function LoginPage() {
                 }}
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? 'Sending…' : 'Send OTP'}
+                {loading ? 'Sending…' : 'Send Code'}
               </button>
             </form>
           ) : (
-            <form onSubmit={(e) => { void handleOtpVerify(e); }} className="space-y-4">
+            <form ref={verifyFormRef} onSubmit={(e) => { void handleOtpVerify(e); }} className="space-y-4">
               <div className="bg-[#f0edf9] rounded-xl px-4 py-3 text-center">
                 <p className="text-xs text-gray-500">
                   Code sent to{' '}
@@ -357,26 +440,46 @@ export default function LoginPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => { setOtpStep('send'); setError(''); setInfo(''); }}
+                  onClick={() => { setOtpStep('send'); setError(''); setInfo(''); setOtpCode(''); }}
                   className="text-[10px] text-[#6D4AE0] hover:underline mt-0.5"
                 >
                   Change
                 </button>
               </div>
 
-              <LoginInput
-                icon={<KeyRound className="w-4 h-4" />}
-                label="Enter 6-digit code"
-                type="text"
-                aria-label="6-digit OTP"
-                placeholder="000000"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                required
-              />
+              {/* 6-digit OTP input — large and clear */}
+              <div className="space-y-1.5">
+                <label className="block text-xs text-gray-500 font-medium px-1">
+                  Enter 6-digit code
+                </label>
+                <div
+                  className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
+                  style={{ border: '1.5px solid #e3e0f0' }}
+                >
+                  <div className="pl-4 text-gray-400">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    aria-label="6-digit OTP"
+                    placeholder="000000"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                    className="flex-1 px-3 py-3 text-center text-xl font-bold tracking-[0.35em] outline-none bg-transparent text-gray-800 placeholder:text-gray-300 placeholder:font-normal placeholder:tracking-normal placeholder:text-base"
+                  />
+                  {otpCode.length > 0 && (
+                    <div className="pr-4 text-xs font-medium" style={{ color: otpCode.length === 6 ? '#22c55e' : '#9ca3af' }}>
+                      {otpCode.length}/6
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {info && (
                 <div className="flex items-center gap-2 bg-[#f0edf9] border border-[#d4c8f5] rounded-xl px-3.5 py-2.5">
@@ -404,14 +507,23 @@ export default function LoginPage() {
                 {loading ? 'Verifying…' : 'Verify & Sign In'}
               </button>
 
-              <button
-                type="button"
-                onClick={() => { void handleOtpSend({ preventDefault: () => {} } as React.FormEvent); }}
-                disabled={loading}
-                className="w-full text-xs text-[#6D4AE0] hover:underline disabled:opacity-50 py-1"
-              >
-                Resend code
-              </button>
+              {/* Resend with countdown */}
+              <div className="text-center">
+                {resendCooldown > 0 ? (
+                  <p className="text-xs text-gray-400">
+                    Resend code in <span className="font-semibold text-[#6D4AE0]">{resendCooldown}s</span>
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { void handleResend(); }}
+                    disabled={loading}
+                    className="text-xs text-[#6D4AE0] hover:underline disabled:opacity-50 py-1"
+                  >
+                    Didn't receive it? Resend code
+                  </button>
+                )}
+              </div>
 
               {IS_DEV && (
                 <button

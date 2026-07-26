@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import { TrialService } from '../trial/trial.service';
@@ -56,7 +57,7 @@ export class OtpService {
     identifier: string,
     code: string,
     meta: SessionMeta = {},
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<{ accessToken: string; refreshToken: string; hasPassword: boolean }> {
     const normalized = identifier.trim().toLowerCase();
     const type: 'EMAIL' | 'PHONE' = normalized.includes('@') ? 'EMAIL' : 'PHONE';
 
@@ -132,7 +133,12 @@ export class OtpService {
       });
     }
 
-    return this.auth.issueSessionTokens(user.id, user.email, meta);
+    const tokens = await this.auth.issueSessionTokens(user.id, user.email, meta);
+    const fullUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { passwordHash: true },
+    });
+    return { ...tokens, hasPassword: fullUser?.passwordHash != null };
   }
 
   /**
@@ -148,22 +154,18 @@ export class OtpService {
   }
 
   private async sendEmail(to: string, code: string): Promise<void> {
-    const html = `<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:24px"><h2 style="color:#7b5ec7;margin-top:0">Your sign-in code</h2><p style="font-size:40px;font-weight:700;letter-spacing:10px;color:#1a1a2e;margin:16px 0">${code}</p><p style="color:#555;font-size:14px">Expires in 10 minutes. Never share this code with anyone.</p></div>`;
-    const text = `Your one-time sign-in code is: ${code}\n\nExpires in 10 minutes. Never share this code.`;
-    const subject = 'Your CreatorForce sign-in code';
-    const from = this.config.get<string>('SMTP_FROM') ?? this.config.get<string>('RESEND_FROM') ?? 'noreply@creatorforce.ai';
+    const html = `<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:24px;border-radius:12px;border:1px solid #ede9f8"><h2 style="color:#7C3AED;margin-top:0">Sozialzync Sign-In Code</h2><p style="font-size:40px;font-weight:700;letter-spacing:10px;color:#1a1a2e;margin:16px 0">${code}</p><p style="color:#555;font-size:14px">This code expires in <strong>10 minutes</strong>. Never share it with anyone.</p><hr style="border:none;border-top:1px solid #ede9f8;margin:20px 0"><p style="color:#999;font-size:12px">If you didn't request this code, you can safely ignore this email.</p></div>`;
+    const text = `Your Sozialzync sign-in code is: ${code}\n\nExpires in 10 minutes. Never share this code.`;
+    const subject = 'Your Sozialzync sign-in code';
+    const from = this.config.get<string>('RESEND_FROM') ?? this.config.get<string>('SMTP_FROM') ?? 'onboarding@resend.dev';
 
-    // 1. Resend (https://resend.com) — preferred provider, no SMTP setup needed.
+    // 1. Resend SDK (https://resend.com) — preferred provider, no SMTP setup needed.
     const resendKey = this.config.get<string>('RESEND_API_KEY');
     if (resendKey) {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to, subject, html, text }),
-      });
-      if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        throw new Error(`Resend email failed (${res.status}): ${body}`);
+      const resend = new Resend(resendKey);
+      const { error } = await resend.emails.send({ from, to, subject, html, text });
+      if (error) {
+        throw new Error(`Resend email failed: ${error.message}`);
       }
       return;
     }
@@ -237,7 +239,7 @@ export class OtpService {
         body: new URLSearchParams({
           To: to,
           From: from,
-          Body: `Your CreatorForce OTP is ${code}. Valid for 10 min. Never share this.`,
+          Body: `Your Sozialzync sign-in code is ${code}. Valid for 10 minutes. Never share this.`,
         }).toString(),
       },
     );

@@ -567,10 +567,12 @@ export const api = {
     otpSend: (identifier: string) =>
       apiClient.post('/auth/otp/send', { identifier }),
     otpVerify: (identifier: string, code: string) =>
-      apiClient.post<{ accessToken: string; refreshToken: string }>('/auth/otp/verify', { identifier, code }),
+      apiClient.post<{ accessToken: string; refreshToken: string; hasPassword: boolean }>('/auth/otp/verify', { identifier, code }),
     /** Dev only — retrieves the last pending OTP code without email (blocked in production). */
     otpDevPeek: (identifier: string) =>
       apiClient.get<{ code: string }>(`/auth/otp/dev-peek?identifier=${encodeURIComponent(identifier)}`),
+    setPassword: (password: string, currentPassword?: string) =>
+      apiClient.post('/auth/set-password', { password, ...(currentPassword ? { currentPassword } : {}) }),
     updatePhone: (phone: string | null) =>
       apiClient.patch('/auth/me/phone', { phone }),
     forgotPassword: (email: string) =>

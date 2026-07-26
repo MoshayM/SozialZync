@@ -96,6 +96,11 @@ class UpdateProfileDto {
   @IsOptional() @IsString() avatarUrl?: string;
 }
 
+class SetPasswordDto {
+  @IsString() @MinLength(8) password!: string;
+  @IsString() @IsOptional() currentPassword?: string;
+}
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -339,5 +344,19 @@ export class AuthController {
   @RateLimit({ bucket: 'auth-reset-pw', limit: 5, windowSecs: 60 })
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
     await this.passwordReset.resetPassword(dto.token, dto.password);
+  }
+
+  /** POST /auth/set-password — set or change password for the authenticated user.
+   *  OTP-only users (no passwordHash) can set one without supplying currentPassword.
+   *  Users who already have a password must provide currentPassword. */
+  @Post('set-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @RateLimit({ bucket: 'auth-set-pw', limit: 5, windowSecs: 60 })
+  async setPassword(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SetPasswordDto,
+  ): Promise<void> {
+    await this.auth.setPassword(user.sub, dto.password, dto.currentPassword);
   }
 }
