@@ -191,6 +191,7 @@ export class OtpService {
         host,
         port: Number(this.config.get('SMTP_PORT') ?? 587),
         secure: this.config.get('SMTP_SECURE') === 'true',
+        family: 4, // force IPv4 — Railway does not support IPv6
         auth: {
           user: smtpUser,
           pass: this.config.get<string>('SMTP_PASS'),
