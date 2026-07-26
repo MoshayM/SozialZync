@@ -9,6 +9,8 @@ import {
   Check, Hash, Zap, Lightbulb, Globe, RefreshCw,
 } from 'lucide-react';
 import { ResultActionBar } from '@/components/result-actions';
+import { useContentHistory } from '@/hooks/use-content-history';
+import { ResultHistory } from '@/components/result-history';
 
 // ── Domain types ──────────────────────────────────────────────────────────────
 
@@ -180,6 +182,9 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
   const [seoError, setSeoError] = useState('');
   const [seoResult, setSeoResult] = useState<SeoResult | null>(null);
 
+  const seoHistory = useContentHistory('seo');
+  const trendsHistory = useContentHistory('trends');
+
   useEffect(() => { setSeoTopic(ctx.topic); }, [ctx.topic]);
 
   const findTrends = useCallback(async () => {
@@ -189,7 +194,18 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
     try {
       // @reason: apiClient returns AxiosResponse<unknown>; we cast via the interface
       const res = await apiClient.post<AudienceResult>('/audience/analyze', { niche: ctx.niche, recentTopics: [] });
-      setAudience(res.data);
+      const audienceData = res.data;
+      trendsHistory.addEntry({
+        label: `Trends: ${ctx.niche}`,
+        query: ctx.niche,
+        summaryText: [audienceData.primaryDemographic, ...(audienceData.interestClusters?.slice(0, 3).map(c => c.cluster) ?? [])].filter(Boolean).join(', ').slice(0, 120),
+        fullText: [
+          audienceData.primaryDemographic ? `Demographic: ${audienceData.primaryDemographic}` : '',
+          audienceData.growthTips?.length ? `Tips:\n${audienceData.growthTips.join('\n')}` : '',
+        ].filter(Boolean).join('\n\n'),
+        result: audienceData,
+      });
+      setAudience(audienceData);
     } catch (e) {
       setTrendsError(e instanceof Error ? e.message : 'Failed to fetch trends');
     } finally {
@@ -208,7 +224,20 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
         description: '',
         niche: ctx.niche,
       });
-      setSeoResult(res.data);
+      const seoData = res.data;
+      seoHistory.addEntry({
+        label: `SEO: ${seoTopic || ctx.niche}`,
+        query: seoTopic || ctx.niche,
+        summaryText: [seoData.optimizedTitle, seoData.optimizedDescription].filter(Boolean).join(' — ').slice(0, 120),
+        fullText: [
+          seoData.optimizedTitle ?? '',
+          seoData.optimizedDescription ?? '',
+          (seoData.searchKeywords?.length ?? 0) > 0 ? `Keywords: ${(seoData.searchKeywords ?? []).join(', ')}` : '',
+          (seoData.tags?.length ?? 0) > 0 ? `Tags: ${(seoData.tags ?? []).join(', ')}` : '',
+        ].filter(Boolean).join('\n\n'),
+        result: seoData,
+      });
+      setSeoResult(seoData);
     } catch (e) {
       setSeoError(e instanceof Error ? e.message : 'Failed to optimize SEO');
     } finally {
@@ -240,6 +269,14 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
             </button>
 
             {trendsError && <ErrorBox message={trendsError} />}
+
+            <ResultHistory
+              entries={trendsHistory.entries}
+              timeAgo={trendsHistory.timeAgo}
+              onDelete={trendsHistory.removeEntry}
+              onRestore={(e) => setAudience(e.result as AudienceResult)}
+              onRerun={() => { void findTrends(); }}
+            />
 
             {audience && (
               <div className="space-y-4">
@@ -318,6 +355,14 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
 
         {seoError && <ErrorBox message={seoError} />}
 
+        <ResultHistory
+          entries={seoHistory.entries}
+          timeAgo={seoHistory.timeAgo}
+          onDelete={seoHistory.removeEntry}
+          onRestore={(e) => setSeoResult(e.result as SeoResult)}
+          onRerun={(e) => { setSeoTopic(e.query); void optimizeSeo(); }}
+        />
+
         {seoResult && (
           <div className="space-y-4">
             {seoResult.optimizedTitle && (
@@ -370,6 +415,7 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ResearchResult | null>(null);
+  const researchHistory = useContentHistory('research');
 
   useEffect(() => { setTopic(ctx.topic); }, [ctx.topic]);
 
@@ -384,7 +430,15 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
         niche: ctx.niche,
         targetLang: ctx.lang,
       });
-      setResult(res.data);
+      const resData = res.data;
+      researchHistory.addEntry({
+        label: `Research: ${topic || ctx.niche}`,
+        query: topic || ctx.niche,
+        summaryText: (resData.summary ?? '').slice(0, 120),
+        fullText: [resData.topic, resData.summary, resData.keyFacts?.slice(0, 3).join(', ')].filter(Boolean).join('\n\n'),
+        result: resData,
+      });
+      setResult(resData);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Research failed');
     } finally {
@@ -426,6 +480,14 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
 
         {error && <ErrorBox message={error} />}
       </div>
+
+      <ResultHistory
+        entries={researchHistory.entries}
+        timeAgo={researchHistory.timeAgo}
+        onDelete={researchHistory.removeEntry}
+        onRestore={(e) => setResult(e.result as ResearchResult)}
+        onRerun={(e) => { setTopic(e.query); void runResearch(); }}
+      />
 
       {result && (
         <div className="space-y-5">
@@ -527,6 +589,7 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<SeriesPlanResult | null>(null);
+  const seriesHistory = useContentHistory('series');
 
   const topic = ctx.topic || ctx.niche;
 
@@ -542,7 +605,15 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
         episodes,
         audience,
       });
-      setResult(res.data);
+      const planData = res.data;
+      seriesHistory.addEntry({
+        label: `Series: ${topic}`,
+        query: topic,
+        summaryText: `${planData.seriesTitle} — ${planData.overview ?? ''}`.slice(0, 120),
+        fullText: `${planData.seriesTitle}\n${planData.overview}`,
+        result: planData,
+      });
+      setResult(planData);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Series planning failed');
     } finally {
@@ -600,6 +671,14 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
 
         {error && <ErrorBox message={error} />}
       </div>
+
+      <ResultHistory
+        entries={seriesHistory.entries}
+        timeAgo={seriesHistory.timeAgo}
+        onDelete={seriesHistory.removeEntry}
+        onRestore={(e) => setResult(e.result as SeriesPlanResult)}
+        onRerun={() => void plan()}
+      />
 
       {result && (
         <div className="space-y-4">
@@ -771,6 +850,7 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ScoreResult | null>(null);
+  const scoreHistory = useContentHistory('score');
 
   const score = useCallback(async () => {
     if (!scriptText) return;
@@ -783,7 +863,15 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
         scriptText,
         niche: ctx.niche,
       });
-      setResult(res.data);
+      const scoreData = res.data;
+      scoreHistory.addEntry({
+        label: `Script Score: ${ctx.topic || ctx.niche || 'untitled'}`,
+        query: ctx.topic || ctx.niche,
+        summaryText: `Overall ${scoreData.overallScore}/100 — Hook ${scoreData.hookScore} | Retention ${scoreData.retentionScore}`,
+        fullText: `Overall: ${scoreData.overallScore}/100\n${scoreData.strengths?.slice(0, 2).join('\n') ?? ''}`,
+        result: scoreData,
+      });
+      setResult(scoreData);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Scoring failed');
     } finally {
@@ -816,6 +904,14 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
 
         {error && <ErrorBox message={error} />}
       </div>
+
+      <ResultHistory
+        entries={scoreHistory.entries}
+        timeAgo={scoreHistory.timeAgo}
+        onDelete={scoreHistory.removeEntry}
+        onRestore={(e) => setResult(e.result as ScoreResult)}
+        onRerun={() => void score()}
+      />
 
       {result && (
         <div className="space-y-5">
