@@ -828,7 +828,7 @@ type CreateMode = 'series' | 'repurpose' | 'score';
 function CreateTab({ ctx }: { ctx: ContentContext }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const mode = (searchParams.get('mode') as CreateMode | null) ?? 'series';
+  const mode = (searchParams?.get('mode') as CreateMode | null) ?? 'series';
 
   const setMode = (m: CreateMode) => {
     router.replace(`/content?tab=create&mode=${m}`);
@@ -870,7 +870,7 @@ function CreateTab({ ctx }: { ctx: ContentContext }) {
 function ContentStudioInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeTab = searchParams.get('tab') ?? 'discover';
+  const activeTab = searchParams?.get('tab') ?? 'discover';
 
   // Shared context state
   const [niche, setNiche] = useState('');
