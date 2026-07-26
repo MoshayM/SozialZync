@@ -15,6 +15,22 @@ interface SendEmailBody {
   text: string;
 }
 
+async function trySMTP(
+  host: string,
+  port: number,
+  secure: boolean,
+  user: string | undefined,
+  pass: string,
+  from: string,
+  to: string,
+  subject: string,
+  text: string,
+  html: string,
+): Promise<void> {
+  const transport = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+  await transport.sendMail({ from, to, subject, text, html });
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Shared secret guards this endpoint from public access.
   const secret = process.env['INTERNAL_API_SECRET'];
@@ -48,31 +64,38 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (code !== 403) {
       return NextResponse.json({ error: `Resend: ${error.message}` }, { status: 502 });
     }
-    // 403 = domain restriction — fall through to SMTP.
     console.warn(`[relay] Resend domain restriction for ${to} — falling back to SMTP`);
   }
 
-  // 2. Gmail SMTP via App Password — works from Vercel (AWS), not blocked unlike Railway.
+  // 2. Brevo SMTP (free 300/day, no domain verification required).
+  const brevoUser = process.env['BREVO_SMTP_USER'];
+  const brevoPass = process.env['BREVO_SMTP_PASS'];
+  if (brevoUser && brevoPass) {
+    console.log(`[relay] Trying Brevo SMTP user=${brevoUser}`);
+    try {
+      await trySMTP('smtp-relay.brevo.com', 587, false, brevoUser, brevoPass, brevoUser, to, subject, text, html);
+      return NextResponse.json({ ok: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[relay] Brevo SMTP failed: ${msg}`);
+      // Fall through to Gmail.
+    }
+  }
+
+  // 3. Gmail SMTP via App Password.
   const smtpHost = process.env['SMTP_HOST'];
   if (smtpHost) {
     const smtpUser = process.env['SMTP_USER'];
     const smtpFrom = process.env['SMTP_FROM'] ?? smtpUser ?? 'noreply@sozialzync.com';
-    // Google App Passwords are displayed with spaces but auth requires them stripped.
-    const rawPass = process.env['SMTP_PASS'] ?? '';
-    const smtpPass = rawPass.replace(/\s/g, '');
-    console.log(`[relay] SMTP config: host=${smtpHost} user=${smtpUser} passLen=${smtpPass.length}`);
-    const transport = nodemailer.createTransport({
-      host: smtpHost,
-      port: Number(process.env['SMTP_PORT'] ?? 587),
-      secure: process.env['SMTP_SECURE'] === 'true',
-      auth: { user: smtpUser, pass: smtpPass },
-    });
+    // Google App Passwords are displayed with spaces but auth ignores them.
+    const smtpPass = (process.env['SMTP_PASS'] ?? '').replace(/\s/g, '');
+    console.log(`[relay] Trying Gmail SMTP user=${smtpUser} passLen=${smtpPass.length}`);
     try {
-      await transport.sendMail({ from: smtpFrom, to, subject, text, html });
+      await trySMTP(smtpHost, Number(process.env['SMTP_PORT'] ?? 587), process.env['SMTP_SECURE'] === 'true', smtpUser, smtpPass, smtpFrom, to, subject, text, html);
       return NextResponse.json({ ok: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[relay] SMTP failed: user=${smtpUser} passLen=${smtpPass.length} err=${msg}`);
+      console.error(`[relay] Gmail SMTP failed: user=${smtpUser} passLen=${smtpPass.length} err=${msg}`);
       return NextResponse.json({ error: `SMTP: ${msg}` }, { status: 502 });
     }
   }
