@@ -60,9 +60,9 @@ function SettingsContent() {
   const isOwner = me?.role === 'OWNER' || me?.role === 'SUPER_ADMIN';
 
   useEffect(() => {
-    // @ts-expect-error otpEmail may not be in API type yet
-    if (me?.otpEmail) setOtpEmail((me as Record<string, unknown>).otpEmail as string ?? '');
-  }, [me?.otpEmail]);
+    const m = me as Record<string, unknown> | undefined;
+    if (m?.['otpEmail']) setOtpEmail(m['otpEmail'] as string);
+  }, [me]);
 
   useEffect(() => {
     if (me?.name != null) setProfileName(me.name ?? '');
