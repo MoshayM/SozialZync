@@ -14,6 +14,7 @@ import {
   Youtube, Send, X, Clapperboard, Sparkles,
 } from 'lucide-react';
 import type { ProjectPublishReady } from '@/lib/api';
+import { LoadingSteps } from '@/components/loading-steps';
 
 type PageTab = 'pipeline' | 'script' | 'storyboard' | 'seo' | 'checks';
 
@@ -1001,9 +1002,17 @@ export default function ProjectDetailPage() {
 
           {/* Latest script result */}
           {pendingScriptJob && !latestScriptJob && (
-            <div className="bg-white border border-gray-200 rounded-2xl p-10 flex flex-col items-center gap-3 text-gray-500">
-              <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
-              <p className="text-sm">Script is being generated…</p>
+            <div className="bg-white border border-gray-200 rounded-2xl p-5">
+              <LoadingSteps
+                active={true}
+                steps={[
+                  'Researching topic and sourcing facts',
+                  'Drafting hook and opening',
+                  'Writing script body',
+                  'Polishing pacing and CTA',
+                  'Running compliance check',
+                ]}
+              />
             </div>
           )}
 
