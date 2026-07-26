@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Target, Loader2, ChevronDown, ChevronUp, TrendingUp, Clock, Zap, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
+import { LoadingSteps } from '@/components/loading-steps';
 
 interface Channel { id: string; title: string; youtubeChannelId?: string; }
 
@@ -239,10 +240,17 @@ export default function StrategyPage() {
             )}
 
             {loading && (
-              <div className="flex flex-col items-center justify-center h-full py-20 text-gray-500">
-                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: '#6D4AE0' }} />
-                <p className="font-medium">Decomposing your goal into weekly tasks…</p>
-                <p className="text-sm mt-1 text-gray-400">This may take a moment</p>
+              <div className="py-4">
+                <LoadingSteps
+                  active={loading}
+                  steps={[
+                    'Analyzing your goal and timeframe',
+                    'Mapping channel growth opportunities',
+                    'Designing weekly content themes',
+                    'Estimating impact per video',
+                    'Setting milestone checkpoints',
+                  ]}
+                />
               </div>
             )}
 
