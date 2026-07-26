@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { Resend } from 'resend';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthService } from './auth.service';
@@ -158,21 +159,30 @@ export class OtpService {
     const text = `Your Sozialzync sign-in code is: ${code}\n\nExpires in 10 minutes. Never share this code.`;
     const subject = 'Your Sozialzync sign-in code';
 
-    // 1. Resend SDK — falls through to SMTP on domain-restriction errors (403).
+    // 1. SendGrid HTTP API — works on Railway (no SMTP port required).
+    const sgKey = this.config.get<string>('SENDGRID_API_KEY');
+    if (sgKey) {
+      const sgFrom = this.config.get<string>('SENDGRID_FROM') ?? this.config.get<string>('SMTP_FROM') ?? 'noreply@sozialzync.com';
+      sgMail.setApiKey(sgKey);
+      await sgMail.send({ to, from: sgFrom, subject, text, html });
+      return;
+    }
+
+    // 2. Resend SDK — falls through to next provider on domain-restriction errors (403).
     const resendKey = this.config.get<string>('RESEND_API_KEY');
     if (resendKey) {
       const resendFrom = this.config.get<string>('RESEND_FROM') ?? 'onboarding@resend.dev';
       const resend = new Resend(resendKey);
       const { error } = await resend.emails.send({ from: resendFrom, to, subject, html, text });
       if (!error) return;
-      // 403 = Resend testing-mode domain restriction — fall through to SMTP.
+      // 403 = Resend testing-mode restriction (unverified domain) — fall through.
       if ((error as unknown as { statusCode?: number }).statusCode !== 403) {
         throw new Error(`Resend email failed: ${error.message}`);
       }
       console.warn(`[OTP] Resend domain restriction for ${to} — falling back to SMTP.`);
     }
 
-    // 2. SMTP (nodemailer) — configured via SMTP_HOST + SMTP_USER + SMTP_PASS.
+    // 3. SMTP (nodemailer) — may be blocked on some cloud hosts (Railway blocks port 587).
     const host = this.config.get<string>('SMTP_HOST');
     if (host) {
       const smtpUser = this.config.get<string>('SMTP_USER');
