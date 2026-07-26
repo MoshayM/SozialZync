@@ -696,14 +696,14 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
                   <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{ep.estimatedLength}</span>
                 </div>
                 <p className="text-xs text-gray-600 italic pl-9">{ep.hook}</p>
-                {ep.keyPoints.length > 0 && (
+                {(ep.keyPoints?.length ?? 0) > 0 && (
                   <ul className="pl-9 space-y-0.5">
-                    {ep.keyPoints.map((pt, i) => (
+                    {(ep.keyPoints ?? []).map((pt, i) => (
                       <li key={i} className="text-xs text-gray-600 flex gap-1.5"><span className="text-[#6D4AE0]">•</span>{pt}</li>
                     ))}
                   </ul>
                 )}
-                <p className="text-xs font-medium text-[#6D4AE0] pl-9">CTA: {ep.callToAction}</p>
+                {ep.callToAction && <p className="text-xs font-medium text-[#6D4AE0] pl-9">CTA: {ep.callToAction}</p>}
               </div>
             ))}
           </div>
@@ -910,11 +910,11 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           {/* Score gauges */}
           <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6">
             <div className="flex flex-wrap gap-6 justify-center">
-              <ScoreGauge score={result.overallScore} label="Overall" />
-              <ScoreGauge score={result.hookScore} label="Hook" />
-              <ScoreGauge score={result.retentionScore} label="Retention" />
-              <ScoreGauge score={result.clarityScore} label="Clarity" />
-              <ScoreGauge score={result.cta.score} label="CTA" />
+              <ScoreGauge score={result.overallScore ?? 0} label="Overall" />
+              <ScoreGauge score={result.hookScore ?? 0} label="Hook" />
+              <ScoreGauge score={result.retentionScore ?? 0} label="Retention" />
+              <ScoreGauge score={result.clarityScore ?? 0} label="Clarity" />
+              {result.cta && <ScoreGauge score={result.cta.score ?? 0} label="CTA" />}
             </div>
           </div>
 
@@ -964,7 +964,7 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
             filename="script-score"
             onRegenerate={() => void score()}
             text={[
-              `Overall: ${result.overallScore}/100 | Hook: ${result.hookScore} | Retention: ${result.retentionScore} | Clarity: ${result.clarityScore} | CTA: ${result.cta.score}`,
+              `Overall: ${result.overallScore ?? 0}/100 | Hook: ${result.hookScore ?? 0} | Retention: ${result.retentionScore ?? 0} | Clarity: ${result.clarityScore ?? 0}${result.cta ? ` | CTA: ${result.cta.score ?? 0}` : ''}`,
               (result.strengths?.length ?? 0) > 0 ? `Strengths:\n${(result.strengths ?? []).map((s) => `✓ ${s}`).join('\n')}` : '',
               (result.improvements?.length ?? 0) > 0 ? `Improvements:\n${(result.improvements ?? []).map((s) => `→ ${s}`).join('\n')}` : '',
               (result.suggestions?.length ?? 0) > 0 ? `Suggestions:\n${(result.suggestions ?? []).map((s) => `• ${s}`).join('\n')}` : '',
