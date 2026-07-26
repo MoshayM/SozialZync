@@ -158,7 +158,21 @@ export class OtpService {
     const text = `Your Sozialzync sign-in code is: ${code}\n\nExpires in 10 minutes. Never share this code.`;
     const subject = 'Your Sozialzync sign-in code';
 
-    // 1. Resend SDK — falls through to next provider on domain-restriction errors (403).
+    // 1. Brevo HTTP API — HTTPS port 443, no domain verification needed, works from Railway.
+    const brevoKey = this.config.get<string>('BREVO_API_KEY');
+    if (brevoKey) {
+      const brevoFrom = this.config.get<string>('BREVO_FROM') ?? this.config.get<string>('SMTP_FROM') ?? 'noreply@sozialzync.com';
+      const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { accept: 'application/json', 'api-key': brevoKey, 'content-type': 'application/json' },
+        body: JSON.stringify({ sender: { name: 'Sozialzync', email: brevoFrom }, to: [{ email: to }], subject, textContent: text, htmlContent: html }),
+      });
+      if (resp.ok) return;
+      const errBody = await resp.text().catch(() => '');
+      throw new Error(`Brevo email failed ${resp.status}: ${errBody}`);
+    }
+
+    // 2. Resend SDK — falls through to next provider on domain-restriction errors (403).
     const resendKey = this.config.get<string>('RESEND_API_KEY');
     if (resendKey) {
       const resendFrom = this.config.get<string>('RESEND_FROM') ?? 'onboarding@resend.dev';
@@ -172,7 +186,7 @@ export class OtpService {
       console.warn(`[OTP] Resend domain restriction for ${to} — falling back to SMTP.`);
     }
 
-    // 3. SMTP (nodemailer) — may be blocked on some cloud hosts (Railway blocks port 587).
+    // 3. SMTP (nodemailer) — Railway blocks all outbound SMTP; kept for non-Railway environments.
     const host = this.config.get<string>('SMTP_HOST');
     if (host) {
       const smtpUser = this.config.get<string>('SMTP_USER');
@@ -190,10 +204,10 @@ export class OtpService {
       return;
     }
 
-    // 3. Dev fallback — only allowed outside production.
+    // 4. Dev fallback — only allowed outside production.
     if (process.env['NODE_ENV'] === 'production') {
       throw new Error(
-        'Email OTP delivery unavailable: verify a domain at resend.com/domains or set SMTP_HOST in your environment.',
+        'Email OTP delivery unavailable: set BREVO_API_KEY in Railway environment variables.',
       );
     }
     DEV_OTP_STORE.set(to, { code, expiresAt: Date.now() + OTP_EXPIRY_MS });
