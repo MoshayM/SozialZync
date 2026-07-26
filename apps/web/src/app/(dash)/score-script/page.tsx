@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Award, Loader2, CheckCircle2, ArrowRight, ChevronDown, ChevronUp, Zap, Target } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { ContentToolbar } from '@/components/result-actions';
+import { LoadingSteps } from '@/components/loading-steps';
 
 const LS_KEY = 'cf_score_script';
 
@@ -235,9 +236,18 @@ export default function ScoreScriptPage() {
             )}
 
             {loading && (
-              <div className="flex flex-col items-center justify-center h-full py-20 text-gray-500">
-                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: '#6D4AE0' }} />
-                <p className="font-medium">Analyzing across 6 dimensions…</p>
+              <div className="py-4">
+                <LoadingSteps
+                  active={loading}
+                  steps={[
+                    'Reading your script',
+                    'Evaluating hook strength',
+                    'Scoring engagement & retention',
+                    'Analyzing CTA effectiveness',
+                    'Identifying strengths & improvements',
+                    'Generating quality report',
+                  ]}
+                />
               </div>
             )}
 

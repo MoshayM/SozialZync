@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { ContentToolbar } from '@/components/result-actions';
+import { LoadingSteps } from '@/components/loading-steps';
 
 const LS_KEY = 'cf_repurpose';
 
@@ -320,10 +321,17 @@ export default function RepurposePage() {
             )}
 
             {loading && (
-              <div className="h-full flex flex-col items-center justify-center py-20 text-gray-500">
-                <Loader2 className="w-10 h-10 animate-spin mb-4 text-[#6D4AE0]" />
-                <p className="font-medium">Adapting for {selectedPlatforms.size} platforms…</p>
-                <p className="text-sm mt-1 text-gray-400">This may take a moment</p>
+              <div className="pt-4">
+                <LoadingSteps
+                  active={loading}
+                  steps={[
+                    'Analyzing source content',
+                    'Adapting tone for each platform',
+                    `Crafting ${selectedPlatforms.size} platform version${selectedPlatforms.size !== 1 ? 's' : ''}`,
+                    'Generating hooks and CTAs',
+                    'Adding hashtags and formatting',
+                  ]}
+                />
               </div>
             )}
 

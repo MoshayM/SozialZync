@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { ListOrdered, Loader2, ChevronDown, ChevronUp, Lightbulb, Clock, DollarSign, Search, Sparkles } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { ContentToolbar } from '@/components/result-actions';
+import { LoadingSteps } from '@/components/loading-steps';
 
 const LS_KEY = 'cf_series_plan';
 
@@ -200,6 +201,20 @@ export default function SeriesPlannerPage() {
             {loading ? 'Planning series…' : 'Generate Series Plan'}
           </button>
         </div>
+
+        {/* Loading */}
+        {loading && (
+          <LoadingSteps
+            active={loading}
+            steps={[
+              'Building series structure',
+              'Crafting episode arcs',
+              'Writing hooks for each episode',
+              'Planning monetization strategy',
+              'Finalizing SEO angles',
+            ]}
+          />
+        )}
 
         {/* Results */}
         {plan && (
