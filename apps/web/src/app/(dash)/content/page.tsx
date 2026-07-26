@@ -696,9 +696,9 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
                   <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{ep.estimatedLength}</span>
                 </div>
                 <p className="text-xs text-gray-600 italic pl-9">{ep.hook}</p>
-                {(ep.keyPoints?.length ?? 0) > 0 && (
+                {Array.isArray(ep.keyPoints) && ep.keyPoints.length > 0 && (
                   <ul className="pl-9 space-y-0.5">
-                    {(ep.keyPoints ?? []).map((pt, i) => (
+                    {ep.keyPoints.map((pt, i) => (
                       <li key={i} className="text-xs text-gray-600 flex gap-1.5"><span className="text-[#6D4AE0]">•</span>{pt}</li>
                     ))}
                   </ul>
@@ -826,7 +826,7 @@ function RepurposeMode() {
                 <p className="text-xs font-medium text-[#6D4AE0] italic">{p.callToAction}</p>
               )}
               <ResultActionBar
-                filename={`repurpose-${p.platform.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                filename={`repurpose-${(p.platform ?? 'platform').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
                 onRegenerate={() => void repurpose()}
                 text={[
                   p.platform,
@@ -868,7 +868,7 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
         label: `Script Score: ${ctx.topic || ctx.niche || 'untitled'}`,
         query: ctx.topic || ctx.niche,
         summaryText: `Overall ${scoreData.overallScore}/100 — Hook ${scoreData.hookScore} | Retention ${scoreData.retentionScore}`,
-        fullText: `Overall: ${scoreData.overallScore}/100\n${scoreData.strengths?.slice(0, 2).join('\n') ?? ''}`,
+        fullText: `Overall: ${scoreData.overallScore ?? 0}/100\n${Array.isArray(scoreData.strengths) ? scoreData.strengths.slice(0, 2).join('\n') : ''}`,
         result: scoreData,
       });
       setResult(scoreData);
@@ -919,13 +919,13 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           </div>
 
           {/* Strengths */}
-          {(result.strengths?.length ?? 0) > 0 && (
+          {Array.isArray(result.strengths) && result.strengths.length > 0 && (
             <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-green-700 flex items-center gap-1.5">
                 <Check className="w-4 h-4" /> Strengths
               </h3>
               <ul className="space-y-1.5">
-                {(result.strengths ?? []).map((s, i) => (
+                {result.strengths.map((s, i) => (
                   <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-green-500">✓</span>{s}</li>
                 ))}
               </ul>
@@ -933,13 +933,13 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           )}
 
           {/* Improvements */}
-          {(result.improvements?.length ?? 0) > 0 && (
+          {Array.isArray(result.improvements) && result.improvements.length > 0 && (
             <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-orange-700 flex items-center gap-1.5">
                 <Zap className="w-4 h-4" /> Improvements
               </h3>
               <ul className="space-y-1.5">
-                {(result.improvements ?? []).map((s, i) => (
+                {result.improvements.map((s, i) => (
                   <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-orange-500">→</span>{s}</li>
                 ))}
               </ul>
@@ -947,13 +947,13 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
           )}
 
           {/* Suggestions */}
-          {(result.suggestions?.length ?? 0) > 0 && (
+          {Array.isArray(result.suggestions) && result.suggestions.length > 0 && (
             <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-blue-700 flex items-center gap-1.5">
                 <Lightbulb className="w-4 h-4" /> Suggestions
               </h3>
               <ul className="space-y-1.5">
-                {(result.suggestions ?? []).map((s, i) => (
+                {result.suggestions.map((s, i) => (
                   <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-blue-500">•</span>{s}</li>
                 ))}
               </ul>
@@ -965,9 +965,9 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
             onRegenerate={() => void score()}
             text={[
               `Overall: ${result.overallScore ?? 0}/100 | Hook: ${result.hookScore ?? 0} | Retention: ${result.retentionScore ?? 0} | Clarity: ${result.clarityScore ?? 0}${result.cta ? ` | CTA: ${result.cta.score ?? 0}` : ''}`,
-              (result.strengths?.length ?? 0) > 0 ? `Strengths:\n${(result.strengths ?? []).map((s) => `✓ ${s}`).join('\n')}` : '',
-              (result.improvements?.length ?? 0) > 0 ? `Improvements:\n${(result.improvements ?? []).map((s) => `→ ${s}`).join('\n')}` : '',
-              (result.suggestions?.length ?? 0) > 0 ? `Suggestions:\n${(result.suggestions ?? []).map((s) => `• ${s}`).join('\n')}` : '',
+              Array.isArray(result.strengths) && result.strengths.length > 0 ? `Strengths:\n${result.strengths.map((s) => `✓ ${s}`).join('\n')}` : '',
+              Array.isArray(result.improvements) && result.improvements.length > 0 ? `Improvements:\n${result.improvements.map((s) => `→ ${s}`).join('\n')}` : '',
+              Array.isArray(result.suggestions) && result.suggestions.length > 0 ? `Suggestions:\n${result.suggestions.map((s) => `• ${s}`).join('\n')}` : '',
             ].filter(Boolean).join('\n\n')}
           />
         </div>
