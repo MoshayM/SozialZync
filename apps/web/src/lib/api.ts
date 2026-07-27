@@ -8,7 +8,7 @@ const BASE =
     ? '/api/proxy'
     : (process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1');
 
-export const apiClient = axios.create({ baseURL: BASE, withCredentials: true });
+export const apiClient = axios.create({ baseURL: BASE, withCredentials: true, timeout: 30_000 });
 
 // ── Token storage helpers ────────────────────────────────────────────────────
 
