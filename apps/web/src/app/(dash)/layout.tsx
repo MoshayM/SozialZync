@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  FolderOpen, Settings, LogOut, Palette, Clapperboard, ListVideo, Wallet,
+  FolderOpen, Settings, LogOut, Palette, Clapperboard, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BookOpen, BarChart2, Search, Zap,
 } from 'lucide-react';
@@ -44,11 +44,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/publish',  icon: Upload,    label: 'Publish' },
       { href: '/insights', icon: BarChart2, label: 'Insights' },
-    ],
-  },
-  {
-    items: [
-      { href: '/library', icon: ListVideo, label: 'Media Control' },
     ],
   },
 ];
@@ -105,8 +100,8 @@ const BELL_POLL_MS = 60_000;
 // ── Global search bar ─────────────────────────────────────────────────────────
 
 const SEARCH_DESTINATIONS: Array<{ pattern: RegExp; label: string; path: (q: string) => string }> = [
-  { pattern: /video|short|clip|reel/i,   label: 'videos',   path: q => `/library?q=${encodeURIComponent(q)}` },
-  { pattern: /channel|youtube|account/i, label: 'channels', path: q => `/library?tab=channels&q=${encodeURIComponent(q)}` },
+  { pattern: /video|short|clip|reel/i,   label: 'videos',   path: q => `/projects?tab=media&q=${encodeURIComponent(q)}` },
+  { pattern: /channel|youtube|account/i, label: 'channels', path: q => `/projects?tab=channels&q=${encodeURIComponent(q)}` },
 ];
 
 function GlobalSearch() {
