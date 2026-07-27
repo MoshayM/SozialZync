@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   eslint: { ignoreDuringBuilds: true },
   experimental: {
-    serverActions: { allowedOrigins: ['localhost:3007'] },
+    serverActions: { allowedOrigins: ['localhost:3007', 'sozialzync.vercel.app'] },
   },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
@@ -76,14 +76,6 @@ const nextConfig: NextConfig = {
       { source: '/strategy',      destination: '/insights?tab=strategy',     permanent: false },
       { source: '/growth',        destination: '/insights?tab=growth',       permanent: false },
       { source: '/monitor',       destination: '/insights?tab=monitor',      permanent: false },
-    ];
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/api/proxy/:path*',
-        destination: `${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1'}/:path*`,
-      },
     ];
   },
 };
