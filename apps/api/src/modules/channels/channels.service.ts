@@ -231,14 +231,16 @@ export class ChannelsService implements OnModuleInit {
     }
   }
 
-  getAuthUrl(redirectUri: string, userId: string, access: ChannelAccessLevel = 'PUBLISH'): string {
+  getAuthUrl(redirectUri: string, userId: string, access: ChannelAccessLevel = 'PUBLISH', returnTo?: string): string {
     this.logger.log(`[OAuth] Generating auth URL — userId=${userId} access=${access} redirectUri=${redirectUri}`);
     const oauth2 = this.buildOAuth2Client(redirectUri);
+    const statePayload: { u: string; a: ChannelAccessLevel; r?: string } = { u: userId, a: access };
+    if (returnTo) statePayload.r = returnTo;
     const url = oauth2.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
       scope: [...IDENTITY_SCOPES, ...ACCESS_PRESETS[access]],
-      state: Buffer.from(JSON.stringify({ u: userId, a: access })).toString('base64url'),
+      state: Buffer.from(JSON.stringify(statePayload)).toString('base64url'),
     });
     this.logger.log(`[OAuth] Auth URL generated`);
     return url;

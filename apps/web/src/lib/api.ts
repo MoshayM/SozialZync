@@ -583,8 +583,8 @@ export const api = {
   channels: {
     list: () => apiClient.get('/channels'),
     status: () => apiClient.get('/channels/status'),
-    getAuthUrl: (redirectUri: string, access?: 'READ_ONLY' | 'PUBLISH' | 'FULL') =>
-      apiClient.get(`/channels/auth-url?redirectUri=${encodeURIComponent(redirectUri)}${access ? `&access=${access}` : ''}`),
+    getAuthUrl: (redirectUri: string, access?: 'READ_ONLY' | 'PUBLISH' | 'FULL', returnTo?: string) =>
+      apiClient.get(`/channels/auth-url?redirectUri=${encodeURIComponent(redirectUri)}${access ? `&access=${access}` : ''}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`),
     connectByUrl: (channelUrl: string) => apiClient.post('/channels/connect-by-url', { channelUrl }),
     disconnect: (id: string) => apiClient.delete(`/channels/${id}`),
     remove: (id: string) => apiClient.post(`/channels/${id}/remove`),

@@ -721,7 +721,7 @@ function ProjectsInner() {
                           {p.channel?.title ? (
                             <span className="truncate">{p.channel.title}</span>
                           ) : (
-                            <span className="truncate italic" style={{ color: '#f59e0b' }}>No account linked</span>
+                            <span className="truncate italic" style={{ color: '#6D4AE0' }}>No account linked</span>
                           )}
                           {crossPosts.length > 0 && (
                             <span className="flex items-center gap-1 ml-1">

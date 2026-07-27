@@ -1,7 +1,7 @@
 'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api, apiClient } from '@/lib/api';
 import { useProjectJobEvents } from '@/hooks/use-job-events';
@@ -856,8 +856,8 @@ export default function ProjectDetailPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">{project.title}</h1>
             <p className="text-gray-500 mt-1 text-sm">
               {project.channel ? project.channel.title : (
-                <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                  No channel connected
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0' }}>
+                  No account linked · connect anytime
                 </span>
               )}
               {project.niche ? ` · ${project.niche}` : ''}
@@ -1820,7 +1820,9 @@ export default function ProjectDetailPage() {
 
 interface MultiPublishModalProps {
   videoTitle: string;
+  channelConnected: boolean;
   onYouTube: () => void;
+  onConnectYouTube: () => void;
   onClose: () => void;
 }
 
@@ -1832,7 +1834,7 @@ const SOCIAL_PLATFORMS = [
   { id: 'facebook', name: 'Facebook',  color: '#1877F2', initials: 'FB' },
 ] as const;
 
-function MultiPublishModal({ videoTitle, onYouTube, onClose }: MultiPublishModalProps) {
+function MultiPublishModal({ videoTitle, channelConnected, onYouTube, onConnectYouTube, onClose }: MultiPublishModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
@@ -1847,24 +1849,44 @@ function MultiPublishModal({ videoTitle, onYouTube, onClose }: MultiPublishModal
           </button>
         </div>
 
-        {/* YouTube — live */}
-        <div className="border border-red-200 bg-red-50 rounded-xl p-4 flex items-center justify-between gap-3 mb-4">
+        {/* YouTube */}
+        <div
+          className="rounded-xl p-4 flex items-center justify-between gap-3 mb-4"
+          style={channelConnected
+            ? { background: '#fff5f5', border: '1px solid #fecaca' }
+            : { background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
-              <Youtube className="w-5 h-5 text-red-600" />
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: channelConnected ? '#fee2e2' : '#ede9fe' }}
+            >
+              <Youtube className="w-5 h-5" style={{ color: channelConnected ? '#dc2626' : '#6D4AE0' }} />
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">YouTube</p>
-              <p className="text-xs text-green-600 font-medium">Connected · Ready</p>
+              {channelConnected
+                ? <p className="text-xs text-green-600 font-medium">Connected · Ready</p>
+                : <p className="text-xs font-medium" style={{ color: '#6D4AE0' }}>Not connected · Connect to publish</p>}
             </div>
           </div>
-          <button
-            onClick={() => { onClose(); onYouTube(); }}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
-          >
-            <Send className="w-3.5 h-3.5" />
-            Publish
-          </button>
+          {channelConnected ? (
+            <button
+              onClick={() => { onClose(); onYouTube(); }}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
+            >
+              <Send className="w-3.5 h-3.5" />
+              Publish
+            </button>
+          ) : (
+            <button
+              onClick={onConnectYouTube}
+              className="flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
+              style={{ background: '#6D4AE0' }}
+            >
+              Connect
+            </button>
+          )}
         </div>
 
         {/* Coming Soon label */}
@@ -1895,8 +1917,11 @@ function MultiPublishModal({ videoTitle, onYouTube, onClose }: MultiPublishModal
 
 // ─── Publish from Render Panel ────────────────────────────────────────────────
 
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+
 function PublishFromRenderPanel({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [showMultiPublish, setShowMultiPublish] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
@@ -1945,10 +1970,23 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
     },
   });
 
-  const handleReconnect = () => {
-    sessionStorage.setItem('cf.oauth.returnUrl', `/projects/${projectId}`);
-    window.location.href = '/library?tab=channels';
+  // Auto-open publish modal when returning from OAuth (?publish=1)
+  useEffect(() => {
+    if (searchParams.get('publish') === '1') {
+      setShowMultiPublish(true);
+      window.history.replaceState({}, '', `/projects/${projectId}`);
+    }
+  }, [searchParams, projectId]);
+
+  const startOAuth = async (returnPath: string) => {
+    try {
+      const redirectUri = `${API_URL}/channels/oauth/callback`;
+      const { data: { url } } = await api.channels.getAuthUrl(redirectUri, 'PUBLISH', returnPath) as { data: { url: string } };
+      window.location.href = url;
+    } catch { /* ignore — user stays on page */ }
   };
+
+  const handleReconnect = () => { void startOAuth(`/projects/${projectId}?publish=1`); };
 
   const exportsStarted = useRef(false);
 
@@ -2035,13 +2073,13 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
             All AI tools work without a connected account. Connect YouTube, Instagram, TikTok, or any platform whenever you&apos;re ready.
           </p>
           <div className="flex items-center gap-3 pt-1">
-            <Link
-              href="/library?tab=channels"
+            <button
+              onClick={() => void startOAuth(`/projects/${projectId}?publish=1`)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
               style={{ background: '#6D4AE0', color: '#fff' }}
             >
               Connect Account
-            </Link>
+            </button>
             <span className="text-xs" style={{ color: '#9ca3af' }}>(optional)</span>
           </div>
         </div>
@@ -2164,7 +2202,9 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
       {showMultiPublish && (
         <MultiPublishModal
           videoTitle={video?.title ?? 'Untitled'}
-          onYouTube={() => setOpen(true)}
+          channelConnected={!!data?.project?.channel?.active}
+          onYouTube={() => { setShowMultiPublish(false); setOpen(true); }}
+          onConnectYouTube={() => void startOAuth(`/projects/${projectId}?publish=1`)}
           onClose={() => setShowMultiPublish(false)}
         />
       )}

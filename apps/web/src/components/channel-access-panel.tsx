@@ -476,13 +476,13 @@ function ChannelAccessContent() {
             {/* Connect / add another channel */}
             {channels.length === 0 ? (
               /* Empty state — no channels yet */
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl py-10 gap-3">
-                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
-                  <Youtube className="w-6 h-6 text-red-500" />
+              <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl py-10 gap-3" style={{ borderColor: '#d4c9f9' }}>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: '#f0edf9' }}>
+                  <Youtube className="w-6 h-6" style={{ color: '#6D4AE0' }} />
                 </div>
                 <div className="text-center">
-                  <p className="font-medium text-gray-700">No YouTube channel connected</p>
-                  <p className="text-sm text-gray-500 mt-0.5">Connect your channel to start creating content</p>
+                  <p className="font-medium text-gray-700">No YouTube account connected yet</p>
+                  <p className="text-sm text-gray-500 mt-0.5">You can connect anytime — create content first, publish when ready.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <select

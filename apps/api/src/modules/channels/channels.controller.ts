@@ -43,11 +43,12 @@ export class ChannelsController {
   getAuthUrl(
     @Query('redirectUri') redirectUri: string,
     @Query('access') access: string | undefined,
+    @Query('returnTo') returnTo: string | undefined,
     @CurrentUser() user: JwtPayload,
   ) {
     const level = isAccessLevel(access) ? access : 'PUBLISH';
     this.logger.log(`[OAuth] auth-url requested — userId=${user.sub} access=${level}`);
-    return { url: this.svc.getAuthUrl(redirectUri, user.sub, level) };
+    return { url: this.svc.getAuthUrl(redirectUri, user.sub, level, returnTo) };
   }
 
   // Public — no JWT; Google redirects here without auth headers.
@@ -70,17 +71,20 @@ export class ChannelsController {
     this.logger.log(`[OAuth] Callback received — exchanging code`);
 
     try {
-      // State is JSON {u: userId, a: accessLevel}; legacy states were the bare userId
+      // State is JSON {u: userId, a: accessLevel, r?: returnTo}; legacy states were the bare userId
       const decoded = Buffer.from(state, 'base64url').toString('utf8');
       let userId = decoded;
+      let returnTo: string | undefined;
       try {
-        const parsed = JSON.parse(decoded) as { u?: string };
+        const parsed = JSON.parse(decoded) as { u?: string; r?: string };
         if (parsed.u) userId = parsed.u;
+        if (parsed.r) returnTo = parsed.r;
       } catch { /* legacy plain-userId state */ }
       const redirectUri = `${API_URL}/api/v1/channels/oauth/callback`;
       await this.svc.connectChannel(userId, code, redirectUri);
-      this.logger.log(`[OAuth] Connection successful — redirecting to settings`);
-      return { url: `${WEB_URL}/library?tab=channels&connected=true` };
+      this.logger.log(`[OAuth] Connection successful — redirecting`);
+      const dest = returnTo ? `${WEB_URL}${returnTo}` : `${WEB_URL}/library?tab=channels&connected=true`;
+      return { url: dest };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'unknown_error';
       this.logger.error(`[OAuth] Connection failed — ${message}`);

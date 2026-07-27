@@ -1153,8 +1153,8 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           </>
         ) : (
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-500">Producing for channel</p>
-            <p className="text-xs text-gray-400 italic">No channel connected</p>
+            <p className="text-xs text-gray-500">Producing for</p>
+            <p className="text-xs italic" style={{ color: '#6D4AE0' }}>No account linked · connect anytime</p>
           </div>
         )}
       </div>
