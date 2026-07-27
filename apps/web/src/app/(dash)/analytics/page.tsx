@@ -210,8 +210,8 @@ export default function AnalyticsPage() {
           <p className="text-sm text-gray-400 mt-0.5">AI-powered channel diagnostics and next-video recommendations</p>
         </div>
 
-        {/* AI Usage dashboard — available to all users, scoped to their own spend */}
-        {activeView === 'usage' && (
+        {/* AI Usage dashboard — SUPER_ADMIN / OWNER only */}
+        {activeView === 'usage' && isAdmin && (
           <div className="space-y-5">
             {tokenUsage === null && (
               <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
@@ -434,10 +434,11 @@ export default function AnalyticsPage() {
           {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
         </div>
 
-        {/* Tab bar */}
+        {/* Tab bar — AI Usage visible to SUPER_ADMIN/OWNER only */}
         <div style={{ borderBottom: '1px solid #e3ddf8' }}>
           <div className="flex">
             {(['scorecard', 'analytics', 'usage'] as const).map(v => {
+              if (v === 'usage' && !isAdmin) return null;
               const isGated = v === 'analytics';
               const locked = isGated && !canAccessAiAnalysis;
               const label = v === 'scorecard' ? 'Scorecard' : v === 'analytics' ? 'AI Analysis' : 'AI Usage';

@@ -1,13 +1,13 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
+const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'OWNER']);
+
 /**
- * Token usage dashboard data (Ai-video edit.md §12.2.8/§15): cost, token, and
- * cache-hit aggregates for the Analytics tab, so token spend is visible and
- * the ≥80% cache-hit design target is measurable. All queries are scoped to
- * the current user's userId so each user sees only their own spend.
+ * Token usage dashboard data (§12.2.8/§15) — SUPER_ADMIN/OWNER only.
+ * Admins see platform-wide spend; all other roles receive 403.
  */
 @Controller('token-usage')
 @UseGuards(JwtAuthGuard)
@@ -16,32 +16,36 @@ export class TokenUsageController {
 
   @Get('summary')
   async summary(@CurrentUser() user: JwtPayload, @Query('days') days?: string) {
+    if (!ADMIN_ROLES.has(user.role)) {
+      throw new ForbiddenException('AI usage data is restricted to administrators');
+    }
+
     const sinceDays = Math.min(Number(days) || 30, 365);
     const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
-    const userId = user.sub;
 
+    // No userId filter — admins see platform-wide spend across all users
     const [ledger, byModel, actions, byVideoRaw, rawDaily] = await Promise.all([
       this.prisma.tokenUsage.aggregate({
-        where: { userId, createdAt: { gte: since } },
+        where: { createdAt: { gte: since } },
         _sum: { tokensIn: true, tokensOut: true, costUsd: true },
         _count: true,
       }),
       this.prisma.tokenUsage.groupBy({
         by: ['provider', 'model'],
-        where: { userId, createdAt: { gte: since } },
+        where: { createdAt: { gte: since } },
         _sum: { tokensIn: true, tokensOut: true, costUsd: true },
         _count: true,
       }),
-      // Cache-hit rate over the user's copilot/voice turns (§12.3 target: ≥80%)
+      // Cache-hit rate across all copilot/voice turns platform-wide
       this.prisma.actionRecord.groupBy({
         by: ['fromCache'],
-        where: { userId, createdAt: { gte: since }, source: { in: ['COPILOT', 'VOICE'] } },
+        where: { createdAt: { gte: since }, source: { in: ['COPILOT', 'VOICE'] } },
         _count: true,
       }),
-      // Per-video breakdown (§12.2.8) — attribution via the ALS AI context
+      // Per-video breakdown — top 15 by cost platform-wide
       this.prisma.tokenUsage.groupBy({
         by: ['importedVideoId'],
-        where: { userId, createdAt: { gte: since }, importedVideoId: { not: null } },
+        where: { createdAt: { gte: since }, importedVideoId: { not: null } },
         _sum: { tokensIn: true, tokensOut: true, costUsd: true },
         _count: true,
         orderBy: { _sum: { costUsd: 'desc' } },
@@ -49,7 +53,7 @@ export class TokenUsageController {
       }),
       // Raw rows for daily aggregation (non-cache only for cost trend)
       this.prisma.tokenUsage.findMany({
-        where: { userId, createdAt: { gte: since }, fromCache: false },
+        where: { createdAt: { gte: since }, fromCache: false },
         select: { createdAt: true, costUsd: true, tokensIn: true, tokensOut: true },
         orderBy: { createdAt: 'asc' },
       }),
