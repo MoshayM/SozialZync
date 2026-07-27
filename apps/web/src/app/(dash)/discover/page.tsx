@@ -671,11 +671,11 @@ function ContentGapsTab() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-const TABS: { id: HubTab; label: string }[] = [
-  { id: 'trends', label: 'Trending' },
-  { id: 'keywords', label: 'Keywords' },
-  { id: 'audience', label: 'Audience' },
-  { id: 'gaps', label: 'Content Gaps' },
+const TABS: { id: HubTab; label: string; description: string }[] = [
+  { id: 'trends',   label: 'Trending',      description: 'Real-time topics and content opportunities in your niche' },
+  { id: 'keywords', label: 'Keywords',      description: 'SEO-optimised search keywords and tags for your next video' },
+  { id: 'audience', label: 'Audience',      description: 'Demographics, interests and best posting times' },
+  { id: 'gaps',     label: 'Content Gaps',  description: 'Underserved topics your competitors are missing' },
 ];
 
 export default function DiscoverPage() {
@@ -694,20 +694,35 @@ export default function DiscoverPage() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-2 overflow-x-auto pb-0.5">
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setHubTab(t.id)}
-              className="flex-shrink-0 py-1.5 px-4 text-sm font-semibold rounded-2xl transition-all whitespace-nowrap"
-              style={hubTab === t.id
-                ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
-                : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div
+          className="-mx-5 lg:-mx-7 flex border-b border-[#e3ddf8] px-4 sm:px-6 overflow-x-auto no-scrollbar"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          {TABS.map((t) => {
+            const active = hubTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setHubTab(t.id)}
+                className={[
+                  'px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
+                  active
+                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
+                ].join(' ')}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Context description strip */}
+        <div className="-mx-5 lg:-mx-7 px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9]">
+          <p className="text-xs text-gray-500 leading-none">
+            {TABS.find((t) => t.id === hubTab)?.description}
+          </p>
         </div>
 
         {/* Tab content */}
