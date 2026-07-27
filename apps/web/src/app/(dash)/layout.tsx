@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   FolderOpen, Settings, LogOut, Palette, Clapperboard, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
-  Upload, BookOpen, BarChart2, Search, Zap,
+  Upload, BookOpen, BarChart2, Search, Zap, HelpCircle,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -42,8 +42,13 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     items: [
-      { href: '/publish',  icon: Upload,    label: 'Publish' },
-      { href: '/insights', icon: BarChart2, label: 'Insights' },
+      { href: '/publish',  icon: Upload,      label: 'Publish' },
+      { href: '/insights', icon: BarChart2,   label: 'Insights' },
+    ],
+  },
+  {
+    items: [
+      { href: '/guide', icon: HelpCircle, label: 'Guide' },
     ],
   },
 ];

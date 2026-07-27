@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   Zap, Film, Bot, ArrowRight, CheckCircle2, ChevronRight, Sparkles, ShieldCheck,
   Globe2, Repeat2, Clock, Star, Hash, LineChart, MessageSquare, Target, Users, Calendar,
+  FolderOpen, Scissors,
 } from 'lucide-react';
 import { MobileNav } from './_components/MobileNav';
 import { LogoMark } from '@/components/logo-mark';
@@ -429,6 +430,79 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── CREATOR TOOLS ─────────────────────────────────────────────────────── */}
+        <section aria-labelledby="tools-heading" className="bg-white py-24 lg:py-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>Built-in creator tools</p>
+              <h2 id="tools-heading" className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
+                Everything in one place,
+                <span style={{color:'#7C3AED'}}> nothing to install</span>
+              </h2>
+              <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+                Three powerful tools work together seamlessly — from raw footage to published content in minutes.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  Icon: FolderOpen,
+                  color: '#7C3AED',
+                  bg: '#F3EEFF',
+                  title: 'Projects',
+                  badge: 'Step 1',
+                  desc: 'Organise your videos by channel and niche. AI generates scripts, thumbnails, voice, and video — all inside one project.',
+                  steps: ['Connect your YouTube channel', 'Create a project with your niche', 'Let AI generate the full video pipeline'],
+                },
+                {
+                  Icon: Scissors,
+                  color: '#0891B2',
+                  bg: '#ECFEFF',
+                  title: 'Shorts Studio',
+                  badge: 'Step 2',
+                  desc: 'Turn any long video into 10+ viral Shorts automatically. AI finds the hooks, adds captions, and formats for every platform.',
+                  steps: ['Import or connect a video', 'AI detects top clips automatically', 'Export with captions and hooks ready'],
+                },
+                {
+                  Icon: Film,
+                  color: '#DC2626',
+                  bg: '#FFF1F1',
+                  title: 'Video Editor',
+                  badge: 'Step 3',
+                  desc: 'Professional multi-track editor built right in. Trim, arrange, add effects and text overlays — then export in any format.',
+                  steps: ['Send clips from Projects or Shorts Studio', 'Arrange on the timeline, add text/effects', 'Export in 1080p or vertical Shorts format'],
+                },
+              ].map(({ Icon, color, bg, title, badge, desc, steps }) => (
+                <div key={title} className="border border-gray-100 rounded-3xl p-6 hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col gap-4 bg-white">
+                  <div className="flex items-start justify-between">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{background:bg}}>
+                      <Icon className="w-6 h-6" style={{color}} />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{background:bg,color}}>
+                      {badge}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+                  </div>
+                  <ul className="space-y-1.5 mt-auto">
+                    {steps.map((s) => (
+                      <li key={s} className="flex items-start gap-2 text-xs text-gray-500">
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{background:bg}}>
+                          <div className="w-1.5 h-1.5 rounded-full" style={{background:color}} />
+                        </div>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
         </section>
