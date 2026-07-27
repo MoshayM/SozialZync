@@ -422,7 +422,8 @@ function DeleteModal({ project, onClose, onSuccess }: { project: Project; onClos
 
 function ChannelsTab() {
   return (
-    <div className="p-5 lg:p-7 max-w-5xl mx-auto">
+    <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-6">
+      {/* Channel connections */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
         <ProGate
           feature="Channel Access"
@@ -430,6 +431,18 @@ function ChannelsTab() {
         >
           <ChannelAccessPanel />
         </ProGate>
+      </div>
+
+      {/* Media library — scoped to selected channel */}
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px flex-1" style={{ background: '#e3ddf8' }} />
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#a78bdb' }}>
+            Channel Media
+          </span>
+          <div className="h-px flex-1" style={{ background: '#e3ddf8' }} />
+        </div>
+        <MediaLibraryTab />
       </div>
     </div>
   );
@@ -458,7 +471,7 @@ function MediaLibraryTab() {
 
   function setMediaSubTab(t: LibTabId) {
     const p = new URLSearchParams(searchParams.toString());
-    p.set('tab', 'media');
+    p.set('tab', 'channels');
     p.set('media', t);
     router.replace(`/projects?${p.toString()}`, { scroll: false });
   }
@@ -1182,9 +1195,9 @@ function ProjectsInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const mainTab = (searchParams.get('tab') ?? 'projects') as 'projects' | 'media' | 'channels';
+  const mainTab = (searchParams.get('tab') ?? 'projects') as 'projects' | 'channels';
 
-  function setMainTab(t: 'projects' | 'media' | 'channels') {
+  function setMainTab(t: 'projects' | 'channels') {
     const p = new URLSearchParams();
     p.set('tab', t);
     router.replace(`/projects?${p.toString()}`);
@@ -1273,7 +1286,6 @@ function ProjectsInner() {
 
   const MAIN_TABS = [
     { id: 'projects' as const,  label: 'Projects',       icon: '📁' },
-    { id: 'media' as const,     label: 'Media Library',  icon: '🎬' },
     { id: 'channels' as const,  label: 'Channel Access', icon: '📺' },
   ];
 
@@ -1330,7 +1342,6 @@ function ProjectsInner() {
           totalVideos={totalVideos}
         />
       )}
-      {mainTab === 'media'    && <MediaLibraryTab />}
       {mainTab === 'channels' && <ChannelsTab />}
 
       {/* Modals (outside tab content so they stay mounted) */}

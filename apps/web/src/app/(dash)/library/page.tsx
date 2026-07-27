@@ -9,9 +9,9 @@ function LibraryRedirect() {
     const tab = params.get('tab');
     const target =
       tab === 'channels'  ? '/projects?tab=channels' :
-      tab === 'assets'    ? '/projects?tab=media&media=assets' :
-      tab === 'playlists' ? '/projects?tab=media&media=playlists' :
-                            '/projects?tab=media';
+      tab === 'assets'    ? '/projects?tab=channels&media=assets' :
+      tab === 'playlists' ? '/projects?tab=channels&media=playlists' :
+                            '/projects?tab=channels';
     router.replace(target);
   }, [router, params]);
   return null;
