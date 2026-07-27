@@ -73,10 +73,10 @@ Built so far:
 - ~~Cloudflare R2 SDK wiring~~ — DONE: `R2StorageService` with write-through strategy (local + R2); activated via `STORAGE_BACKEND=r2`. Supports `put`, `copyIn`, `flush`, `ensure` (lazy download), `removePrefix` (batch), `list`. Env vars: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
 - ~~End-to-end render-to-publish~~ — DONE: editor render stores output with `r2Key`; project detail page reads `render.r2Key` and passes it to `PublishingService.publish()`, which calls `storage.ensure(r2Key)` to download from R2 before YouTube upload.
 - External music providers: Stability AI Stable Audio (`music-stability.adapter.ts`) and Replicate MusicGen (`music-replicate.adapter.ts`) — activated via `STABILITY_API_KEY` / `REPLICATE_API_TOKEN`.
-- External video providers: Luma AI Dream Machine (`video-luma.adapter.ts`), Runway Gen-3 Alpha (`video-runway.adapter.ts`) — text-to-video and image-to-video; activated via `LUMA_API_KEY` / `RUNWAYML_API_KEY`.
+- External video providers: Luma AI Dream Machine (`video-luma.adapter.ts`), Runway Gen-3 Alpha (`video-runway.adapter.ts`), Kling AI (`video-kling.adapter.ts`) — text-to-video and image-to-video; activated via `LUMA_API_KEY` / `RUNWAYML_API_KEY` / `KLING_ACCESS_KEY_ID`+`KLING_ACCESS_KEY_SECRET`.
 
 Still needed to complete Phase 4:
-- Additional video providers: Veo / Kling / Pika.
+- Additional video providers: Veo / Pika.
 - Additional music providers: Suno / Udio.
 
 ---
@@ -128,7 +128,7 @@ These items are gaps within phases marked COMPLETED — they were not delivered 
 - n8n runtime deployment (designed in Phase 1 scope, not deployed).
 - ~~In-app video render → YouTube upload~~ — DONE: project page reads `render.r2Key` and calls `PublishingService.publish({ r2Key })`.
 - ~~Cloudflare R2 storage wiring~~ — DONE: `R2StorageService`; activate with `STORAGE_BACKEND=r2` + R2 env vars.
-- ~~External video and music generation providers~~ — PARTIAL: Luma AI + Runway Gen-3 Alpha (video), Stability AI + Replicate MusicGen (music) done. Veo/Kling/Pika/Suno/Udio still to do.
+- ~~External video and music generation providers~~ — PARTIAL: Luma AI + Runway Gen-3 Alpha + Kling AI (video), Stability AI + Replicate MusicGen (music) done. Veo/Pika/Suno/Udio still to do.
 - Staging environment.
 - Production infrastructure-as-code.
 - Stripe live billing: integration built; activate by adding `STRIPE_STARTER_PRICE_ID`, `STRIPE_PRO_PRICE_ID`, `STRIPE_AGENCY_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` to Railway and registering the webhook endpoint.
