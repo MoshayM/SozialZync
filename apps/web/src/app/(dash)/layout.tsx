@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   FolderOpen, Settings, LogOut, Palette, Clapperboard, ListVideo, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
-  Upload, BookOpen, BarChart2, Search, Zap, CalendarClock,
+  Upload, BookOpen, BarChart2, Search, Zap,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -38,14 +38,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/editor',        icon: Film,        label: 'Video Editor' },
       { href: '/shorts-studio', icon: Clapperboard, label: 'Shorts Studio' },
-    ],
-  },
-  {
-    category: 'Publishing',
-    items: [
-      { href: '/publish?tab=approvals',  icon: ShieldCheck,   label: 'Review Queue' },
-      { href: '/publish?tab=scheduler',  icon: CalendarClock, label: 'Scheduled'    },
-      { href: '/publish?tab=publishing', icon: ListVideo,      label: 'History'      },
     ],
   },
   {
