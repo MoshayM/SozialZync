@@ -14,7 +14,10 @@ import { OpenAiImageAdapter } from './adapters/image-openai.adapter';
 import { GeminiImageAdapter } from './adapters/image-gemini.adapter';
 import { OfflineImageAdapter } from './adapters/image-offline.adapter';
 import { OfflineMusicAdapter } from './adapters/music-offline.adapter';
+import { StabilityMusicAdapter } from './adapters/music-stability.adapter';
+import { ReplicateMusicAdapter } from './adapters/music-replicate.adapter';
 import { FfmpegSceneVideoAdapter } from './adapters/video-ffmpeg.adapter';
+import { LumaVideoAdapter } from './adapters/video-luma.adapter';
 import { validateMediaBuffer, formatIssues, type MediaValidationKind } from './media-validation.util';
 
 export interface StoredAsset {
@@ -54,11 +57,11 @@ export class MediaService {
   };
   private readonly music: AdapterChain<MusicAdapter> = {
     configured: process.env['MUSIC_PROVIDER'],
-    adapters: [new OfflineMusicAdapter()],
+    adapters: [new StabilityMusicAdapter(), new ReplicateMusicAdapter(), new OfflineMusicAdapter()],
   };
   private readonly video: AdapterChain<VideoAdapter> = {
     configured: process.env['VIDEO_PROVIDER'],
-    adapters: [new FfmpegSceneVideoAdapter()],
+    adapters: [new LumaVideoAdapter(), new FfmpegSceneVideoAdapter()],
   };
 
   constructor(
