@@ -2,7 +2,8 @@
 // Copy from infra/db/schema.prisma — Prisma requires schema to be in /prisma by default
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {

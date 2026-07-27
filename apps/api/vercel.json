@@ -1,8 +1,9 @@
 {
+  "buildCommand": "cd ../.. && pnpm --filter @cf/api build",
   "functions": {
     "api/index.js": {
-      "maxDuration": 60,
-      "includeFiles": "dist/**"
+      "maxDuration": 300,
+      "includeFiles": "dist/**,node_modules/.prisma/**,node_modules/@prisma/client/**,prisma/**"
     }
   },
   "rewrites": [
