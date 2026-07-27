@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Headers, RawBodyRequest, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Query, Body, Headers, RawBodyRequest, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 import type { Request } from 'express';
@@ -31,6 +31,20 @@ export class BillingController {
     return this.svc.createCheckoutSession(
       user.sub, user.email, dto.plan, dto.successUrl, dto.cancelUrl,
     );
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Delete('subscription')
+  cancelSubscription(@CurrentUser() user: JwtPayload) {
+    return this.svc.cancelSubscription(user.sub);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('portal')
+  getBillingPortal(@CurrentUser() user: JwtPayload, @Query('returnUrl') returnUrl: string) {
+    return this.svc.getBillingPortalUrl(user.sub, returnUrl ?? '/wallet');
   }
 
   @Post('webhook')

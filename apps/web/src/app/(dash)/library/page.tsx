@@ -34,6 +34,14 @@ interface Asset {
 
 type TabId = 'videos' | 'playlists' | 'channels' | 'assets';
 
+interface LibTabDef { id: TabId; label: string; description: string; }
+const LIB_TABS: LibTabDef[] = [
+  { id: 'videos',    label: 'Videos',         description: 'Browse and search synced channel videos' },
+  { id: 'playlists', label: 'Playlists',       description: 'View and manage your video playlists' },
+  { id: 'channels',  label: 'Channel Access',  description: 'Connect and manage your social channels' },
+  { id: 'assets',    label: 'Media Assets',    description: 'AI-generated media assets for your projects' },
+];
+
 // ── Assets constants ─────────────────────────────────────────────────────────
 
 const KIND_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -237,24 +245,35 @@ function LibraryPageInner() {
         </div>
 
         {/* Tabs — horizontally scrollable on mobile */}
-        <div className="overflow-x-auto no-scrollbar -mx-4 sm:mx-0">
-        <div className="flex gap-2 px-4 sm:px-0 min-w-max">
-          {([['videos', 'Videos'], ['playlists', 'Playlists'], ['channels', 'Channel Access'], ['assets', 'Media Assets']] as Array<[TabId, string]>).map(([t, label]) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => { setTab(t); }}
-              className="px-4 py-2 text-sm font-semibold rounded-2xl transition-all whitespace-nowrap"
-              style={
-                tab === t
-                  ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
-                  : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
-              }
-            >
-              {label}
-            </button>
-          ))}
+        <div
+          className="overflow-x-auto no-scrollbar -mx-5 sm:-mx-7 flex border-b border-[#e3ddf8] px-4 sm:px-6"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          {LIB_TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => { setTab(t.id); }}
+                className={[
+                  'px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
+                  active
+                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
+                ].join(' ')}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Context description strip */}
+        <div className="-mx-5 sm:-mx-7 px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9] mb-1">
+          <p className="text-xs text-gray-500 leading-none">
+            {LIB_TABS.find((t) => t.id === tab)?.description}
+          </p>
         </div>
 
         {/* Assets tab */}

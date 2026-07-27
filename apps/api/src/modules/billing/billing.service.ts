@@ -78,6 +78,7 @@ export class BillingService {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: cancelUrl,
+      allow_promotion_codes: true,
       metadata: { userId, plan },
     });
   }
@@ -272,6 +273,37 @@ export class BillingService {
         },
       });
     }
+
+    if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
+      if (customerId) {
+        await this.prisma.subscription.updateMany({
+          where: { stripeCustomerId: customerId },
+          data: { status: 'PAST_DUE' },
+        });
+        const sub = await this.prisma.subscription.findFirst({ where: { stripeCustomerId: customerId } });
+        if (sub) {
+          this.notifications.notify(
+            sub.userId,
+            'billing.payment_failed',
+            'Payment failed',
+            'Your subscription payment failed. Please update your payment method to keep access.',
+            { customerId, invoiceId: typeof invoice.id === 'string' ? invoice.id : '' },
+          ).catch(() => undefined);
+        }
+      }
+    }
+
+    if (event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object as Stripe.Subscription;
+      const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
+      await this.prisma.subscription.updateMany({
+        where: { stripeCustomerId: customerId },
+        // Prisma enum uses CANCELLED; plan reverts to FREE when sub is deleted
+        data: { status: 'CANCELLED', plan: 'FREE', cancelAtPeriodEnd: false },
+      });
+    }
   }
 
   /** §5.2 steps 5–8: mark the payment succeeded and grant credits, each idempotent. */
@@ -440,5 +472,23 @@ export class BillingService {
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       cancelAtPeriodEnd: false,
     };
+  }
+
+  async cancelSubscription(userId: string) {
+    const sub = await this.prisma.subscription.findUnique({ where: { userId } });
+    if (!sub?.stripeSubscriptionId) throw new BadRequestException('No active subscription found');
+    await this.stripe.subscriptions.update(sub.stripeSubscriptionId, { cancel_at_period_end: true });
+    await this.prisma.subscription.update({ where: { userId }, data: { cancelAtPeriodEnd: true } });
+    return { cancelAtPeriodEnd: true, currentPeriodEnd: sub.currentPeriodEnd };
+  }
+
+  async getBillingPortalUrl(userId: string, returnUrl: string): Promise<{ url: string }> {
+    const sub = await this.prisma.subscription.findUnique({ where: { userId } });
+    if (!sub?.stripeCustomerId) throw new BadRequestException('No billing record found');
+    const session = await this.stripe.billingPortal.sessions.create({
+      customer: sub.stripeCustomerId,
+      return_url: returnUrl,
+    });
+    return { url: session.url };
   }
 }

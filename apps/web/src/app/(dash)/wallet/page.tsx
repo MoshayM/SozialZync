@@ -1,9 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle, AlertTriangle, CalendarClock, CheckCircle,
-  Crown, Lightbulb, Loader2, PlusCircle, ShieldCheck, Sparkles, TrendingDown,
+  Crown, ExternalLink, Lightbulb, Loader2, PlusCircle, ShieldCheck, Sparkles, TrendingDown,
   TrendingUp, Wallet, X, Zap,
 } from 'lucide-react';
 import {
@@ -1139,14 +1141,127 @@ function CreditExpiry() {
   );
 }
 
+// ── Subscription Manager ─────────────────────────────────────────────────────
+
+function SubscriptionManager() {
+  const qc = useQueryClient();
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+
+  const { data: sub } = useQuery<{ plan: string; status: string; currentPeriodEnd: string; cancelAtPeriodEnd: boolean; stripeSubscriptionId?: string }>({
+    queryKey: ['subscription'],
+    queryFn: () => api.billing.getSubscription().then((r) => r.data as never),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: () => api.billing.cancelSubscription(),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['subscription'] });
+      setCancelConfirm(false);
+    },
+  });
+
+  async function openPortal() {
+    setPortalLoading(true);
+    try {
+      const res = await api.billing.getBillingPortal();
+      const { url } = res.data;
+      if (url) window.location.href = url;
+    } finally {
+      setPortalLoading(false);
+    }
+  }
+
+  const hasSub = sub?.plan && sub.plan !== 'FREE';
+  if (!hasSub) return null;
+
+  const endsAt = sub?.currentPeriodEnd
+    ? new Date(sub.currentPeriodEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid #f0edf9' }}>
+        <span className="text-sm font-semibold text-gray-800">Subscription</span>
+        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>
+          {sub?.plan} · {sub?.status}
+        </span>
+      </div>
+      <div className="p-5 space-y-4">
+        {endsAt && (
+          <p className="text-sm text-gray-500">
+            {sub?.cancelAtPeriodEnd ? `Cancels on ${endsAt}` : `Renews ${endsAt}`}
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={openPortal}
+            disabled={portalLoading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+          >
+            {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+            Manage billing
+          </button>
+
+          {!sub?.cancelAtPeriodEnd && (
+            <>
+              {!cancelConfirm ? (
+                <button
+                  onClick={() => setCancelConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-red-600 transition-all hover:bg-red-50"
+                  style={{ border: '1.5px solid #fecaca' }}
+                >
+                  Cancel subscription
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Cancel at period end?</span>
+                  <button
+                    onClick={() => cancelMutation.mutate()}
+                    disabled={cancelMutation.isPending}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-colors"
+                  >
+                    {cancelMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Confirm'}
+                  </button>
+                  <button
+                    onClick={() => setCancelConfirm(false)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-700"
+                  >
+                    Keep it
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {sub?.cancelAtPeriodEnd && (
+            <span className="flex items-center gap-1.5 text-xs text-amber-700 px-3 py-1.5 rounded-2xl" style={{ background: '#fffbeb', border: '1.5px solid #fde68a' }}>
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Cancellation scheduled — access until {endsAt}
+            </span>
+          )}
+        </div>
+
+        {cancelMutation.isError && (
+          <p className="text-xs text-red-500">{getErrorMessage(cancelMutation.error) || 'Cancellation failed'}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 type WalletTab = 'credits' | 'plan';
 
-export default function WalletPage() {
+function WalletContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [tab, setTab] = useState<WalletTab>('credits');
   const [showBudgetEditor, setShowBudgetEditor] = useState(false);
   const [localeKey, setLocaleKey] = useState<string>('DEFAULT');
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [isAdmin] = useState(() =>
     typeof window !== 'undefined' &&
@@ -1155,9 +1270,33 @@ export default function WalletPage() {
 
   useEffect(() => { setLocaleKey(detectLocaleKey()); }, []);
 
+  useEffect(() => {
+    if (searchParams.get('upgraded') === 'true') {
+      setSuccessMsg('Subscription upgraded! Your new plan is now active.');
+      setTab('plan');
+      router.replace('/wallet');
+    } else if (searchParams.get('recharged') === 'true') {
+      setSuccessMsg('Payment successful! Your credits have been added.');
+      router.replace('/wallet');
+    }
+  }, [searchParams, router]);
+
   return (
     <div className="min-h-full bg-[#faf9ff]">
       <div className="p-5 lg:p-7 max-w-4xl mx-auto space-y-5">
+
+        {/* Success toast */}
+        {successMsg && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl animate-in fade-in slide-in-from-top-2" style={{ background: '#ecfdf5', border: '1.5px solid #6ee7b7' }}>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span className="text-sm font-semibold text-emerald-800">{successMsg}</span>
+            </div>
+            <button onClick={() => setSuccessMsg(null)} className="text-emerald-500 hover:text-emerald-700">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Page header */}
         <div className="flex items-center gap-3">
@@ -1252,12 +1391,20 @@ export default function WalletPage() {
         {tab === 'plan' && (
           <div className="space-y-5">
             <PlansGrid />
-
+            <SubscriptionManager />
             {isAdmin && <OwnerPanel />}
           </div>
         )}
 
       </div>
     </div>
+  );
+}
+
+export default function WalletPage() {
+  return (
+    <Suspense fallback={null}>
+      <WalletContent />
+    </Suspense>
   );
 }

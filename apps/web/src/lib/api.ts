@@ -637,6 +637,9 @@ export const api = {
         successUrl: `${window.location.origin}/wallet?upgraded=true`,
         cancelUrl: `${window.location.origin}/wallet`,
       }),
+    cancelSubscription: () => apiClient.delete('/billing/subscription'),
+    getBillingPortal: () =>
+      apiClient.get<{ url: string }>(`/billing/portal?returnUrl=${encodeURIComponent(window.location.origin + '/wallet')}`),
   },
   wallet: {
     balance: () => apiClient.get('/wallet/balance'),
