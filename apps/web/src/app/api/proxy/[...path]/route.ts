@@ -4,8 +4,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+// Treat empty string the same as unset — falls back to local dev URL
 const API_BASE = (
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4007/api/v1'
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4007/api/v1'
 ).replace(/\/+$/, '');
 
 // Hop-by-hop headers that must not be forwarded upstream or downstream.
