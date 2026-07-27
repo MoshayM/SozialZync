@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Req, UseGuards, StreamableFile, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req, UseGuards, StreamableFile, NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -79,6 +79,14 @@ export class MediaController {
   async listExports(@Param('projectId') projectId: string, @CurrentUser() user: JwtPayload) {
     await this.assertOwner(projectId, user.sub);
     return this.exportsSvc.list(projectId);
+  }
+
+  /** On-demand export package build — copies render + text assets into exports dir. */
+  @Post('exports/:projectId/build')
+  async buildExports(@Param('projectId') projectId: string, @CurrentUser() user: JwtPayload) {
+    await this.assertOwner(projectId, user.sub);
+    const files = await this.exportsSvc.buildPackage(projectId);
+    return { files };
   }
 
   @Public()

@@ -41,6 +41,47 @@ interface TokenUsageSummary {
   byModel: Array<{ provider: string; model: string; calls: number; tokensIn: number; tokensOut: number; costUsd: number }>;
   copilot: { turns: number; cacheHits: number; cacheHitRate: number | null };
   byVideo: Array<{ importedVideoId: string; title: string; calls: number; tokensIn: number; tokensOut: number; costUsd: number }>;
+  byDay: Array<{ date: string; costUsd: number; tokensIn: number; tokensOut: number; calls: number }>;
+}
+
+const PROVIDER_COLORS: Record<string, string> = {
+  anthropic: '#6D4AE0',
+  google: '#4285F4',
+  openai: '#10A37F',
+};
+
+function providerColor(p: string): string {
+  const key = p.toLowerCase();
+  if (key.includes('claude') || key.includes('anthropic')) return PROVIDER_COLORS.anthropic;
+  if (key.includes('gemini') || key.includes('google')) return PROVIDER_COLORS.google;
+  if (key.includes('gpt') || key.includes('openai')) return PROVIDER_COLORS.openai;
+  return '#8b88a0';
+}
+
+function providerLabel(p: string): string {
+  const map: Record<string, string> = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', azure: 'Azure', mistral: 'Mistral', cohere: 'Cohere' };
+  return map[p.toLowerCase()] ?? p.charAt(0).toUpperCase() + p.slice(1);
+}
+
+function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] }) {
+  if (!byDay.length) return <p className="text-xs text-gray-400 py-4 text-center">No daily data</p>;
+  const max = Math.max(...byDay.map((d) => d.costUsd), 0.0001);
+  return (
+    <div className="flex items-end gap-[3px] h-20 w-full overflow-hidden">
+      {byDay.map((d) => (
+        <div key={d.date} className="flex-1 flex flex-col items-center justify-end group relative" title={`${d.date}: $${d.costUsd.toFixed(4)}`}>
+          <div
+            className="w-full rounded-t-sm transition-all"
+            style={{
+              height: `${Math.max((d.costUsd / max) * 72, 2)}px`,
+              background: '#6D4AE0',
+              opacity: 0.7,
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api';
@@ -169,70 +210,182 @@ export default function AnalyticsPage() {
           <p className="text-sm text-gray-400 mt-0.5">AI-powered channel diagnostics and next-video recommendations</p>
         </div>
 
-        {/* AI Usage card */}
+        {/* AI Usage dashboard — available to all users, scoped to their own spend */}
         {activeView === 'usage' && (
-          <PlanGate requiredPlan="STARTER" featureLabel="AI Usage" preview={false}>
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-            <h2 className="font-bold text-gray-900 mb-3">AI Usage (30 days)</h2>
-            {tokenUsage === 'unavailable' ? (
-              <p className="text-sm text-gray-400">unavailable</p>
-            ) : tokenUsage === null ? (
-              <p className="text-sm text-gray-400">Loading…</p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-0.5">Total cost</p>
-                  <p className="text-lg font-bold text-gray-900">${tokenUsage.totals.costUsd.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-0.5">Tokens in</p>
-                  <p className="text-lg font-bold text-gray-900">{tokenUsage.totals.tokensIn.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-0.5">Tokens out</p>
-                  <p className="text-lg font-bold text-gray-900">{tokenUsage.totals.tokensOut.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-0.5">Provider calls</p>
-                  <p className="text-lg font-bold text-gray-900">{tokenUsage.totals.calls.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-0.5">Copilot cache-hit rate</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {tokenUsage.copilot.cacheHitRate != null
-                      ? `${(tokenUsage.copilot.cacheHitRate * 100).toFixed(0)}%`
-                      : '—'}
-                  </p>
-                </div>
+          <div className="space-y-5">
+            {tokenUsage === null && (
+              <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
+                <p className="text-sm text-gray-400">Loading AI usage…</p>
               </div>
             )}
-            {tokenUsage !== 'unavailable' && tokenUsage !== null && (tokenUsage.byVideo ?? []).length > 0 && (
-              <div className="mt-4 pt-4" style={{ borderTop: '1px solid #f0edf9' }}>
-                <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Cost by video</p>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left">
-                      <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Video</th>
-                      <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
-                      <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
-                      <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tokenUsage.byVideo.map((v) => (
-                      <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
-                        <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
-                        <td className="py-1.5 text-right text-gray-500">{v.calls}</td>
-                        <td className="py-1.5 text-right text-gray-500">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
-                        <td className="py-1.5 text-right font-bold text-gray-900">${v.costUsd.toFixed(3)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+            {tokenUsage === 'unavailable' && (
+              <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                <p className="text-sm text-gray-400">AI usage data unavailable.</p>
               </div>
             )}
+
+            {tokenUsage !== null && tokenUsage !== 'unavailable' && tokenUsage.totals.calls === 0 && (
+              <div className="bg-white rounded-3xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
+                  <BarChart2 className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                </div>
+                <p className="text-base font-extrabold text-gray-900 mb-1">No AI usage yet</p>
+                <p className="text-sm text-gray-400">Run the content pipeline to start generating AI usage data.</p>
+              </div>
+            )}
+
+            {tokenUsage !== null && tokenUsage !== 'unavailable' && tokenUsage.totals.calls > 0 && (() => {
+              // Group byModel into per-provider aggregates for charts
+              const providerMap = new Map<string, { costUsd: number; tokensIn: number; tokensOut: number; calls: number }>();
+              for (const m of tokenUsage.byModel) {
+                const key = m.provider;
+                const ex = providerMap.get(key) ?? { costUsd: 0, tokensIn: 0, tokensOut: 0, calls: 0 };
+                providerMap.set(key, { costUsd: ex.costUsd + m.costUsd, tokensIn: ex.tokensIn + m.tokensIn, tokensOut: ex.tokensOut + m.tokensOut, calls: ex.calls + m.calls });
+              }
+              const providerList = Array.from(providerMap.entries())
+                .map(([p, d]) => ({ provider: p, label: providerLabel(p), color: providerColor(p), ...d }))
+                .sort((a, b) => b.costUsd - a.costUsd);
+
+              const donutSegments = providerList.map((p) => ({ label: p.label, value: p.costUsd, color: p.color }));
+              const barData = providerList.map((p) => ({ label: p.label, value: p.costUsd, title: `$${p.costUsd.toFixed(4)}` }));
+
+              return (
+                <>
+                  {/* Summary stat cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Total Cost</p>
+                      <p className="text-2xl font-black text-gray-900">${tokenUsage.totals.costUsd.toFixed(4)}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">last {tokenUsage.sinceDays}d</p>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">API Calls</p>
+                      <p className="text-2xl font-black text-gray-900">{tokenUsage.totals.calls.toLocaleString()}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">provider requests</p>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Tokens In</p>
+                      <p className="text-2xl font-black text-gray-900">{(tokenUsage.totals.tokensIn / 1000).toFixed(1)}K</p>
+                      <p className="text-xs text-gray-400 mt-0.5">prompt tokens</p>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Tokens Out</p>
+                      <p className="text-2xl font-black text-gray-900">{(tokenUsage.totals.tokensOut / 1000).toFixed(1)}K</p>
+                      <p className="text-xs text-gray-400 mt-0.5">completion tokens</p>
+                    </div>
+                  </div>
+
+                  {/* Daily Trend + Copilot cache */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div className="sm:col-span-2 bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Daily Cost Trend</p>
+                      <DailyTrendBars byDay={tokenUsage.byDay} />
+                      {tokenUsage.byDay.length > 0 && (
+                        <div className="flex justify-between mt-1">
+                          <span className="text-[10px] text-gray-400">{tokenUsage.byDay[0]?.date}</span>
+                          <span className="text-[10px] text-gray-400">{tokenUsage.byDay[tokenUsage.byDay.length - 1]?.date}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-white rounded-2xl p-5 flex flex-col justify-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Copilot Cache</p>
+                      {tokenUsage.copilot.cacheHitRate != null ? (
+                        <>
+                          <p className="text-3xl font-black" style={{ color: tokenUsage.copilot.cacheHitRate >= 0.8 ? '#16a34a' : '#c2410c' }}>
+                            {(tokenUsage.copilot.cacheHitRate * 100).toFixed(0)}%
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">cache-hit rate</p>
+                          <p className="text-xs text-gray-400">{tokenUsage.copilot.cacheHits} hits / {tokenUsage.copilot.turns} turns</p>
+                          <p className="text-[10px] text-gray-300 mt-1">target ≥ 80%</p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-400">No copilot turns yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Provider breakdown — bars + donut */}
+                  {providerList.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Cost by Provider</p>
+                        <PastelBars data={barData} formatValue={(v) => `$${v.toFixed(4)}`} />
+                      </div>
+                      <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Provider Share</p>
+                        <PastelDonut segments={donutSegments} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Per-model detail table */}
+                  <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Per Model Breakdown</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left">
+                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Provider / Model</th>
+                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
+                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
+                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tokenUsage.byModel
+                            .slice()
+                            .sort((a, b) => b.costUsd - a.costUsd)
+                            .map((m) => (
+                              <tr key={`${m.provider}:${m.model}`} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                                <td className="py-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: providerColor(m.provider) }} />
+                                    <span className="font-medium text-gray-800">{providerLabel(m.provider)}</span>
+                                    <span className="text-gray-400 text-xs truncate max-w-[160px]">{m.model}</span>
+                                  </div>
+                                </td>
+                                <td className="py-2 text-right text-gray-500">{m.calls.toLocaleString()}</td>
+                                <td className="py-2 text-right text-gray-500">{(m.tokensIn + m.tokensOut).toLocaleString()}</td>
+                                <td className="py-2 text-right font-bold text-gray-900">${m.costUsd.toFixed(4)}</td>
+                              </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Cost by video (if any) */}
+                  {(tokenUsage.byVideo ?? []).length > 0 && (
+                    <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Cost by Video</p>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left">
+                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Video</th>
+                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
+                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
+                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tokenUsage.byVideo.map((v) => (
+                            <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                              <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
+                              <td className="py-1.5 text-right text-gray-500">{v.calls}</td>
+                              <td className="py-1.5 text-right text-gray-500">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
+                              <td className="py-1.5 text-right font-bold text-gray-900">${v.costUsd.toFixed(3)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
-          </PlanGate>
         )}
 
         {/* Channel selector + run — only show run button on analytics tab */}
@@ -285,7 +438,7 @@ export default function AnalyticsPage() {
         <div style={{ borderBottom: '1px solid #e3ddf8' }}>
           <div className="flex">
             {(['scorecard', 'analytics', 'usage'] as const).map(v => {
-              const isGated = v !== 'scorecard';
+              const isGated = v === 'analytics';
               const locked = isGated && !canAccessAiAnalysis;
               const label = v === 'scorecard' ? 'Scorecard' : v === 'analytics' ? 'AI Analysis' : 'AI Usage';
               return (

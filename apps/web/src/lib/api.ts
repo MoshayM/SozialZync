@@ -694,6 +694,8 @@ export const api = {
   media: {
     listExports: (projectId: string) =>
       apiClient.get<Array<{ name: string; sizeBytes: number }>>(`/media/exports/${projectId}`),
+    buildExports: (projectId: string) =>
+      apiClient.post<{ files: Array<{ name: string; sizeBytes: number }> }>(`/media/exports/${projectId}/build`),
     downloadExport: (projectId: string, fileName: string) =>
       apiClient.get(`/media/exports/${projectId}/${encodeURIComponent(fileName)}`, { responseType: 'blob' }),
     versionFile: (versionId: string) =>

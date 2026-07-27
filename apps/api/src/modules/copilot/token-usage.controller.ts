@@ -6,7 +6,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 /**
  * Token usage dashboard data (Ai-video edit.md §12.2.8/§15): cost, token, and
  * cache-hit aggregates for the Analytics tab, so token spend is visible and
- * the ≥80% cache-hit design target is measurable.
+ * the ≥80% cache-hit design target is measurable. All queries are scoped to
+ * the current user's userId so each user sees only their own spend.
  */
 @Controller('token-usage')
 @UseGuards(JwtAuthGuard)
@@ -15,34 +16,42 @@ export class TokenUsageController {
 
   @Get('summary')
   async summary(@CurrentUser() user: JwtPayload, @Query('days') days?: string) {
-    const since = new Date(Date.now() - (Math.min(Number(days) || 30, 365)) * 24 * 60 * 60 * 1000);
+    const sinceDays = Math.min(Number(days) || 30, 365);
+    const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
+    const userId = user.sub;
 
-    const [ledger, byModel, actions, byVideoRaw] = await Promise.all([
+    const [ledger, byModel, actions, byVideoRaw, rawDaily] = await Promise.all([
       this.prisma.tokenUsage.aggregate({
-        where: { createdAt: { gte: since } },
+        where: { userId, createdAt: { gte: since } },
         _sum: { tokensIn: true, tokensOut: true, costUsd: true },
         _count: true,
       }),
       this.prisma.tokenUsage.groupBy({
         by: ['provider', 'model'],
-        where: { createdAt: { gte: since } },
+        where: { userId, createdAt: { gte: since } },
         _sum: { tokensIn: true, tokensOut: true, costUsd: true },
         _count: true,
       }),
       // Cache-hit rate over the user's copilot/voice turns (§12.3 target: ≥80%)
       this.prisma.actionRecord.groupBy({
         by: ['fromCache'],
-        where: { userId: user.sub, createdAt: { gte: since }, source: { in: ['COPILOT', 'VOICE'] } },
+        where: { userId, createdAt: { gte: since }, source: { in: ['COPILOT', 'VOICE'] } },
         _count: true,
       }),
       // Per-video breakdown (§12.2.8) — attribution via the ALS AI context
       this.prisma.tokenUsage.groupBy({
         by: ['importedVideoId'],
-        where: { createdAt: { gte: since }, importedVideoId: { not: null } },
+        where: { userId, createdAt: { gte: since }, importedVideoId: { not: null } },
         _sum: { tokensIn: true, tokensOut: true, costUsd: true },
         _count: true,
         orderBy: { _sum: { costUsd: 'desc' } },
         take: 15,
+      }),
+      // Raw rows for daily aggregation (non-cache only for cost trend)
+      this.prisma.tokenUsage.findMany({
+        where: { userId, createdAt: { gte: since }, fromCache: false },
+        select: { createdAt: true, costUsd: true, tokensIn: true, tokensOut: true },
+        orderBy: { createdAt: 'asc' },
       }),
     ]);
 
@@ -56,8 +65,30 @@ export class TokenUsageController {
     const hits = actions.find((a) => a.fromCache)?._count ?? 0;
     const misses = actions.find((a) => !a.fromCache)?._count ?? 0;
 
+    // Aggregate raw rows into per-day buckets
+    const dayMap = new Map<string, { costUsd: number; tokensIn: number; tokensOut: number; calls: number }>();
+    for (const row of rawDaily) {
+      const date = row.createdAt.toISOString().slice(0, 10);
+      const existing = dayMap.get(date) ?? { costUsd: 0, tokensIn: 0, tokensOut: 0, calls: 0 };
+      dayMap.set(date, {
+        costUsd: existing.costUsd + Number(row.costUsd),
+        tokensIn: existing.tokensIn + row.tokensIn,
+        tokensOut: existing.tokensOut + row.tokensOut,
+        calls: existing.calls + 1,
+      });
+    }
+    const byDay = Array.from(dayMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, d]) => ({
+        date,
+        costUsd: Number(d.costUsd.toFixed(4)),
+        tokensIn: d.tokensIn,
+        tokensOut: d.tokensOut,
+        calls: d.calls,
+      }));
+
     return {
-      sinceDays: Math.min(Number(days) || 30, 365),
+      sinceDays,
       totals: {
         calls: ledger._count,
         tokensIn: ledger._sum.tokensIn ?? 0,
@@ -85,6 +116,7 @@ export class TokenUsageController {
         tokensOut: v._sum.tokensOut ?? 0,
         costUsd: Number((v._sum.costUsd ?? 0).toFixed(4)),
       })),
+      byDay,
     };
   }
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -1824,6 +1824,9 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
   const [scheduledAt, setScheduledAt] = useState('');
   const [error, setError] = useState('');
   const [oauthExpired, setOauthExpired] = useState(false);
+  const [exports, setExports] = useState<Array<{ name: string; sizeBytes: number }> | null>(null);
+  const [exportsLoading, setExportsLoading] = useState(false);
+  const [exportsBuilding, setExportsBuilding] = useState(false);
 
   const { data, isLoading } = useQuery<ProjectPublishReady>({
     queryKey: ['publish-ready', projectId],
@@ -1869,6 +1872,28 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
     window.location.href = '/library?tab=channels';
   };
 
+  const exportsStarted = useRef(false);
+
+  const loadExports = useCallback(async () => {
+    if (exportsStarted.current) return;
+    exportsStarted.current = true;
+    setExportsLoading(true);
+    try {
+      const r = await api.media.listExports(projectId);
+      setExports(r.data);
+    } catch {
+      setExports([]);
+    } finally {
+      setExportsLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!data?.project?.channel && data?.render?.r2Key) {
+      void loadExports();
+    }
+  }, [data?.project?.channel, data?.render?.r2Key, loadExports]);
+
   if (isLoading) return null;
   if (!data?.project) return null;
 
@@ -1896,17 +1921,98 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
     );
   }
 
-  // No channel connected — show prompt instead of publish UI
+  // No channel connected — friendly info card (no warning colors per UX spec)
   if (!data.project.channel) {
+    const hasRender = !!data.render?.r2Key;
+
+    const buildAndDownload = async () => {
+      setExportsBuilding(true);
+      try {
+        const r = await api.media.buildExports(projectId);
+        setExports(r.data.files);
+      } catch {
+        /* ignore — leave current list */
+      } finally {
+        setExportsBuilding(false);
+      }
+    };
+
+    const downloadFile = async (name: string) => {
+      const r = await api.media.downloadExport(projectId, name);
+      const url = URL.createObjectURL(r.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
     return (
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 flex items-center gap-3">
-        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-amber-800">Connect a channel to publish</p>
-          <Link href="/library?tab=channels" className="text-xs text-amber-700 underline">
-            Go to Channel Library →
-          </Link>
+      <div className="space-y-3">
+        <div className="rounded-xl px-5 py-4 space-y-2" style={{ background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}>
+          <p className="text-sm font-semibold" style={{ color: '#4c1d95' }}>
+            Ready to publish? Connect an account.
+          </p>
+          <p className="text-xs" style={{ color: '#6b7280' }}>
+            All AI tools work without a connected account. Connect YouTube, Instagram, TikTok, or any platform whenever you&apos;re ready.
+          </p>
+          <div className="flex items-center gap-3 pt-1">
+            <Link
+              href="/library?tab=channels"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+              style={{ background: '#6D4AE0', color: '#fff' }}
+            >
+              Connect Account
+            </Link>
+            <span className="text-xs" style={{ color: '#9ca3af' }}>(optional)</span>
+          </div>
         </div>
+
+        {hasRender && (
+          <div className="rounded-xl px-5 py-4 space-y-2" style={{ background: '#fafafa', border: '1px solid #e5e7eb' }}>
+            <p className="text-xs font-semibold" style={{ color: '#374151' }}>Export without publishing</p>
+            {exportsLoading ? (
+              <p className="text-xs" style={{ color: '#9ca3af' }}>Loading files…</p>
+            ) : exports && exports.length > 0 ? (
+              <ul className="space-y-1">
+                {exports.map((f) => (
+                  <li key={f.name} className="flex items-center justify-between">
+                    <span className="text-xs truncate" style={{ color: '#6b7280', maxWidth: '70%' }}>{f.name}</span>
+                    <button
+                      onClick={() => void downloadFile(f.name)}
+                      className="text-xs font-semibold"
+                      style={{ color: '#6D4AE0' }}
+                    >
+                      Download
+                    </button>
+                  </li>
+                ))}
+                <li className="pt-1">
+                  <button
+                    onClick={() => void buildAndDownload()}
+                    disabled={exportsBuilding}
+                    className="text-xs"
+                    style={{ color: '#9ca3af' }}
+                  >
+                    {exportsBuilding ? 'Rebuilding…' : 'Refresh exports'}
+                  </button>
+                </li>
+              </ul>
+            ) : (
+              <div>
+                <p className="text-xs mb-2" style={{ color: '#9ca3af' }}>Build an export package to download MP4, subtitles, script, and metadata.</p>
+                <button
+                  onClick={() => void buildAndDownload()}
+                  disabled={exportsBuilding}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                  style={{ background: '#f3f0fd', color: '#6D4AE0', border: '1px solid #d4c9f9' }}
+                >
+                  {exportsBuilding ? 'Building…' : 'Build Export Package'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
