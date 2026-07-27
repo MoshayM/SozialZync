@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 // Always run fresh — never cache proxy responses.
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const API_BASE = (
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4007/api/v1'
@@ -37,16 +38,24 @@ async function proxy(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   let upstreamRes: Response;
   try {
     const body = hasBody ? await req.arrayBuffer() : undefined;
-    upstreamRes = await fetch(upstreamUrl, {
-      method,
-      headers: fwdHeaders,
-      body: body && body.byteLength > 0 ? body : undefined,
-    });
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 55_000);
+    try {
+      upstreamRes = await fetch(upstreamUrl, {
+        method,
+        headers: fwdHeaders,
+        body: body && body.byteLength > 0 ? body : undefined,
+        signal: ac.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   } catch (err) {
-    console.error(`[proxy] upstream unreachable ${upstreamUrl}:`, err);
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    console.error(`[proxy] upstream ${isTimeout ? 'timeout' : 'unreachable'} ${upstreamUrl}:`, err);
     return NextResponse.json(
-      { message: 'Cannot reach the API server. Please try again later.' },
-      { status: 502 },
+      { message: isTimeout ? 'Request timed out — the AI is taking longer than expected. Please try again.' : 'Cannot reach the API server. Please try again later.' },
+      { status: isTimeout ? 504 : 502 },
     );
   }
 

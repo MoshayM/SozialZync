@@ -507,7 +507,7 @@ export function CopilotPanel() {
         ...(confirmedCommand ? { confirmedCommand } : {}),
         ...(!confirmedCommand && pending ? { pendingCommand: pending } : {}),
         ...(billingOrgId ? { orgId: billingOrgId } : {}),
-      });
+      }, { timeout: 90_000 });
       const data = res.data as CopilotResponse;
       setMessages(m => [...m, { role: 'assistant', content: data.reply, fromCache: data.fromCache }]);
       if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); }
@@ -520,10 +520,17 @@ export function CopilotPanel() {
         speak(data.reply, data.language, () => { if (conversationRef.current) startListeningRef.current(); }, newIdx);
       }
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      const msg = status ? httpErrorMessage(status) : 'Connection error — check your network and try again.';
+      const axiosErr = err as { response?: { status?: number }; code?: string; message?: string };
+      const status = axiosErr.response?.status;
+      const isTimeout = axiosErr.code === 'ECONNABORTED' || axiosErr.code === 'ERR_NETWORK' || status === 504;
+      const msg = status === 504
+        ? 'The AI is taking longer than expected. Try again in a moment.'
+        : status
+        ? httpErrorMessage(status)
+        : isTimeout
+        ? 'The AI is taking longer than expected. Check your connection and try again.'
+        : 'Connection error — check your network and try again.';
       setMessages(m => [...m, { role: 'assistant', content: `⚠️ ${msg}`, fromCache: false }]);
-      // Stop voice loop on error so it doesn't chain into another failed request
       conversationRef.current = false;
       window.speechSynthesis?.cancel();
     } finally {
