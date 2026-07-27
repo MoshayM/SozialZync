@@ -513,17 +513,34 @@ function MediaLibraryTab() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const activePlatformId = (searchParams.get('platform') ?? 'YOUTUBE') as MediaPlatformId;
-  function setActivePlatform(id: MediaPlatformId) {
-    const p = new URLSearchParams(searchParams.toString());
-    p.set('tab', 'channels');
-    p.set('platform', id);
-    p.delete('media');
-    router.replace(`/projects?${p.toString()}`, { scroll: false });
+  // Accordion open state — YouTube open by default
+  const [openPlatforms, setOpenPlatforms] = useState<Set<MediaPlatformId>>(
+    () => new Set<MediaPlatformId>(['YOUTUBE'])
+  );
+  function togglePlatform(id: MediaPlatformId) {
+    setOpenPlatforms(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   }
 
-  const mediaSubTab = (searchParams.get('media') ?? 'videos') as LibTabId;
-  function setMediaSubTab(t: LibTabId) {
+  // Per-platform channel selection
+  const [platformChannelIds, setPlatformChannelIds] = useState<Partial<Record<MediaPlatformId, string>>>(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(CHANNEL_LS_KEY) : null;
+    return stored ? { YOUTUBE: stored } : {};
+  });
+  function getChannelForPlatform(platId: MediaPlatformId): string {
+    return platformChannelIds[platId] ?? '';
+  }
+  function setChannelForPlatform(platId: MediaPlatformId, id: string) {
+    setPlatformChannelIds(prev => ({ ...prev, [platId]: id }));
+    if (platId === 'YOUTUBE') localStorage.setItem(CHANNEL_LS_KEY, id);
+  }
+
+  // YouTube media sub-tab
+  const ytMediaTab = (searchParams.get('media') ?? 'videos') as LibTabId;
+  function setYtMediaTab(t: LibTabId) {
     const p = new URLSearchParams(searchParams.toString());
     p.set('tab', 'channels');
     p.set('media', t);
@@ -535,31 +552,22 @@ function MediaLibraryTab() {
     queryFn: () => api.channels.list().then((r) => r.data as Channel[]),
   });
 
-  const platformChannels = channels.filter(
-    (c) => (c.platform ?? 'YOUTUBE').toUpperCase() === activePlatformId
-  );
-
-  const [channelId, setChannelId] = useState<string>(() =>
-    typeof window !== 'undefined' ? localStorage.getItem(CHANNEL_LS_KEY) ?? '' : ''
-  );
-
+  // Auto-select first channel per platform once channels load
   useEffect(() => {
-    const onPlatform = platformChannels.some(c => c.id === channelId);
-    if (!onPlatform && platformChannels.length > 0) {
-      const first = platformChannels[0]!;
-      setChannelId(first.id);
-      localStorage.setItem(CHANNEL_LS_KEY, first.id);
-    }
-  }, [activePlatformId, platformChannels, channelId]);
+    if (!channels.length) return;
+    setPlatformChannelIds(prev => {
+      const next = { ...prev };
+      for (const plat of MEDIA_PLATFORMS) {
+        if (!next[plat.id]) {
+          const first = channels.find(c => (c.platform ?? 'YOUTUBE').toUpperCase() === plat.id);
+          if (first) next[plat.id] = first.id;
+        }
+      }
+      return next;
+    });
+  }, [channels]);
 
-  function handleChannelChange(id: string) {
-    setChannelId(id);
-    localStorage.setItem(CHANNEL_LS_KEY, id);
-  }
-
-  const activeChannelForPlatform = channelId && platformChannels.some(c => c.id === channelId)
-    ? channelId
-    : (platformChannels[0]?.id ?? '');
+  const ytChannelId = getChannelForPlatform('YOUTUBE');
 
   // Assets
   const [assetProjects, setAssetProjects] = useState<AssetProject[]>([]);
@@ -602,9 +610,9 @@ function MediaLibraryTab() {
     isFetchingNextPage,
     isLoading: videosLoading,
   } = useInfiniteQuery({
-    queryKey: ['library-videos', activeChannelForPlatform, q, videoType, videoSort],
+    queryKey: ['library-videos', ytChannelId, q, videoType, videoSort],
     queryFn: ({ pageParam }) =>
-      api.library.listVideos(activeChannelForPlatform, {
+      api.library.listVideos(ytChannelId, {
         cursor: pageParam as string | undefined,
         q: q || undefined,
         type: videoType === 'all' ? undefined : videoType,
@@ -612,7 +620,7 @@ function MediaLibraryTab() {
       }).then((r) => r.data),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    enabled: !!activeChannelForPlatform && activePlatformId === 'YOUTUBE' && mediaSubTab === 'videos',
+    enabled: !!ytChannelId && ytMediaTab === 'videos',
   });
 
   const allVideos = videosData?.pages.flatMap((p) => p.data) ?? [];
@@ -621,292 +629,263 @@ function MediaLibraryTab() {
     if (!isFetchingNextPage && hasNextPage) void fetchNextPage();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const activePlatform = MEDIA_PLATFORMS.find(p => p.id === activePlatformId) ?? MEDIA_PLATFORMS[0]!;
-  const isConnected = platformChannels.length > 0;
-
   return (
-    <div className="space-y-4">
-      {/* Platform chip selector */}
-      <div className="overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="flex gap-2 pb-1" style={{ minWidth: 'max-content' }}>
-          {MEDIA_PLATFORMS.map((plat) => {
-            const isActive = plat.id === activePlatformId;
-            const connected = channels.some(c => (c.platform ?? 'YOUTUBE').toUpperCase() === plat.id);
-            return (
-              <button
-                key={plat.id}
-                type="button"
-                onClick={() => setActivePlatform(plat.id)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all shrink-0"
-                style={isActive
-                  ? { background: plat.color, color: '#fff', border: `1.5px solid ${plat.color}`, boxShadow: `0 4px 16px ${plat.color}33` }
-                  : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }
-                }
-              >
-                <plat.Icon className="w-4 h-4" />
-                {plat.label}
-                {connected && (
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ background: isActive ? 'rgba(255,255,255,0.85)' : '#22c55e' }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <div className="space-y-3">
+      {MEDIA_PLATFORMS.map((plat) => {
+        const isOpen = openPlatforms.has(plat.id);
+        const platChannels = channels.filter(c => (c.platform ?? 'YOUTUBE').toUpperCase() === plat.id);
+        const connected = platChannels.length > 0;
+        const activeChId = getChannelForPlatform(plat.id);
 
-      {/* Platform content card */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${activePlatform.border}` }}>
-
-        {/* Platform header */}
-        <div
-          className="flex items-center justify-between gap-4 px-5 py-4 flex-wrap"
-          style={{ borderBottom: `1.5px solid ${activePlatform.border}`, background: activePlatform.bg }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: activePlatform.color + '18' }}>
-              <activePlatform.Icon className="w-5 h-5" style={{ color: activePlatform.color }} />
-            </div>
-            <div>
-              <p className="text-sm font-extrabold text-gray-900">{activePlatform.label}</p>
-              <p className="text-xs" style={{ color: isConnected ? '#16a34a' : '#9ca3af' }}>
-                {isConnected
-                  ? `${platformChannels.length} channel${platformChannels.length > 1 ? 's' : ''} connected`
-                  : 'Not connected'}
-              </p>
-            </div>
-          </div>
-          {isConnected && (
-            <div className="flex items-center gap-3">
-              {platformChannels.length > 1 ? (
-                <select
-                  value={activeChannelForPlatform}
-                  onChange={(e) => handleChannelChange(e.target.value)}
-                  className="bg-white rounded-xl px-3 py-2 text-xs font-medium outline-none"
-                  style={{ border: `1.5px solid ${activePlatform.border}`, color: '#374151' }}
-                  aria-label="Select channel"
-                >
-                  {platformChannels.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-                </select>
-              ) : (
-                <span className="text-xs font-medium text-gray-500">{platformChannels[0]!.title}</span>
-              )}
-              {activePlatformId === 'YOUTUBE' && activeChannelForPlatform && (
-                <SyncBadge channelId={activeChannelForPlatform} />
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Not connected */}
-        {!isConnected && (
-          <div className="p-12 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                 style={{ background: activePlatform.color + '12' }}>
-              <activePlatform.Icon className="w-8 h-8" style={{ color: activePlatform.color }} />
-            </div>
-            <p className="text-base font-extrabold text-gray-900 mb-1">{activePlatform.label} not connected</p>
-            <p className="text-sm text-gray-400 mb-5">
-              Connect your {activePlatform.label} account to browse and manage your media here.
-            </p>
-            <Link
-              href="/projects?tab=channels"
-              className="px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
-              style={{ background: activePlatform.color }}
+        return (
+          <div
+            key={plat.id}
+            className="rounded-2xl overflow-hidden transition-all"
+            style={{ border: `1.5px solid ${isOpen ? plat.border : '#e3ddf8'}` }}
+          >
+            {/* Accordion header */}
+            <button
+              type="button"
+              onClick={() => togglePlatform(plat.id)}
+              className="w-full flex items-center gap-3 px-5 py-4 text-left transition-colors"
+              style={{ background: isOpen ? plat.bg : '#fff' }}
             >
-              Connect {activePlatform.label} →
-            </Link>
-          </div>
-        )}
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                   style={{ background: plat.color + '18' }}>
+                <plat.Icon className="w-4 h-4" style={{ color: plat.color }} />
+              </div>
+              <span className="font-bold text-sm text-gray-900 flex-1">{plat.label}</span>
 
-        {/* Connected — media sync not yet available */}
-        {isConnected && !activePlatform.hasSync && (
-          <div className="p-12 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                 style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-              <activePlatform.Icon className="w-8 h-8" style={{ color: '#6D4AE0' }} />
-            </div>
-            <div className="px-3 py-1 rounded-full text-xs font-bold mb-3" style={{ background: '#f0edf9', color: '#6D4AE0' }}>
-              Coming Soon
-            </div>
-            <p className="text-base font-extrabold text-gray-900 mb-1">{activePlatform.label} Media Library</p>
-            <p className="text-sm text-gray-400">
-              Your channel is connected. Media sync for {activePlatform.label} is coming soon —<br />
-              you&apos;ll be able to browse and manage all your {activePlatform.label} content here.
-            </p>
-          </div>
-        )}
+              <span
+                className="px-2.5 py-1 rounded-full text-xs font-semibold shrink-0"
+                style={connected
+                  ? { background: '#ecfdf5', color: '#15803d' }
+                  : { background: '#f3f4f6', color: '#9ca3af' }}
+              >
+                {connected ? `${platChannels.length} channel${platChannels.length > 1 ? 's' : ''}` : 'Not connected'}
+              </span>
 
-        {/* YouTube — full media browser */}
-        {isConnected && activePlatform.hasSync && activePlatformId === 'YOUTUBE' && (
-          <div>
-            {/* Media type sub-tabs */}
-            <div className="flex border-b overflow-x-auto no-scrollbar" style={{ borderColor: activePlatform.border }}>
-              {LIB_TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setMediaSubTab(t.id)}
-                  className="px-5 py-3.5 text-sm shrink-0 border-b-2 transition-all whitespace-nowrap"
-                  style={mediaSubTab === t.id
-                    ? { borderColor: activePlatform.color, color: activePlatform.color, fontWeight: 700 }
-                    : { borderColor: 'transparent', color: '#6b7280' }
-                  }
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+              {plat.id === 'YOUTUBE' && connected && isOpen && activeChId && (
+                <span onClick={e => e.stopPropagation()}>
+                  <SyncBadge channelId={activeChId} />
+                </span>
+              )}
 
-            <div className="p-5 space-y-5">
-              {/* Assets */}
-              {mediaSubTab === 'assets' && (
-                <div className="space-y-5">
-                  <div>
-                    <label htmlFor="assets-project" className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">
-                      Select Project
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="assets-project"
-                        value={selectedAssetProject}
-                        onChange={(e) => setSelectedAssetProject(e.target.value)}
-                        className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none appearance-none"
-                        style={{ border: '1.5px solid #e3e0f0' }}
-                      >
-                        <option value="">Choose a project…</option>
-                        {assetProjects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <ChevronDown
+                className="w-4 h-4 shrink-0 transition-transform duration-200"
+                style={{ color: '#9ca3af', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+              />
+            </button>
+
+            {/* Accordion body */}
+            {isOpen && (
+              <div style={{ borderTop: `1.5px solid ${plat.border}` }}>
+
+                {/* Not connected */}
+                {!connected && (
+                  <div className="p-10 flex flex-col items-center text-center">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                         style={{ background: plat.color + '12' }}>
+                      <plat.Icon className="w-7 h-7" style={{ color: plat.color }} />
                     </div>
+                    <p className="text-sm font-extrabold text-gray-900 mb-1">{plat.label} not connected</p>
+                    <p className="text-xs text-gray-400 mb-4">Connect your {plat.label} account to browse your media here.</p>
+                    <Link
+                      href="/projects?tab=channels"
+                      className="px-5 py-2.5 rounded-2xl text-sm font-bold text-white hover:opacity-90 transition-all"
+                      style={{ background: plat.color }}
+                    >
+                      Connect {plat.label} →
+                    </Link>
                   </div>
-                  {assetsLoading && (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6D4AE0' }} />
+                )}
+
+                {/* Connected — no sync yet */}
+                {connected && !plat.hasSync && (
+                  <div className="p-10 flex flex-col items-center text-center">
+                    <div className="px-3 py-1 rounded-full text-xs font-bold mb-3 inline-flex"
+                         style={{ background: '#f0edf9', color: '#6D4AE0' }}>
+                      Coming Soon
                     </div>
-                  )}
-                  {assetsError && <p className="text-sm text-red-500">{assetsError}</p>}
-                  {selectedAssetProject && !assetsLoading && assets.length === 0 && !assetsError && (
-                    <div className="rounded-3xl p-12 flex flex-col items-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <Layers className="w-10 h-10 mb-3" style={{ color: '#6D4AE0' }} />
-                      <p className="text-sm font-semibold text-gray-700">No assets yet for this project</p>
-                      <p className="text-xs text-gray-400 mt-1">Run Voice Spec, Image Brief, or Music Brief from the project pipeline.</p>
+                    <p className="text-sm font-extrabold text-gray-900 mb-1">{plat.label} Media Library</p>
+                    <p className="text-xs text-gray-400">
+                      Your channel is connected. Media sync for {plat.label} is coming soon —<br />
+                      you&apos;ll be able to browse all your {plat.label} content here.
+                    </p>
+                  </div>
+                )}
+
+                {/* YouTube — full browser */}
+                {connected && plat.hasSync && plat.id === 'YOUTUBE' && (
+                  <div>
+                    {/* Channel selector row */}
+                    <div className="flex items-center gap-4 px-5 py-3 flex-wrap"
+                         style={{ borderBottom: `1px solid ${plat.border}`, background: plat.bg }}>
+                      {platChannels.length > 1 ? (
+                        <select
+                          value={activeChId}
+                          onChange={e => setChannelForPlatform('YOUTUBE', e.target.value)}
+                          className="bg-white rounded-xl px-3 py-2 text-xs font-medium outline-none"
+                          style={{ border: `1.5px solid ${plat.border}` }}
+                          aria-label="Select channel"
+                        >
+                          {platChannels.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        </select>
+                      ) : (
+                        <span className="text-xs font-medium text-gray-500">{platChannels[0]?.title}</span>
+                      )}
                     </div>
-                  )}
-                  {Object.entries(groupedAssets).map(([kind, kindAssets]) => {
-                    const KindIcon = KIND_ICONS[kind] ?? Layers;
-                    return (
-                      <div key={kind}>
-                        <h3 className="flex items-center gap-2 mb-3">
-                          <KindIcon className="w-4 h-4 text-[#6D4AE0]" />
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{kind.replace('_', ' ')}</span>
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{kindAssets.length}</span>
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {kindAssets.map((asset) => {
-                            const status = STATUS_BADGE[asset.status] ?? STATUS_BADGE['BRIEFED']!;
-                            const StatusIcon = status.icon;
-                            const latest = asset.versions[0];
+
+                    {/* Media type sub-tabs */}
+                    <div className="flex border-b overflow-x-auto no-scrollbar" style={{ borderColor: plat.border }}>
+                      {LIB_TABS.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setYtMediaTab(t.id)}
+                          className="px-5 py-3.5 text-sm shrink-0 border-b-2 transition-all whitespace-nowrap"
+                          style={ytMediaTab === t.id
+                            ? { borderColor: plat.color, color: plat.color, fontWeight: 700 }
+                            : { borderColor: 'transparent', color: '#6b7280', fontWeight: 500 }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="p-5 space-y-5">
+                      {/* Assets */}
+                      {ytMediaTab === 'assets' && (
+                        <div className="space-y-5">
+                          <div>
+                            <label htmlFor="assets-project" className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Select Project</label>
+                            <div className="relative">
+                              <select
+                                id="assets-project"
+                                value={selectedAssetProject}
+                                onChange={e => setSelectedAssetProject(e.target.value)}
+                                className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none appearance-none"
+                                style={{ border: '1.5px solid #e3e0f0' }}
+                              >
+                                <option value="">Choose a project…</option>
+                                {assetProjects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                              </select>
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            </div>
+                          </div>
+                          {assetsLoading && <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6D4AE0' }} /></div>}
+                          {assetsError && <p className="text-sm text-red-500">{assetsError}</p>}
+                          {selectedAssetProject && !assetsLoading && assets.length === 0 && !assetsError && (
+                            <div className="rounded-3xl p-12 flex flex-col items-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                              <Layers className="w-10 h-10 mb-3" style={{ color: '#6D4AE0' }} />
+                              <p className="text-sm font-semibold text-gray-700">No assets yet for this project</p>
+                              <p className="text-xs text-gray-400 mt-1">Run Voice Spec, Image Brief, or Music Brief from the project pipeline.</p>
+                            </div>
+                          )}
+                          {Object.entries(groupedAssets).map(([kind, kindAssets]) => {
+                            const KindIcon = KIND_ICONS[kind] ?? Layers;
                             return (
-                              <div key={asset.id} className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-                                <div className="flex items-start justify-between mb-2">
-                                  <p className="text-sm font-medium text-gray-900 truncate flex-1">
-                                    {asset.label ?? `${kind} — ${asset.id.slice(0, 8)}`}
-                                  </p>
-                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ml-2" style={status.style}>
-                                    <StatusIcon className={`w-3 h-3 ${asset.status === 'GENERATING' ? 'animate-spin' : ''}`} />
-                                    {status.label}
-                                  </span>
+                              <div key={kind}>
+                                <h3 className="flex items-center gap-2 mb-3">
+                                  <KindIcon className="w-4 h-4 text-[#6D4AE0]" />
+                                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{kind.replace('_', ' ')}</span>
+                                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{kindAssets.length}</span>
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {kindAssets.map(asset => {
+                                    const status = STATUS_BADGE[asset.status] ?? STATUS_BADGE['BRIEFED']!;
+                                    const StatusIcon = status.icon;
+                                    const latest = asset.versions[0];
+                                    return (
+                                      <div key={asset.id} className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+                                        <div className="flex items-start justify-between mb-2">
+                                          <p className="text-sm font-medium text-gray-900 truncate flex-1">{asset.label ?? `${kind} — ${asset.id.slice(0, 8)}`}</p>
+                                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ml-2" style={status.style}>
+                                            <StatusIcon className={`w-3 h-3 ${asset.status === 'GENERATING' ? 'animate-spin' : ''}`} />
+                                            {status.label}
+                                          </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                          {asset.versions.length} version{asset.versions.length !== 1 ? 's' : ''}
+                                          {latest?.provider ? ` · ${latest.provider}` : ''}
+                                          {latest?.durationMs ? ` · ${Math.round(latest.durationMs / 1000)}s` : ''}
+                                        </p>
+                                        <p className="text-xs text-gray-300 mt-1">Created {new Date(asset.createdAt).toLocaleDateString()}</p>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                                <p className="text-xs text-gray-500">
-                                  {asset.versions.length} version{asset.versions.length !== 1 ? 's' : ''}
-                                  {latest?.provider ? ` · ${latest.provider}` : ''}
-                                  {latest?.durationMs ? ` · ${Math.round(latest.durationMs / 1000)}s` : ''}
-                                </p>
-                                <p className="text-xs text-gray-300 mt-1">Created {new Date(asset.createdAt).toLocaleDateString()}</p>
                               </div>
                             );
                           })}
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      )}
 
-              {/* Videos */}
-              {mediaSubTab === 'videos' && (
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="relative flex-1 min-w-[200px] max-w-xs">
-                      <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
-                      </svg>
-                      <input
-                        type="search" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-                        placeholder="Search videos…" aria-label="Search videos"
-                        className="w-full pl-10 pr-4 bg-white rounded-2xl py-3 text-sm outline-none"
-                        style={{ border: '1.5px solid #e3e0f0' }}
-                      />
+                      {/* Videos */}
+                      {ytMediaTab === 'videos' && (
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="relative flex-1 min-w-[200px] max-w-xs">
+                              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+                              </svg>
+                              <input type="search" value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                                placeholder="Search videos…" aria-label="Search videos"
+                                className="w-full pl-10 pr-4 bg-white rounded-2xl py-3 text-sm outline-none"
+                                style={{ border: '1.5px solid #e3e0f0' }} />
+                            </div>
+                            <div className="flex gap-1.5">
+                              {(['all', 'video', 'short'] as VideoType[]).map(t => (
+                                <button key={t} type="button" onClick={() => setVideoType(t)}
+                                  className="px-3 py-2 text-sm font-semibold rounded-2xl transition-all"
+                                  style={videoType === t
+                                    ? { background: plat.color, color: '#fff', border: `1.5px solid ${plat.color}` }
+                                    : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }}>
+                                  {t === 'all' ? 'All' : t === 'video' ? 'Videos' : 'Shorts'}
+                                </button>
+                              ))}
+                            </div>
+                            <select value={videoSort} onChange={e => setVideoSort(e.target.value as VideoSort)}
+                              aria-label="Sort videos"
+                              className="bg-white rounded-2xl px-4 py-3 text-sm outline-none"
+                              style={{ border: '1.5px solid #e3e0f0' }}>
+                              <option value="recent">Recent</option>
+                              <option value="title">Title</option>
+                            </select>
+                          </div>
+                          {videosLoading && (
+                            <div className="flex items-center gap-2 py-16 justify-center text-gray-400">
+                              <Loader2 className="w-5 h-5 animate-spin" style={{ color: plat.color }} /> Loading library…
+                            </div>
+                          )}
+                          {!videosLoading && allVideos.length === 0 && (
+                            <div className="rounded-3xl p-14 flex flex-col items-center justify-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                              <ListVideo className="w-10 h-10 mb-3" style={{ color: '#6D4AE0' }} />
+                              <p className="text-base font-extrabold text-gray-900 mb-1">No videos synced yet</p>
+                              <p className="text-sm text-gray-400 mb-4">Sync your channel to see videos here.</p>
+                              <SyncBadge channelId={ytChannelId} />
+                            </div>
+                          )}
+                          {!videosLoading && allVideos.length > 0 && (
+                            <VirtualVideoGrid videos={allVideos} hasNextPage={!!hasNextPage} isFetchingNextPage={isFetchingNextPage} fetchNextPage={handleFetchNextPage} />
+                          )}
+                        </div>
+                      )}
+
+                      {/* Playlists */}
+                      {ytMediaTab === 'playlists' && (
+                        <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+                          <PlaylistsTab channelId={ytChannelId} />
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-1.5">
-                      {(['all', 'video', 'short'] as VideoType[]).map((t) => (
-                        <button key={t} type="button" onClick={() => setVideoType(t)}
-                          className="px-3 py-2 text-sm font-semibold rounded-2xl transition-all"
-                          style={videoType === t
-                            ? { background: activePlatform.color, color: '#fff', border: `1.5px solid ${activePlatform.color}` }
-                            : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }}
-                        >
-                          {t === 'all' ? 'All' : t === 'video' ? 'Videos' : 'Shorts'}
-                        </button>
-                      ))}
-                    </div>
-                    <select value={videoSort} onChange={(e) => setVideoSort(e.target.value as VideoSort)}
-                      aria-label="Sort videos"
-                      className="bg-white rounded-2xl px-4 py-3 text-sm outline-none"
-                      style={{ border: '1.5px solid #e3e0f0' }}
-                    >
-                      <option value="recent">Recent</option>
-                      <option value="title">Title</option>
-                    </select>
                   </div>
-                  {videosLoading && (
-                    <div className="flex items-center gap-2 py-16 justify-center text-gray-400">
-                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: activePlatform.color }} />
-                      Loading library…
-                    </div>
-                  )}
-                  {!videosLoading && allVideos.length === 0 && (
-                    <div className="rounded-3xl p-14 flex flex-col items-center justify-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <ListVideo className="w-10 h-10 mb-3" style={{ color: '#6D4AE0' }} />
-                      <p className="text-base font-extrabold text-gray-900 mb-1">No videos synced yet</p>
-                      <p className="text-sm text-gray-400 mb-4">Sync your channel to see videos here.</p>
-                      <SyncBadge channelId={activeChannelForPlatform} />
-                    </div>
-                  )}
-                  {!videosLoading && allVideos.length > 0 && (
-                    <VirtualVideoGrid
-                      videos={allVideos}
-                      hasNextPage={!!hasNextPage}
-                      isFetchingNextPage={isFetchingNextPage}
-                      fetchNextPage={handleFetchNextPage}
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Playlists */}
-              {mediaSubTab === 'playlists' && (
-                <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-                  <PlaylistsTab channelId={activeChannelForPlatform} />
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })}
     </div>
   );
 }

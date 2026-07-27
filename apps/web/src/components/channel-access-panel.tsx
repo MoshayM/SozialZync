@@ -139,7 +139,7 @@ function ChannelAccessContent() {
   useEffect(() => {
     if (justConnected) {
       pendingVerification.current = true;
-      window.history.replaceState({}, '', '/library?tab=channels');
+      window.history.replaceState({}, '', '/projects?tab=channels');
       void qc.invalidateQueries({ queryKey: ['channels'] });
     }
   }, [justConnected, qc]);
@@ -161,7 +161,7 @@ function ChannelAccessContent() {
     if (oauthErrorCode) {
       const message = OAUTH_ERRORS[oauthErrorCode] ?? OAUTH_ERRORS['oauth_failed']!;
       setBanner({ type: 'error', message });
-      window.history.replaceState({}, '', '/library?tab=channels');
+      window.history.replaceState({}, '', '/projects?tab=channels');
     }
   }, [oauthErrorCode]);
 
@@ -264,20 +264,61 @@ function ChannelAccessContent() {
     disconnectMutation.isPending || removeMutation.isPending ||
     reconnectMutation.isPending || refreshTokenMutation.isPending;
 
+  const isInvalidGrant = oauthErrorCode === 'invalid_grant';
+
   return (
     <div className="space-y-10">
       {/* Global notification banner */}
       {banner && (
-        <Banner type={banner.type} message={banner.message} onDismiss={() => setBanner(null)} />
+        <div className="space-y-2">
+          <Banner type={banner.type} message={banner.message} onDismiss={() => setBanner(null)} />
+          {/* For invalid_grant specifically: offer a direct reconnect action */}
+          {isInvalidGrant && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-800 flex-1">
+                Your Google authorisation expired. Re-connect your channel to restore access.
+              </p>
+              <button
+                onClick={() => reconnectMutation.mutate('PUBLISH')}
+                disabled={reconnectMutation.isPending}
+                className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-50 shrink-0 transition-colors"
+              >
+                {reconnectMutation.isPending
+                  ? <><Loader2 className="w-3 h-3 animate-spin" /> Redirecting…</>
+                  : <><RefreshCw className="w-3 h-3" /> Reconnect Now</>}
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── YouTube Channels ──────────────────────────────── */}
       <section id="channels" className="scroll-mt-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Youtube className="w-5 h-5 text-red-600" />
-          YouTube Channels
-        </h2>
-
+        <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Youtube className="w-5 h-5 text-red-600" />
+            YouTube Channels
+          </h2>
+          {/* Multi-channel quick selector — only shown when 2+ active channels */}
+          {activeChannels.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Active channel:</span>
+              <select
+                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white"
+                aria-label="Switch active channel"
+                onChange={(e) => {
+                  const el = document.getElementById(`channel-${e.target.value}`);
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+              >
+                {activeChannels.map((ch) => (
+                  <option key={ch.id} value={ch.id}>{ch.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
 
         {chLoading ? (
           <Loader2 className="w-5 h-5 animate-spin text-brand-600" />
@@ -285,7 +326,7 @@ function ChannelAccessContent() {
           <div className="space-y-3">
             {/* Active / connected channels */}
             {activeChannels.map((ch) => (
-              <div key={ch.id} className="bg-white border border-gray-200 rounded-xl p-4">
+              <div key={ch.id} id={`channel-${ch.id}`} className="bg-white border border-gray-200 rounded-xl p-4">
               {/* Info row */}
               <div className="flex items-center gap-3">
                 {ch.thumbnailUrl ? (
