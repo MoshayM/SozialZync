@@ -4,7 +4,7 @@ import { BarChart2, TrendingUp, TrendingDown, Minus, Lightbulb, RefreshCw, Chevr
 import { ResultActions } from '@/components/result-actions';
 import { AiWorkingCard, formatDuration } from '@/components/ai-activity';
 import { StatCard, PastelBars, PastelDonut } from '@/components/stat-card';
-import { PlanGate, usePlan, planAtLeast } from '@/components/plan-gate';
+import { PlanGate, usePlan, planAtLeast, useIsAdmin } from '@/components/plan-gate';
 
 interface Insight {
   metric: string;
@@ -77,7 +77,8 @@ function PriorityBadge({ priority }: { priority: 'high' | 'medium' | 'low' }) {
 
 export default function AnalyticsPage() {
   const userPlan = usePlan();
-  const canAccessAiAnalysis = planAtLeast(userPlan, 'PRO');
+  const isAdmin = useIsAdmin();
+  const canAccessAiAnalysis = isAdmin || planAtLeast(userPlan, 'STARTER');
   const [channelId, setChannelId] = useState('');
   const [analytics, setAnalytics] = useState<AnalyticsReport | null>(null);
   const [growth, setGrowth] = useState<GrowthReport | null>(null);
@@ -170,7 +171,7 @@ export default function AnalyticsPage() {
 
         {/* AI Usage card */}
         {activeView === 'usage' && (
-          <PlanGate requiredPlan="PRO" featureLabel="AI Usage" preview={false}>
+          <PlanGate requiredPlan="STARTER" featureLabel="AI Usage" preview={false}>
           <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
             <h2 className="font-bold text-gray-900 mb-3">AI Usage (30 days)</h2>
             {tokenUsage === 'unavailable' ? (
@@ -281,29 +282,32 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-2">
-          {(['scorecard', 'analytics', 'usage'] as const).map(v => {
-            const isPro = v !== 'scorecard';
-            const locked = isPro && !canAccessAiAnalysis;
-            return (
-              <button
-                key={v}
-                onClick={() => !locked && setActiveView(v)}
-                className="flex-1 py-2.5 text-sm font-semibold rounded-2xl transition-all flex items-center justify-center gap-1.5"
-                title={locked ? 'Requires Pro plan' : undefined}
-                style={
-                  activeView === v
-                    ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
-                    : locked
-                    ? { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#9ca3af', cursor: 'not-allowed' }
-                    : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
-                }
-              >
-                {v === 'scorecard' ? 'Scorecard' : v === 'analytics' ? 'AI Analysis' : 'AI Usage'}
-                {locked && <span style={{ fontSize: 10 }}>🔒</span>}
-              </button>
-            );
-          })}
+        <div style={{ borderBottom: '1px solid #e3ddf8' }}>
+          <div className="flex">
+            {(['scorecard', 'analytics', 'usage'] as const).map(v => {
+              const isGated = v !== 'scorecard';
+              const locked = isGated && !canAccessAiAnalysis;
+              const label = v === 'scorecard' ? 'Scorecard' : v === 'analytics' ? 'AI Analysis' : 'AI Usage';
+              return (
+                <button
+                  key={v}
+                  onClick={() => !locked && setActiveView(v)}
+                  title={locked ? 'Requires Starter plan' : undefined}
+                  className="flex items-center gap-1.5 px-5 pb-3 pt-2 text-sm font-semibold transition-colors border-b-2 -mb-px whitespace-nowrap"
+                  style={
+                    activeView === v
+                      ? { borderColor: '#6D4AE0', color: '#6D4AE0' }
+                      : locked
+                      ? { borderColor: 'transparent', color: '#9ca3af', cursor: 'not-allowed' }
+                      : { borderColor: 'transparent', color: '#374151' }
+                  }
+                >
+                  {label}
+                  {locked && <span style={{ fontSize: 10 }}>🔒</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Scorecard tab */}
@@ -383,7 +387,7 @@ export default function AnalyticsPage() {
         )}
 
         {activeView === 'analytics' && !canAccessAiAnalysis && (
-          <PlanGate requiredPlan="PRO" featureLabel="AI Analysis" preview={false} />
+          <PlanGate requiredPlan="STARTER" featureLabel="AI Analysis" preview={false} />
         )}
 
         {activeView === 'analytics' && canAccessAiAnalysis && loadingAnalytics && (

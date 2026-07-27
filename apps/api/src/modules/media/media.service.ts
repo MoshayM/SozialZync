@@ -18,6 +18,7 @@ import { StabilityMusicAdapter } from './adapters/music-stability.adapter';
 import { ReplicateMusicAdapter } from './adapters/music-replicate.adapter';
 import { FfmpegSceneVideoAdapter } from './adapters/video-ffmpeg.adapter';
 import { LumaVideoAdapter } from './adapters/video-luma.adapter';
+import { RunwayVideoAdapter } from './adapters/video-runway.adapter';
 import { validateMediaBuffer, formatIssues, type MediaValidationKind } from './media-validation.util';
 
 export interface StoredAsset {
@@ -61,7 +62,7 @@ export class MediaService {
   };
   private readonly video: AdapterChain<VideoAdapter> = {
     configured: process.env['VIDEO_PROVIDER'],
-    adapters: [new LumaVideoAdapter(), new FfmpegSceneVideoAdapter()],
+    adapters: [new LumaVideoAdapter(), new RunwayVideoAdapter(), new FfmpegSceneVideoAdapter()],
   };
 
   constructor(

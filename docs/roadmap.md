@@ -70,12 +70,14 @@ Built so far:
 - Render pipeline: `Timeline` model → ffmpeg → `RenderPreset` (DRAFT_PROXY / YT_1080P / YT_4K / SHORTS_1080X1920).
 - `Asset` / `AssetVersion` with versioning and `r2Key` field.
 - `EditPlanAgent`.
+- ~~Cloudflare R2 SDK wiring~~ — DONE: `R2StorageService` with write-through strategy (local + R2); activated via `STORAGE_BACKEND=r2`. Supports `put`, `copyIn`, `flush`, `ensure` (lazy download), `removePrefix` (batch), `list`. Env vars: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
+- ~~End-to-end render-to-publish~~ — DONE: editor render stores output with `r2Key`; project detail page reads `render.r2Key` and passes it to `PublishingService.publish()`, which calls `storage.ensure(r2Key)` to download from R2 before YouTube upload.
+- External music providers: Stability AI Stable Audio (`music-stability.adapter.ts`) and Replicate MusicGen (`music-replicate.adapter.ts`) — activated via `STABILITY_API_KEY` / `REPLICATE_API_TOKEN`.
+- External video providers: Luma AI Dream Machine (`video-luma.adapter.ts`), Runway Gen-3 Alpha (`video-runway.adapter.ts`) — text-to-video and image-to-video; activated via `LUMA_API_KEY` / `RUNWAYML_API_KEY`.
 
 Still needed to complete Phase 4:
-- Cloudflare R2 SDK wiring (`r2Key` field is ready, integration is not).
-- External video generation provider integrations (Veo/Kling/Runway/Pika/Luma) — `AssetVersion.provider` field is ready.
-- External music generation providers (Suno/Udio/Stable Audio).
-- End-to-end render-to-publish flow: in-app generated video file → YouTube upload. `PublishingService.publish()` currently requires a user-supplied `videoFilePath`.
+- Additional video providers: Veo / Kling / Pika.
+- Additional music providers: Suno / Udio.
 
 ---
 
@@ -124,12 +126,12 @@ Still needed:
 These items are gaps within phases marked COMPLETED — they were not delivered as part of those phases and remain outstanding:
 
 - n8n runtime deployment (designed in Phase 1 scope, not deployed).
-- In-app video file generation from render pipeline to YouTube upload (Shorts publish and long-form publish both still require a user-supplied `videoFilePath`; standalone editor renders but the path from editor render → YouTube upload is not yet wired).
-- Cloudflare R2 storage wiring (`r2Key` fields present; R2 client not integrated).
-- External video and music generation providers.
+- ~~In-app video render → YouTube upload~~ — DONE: project page reads `render.r2Key` and calls `PublishingService.publish({ r2Key })`.
+- ~~Cloudflare R2 storage wiring~~ — DONE: `R2StorageService`; activate with `STORAGE_BACKEND=r2` + R2 env vars.
+- ~~External video and music generation providers~~ — PARTIAL: Luma AI + Runway Gen-3 Alpha (video), Stability AI + Replicate MusicGen (music) done. Veo/Kling/Pika/Suno/Udio still to do.
 - Staging environment.
 - Production infrastructure-as-code.
-- Stripe live billing testing (integration built; production keys not configured).
+- Stripe live billing: integration built; activate by adding `STRIPE_STARTER_PRICE_ID`, `STRIPE_PRO_PRICE_ID`, `STRIPE_AGENCY_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` to Railway and registering the webhook endpoint.
 
 ---
 

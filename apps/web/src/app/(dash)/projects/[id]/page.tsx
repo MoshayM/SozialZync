@@ -882,48 +882,30 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Tab bar — horizontally scrollable on mobile */}
-      <div className="overflow-x-auto no-scrollbar -mx-4 sm:mx-0 mb-6">
-      <div className="flex bg-gray-100 rounded-full p-1 w-fit min-w-max mx-4 sm:mx-0">
-        <button
-          type="button"
-          onClick={() => setActiveTab('pipeline')}
-          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${activeTab === 'pipeline' ? 'bg-white shadow text-brand-700' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <Play className="w-3.5 h-3.5" /> Pipeline
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('script')}
-          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${activeTab === 'script' ? 'bg-white shadow text-brand-700' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <FileText className="w-3.5 h-3.5" /> Script
-          {latestScriptJob && <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('storyboard')}
-          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${activeTab === 'storyboard' ? 'bg-white shadow text-brand-700' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <Film className="w-3.5 h-3.5" /> Storyboard
-          {latestStoryboardJob && <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('seo')}
-          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${activeTab === 'seo' ? 'bg-white shadow text-brand-700' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <Search className="w-3.5 h-3.5" /> SEO &amp; Audience
-          {(seoResult ?? audienceResult) && <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('checks')}
-          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${activeTab === 'checks' ? 'bg-white shadow text-brand-700' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5" /> Checks
-          {(hasDoneFactCheck || hasDoneCompliance) && <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />}
-        </button>
-      </div>
+      <div className="overflow-x-auto no-scrollbar -mx-4 sm:mx-0 mb-6" style={{ borderBottom: '1px solid #e3ddf8' }}>
+        <div className="flex min-w-max px-4 sm:px-0">
+          {([
+            { id: 'pipeline' as PageTab, label: 'Pipeline',       icon: <Play className="w-3.5 h-3.5" />,       dot: false },
+            { id: 'script'   as PageTab, label: 'Script',         icon: <FileText className="w-3.5 h-3.5" />,   dot: !!latestScriptJob },
+            { id: 'storyboard' as PageTab, label: 'Storyboard',   icon: <Film className="w-3.5 h-3.5" />,       dot: !!latestStoryboardJob },
+            { id: 'seo'      as PageTab, label: 'SEO & Audience', icon: <Search className="w-3.5 h-3.5" />,     dot: !!(seoResult ?? audienceResult) },
+            { id: 'checks'   as PageTab, label: 'Checks',         icon: <ShieldCheck className="w-3.5 h-3.5" />,dot: hasDoneFactCheck || hasDoneCompliance },
+          ]).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 pb-3 pt-2 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                activeTab === tab.id
+                  ? 'border-[#6D4AE0] text-[#6D4AE0]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab.icon} {tab.label}
+              {tab.dot && <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Script Writer tab ─────────────────────────────────────────────── */}
