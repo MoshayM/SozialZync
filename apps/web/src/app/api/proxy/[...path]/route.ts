@@ -11,9 +11,11 @@ const API_BASE = (
 ).replace(/\/+$/, '');
 
 // Hop-by-hop headers that must not be forwarded upstream or downstream.
+// 'expect' is added because Node's undici (fetch) throws UND_ERR_NOT_SUPPORTED
+// when it sees Expect: 100-continue forwarded from the axios client.
 const HOP_BY_HOP = new Set([
   'connection', 'keep-alive', 'transfer-encoding', 'upgrade',
-  'proxy-authorization', 'proxy-authenticate', 'te', 'trailer',
+  'proxy-authorization', 'proxy-authenticate', 'te', 'trailer', 'expect',
 ]);
 
 type Ctx = { params: Promise<{ path: string[] }> };
