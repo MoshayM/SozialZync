@@ -80,8 +80,10 @@ export class AdminController {
     return this.prisma.user.findMany({
       select: {
         id: true, email: true, name: true, role: true, createdAt: true,
+        rechargesFrozen: true,
         wallet: { select: { balanceCredits: true, lifetimePurchased: true, lifetimeUsed: true } },
         subscription: { select: { plan: true, status: true } },
+        _count: { select: { channels: true } },
       },
       orderBy: { createdAt: 'asc' },
     });

@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { StatCard, PastelBars } from '@/components/stat-card';
 import { DevicePreview } from '@/components/device-preview';
-import { api, type AdminProvider, type EnterpriseMetrics, type ForecastRow } from '@/lib/api';
+import { api, type AdminProvider, type AdminUser, type EnterpriseMetrics, type ForecastRow } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
 type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests';
@@ -126,31 +126,6 @@ const PLAN_DATA: Record<string, { label: string; color: string; icon: React.Reac
   ],
 };
 
-// ── Mock user data ─────────────────────────────────────────────────────────────
-
-interface MockUser {
-  id: string;
-  name: string;
-  email: string;
-  plan: 'free' | 'pro' | 'enterprise';
-  status: 'active' | 'suspended';
-  joined: string;
-  channels: number;
-  lastSeen: string;
-}
-
-const MOCK_USERS: MockUser[] = [
-  { id: '1', name: 'Alex Johnson',    email: 'alex@example.com',    plan: 'pro',        status: 'active',    joined: '2025-12-01', channels: 3, lastSeen: '2 hours ago' },
-  { id: '2', name: 'Sarah Martinez',  email: 'sarah@example.com',   plan: 'enterprise', status: 'active',    joined: '2026-01-15', channels: 8, lastSeen: 'Just now'    },
-  { id: '3', name: 'Raj Patel',       email: 'raj@example.com',     plan: 'free',       status: 'active',    joined: '2026-03-22', channels: 1, lastSeen: '1 day ago'   },
-  { id: '4', name: 'Emma Wilson',     email: 'emma@example.com',    plan: 'pro',        status: 'active',    joined: '2026-02-10', channels: 5, lastSeen: '3 hours ago' },
-  { id: '5', name: 'Carlos Ruiz',     email: 'carlos@example.com',  plan: 'free',       status: 'active',    joined: '2026-04-05', channels: 2, lastSeen: '5 days ago'  },
-  { id: '6', name: 'Priya Singh',     email: 'priya@example.com',   plan: 'enterprise', status: 'active',    joined: '2026-01-30', channels: 12, lastSeen: '4 hours ago'},
-  { id: '7', name: 'Tom Baker',       email: 'tom@example.com',     plan: 'pro',        status: 'suspended', joined: '2025-11-20', channels: 4, lastSeen: '2 weeks ago' },
-  { id: '8', name: 'Yuna Kim',        email: 'yuna@example.com',    plan: 'free',       status: 'active',    joined: '2026-05-12', channels: 1, lastSeen: '1 hour ago'  },
-  { id: '9', name: 'David Lee',       email: 'david@example.com',   plan: 'pro',        status: 'active',    joined: '2026-03-08', channels: 6, lastSeen: 'Just now'    },
-  { id: '10', name: 'Fatima Al-Said', email: 'fatima@example.com',  plan: 'enterprise', status: 'active',    joined: '2026-02-14', channels: 10, lastSeen: '30 min ago' },
-];
 
 const PLAN_CHIP_STYLES: Record<string, React.CSSProperties> = {
   free:       { background: '#f3f4f6', color: '#4b5563' },
@@ -301,9 +276,11 @@ export default function AdminDashboardPage() {
   const [viewRange, setViewRange] = useState<'7d' | '30d' | '90d'>('30d');
 
   // Users state
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'pro' | 'enterprise'>('all');
-  const [impersonating, setImpersonating] = useState<MockUser | null>(null);
+  const [impersonating, setImpersonating] = useState<AdminUser | null>(null);
 
   // Enterprise Requests state
   const [enterpriseRequests, setEnterpriseRequests] = useState<EnterpriseRequest[]>(SEED_REQUESTS);
@@ -394,10 +371,22 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const filteredUsers = MOCK_USERS.filter((u) => {
-    const matchPlan = planFilter === 'all' || u.plan === planFilter;
+  const loadUsers = useCallback(async () => {
+    if (users.length > 0) return;
+    setUsersLoading(true);
+    try {
+      const r = await api.admin.users();
+      setUsers(r.data);
+    } catch { /* insufficient permissions — leave empty */ }
+    finally { setUsersLoading(false); }
+  }, [users.length]);
+
+  const filteredUsers = users.filter((u) => {
+    const plan = u.subscription?.plan?.toLowerCase() ?? 'free';
+    const matchPlan = planFilter === 'all' || plan === planFilter;
     const q = userSearch.toLowerCase();
-    const matchSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+    const name = u.name ?? '';
+    const matchSearch = !q || name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
     return matchPlan && matchSearch;
   });
 
@@ -424,7 +413,7 @@ export default function AdminDashboardPage() {
       {impersonating && (
         <div className="sticky top-0 z-20 flex items-center gap-3 px-5 py-3 text-sm font-semibold" style={{ background: '#D97706', color: '#fff' }}>
           <UserCheck className="w-4 h-4 shrink-0" />
-          <span>Viewing as <strong>{impersonating.name}</strong> ({impersonating.email}) — Superadmin override active</span>
+          <span>Viewing as <strong>{impersonating.name ?? impersonating.email}</strong> ({impersonating.email}) — Superadmin override active</span>
           <button
             type="button"
             onClick={() => setImpersonating(null)}
@@ -455,7 +444,7 @@ export default function AdminDashboardPage() {
           <button
             key={id}
             type="button"
-            onClick={() => setAdminTab(id)}
+            onClick={() => { setAdminTab(id); if (id === 'users') void loadUsers(); }}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
             style={adminTab === id
               ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
@@ -616,47 +605,61 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f9f7ff]">
-                  {filteredUsers.length === 0 ? (
+                  {usersLoading ? (
                     <tr>
-                      <td colSpan={6} className="px-5 py-10 text-center text-sm text-gray-400">No users match your search</td>
-                    </tr>
-                  ) : filteredUsers.map((u) => (
-                    <tr key={u.id} className={`transition-colors ${impersonating?.id === u.id ? 'bg-amber-50' : 'hover:bg-[#faf9ff]'}`}>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}>
-                            {u.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-800">{u.name}</p>
-                            <p className="text-xs text-gray-400">{u.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5"><PlanChip plan={u.plan} /></td>
-                      <td className="px-5 py-3.5 hidden sm:table-cell text-gray-600 tabular-nums">{u.channels}</td>
-                      <td className="px-5 py-3.5 hidden md:table-cell text-gray-400 text-xs">{u.lastSeen}</td>
-                      <td className="px-5 py-3.5 hidden md:table-cell">
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold capitalize" style={u.status === 'active' ? { background: '#ecfdf5', color: '#065f46' } : { background: '#fff1f2', color: '#9f1239' }}>
-                          {u.status}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <button
-                          type="button"
-                          onClick={() => setImpersonating(impersonating?.id === u.id ? null : u)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                          style={impersonating?.id === u.id
-                            ? { background: '#fef3c7', color: '#b45309', border: '1.5px solid #fde68a' }
-                            : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }
-                          }
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          {impersonating?.id === u.id ? 'Exit view' : 'View as'}
-                        </button>
+                      <td colSpan={6} className="px-5 py-10 text-center">
+                        <Loader2 className="w-5 h-5 animate-spin text-[#6D4AE0] mx-auto" />
                       </td>
                     </tr>
-                  ))}
+                  ) : filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-5 py-10 text-center text-sm text-gray-400">
+                        {users.length === 0 ? 'No users loaded — check admin:users permission' : 'No users match your search'}
+                      </td>
+                    </tr>
+                  ) : filteredUsers.map((u) => {
+                    const displayName = u.name ?? u.email.split('@')[0] ?? '?';
+                    const plan = u.subscription?.plan?.toLowerCase() ?? 'free';
+                    const isFrozen = u.rechargesFrozen;
+                    const joined = new Date(u.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                    return (
+                      <tr key={u.id} className={`transition-colors ${impersonating?.id === u.id ? 'bg-amber-50' : 'hover:bg-[#faf9ff]'}`}>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}>
+                              {displayName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-800">{displayName}</p>
+                              <p className="text-xs text-gray-400">{u.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5"><PlanChip plan={plan} /></td>
+                        <td className="px-5 py-3.5 hidden sm:table-cell text-gray-600 tabular-nums">{u._count.channels}</td>
+                        <td className="px-5 py-3.5 hidden md:table-cell text-gray-400 text-xs">{joined}</td>
+                        <td className="px-5 py-3.5 hidden md:table-cell">
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold capitalize" style={isFrozen ? { background: '#fff1f2', color: '#9f1239' } : { background: '#ecfdf5', color: '#065f46' }}>
+                            {isFrozen ? 'frozen' : 'active'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <button
+                            type="button"
+                            onClick={() => setImpersonating(impersonating?.id === u.id ? null : u)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                            style={impersonating?.id === u.id
+                              ? { background: '#fef3c7', color: '#b45309', border: '1.5px solid #fde68a' }
+                              : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }
+                            }
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            {impersonating?.id === u.id ? 'Exit view' : 'View as'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -669,13 +672,13 @@ export default function AdminDashboardPage() {
           {impersonating && (
             <div className="rounded-2xl p-5 space-y-3" style={{ background: '#fef3c7', border: '1.5px solid #fde68a' }}>
               <p className="text-sm font-semibold text-amber-800">
-                You are currently viewing the platform as <strong>{impersonating.name}</strong>. Navigate to any dashboard page to see their experience. All actions are logged and attributed to your superadmin session.
+                You are currently viewing the platform as <strong>{impersonating.name ?? impersonating.email}</strong>. Navigate to any dashboard page to see their experience. All actions are logged and attributed to your superadmin session.
               </p>
               <div className="grid grid-cols-3 gap-3 text-center">
                 {[
-                  { label: 'Plan', value: impersonating.plan },
-                  { label: 'Channels', value: String(impersonating.channels) },
-                  { label: 'Status', value: impersonating.status },
+                  { label: 'Plan', value: impersonating.subscription?.plan ?? 'free' },
+                  { label: 'Channels', value: String(impersonating._count.channels) },
+                  { label: 'Status', value: impersonating.rechargesFrozen ? 'frozen' : 'active' },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-white rounded-xl px-3 py-2.5" style={{ border: '1px solid #fde68a' }}>
                     <p className="text-[10px] uppercase tracking-widest text-amber-600 font-bold">{label}</p>

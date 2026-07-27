@@ -926,6 +926,9 @@ export const api = {
       apiClient.get<ForecastRow[]>(`/admin/forecasts${metric ? `?metric=${encodeURIComponent(metric)}` : ''}`),
     generateForecasts: () => apiClient.post<{ ok: boolean; message: string }>('/admin/forecasts/generate'),
     providers: () => apiClient.get<AdminProvider[]>('/admin/providers'),
+    users: () => apiClient.get<AdminUser[]>('/admin/users'),
+    setRechargesFrozen: (userId: string, frozen: boolean, reason?: string) =>
+      apiClient.post<{ id: string; email: string; rechargesFrozen: boolean }>(`/admin/users/${userId}/recharges-frozen`, { frozen, reason }),
   },
   automation: {
     get: (channelId: string) =>
@@ -1011,6 +1014,18 @@ export interface ForecastRow {
   method: string;
   inputPointsCount: number;
   generatedAt: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  createdAt: string;
+  rechargesFrozen: boolean;
+  wallet: { balanceCredits: number; lifetimePurchased: number; lifetimeUsed: number } | null;
+  subscription: { plan: string; status: string } | null;
+  _count: { channels: number };
 }
 
 export interface AdminProvider {
