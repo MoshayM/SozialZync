@@ -29,15 +29,15 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { href: '/home',     icon: Home,       label: 'Home' },
-      { href: '/content',  icon: BookOpen,   label: 'Content' },
-      { href: '/projects', icon: FolderOpen, label: 'Projects' },
+      { href: '/home',          icon: Home,         label: 'Home' },
+      { href: '/content',       icon: BookOpen,     label: 'Content' },
+      { href: '/projects',      icon: FolderOpen,   label: 'Projects' },
+      { href: '/shorts-studio', icon: Clapperboard, label: 'Shorts Studio' },
     ],
   },
   {
     items: [
-      { href: '/editor',        icon: Film,        label: 'Video Editor' },
-      { href: '/shorts-studio', icon: Clapperboard, label: 'Shorts Studio' },
+      { href: '/editor', icon: Film, label: 'Video Editor' },
     ],
   },
   {
