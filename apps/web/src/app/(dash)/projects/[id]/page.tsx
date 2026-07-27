@@ -1816,11 +1816,89 @@ export default function ProjectDetailPage() {
   );
 }
 
+// ─── Multi-Platform Publish Modal ─────────────────────────────────────────────
+
+interface MultiPublishModalProps {
+  videoTitle: string;
+  onYouTube: () => void;
+  onClose: () => void;
+}
+
+const SOCIAL_PLATFORMS = [
+  { id: 'instagram', name: 'Instagram', color: '#E1306C', initials: 'IG' },
+  { id: 'tiktok',   name: 'TikTok',    color: '#010101', initials: 'TK' },
+  { id: 'linkedin', name: 'LinkedIn',  color: '#0A66C2', initials: 'LI' },
+  { id: 'x',        name: 'X (Twitter)', color: '#000000', initials: 'X' },
+  { id: 'facebook', name: 'Facebook',  color: '#1877F2', initials: 'FB' },
+] as const;
+
+function MultiPublishModal({ videoTitle, onYouTube, onClose }: MultiPublishModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Publish to Platform</h2>
+            <p className="text-xs text-gray-500 mt-0.5 max-w-xs truncate">{videoTitle}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* YouTube — live */}
+        <div className="border border-red-200 bg-red-50 rounded-xl p-4 flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+              <Youtube className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">YouTube</p>
+              <p className="text-xs text-green-600 font-medium">Connected · Ready</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { onClose(); onYouTube(); }}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
+          >
+            <Send className="w-3.5 h-3.5" />
+            Publish
+          </button>
+        </div>
+
+        {/* Coming Soon label */}
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">More platforms — coming soon</p>
+
+        {/* Other platforms grid */}
+        <div className="grid grid-cols-3 gap-2">
+          {SOCIAL_PLATFORMS.map((p) => (
+            <div
+              key={p.id}
+              className="border border-gray-200 bg-gray-50 rounded-xl p-3 flex flex-col items-center gap-2 opacity-60"
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold"
+                style={{ backgroundColor: p.color }}
+              >
+                {p.initials}
+              </div>
+              <p className="text-xs font-medium text-gray-500 text-center leading-tight">{p.name}</p>
+              <span className="text-[10px] bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full font-medium">Soon</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Publish from Render Panel ────────────────────────────────────────────────
 
 function PublishFromRenderPanel({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [showMultiPublish, setShowMultiPublish] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
   const [error, setError] = useState('');
   const [oauthExpired, setOauthExpired] = useState(false);
@@ -2075,13 +2153,21 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
           </div>
         </div>
         <button
-          onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
+          onClick={() => setShowMultiPublish(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
         >
           <Send className="w-4 h-4" />
-          Publish to YouTube
+          Publish to Platform
         </button>
       </div>
+
+      {showMultiPublish && (
+        <MultiPublishModal
+          videoTitle={video?.title ?? 'Untitled'}
+          onYouTube={() => setOpen(true)}
+          onClose={() => setShowMultiPublish(false)}
+        />
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
