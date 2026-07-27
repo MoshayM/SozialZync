@@ -2,11 +2,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Bot, X, Send, Mic, MicOff, ShieldCheck, Building2,
+  Bot, X, Send, Mic, MicOff, ShieldCheck,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
   BookOpen, FileText, Calendar, Search, Clock, Sparkles, Volume2, VolumeX,
 } from 'lucide-react';
-import { apiClient, api, type Org } from '@/lib/api';
+import { apiClient, api } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -295,10 +295,8 @@ export function CopilotPanel() {
   const [activeAction, setActiveAction] = useState<string|null>(null);
   const [actionInput, setActionInput]   = useState('');
 
-  // jobs + orgs
+  // jobs
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([]);
-  const [orgs, setOrgs]             = useState<Org[]>([]);
-  const [billingOrgId, setBillingOrgId] = useState('');
 
   // history
   const [history, setHistory] = useState<{ text:string; ts:number }[]>([]);
@@ -335,7 +333,6 @@ export function CopilotPanel() {
   useEffect(() => {
     if (!open) return;
     setHistory(loadHistory());
-    api.orgs.mine().then(r => setOrgs(r.data)).catch(() => setOrgs([]));
     apiClient.get('/copilot/stt-status')
       .then(r => setServerStt((r.data as { available: boolean }).available))
       .catch(() => setServerStt(false));
@@ -506,7 +503,6 @@ export function CopilotPanel() {
         inputMode: conversationRef.current ? 'voice' : 'text',
         ...(confirmedCommand ? { confirmedCommand } : {}),
         ...(!confirmedCommand && pending ? { pendingCommand: pending } : {}),
-        ...(billingOrgId ? { orgId: billingOrgId } : {}),
       }, { timeout: 90_000 });
       const data = res.data as CopilotResponse;
       setMessages(m => [...m, { role: 'assistant', content: data.reply, fromCache: data.fromCache }]);
@@ -537,7 +533,7 @@ export function CopilotPanel() {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [messages, speak, pending, billingOrgId, router]);
+  }, [messages, speak, pending, router]);
 
   // ── STT ────────────────────────────────────────────────────────────────────
 
@@ -1201,20 +1197,6 @@ export function CopilotPanel() {
           </div>
         )}
 
-        {/* ── Org picker (footer, always visible) ── */}
-        {orgs.length > 0 && (
-          <div style={{ padding:'10px 16px',borderTop:'1px solid #EDE9F8',background:'#fff',flexShrink:0,display:'flex',alignItems:'center',gap:'8px' }}>
-            <Building2 style={{ width:'14px',height:'14px',color:'#b8b5c8',flexShrink:0 }} />
-            <select
-              value={billingOrgId}
-              onChange={e => setBillingOrgId(e.target.value)}
-              style={{ flex:'1 1 auto',fontSize:'12px',color:'#4d4a6b',background:'#F7F6FB',border:'1px solid #E2DCF5',borderRadius:'8px',padding:'5px 8px',outline:'none',fontFamily:'inherit' }}
-            >
-              <option value="">Personal wallet</option>
-              {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-            </select>
-          </div>
-        )}
       </div>
     </>
   );
