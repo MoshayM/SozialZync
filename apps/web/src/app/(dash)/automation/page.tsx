@@ -72,14 +72,48 @@ function Toggle({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6D4AE0] disabled:opacity-50"
-      style={{ background: checked ? '#6D4AE0' : '#e5e7eb' }}
+      className="relative shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6D4AE0] disabled:opacity-40"
+      style={{
+        width: 44,
+        height: 44,
+        minWidth: 44,
+        padding: 0,
+        background: 'transparent',
+        border: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+      }}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
+        style={{
+          display: 'block',
+          width: 46,
+          height: 26,
+          borderRadius: 13,
+          backgroundColor: checked ? '#6D4AE0' : '#d1d5db',
+          transition: 'background-color 0.18s ease',
+          position: 'relative',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            display: 'block',
+            position: 'absolute',
+            top: 3,
+            left: checked ? 23 : 3,
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.20), 0 0 0 0.5px rgba(0,0,0,0.05)',
+            transition: 'left 0.18s cubic-bezier(0.4,0,0.2,1)',
+          }}
+        />
+      </span>
     </button>
   );
 }
@@ -276,10 +310,10 @@ export default function AutomationPage() {
         {channelId && !loadingAutomation && (
           <div className="bg-white rounded-2xl divide-y" style={{ border: '1.5px solid #e3ddf8', divideColor: '#f3f0fd' } as React.CSSProperties}>
             {/* Master toggle */}
-            <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-5">
-              <div>
-                <p className="font-semibold text-gray-900">Enable automation for this channel</p>
-                <p className="text-sm text-gray-400 mt-0.5">When off, all automated tasks are paused for this channel.</p>
+            <div className="flex items-start justify-between gap-3 px-4 sm:px-6 py-4">
+              <div className="flex-1 min-w-0 pt-0.5">
+                <p className="font-semibold text-gray-900 text-sm sm:text-base">Enable automation for this channel</p>
+                <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">When off, all automated tasks are paused for this channel.</p>
               </div>
               <Toggle
                 checked={form.enabled}
@@ -289,10 +323,10 @@ export default function AutomationPage() {
 
             {/* Feature toggles */}
             {featureToggles.map(({ key, label, description }) => (
-              <div key={key} className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4">
-                <div>
+              <div key={key} className="flex items-start justify-between gap-3 px-4 sm:px-6 py-4">
+                <div className="flex-1 min-w-0 pt-0.5">
                   <p className="text-sm font-medium text-gray-800">{label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{description}</p>
                 </div>
                 <Toggle
                   checked={form[key]}
