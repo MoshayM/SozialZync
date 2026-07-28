@@ -6,14 +6,22 @@ on:
     paths:
       - 'apps/mobile/**'
   workflow_dispatch:
+    inputs:
+      build_release:
+        description: 'Build signed release AAB (requires keystore secrets)'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  android:
-    name: Build Android APK
+  # ── Debug APK — fast feedback on every master push ──────────────────────────
+  android-debug:
+    name: Build Android debug APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,9 +58,76 @@ jobs:
         run: pnpm build:android
         working-directory: apps/mobile
 
-      - name: Upload APK artifact
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: sozialzync-android-debug-${{ github.sha }}
           path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
+
+  # ── Release AAB — signed, ready for Google Play Console upload ──────────────
+  android-release:
+    name: Build signed release AAB
+    runs-on: ubuntu-latest
+    # Only on manual dispatch with build_release=true, or when tag is pushed.
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.build_release == 'true') ||
+      startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install mobile dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: apps/mobile
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Add Android platform
+        run: pnpm add:android
+        working-directory: apps/mobile
+
+      - name: Sync Capacitor
+        run: pnpm sync
+        working-directory: apps/mobile
+
+      - name: Decode release keystore
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > apps/mobile/android/app/release.keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      - name: Build release AAB
+        run: |
+          cd android
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=app/release.keystore \
+            -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_STORE_PASS }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASS }}
+        working-directory: apps/mobile
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: sozialzync-android-release-${{ github.sha }}
+          path: apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f apps/mobile/android/app/release.keystore

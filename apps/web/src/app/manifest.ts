@@ -52,5 +52,12 @@ export default function manifest(): MetadataRoute.Manifest {
         description: 'Create YouTube Shorts',
       },
     ],
+    // @reason: Next.js MetadataRoute.Manifest['screenshots'] element type doesn't expose an index signature
+    // Cast the whole array so we can include the standard W3C `form_factor` and `label` fields.
+    screenshots: ([
+      { src: '/screenshots/home.png',        sizes: '1280x800', type: 'image/png', form_factor: 'wide',   label: 'Sozialzync dashboard — AI content hub' },
+      { src: '/screenshots/copilot.png',     sizes: '1280x800', type: 'image/png', form_factor: 'wide',   label: 'AI Copilot — create content by conversation' },
+      { src: '/screenshots/home-mobile.png', sizes: '390x844',  type: 'image/png', form_factor: 'narrow', label: 'Mobile dashboard' },
+    ] as unknown) as MetadataRoute.Manifest['screenshots'],
   };
 }

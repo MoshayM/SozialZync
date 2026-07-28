@@ -7,6 +7,7 @@ import {
 import { MobileNav } from './_components/MobileNav';
 import { LogoMark } from '@/components/logo-mark';
 import { PwaInstallButtonLanding } from '@/components/pwa-install';
+import { AppStoreNotify } from '@/components/app-store-notify';
 
 // ── Capabilities ──────────────────────────────────────────────────────────────
 
@@ -544,10 +545,7 @@ export default function LandingPage() {
                   <p className="text-white font-bold text-base mb-1">Android</p>
                   <p className="text-white/45 text-sm leading-relaxed">Full native app coming to Google Play. Install the web app above for full offline support right now.</p>
                 </div>
-                <div className="mt-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold" style={{background:'rgba(52,168,83,.1)',border:'1px solid rgba(52,168,83,.25)',color:'rgba(134,239,172,.7)',cursor:'default'}}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  Coming Soon — Google Play
-                </div>
+                <AppStoreNotify platform="android" />
               </div>
 
               {/* iOS */}
@@ -557,10 +555,7 @@ export default function LandingPage() {
                   <p className="text-white font-bold text-base mb-1">iPhone &amp; iPad</p>
                   <p className="text-white/45 text-sm leading-relaxed">App Store listing coming soon. For now, open in Safari and tap Share → Add to Home Screen.</p>
                 </div>
-                <div className="mt-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold" style={{background:'rgba(0,122,255,.1)',border:'1px solid rgba(0,122,255,.25)',color:'rgba(147,197,253,.7)',cursor:'default'}}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  Coming Soon — App Store
-                </div>
+                <AppStoreNotify platform="ios" />
               </div>
             </div>
 
