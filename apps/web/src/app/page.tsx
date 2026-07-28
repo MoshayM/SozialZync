@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {
   Zap, Film, Bot, ArrowRight, CheckCircle2, ChevronRight, Sparkles, ShieldCheck,
   Globe2, Repeat2, Clock, Star, Hash, LineChart, MessageSquare, Target, Users, Calendar,
-  FolderOpen, Scissors,
+  FolderOpen, Scissors, Check, Minus,
 } from 'lucide-react';
 import { MobileNav } from './_components/MobileNav';
 import { LogoMark } from '@/components/logo-mark';
@@ -505,6 +505,158 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ── PRICING ──────────────────────────────────────────────────────────── */}
+        <section id="pricing" aria-labelledby="pricing-heading" className="bg-white py-24 lg:py-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>Simple, transparent pricing</p>
+              <h2 id="pricing-heading" className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
+                Start free.
+                <span style={{color:'#7C3AED'}}> Scale as you grow.</span>
+              </h2>
+              <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+                Every plan includes AI-powered content creation, compliance checks, and multi-platform publishing. No hidden fees.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {([
+                {
+                  name: 'Free',
+                  price: '$0',
+                  period: 'forever',
+                  description: 'Perfect for exploring AI-powered content creation.',
+                  cta: 'Start free',
+                  popular: false,
+                  features: [
+                    { text: '50 AI credits / month', included: true },
+                    { text: '1 connected channel', included: true },
+                    { text: 'AI Copilot (limited)', included: true },
+                    { text: 'Shorts Studio (5 clips/mo)', included: true },
+                    { text: 'Auto-publish', included: false },
+                    { text: 'Autopilot AI', included: false },
+                    { text: 'Video Editor', included: false },
+                    { text: 'Analytics', included: false },
+                  ],
+                },
+                {
+                  name: 'Starter',
+                  price: '$19',
+                  period: 'per month',
+                  description: 'For solo creators ready to publish consistently.',
+                  cta: 'Get started',
+                  popular: false,
+                  features: [
+                    { text: '500 AI credits / month', included: true },
+                    { text: '2 connected channels', included: true },
+                    { text: 'Unlimited AI Copilot', included: true },
+                    { text: 'Unlimited Shorts Studio', included: true },
+                    { text: 'Auto-publish approved Shorts', included: true },
+                    { text: 'Autopilot AI', included: false },
+                    { text: 'Video Editor', included: false },
+                    { text: 'Analytics dashboard', included: false },
+                  ],
+                },
+                {
+                  name: 'Pro',
+                  price: '$49',
+                  period: 'per month',
+                  description: 'For serious creators who want the full AI pipeline.',
+                  cta: 'Go Pro',
+                  popular: true,
+                  features: [
+                    { text: '2,000 AI credits / month', included: true },
+                    { text: '5 connected channels', included: true },
+                    { text: 'Unlimited AI Copilot', included: true },
+                    { text: 'Unlimited Shorts Studio', included: true },
+                    { text: 'Auto-publish + scheduling', included: true },
+                    { text: 'Autopilot AI pipeline', included: true },
+                    { text: 'Video Editor', included: true },
+                    { text: 'Analytics dashboard', included: true },
+                  ],
+                },
+                {
+                  name: 'Agency',
+                  price: '$149',
+                  period: 'per month',
+                  description: 'For teams managing multiple brands and creators.',
+                  cta: 'Contact sales',
+                  popular: false,
+                  features: [
+                    { text: 'Unlimited AI credits', included: true },
+                    { text: 'Unlimited channels', included: true },
+                    { text: 'Everything in Pro', included: true },
+                    { text: 'Team members & roles', included: true },
+                    { text: 'Shared organisation wallet', included: true },
+                    { text: 'White-label option', included: true },
+                    { text: 'Custom AI brand training', included: true },
+                    { text: 'Dedicated support', included: true },
+                  ],
+                },
+              ] as const).map(({ name, price, period, description, cta, popular, features }) => (
+                <div
+                  key={name}
+                  className={`relative flex flex-col rounded-3xl p-6 ${
+                    popular
+                      ? 'shadow-2xl ring-2 ring-[#7C3AED] scale-[1.02]'
+                      : 'border border-gray-100 hover:border-gray-200 hover:shadow-lg'
+                  } transition-all`}
+                  style={popular ? { background: 'linear-gradient(160deg,#0e0924 0%,#1a0f4a 100%)' } : { background: '#fff' }}
+                >
+                  {popular && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                      <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white"
+                        style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)'}}>
+                        <Sparkles className="w-3 h-3" /> Most popular
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="mb-5">
+                    <p className={`text-sm font-bold uppercase tracking-widest mb-2 ${popular ? 'text-purple-300' : 'text-gray-500'}`}>{name}</p>
+                    <div className="flex items-end gap-1">
+                      <span className={`text-4xl font-extrabold ${popular ? 'text-white' : 'text-gray-900'}`}>{price}</span>
+                      <span className={`text-sm mb-1 ${popular ? 'text-purple-300' : 'text-gray-400'}`}>/{period}</span>
+                    </div>
+                    <p className={`mt-2 text-sm leading-relaxed ${popular ? 'text-purple-200' : 'text-gray-500'}`}>{description}</p>
+                  </div>
+
+                  <ul className="space-y-2.5 mb-8 flex-1">
+                    {features.map(({ text, included }) => (
+                      <li key={text} className={`flex items-start gap-2.5 text-sm ${
+                        included
+                          ? (popular ? 'text-white' : 'text-gray-700')
+                          : (popular ? 'text-purple-400/50' : 'text-gray-300')
+                      }`}>
+                        {included
+                          ? <Check className={`w-4 h-4 shrink-0 mt-0.5 ${popular ? 'text-purple-300' : 'text-[#7C3AED]'}`} />
+                          : <Minus className="w-4 h-4 shrink-0 mt-0.5 opacity-40" />}
+                        {text}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link
+                    href="/login"
+                    className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED] ${
+                      popular ? 'text-white' : 'text-white'
+                    }`}
+                    style={popular
+                      ? { background: 'linear-gradient(135deg,#a78bfa,#7C3AED)', boxShadow: '0 8px 30px -8px rgba(124,58,237,.6)' }
+                      : { background: 'linear-gradient(135deg,#6D4AE0,#7C3AED)' }}
+                  >
+                    {cta} <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-10 text-center text-sm text-gray-400">
+              All plans include a 14-day free trial · No credit card required to start · Cancel any time
+            </p>
           </div>
         </section>
 

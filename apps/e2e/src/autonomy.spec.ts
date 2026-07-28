@@ -250,7 +250,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
     await page.goto('/autonomy', { waitUntil: 'networkidle' });
     const navLink = page.locator('a[href="/autonomy"]');
     await expect(navLink).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('h1')).toContainText('Autonomy', { timeout: 10_000 });
+    await expect(page.locator('h1')).toContainText('Autopilot', { timeout: 10_000 });
   });
 
   // ── Channel profile ─────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
 
   test('Autonomy phase-6 guiding constraint: no autonomous publish toggle exposed', async ({ page }) => {
     await page.goto('/autonomy', { waitUntil: 'networkidle' });
-    await expect(page.locator('h1')).toContainText('Autonomy', { timeout: 10_000 });
+    await expect(page.locator('h1')).toContainText('Autopilot', { timeout: 10_000 });
     // There must never be a "publish" button inside the Autonomy page
     const publishBtn = page.getByRole('button', { name: /^publish$/i });
     await expect(publishBtn).toHaveCount(0);
