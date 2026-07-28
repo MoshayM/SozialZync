@@ -290,6 +290,7 @@ export function CopilotPanel() {
   const [serverStt, setServerStt] = useState<boolean|null>(null);
   const [lang, setLang]           = useState<string>(() => typeof navigator !== 'undefined' ? navigator.language : 'en-US');
   const [speakingIdx, setSpeakingIdx] = useState<number|null>(null);
+  const [ttsAvailable, setTtsAvailable] = useState<boolean | null>(null);
 
   // quick actions
   const [activeAction, setActiveAction] = useState<string|null>(null);
@@ -360,6 +361,10 @@ export function CopilotPanel() {
     return () => clearTimeout(id);
   }, [micError]);
 
+  useEffect(() => {
+    setTtsAvailable('speechSynthesis' in window);
+  }, []);
+
   // ── Audio priming ──────────────────────────────────────────────────────────
   // iOS requires speechSynthesis.speak() inside a user gesture to unlock TTS.
   // Android Chrome additionally needs AudioContext.resume() to unblock audio.
@@ -373,11 +378,14 @@ export function CopilotPanel() {
       const AC: typeof AudioContext = (window as any).AudioContext ?? (window as any).webkitAudioContext;
       if (AC) { const ctx = new AC(); ctx.resume().catch(() => {}); }
     } catch {}
-    // Unlock speechSynthesis (iOS requirement)
+    // Unlock speechSynthesis (iOS requirement).
+    // Empty string fails in iOS WKWebView — use a zero-width space with fast rate
+    // so it resolves instantly without audible output.
     if (!('speechSynthesis' in window)) return;
     try {
-      const silent = new SpeechSynthesisUtterance('');
+      const silent = new SpeechSynthesisUtterance('​');
       silent.volume = 0;
+      silent.rate = 10;
       window.speechSynthesis.speak(silent);
     } catch {}
     // Pre-warm voices so they're available synchronously on the first real speak()
@@ -425,7 +433,16 @@ export function CopilotPanel() {
         if (bestVoice) utt.voice = bestVoice;
         if (chunkIdx === 1) utt.onstart = () => setSpeaking(true);
         utt.onend   = next;
-        utt.onerror = () => { if (keepAlive) clearInterval(keepAlive); setSpeaking(false); setSpeakingIdx(null); /* do NOT call onDone on cancel/error — prevents spurious auto-listen */ };
+        utt.onerror = (e) => {
+          if (keepAlive) clearInterval(keepAlive);
+          setSpeaking(false);
+          setSpeakingIdx(null);
+          // 'canceled' and 'interrupted' are normal (user stopped or new speak() called); only warn on unexpected errors
+          if (e.error !== 'canceled' && e.error !== 'interrupted') {
+            console.warn('[TTS] error:', e.error);
+          }
+          /* do NOT call onDone on cancel/error — prevents spurious auto-listen */
+        };
         window.speechSynthesis.speak(utt);
       }
 
@@ -449,14 +466,22 @@ export function CopilotPanel() {
         window.speechSynthesis.onvoiceschanged = null;
         if (!fired) { fired = true; doSpeak(); }
       };
-      // Polling fallback for Android: voices often arrive within 100-300 ms
+      // Polling fallback for Android: voices often arrive within 100-300 ms.
+      // After ~3 s (20 × 150 ms) give up waiting and attempt to speak anyway —
+      // Firefox on Android never fires onvoiceschanged but speak() may still work.
       let attempts = 0;
       const poll = setInterval(() => {
-        if (fired || ++attempts > 20) { clearInterval(poll); return; }
+        if (fired) { clearInterval(poll); return; }
         if (window.speechSynthesis.getVoices().length > 0) {
           clearInterval(poll);
           window.speechSynthesis.onvoiceschanged = null;
           if (!fired) { fired = true; doSpeak(); }
+          return;
+        }
+        if (++attempts > 20) {
+          clearInterval(poll);
+          window.speechSynthesis.onvoiceschanged = null;
+          if (!fired) { fired = true; doSpeak(); } // attempt with no voice preference
         }
       }, 150);
     }
@@ -640,7 +665,11 @@ export function CopilotPanel() {
     conversationRef.current = false;
     if (mediaRecorderRef.current) stopServerSTT();
     recognitionRef.current?.stop();
-    window.speechSynthesis?.cancel();
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeaking(false);
+    setSpeakingIdx(null);
     setOpen(false);
   }, [stopServerSTT]);
 
@@ -870,8 +899,8 @@ export function CopilotPanel() {
                       {m.content}
                       {m.fromCache && <span style={{ fontSize:'10px',color:'rgba(255,255,255,.45)',marginLeft:'6px' }}>cached</span>}
                     </div>
-                    {/* Read-aloud button on assistant messages */}
-                    {m.role === 'assistant' && typeof window !== 'undefined' && 'speechSynthesis' in window && (
+                    {/* Read-aloud button on assistant messages — hidden on browsers without Web Speech API */}
+                    {m.role === 'assistant' && ttsAvailable === true && (
                       <button
                         type="button"
                         title={speakingIdx === i ? 'Stop' : 'Read aloud'}
