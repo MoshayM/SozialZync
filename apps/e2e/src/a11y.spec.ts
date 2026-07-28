@@ -10,7 +10,7 @@ import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
  * gate trips but do not gate on their own.
  */
 
-const AUTHED_PAGES = ['/projects', '/wallet', '/growth', '/library', '/orgs', '/approvals', '/settings'];
+const AUTHED_PAGES = ['/projects', '/wallet', '/growth', '/library', '/orgs', '/settings', '/insights'];
 
 async function auditCurrentPage(page: import('@playwright/test').Page) {
   const results = await new AxeBuilder({ page })

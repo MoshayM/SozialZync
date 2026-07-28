@@ -3,7 +3,10 @@ import { setupApiMocks, setAuthToken, MOCK_APPROVALS } from './fixtures/api-mock
 
 const BASE = 'http://localhost:4007/api/v1';
 
-test.describe('Approval Center', () => {
+// The /approvals route was removed; publish gating is now done via RBAC
+// (publish_access_grants) rather than a dedicated Approval Center page.
+// These tests are skipped until the route is restored or replaced.
+test.describe.skip('Approval Center (route removed)', () => {
   test.beforeEach(async ({ page }) => {
     await setupApiMocks(page);
     await setAuthToken(page);

@@ -246,7 +246,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test('Autonomy nav entry is present and active on the page', async ({ page }) => {
+  test('Autopilot nav entry is present and active on the page', async ({ page }) => {
     await page.goto('/autonomy', { waitUntil: 'networkidle' });
     const navLink = page.locator('a[href="/autonomy"]');
     await expect(navLink).toBeVisible({ timeout: 10_000 });
