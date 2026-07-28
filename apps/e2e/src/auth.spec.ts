@@ -11,7 +11,7 @@ test.describe('Authentication', () => {
   });
 
   test('login page renders correctly', async ({ page }) => {
-    await expect(page.getByText('AI CreatorForce')).toBeVisible();
+    await expect(page.getByText('Sozialzync')).toBeVisible();
     await expect(page.getByText('Welcome Back')).toBeVisible();
     await expect(page.getByLabel('Email')).toBeVisible();
     await expect(page.getByLabel('Password', { exact: true })).toBeVisible();

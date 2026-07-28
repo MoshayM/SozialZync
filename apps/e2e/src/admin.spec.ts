@@ -23,6 +23,34 @@ const MOCK_FORECASTS = [
   { id: 'fc-2', metric: 'cost', horizonDays: 30, predictedValue: 950.0, confidenceLow: 800.0, confidenceHigh: 1_100.0, method: 'window_average', inputPointsCount: 6, generatedAt: '2026-07-11T00:00:00.000Z' },
 ];
 
+const MOCK_TOKEN_USAGE = {
+  totalTokensIn: 45_000_000,
+  totalTokensOut: 9_800_000,
+  totalCostUsd: 812.5,
+  cacheSavingsUsd: 137.25,
+  cacheHitRate: 0.312,
+  topModels: [
+    { model: 'claude-sonnet-4-6', tokensIn: 28_000_000, tokensOut: 6_200_000, costUsd: 512.4, cacheHitRate: 0.38 },
+    { model: 'claude-haiku-4-5', tokensIn: 17_000_000, tokensOut: 3_600_000, costUsd: 300.1, cacheHitRate: 0.25 },
+  ],
+  byProvider: [
+    { provider: 'anthropic', costUsd: 812.5, tokens: 54_800_000 },
+  ],
+  dailyTrend: [
+    { date: '2026-07-21', costUsd: 95.0, tokens: 6_100_000 },
+    { date: '2026-07-22', costUsd: 110.0, tokens: 7_200_000 },
+    { date: '2026-07-23', costUsd: 130.0, tokens: 8_400_000 },
+    { date: '2026-07-24', costUsd: 142.0, tokens: 9_200_000 },
+    { date: '2026-07-25', costUsd: 160.0, tokens: 10_400_000 },
+    { date: '2026-07-26', costUsd: 175.5, tokens: 13_500_000 },
+  ],
+  byVideoType: [
+    { type: 'Script Generation', costUsd: 420.0, count: 1_200 },
+    { type: 'Research', costUsd: 210.0, count: 3_400 },
+    { type: 'Thumbnail', costUsd: 182.5, count: 890 },
+  ],
+};
+
 const MOCK_PROVIDERS = [
   {
     id: 'prov-1', name: 'anthropic', status: 'ACTIVE', priority: 1,
@@ -50,6 +78,11 @@ async function mockAdminRoutes(page: Page, opts?: { forbidden?: boolean }) {
       : route.fulfill({ json: MOCK_FORECASTS }),
   );
   await page.route(`${BASE}/admin/providers`, (route) => route.fulfill({ json: MOCK_PROVIDERS }));
+  await page.route(`${BASE}/token-usage/summary`, (route) =>
+    opts?.forbidden
+      ? route.fulfill({ status: 403, json: { message: 'Forbidden' } })
+      : route.fulfill({ json: MOCK_TOKEN_USAGE }),
+  );
 }
 
 test.describe('Admin enterprise dashboard', () => {
@@ -96,5 +129,28 @@ test.describe('Admin enterprise dashboard', () => {
     await page.goto('/admin');
     await expect(page.getByText('Admin access required')).toBeVisible();
     await expect(page.getByText('Enterprise Dashboard')).toHaveCount(0);
+  });
+
+  test('AI Usage tab shows platform-wide token consumption', async ({ page }) => {
+    await mockAdminRoutes(page);
+    await page.goto('/admin');
+
+    // Switch to the AI Usage tab
+    await page.getByRole('button', { name: /AI Usage/i }).click();
+
+    // Stat cards from MOCK_TOKEN_USAGE
+    await expect(page.getByText('$812.50').first()).toBeVisible({ timeout: 8_000 });  // total cost
+    await expect(page.getByText('31.2%').first()).toBeVisible();  // cache hit rate
+
+    // Provider breakdown
+    await expect(page.getByText('anthropic').first()).toBeVisible();
+
+    // Model table rows
+    await expect(page.getByText('claude-sonnet-4-6').first()).toBeVisible();
+    await expect(page.getByText('claude-haiku-4-5').first()).toBeVisible();
+
+    // Daily trend bars should be rendered (at least 6 date labels visible)
+    await expect(page.getByText('Jul 21')).toBeVisible();
+    await expect(page.getByText('Jul 26')).toBeVisible();
   });
 });
