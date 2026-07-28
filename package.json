@@ -12,7 +12,13 @@
     "db:seed": "pnpm --filter @cf/db db:seed",
     "db:studio": "pnpm --filter @cf/db studio",
     "changelog": "node scripts/generate-changelog.mjs",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "mobile:android": "pnpm --filter @sozialzync/mobile build:android",
+    "mobile:android:release": "pnpm --filter @sozialzync/mobile build:android:release",
+    "mobile:ios": "pnpm --filter @sozialzync/mobile build:ios",
+    "mobile:sync": "pnpm --filter @sozialzync/mobile sync",
+    "mobile:open:android": "pnpm --filter @sozialzync/mobile open:android",
+    "mobile:open:ios": "pnpm --filter @sozialzync/mobile open:ios"
   },
   "devDependencies": {
     "next": "^15.1.4",

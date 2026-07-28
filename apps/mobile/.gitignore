@@ -1,0 +1,7 @@
+android/
+ios/
+dist/
+node_modules/
+release.keystore
+*.p12
+*.mobileprovision
