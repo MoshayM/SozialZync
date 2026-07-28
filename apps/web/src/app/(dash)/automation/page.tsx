@@ -228,7 +228,7 @@ export default function AutomationPage() {
     <div className="min-h-full bg-[#faf9ff]">
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2">
               <Workflow className="w-6 h-6" style={{ color: '#6D4AE0' }} />
@@ -239,7 +239,7 @@ export default function AutomationPage() {
           <select
             value={channelId}
             onChange={(e) => selectChannel(e.target.value)}
-            className="bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+            className="w-full sm:w-auto bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
             style={{ border: '1.5px solid #e3e0f0' }}
             aria-label="Channel"
           >
@@ -276,7 +276,7 @@ export default function AutomationPage() {
         {channelId && !loadingAutomation && (
           <div className="bg-white rounded-2xl divide-y" style={{ border: '1.5px solid #e3ddf8', divideColor: '#f3f0fd' } as React.CSSProperties}>
             {/* Master toggle */}
-            <div className="flex items-center justify-between gap-4 px-6 py-5">
+            <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-5">
               <div>
                 <p className="font-semibold text-gray-900">Enable automation for this channel</p>
                 <p className="text-sm text-gray-400 mt-0.5">When off, all automated tasks are paused for this channel.</p>
@@ -289,7 +289,7 @@ export default function AutomationPage() {
 
             {/* Feature toggles */}
             {featureToggles.map(({ key, label, description }) => (
-              <div key={key} className="flex items-center justify-between gap-4 px-6 py-4">
+              <div key={key} className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4">
                 <div>
                   <p className="text-sm font-medium text-gray-800">{label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{description}</p>
@@ -303,7 +303,7 @@ export default function AutomationPage() {
             ))}
 
             {/* Numeric limits */}
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-4 sm:px-6 py-5 space-y-4">
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Publishing &amp; import limits</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -392,13 +392,13 @@ export default function AutomationPage() {
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-between gap-3 px-6 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4">
               <button
                 type="button"
                 onClick={() => suggestMutation.mutate()}
                 disabled={!channelId || suggestMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold text-sm disabled:opacity-50 transition-all hover:bg-gray-50"
-                style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0' }}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-2xl font-semibold text-sm disabled:opacity-50 transition-all hover:bg-gray-50 touch-manipulation"
+                style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0', minHeight: '44px' }}
               >
                 {suggestMutation.isPending
                   ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -410,8 +410,8 @@ export default function AutomationPage() {
                 type="button"
                 onClick={() => updateMutation.mutate()}
                 disabled={!channelId || updateMutation.isPending}
-                className="flex items-center gap-2 px-5 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 sm:py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all touch-manipulation"
+                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)', minHeight: '44px' }}
               >
                 {updateMutation.isPending
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>

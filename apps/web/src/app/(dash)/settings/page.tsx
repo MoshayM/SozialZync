@@ -737,8 +737,8 @@ function SettingsContent() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 sm:w-80">
-                      <div className="relative flex-1">
+                    <div className="flex items-center gap-2 w-full sm:w-80">
+                      <div className="relative flex-1 min-w-0">
                         <input
                           type={isVisible ? 'text' : 'password'}
                           value={displayValue}
@@ -746,23 +746,24 @@ function SettingsContent() {
                           onChange={(e) =>
                             setApiKeyDrafts((prev) => ({ ...prev, [entry.key]: e.target.value }))
                           }
-                          className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono pr-10 placeholder:text-gray-500 placeholder:font-sans"
-                          style={{ border: '1.5px solid #e3e0f0' }}
+                          className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono placeholder:text-gray-500 placeholder:font-sans"
+                          style={{ border: '1.5px solid #e3e0f0', paddingRight: entry.set && draft === undefined ? '5rem' : '2.5rem' }}
                         />
+                        {entry.set && draft === undefined && (
+                          <span className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-bold rounded-full px-2 py-0.5 whitespace-nowrap pointer-events-none" style={{ background: '#ecfdf5', color: '#065f46' }}>
+                            <CheckCircle className="w-3 h-3" /> Set
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => setShowKeys((p) => ({ ...p, [entry.key]: !isVisible }))}
                           aria-label={isVisible ? 'Hide key' : 'Show key'}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-600"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-600 touch-manipulation"
+                          style={{ minWidth: '32px', minHeight: '32px' }}
                         >
                           {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {entry.set && draft === undefined && (
-                        <span className="flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap" style={{ background: '#ecfdf5', color: '#065f46' }}>
-                          <CheckCircle className="w-3 h-3" /> Set
-                        </span>
-                      )}
                     </div>
                   </div>
                 );
