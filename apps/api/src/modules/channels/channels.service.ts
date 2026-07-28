@@ -463,13 +463,17 @@ export class ChannelsService implements OnModuleInit {
         id: true, youtubeChannelId: true, title: true, description: true,
         thumbnailUrl: true, customUrl: true, subscriberCount: true, videoCount: true,
         readOnly: true, active: true, lastSyncedAt: true, createdAt: true, scopes: true,
+        encryptedTokens: true,
       },
     });
     // Expose the effective access level so the creator can see and manage
     // exactly what the app is allowed to do with their channel.
-    return rows.map((ch) => ({
+    // tokenExpired = active:false AND encryptedTokens was cleared (invalid_grant path).
+    // This distinguishes OAuth expiry from a manual disconnect (which keeps encryptedTokens).
+    return rows.map(({ encryptedTokens, ...ch }) => ({
       ...ch,
       accessLevel: ch.readOnly ? 'READ_ONLY' : accessLevelFromScopes(ch.scopes ?? []),
+      tokenExpired: !ch.active && !encryptedTokens,
     }));
   }
 

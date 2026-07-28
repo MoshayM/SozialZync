@@ -39,24 +39,42 @@ export class EmbeddingGenerationService {
     }
 
     let done = 0;
+    let skippedChunks = 0;
     let tokensIn = 0;
     for (let i = 0; i < pending.length; i += CHUNK_SIZE) {
       const chunk = pending.slice(i, i + CHUNK_SIZE);
       onLog?.(`Embedding segments ${i + 1}–${i + chunk.length}/${pending.length}…`);
-      const result = await embedTexts(chunk.map((s) => s.text));
-      tokensIn += result.tokensIn;
-      await this.prisma.$transaction(
-        chunk.map((s, j) =>
-          this.prisma.transcriptSegment.update({
-            where: { id: s.id },
-            data: { embedding: result.embeddings[j]! },
-          }),
-        ),
-      );
-      done += chunk.length;
+      try {
+        const result = await embedTexts(chunk.map((s) => s.text));
+        tokensIn += result.tokensIn;
+        await this.prisma.$transaction(
+          chunk.map((s, j) =>
+            this.prisma.transcriptSegment.update({
+              where: { id: s.id },
+              data: { embedding: result.embeddings[j]! },
+            }),
+          ),
+        );
+        done += chunk.length;
+      } catch (err) {
+        const status = (err as { status?: number }).status ?? 0;
+        const msg = err instanceof Error ? err.message : String(err);
+        const isQuota = status === 429 || /quota|rate.?limit/i.test(msg);
+        if (isQuota) {
+          this.logger.warn(`[EmbeddingGeneration] Quota exhausted — skipping chunk ${i + 1}–${i + chunk.length} (will retry on next run): ${msg}`);
+          onLog?.(`Warning: quota exhausted for chunk ${i + 1}–${i + chunk.length}, skipping (semantic search will be partial)`);
+          skippedChunks++;
+        } else {
+          throw err;
+        }
+      }
     }
 
-    onLog?.(`Embedding generation complete — ${done} new (${total} total, ${tokensIn} tokens)`);
-    return { skipped: false, embedded: total };
+    if (skippedChunks > 0) {
+      onLog?.(`Embedding generation partial — ${done} embedded, ${skippedChunks} chunk(s) skipped due to quota (re-run to complete)`);
+    } else {
+      onLog?.(`Embedding generation complete — ${done} new (${total} total, ${tokensIn} tokens)`);
+    }
+    return { skipped: false, embedded: done, partiallySkipped: skippedChunks > 0 };
   }
 }

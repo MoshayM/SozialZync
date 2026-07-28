@@ -18,6 +18,7 @@ interface Channel {
   customUrl?: string;
   subscriberCount: number;
   active: boolean;
+  tokenExpired?: boolean;
   readOnly?: boolean;
   lastSyncedAt?: string;
   scopes?: string[];
@@ -230,15 +231,25 @@ function ChannelAccessContent() {
     },
   });
 
+  const [invalidGrantChannelId, setInvalidGrantChannelId] = useState<string | null>(null);
+
   const refreshTokenMutation = useMutation({
     mutationFn: (channelId: string) => api.channels.refresh(channelId),
     onSuccess: (res) => {
       const data = res.data as { expiresAt: string };
+      setInvalidGrantChannelId(null);
       void qc.invalidateQueries({ queryKey: ['channels'] });
       setBanner({ type: 'success', message: `Token refreshed — expires ${new Date(data.expiresAt).toLocaleString()}` });
     },
-    onError: (err: unknown) => {
-      setBanner({ type: 'error', message: getErrorMessage(err) || 'Failed to refresh token. Try reconnecting.' });
+    onError: (err: unknown, channelId: string) => {
+      const msg = getErrorMessage(err) ?? '';
+      const isGrant = msg.toLowerCase().includes('invalid_grant') || msg.toLowerCase().includes('invalid grant');
+      if (isGrant) {
+        setInvalidGrantChannelId(channelId);
+        setBanner({ type: 'error', message: 'Google authorisation expired — re-connect this channel to restore access.' });
+      } else {
+        setBanner({ type: 'error', message: msg || 'Failed to refresh token. Try reconnecting.' });
+      }
     },
   });
 
@@ -360,6 +371,27 @@ function ChannelAccessContent() {
                   </span>
                 )}
               </div>
+              {/* Token-expired / invalid_grant inline reconnect — shown above action row */}
+              {(ch.tokenExpired || invalidGrantChannelId === ch.id) && !ch.readOnly && (
+                <div className="flex items-center gap-3 mt-3 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <p className="text-xs text-amber-800 flex-1">
+                    {invalidGrantChannelId === ch.id
+                      ? 'Google authorisation expired. Re-connect to restore uploads and analytics.'
+                      : 'Token expired — publishing is paused until you re-authorise.'}
+                  </p>
+                  <button
+                    onClick={() => reconnectMutation.mutate(ch.accessLevel === 'FULL' || ch.accessLevel === 'READ_ONLY' ? ch.accessLevel : 'PUBLISH')}
+                    disabled={channelBusy}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-50 shrink-0 transition-colors"
+                  >
+                    {reconnectMutation.isPending
+                      ? <><Loader2 className="w-3 h-3 animate-spin" /> Redirecting…</>
+                      : <><RefreshCw className="w-3 h-3" /> Re-connect</>}
+                  </button>
+                </div>
+              )}
+
               {/* Action row — separate line so buttons never overflow on narrow screens */}
               <div className="flex items-center gap-2 mt-3 flex-wrap">
                 {confirmDisconnect === ch.id ? (
@@ -458,7 +490,7 @@ function ChannelAccessContent() {
 
             {/* Disconnected / inactive channels */}
             {inactiveChannels.map((ch) => (
-              <div key={ch.id} className="flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div key={ch.id} className={`flex items-center gap-4 rounded-xl p-4 border ${ch.tokenExpired ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
                 {ch.thumbnailUrl ? (
                   <img src={ch.thumbnailUrl} alt={ch.title} className="w-10 h-10 rounded-full object-cover grayscale" />
                 ) : (
@@ -467,8 +499,18 @@ function ChannelAccessContent() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-600 truncate">{ch.title}</p>
-                  <p className="text-sm text-gray-500">{ch.subscriberCount.toLocaleString()} subscribers · Signed out</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-gray-600 truncate">{ch.title}</p>
+                    {ch.tokenExpired && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300 rounded-full whitespace-nowrap">
+                        ⚠ Token expired
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    {ch.subscriberCount.toLocaleString()} subscribers ·{' '}
+                    {ch.tokenExpired ? 'Re-authorize to restore access' : 'Signed out'}
+                  </p>
                 </div>
 
                 {confirmRemove === ch.id ? (
@@ -494,12 +536,16 @@ function ChannelAccessContent() {
                     <button
                       onClick={() => reconnectMutation.mutate(ch.accessLevel === 'FULL' || ch.accessLevel === 'READ_ONLY' ? ch.accessLevel : 'PUBLISH')}
                       disabled={channelBusy}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors disabled:opacity-50"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors disabled:opacity-50 ${
+                        ch.tokenExpired
+                          ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-500'
+                          : 'border border-brand-300 text-brand-700 hover:bg-brand-50'
+                      }`}
                     >
                       {reconnectMutation.isPending
                         ? <Loader2 className="w-4 h-4 animate-spin" />
                         : <RefreshCw className="w-4 h-4" />}
-                      Reconnect
+                      {ch.tokenExpired ? 'Re-authorize' : 'Reconnect'}
                     </button>
                     <button
                       onClick={() => setConfirmRemove(ch.id)}

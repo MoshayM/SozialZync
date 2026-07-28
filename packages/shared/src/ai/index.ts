@@ -931,10 +931,12 @@ export interface EmbeddingResult {
   tokensIn: number;
 }
 
-function pickEmbeddingProvider(): 'openai' | 'gemini' {
-  if (process.env['OPENAI_API_KEY']) return 'openai';
-  if (process.env['GEMINI_API_KEY']) return 'gemini';
-  throw new Error('Embeddings need OPENAI_API_KEY or GEMINI_API_KEY');
+function pickEmbeddingProviders(): Array<'openai' | 'gemini'> {
+  const chain: Array<'openai' | 'gemini'> = [];
+  if (process.env['OPENAI_API_KEY']) chain.push('openai');
+  if (process.env['GEMINI_API_KEY']) chain.push('gemini');
+  if (chain.length === 0) throw new Error('Embeddings need OPENAI_API_KEY or GEMINI_API_KEY');
+  return chain;
 }
 
 function unitNorm(v: number[]): number[] {
@@ -943,9 +945,11 @@ function unitNorm(v: number[]): number[] {
 }
 
 export async function embedTexts(texts: string[]): Promise<EmbeddingResult> {
-  const provider = pickEmbeddingProvider();
-  const model = EMBEDDING_MODELS[provider];
-  const client = provider === 'openai' ? getOpenAI() : getGemini();
+  const [provider, ...fallbackProviders] = pickEmbeddingProviders();
+  if (!provider) throw new Error('Embeddings need OPENAI_API_KEY or GEMINI_API_KEY');
+  let activeProvider = provider;
+  let model = EMBEDDING_MODELS[activeProvider];
+  let client = activeProvider === 'openai' ? getOpenAI() : getGemini();
 
   const adapter = _cacheAdapter;
   const embTtl = envInt('AI_EMBEDDING_CACHE_TTL_SECONDS', 30 * 24 * 60 * 60); // 30 days
@@ -981,7 +985,7 @@ export async function embedTexts(texts: string[]): Promise<EmbeddingResult> {
   if (cachedCount > 0) {
     try {
       usageListener?.({
-        provider,
+        provider: activeProvider,
         model,
         tokensIn: 0,
         tokensOut: 0,
@@ -992,6 +996,8 @@ export async function embedTexts(texts: string[]): Promise<EmbeddingResult> {
     } catch { /* noop */ }
   }
 
+  const remainingFallbacks = [...fallbackProviders];
+
   // ── Fetch misses from the provider in batches ──────────────────────────────
   for (let i = 0; i < missTexts.length; i += EMBEDDING_BATCH_SIZE) {
     const batchTexts = missTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
@@ -1001,20 +1007,30 @@ export async function embedTexts(texts: string[]): Promise<EmbeddingResult> {
       let lastErr: unknown;
       let response: OpenAI.CreateEmbeddingResponse | null = null;
       const MAX_ATTEMPTS = 3;
-      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-        try {
-          response = await client.embeddings.create({ model, input: batchTexts, dimensions: EMBEDDING_DIMS });
-          break;
-        } catch (err) {
-          lastErr = err;
-          const status = (err as { status?: number }).status ?? 0;
-          if (status !== 429 && status < 500) throw err;
-          // Don't sleep after the final attempt — we're about to give up, so a
-          // dead/quota-exhausted provider fails in ~5s instead of ~21s.
-          if (attempt < MAX_ATTEMPTS - 1) {
-            await new Promise((r) => setTimeout(r, 1000 * 4 ** attempt));
+      let batchAttempt = 0;
+      while (!response) {
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+          try {
+            response = await client.embeddings.create({ model, input: batchTexts, dimensions: EMBEDDING_DIMS });
+            break;
+          } catch (err) {
+            lastErr = err;
+            const status = (err as { status?: number }).status ?? 0;
+            if (status !== 429 && status < 500) throw err;
+            if (attempt < MAX_ATTEMPTS - 1) {
+              await new Promise((r) => setTimeout(r, 1000 * 4 ** attempt));
+            }
           }
         }
+        if (response) break;
+        // Primary provider exhausted its retries — try next provider in chain
+        const next = remainingFallbacks.shift();
+        if (!next) break; // all providers exhausted
+        console.warn(`[AI:embedding-failover] ${activeProvider} quota exhausted → switching to ${next} (batch ${batchAttempt + 1})`);
+        activeProvider = next;
+        model = EMBEDDING_MODELS[activeProvider];
+        client = activeProvider === 'openai' ? getOpenAI() : getGemini();
+        batchAttempt++;
       }
       if (!response) throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 
@@ -1042,15 +1058,15 @@ export async function embedTexts(texts: string[]): Promise<EmbeddingResult> {
   // Same ledger as chat calls (§12.2.8) — no embedding goes unmetered
   try {
     usageListener?.({
-      provider,
+      provider: activeProvider,
       model,
       tokensIn,
       tokensOut: 0,
-      costUsd: (tokensIn / 1_000_000) * EMBEDDING_COST_PER_1M[provider],
+      costUsd: (tokensIn / 1_000_000) * EMBEDDING_COST_PER_1M[activeProvider],
     });
   } catch { /* noop */ }
 
-  return { embeddings, provider, model, tokensIn };
+  return { embeddings, provider: activeProvider, model, tokensIn };
 }
 
 // ── Routing Simulation (Phase 5 §16 dry-run) ──────────────────────────────────
