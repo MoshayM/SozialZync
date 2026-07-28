@@ -28,12 +28,49 @@ import {
   Send,
   Loader2,
 } from 'lucide-react';
-import { StatCard, PastelBars } from '@/components/stat-card';
+import { StatCard, PastelBars, PastelDonut } from '@/components/stat-card';
 import { DevicePreview } from '@/components/device-preview';
-import { api, type AdminProvider, type AdminUser, type EnterpriseMetrics, type ForecastRow } from '@/lib/api';
+import { api, apiClient, type AdminProvider, type AdminUser, type EnterpriseMetrics, type ForecastRow } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
-type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests';
+type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage';
+
+// ── Token usage types (platform-wide, admin only) ─────────────────────────────
+interface TokenUsageSummary {
+  sinceDays: number;
+  totals: { calls: number; tokensIn: number; tokensOut: number; costUsd: number };
+  byModel: Array<{ provider: string; model: string; calls: number; tokensIn: number; tokensOut: number; costUsd: number }>;
+  copilot: { turns: number; cacheHits: number; cacheHitRate: number | null };
+  byVideo: Array<{ importedVideoId: string; title: string; calls: number; tokensIn: number; tokensOut: number; costUsd: number }>;
+  byDay: Array<{ date: string; costUsd: number; tokensIn: number; tokensOut: number; calls: number }>;
+}
+
+function aiProviderColor(p: string): string {
+  const key = p.toLowerCase();
+  if (key.includes('claude') || key.includes('anthropic')) return '#6D4AE0';
+  if (key.includes('gemini') || key.includes('google')) return '#4285F4';
+  if (key.includes('gpt') || key.includes('openai')) return '#10A37F';
+  return '#8b88a0';
+}
+
+function aiProviderLabel(p: string): string {
+  const map: Record<string, string> = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', azure: 'Azure', mistral: 'Mistral' };
+  return map[p.toLowerCase()] ?? p.charAt(0).toUpperCase() + p.slice(1);
+}
+
+function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] }) {
+  if (!byDay.length) return <p className="text-xs text-gray-400 py-4 text-center">No daily data</p>;
+  const max = Math.max(...byDay.map((d) => d.costUsd), 0.0001);
+  return (
+    <div className="flex items-end gap-[3px] h-20 w-full overflow-hidden">
+      {byDay.map((d) => (
+        <div key={d.date} className="flex-1 flex flex-col items-center justify-end" title={`${d.date}: $${d.costUsd.toFixed(4)}`}>
+          <div className="w-full rounded-t-sm" style={{ height: `${Math.max((d.costUsd / max) * 72, 2)}px`, background: '#6D4AE0', opacity: 0.7 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
@@ -282,6 +319,11 @@ export default function AdminDashboardPage() {
   const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'pro' | 'enterprise'>('all');
   const [impersonating, setImpersonating] = useState<AdminUser | null>(null);
 
+  // AI Usage state (platform-wide, lazy-loaded)
+  const [aiUsage, setAiUsage] = useState<TokenUsageSummary | null | 'error'>(null);
+  const [aiUsageLoading, setAiUsageLoading] = useState(false);
+  const [aiUsageLoaded, setAiUsageLoaded] = useState(false);
+
   // Enterprise Requests state
   const [enterpriseRequests, setEnterpriseRequests] = useState<EnterpriseRequest[]>(SEED_REQUESTS);
   const [validatingId, setValidatingId] = useState<string | null>(null);
@@ -381,6 +423,20 @@ export default function AdminDashboardPage() {
     finally { setUsersLoading(false); }
   }, [users.length]);
 
+  const loadAiUsage = useCallback(async () => {
+    if (aiUsageLoaded) return;
+    setAiUsageLoading(true);
+    try {
+      const r = await apiClient.get<TokenUsageSummary>('/token-usage/summary');
+      setAiUsage(r.data);
+    } catch {
+      setAiUsage('error');
+    } finally {
+      setAiUsageLoading(false);
+      setAiUsageLoaded(true);
+    }
+  }, [aiUsageLoaded]);
+
   const filteredUsers = users.filter((u) => {
     const plan = u.subscription?.plan?.toLowerCase() ?? 'free';
     const matchPlan = planFilter === 'all' || plan === planFilter;
@@ -431,6 +487,7 @@ export default function AdminDashboardPage() {
         {(
           [
             { id: 'dashboard',           label: 'Enterprise Dashboard', icon: <BarChart2 className="w-4 h-4" /> },
+            { id: 'ai-usage',            label: 'AI Usage',             icon: <Cpu className="w-4 h-4" /> },
             { id: 'page-views',          label: 'Page Views',           icon: <Eye className="w-4 h-4" /> },
             { id: 'users',               label: 'User Accounts',        icon: <Users className="w-4 h-4" /> },
             {
@@ -444,7 +501,11 @@ export default function AdminDashboardPage() {
           <button
             key={id}
             type="button"
-            onClick={() => { setAdminTab(id); if (id === 'users') void loadUsers(); }}
+            onClick={() => {
+              setAdminTab(id);
+              if (id === 'users') void loadUsers();
+              if (id === 'ai-usage') void loadAiUsage();
+            }}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
             style={adminTab === id
               ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
@@ -459,6 +520,179 @@ export default function AdminDashboardPage() {
 
       {/* ── Device Preview ──────────────────────────────────────────────────── */}
       {adminTab === 'device-preview' && <DevicePreview />}
+
+      {/* ── AI Usage ────────────────────────────────────────────────────────── */}
+      {adminTab === 'ai-usage' && (
+        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">AI Usage — All Users</h1>
+              <p className="text-sm text-gray-400 mt-0.5">Platform-wide token spend, model breakdown, and copilot cache health</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setAiUsageLoaded(false); void loadAiUsage(); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-gray-600 transition-colors"
+              style={{ border: '1.5px solid #e3ddf8' }}
+            >
+              <RefreshCw className={`w-4 h-4 ${aiUsageLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {aiUsageLoading && (
+            <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
+              <p className="text-sm text-gray-400">Loading AI usage data…</p>
+            </div>
+          )}
+
+          {aiUsage === 'error' && (
+            <div className="bg-red-50 text-red-600 text-sm rounded-2xl px-4 py-3" style={{ border: '1.5px solid #fecaca' }}>
+              Failed to load AI usage data. Check that your role has the required permissions.
+            </div>
+          )}
+
+          {aiUsage && aiUsage !== 'error' && aiUsage.totals.calls === 0 && (
+            <div className="bg-white rounded-3xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
+                <Cpu className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+              </div>
+              <p className="text-base font-extrabold text-gray-900 mb-1">No AI usage yet</p>
+              <p className="text-sm text-gray-400">Run the content pipeline to start generating AI usage data.</p>
+            </div>
+          )}
+
+          {aiUsage && aiUsage !== 'error' && aiUsage.totals.calls > 0 && (() => {
+            const providerMap = new Map<string, { costUsd: number; tokensIn: number; tokensOut: number; calls: number }>();
+            for (const m of aiUsage.byModel) {
+              const ex = providerMap.get(m.provider) ?? { costUsd: 0, tokensIn: 0, tokensOut: 0, calls: 0 };
+              providerMap.set(m.provider, { costUsd: ex.costUsd + m.costUsd, tokensIn: ex.tokensIn + m.tokensIn, tokensOut: ex.tokensOut + m.tokensOut, calls: ex.calls + m.calls });
+            }
+            const providerList = Array.from(providerMap.entries())
+              .map(([p, d]) => ({ provider: p, label: aiProviderLabel(p), color: aiProviderColor(p), ...d }))
+              .sort((a, b) => b.costUsd - a.costUsd);
+
+            const donutSegments = providerList.map((p) => ({ label: p.label, value: p.costUsd, color: p.color }));
+            const barData = providerList.map((p) => ({ label: p.label, value: p.costUsd, title: `$${p.costUsd.toFixed(4)}` }));
+
+            return (
+              <>
+                {/* Summary stat cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <StatCard tone="lilac"      icon={<DollarSign className="w-5 h-5" />} label="Total Cost"  value={`$${aiUsage.totals.costUsd.toFixed(4)}`}                              sub={`last ${aiUsage.sinceDays}d`}   subClassName="text-gray-500" />
+                  <StatCard tone="pink"       icon={<Activity className="w-5 h-5" />}   label="API Calls"  value={aiUsage.totals.calls.toLocaleString()}                               sub="provider requests"              subClassName="text-gray-500" />
+                  <StatCard tone="cream"      icon={<TrendingUp className="w-5 h-5" />} label="Tokens In"  value={`${(aiUsage.totals.tokensIn / 1000).toFixed(1)}K`}                  sub="prompt tokens"                  subClassName="text-gray-500" />
+                  <StatCard tone="periwinkle" icon={<BarChart2 className="w-5 h-5" />}  label="Tokens Out" value={`${(aiUsage.totals.tokensOut / 1000).toFixed(1)}K`}                 sub="completion tokens"              subClassName="text-gray-500" />
+                </div>
+
+                {/* Daily trend + Copilot cache */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div className="sm:col-span-2 bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Daily Cost Trend</p>
+                    <DailyTrendBars byDay={aiUsage.byDay} />
+                    {aiUsage.byDay.length > 0 && (
+                      <div className="flex justify-between mt-1">
+                        <span className="text-[10px] text-gray-400">{aiUsage.byDay[0]?.date}</span>
+                        <span className="text-[10px] text-gray-400">{aiUsage.byDay[aiUsage.byDay.length - 1]?.date}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-white rounded-2xl p-5 flex flex-col justify-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Copilot Cache</p>
+                    {aiUsage.copilot.cacheHitRate != null ? (
+                      <>
+                        <p className="text-3xl font-black" style={{ color: aiUsage.copilot.cacheHitRate >= 0.8 ? '#16a34a' : '#c2410c' }}>
+                          {(aiUsage.copilot.cacheHitRate * 100).toFixed(0)}%
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">cache-hit rate</p>
+                        <p className="text-xs text-gray-400">{aiUsage.copilot.cacheHits} hits / {aiUsage.copilot.turns} turns</p>
+                        <p className="text-[10px] text-gray-300 mt-1">target ≥ 80%</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-400">No copilot turns yet</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Provider breakdown */}
+                {providerList.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Cost by Provider</p>
+                      <PastelBars data={barData} formatValue={(v) => `$${v.toFixed(4)}`} />
+                    </div>
+                    <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Provider Share</p>
+                      <PastelDonut segments={donutSegments} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Per-model detail table */}
+                <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Per Model Breakdown</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left">
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Provider / Model</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {aiUsage.byModel.slice().sort((a, b) => b.costUsd - a.costUsd).map((m) => (
+                          <tr key={`${m.provider}:${m.model}`} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                            <td className="py-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: aiProviderColor(m.provider) }} />
+                                <span className="font-medium text-gray-800">{aiProviderLabel(m.provider)}</span>
+                                <span className="text-gray-400 text-xs truncate max-w-[160px]">{m.model}</span>
+                              </div>
+                            </td>
+                            <td className="py-2 text-right text-gray-500">{m.calls.toLocaleString()}</td>
+                            <td className="py-2 text-right text-gray-500">{(m.tokensIn + m.tokensOut).toLocaleString()}</td>
+                            <td className="py-2 text-right font-bold text-gray-900">${m.costUsd.toFixed(4)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Cost by video */}
+                {(aiUsage.byVideo ?? []).length > 0 && (
+                  <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Cost by Video (top 15)</p>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left">
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Video</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {aiUsage.byVideo.map((v) => (
+                          <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                            <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
+                            <td className="py-1.5 text-right text-gray-500">{v.calls}</td>
+                            <td className="py-1.5 text-right text-gray-500">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
+                            <td className="py-1.5 text-right font-bold text-gray-900">${v.costUsd.toFixed(3)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
 
       {/* ── Page Views ─────────────────────────────────────────────────────── */}
       {adminTab === 'page-views' && (

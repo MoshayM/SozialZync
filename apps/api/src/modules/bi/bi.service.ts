@@ -200,45 +200,43 @@ export class BiService {
       aiCostSum30d,
       cacheHitCostSum30d,
       topModels,
-      publishedVideos30d,
-      activeChannelRows,
     ] = await Promise.all([
       // Active subscriptions grouped by plan for MRR/ARR
       this.prisma.subscription.groupBy({
         by: ['plan'],
         where: { status: 'ACTIVE' },
         _count: true,
-      }),
+      }).catch(() => [] as Array<{ plan: string; _count: number }>),
 
       // Subscriptions cancelled in the last 30d (churn numerator)
       this.prisma.subscription.count({
         where: { status: 'CANCELLED', updatedAt: { gte: thirtyDaysAgo } },
-      }),
+      }).catch(() => 0),
 
       // Succeeded payments in the last 6 months for monthly revenue buckets
       this.prisma.payment.findMany({
         where: { status: 'SUCCEEDED', createdAt: { gte: new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000) } },
         select: { createdAt: true, amount: true },
         orderBy: { createdAt: 'asc' },
-      }),
+      }).catch(() => [] as Array<{ createdAt: Date; amount: number }>),
 
       // Distinct paying users last 30d (for ARPU denominator)
       this.prisma.payment.groupBy({
         by: ['userId'],
         where: { status: 'SUCCEEDED', createdAt: { gte: thirtyDaysAgo } },
-      }),
+      }).catch(() => [] as Array<{ userId: string }>),
 
       // Total revenue last 30d
       this.prisma.payment.aggregate({
         where: { status: 'SUCCEEDED', createdAt: { gte: thirtyDaysAgo } },
         _sum: { amount: true },
-      }),
+      }).catch(() => ({ _sum: { amount: 0 } })),
 
       // AI cost last 30d (non-cache rows)
       this.prisma.tokenUsage.aggregate({
         where: { createdAt: { gte: thirtyDaysAgo }, fromCache: false },
         _sum: { costUsd: true },
-      }),
+      }).catch(() => ({ _sum: { costUsd: 0 } })),
 
       // Cache hit rows last 30d — costUsd is 0 for cache hits in this
       // codebase (no charge on cache).  Estimate via tokensIn + tokensOut
@@ -247,7 +245,7 @@ export class BiService {
       this.prisma.tokenUsage.aggregate({
         where: { createdAt: { gte: thirtyDaysAgo }, fromCache: true },
         _sum: { tokensIn: true, tokensOut: true, costUsd: true },
-      }),
+      }).catch(() => ({ _sum: { tokensIn: 0, tokensOut: 0, costUsd: 0 } })),
 
       // Top 5 models by cost last 30d
       this.prisma.tokenUsage.groupBy({
@@ -256,22 +254,19 @@ export class BiService {
         _sum: { costUsd: true, tokensIn: true, tokensOut: true },
         orderBy: { _sum: { costUsd: 'desc' } },
         take: 5,
-      }),
-
-      // North-star numerator: videos published through the workflow last 30d
-      this.prisma.video.count({
-        where: { status: 'PUBLISHED', publishedAt: { gte: thirtyDaysAgo } },
-      }),
-
-      // North-star denominator: distinct channels with workflow activity
-      // last 30d.  Selects only channelId over an indexed relation filter —
-      // bounded by channel count, not job count.
-      this.prisma.project.findMany({
-        where: { jobs: { some: { createdAt: { gte: thirtyDaysAgo } } } },
-        select: { channelId: true },
-        distinct: ['channelId'],
-      }),
+      }).catch(() => [] as Array<{ model: string; _sum: { costUsd: number | null; tokensIn: number | null; tokensOut: number | null } }>),
     ]);
+
+    // North-star queries run independently so a failure in one doesn't block the rest
+    const publishedVideos30d = await this.prisma.video.count({
+      where: { status: 'PUBLISHED', publishedAt: { gte: thirtyDaysAgo } },
+    }).catch(() => 0);
+
+    const activeChannelRows = await this.prisma.project.findMany({
+      where: { jobs: { some: { createdAt: { gte: thirtyDaysAgo } } } },
+      select: { channelId: true },
+      distinct: ['channelId'],
+    }).catch(() => [] as Array<{ channelId: string | null }>);
 
     // MRR: sum of (count × monthly plan price) across active subscriptions
     const prices = planPriceMap();
