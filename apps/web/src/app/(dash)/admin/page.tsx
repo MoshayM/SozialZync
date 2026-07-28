@@ -58,8 +58,8 @@ function aiProviderLabel(p: string): string {
   return map[p.toLowerCase()] ?? p.charAt(0).toUpperCase() + p.slice(1);
 }
 
-function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] }) {
-  if (!byDay.length) return <p className="text-xs text-gray-400 py-4 text-center">No daily data</p>;
+function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] | undefined | null }) {
+  if (!byDay?.length) return <p className="text-xs text-gray-400 py-4 text-center">No daily data</p>;
   const max = Math.max(...byDay.map((d) => d.costUsd), 0.0001);
   return (
     <div className="flex items-end gap-[3px] h-20 w-full overflow-hidden">
@@ -591,7 +591,7 @@ export default function AdminDashboardPage() {
                   <div className="sm:col-span-2 bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                     <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Daily Cost Trend</p>
                     <DailyTrendBars byDay={aiUsage.byDay} />
-                    {aiUsage.byDay.length > 0 && (
+                    {(aiUsage.byDay?.length ?? 0) > 0 && (
                       <div className="flex justify-between mt-1">
                         <span className="text-[10px] text-gray-400">{aiUsage.byDay[0]?.date}</span>
                         <span className="text-[10px] text-gray-400">{aiUsage.byDay[aiUsage.byDay.length - 1]?.date}</span>

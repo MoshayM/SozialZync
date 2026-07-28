@@ -51,6 +51,8 @@ model User {
   developerKeys    DeveloperKey[]
   developerWebhooks DeveloperWebhook[]
   passwordResetTokens PasswordResetToken[]
+  providerConfigs     UserProviderConfig[]
+  musicTracks  MusicTrack[]
 
   @@map("users")
 }
@@ -1175,6 +1177,34 @@ model PricingRule {
   @@map("pricing_rules")
 }
 
+// User-configured AI provider endpoints (self-hosted AI spec §2).
+// Stores connection settings for local/cloud LLM providers per user.
+model UserProviderConfig {
+  id          String   @id @default(cuid())
+  userId      String
+  provider    String   // 'ollama' | 'lm-studio' | 'localai' | 'vllm' | 'openrouter' | 'openai-compat'
+  label       String
+  baseUrl     String
+  apiKeyEnc   String?  // encrypted API key (AES-256 via crypto module)
+  model       String?
+  enabled     Boolean  @default(true)
+  priority    Int      @default(50)
+  isDefault   Boolean  @default(false)
+  isFallback  Boolean  @default(false)
+  temperature Float?
+  maxTokens   Int?
+  streaming   Boolean  @default(true)
+  visionSupport Boolean @default(false)
+  functionCalling Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, provider])
+  @@map("user_provider_configs")
+}
+
 enum PaymentGateway {
   STRIPE
   RAZORPAY
@@ -2106,4 +2136,39 @@ enum CalendarEntryStatus {
   APPROVED
   DISMISSED
   SCHEDULED
+}
+
+// Royalty-free music library (content.txt §7).
+// Users upload local files or import CC/royalty-free tracks.
+// Never store copyrighted music.
+model MusicTrack {
+  id           String   @id @default(cuid())
+  userId       String
+  title        String
+  artist       String?
+  album        String?
+  duration     Int      // seconds
+  bpm          Int?
+  key          String?  // musical key e.g. 'C major'
+  mood         String[] // ['energetic', 'calm', 'dramatic', ...]
+  genre        String[] // ['electronic', 'ambient', 'cinematic', ...]
+  tags         String[]
+  license      String   // 'cc0' | 'cc-by' | 'cc-by-sa' | 'royalty-free' | 'custom'
+  licenseUrl   String?
+  source       String?  // e.g. 'freemusicarchive.org', 'pixabay.com'
+  attribution  String?  // required attribution text
+  fileUrl      String   // local path or public URL
+  fileSizeBytes Int?
+  waveformData String?  // JSON array of normalized amplitudes for waveform display
+  previewUrl   String?
+  isAiGenerated Boolean @default(false)
+  aiModel      String?  // if AI-generated, which model
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, license])
+  @@index([userId, mood])
+  @@map("music_tracks")
 }

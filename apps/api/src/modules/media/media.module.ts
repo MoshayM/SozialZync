@@ -4,12 +4,18 @@ import { StorageService } from './storage.service';
 import { R2StorageService } from './r2-storage.service';
 import { ExportsService } from './exports.service';
 import { MediaController } from './media.controller';
+import { ImageGenerationService } from './image-generation.service';
+import { ImageGenerationController } from './image-generation.controller';
+import { VideoGenerationService } from './video-generation.service';
+import { VideoGenerationController } from './video-generation.controller';
 
 @Module({
-  controllers: [MediaController],
+  controllers: [MediaController, ImageGenerationController, VideoGenerationController],
   providers: [
     MediaService,
     ExportsService,
+    ImageGenerationService,
+    VideoGenerationService,
     {
       provide: StorageService,
       useFactory: (): StorageService =>
@@ -18,6 +24,6 @@ import { MediaController } from './media.controller';
           : new StorageService(),
     },
   ],
-  exports: [MediaService, StorageService, ExportsService],
+  exports: [MediaService, StorageService, ExportsService, ImageGenerationService, VideoGenerationService],
 })
 export class MediaModule {}

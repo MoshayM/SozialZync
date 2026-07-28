@@ -223,7 +223,7 @@ function ScriptViewer({ r }: { r: Record<string, unknown> }) {
   const plainText = [
     title,
     hook ? `HOOK\n${hook}` : '',
-    ...sections.map((s) => `${s.heading.toUpperCase()}\n${s.content}`),
+    ...sections.map((s) => `${(s.heading?.toUpperCase() ?? '')}\n${s.content ?? ''}`),
     cta ? `CALL TO ACTION\n${cta}` : '',
     sources.length ? `SOURCES\n${sources.join('\n')}` : '',
   ].filter(Boolean).join('\n\n');
@@ -231,7 +231,7 @@ function ScriptViewer({ r }: { r: Record<string, unknown> }) {
   const mdText = [
     title ? `# ${title}` : '',
     hook ? `\n## Hook\n\n${hook}` : '',
-    ...sections.map((s) => `\n## ${s.heading}\n\n${s.content}`),
+    ...sections.map((s) => `\n## ${s.heading ?? ''}\n\n${s.content ?? ''}`),
     cta ? `\n## Call to Action\n\n${cta}` : '',
     sources.length ? `\n## Sources\n\n${sources.map((s) => `- ${s}`).join('\n')}` : '',
   ].filter(Boolean).join('\n');
@@ -895,13 +895,14 @@ export default function ProjectDetailPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 pb-3 pt-2 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 pb-3 pt-2 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
                 activeTab === tab.id
                   ? 'border-[#6D4AE0] text-[#6D4AE0]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab.icon} {tab.label}
+              {tab.icon}
+              <span className="hidden sm:inline">{tab.label}</span>
               {tab.dot && <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />}
             </button>
           ))}
@@ -1115,7 +1116,7 @@ export default function ProjectDetailPage() {
           ) : (
             <div className="space-y-4">
               {/* Summary bar */}
-              <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 flex items-center gap-6 text-sm text-gray-600">
+              <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
                 <span><strong className="text-gray-900">{storyboardData.scenes.length}</strong> scenes</span>
                 <span><strong className="text-gray-900">{Math.round(storyboardData.totalDurationSecs)}s</strong> total</span>
                 {storyboardData.semanticMethod && (
@@ -1129,7 +1130,7 @@ export default function ProjectDetailPage() {
                 <button
                   onClick={() => { void enqueueStoryboard(); }}
                   disabled={enqueuePending}
-                  className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  className="ml-auto sm:ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
                 >
                   {enqueuePending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   Regenerate
@@ -1426,7 +1427,7 @@ export default function ProjectDetailPage() {
                   <p className="text-sm text-gray-600 flex-1">{factCheckResult.summary}</p>
                 </div>
                 <div className="space-y-2">
-                  {factCheckResult.claims.map((c, i) => (
+                  {(factCheckResult.claims ?? []).map((c, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 border border-gray-100 rounded-lg">
                       <span className={`mt-0.5 flex-shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${
                         c.verdict === 'SUPPORTED' ? 'bg-green-100 text-green-700'
@@ -2345,8 +2346,8 @@ function SceneCard({ scene, index }: { scene: Scene; index: number }) {
       </div>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">{durationStr}</span>
-        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">{scene.shotType}</span>
+        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">{durationStr}</span>
+        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">{scene.shotType}</span>
         {scene.emotion && (
           <span className={`px-2 py-0.5 rounded-full text-xs ${emotionStyle}`}>{scene.emotion}</span>
         )}

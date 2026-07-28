@@ -1,4 +1,4 @@
-import { execFile, spawn } from 'child_process';
+import { execFile, execSync, spawn } from 'child_process';
 import { existsSync, promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -8,13 +8,24 @@ let _ffmpegPath: string | null | undefined;
 
 export function ffmpegPath(): string | null {
   if (_ffmpegPath !== undefined) return _ffmpegPath;
+  // 1. Explicit env override
+  if (process.env.FFMPEG_PATH) {
+    const envPath = process.env.FFMPEG_PATH;
+    if (existsSync(envPath)) return (_ffmpegPath = envPath);
+  }
+  // 2. Bundled ffmpeg-static binary
   try {
     const p = require('ffmpeg-static') as string | null;
-    _ffmpegPath = p && existsSync(p) ? p : null;
-  } catch {
-    _ffmpegPath = null;
-  }
-  return _ffmpegPath;
+    if (p && existsSync(p)) return (_ffmpegPath = p);
+  } catch { /* not installed */ }
+  // 3. System ffmpeg in PATH
+  try {
+    const cmd = process.platform === 'win32' ? 'where ffmpeg' : 'which ffmpeg';
+    const out = execSync(cmd, { stdio: ['pipe', 'pipe', 'pipe'] }).toString().trim();
+    const systemPath = out.split(/[\r\n]/)[0]?.trim();
+    if (systemPath && existsSync(systemPath)) return (_ffmpegPath = systemPath);
+  } catch { /* not in PATH */ }
+  return (_ffmpegPath = null);
 }
 
 /** Classify ffmpeg stderr into a user-safe reason string. */

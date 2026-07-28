@@ -7,6 +7,11 @@ import type {
   GeneratedMedia, VoiceAdapter, ImageAdapter, MusicAdapter, VideoAdapter,
   VoiceRequest, ImageRequest, MusicRequest, SceneVideoRequest,
 } from './media.types';
+import { CoquiVoiceAdapter } from './adapters/voice-coqui.adapter';
+import { FishSpeechVoiceAdapter } from './adapters/voice-fish-speech.adapter';
+import { StyleTTS2VoiceAdapter } from './adapters/voice-styletts2.adapter';
+import { KokoroVoiceAdapter } from './adapters/voice-kokoro.adapter';
+import { PiperVoiceAdapter } from './adapters/voice-piper.adapter';
 import { ElevenLabsVoiceAdapter } from './adapters/voice-elevenlabs.adapter';
 import { OpenAiVoiceAdapter } from './adapters/voice-openai.adapter';
 import { OfflineVoiceAdapter } from './adapters/voice-offline.adapter';
@@ -50,7 +55,7 @@ export class MediaService {
 
   private readonly voice: AdapterChain<VoiceAdapter> = {
     configured: process.env['VOICE_PROVIDER'],
-    adapters: [new ElevenLabsVoiceAdapter(), new OpenAiVoiceAdapter(), new OfflineVoiceAdapter()],
+    adapters: [new CoquiVoiceAdapter(), new FishSpeechVoiceAdapter(), new StyleTTS2VoiceAdapter(), new KokoroVoiceAdapter(), new PiperVoiceAdapter(), new ElevenLabsVoiceAdapter(), new OpenAiVoiceAdapter(), new OfflineVoiceAdapter()],
   };
   private readonly image: AdapterChain<ImageAdapter> = {
     configured: process.env['IMAGE_PROVIDER'],

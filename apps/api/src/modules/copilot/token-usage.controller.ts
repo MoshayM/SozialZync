@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Logger, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';

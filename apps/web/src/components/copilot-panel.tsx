@@ -744,7 +744,9 @@ export function CopilotPanel() {
         style={{
           position:'fixed', top:0, right:0, bottom:0,
           zIndex:46,
-          background:'#faf9ff',
+          background: 'rgba(250,249,255,0.82)',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)',
           borderLeft:'1px solid #E2DCF5',
           boxShadow:'-24px 0 60px -20px rgba(30,27,46,.18)',
           display:'flex', flexDirection:'column',

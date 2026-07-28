@@ -5,7 +5,21 @@ import { z } from 'zod';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type AIProvider = 'anthropic' | 'openai' | 'gemini';
+export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'ollama' | 'lm-studio' | 'localai' | 'vllm' | 'openrouter' | 'openai-compat';
+
+export interface CustomProviderConfig {
+  id: string;
+  provider: Exclude<AIProvider, 'anthropic' | 'openai' | 'gemini'>;
+  label: string;
+  baseUrl: string;
+  apiKey?: string;
+  defaultModel: string;
+  enabled: boolean;
+  priority: number;
+  temperature?: number;
+  maxTokens?: number;
+  streaming?: boolean;
+}
 
 export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
@@ -186,6 +200,36 @@ const providerHealth = new Map<AIProvider, ProviderHealth>([
   ['openai',    { score: 80,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
   ['gemini',    { score: 60,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
 ]);
+
+// ── Custom OpenAI-compatible providers (Ollama, LM Studio, vLLM, etc.) ─────────
+
+const _customProviders = new Map<string, { config: CustomProviderConfig; client: OpenAI }>();
+
+export function setCustomProviders(configs: CustomProviderConfig[]): void {
+  _customProviders.clear();
+  for (const cfg of configs) {
+    if (!cfg.enabled) continue;
+    _customProviders.set(cfg.provider, {
+      config: cfg,
+      client: new OpenAI({
+        apiKey: cfg.apiKey || 'not-required',
+        baseURL: cfg.baseUrl,
+        timeout: 30_000,
+        maxRetries: 0,
+      }),
+    });
+    // Seed health entry if not present
+    if (!providerHealth.has(cfg.provider)) {
+      providerHealth.set(cfg.provider, {
+        score: cfg.priority,
+        cooldownUntil: 0,
+        consecutiveFailures: 0,
+        successCount: 0,
+        failureCount: 0,
+      });
+    }
+  }
+}
 
 function getHealth(p: AIProvider): ProviderHealth {
   return providerHealth.get(p) ?? { score: 50, cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 };
@@ -501,20 +545,27 @@ function buildOptimizedMessages(messages: AIMessage[], systemPrompt: string): { 
 // ── Cost Estimation ───────────────────────────────────────────────────────────
 
 // Approximate USD per 1M tokens (input / output)
-const PROVIDER_COST_PER_1M: Record<AIProvider, { input: number; output: number }> = {
-  anthropic: { input: 3.00, output: 15.00 },
-  openai:    { input: 2.50, output: 10.00 },
-  gemini:    { input: 0.10, output: 0.40  },
+// Custom/local providers default to 0 cost (self-hosted); their entries are absent.
+const PROVIDER_COST_PER_1M: Partial<Record<AIProvider, { input: number; output: number }>> = {
+  anthropic:  { input: 3.00, output: 15.00 },
+  openai:     { input: 2.50, output: 10.00 },
+  gemini:     { input: 0.10, output: 0.40  },
+  openrouter: { input: 0.00, output: 0.00  }, // billed per-model by OpenRouter; treat as 0 here
 };
 
 function estimateCost(provider: AIProvider, tokensIn: number, tokensOut: number): number {
   const rates = PROVIDER_COST_PER_1M[provider];
+  if (!rates) return 0; // self-hosted / unknown — no direct cost
   return (tokensIn / 1_000_000) * rates.input + (tokensOut / 1_000_000) * rates.output;
 }
 
 /** Built-in cost table (USD per 1M tokens) — seed/fallback for DB-configured rates (Phase 5 §4.3). */
-export function getDefaultCostRates(): Record<AIProvider, { input: number; output: number }> {
-  return { anthropic: { ...PROVIDER_COST_PER_1M.anthropic }, openai: { ...PROVIDER_COST_PER_1M.openai }, gemini: { ...PROVIDER_COST_PER_1M.gemini } };
+export function getDefaultCostRates(): Partial<Record<AIProvider, { input: number; output: number }>> {
+  const result: Partial<Record<AIProvider, { input: number; output: number }>> = {};
+  for (const [k, v] of Object.entries(PROVIDER_COST_PER_1M) as Array<[AIProvider, { input: number; output: number } | undefined]>) {
+    if (v) result[k] = { input: v.input, output: v.output };
+  }
+  return result;
 }
 
 // ── Raw callAI ────────────────────────────────────────────────────────────────
@@ -624,6 +675,28 @@ async function callAIProvider(
       model,
       provider,
     };
+  }
+
+  // Handle custom OpenAI-compatible providers (Ollama, LM Studio, vLLM, LocalAI, OpenRouter, generic)
+  if (['ollama', 'lm-studio', 'localai', 'vllm', 'openrouter', 'openai-compat'].includes(provider)) {
+    const entry = _customProviders.get(provider);
+    if (!entry) throw new Error(`Custom provider '${provider}' not configured — add it in Settings > AI Providers`);
+    const model = opts.model ?? entry.config.defaultModel;
+    const customMessages: OpenAI.ChatCompletionMessageParam[] = opts.systemPrompt
+      ? [{ role: 'system', content: opts.systemPrompt }, ...messages.map((m) => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }))]
+      : messages.map((m) => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }));
+
+    const resp = await entry.client.chat.completions.create({
+      model,
+      messages: customMessages,
+      max_tokens: opts.maxTokens ?? entry.config.maxTokens ?? 4096,
+      temperature: opts.temperature ?? entry.config.temperature ?? 0.7,
+      stream: false,
+    });
+    const text = resp.choices[0]?.message?.content ?? '';
+    const tokensIn = resp.usage?.prompt_tokens ?? 0;
+    const tokensOut = resp.usage?.completion_tokens ?? 0;
+    return { content: text, tokensIn, tokensOut, model, provider };
   }
 
   throw new Error(`Unknown provider: ${String(provider)}`);
@@ -1099,18 +1172,26 @@ export function simulateRouting(
   estTokensIn: number,
   estTokensOut: number,
 ): RoutingCandidate[] {
-  const allProviders: AIProvider[] = ['anthropic', 'openai', 'gemini'];
-  const defaultModels: Record<AIProvider, string> = {
+  const builtInProviders: AIProvider[] = ['anthropic', 'openai', 'gemini'];
+  // Include any registered custom providers that appear in providerHealth
+  const customProviderKeys = [..._customProviders.keys()] as AIProvider[];
+  const allProviders: AIProvider[] = [...builtInProviders, ...customProviderKeys];
+
+  const defaultModels: Partial<Record<AIProvider, string>> = {
     anthropic: DEFAULT_ANTHROPIC_MODEL,
     openai: DEFAULT_OPENAI_MODEL,
     gemini: DEFAULT_GEMINI_MODEL,
   };
+  // Populate default models for registered custom providers
+  for (const [key, entry] of _customProviders.entries()) {
+    defaultModels[key as AIProvider] = entry.config.defaultModel;
+  }
 
   const ranked = rankProviders(allProviders);
   let routeAssigned = false;
 
   return ranked.map((provider) => {
-    const model = defaultModels[provider];
+    const model = defaultModels[provider] ?? 'unknown';
     const h = getHealth(provider);
     const available = isProviderAvailable(provider);
     const estCostUsd = estimateCost(provider, estTokensIn, estTokensOut);

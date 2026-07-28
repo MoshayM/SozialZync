@@ -44,74 +44,51 @@ const DEFAULT_FORM: Omit<ChannelAutomation, 'aiSuggestion' | 'lastTickAt'> = {
   publishIntervalMinutes: 60, maxPublishesPerDay: 3, maxImportsPerDay: 5,
 };
 
-// ── Toggle ────────────────────────────────────────────────────────────────────
-// Horizontal ON / OFF segmented pill. All sizes in explicit px so the control
-// renders identically regardless of the device's accessibility font-scale.
+// ── IosToggle ─────────────────────────────────────────────────────────────────
+// iOS-style slide toggle. All sizes in explicit px so the control renders
+// identically regardless of the device's accessibility font-scale.
 
-function Toggle({ checked, onChange, disabled }: {
+function IosToggle({ checked, onChange, disabled }: {
   checked: boolean; onChange: (v: boolean) => void; disabled?: boolean;
 }) {
   return (
-    <div
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
       style={{
+        position: 'relative',
         display: 'inline-flex',
-        borderRadius: 20,
-        padding: 3,
-        gap: 2,
-        background: '#f3f4f6',
-        border: '1.5px solid #e5e7eb',
-        opacity: disabled ? 0.4 : 1,
+        width: 44,
+        height: 26,
+        borderRadius: 13,
+        border: 'none',
+        padding: 0,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
+        background: checked ? '#6D4AE0' : '#d1d5db',
+        transition: 'background 0.2s ease',
         flexShrink: 0,
-        transition: 'opacity 0.15s',
+        outline: 'none',
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && onChange(true)}
-        aria-label="Enable"
+      <span
         style={{
-          width: 40,
-          height: 28,
-          borderRadius: 16,
-          border: 'none',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.05em',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          background: checked ? '#6D4AE0' : 'transparent',
-          color: checked ? '#fff' : '#9ca3af',
-          transition: 'background 0.15s, color 0.15s',
-          WebkitTapHighlightColor: 'transparent',
-          outline: 'none',
+          position: 'absolute',
+          top: 3,
+          left: checked ? 21 : 3,
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          background: '#fff',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+          transition: 'left 0.2s ease',
         }}
-      >
-        ON
-      </button>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && onChange(false)}
-        aria-label="Disable"
-        style={{
-          width: 40,
-          height: 28,
-          borderRadius: 16,
-          border: 'none',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.05em',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          background: !checked ? '#6b7280' : 'transparent',
-          color: !checked ? '#fff' : '#9ca3af',
-          transition: 'background 0.15s, color 0.15s',
-          WebkitTapHighlightColor: 'transparent',
-          outline: 'none',
-        }}
-      >
-        OFF
-      </button>
-    </div>
+      />
+    </button>
   );
 }
 
@@ -702,12 +679,50 @@ export default function AutopilotPage() {
                   </div>
                 ) : (
                   <>
+                    {/* Autopilot status banner */}
+                    <div
+                      className="flex items-center justify-between px-4 py-3 rounded-2xl mb-5"
+                      style={{
+                        background: form.enabled ? '#ede9fe' : '#f3f4f6',
+                        border: `1.5px solid ${form.enabled ? '#c4b5fd' : '#e5e7eb'}`,
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          style={{
+                            width: 8, height: 8, borderRadius: '50%',
+                            background: form.enabled ? '#6D4AE0' : '#9ca3af',
+                            flexShrink: 0,
+                            boxShadow: form.enabled ? '0 0 0 3px rgba(109,74,224,0.2)' : 'none',
+                          }}
+                        />
+                        <span
+                          className="text-sm font-semibold"
+                          style={{ color: form.enabled ? '#6D4AE0' : '#6b7280' }}
+                        >
+                          {form.enabled ? 'Autopilot is running' : 'Autopilot is paused'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setField('enabled', !form.enabled)}
+                        disabled={saveMutation.isPending}
+                        className="px-4 py-1.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                        style={{
+                          background: form.enabled ? '#fff' : 'linear-gradient(135deg,#6D4AE0,#7c5ae8)',
+                          color: form.enabled ? '#6D4AE0' : '#fff',
+                          border: form.enabled ? '1.5px solid #c4b5fd' : 'none',
+                          boxShadow: form.enabled ? 'none' : '0 4px 12px rgba(109,74,224,0.35)',
+                        }}
+                      >
+                        {form.enabled ? 'Pause' : 'Resume'}
+                      </button>
+                    </div>
+
                     {/* ── Master control card ─────────────────────────────── */}
                     <div
                       className="rounded-2xl p-5"
-                      style={form.enabled
-                        ? { background: 'linear-gradient(135deg,#6D4AE0 0%,#7c5ae8 100%)', boxShadow: '0 4px 24px -4px rgba(109,74,224,.4)' }
-                        : { background: '#fff', border: '1.5px solid #e3ddf8' }}
+                      style={{ display: 'none' }}
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div>
@@ -718,7 +733,7 @@ export default function AutopilotPage() {
                             {form.enabled ? 'AI pipeline is active for this channel' : 'All automated tasks are paused'}
                           </p>
                         </div>
-                        <Toggle checked={form.enabled} onChange={(v) => setField('enabled', v)} />
+                        <IosToggle checked={form.enabled} onChange={(v) => setField('enabled', v)} />
                       </div>
                     </div>
 
@@ -747,7 +762,7 @@ export default function AutopilotPage() {
                                   <p className="text-sm font-semibold text-gray-800">{label}</p>
                                   <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{description}</p>
                                 </div>
-                                <Toggle checked={form[key]} onChange={(v) => setField(key, v)} disabled={!form.enabled} />
+                                <IosToggle checked={form[key]} onChange={(v) => setField(key, v)} disabled={!form.enabled} />
                               </div>
                             ))}
                           </div>

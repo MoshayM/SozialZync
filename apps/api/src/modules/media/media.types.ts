@@ -66,3 +66,74 @@ export interface MusicAdapter extends MediaAdapter {
 export interface VideoAdapter extends MediaAdapter {
   renderScene(req: SceneVideoRequest): Promise<GeneratedMedia>;
 }
+
+// ── Self-hosted video generation (ComfyUI SVD / WAN / CogVideo) ─────────────
+
+export interface VideoRequest {
+  prompt: string;
+  negativePrompt?: string;
+  width?: number;
+  height?: number;
+  durationSeconds?: number;
+  fps?: number;
+  referenceImageUrl?: string;    // for img2vid
+  referenceImageBuffer?: Buffer; // alternative buffer
+  seed?: number;
+  model?: string;
+  steps?: number;
+  cfgScale?: number;
+  motionScale?: number;          // SVD motion bucket
+  style?: string;
+}
+
+export interface GeneratedVideo {
+  buffer: Buffer;
+  mimeType: 'video/mp4' | 'video/webm' | 'image/gif';
+  width: number;
+  height: number;
+  durationSeconds: number;
+  fps: number;
+  provider: string;
+  model: string;
+  seed?: number;
+  prompt: string;
+}
+
+export interface VideoGenerationAdapter {
+  readonly name: string;
+  available(): boolean;
+  generate(req: VideoRequest): Promise<GeneratedVideo>;
+}
+
+// ── Self-hosted image generation (ComfyUI / A1111 / Forge / InvokeAI) ────────
+
+export interface SelfHostedImageRequest {
+  prompt: string;
+  negativePrompt?: string;
+  width?: number;
+  height?: number;
+  steps?: number;
+  cfgScale?: number;
+  seed?: number;
+  model?: string;
+  style?: string; // 'realistic' | 'anime' | 'cartoon' | 'illustration'
+  referenceImageUrl?: string; // img2img base
+  strength?: number; // img2img denoising strength 0-1
+}
+
+export interface GeneratedImage {
+  buffer: Buffer;
+  mimeType: 'image/png' | 'image/jpeg' | 'image/webp';
+  width: number;
+  height: number;
+  provider: string;
+  model: string;
+  seed?: number;
+  prompt: string;
+}
+
+export interface SelfHostedImageAdapter {
+  readonly name: string;
+  available(): boolean;
+  generate(req: SelfHostedImageRequest): Promise<GeneratedImage>;
+}

@@ -44,6 +44,8 @@ import { FlagsModule } from './modules/flags/flags.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { AutonomyModule } from './modules/autonomy/autonomy.module';
 import { EditorModule } from './modules/editor/editor.module';
+import { ProviderConfigModule } from './modules/provider-config/provider-config.module';
+import { SystemModule } from './modules/system/system.module';
 
 @Module({
   imports: [
@@ -116,6 +118,8 @@ import { EditorModule } from './modules/editor/editor.module';
     AutomationModule,
     AutonomyModule,
     EditorModule,
+    ProviderConfigModule,
+    SystemModule,
     MetricsModule,
     HealthModule,
   ],

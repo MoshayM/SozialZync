@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle,
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
-  Webhook, Trash2, Play, Mail, Plus,
+  Webhook, Trash2, Play, Plus, Cpu, Download, Music,
 } from 'lucide-react';
 import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse } from '@/lib/api';
 
@@ -41,10 +41,6 @@ function SettingsContent() {
   const [profileAvatar, setProfileAvatar] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
 
-  // ── OTP email state ──────────────────────────────────────────────────────────
-  const [otpEmail, setOtpEmail] = useState('');
-  const [otpEmailSaved, setOtpEmailSaved] = useState(false);
-
   // ── Webhook state ───────────────────────────────────────────────────────────
   const [showAddWebhookForm, setShowAddWebhookForm] = useState(false);
   const [newWebhookUrl, setNewWebhookUrl] = useState('');
@@ -58,11 +54,6 @@ function SettingsContent() {
   });
 
   const isOwner = me?.role === 'OWNER' || me?.role === 'SUPER_ADMIN';
-
-  useEffect(() => {
-    const m = me as Record<string, unknown> | undefined;
-    if (m?.['otpEmail']) setOtpEmail(m['otpEmail'] as string);
-  }, [me]);
 
   useEffect(() => {
     if (me?.name != null) setProfileName(me.name ?? '');
@@ -166,24 +157,6 @@ function SettingsContent() {
     }
   }, [justLinkedProvider]);
 
-  const updateOtpEmailMutation = useMutation({
-    mutationFn: (value: string | null) => apiClient.patch('/auth/me', { otpEmail: value || null }),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['me'] });
-      setOtpEmailSaved(true);
-      setBanner({ type: 'success', message: otpEmail.trim() ? 'OTP email saved.' : 'OTP email removed.' });
-      setTimeout(() => setOtpEmailSaved(false), 3000);
-    },
-    onError: (err: unknown) => {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 409) {
-        setBanner({ type: 'error', message: 'That email is already linked to another account.' });
-      } else {
-        setBanner({ type: 'error', message: 'Failed to update OTP email.' });
-      }
-    },
-  });
-
   const updateProfileMutation = useMutation({
     mutationFn: () => api.auth.updateProfile({ name: profileName, avatarUrl: profileAvatar }),
     onSuccess: () => {
@@ -269,6 +242,51 @@ function SettingsContent() {
           <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Settings</h1>
           <p className="text-sm text-gray-400 mt-0.5">Manage your profile, security, and developer integrations</p>
         </div>
+
+        {/* ── AI Providers shortcut ────────────────────────────────────── */}
+        <section>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">AI</p>
+          <a
+            href="/settings/ai-providers"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f5f2fd]"
+            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f2fd' }}>
+              <Cpu className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">AI Providers</p>
+              <p className="text-xs text-gray-500">Configure local and cloud LLM providers</p>
+            </div>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0' }}>NEW</span>
+          </a>
+          <a
+            href="/settings/models"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
+            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+              <Download className="w-5 h-5" style={{ color: '#16a34a' }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Model Manager</p>
+              <p className="text-xs text-gray-500">Download and manage local AI models</p>
+            </div>
+          </a>
+          <a
+            href="/studio/music"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#fefce8]"
+            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fefce8' }}>
+              <Music className="w-5 h-5" style={{ color: '#ca8a04' }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Music Library</p>
+              <p className="text-xs text-gray-500">Royalty-free tracks for your videos</p>
+            </div>
+          </a>
+        </section>
 
         {/* Global notification banner */}
         {banner && (
@@ -446,40 +464,6 @@ function SettingsContent() {
               >
                 <Plus className="w-3.5 h-3.5" /> Manage Channels
               </a>
-            </div>
-          </div>
-
-          {/* Email for OTP login */}
-          <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="px-4 py-3" style={{ borderBottom: '1px solid #f0edf9' }}>
-              <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-                <Mail className="w-4 h-4 text-gray-500" />
-                Email for OTP login
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">Add a secondary email to receive one-time password sign-in codes.</p>
-            </div>
-            <div className="px-4 py-3 flex items-center gap-3">
-              <input
-                type="email"
-                value={otpEmail}
-                onChange={e => setOtpEmail(e.target.value)}
-                placeholder="secondary@example.com (optional)"
-                className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
-                style={{ border: '1.5px solid #e3e0f0' }}
-              />
-              <button
-                onClick={() => updateOtpEmailMutation.mutate(otpEmail.trim() || null)}
-                disabled={updateOtpEmailMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-2xl font-bold text-white text-xs hover:opacity-90 active:scale-[0.98] disabled:opacity-50 shrink-0 transition-all"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
-              >
-                {updateOtpEmailMutation.isPending
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : otpEmailSaved
-                  ? <CheckCircle className="w-3 h-3" />
-                  : <Save className="w-3 h-3" />}
-                {otpEmail.trim() ? 'Save' : 'Remove'}
-              </button>
             </div>
           </div>
 
