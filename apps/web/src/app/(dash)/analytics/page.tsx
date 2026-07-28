@@ -84,11 +84,9 @@ function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] }) {
   );
 }
 
-const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api';
-
 async function callApi<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const token = localStorage.getItem('cf_token');
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`/api/proxy${path}`, {
     method,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token ?? ''}` },
     body: body ? JSON.stringify(body) : undefined,

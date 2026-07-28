@@ -46,18 +46,14 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/insights', icon: BarChart2,   label: 'Insights' },
     ],
   },
-  {
-    items: [
-      { href: '/guide', icon: HelpCircle, label: 'Guide' },
-    ],
-  },
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
-  { href: '/settings',  icon: Settings,  label: 'Settings' },
-  { href: '/brand-kit', icon: Palette,   label: 'Brand Kit' },
-  { href: '/wallet',    icon: Wallet,    label: 'Billing' },
-  { href: '/orgs',      icon: Building2, label: 'Organization' },
+  { href: '/settings',  icon: Settings,   label: 'Settings' },
+  { href: '/brand-kit', icon: Palette,    label: 'Brand Kit' },
+  { href: '/wallet',    icon: Wallet,     label: 'Billing' },
+  { href: '/orgs',      icon: Building2,  label: 'Organization' },
+  { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];
 
 /* Mobile bottom nav — 4 primary items + "More" button */
