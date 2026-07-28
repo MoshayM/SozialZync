@@ -261,7 +261,7 @@ test.describe('Wallet', () => {
   test('marketplace renders packs with price and buying POSTs recharge with packId + Idempotency-Key', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Buy Credits' })).toBeVisible({ timeout: 8_000 });
     // Identify packs by their credits line — pack names collide with the
-    // sidebar brand ("AI CreatorForce") and role badge under substring matching.
+    // sidebar brand ("Sozialzync") and role badge under substring matching.
     await expect(page.getByText('1,000 credits', { exact: true })).toBeVisible();
     await expect(page.getByText('$9.99')).toBeVisible();
     await expect(page.getByText('5,000 credits', { exact: true })).toBeVisible();
