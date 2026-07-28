@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Sparkles, RefreshCw, Loader2, CalendarClock, Check, X, XCircle,
   TrendingUp, Clapperboard, Film, BarChart3, ListChecks, Target,
-  ScrollText, Save, Settings2,
+  ScrollText, Save, Settings2, Download, Eye, Upload, FlaskConical,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -45,65 +45,73 @@ const DEFAULT_FORM: Omit<ChannelAutomation, 'aiSuggestion' | 'lastTickAt'> = {
 };
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
-// Uses explicit px values (not rem/Tailwind size classes) so it renders at a
-// fixed size regardless of the device's accessibility font-scale setting.
-// Touch target is 44×44 px (Apple HIG / Material). Visual track is 46×26 px.
+// Horizontal ON / OFF segmented pill. All sizes in explicit px so the control
+// renders identically regardless of the device's accessibility font-scale.
 
 function Toggle({ checked, onChange, disabled }: {
   checked: boolean; onChange: (v: boolean) => void; disabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className="relative shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6D4AE0] disabled:opacity-40"
+    <div
       style={{
-        width: 44,
-        height: 44,
-        minWidth: 44,
-        padding: 0,
-        background: 'transparent',
-        border: 'none',
         display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        WebkitTapHighlightColor: 'transparent',
+        borderRadius: 20,
+        padding: 3,
+        gap: 2,
+        background: '#f3f4f6',
+        border: '1.5px solid #e5e7eb',
+        opacity: disabled ? 0.4 : 1,
+        flexShrink: 0,
+        transition: 'opacity 0.15s',
       }}
     >
-      {/* Track */}
-      <span
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && onChange(true)}
+        aria-label="Enable"
         style={{
-          display: 'block',
-          width: 46,
-          height: 26,
-          borderRadius: 13,
-          backgroundColor: checked ? '#6D4AE0' : '#d1d5db',
-          transition: 'background-color 0.18s ease',
-          position: 'relative',
-          flexShrink: 0,
+          width: 40,
+          height: 28,
+          borderRadius: 16,
+          border: 'none',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.05em',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          background: checked ? '#6D4AE0' : 'transparent',
+          color: checked ? '#fff' : '#9ca3af',
+          transition: 'background 0.15s, color 0.15s',
+          WebkitTapHighlightColor: 'transparent',
+          outline: 'none',
         }}
       >
-        {/* Thumb */}
-        <span
-          style={{
-            display: 'block',
-            position: 'absolute',
-            top: 3,
-            left: checked ? 23 : 3,
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.20), 0 0 0 0.5px rgba(0,0,0,0.05)',
-            transition: 'left 0.18s cubic-bezier(0.4,0,0.2,1)',
-          }}
-        />
-      </span>
-    </button>
+        ON
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && onChange(false)}
+        aria-label="Disable"
+        style={{
+          width: 40,
+          height: 28,
+          borderRadius: 16,
+          border: 'none',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.05em',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          background: !checked ? '#6b7280' : 'transparent',
+          color: !checked ? '#fff' : '#9ca3af',
+          transition: 'background 0.15s, color 0.15s',
+          WebkitTapHighlightColor: 'transparent',
+          outline: 'none',
+        }}
+      >
+        OFF
+      </button>
+    </div>
   );
 }
 
@@ -362,13 +370,15 @@ export default function AutopilotPage() {
   const featureToggles: Array<{
     key: keyof Pick<typeof form, 'autoImport'|'autoAnalyze'|'autoPublish'|'chapterSyncEnabled'|'autoPlan'|'autoResearch'>;
     label: string; description: string;
+    icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+    group: 'pipeline' | 'publishing' | 'calendar' | 'sync';
   }> = [
-    { key: 'autoImport',         label: 'Auto-import new uploads',      description: 'Imports recent long-form uploads into Shorts Studio automatically.' },
-    { key: 'autoAnalyze',        label: 'Auto-analyze imported videos', description: 'Runs transcript, scene, and highlight analysis as soon as a video is imported.' },
-    { key: 'autoPublish',        label: 'Auto-publish approved Shorts', description: 'Publishes clips you approved, paced by the limits below — never bypasses compliance.' },
-    { key: 'chapterSyncEnabled', label: 'Keep chapters synced',         description: 'Automatically syncs YouTube chapter markers from source videos.' },
-    { key: 'autoPlan',           label: 'Auto-plan content calendar',   description: 'Daily: refreshes the channel profile and tops up the AI content calendar. Proposals only — you approve every slot in Planner.' },
-    { key: 'autoResearch',       label: 'Auto-research on approve',     description: 'When you approve a calendar slot, automatically starts a Research job for the draft video.' },
+    { key: 'autoImport',         label: 'Auto-import uploads',      description: 'Imports recent long-form uploads into Shorts Studio automatically.',                                                              icon: Download,      group: 'pipeline'   },
+    { key: 'autoAnalyze',        label: 'Auto-analyze videos',      description: 'Runs transcript, scene, and highlight analysis as soon as a video is imported.',                                                  icon: Eye,           group: 'pipeline'   },
+    { key: 'autoPublish',        label: 'Auto-publish Shorts',      description: 'Publishes approved clips paced by the limits below — never bypasses compliance.',                                                 icon: Upload,        group: 'publishing' },
+    { key: 'chapterSyncEnabled', label: 'Chapter sync',             description: 'Automatically syncs YouTube chapter markers from source videos.',                                                                 icon: RefreshCw,     group: 'sync'       },
+    { key: 'autoPlan',           label: 'Auto-plan calendar',       description: 'Daily: refreshes the channel profile and tops up the AI calendar. Proposals only — you approve every slot in Planner.',         icon: CalendarClock, group: 'calendar'   },
+    { key: 'autoResearch',       label: 'Auto-research on approve', description: 'When you approve a calendar slot, automatically starts a Research job for the draft video.',                                      icon: FlaskConical,  group: 'calendar'   },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -692,33 +702,67 @@ export default function AutopilotPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="bg-white rounded-2xl divide-y" style={{ border: '1.5px solid #e3ddf8' }}>
-                      {/* Master toggle */}
-                      <div className="flex items-start justify-between gap-3 px-4 sm:px-6 py-4">
-                        <div className="flex-1 min-w-0 pt-0.5">
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">Enable Autopilot for this channel</p>
-                          <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">When off, all automated tasks are paused.</p>
+                    {/* ── Master control card ─────────────────────────────── */}
+                    <div
+                      className="rounded-2xl p-5"
+                      style={form.enabled
+                        ? { background: 'linear-gradient(135deg,#6D4AE0 0%,#7c5ae8 100%)', boxShadow: '0 4px 24px -4px rgba(109,74,224,.4)' }
+                        : { background: '#fff', border: '1.5px solid #e3ddf8' }}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="font-bold text-base" style={{ color: form.enabled ? '#fff' : '#111827' }}>
+                            Enable Autopilot
+                          </p>
+                          <p className="text-xs mt-0.5" style={{ color: form.enabled ? 'rgba(255,255,255,0.72)' : '#9ca3af' }}>
+                            {form.enabled ? 'AI pipeline is active for this channel' : 'All automated tasks are paused'}
+                          </p>
                         </div>
                         <Toggle checked={form.enabled} onChange={(v) => setField('enabled', v)} />
                       </div>
+                    </div>
 
-                      {/* Feature toggles */}
-                      {featureToggles.map(({ key, label, description }) => (
-                        <div key={key} className="flex items-start justify-between gap-3 px-4 sm:px-6 py-4">
-                          <div className="flex-1 min-w-0 pt-0.5">
-                            <p className="text-sm font-medium text-gray-800">{label}</p>
-                            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{description}</p>
+                    {/* ── Feature groups ───────────────────────────────────── */}
+                    {([
+                      { title: 'Content Pipeline', groupKey: 'pipeline'   },
+                      { title: 'Publishing',        groupKey: 'publishing' },
+                      { title: 'Calendar & Research', groupKey: 'calendar' },
+                      { title: 'Sync',              groupKey: 'sync'      },
+                    ] as const).map(({ title, groupKey }) => {
+                      const items = featureToggles.filter((f) => f.group === groupKey);
+                      return (
+                        <div key={title}>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-2">{title}</p>
+                          <div
+                            className="bg-white rounded-2xl divide-y"
+                            style={{ border: '1.5px solid #e3ddf8', opacity: form.enabled ? 1 : 0.55, transition: 'opacity 0.2s' }}
+                          >
+                            {items.map(({ key, label, description, icon: Icon }) => (
+                              <div key={key} className="flex items-center gap-3 px-4 py-4">
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                                  style={{ background: '#f5f2fd' }}>
+                                  <Icon className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-gray-800">{label}</p>
+                                  <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{description}</p>
+                                </div>
+                                <Toggle checked={form[key]} onChange={(v) => setField(key, v)} disabled={!form.enabled} />
+                              </div>
+                            ))}
                           </div>
-                          <Toggle checked={form[key]} onChange={(v) => setField(key, v)} disabled={!form.enabled} />
                         </div>
-                      ))}
+                      );
+                    })}
 
-                      {/* Rate limits */}
-                      <div className="px-4 sm:px-6 py-5 space-y-4">
-                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Publishing &amp; import limits</p>
+                    {/* ── Rate limits ──────────────────────────────────────── */}
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-2">Rate Limits</p>
+                      <div className="bg-white rounded-2xl px-4 sm:px-6 py-5"
+                        style={{ border: '1.5px solid #e3ddf8', opacity: form.enabled ? 1 : 0.55, transition: 'opacity 0.2s' }}>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div>
-                            <label htmlFor="publishInterval" className="block text-xs font-medium text-gray-500 mb-1">Interval between publishes (min)</label>
+                            <label htmlFor="publishInterval" className="block text-xs font-medium text-gray-500 mb-1">Publish interval (min)</label>
                             <input id="publishInterval" type="number" min={PUBLISH_INTERVAL_MIN} max={PUBLISH_INTERVAL_MAX}
                               value={form.publishIntervalMinutes} disabled={!form.enabled}
                               onChange={(e) => setField('publishIntervalMinutes', clamp(Number(e.target.value), PUBLISH_INTERVAL_MIN, PUBLISH_INTERVAL_MAX))}
@@ -746,36 +790,37 @@ export default function AutopilotPage() {
                           </div>
                         </div>
                       </div>
-
-                      {/* AI suggestion note */}
-                      {aiSuggestionSource && (
-                        <div className="px-6 py-3" style={{ background: '#f5f2fd', borderTop: '1.5px solid #e3ddf8' }}>
-                          <p className="text-xs flex items-center gap-1.5" style={{ color: '#6D4AE0' }}>
-                            <Sparkles className="w-3.5 h-3.5" />
-                            {aiSuggestionSource === 'ai'
-                              ? 'AI suggestion — review and save when ready.'
-                              : 'Based on your upload cadence — review and save when ready.'}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4">
-                        <button type="button" onClick={() => suggestMutation.mutate()} disabled={suggestMutation.isPending}
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 rounded-2xl font-semibold text-sm disabled:opacity-50 hover:bg-gray-50 touch-manipulation"
-                          style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0', minHeight: 44 }}>
-                          {suggestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                          Suggest with AI
-                        </button>
-                        <button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 rounded-2xl font-bold text-white text-sm disabled:opacity-50 touch-manipulation"
-                          style={{ background: 'linear-gradient(135deg,#6D4AE0 0%,#7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,.35)', minHeight: 44 }}>
-                          {saveMutation.isPending
-                            ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
-                            : <><Save className="w-4 h-4" /> Save settings</>}
-                        </button>
-                      </div>
                     </div>
+
+                    {/* ── AI suggestion note ──────────────────────────────── */}
+                    {aiSuggestionSource && (
+                      <div className="rounded-2xl px-5 py-3" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+                        <p className="text-xs flex items-center gap-1.5" style={{ color: '#6D4AE0' }}>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          {aiSuggestionSource === 'ai'
+                            ? 'AI suggestion — review and save when ready.'
+                            : 'Based on your upload cadence — review and save when ready.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* ── Actions ─────────────────────────────────────────── */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button type="button" onClick={() => suggestMutation.mutate()} disabled={suggestMutation.isPending}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 rounded-2xl font-semibold text-sm disabled:opacity-50 hover:bg-gray-50 touch-manipulation"
+                        style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0', minHeight: 44 }}>
+                        {suggestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        Suggest with AI
+                      </button>
+                      <button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 rounded-2xl font-bold text-white text-sm disabled:opacity-50 touch-manipulation"
+                        style={{ background: 'linear-gradient(135deg,#6D4AE0 0%,#7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,.35)', minHeight: 44 }}>
+                        {saveMutation.isPending
+                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+                          : <><Save className="w-4 h-4" /> Save settings</>}
+                      </button>
+                    </div>
+
                     <p className="text-xs text-gray-400 text-center">
                       Auto-publish never bypasses review: only approved, compliance-passed Shorts are published.
                     </p>

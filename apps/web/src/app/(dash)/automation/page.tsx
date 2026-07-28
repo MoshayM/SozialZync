@@ -66,55 +66,66 @@ function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className="relative shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6D4AE0] disabled:opacity-40"
+    <div
       style={{
-        width: 44,
-        height: 44,
-        minWidth: 44,
-        padding: 0,
-        background: 'transparent',
-        border: 'none',
         display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        WebkitTapHighlightColor: 'transparent',
+        borderRadius: 20,
+        padding: 3,
+        gap: 2,
+        background: '#f3f4f6',
+        border: '1.5px solid #e5e7eb',
+        opacity: disabled ? 0.4 : 1,
+        flexShrink: 0,
+        transition: 'opacity 0.15s',
       }}
     >
-      <span
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && onChange(true)}
+        aria-label="Enable"
         style={{
-          display: 'block',
-          width: 46,
-          height: 26,
-          borderRadius: 13,
-          backgroundColor: checked ? '#6D4AE0' : '#d1d5db',
-          transition: 'background-color 0.18s ease',
-          position: 'relative',
-          flexShrink: 0,
+          width: 40,
+          height: 28,
+          borderRadius: 16,
+          border: 'none',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.05em',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          background: checked ? '#6D4AE0' : 'transparent',
+          color: checked ? '#fff' : '#9ca3af',
+          transition: 'background 0.15s, color 0.15s',
+          WebkitTapHighlightColor: 'transparent',
+          outline: 'none',
         }}
       >
-        <span
-          style={{
-            display: 'block',
-            position: 'absolute',
-            top: 3,
-            left: checked ? 23 : 3,
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.20), 0 0 0 0.5px rgba(0,0,0,0.05)',
-            transition: 'left 0.18s cubic-bezier(0.4,0,0.2,1)',
-          }}
-        />
-      </span>
-    </button>
+        ON
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && onChange(false)}
+        aria-label="Disable"
+        style={{
+          width: 40,
+          height: 28,
+          borderRadius: 16,
+          border: 'none',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.05em',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          background: !checked ? '#6b7280' : 'transparent',
+          color: !checked ? '#fff' : '#9ca3af',
+          transition: 'background 0.15s, color 0.15s',
+          WebkitTapHighlightColor: 'transparent',
+          outline: 'none',
+        }}
+      >
+        OFF
+      </button>
+    </div>
   );
 }
 
