@@ -465,7 +465,7 @@ interface ProviderCardProps {
 function ProviderCard({ config, onChange }: ProviderCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [testState, setTestState] = useState<TestState>({ status: 'idle', message: '' });
-  const tierStyle = TIER_STYLES[config.tier];
+  const tierStyle = TIER_STYLES[config.tier ?? 'custom'];
 
   function update(patch: Partial<ProviderConfig>) {
     onChange({ ...config, ...patch });
