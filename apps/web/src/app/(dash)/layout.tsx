@@ -7,7 +7,7 @@ import {
   FolderOpen, Settings, LogOut, Palette, Clapperboard, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BookOpen, BarChart2, Search, Zap, HelpCircle,
-  Users, CalendarClock, History, WifiOff, Mic2, Music,
+  WifiOff, Mic2, Music,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -34,24 +34,15 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/content',       icon: BookOpen,     label: 'Content' },
       { href: '/projects',      icon: FolderOpen,   label: 'Projects' },
       { href: '/shorts-studio', icon: Clapperboard, label: 'Shorts Studio' },
+      { href: '/editor',        icon: Film,         label: 'Video Editor' },
+      { href: '/studio/audio',  icon: Mic2,         label: 'Audio Studio' },
+      { href: '/studio/music',  icon: Music,        label: 'Music Studio' },
     ],
   },
   {
-    category: 'Studio',
     items: [
-      { href: '/editor',       icon: Film,   label: 'Video Editor' },
-      { href: '/studio/audio', icon: Mic2,   label: 'Audio Studio' },
-      { href: '/studio/music', icon: Music,  label: 'Music Studio' },
-    ],
-  },
-  {
-    category: 'Publishing',
-    items: [
-      { href: '/publish',             icon: Upload,        label: 'Publish Hub' },
-      { href: '/publishing/accounts',   icon: Users,       label: 'Accounts' },
-      { href: '/publish?tab=scheduler', icon: CalendarClock, label: 'Scheduled' },
-      { href: '/publish?tab=publishing', icon: History,    label: 'History' },
-      { href: '/insights',            icon: BarChart2,     label: 'Analytics' },
+      { href: '/publish',  icon: Upload,    label: 'Publish Hub' },
+      { href: '/insights', icon: BarChart2, label: 'Analytics' },
     ],
   },
 ];
