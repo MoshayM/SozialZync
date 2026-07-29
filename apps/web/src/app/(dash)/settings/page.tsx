@@ -301,7 +301,7 @@ function SettingsContent() {
           </a>
           <a
             href="/settings/queue"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#fff7ed]"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#fff7ed]"
             style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
           >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fff7ed' }}>
@@ -310,6 +310,19 @@ function SettingsContent() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Queue Manager</p>
               <p className="text-xs text-gray-500">Monitor BullMQ job queue — active, waiting, failed jobs.</p>
+            </div>
+          </a>
+          <a
+            href="/settings/gpu"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#f0fdf4]"
+            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+              <Cpu className="w-5 h-5" style={{ color: '#16a34a' }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">GPU &amp; Hardware</p>
+              <p className="text-xs text-gray-500">Detected compute hardware — GPU backend, VRAM, utilization.</p>
             </div>
           </a>
         </section>

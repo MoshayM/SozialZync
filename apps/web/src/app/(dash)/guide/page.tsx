@@ -3,7 +3,7 @@ import { useState } from 'react';
 import {
   Film, Scissors, FolderOpen, HelpCircle, Download, Plus, Wand2,
   CheckCircle2, Zap, Lightbulb, Printer, Upload, Link2, Youtube,
-  Type, BarChart3,
+  Type, BarChart3, ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -196,6 +196,17 @@ export default function GuidePage() {
                 <Film className="w-3.5 h-3.5" /> Video Editor
               </Link>
             </div>
+          </div>
+
+          {/* Self-hosted AI guide link */}
+          <div className="mt-6 rounded-2xl p-5 flex items-center justify-between gap-4" style={{ background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}>
+            <div>
+              <p className="font-bold text-gray-900">Self-Hosted AI Guide</p>
+              <p className="text-sm text-gray-500 mt-0.5">Run AI generation locally with Ollama, ComfyUI, and open-source models — no cloud APIs required.</p>
+            </div>
+            <Link href="/guide/self-hosted" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shrink-0" style={{ background: '#6D4AE0' }}>
+              View Guide <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
         </div>

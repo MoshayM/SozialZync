@@ -45,7 +45,7 @@ const NAV_SECTIONS: NavSection[] = [
     category: 'Publishing',
     items: [
       { href: '/publish',             icon: Upload,        label: 'Publish Hub' },
-      { href: '/projects?tab=channels', icon: Users,       label: 'Accounts' },
+      { href: '/publishing/accounts',   icon: Users,       label: 'Accounts' },
       { href: '/publish?tab=scheduler', icon: CalendarClock, label: 'Scheduled' },
       { href: '/publish?tab=publishing', icon: History,    label: 'History' },
       { href: '/insights',            icon: BarChart2,     label: 'Analytics' },
