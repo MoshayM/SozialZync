@@ -126,6 +126,7 @@ model Project {
   title       String
   description String?
   status      ProjectStatus @default(DRAFT)
+  publishingStatus PublishingStatus @default(NOT_PUBLISHED)
   niche       String?
   contentFormat String?
   platforms     String[]  @default([])
@@ -154,6 +155,16 @@ enum ProjectStatus {
   DRAFT
   ACTIVE
   PAUSED
+  ARCHIVED
+}
+
+enum PublishingStatus {
+  NOT_PUBLISHED
+  DRAFT
+  READY
+  SCHEDULED
+  PUBLISHED
+  FAILED
   ARCHIVED
 }
 

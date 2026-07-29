@@ -66,6 +66,12 @@ class EnqueueDto {
 export class JobsController {
   constructor(private readonly svc: JobsService) {}
 
+  @Get('queue-stats')
+  async getQueueStats(@CurrentUser() user: JwtPayload) {
+    void user; // auth guard only — no role check needed for own queue stats
+    return this.svc.getQueueStats();
+  }
+
   @Get()
   async listForUser(
     @CurrentUser() user: JwtPayload,

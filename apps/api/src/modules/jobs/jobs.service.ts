@@ -246,4 +246,25 @@ export class JobsService {
       },
     });
   }
+
+  async getQueueStats(): Promise<{
+    waiting: number; active: number; completed: number; failed: number; delayed: number; paused: number;
+    dbStats: { total: number; byStatus: Record<string, number> };
+  }> {
+    const [counts, dbRows] = await Promise.all([
+      this.queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused'),
+      this.prisma.agentJob.groupBy({ by: ['status'], _count: { _all: true } }),
+    ]);
+    const byStatus: Record<string, number> = {};
+    for (const row of dbRows) { byStatus[row.status] = row._count._all; }
+    return {
+      waiting:   counts.waiting   ?? 0,
+      active:    counts.active    ?? 0,
+      completed: counts.completed ?? 0,
+      failed:    counts.failed    ?? 0,
+      delayed:   counts.delayed   ?? 0,
+      paused:    counts.paused    ?? 0,
+      dbStats: { total: dbRows.reduce((s, r) => s + r._count._all, 0), byStatus },
+    };
+  }
 }

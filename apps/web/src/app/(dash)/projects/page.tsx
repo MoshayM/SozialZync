@@ -29,6 +29,7 @@ interface Project {
   title: string;
   niche?: string;
   status: string;
+  publishingStatus?: string;
   channel?: { title: string; thumbnailUrl?: string } | null;
   _count: { jobs: number; videos: number };
   updatedAt: string;
@@ -1059,6 +1060,32 @@ function ProjectsTab({
                       </div>
                     </div>
                     <StatusBadge status={p.status} />
+                    {p.publishingStatus && p.publishingStatus !== 'NOT_PUBLISHED' && (
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          background:
+                            p.publishingStatus === 'PUBLISHED'  ? '#dcfce7' :
+                            p.publishingStatus === 'SCHEDULED'  ? '#dbeafe' :
+                            p.publishingStatus === 'FAILED'     ? '#fee2e2' :
+                            p.publishingStatus === 'READY'      ? '#f0fdf4' :
+                            '#f5f2fd',
+                          color:
+                            p.publishingStatus === 'PUBLISHED'  ? '#16a34a' :
+                            p.publishingStatus === 'SCHEDULED'  ? '#1d4ed8' :
+                            p.publishingStatus === 'FAILED'     ? '#dc2626' :
+                            p.publishingStatus === 'READY'      ? '#15803d' :
+                            '#6D4AE0',
+                        }}
+                      >
+                        {p.publishingStatus === 'PUBLISHED' ? '✓ Published' :
+                         p.publishingStatus === 'SCHEDULED' ? '🕐 Scheduled' :
+                         p.publishingStatus === 'FAILED'    ? '✗ Failed' :
+                         p.publishingStatus === 'READY'     ? '● Ready' :
+                         p.publishingStatus === 'DRAFT'     ? '◌ Draft' :
+                         p.publishingStatus}
+                      </span>
+                    )}
                   </div>
                   <div className="h-px mb-3" style={{ background: '#f5f2fd' }} />
                   <div className="flex items-center justify-between">

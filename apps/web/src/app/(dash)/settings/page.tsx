@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle,
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
-  Webhook, Trash2, Play, Plus, Cpu, Download, Music, HardDrive,
+  Webhook, Trash2, Play, Plus, Cpu, Download, Music, HardDrive, Activity,
 } from 'lucide-react';
 import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse } from '@/lib/api';
 
@@ -288,7 +288,7 @@ function SettingsContent() {
           </a>
           <a
             href="/settings/storage"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#f0f9ff]"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0f9ff]"
             style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
           >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0f9ff' }}>
@@ -297,6 +297,19 @@ function SettingsContent() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Storage</p>
               <p className="text-xs text-gray-500">Manage local AI-generated files, models, and cache.</p>
+            </div>
+          </a>
+          <a
+            href="/settings/queue"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#fff7ed]"
+            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fff7ed' }}>
+              <Activity className="w-5 h-5" style={{ color: '#ea580c' }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Queue Manager</p>
+              <p className="text-xs text-gray-500">Monitor BullMQ job queue — active, waiting, failed jobs.</p>
             </div>
           </a>
         </section>

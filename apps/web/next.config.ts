@@ -40,6 +40,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   // ZAP baseline rule 10037: don't advertise the framework.
   poweredByHeader: false,
   devIndicators: false,
