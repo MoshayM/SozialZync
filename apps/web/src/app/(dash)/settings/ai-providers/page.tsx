@@ -465,7 +465,8 @@ interface ProviderCardProps {
 function ProviderCard({ config, onChange }: ProviderCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [testState, setTestState] = useState<TestState>({ status: 'idle', message: '' });
-  const tierStyle = TIER_STYLES[config.tier ?? 'custom'];
+  const tier: ProviderTier = config.tier ?? 'custom';
+  const tierStyle = TIER_STYLES[tier];
 
   function update(patch: Partial<ProviderConfig>) {
     onChange({ ...config, ...patch });
@@ -501,7 +502,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
               className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
               style={{ background: tierStyle.bg, color: tierStyle.color }}
             >
-              <TierIcon tier={config.tier} />
+              <TierIcon tier={tier} />
               {tierStyle.label}
             </span>
             {config.enabled && (
@@ -545,7 +546,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Base URL
-                {config.tier !== 'cloud' && (
+                {tier !== 'cloud' && (
                   <span className="ml-1 text-gray-400 font-normal">(required)</span>
                 )}
               </label>
