@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle,
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
-  Webhook, Trash2, Play, Plus, Cpu, Download, Music, HardDrive, Activity,
+  Webhook, Trash2, Play, Plus, Cpu, Download, Music, HardDrive, Activity, Mic2,
 } from 'lucide-react';
 import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse } from '@/lib/api';
 
@@ -314,7 +314,7 @@ function SettingsContent() {
           </a>
           <a
             href="/settings/gpu"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#f0fdf4]"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
             style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
           >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
@@ -323,6 +323,19 @@ function SettingsContent() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">GPU &amp; Hardware</p>
               <p className="text-xs text-gray-500">Detected compute hardware — GPU backend, VRAM, utilization.</p>
+            </div>
+          </a>
+          <a
+            href="/studio/audio"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#ecfeff]"
+            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#ecfeff' }}>
+              <Mic2 className="w-5 h-5" style={{ color: '#0891b2' }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Audio Studio</p>
+              <p className="text-xs text-gray-500">Loudness normalize, noise removal, silence trimmer — FFmpeg local processing</p>
             </div>
           </a>
         </section>

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
 import {
   RefreshCw,
@@ -9,6 +9,8 @@ import {
   Clock,
   Activity,
   Loader2,
+  GitBranch,
+  ChevronRight,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -446,6 +448,24 @@ export default function ProviderHealthPage() {
             </div>
           </section>
         )}
+
+        {/* Fallback chain reference */}
+        <div className="rounded-2xl p-5 space-y-3" style={{ background: '#fffbeb', border: '1.5px solid #fde68a' }}>
+          <div className="flex items-center gap-2">
+            <GitBranch className="w-4 h-4 text-amber-600" />
+            <p className="text-sm font-bold text-amber-900">Provider Fallback Chain</p>
+          </div>
+          <p className="text-xs text-amber-700">When a provider fails, the system automatically tries the next available provider in order:</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {['Ollama (local)', 'LM Studio', 'vLLM', 'LocalAI', 'OpenRouter', 'OpenAI', 'Anthropic', 'Gemini'].map((p, i, arr) => (
+              <React.Fragment key={p}>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'white', border: '1px solid #fde68a', color: '#92400e' }}>{p}</span>
+                {i < arr.length - 1 && <ChevronRight className="w-3 h-3 text-amber-400 shrink-0" />}
+              </React.Fragment>
+            ))}
+          </div>
+          <p className="text-[11px] text-amber-600">All fallback events are logged via the structured trace system. Check your API server logs for <code className="bg-amber-100 px-1 rounded">provider.fallback</code> events.</p>
+        </div>
 
       </div>
     </div>
