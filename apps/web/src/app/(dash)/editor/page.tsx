@@ -2,9 +2,11 @@
 import { Suspense, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Film, Plus, Clock, Loader2, AlertCircle, Pencil, Clapperboard } from 'lucide-react';
+import { Film, Plus, Clock, Loader2, AlertCircle, Pencil, Clapperboard, Mic2, Music } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
 import { ShortsStudioContent } from '@/components/shorts-studio-embed';
+import { AudioStudioContent } from '@/components/audio-studio-embed';
+import { MusicStudioContent } from '@/components/music-studio-embed';
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -26,8 +28,10 @@ const STATUS_STYLES: Record<string, React.CSSProperties> = {
 // ── Tab strip ─────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'editor',  label: 'Video Editor',  Icon: Film },
+  { id: 'editor',  label: 'Video Editor',  Icon: Film        },
   { id: 'shorts',  label: 'Shorts Studio', Icon: Clapperboard },
+  { id: 'audio',   label: 'Audio Studio',  Icon: Mic2        },
+  { id: 'music',   label: 'Music Studio',  Icon: Music       },
 ] as const;
 type TabId = typeof TABS[number]['id'];
 
@@ -236,6 +240,10 @@ function EditorInner() {
       {/* Content — Shorts Studio owns its own padding; editor list uses inner padding */}
       {tab === 'shorts' ? (
         <ShortsStudioContent />
+      ) : tab === 'audio' ? (
+        <AudioStudioContent />
+      ) : tab === 'music' ? (
+        <MusicStudioContent />
       ) : (
         <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5 pt-4 lg:pt-4">
           <VideoEditorContent />
