@@ -28,6 +28,7 @@ import {
 import { z } from 'zod';
 import {
   runFfmpeg,
+  runFfmpegCapture,
   runFfmpegWithProgress,
   probeMediaInfo,
   parseMediaProbe,
@@ -1583,5 +1584,106 @@ Respond with JSON only:
       }
       throw err;
     }
+  }
+
+  /**
+   * Loudness-normalize an audio/video file to -14 LUFS (YouTube standard) using
+   * ffmpeg's two-pass loudnorm filter. Returns the path to the processed file.
+   */
+  async normalizeAudio(inputPath: string, targetLufs = -14): Promise<string> {
+    const outPath = inputPath.replace(/(\.[^.]+)$/, '_normalized$1');
+    // Pass 1: measure loudness
+    const measureArgs = [
+      '-i', inputPath,
+      '-af', `loudnorm=I=${targetLufs}:TP=-1.5:LRA=11:print_format=json`,
+      '-f', 'null', '-',
+    ];
+    const measureOut = await runFfmpegCapture(measureArgs, 60_000);
+    // Parse the JSON block loudnorm emits on stderr
+    const jsonMatch = measureOut.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      // Fallback: single-pass (good enough for most content)
+      await runFfmpeg([
+        '-i', inputPath,
+        '-af', `loudnorm=I=${targetLufs}:TP=-1.5:LRA=11`,
+        '-c:v', 'copy',
+        outPath,
+      ]);
+      return outPath;
+    }
+    const measured = JSON.parse(jsonMatch[0]) as {
+      input_i: string; input_tp: string; input_lra: string; input_thresh: string;
+      output_i: string; output_tp: string; output_lra: string; output_thresh: string;
+      target_offset: string;
+    };
+    // Pass 2: apply with measured values
+    await runFfmpeg([
+      '-i', inputPath,
+      '-af', [
+        'loudnorm=linear=true',
+        `I=${targetLufs}:TP=-1.5:LRA=11`,
+        `measured_I=${measured.input_i}`,
+        `measured_TP=${measured.input_tp}`,
+        `measured_LRA=${measured.input_lra}`,
+        `measured_thresh=${measured.input_thresh}`,
+        `offset=${measured.target_offset}`,
+        'print_format=summary',
+      ].join(':'),
+      '-c:v', 'copy',
+      outPath,
+    ]);
+    return outPath;
+  }
+
+  /**
+   * Reduce background noise using ffmpeg's arnndn (RNNoise) filter.
+   * Falls back to anlmdn if arnndn is unavailable.
+   * Returns the path to the processed file.
+   */
+  async denoiseAudio(inputPath: string, strength: 'light' | 'medium' | 'strong' = 'medium'): Promise<string> {
+    const outPath = inputPath.replace(/(\.[^.]+)$/, '_denoised$1');
+    const mix = strength === 'light' ? 0.3 : strength === 'strong' ? 0.9 : 0.6;
+    try {
+      // arnndn (RNNoise — very fast, works on voice)
+      await runFfmpeg([
+        '-i', inputPath,
+        '-af', `arnndn=m=bd.rnnn,volume=1`,
+        '-c:v', 'copy',
+        outPath,
+      ], 120_000);
+    } catch {
+      // Fallback: anlmdn (Non-Local Means)
+      await runFfmpeg([
+        '-i', inputPath,
+        '-af', `anlmdn=s=${mix}:p=0.002:r=0.002:m=15`,
+        '-c:v', 'copy',
+        outPath,
+      ], 120_000);
+    }
+    return outPath;
+  }
+
+  /**
+   * Remove silence from an audio/video file using ffmpeg's silenceremove filter.
+   * Returns the path to the trimmed file.
+   */
+  async removeSilence(
+    inputPath: string,
+    options: { thresholdDb?: number; minDurationSecs?: number; padding?: number } = {},
+  ): Promise<string> {
+    const { thresholdDb = -35, minDurationSecs = 0.5, padding = 0.1 } = options;
+    const outPath = inputPath.replace(/(\.[^.]+)$/, '_trimmed$1');
+    await runFfmpeg([
+      '-i', inputPath,
+      '-af', [
+        `silenceremove=stop_periods=-1`,
+        `stop_duration=${minDurationSecs}`,
+        `stop_threshold=${thresholdDb}dB`,
+        `detection=peak`,
+      ].join(':'),
+      '-c:v', 'copy',
+      outPath,
+    ], 300_000);
+    return outPath;
   }
 }

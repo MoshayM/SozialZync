@@ -157,4 +157,44 @@ export class EditorController {
     }
     return this.editor.editorCopilot(id, user.sub, body.message.trim());
   }
+
+  /** POST /editor/audio/normalize — normalize loudness to -14 LUFS */
+  @Post('audio/normalize')
+  @TierRateLimit({ bucket: 'audio-process', windowSecs: 60, limits: { FREE: 5, STARTER: 10, PRO: 20, AGENCY: 60, default: 5 } })
+  async normalizeAudio(
+    @Body() body: { inputPath: string; targetLufs?: number },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!body.inputPath) throw new BadRequestException('inputPath required');
+    const outPath = await this.editor.normalizeAudio(body.inputPath, body.targetLufs);
+    return { outPath };
+  }
+
+  /** POST /editor/audio/denoise — reduce background noise */
+  @Post('audio/denoise')
+  @TierRateLimit({ bucket: 'audio-process', windowSecs: 60, limits: { FREE: 5, STARTER: 10, PRO: 20, AGENCY: 60, default: 5 } })
+  async denoiseAudio(
+    @Body() body: { inputPath: string; strength?: 'light' | 'medium' | 'strong' },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!body.inputPath) throw new BadRequestException('inputPath required');
+    const outPath = await this.editor.denoiseAudio(body.inputPath, body.strength);
+    return { outPath };
+  }
+
+  /** POST /editor/audio/trim-silence — remove silent gaps */
+  @Post('audio/trim-silence')
+  @TierRateLimit({ bucket: 'audio-process', windowSecs: 60, limits: { FREE: 5, STARTER: 10, PRO: 20, AGENCY: 60, default: 5 } })
+  async removeSilence(
+    @Body() body: { inputPath: string; thresholdDb?: number; minDurationSecs?: number; padding?: number },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!body.inputPath) throw new BadRequestException('inputPath required');
+    const outPath = await this.editor.removeSilence(body.inputPath, {
+      thresholdDb: body.thresholdDb,
+      minDurationSecs: body.minDurationSecs,
+      padding: body.padding,
+    });
+    return { outPath };
+  }
 }
