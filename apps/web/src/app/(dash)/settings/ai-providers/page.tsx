@@ -32,6 +32,8 @@ interface ProviderConfig {
   temperature: number;
   maxTokens: number;
   streaming: boolean;
+  contextLength?: number;
+  reasoningMode?: boolean;
   // Metadata fields for UI display (not sent to API)
   tier?: ProviderTier;
   requiresKey?: boolean;
@@ -161,6 +163,90 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
     streaming: true,
   },
   {
+    provider: 'textgen-webui',
+    label: 'Text Generation WebUI',
+    tier: 'self-hosted',
+    defaultBaseUrl: 'http://localhost:5000',
+    requiresKey: false,
+    enabled: false,
+    baseUrl: 'http://localhost:5000',
+    apiKey: '',
+    model: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+  },
+  {
+    provider: 'koboldcpp',
+    label: 'KoboldCPP',
+    tier: 'self-hosted',
+    defaultBaseUrl: 'http://localhost:5001',
+    requiresKey: false,
+    enabled: false,
+    baseUrl: 'http://localhost:5001',
+    apiKey: '',
+    model: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+  },
+  {
+    provider: 'llamacpp',
+    label: 'llama.cpp Server',
+    tier: 'self-hosted',
+    defaultBaseUrl: 'http://localhost:8080',
+    requiresKey: false,
+    enabled: false,
+    baseUrl: 'http://localhost:8080',
+    apiKey: '',
+    model: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+  },
+  {
+    provider: 'openwebui',
+    label: 'Open WebUI',
+    tier: 'self-hosted',
+    defaultBaseUrl: 'http://localhost:3000',
+    requiresKey: false,
+    enabled: false,
+    baseUrl: 'http://localhost:3000',
+    apiKey: '',
+    model: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+  },
+  {
+    provider: 'kimi',
+    label: 'Kimi (Moonshot AI)',
+    tier: 'cloud',
+    defaultBaseUrl: 'https://api.moonshot.cn/v1',
+    requiresKey: true,
+    enabled: false,
+    baseUrl: 'https://api.moonshot.cn/v1',
+    apiKey: '',
+    model: 'moonshot-v1-8k',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+  },
+  {
+    provider: 'github-copilot',
+    label: 'GitHub Copilot Models',
+    tier: 'cloud',
+    defaultBaseUrl: 'https://models.inference.ai.azure.com',
+    requiresKey: true,
+    enabled: false,
+    baseUrl: 'https://models.inference.ai.azure.com',
+    apiKey: '',
+    model: 'gpt-4o',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+  },
+  {
     provider: 'openai-compatible',
     label: 'OpenAI Compatible',
     tier: 'custom',
@@ -246,6 +332,12 @@ function ProviderIcon({ provider }: { provider: string }) {
     anthropic: { bg: '#d97706', color: '#fff', letter: 'C' },
     gemini: { bg: '#4285f4', color: '#fff', letter: 'G' },
     'openai-compatible': { bg: '#6b7280', color: '#fff', letter: '~' },
+    'textgen-webui': { bg: '#8b7355', color: '#fff', letter: 'T' },
+    'koboldcpp': { bg: '#c41c3b', color: '#fff', letter: 'K' },
+    'llamacpp': { bg: '#34495e', color: '#fff', letter: 'L' },
+    'openwebui': { bg: '#3b82f6', color: '#fff', letter: 'O' },
+    'kimi': { bg: '#ff6b6b', color: '#fff', letter: 'K' },
+    'github-copilot': { bg: '#24292e', color: '#fff', letter: 'G' },
   };
   const cfg = icons[provider] ?? { bg: '#6D4AE0', color: '#fff', letter: provider[0]?.toUpperCase() ?? '?' };
   return (
@@ -552,6 +644,19 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
               />
             </div>
 
+            {/* Context Length */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Context Length</label>
+              <input
+                type="number"
+                value={config.contextLength ?? ''}
+                onChange={e => update({ contextLength: e.target.value ? parseInt(e.target.value) : undefined })}
+                placeholder="e.g. 8192"
+                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
+                style={{ border: '1.5px solid #e3e0f0' }}
+              />
+            </div>
+
             {/* Streaming */}
             <div className="sm:col-span-2 flex items-center gap-3">
               <IosToggle
@@ -561,6 +666,18 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
               <div>
                 <p className="text-sm font-medium text-gray-700">Streaming</p>
                 <p className="text-xs text-gray-500">Stream tokens as they are generated for faster perceived response.</p>
+              </div>
+            </div>
+
+            {/* Reasoning Mode */}
+            <div className="sm:col-span-2 flex items-center gap-3">
+              <IosToggle
+                checked={config.reasoningMode ?? false}
+                onChange={v => update({ reasoningMode: v })}
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-700">Reasoning Mode</p>
+                <p className="text-xs text-gray-500">Enable extended thinking / chain-of-thought</p>
               </div>
             </div>
           </div>
@@ -659,6 +776,8 @@ export default function AIProvidersPage() {
             temperature: provider.temperature,
             maxTokens: provider.maxTokens,
             streaming: provider.streaming ?? true,
+            contextLength: provider.contextLength,
+            reasoningMode: provider.reasoningMode,
           }),
         ),
       );

@@ -38,6 +38,8 @@ export interface ProviderConfigDto {
   streaming?: boolean;
   visionSupport?: boolean;
   functionCalling?: boolean;
+  contextLength?: number | null;
+  reasoningMode?: boolean;
 }
 
 @Injectable()
@@ -70,6 +72,8 @@ export class ProviderConfigService {
       streaming: dto.streaming ?? true,
       visionSupport: dto.visionSupport ?? false,
       functionCalling: dto.functionCalling ?? false,
+      contextLength: dto.contextLength ?? null,
+      reasoningMode: dto.reasoningMode ?? false,
     };
     if (existing) {
       return this.prisma.userProviderConfig.update({ where: { id: existing.id }, data });

@@ -7,6 +7,7 @@ import {
   FolderOpen, Settings, LogOut, Palette, Clapperboard, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BookOpen, BarChart2, Search, Zap, HelpCircle,
+  Users, CalendarClock, History,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -41,9 +42,13 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    category: 'Publishing',
     items: [
-      { href: '/publish',  icon: Upload,      label: 'Publish' },
-      { href: '/insights', icon: BarChart2,   label: 'Insights' },
+      { href: '/publish',             icon: Upload,        label: 'Publish Hub' },
+      { href: '/projects?tab=channels', icon: Users,       label: 'Accounts' },
+      { href: '/publish?tab=scheduler', icon: CalendarClock, label: 'Scheduled' },
+      { href: '/publish?tab=publishing', icon: History,    label: 'History' },
+      { href: '/insights',            icon: BarChart2,     label: 'Analytics' },
     ],
   },
 ];

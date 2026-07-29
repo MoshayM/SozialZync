@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle,
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
-  Webhook, Trash2, Play, Plus, Cpu, Download, Music,
+  Webhook, Trash2, Play, Plus, Cpu, Download, Music, HardDrive,
 } from 'lucide-react';
 import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse } from '@/lib/api';
 
@@ -275,7 +275,7 @@ function SettingsContent() {
           </a>
           <a
             href="/studio/music"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#fefce8]"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#fefce8]"
             style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
           >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fefce8' }}>
@@ -284,6 +284,19 @@ function SettingsContent() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Music Library</p>
               <p className="text-xs text-gray-500">Royalty-free tracks for your videos</p>
+            </div>
+          </a>
+          <a
+            href="/settings/storage"
+            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#f0f9ff]"
+            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0f9ff' }}>
+              <HardDrive className="w-5 h-5" style={{ color: '#0284c7' }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Storage</p>
+              <p className="text-xs text-gray-500">Manage local AI-generated files, models, and cache.</p>
             </div>
           </a>
         </section>

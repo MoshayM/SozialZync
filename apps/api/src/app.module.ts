@@ -46,6 +46,7 @@ import { AutonomyModule } from './modules/autonomy/autonomy.module';
 import { EditorModule } from './modules/editor/editor.module';
 import { ProviderConfigModule } from './modules/provider-config/provider-config.module';
 import { SystemModule } from './modules/system/system.module';
+import { PlatformsModule } from './modules/platforms/platforms.module';
 
 @Module({
   imports: [
@@ -120,6 +121,7 @@ import { SystemModule } from './modules/system/system.module';
     EditorModule,
     ProviderConfigModule,
     SystemModule,
+    PlatformsModule,
     MetricsModule,
     HealthModule,
   ],

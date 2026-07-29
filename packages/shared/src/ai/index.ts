@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'ollama' | 'lm-studio' | 'localai' | 'vllm' | 'openrouter' | 'openai-compat';
+export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'ollama' | 'lm-studio' | 'localai' | 'vllm' | 'openrouter' | 'openai-compat' | 'textgen-webui' | 'koboldcpp' | 'llamacpp' | 'openwebui' | 'kimi' | 'github-copilot';
 
 export interface CustomProviderConfig {
   id: string;
@@ -678,7 +678,7 @@ async function callAIProvider(
   }
 
   // Handle custom OpenAI-compatible providers (Ollama, LM Studio, vLLM, LocalAI, OpenRouter, generic)
-  if (['ollama', 'lm-studio', 'localai', 'vllm', 'openrouter', 'openai-compat'].includes(provider)) {
+  if (['ollama', 'lm-studio', 'localai', 'vllm', 'openrouter', 'openai-compat', 'textgen-webui', 'koboldcpp', 'llamacpp', 'openwebui', 'kimi', 'github-copilot'].includes(provider)) {
     const entry = _customProviders.get(provider);
     if (!entry) throw new Error(`Custom provider '${provider}' not configured — add it in Settings > AI Providers`);
     const model = opts.model ?? entry.config.defaultModel;

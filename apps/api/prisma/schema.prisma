@@ -1196,6 +1196,8 @@ model UserProviderConfig {
   streaming   Boolean  @default(true)
   visionSupport Boolean @default(false)
   functionCalling Boolean @default(false)
+  contextLength   Int?
+  reasoningMode   Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
