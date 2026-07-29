@@ -4,9 +4,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  FolderOpen, Settings, LogOut, Palette, Clapperboard, Wallet,
+  FolderOpen, Settings, LogOut, Palette, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
-  Upload, BookOpen, BarChart2, Search, Zap, HelpCircle,
+  Upload, BarChart2, Search, Zap, HelpCircle,
   WifiOff, Mic2, Music,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
@@ -30,11 +30,9 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { href: '/home',          icon: Home,         label: 'Home' },
-      { href: '/content',       icon: BookOpen,     label: 'Content' },
-      { href: '/projects',      icon: FolderOpen,   label: 'Projects' },
-      { href: '/shorts-studio', icon: Clapperboard, label: 'Shorts Studio' },
-      { href: '/editor',        icon: Film,         label: 'Video Editor' },
+      { href: '/home',     icon: Home,       label: 'Home' },
+      { href: '/projects', icon: FolderOpen, label: 'Projects' },
+      { href: '/editor',   icon: Film,       label: 'Video Editor' },
       { href: '/studio/audio',  icon: Mic2,         label: 'Audio Studio' },
       { href: '/studio/music',  icon: Music,        label: 'Music Studio' },
     ],
@@ -59,7 +57,7 @@ const BOTTOM_ITEMS: NavItem[] = [
 const MOBILE_NAV_ITEMS = [
   { href: '/home',     icon: Home,       label: 'Home' },
   { href: '/projects', icon: FolderOpen, label: 'Projects' },
-  { href: '/content',  icon: BookOpen,   label: 'Content' },
+  { href: '/editor',   icon: Film,       label: 'Studio' },
   { href: '/publish',  icon: Upload,     label: 'Publish' },
 ];
 

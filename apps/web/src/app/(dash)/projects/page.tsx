@@ -1,6 +1,7 @@
 'use client';
 import { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ContentToolsContent } from '@/components/content-tools-embed';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
@@ -1329,10 +1330,72 @@ function ProjectsTab({
   );
 }
 
-// ── Page root ─────────────────────────────────────────────────────────────────
+// ── View router (Projects | Content Tools) ────────────────────────────────────
+
+const VIEW_TABS = [
+  { id: 'projects', label: 'Projects' },
+  { id: 'content',  label: 'Content Tools' },
+] as const;
+type ViewId = typeof VIEW_TABS[number]['id'];
+
+function ProjectsViewRouter() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const view = (searchParams.get('view') ?? 'projects') as ViewId;
+
+  function selectView(v: ViewId) {
+    if (v === 'projects') router.replace('/projects');
+    else router.replace(`/projects?view=${v}`);
+  }
+
+  const tabStrip = (
+    <div className="px-5 lg:px-7 pt-5 lg:pt-4 flex items-center gap-2">
+      <div
+        className="flex gap-1 p-1 rounded-2xl"
+        style={{ background: '#f0edf9', border: '1.5px solid #e3ddf8' }}
+      >
+        {VIEW_TABS.map(({ id, label }) => {
+          const isActive = view === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => selectView(id)}
+              className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={
+                isActive
+                  ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.30)' }
+                  : { background: 'transparent', color: '#7c5ae8' }
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  if (view === 'content') {
+    return (
+      <div className="min-h-full bg-[#faf9ff]">
+        {tabStrip}
+        <ContentToolsContent />
+      </div>
+    );
+  }
+
+  /* Projects view — ProjectsInner owns its own outer container + tabs */
+  return (
+    <>
+      <div className="bg-[#faf9ff]">{tabStrip}</div>
+      <ProjectsInner />
+    </>
+  );
+}
 
 export default function ProjectsPage() {
-  return <Suspense><ProjectsInner /></Suspense>;
+  return <Suspense><ProjectsViewRouter /></Suspense>;
 }
 
 const _WIZARD_API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';

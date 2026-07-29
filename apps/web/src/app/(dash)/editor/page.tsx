@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { Film, Plus, Clock, Loader2, AlertCircle, Pencil } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Film, Plus, Clock, Loader2, AlertCircle, Pencil, Clapperboard } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
+import { ShortsStudioContent } from '@/components/shorts-studio-embed';
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -22,13 +23,51 @@ const STATUS_STYLES: Record<string, React.CSSProperties> = {
   FAILED:    { background: '#fef2f2', color: '#b91c1c' },
 };
 
-export default function EditorListPage() {
+// ── Tab strip ─────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { id: 'editor',  label: 'Video Editor',  Icon: Film },
+  { id: 'shorts',  label: 'Shorts Studio', Icon: Clapperboard },
+] as const;
+type TabId = typeof TABS[number]['id'];
+
+function TabStrip({ active, onSelect }: { active: TabId; onSelect: (t: TabId) => void }) {
+  return (
+    <div
+      className="flex gap-1 p-1 rounded-2xl shrink-0"
+      style={{ background: '#f0edf9', border: '1.5px solid #e3ddf8' }}
+    >
+      {TABS.map(({ id, label, Icon }) => {
+        const isActive = active === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onSelect(id)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            style={
+              isActive
+                ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.30)' }
+                : { background: 'transparent', color: '#7c5ae8' }
+            }
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Editor list ───────────────────────────────────────────────────────────────
+
+function VideoEditorContent() {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [showForm, setShowForm] = useState(false);
 
-  // Channel-first: the API resolves ownership from the current user.
   const { data: projects = [], isLoading, error } = useQuery<EditProject[]>({
     queryKey: ['editor-projects'],
     queryFn: () => api.editor.listMine().then((r) => r.data),
@@ -50,134 +89,166 @@ export default function EditorListPage() {
   };
 
   return (
-    <div className="min-h-full bg-[#faf9ff]">
-      <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
-
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
-            >
-              <Film className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Video Editor</h1>
-              <p className="text-sm text-gray-400 mt-0.5">Create and edit video projects with a multi-track timeline</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowForm((s) => !s)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white text-sm font-semibold"
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
           >
-            <Plus className="w-4 h-4" /> New edit
-          </button>
+            <Film className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-gray-900 leading-tight">Video Editor</h2>
+            <p className="text-sm text-gray-400 mt-0.5">Create and edit video projects with a multi-track timeline</p>
+          </div>
         </div>
+        <button
+          onClick={() => setShowForm((s) => !s)}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white text-sm font-semibold"
+          style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+        >
+          <Plus className="w-4 h-4" /> New edit
+        </button>
+      </div>
 
-        {/* Create form */}
-        {showForm && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-            <p className="text-sm font-semibold text-gray-800 mb-3">New edit project</p>
-            <div className="flex gap-2">
-              <input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowForm(false); }}
-                placeholder="Edit title (e.g. My YouTube Video)"
-                className="bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all flex-1"
-                style={{ border: '1.5px solid #e3e0f0' }}
-              />
-              <button
-                onClick={handleCreate}
-                disabled={createMutation.isPending}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white text-sm font-semibold disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
-              >
-                {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Create
-              </button>
-              <button
-                onClick={() => setShowForm(false)}
-                className="px-3 py-2 rounded-2xl text-gray-600 text-sm"
-                style={{ border: '1.5px solid #e3ddf8' }}
-              >
-                Cancel
-              </button>
-            </div>
-            {createMutation.isError && (
-              <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {(createMutation.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to create edit'}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center gap-2 text-gray-500 py-16 justify-center">
-            <Loader2 className="w-5 h-5 animate-spin" /> Loading edit projects…
-          </div>
-        )}
-
-        {/* Error */}
-        {!!error && !isLoading && (
-          <div className="py-16 text-center">
-            <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">Could not load edit projects. Create a new one to get started.</p>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!isLoading && !error && projects.length === 0 && (
-          <div className="text-center py-20 text-gray-500">
-            <Film className="w-10 h-10 mx-auto mb-3" style={{ color: '#6D4AE0', opacity: 0.3 }} />
-            <p className="mb-4">No edit projects yet.</p>
+      {/* Create form */}
+      {showForm && (
+        <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+          <p className="text-sm font-semibold text-gray-800 mb-3">New edit project</p>
+          <div className="flex gap-2">
+            <input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowForm(false); }}
+              placeholder="Edit title (e.g. My YouTube Video)"
+              className="bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all flex-1"
+              style={{ border: '1.5px solid #e3e0f0' }}
+            />
             <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white text-sm font-semibold"
+              onClick={handleCreate}
+              disabled={createMutation.isPending}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white text-sm font-semibold disabled:opacity-50"
               style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
             >
-              <Plus className="w-4 h-4" /> Create your first edit
+              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Create
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-3 py-2 rounded-2xl text-gray-600 text-sm"
+              style={{ border: '1.5px solid #e3ddf8' }}
+            >
+              Cancel
             </button>
           </div>
-        )}
+          {createMutation.isError && (
+            <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              {(createMutation.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to create edit'}
+            </p>
+          )}
+        </div>
+      )}
 
-        {/* Project list */}
-        {!isLoading && projects.length > 0 && (
-          <div className="space-y-2">
-            {projects.map((p) => (
-              <a
-                key={p.id}
-                href={`/editor/${p.id}`}
-                className="block bg-white rounded-2xl px-5 py-4 hover:bg-[#faf9ff] transition-colors"
-                style={{ border: '1.5px solid #e3ddf8' }}
-              >
-                <div className="flex items-center gap-3">
-                  <Film className="w-5 h-5 shrink-0" style={{ color: '#6D4AE0' }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{p.title}</p>
-                    <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
-                      <Clock className="w-3 h-3" />
-                      {relativeTime(p.lastEditedAt)} · {p.width}×{p.height} · {p.fps}fps
-                    </p>
-                  </div>
-                  <span
-                    className="px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0"
-                    style={STATUS_STYLES[p.status] ?? { background: '#f3f4f6', color: '#4b5563' }}
-                  >
-                    {p.status.toLowerCase()}
-                  </span>
-                  <Pencil className="w-4 h-4 text-gray-300 shrink-0" />
+      {isLoading && (
+        <div className="flex items-center gap-2 text-gray-500 py-16 justify-center">
+          <Loader2 className="w-5 h-5 animate-spin" /> Loading edit projects…
+        </div>
+      )}
+
+      {!!error && !isLoading && (
+        <div className="py-16 text-center">
+          <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-500 text-sm">Could not load edit projects. Create a new one to get started.</p>
+        </div>
+      )}
+
+      {!isLoading && !error && projects.length === 0 && (
+        <div className="text-center py-20 text-gray-500">
+          <Film className="w-10 h-10 mx-auto mb-3" style={{ color: '#6D4AE0', opacity: 0.3 }} />
+          <p className="mb-4">No edit projects yet.</p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white text-sm font-semibold"
+            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+          >
+            <Plus className="w-4 h-4" /> Create your first edit
+          </button>
+        </div>
+      )}
+
+      {!isLoading && projects.length > 0 && (
+        <div className="space-y-2">
+          {projects.map((p) => (
+            <a
+              key={p.id}
+              href={`/editor/${p.id}`}
+              className="block bg-white rounded-2xl px-5 py-4 hover:bg-[#faf9ff] transition-colors"
+              style={{ border: '1.5px solid #e3ddf8' }}
+            >
+              <div className="flex items-center gap-3">
+                <Film className="w-5 h-5 shrink-0" style={{ color: '#6D4AE0' }} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{p.title}</p>
+                  <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                    <Clock className="w-3 h-3" />
+                    {relativeTime(p.lastEditedAt)} · {p.width}×{p.height} · {p.fps}fps
+                  </p>
                 </div>
-              </a>
-            ))}
-          </div>
-        )}
-
-      </div>
+                <span
+                  className="px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0"
+                  style={STATUS_STYLES[p.status] ?? { background: '#f3f4f6', color: '#4b5563' }}
+                >
+                  {p.status.toLowerCase()}
+                </span>
+                <Pencil className="w-4 h-4 text-gray-300 shrink-0" />
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+// ── Inner (reads searchParams) ────────────────────────────────────────────────
+
+function EditorInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = (searchParams.get('tab') ?? 'editor') as TabId;
+
+  function selectTab(t: TabId) {
+    if (t === 'editor') router.replace('/editor');
+    else router.replace(`/editor?tab=${t}`);
+  }
+
+  return (
+    <div className="min-h-full bg-[#faf9ff]">
+      {/* Tab strip header */}
+      <div className="px-5 lg:px-7 pt-5 lg:pt-6 max-w-5xl mx-auto flex items-center justify-between gap-3 flex-wrap pb-1">
+        <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Studio</h1>
+        <TabStrip active={tab} onSelect={selectTab} />
+      </div>
+
+      {/* Content — Shorts Studio owns its own padding; editor list uses inner padding */}
+      {tab === 'shorts' ? (
+        <ShortsStudioContent />
+      ) : (
+        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5 pt-4 lg:pt-4">
+          <VideoEditorContent />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function EditorListPage() {
+  return (
+    <Suspense fallback={null}>
+      <EditorInner />
+    </Suspense>
   );
 }
