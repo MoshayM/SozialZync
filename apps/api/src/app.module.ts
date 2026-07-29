@@ -47,6 +47,7 @@ import { EditorModule } from './modules/editor/editor.module';
 import { ProviderConfigModule } from './modules/provider-config/provider-config.module';
 import { SystemModule } from './modules/system/system.module';
 import { PlatformsModule } from './modules/platforms/platforms.module';
+import { PluginsModule } from './modules/plugins/plugins.module';
 
 @Module({
   imports: [
@@ -122,6 +123,7 @@ import { PlatformsModule } from './modules/platforms/platforms.module';
     ProviderConfigModule,
     SystemModule,
     PlatformsModule,
+    PluginsModule,
     MetricsModule,
     HealthModule,
   ],

@@ -7,7 +7,7 @@ import {
   FolderOpen, Settings, LogOut, Palette, Clapperboard, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BookOpen, BarChart2, Search, Zap, HelpCircle,
-  Users, CalendarClock, History,
+  Users, CalendarClock, History, WifiOff,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -230,6 +230,20 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   /* Desktop sidebar collapsed to icon-only rail */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    const handleOnline  = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online',  handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setIsOffline(!navigator.onLine);
+    return () => {
+      window.removeEventListener('online',  handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   /* Mobile drawer overlay open */
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -802,6 +816,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
         {/* ── MAIN ─────────────────────────────────────────────────────────── */}
         <main className="cf-main-mobile-pad flex-1 overflow-y-auto overflow-x-hidden">
+          {isOffline && (
+            <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold" style={{ background: '#fef3c7', borderBottom: '1px solid #fcd34d', color: '#92400e' }}>
+              <WifiOff className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+              <span>You&apos;re offline — AI features and publishing are unavailable until reconnected.</span>
+            </div>
+          )}
           <CreditsBanner />
           {children}
         </main>

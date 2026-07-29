@@ -1,14 +1,26 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IPlatformProvider, ConnectionStatus } from './platform.types';
 import { YouTubePlatformProvider } from './providers/youtube.platform.provider';
+import { InstagramPlatformProvider } from './providers/instagram.platform.provider';
+import { TikTokPlatformProvider } from './providers/tiktok.platform.provider';
+import { FacebookPlatformProvider } from './providers/facebook.platform.provider';
+import { LinkedInPlatformProvider } from './providers/linkedin.platform.provider';
+import { XPlatformProvider } from './providers/x.platform.provider';
 
 @Injectable()
 export class PlatformRegistryService {
   private readonly logger = new Logger(PlatformRegistryService.name);
   private readonly providers = new Map<string, IPlatformProvider>();
 
-  constructor(private readonly youtube: YouTubePlatformProvider) {
-    this.register(youtube);
+  constructor(
+    private readonly youtube: YouTubePlatformProvider,
+    private readonly instagram: InstagramPlatformProvider,
+    private readonly tiktok: TikTokPlatformProvider,
+    private readonly facebook: FacebookPlatformProvider,
+    private readonly linkedin: LinkedInPlatformProvider,
+    private readonly x: XPlatformProvider,
+  ) {
+    [youtube, instagram, tiktok, facebook, linkedin, x].forEach(p => this.register(p));
   }
 
   private register(provider: IPlatformProvider): void {

@@ -1193,7 +1193,13 @@ function ProjectsTab({
                         <p className="font-semibold mb-1" style={{ color: '#4c1d95' }}>ℹ No accounts connected yet</p>
                         <p style={{ color: '#6b7280' }}>You don&apos;t need to connect any account now. Create your content first.</p>
                         <p className="mt-2">
-                          <Link href="/projects?tab=channels" className="text-[#6D4AE0] font-semibold hover:underline" onClick={closeCreate}>Connect Account →</Link>
+                          <button
+                            type="button"
+                            onClick={() => void startOAuthFromWizard()}
+                            className="text-[#6D4AE0] font-semibold hover:underline"
+                          >
+                            Connect Account →
+                          </button>
                           {' '}<span style={{ color: '#9ca3af', fontSize: 12 }}>(optional)</span>
                         </p>
                       </div>
@@ -1305,6 +1311,16 @@ export default function ProjectsPage() {
 function ProjectsInner() {
   const qc = useQueryClient();
   const router = useRouter();
+  const WIZARD_API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+
+  async function startOAuthFromWizard() {
+    try {
+      const redirectUri = `${WIZARD_API_URL}/channels/oauth/callback`;
+      const { data } = await api.channels.getAuthUrl(redirectUri, 'PUBLISH', '/projects?connected=1') as { data: { url: string } };
+      window.location.href = data.url;
+    } catch { /* ignore */ }
+  }
+
   const searchParams = useSearchParams();
 
   const mainTab = (searchParams.get('tab') ?? 'projects') as 'projects' | 'channels';
