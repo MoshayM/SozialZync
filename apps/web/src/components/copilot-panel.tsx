@@ -288,7 +288,7 @@ export function CopilotPanel() {
   const [recording, setRecording] = useState(false);
   const [micError, setMicError]   = useState<string|null>(null);
   const [serverStt, setServerStt] = useState<boolean|null>(null);
-  const [lang, setLang]           = useState<string>(() => typeof navigator !== 'undefined' ? navigator.language : 'en-US');
+  const [lang]                    = useState<string>('en-US');
   const [speakingIdx, setSpeakingIdx] = useState<number|null>(null);
   const [ttsAvailable, setTtsAvailable] = useState<boolean | null>(null);
 
@@ -526,13 +526,13 @@ export function CopilotPanel() {
       const res = await apiClient.post('/copilot/chat', {
         messages: nextMessages.slice(-10),
         inputMode: conversationRef.current ? 'voice' : 'text',
+        lang: 'en',
         ...(confirmedCommand ? { confirmedCommand } : {}),
         ...(!confirmedCommand && pending ? { pendingCommand: pending } : {}),
       }, { timeout: 90_000 });
       const data = res.data as CopilotResponse;
       setMessages(m => [...m, { role: 'assistant', content: data.reply, fromCache: data.fromCache }]);
       if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); }
-      if (data.language) setLang(data.language);
       if (data.plan)     setCurrentPlan(data.plan);
       if (data.navigate) router.push(data.navigate);
       // Only auto-speak in voice conversation mode; text mode uses per-message buttons
@@ -589,7 +589,7 @@ export function CopilotPanel() {
       try {
         const form = new FormData();
         form.append('audio', blob, `recording.${mimeType.includes('ogg') ? 'ogg' : 'webm'}`);
-        form.append('language', lang.split('-')[0]!);
+        form.append('language', 'en');
         const { data } = await apiClient.post('/copilot/transcribe', form, { headers: { 'Content-Type': 'multipart/form-data' } });
         const text = (data as { text: string }).text?.trim() ?? '';
         if (text) { conversationRef.current = true; setLiveTranscript(text); void send(text); }
@@ -615,7 +615,7 @@ export function CopilotPanel() {
       return;
     }
     recognitionRef.current = rec;
-    rec.lang = lang; rec.interimResults = true; rec.continuous = false;
+    rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false;
     let finalText = '';
     rec.onresult = e => {
       let interim = '';
@@ -699,6 +699,7 @@ export function CopilotPanel() {
   return (
     <>
       <style>{`
+        .cf-copilot-drawer textarea::placeholder { color: rgba(255,255,255,0.38); }
         @keyframes cfVoiceBar {
           0%,100% { transform: scaleY(0.25); opacity:0.5; }
           50%      { transform: scaleY(1);    opacity:1;   }
@@ -744,11 +745,11 @@ export function CopilotPanel() {
         style={{
           position:'fixed', top:0, right:0, bottom:0,
           zIndex:46,
-          background: 'rgba(250,249,255,0.82)',
-          backdropFilter: 'blur(28px)',
-          WebkitBackdropFilter: 'blur(28px)',
-          borderLeft:'1px solid #E2DCF5',
-          boxShadow:'-24px 0 60px -20px rgba(30,27,46,.18)',
+          background: 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          borderLeft:'1px solid rgba(255,255,255,0.18)',
+          boxShadow:'-24px 0 60px -20px rgba(30,27,46,.22)',
           display:'flex', flexDirection:'column',
           transform: open ? 'translateX(0)' : 'translateX(100%)',
           transition:'transform 300ms cubic-bezier(.4,0,.2,1)',
@@ -820,7 +821,7 @@ export function CopilotPanel() {
         </div>
 
         {/* ── Tabs ── */}
-        <div style={{ display:'flex',borderBottom:'1px solid #EDE9F8',background:'#fff',flexShrink:0,padding:'0 4px' }}>
+        <div style={{ display:'flex',borderBottom:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.08)',flexShrink:0,padding:'0 4px' }}>
           {(['chat','actions','jobs'] as const).map(tab => (
             <button
               key={tab}
@@ -830,12 +831,12 @@ export function CopilotPanel() {
                 padding:'13px 16px',
                 fontSize:'13px',
                 fontWeight: activeTab===tab ? 600 : 500,
-                color: activeTab===tab ? '#7C3AED' : '#8b88a0',
-                borderBottom: `2px solid ${activeTab===tab ? '#7C3AED' : 'transparent'}`,
+                color: activeTab===tab ? '#fff' : 'rgba(255,255,255,0.55)',
+                borderBottom: `2px solid ${activeTab===tab ? '#fff' : 'transparent'}`,
                 background:'none',border:'none',
                 borderBottomWidth:'2px',
                 borderBottomStyle:'solid',
-                borderBottomColor: activeTab===tab ? '#7C3AED' : 'transparent',
+                borderBottomColor: activeTab===tab ? '#fff' : 'transparent',
                 cursor:'pointer',
                 transition:'color 150ms, border-color 150ms',
                 letterSpacing:'-.05px',
@@ -856,8 +857,8 @@ export function CopilotPanel() {
                   <div style={{ width:'52px',height:'52px',borderRadius:'16px',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px',boxShadow:'0 8px 20px -8px rgba(124,58,237,.5)' }}>
                     <Bot style={{ width:'26px',height:'26px',color:'#fff' }} />
                   </div>
-                  <div style={{ fontSize:'16px',fontWeight:700,color:'#1E1B2E',marginBottom:'6px' }}>What's on your mind?</div>
-                  <div style={{ fontSize:'13px',color:'#8b88a0',marginBottom:'24px',lineHeight:1.5 }}>Scripts, SEO, ideas, research — just say the word.</div>
+                  <div style={{ fontSize:'16px',fontWeight:700,color:'#fff',marginBottom:'6px' }}>What's on your mind?</div>
+                  <div style={{ fontSize:'13px',color:'rgba(255,255,255,0.58)',marginBottom:'24px',lineHeight:1.5 }}>Scripts, SEO, ideas, research — just say the word.</div>
                   <div style={{ display:'flex',flexWrap:'wrap',gap:'8px',justifyContent:'center' }}>
                     {PROMPT_CHIPS.map(chip => (
                       <button
@@ -865,11 +866,11 @@ export function CopilotPanel() {
                         onClick={() => void send(chip)}
                         style={{
                           padding:'8px 14px',borderRadius:'99px',fontSize:'12.5px',fontWeight:500,
-                          background:'#fff',border:'1px solid #E2DCF5',color:'#4d4a6b',
+                          background:'rgba(255,255,255,0.10)',border:'1px solid rgba(255,255,255,0.18)',color:'rgba(255,255,255,0.85)',
                           cursor:'pointer',transition:'background .15s,border-color .15s',
                         }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='#F5F2FD'; (e.currentTarget as HTMLElement).style.borderColor='#C4B5FD'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='#fff'; (e.currentTarget as HTMLElement).style.borderColor='#E2DCF5'; }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.20)'; (e.currentTarget as HTMLElement).style.borderColor='rgba(196,181,253,0.6)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.10)'; (e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.18)'; }}
                       >
                         {chip}
                       </button>
@@ -993,7 +994,7 @@ export function CopilotPanel() {
             </div>
 
             {/* Input bar */}
-            <div style={{ padding:'12px 16px 16px',background:'#fff',borderTop:'1px solid #EDE9F8',flexShrink:0 }}>
+            <div style={{ padding:'12px 16px 16px',background:'rgba(255,255,255,0.08)',borderTop:'1px solid rgba(255,255,255,0.12)',flexShrink:0 }}>
               {isVoiceActive ? (
                 /* Voice-active input bar */
                 <div style={{ display:'flex',alignItems:'center',gap:'10px',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',borderRadius:'16px',padding:'10px 12px 10px 16px' }}>
@@ -1042,9 +1043,9 @@ export function CopilotPanel() {
               ) : (
                 /* Normal text input */
                 <>
-                  <div style={{ display:'flex',alignItems:'flex-end',gap:'8px',background:'#F7F6FB',border:'1.5px solid #E2DCF5',borderRadius:'16px',padding:'8px 8px 8px 14px',transition:'border-color .15s' }}
-                    onFocusCapture={e => { (e.currentTarget as HTMLElement).style.borderColor='#C4B5FD'; }}
-                    onBlurCapture={e => { (e.currentTarget as HTMLElement).style.borderColor='#E2DCF5'; }}
+                  <div style={{ display:'flex',alignItems:'flex-end',gap:'8px',background:'rgba(255,255,255,0.10)',border:'1.5px solid rgba(255,255,255,0.18)',borderRadius:'16px',padding:'8px 8px 8px 14px',transition:'border-color .15s' }}
+                    onFocusCapture={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(196,181,253,0.6)'; }}
+                    onBlurCapture={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.18)'; }}
                   >
                     <textarea
                       ref={textareaRef}
@@ -1054,7 +1055,7 @@ export function CopilotPanel() {
                       disabled={busy}
                       placeholder="What's on your mind?"
                       rows={1}
-                      style={{ flex:'1 1 auto',background:'none',border:'none',outline:'none',resize:'none',fontSize:'14px',color:'#1E1B2E',fontFamily:'inherit',maxHeight:'100px',lineHeight:1.5,paddingTop:'2px' }}
+                      style={{ flex:'1 1 auto',background:'none',border:'none',outline:'none',resize:'none',fontSize:'14px',color:'#fff',fontFamily:'inherit',maxHeight:'100px',lineHeight:1.5,paddingTop:'2px' }}
                     />
                     <button
                       type="button"
@@ -1072,7 +1073,7 @@ export function CopilotPanel() {
                       <Send style={{ width:'15px',height:'15px' }} />
                     </button>
                   </div>
-                  <p className="hidden sm:block" style={{ fontSize:'11px',color:'#b8b5c8',textAlign:'center',marginTop:'7px',fontWeight:500 }}>Enter to send  ·  Shift+Enter to break</p>
+                  <p className="hidden sm:block" style={{ fontSize:'11px',color:'rgba(255,255,255,0.35)',textAlign:'center',marginTop:'7px',fontWeight:500 }}>Enter to send  ·  Shift+Enter to break</p>
                 </>
               )}
             </div>
@@ -1094,19 +1095,19 @@ export function CopilotPanel() {
                     style={{
                       display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'10px',
                       padding:'14px',borderRadius:'14px',textAlign:'left',cursor:'pointer',
-                      background: isActive ? action.bg : '#fff',
-                      border: `1.5px solid ${isActive ? action.color+'55' : '#EDE9F8'}`,
+                      background: isActive ? action.bg : 'rgba(255,255,255,0.08)',
+                      border: `1.5px solid ${isActive ? action.color+'55' : 'rgba(255,255,255,0.15)'}`,
                       transition:'background .15s,border-color .15s,transform .15s',
                     }}
                     onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background=action.bg; (e.currentTarget as HTMLElement).style.transform='translateY(-1px)'; } }}
-                    onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background='#fff'; (e.currentTarget as HTMLElement).style.transform='none'; } }}
+                    onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.transform='none'; } }}
                   >
                     <div style={{ width:'32px',height:'32px',borderRadius:'10px',background:action.bg,display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${action.color}22` }}>
                       <Icon style={{ width:'16px',height:'16px',color:action.color }} />
                     </div>
                     <div>
-                      <div style={{ fontSize:'13px',fontWeight:600,color: isActive ? action.color : '#1E1B2E',marginBottom:'2px' }}>{action.label}</div>
-                      <div style={{ fontSize:'11.5px',color:'#8b88a0',lineHeight:1.4 }}>{action.description}</div>
+                      <div style={{ fontSize:'13px',fontWeight:600,color: isActive ? action.color : 'rgba(255,255,255,0.9)',marginBottom:'2px' }}>{action.label}</div>
+                      <div style={{ fontSize:'11.5px',color:'rgba(255,255,255,0.5)',lineHeight:1.4 }}>{action.description}</div>
                     </div>
                   </button>
                 );
@@ -1153,29 +1154,29 @@ export function CopilotPanel() {
 
             {/* Recent prompts */}
             <div style={{ marginBottom:'8px' }}>
-              <div style={{ display:'flex',alignItems:'center',gap:'6px',fontSize:'11px',fontWeight:700,letterSpacing:'.5px',textTransform:'uppercase',color:'#b8b5c8',marginBottom:'10px' }}>
+              <div style={{ display:'flex',alignItems:'center',gap:'6px',fontSize:'11px',fontWeight:700,letterSpacing:'.5px',textTransform:'uppercase',color:'rgba(255,255,255,0.4)',marginBottom:'10px' }}>
                 <Clock style={{ width:'12px',height:'12px' }} /> Recent
                 {history.length > 0 && (
                   <button
                     type="button"
                     onClick={handleClearHistory}
-                    style={{ marginLeft:'auto',fontSize:'11px',fontWeight:600,color:'#b8b5c8',background:'none',border:'none',cursor:'pointer',padding:0,letterSpacing:'normal',textTransform:'none',fontFamily:'inherit' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color='#EF4444'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color='#b8b5c8'; }}
+                    style={{ marginLeft:'auto',fontSize:'11px',fontWeight:600,color:'rgba(255,255,255,0.4)',background:'none',border:'none',cursor:'pointer',padding:0,letterSpacing:'normal',textTransform:'none',fontFamily:'inherit' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color='#F87171'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.4)'; }}
                   >
                     Clear all
                   </button>
                 )}
               </div>
               {history.length === 0 ? (
-                <p style={{ fontSize:'12.5px',color:'#b8b5c8',textAlign:'center',marginTop:'16px' }}>Your recent prompts will appear here</p>
+                <p style={{ fontSize:'12.5px',color:'rgba(255,255,255,0.4)',textAlign:'center',marginTop:'16px' }}>Your recent prompts will appear here</p>
               ) : (
                 <div style={{ display:'flex',flexDirection:'column',gap:'4px' }}>
                   {history.map((h, i) => (
                     <div
                       key={i}
                       style={{ display:'flex',alignItems:'center',gap:'4px',borderRadius:'10px',transition:'background .15s' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='#F5F2FD'; }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.10)'; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='transparent'; }}
                     >
                       <button
@@ -1183,8 +1184,8 @@ export function CopilotPanel() {
                         onClick={() => { setActiveTab('chat'); void send(h.text); }}
                         style={{ flex:'1 1 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',padding:'10px 12px',borderRadius:'10px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left' }}
                       >
-                        <span style={{ fontSize:'13px',color:'#1E1B2E',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:'1 1 auto' }}>{h.text}</span>
-                        <span style={{ fontSize:'11px',color:'#b8b5c8',fontWeight:500,flexShrink:0 }}>{relTime(h.ts)}</span>
+                        <span style={{ fontSize:'13px',color:'rgba(255,255,255,0.85)',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:'1 1 auto' }}>{h.text}</span>
+                        <span style={{ fontSize:'11px',color:'rgba(255,255,255,0.4)',fontWeight:500,flexShrink:0 }}>{relTime(h.ts)}</span>
                       </button>
                       <button
                         type="button"
@@ -1210,18 +1211,18 @@ export function CopilotPanel() {
             {recentJobs.length === 0 ? (
               <div style={{ textAlign:'center',paddingTop:'32px' }}>
                 <Zap style={{ width:'32px',height:'32px',color:'#C4B5FD',margin:'0 auto 12px' }} />
-                <p style={{ fontSize:'13.5px',color:'#8b88a0' }}>No tasks yet</p>
+                <p style={{ fontSize:'13.5px',color:'rgba(255,255,255,0.5)' }}>No tasks yet</p>
               </div>
             ) : (
               recentJobs.map(j => (
-                <div key={j.id} style={{ display:'flex',alignItems:'center',gap:'10px',padding:'11px 13px',background:'#fff',border:'1px solid #EDE9F8',borderRadius:'12px',boxShadow:'0 1px 3px rgba(30,27,46,.04)' }}>
+                <div key={j.id} style={{ display:'flex',alignItems:'center',gap:'10px',padding:'11px 13px',background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'12px' }}>
                   <JobDot status={j.status} />
                   <div style={{ flex:'1 1 auto',minWidth:0 }}>
-                    <div style={{ fontSize:'13px',fontWeight:600,color:'#1E1B2E',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{j.type.replace(/_/g,' ')}</div>
-                    <div style={{ fontSize:'11.5px',color:'#8b88a0',marginTop:'1px' }}>{j.project.title.slice(0,36)}</div>
+                    <div style={{ fontSize:'13px',fontWeight:600,color:'rgba(255,255,255,0.9)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{j.type.replace(/_/g,' ')}</div>
+                    <div style={{ fontSize:'11.5px',color:'rgba(255,255,255,0.5)',marginTop:'1px' }}>{j.project.title.slice(0,36)}</div>
                     {j.error && <div style={{ fontSize:'11px',color:'#F87171',marginTop:'2px' }}>{j.error.slice(0,50)}</div>}
                   </div>
-                  <span style={{ fontSize:'11px',fontWeight:600,color:'#8b88a0',flexShrink:0,textTransform:'capitalize' }}>{j.status.toLowerCase()}</span>
+                  <span style={{ fontSize:'11px',fontWeight:600,color:'rgba(255,255,255,0.5)',flexShrink:0,textTransform:'capitalize' }}>{j.status.toLowerCase()}</span>
                 </div>
               ))
             )}
