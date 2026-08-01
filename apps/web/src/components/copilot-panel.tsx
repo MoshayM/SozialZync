@@ -430,7 +430,7 @@ export function CopilotPanel() {
   const router = useRouter();
 
   // panel
-  const [activePanel, setActivePanel] = useState<PanelId | null>('chat');
+  const [activePanel, setActivePanel] = useState<PanelId | null>(null);
   const [greetingIdx, setGreetingIdx] = useState(0);
 
   // chat
@@ -490,7 +490,7 @@ export function CopilotPanel() {
   useEffect(() => {
     const handler = () => {
       setWidgetOpen(open => {
-        if (!open) setActivePanel('chat'); // reset to chat on open
+        if (open) setActivePanel(null); // close any open panel on widget close
         return !open;
       });
     };
@@ -507,12 +507,12 @@ export function CopilotPanel() {
       .catch(() => setServerStt(false));
   }, []);
 
-  // Cycle greeting when idle
+  // Cycle greeting when idle (robot visible, no panel open)
   useEffect(() => {
-    if (!widgetOpen || activePanel !== 'chat' || messages.length > 0) return;
+    if (!widgetOpen || activePanel !== null) return;
     const t = setInterval(() => setGreetingIdx(i => (i + 1) % GREETINGS.length), 4000);
     return () => clearInterval(t);
-  }, [widgetOpen, activePanel, messages.length]);
+  }, [widgetOpen, activePanel]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior:'smooth' });
@@ -679,7 +679,8 @@ export function CopilotPanel() {
       setMessages(m => [...m, { role:'assistant', content:data.reply, fromCache:data.fromCache }]);
       const emotion = detectEmotion(data.reply);
       if (emotion === 'excited') { setExcited(true); setTimeout(() => setExcited(false), 700); }
-      setActivePanel('chat');
+      // Open chat panel to show the reply if not already in it
+      setActivePanel(prev => prev ?? 'chat');
       if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); }
       if (data.plan)     setCurrentPlan(data.plan);
       if (data.navigate) router.push(data.navigate);
@@ -872,6 +873,8 @@ export function CopilotPanel() {
         }
         .cf-foot-btn { transition: all 0.17s; }
         .cf-foot-btn:hover { background: rgba(255,255,255,0.14) !important; }
+        .cf-topic-btn { transition: all 0.17s; }
+        .cf-topic-btn:hover { background: rgba(167,139,250,0.18) !important; border-color: rgba(167,139,250,0.45) !important; transform: translateY(-1px); }
         .cf-act-card { transition: background 0.17s, border-color 0.17s, transform 0.15s; }
         .cf-act-card:hover:not(.cf-act-active) {
           background: rgba(255,255,255,0.1) !important;
@@ -880,7 +883,7 @@ export function CopilotPanel() {
         }
         .cf-msg-row:hover .cf-msg-assistant { background: rgba(255,255,255,0.13) !important; }
         @media (max-width: 768px) {
-          .cf-copilot-widget { bottom: 80px !important; right: 10px !important; }
+          .cf-copilot-widget { bottom: 82px !important; right: 10px !important; }
         }
         @keyframes cfVoiceBar   { 0%,100%{transform:scaleY(0.25);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
         @keyframes cfRipple     { 0%{transform:scale(1);opacity:0.65} 100%{transform:scale(1.9);opacity:0} }
@@ -902,8 +905,7 @@ export function CopilotPanel() {
         @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
         @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
         @media (max-width: 480px) {
-          .cf-copilot-widget { bottom: 82px !important; right: 8px !important; }
-          .cf-copilot-widget > div { max-width: calc(100vw - 16px) !important; }
+          .cf-copilot-widget { bottom: 86px !important; right: 8px !important; }
         }
       `}</style>
 
@@ -913,77 +915,48 @@ export function CopilotPanel() {
         style={{ position:'fixed', bottom:24, right:24, zIndex:9999 }}
       >
 
-        {/* ── OPEN WIDGET — full card ── */}
+        {/* ── OPEN WIDGET ── */}
         {widgetOpen && (
-        <div style={{
-          width:340, maxWidth:'calc(100vw - 24px)',
-          background:'rgba(10,7,28,0.93)',
-          backdropFilter:'blur(60px) saturate(200%)',
-          WebkitBackdropFilter:'blur(60px) saturate(200%)',
-          borderRadius:20,
-          border:'1px solid rgba(139,92,246,0.3)',
-          boxShadow:'0 12px 60px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.04)',
-          overflow:'hidden',
-          animation:'cfPanelIn 0.22s cubic-bezier(.22,1,.36,1) both',
-          display:'flex', flexDirection:'column',
-        }}>
+        <div style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
 
-          {/* ── CARD HEADER: robot + greeting + status + close ── */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
-            {/* Compact robot */}
-            <div style={{ flexShrink:0 }}>
-              <RobotAvatar state={robotState} excited={excited} compact />
-            </div>
-            {/* Greeting + status */}
-            <div style={{ flex:'1 1 auto', minWidth:0 }}>
-              <div style={{ fontSize:12.5, fontWeight:700, color:'#fff', lineHeight:1.35, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                {messages.length === 0 ? GREETINGS[greetingIdx] : (
-                  lastAssistant ? (lastAssistant.content.length > 42 ? lastAssistant.content.slice(0,42)+'…' : lastAssistant.content) : 'AI Copilot'
-                )}
-              </div>
-              <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:3 }}>
-                <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, flexShrink:0, transition:'background .3s' }} />
+          {/* ── PANEL (absolute, overlays robot from above) ── */}
+          {activePanel && (
+          <div style={{
+            position:'absolute',
+            bottom: 96,
+            right: 0,
+            width: 340,
+            maxWidth: 'calc(100vw - 24px)',
+            maxHeight: 'min(460px, calc(100svh - 180px))',
+            zIndex: 10,
+            background:'rgba(10,7,28,0.96)',
+            backdropFilter:'blur(60px) saturate(200%)',
+            WebkitBackdropFilter:'blur(60px) saturate(200%)',
+            borderRadius:18,
+            border:'1px solid rgba(139,92,246,0.32)',
+            boxShadow:'0 -8px 50px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.04)',
+            overflow:'hidden',
+            animation:'cfPanelIn 0.24s cubic-bezier(.22,1,.36,1) both',
+            display:'flex', flexDirection:'column',
+          }}>
+            {/* Panel header */}
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
+              <span style={{ flex:'1 1 auto', fontSize:13, fontWeight:700, color:'#fff', letterSpacing:'-.1px' }}>
+                {activePanel === 'chat' ? '💬 Chat' : activePanel === 'actions' ? '⚡ Quick Actions' : '✅ Recent Tasks'}
+              </span>
+              <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, transition:'background .3s' }} />
                 <span style={{ fontSize:10.5, color:'rgba(255,255,255,.45)', fontWeight:500 }}>{statusLabel}</span>
               </div>
+              <button type="button" onClick={() => setActivePanel(null)}
+                style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                <X style={{ width:13, height:13 }} />
+              </button>
             </div>
-            {/* Close */}
-            <button type="button" onClick={() => setWidgetOpen(false)}
-              style={{ width:28, height:28, borderRadius:9, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-              <X style={{ width:13, height:13 }} />
-            </button>
-          </div>
 
-          {/* ── TAB BAR ── */}
-          <div style={{ display:'flex', alignItems:'center', padding:'6px 10px', gap:3, borderBottom:'1px solid rgba(255,255,255,0.06)', flexShrink:0, background:'rgba(0,0,0,0.2)' }}>
-            {([
-              { id:'chat'    as PanelId, Icon:MessageSquare, label:'Chat' },
-              { id:'actions' as PanelId, Icon:Zap,           label:'Actions' },
-              { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks' },
-            ]).map(({ id, Icon, label }) => {
-              const isA = activePanel === id;
-              return (
-                <button key={id} type="button" className="cf-foot-btn"
-                  onClick={() => setActivePanel(id)}
-                  style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:999, background:isA?'rgba(255,255,255,0.12)':'transparent', border:'none', color:isA?'#fff':'rgba(255,255,255,0.45)', fontSize:12, fontWeight:isA?700:500, cursor:'pointer', transition:'all 0.15s' }}>
-                  <Icon style={{ width:12, height:12 }} />{label}
-                </button>
-              );
-            })}
-            <div style={{ flex:'1 1 auto' }} />
-            {/* Voice toggle */}
-            <button type="button" className="cf-foot-btn" onClick={toggleVoice}
-              title={voiceEnabled ? 'Voice ON' : 'Voice OFF'}
-              style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:'50%', background:voiceEnabled?'rgba(74,222,128,0.18)':'rgba(255,255,255,0.08)', border:`1.5px solid ${voiceEnabled?'rgba(74,222,128,0.5)':'rgba(255,255,255,0.12)'}`, color:voiceEnabled?'#4ADE80':'rgba(255,255,255,0.4)', cursor:'pointer', flexShrink:0 }}>
-              {voiceEnabled ? <Volume2 style={{ width:13, height:13 }} /> : <VolumeX style={{ width:13, height:13 }} />}
-            </button>
-          </div>
-
-          {/* ── CONTENT AREA (scrollable, panel-specific) ── */}
-          <div style={{ flex:'1 1 auto', overflow:'hidden', position:'relative' }}>
-
-          {/* ── (was activePanel && (...)) — now inline in card ── */}
+          {/* panel content — reusing existing panel sections */}
           {activePanel && (
-            <div style={{ height:'100%', display:'flex', flexDirection:'column' }}>
+            <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', flex:'1 1 auto' }}>
 
               {/* ── CHAT ── */}
               {activePanel === 'chat' && (
@@ -1214,7 +1187,67 @@ export function CopilotPanel() {
             </div>
           )}
 
-          </div>{/* end content area */}
+          </div>)} {/* end panel absolute */}
+
+          {/* ── Robot — full size, behind panel ── */}
+          <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
+            {shouldShowBubble && !activePanel && (
+              <SpeechBubble text={bubbleText} state={robotState} />
+            )}
+            <RobotAvatar state={robotState} excited={excited} />
+          </div>
+
+          {/* ── Speech bubble inside greeting area (idle, no panel) ── */}
+          {!activePanel && !shouldShowBubble && messages.length === 0 && (
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)', fontWeight:500, textAlign:'center', maxWidth:180, lineHeight:1.4, animation:'cfSlideUp 0.3s ease-out both' }}>
+              {GREETINGS[greetingIdx]}
+            </div>
+          )}
+
+          {/* ── Topic pills — bottom of robot ── */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, position:'relative', zIndex:5 }}>
+            {([
+              { id:'chat'    as PanelId, Icon:MessageSquare, label:'Chat' },
+              { id:'actions' as PanelId, Icon:Zap,           label:'Actions' },
+              { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks' },
+            ] as const).map(({ id, Icon, label }) => {
+              const isA = activePanel === id;
+              return (
+                <button key={id} type="button" className="cf-topic-btn"
+                  onClick={() => setActivePanel(isA ? null : id)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:5,
+                    padding:'8px 14px', borderRadius:999,
+                    background: isA ? 'rgba(167,139,250,0.22)' : 'rgba(14,10,28,0.85)',
+                    border: `1.5px solid ${isA ? 'rgba(167,139,250,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                    backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+                    color: isA ? '#C4B5FD' : 'rgba(255,255,255,0.7)',
+                    fontSize:12, fontWeight:600, cursor:'pointer',
+                    boxShadow: isA ? '0 0 14px rgba(167,139,250,0.2)' : '0 4px 14px rgba(0,0,0,0.35)',
+                    transition:'all 0.17s',
+                  }}>
+                  <Icon style={{ width:12, height:12 }} />{label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Voice on/off ── */}
+          <button type="button" onClick={toggleVoice}
+            title={voiceEnabled ? 'Voice ON — click to disable' : 'Voice OFF — click to enable'}
+            style={{
+              position:'relative', zIndex:5,
+              width:38, height:38, borderRadius:'50%',
+              background: voiceEnabled ? 'rgba(74,222,128,0.18)' : 'rgba(14,10,28,0.85)',
+              border: `1.5px solid ${voiceEnabled ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.12)'}`,
+              backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+              color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.45)',
+              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+              boxShadow: voiceEnabled ? '0 0 16px rgba(74,222,128,0.3)' : '0 4px 14px rgba(0,0,0,0.35)',
+              transition:'all 0.18s',
+            }}>
+            {voiceEnabled ? <Volume2 style={{ width:15, height:15 }} /> : <VolumeX style={{ width:15, height:15 }} />}
+          </button>
 
         </div>
         )} {/* end widgetOpen */}
