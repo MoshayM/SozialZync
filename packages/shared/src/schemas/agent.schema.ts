@@ -126,7 +126,7 @@ export const VoiceSpecOutputSchema = z.object({
     tone: z.string(),
     pace: z.string(),
   }),
-  sections: z.array(VoiceSpecSchema),
+  sections: z.array(VoiceSpecSchema).default([]),
   estimatedDurationMins: z.number().optional().default(10),
   disclosureRequired: z.boolean().default(false),
   notes: z.string().optional(),
@@ -145,16 +145,19 @@ export const ImageBriefSchema = z.object({
 });
 export type ImageBrief = z.infer<typeof ImageBriefSchema>;
 
-export const ImageBriefOutputSchema = z.object({
-  projectId: z.string().optional(),
-  briefs: z.array(ImageBriefSchema),
-  brandStyle: z.object({
-    colorPalette: z.array(z.string()),
-    fontStyle: z.string(),
-    visualMood: z.string(),
-  }).optional(),
-  notes: z.string().optional(),
-});
+export const ImageBriefOutputSchema = z.preprocess(
+  (val) => Array.isArray(val) ? { briefs: val } : val,
+  z.object({
+    projectId: z.string().optional(),
+    briefs: z.array(ImageBriefSchema).default([]),
+    brandStyle: z.object({
+      colorPalette: z.array(z.string()),
+      fontStyle: z.string(),
+      visualMood: z.string(),
+    }).optional(),
+    notes: z.string().optional(),
+  }),
+);
 export type ImageBriefOutput = z.infer<typeof ImageBriefOutputSchema>;
 
 export const MusicBriefOutputSchema = z.object({
@@ -228,7 +231,7 @@ export const SubtitleOutputSchema = z.object({
   projectId: z.string().optional(),
   language: z.string().optional().default('en'),
   totalCues: z.number().int().optional(),
-  cues: z.array(SubtitleCueSchema),
+  cues: z.array(SubtitleCueSchema).default([]),
   srt: z.string().optional().default(''),
   vtt: z.string().optional().default(''),
   style: z.object({

@@ -335,6 +335,21 @@ export interface ComposeOptions {
   sfx?: SfxOptions;
   /** Real encode progress (0–100), derived from ffmpeg's time= marker. */
   onProgress?: (pct: number) => void;
+  /**
+   * Video quality: H.264 CRF (0=lossless, 51=worst). Lower = better quality,
+   * larger file. Platform defaults: YouTube 18, Instagram/TikTok 20, default 23.
+   */
+  crf?: number;
+  /** Hard video bitrate cap, e.g. '8M'. Pairs with bufsize for CBR-like streaming. */
+  videoBitrate?: string;
+  /** VBV buffer size, e.g. '16M'. Required when videoBitrate is set. */
+  bufsize?: string;
+  /** Output audio bitrate, e.g. '192k'. Default '160k'. */
+  audioBitrate?: string;
+  /** Output audio sample rate in Hz. Default 44100. Use 48000 for YouTube/broadcast. */
+  audioSampleRate?: number;
+  /** Output audio channels. 1=mono, 2=stereo. Default 2. */
+  audioChannels?: number;
 }
 
 /**
@@ -419,16 +434,34 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
   }
 
   await fs.mkdir(path.dirname(outPath), { recursive: true });
-  // -shortest is unreliable with filter_complex outputs (audio can outlive the
-  // video track); cap the container to the scenes' total explicitly.
   const totalSecs = scenes.reduce((s, sc) => s + sc.durationSecs, 0);
+
+  // ── Video quality args ────────────────────────────────────────────────────
+  // CRF mode: constant perceptual quality. Pair with -maxrate/-bufsize for
+  // platform streaming compliance (avoids overshooting on static scenes).
+  const crf = opts.crf ?? 23;
+  const videoQualityArgs: string[] = ['-crf', String(crf)];
+  if (opts.videoBitrate) {
+    videoQualityArgs.push('-maxrate', opts.videoBitrate);
+    videoQualityArgs.push('-bufsize', opts.bufsize ?? opts.videoBitrate);
+  }
+
+  // ── Audio quality args ────────────────────────────────────────────────────
+  const audioBitrate = opts.audioBitrate ?? '160k';
+  const audioSampleRate = opts.audioSampleRate ?? 44100;
+  const audioChannels = opts.audioChannels ?? 2;
+  const audioQualityArgs = allAudioInputs.length
+    ? ['-c:a', 'aac', '-b:a', audioBitrate, '-ar', String(audioSampleRate), '-ac', String(audioChannels)]
+    : [];
+
   const finalArgs = [
     ...args,
     '-filter_complex', filters.join(';'),
     '-map', '[vout]',
     ...audioMap,
     '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
-    ...(allAudioInputs.length ? ['-c:a', 'aac', '-b:a', '160k'] : []),
+    ...videoQualityArgs,
+    ...audioQualityArgs,
     '-t', String(totalSecs),
     '-shortest',
     '-movflags', '+faststart',

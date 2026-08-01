@@ -864,11 +864,12 @@ export async function callAIStructured<T>(
         lastErr = err;
         const statusCode = getErrorStatus(err);
         const cooldownMs = retryAfterMs(err) || 60000;
-
-        if (isRetryableError(err)) {
-          onProviderFailure(provider, cooldownMs);
+        // Credit/billing errors (Anthropic 400) put the provider in a 1h cooldown so
+        // the chain falls through to the next provider without wasting retries.
+        const isBillingError = statusCode === 400 && String(err).toLowerCase().includes('credit');
+        if (isRetryableError(err) || isBillingError) {
+          onProviderFailure(provider, isBillingError ? 3_600_000 : cooldownMs);
         }
-        // Non-retryable errors don't mark the provider as failed (might be a content error)
       }
     }
   } finally {

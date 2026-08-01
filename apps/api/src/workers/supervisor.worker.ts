@@ -750,11 +750,15 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const estimatedDurationMs = script.estimatedDurationMins * 60 * 1000;
         const lang = (payload['language'] as string | undefined) ?? project.targetLang ?? 'en';
         this.log(jobId, projectId, 'Generating subtitle cues…', `~${Math.round(estimatedDurationMs / 1000)}s, language: ${lang}`);
-        const SUBTITLE_PROMPT = `You are a subtitle specialist. Generate timed subtitle cues from a script. Respond only with valid JSON.`;
+        const SUBTITLE_PROMPT = `You are a subtitle specialist. Generate timed subtitle cues. Respond ONLY with a valid JSON object — no markdown, no extra text.`;
+        // Cap sections to avoid token overflow; generate at most 20 cues per section to stay under 2000 tokens
+        const sectionsSummary = script.sections.slice(0, 8).map((s, i) => ({
+          id: `s${i}`, heading: s.heading, durationSecs: s.durationEstimateSecs, preview: s.content.slice(0, 120),
+        }));
         const result = await callAIStructured(
-          [{ role: 'user', content: `Create subtitle cues for "${script.title}". Duration: ${Math.round(estimatedDurationMs / 1000)}s. Language: ${lang}. Sections: ${JSON.stringify(script.sections.map((s, i) => ({ id: `s${i}`, heading: s.heading, durationSecs: s.durationEstimateSecs, content: s.content.slice(0, 200) })))}. Generate sequential index, startMs, endMs, text (max 2 lines 42 chars), sectionRef. Include SRT string, VTT string, totalCues count, style (fontFamily: Arial, fontSize: 18, color: #FFFFFF).` }],
+          [{ role: 'user', content: `Generate subtitle cues for "${script.title}" (${Math.round(estimatedDurationMs / 1000)}s, ${lang}). Sections: ${JSON.stringify(sectionsSummary)}. Return JSON with: cues (array of {index,startMs,endMs,text,sectionRef}), totalCues, language, style ({fontFamily:"Arial",fontSize:18,color:"#FFFFFF"}). Max 25 cues total, max 42 chars per cue. Omit srt and vtt fields.` }],
           SubtitleOutputSchema,
-          { systemPrompt: SUBTITLE_PROMPT, maxTokens: 6000 },
+          { systemPrompt: SUBTITLE_PROMPT, maxTokens: 2000 },
         );
         // SRT/VTT are mechanical serializations of the cues — always built
         // deterministically in code, never trusted from the model.
@@ -991,20 +995,58 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           }).catch(() => undefined);
         }
 
-        // ── Feature 1: Render preset ────────────────────────────────────────
+        // ── Platform profiles: resolution + quality per target platform ────────
+        // Specs: YouTube (https://support.google.com/youtube/answer/1722171),
+        //   Instagram (https://help.instagram.com/1716490781676552),
+        //   TikTok (https://support.tiktok.com/en/using-tiktok/create-and-discover/creating-videos).
+        interface PlatformProfile {
+          width: number; height: number;
+          crf: number;
+          videoBitrate: string; bufsize: string;
+          audioBitrate: string; audioSampleRate: number; audioChannels: number;
+        }
+        const PLATFORM_PROFILES: Record<string, PlatformProfile> = {
+          // Long-form horizontal — YouTube, Facebook Watch, LinkedIn
+          YOUTUBE:          { width: 1920, height: 1080, crf: 18, videoBitrate: '8M',   bufsize: '16M', audioBitrate: '192k', audioSampleRate: 48000, audioChannels: 2 },
+          YOUTUBE_4K:       { width: 3840, height: 2160, crf: 16, videoBitrate: '35M',  bufsize: '70M', audioBitrate: '320k', audioSampleRate: 48000, audioChannels: 2 },
+          FACEBOOK:         { width: 1920, height: 1080, crf: 20, videoBitrate: '8M',   bufsize: '16M', audioBitrate: '192k', audioSampleRate: 48000, audioChannels: 2 },
+          TWITTER_X:        { width: 1920, height: 1080, crf: 20, videoBitrate: '5M',   bufsize: '10M', audioBitrate: '128k', audioSampleRate: 44100, audioChannels: 2 },
+          LINKEDIN:         { width: 1920, height: 1080, crf: 20, videoBitrate: '5M',   bufsize: '10M', audioBitrate: '128k', audioSampleRate: 44100, audioChannels: 2 },
+          // Short-form vertical — Reels, TikTok, YouTube Shorts
+          INSTAGRAM_REELS:  { width: 1080, height: 1920, crf: 20, videoBitrate: '3.5M', bufsize: '7M',  audioBitrate: '128k', audioSampleRate: 44100, audioChannels: 2 },
+          TIKTOK:           { width: 1080, height: 1920, crf: 20, videoBitrate: '3.5M', bufsize: '7M',  audioBitrate: '128k', audioSampleRate: 44100, audioChannels: 2 },
+          YOUTUBE_SHORTS:   { width: 1080, height: 1920, crf: 20, videoBitrate: '3.5M', bufsize: '7M',  audioBitrate: '128k', audioSampleRate: 44100, audioChannels: 2 },
+          // Square — Instagram feed, Facebook feed
+          INSTAGRAM_FEED:   { width: 1080, height: 1080, crf: 20, videoBitrate: '3.5M', bufsize: '7M',  audioBitrate: '128k', audioSampleRate: 44100, audioChannels: 2 },
+          // Broadcast / cinema reference (offline archive quality)
+          BROADCAST:        { width: 1920, height: 1080, crf: 14, videoBitrate: '25M',  bufsize: '50M', audioBitrate: '320k', audioSampleRate: 48000, audioChannels: 2 },
+        };
+
+        // ── Feature 1: Resolve platform → geometry + quality ────────────────
         type RenderPreset = 'LANDSCAPE' | 'VERTICAL' | 'SQUARE';
         const PRESET_DIMS: Record<RenderPreset, { width: number; height: number }> = {
-          LANDSCAPE: { width: 1280, height: 720 },
-          VERTICAL:  { width: 720,  height: 1280 },
-          SQUARE:    { width: 720,  height: 720 },
+          LANDSCAPE: { width: 1920, height: 1080 },
+          VERTICAL:  { width: 1080, height: 1920 },
+          SQUARE:    { width: 1080, height: 1080 },
         };
+
+        const rawPlatform = (payload['platform'] as string | undefined)?.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+        const platformProfile = rawPlatform && rawPlatform in PLATFORM_PROFILES
+          ? PLATFORM_PROFILES[rawPlatform]!
+          : null;
+
         const rawPreset = (payload['preset'] as string | undefined)?.toUpperCase();
         const preset: RenderPreset = (rawPreset && rawPreset in PRESET_DIMS)
           ? (rawPreset as RenderPreset)
-          : 'LANDSCAPE';
-        const { width, height } = PRESET_DIMS[preset];
+          : (platformProfile ? (platformProfile.height > platformProfile.width ? 'VERTICAL' : platformProfile.width === platformProfile.height ? 'SQUARE' : 'LANDSCAPE') : 'LANDSCAPE');
 
-        this.log(jobId, projectId, 'Collecting assets for final render…', `Preset: ${preset} (${width}×${height})`);
+        const { width, height } = platformProfile ?? PRESET_DIMS[preset];
+
+        // Quality from platform profile; fallback keeps backward-compat (CRF 18 YouTube-standard)
+        const renderQuality = platformProfile ?? { crf: 18, videoBitrate: '8M', bufsize: '16M', audioBitrate: '192k', audioSampleRate: 48000, audioChannels: 2 };
+
+        const platformLabel = rawPlatform && rawPlatform in PLATFORM_PROFILES ? rawPlatform : `${preset} (default)`;
+        this.log(jobId, projectId, 'Collecting assets for final render…', `Platform: ${platformLabel} · ${width}×${height} · CRF ${renderQuality.crf} · video ≤${renderQuality.videoBitrate} · audio ${renderQuality.audioBitrate}`);
 
         const script = await this.lastResult<ScriptOutput>(projectId, 'SCRIPT');
         const plan = await this.lastResult<VideoScenePlanOutput>(projectId, 'VIDEO_SCENE_PLAN');
@@ -1194,6 +1236,12 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               fps: 30,
               musicVolume: effectiveMusicVolume,
               onProgress,
+              crf: renderQuality.crf,
+              videoBitrate: renderQuality.videoBitrate,
+              bufsize: renderQuality.bufsize,
+              audioBitrate: renderQuality.audioBitrate,
+              audioSampleRate: renderQuality.audioSampleRate,
+              audioChannels: renderQuality.audioChannels,
               ...(sfxPath && sfxTimestamps.length > 0 ? { sfx: { path: sfxPath, atSecs: sfxTimestamps } } : {}),
             });
             this.log(jobId, projectId, 'Validating render…', 'decode, duration, black-frame and loudness scan');
@@ -1343,6 +1391,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               if (payload['genre']) stagePayload['genre'] = payload['genre'];
             }
             if (stage.type === 'RENDER' && payload['preset']) stagePayload['preset'] = payload['preset'];
+            if (stage.type === 'RENDER' && payload['platform']) stagePayload['platform'] = payload['platform'];
+            if (stage.type === 'RENDER' && payload['videoType']) stagePayload['videoType'] = payload['videoType'];
             // Stage-level retry with backoff (master prompt §3.2): one retry
             // for transient failures, then the stage FAILS for real.
             let result: unknown;
@@ -1383,6 +1433,10 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               } as Parameters<typeof this.prisma.agentJob.update>[0]['data'],
             }).catch(() => undefined);
             this.events.emitJobFailed(child.id, failure.error, projectId);
+            if (stage.optional) {
+              this.log(jobId, projectId, `Optional stage ${stage.type} failed — skipping, pipeline continues`, failure.error.slice(0, 150));
+              return;
+            }
             throw err;
           }
         };

@@ -9,6 +9,8 @@ export interface PipelineStage {
   parallelGroup?: number;
   /** Hard gate: pipeline stops if this stage's result fails (claude.md golden rule 1). */
   gate?: boolean;
+  /** Optional stages: failure is logged but does not block the pipeline. */
+  optional?: boolean;
   /** Rough fallback duration for ETA before history exists. */
   defaultSecs: number;
 }
@@ -40,14 +42,14 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
     S('VOICE_SPEC', 'Voice Direction', 35, { parallelGroup: 1 }),
     S('IMAGE_BRIEF', 'Image Briefs', 35, { parallelGroup: 1 }),
     S('MUSIC_BRIEF', 'Music Brief', 30, { parallelGroup: 1 }),
-    S('SUBTITLE_GENERATE', 'Subtitles', 45, { parallelGroup: 1 }),
+    S('SUBTITLE_GENERATE', 'Subtitles', 45, { parallelGroup: 1, optional: true }),
     // …then asset generation in parallel
     S('VOICE_GENERATE', 'Voice Over', 30, { parallelGroup: 2 }),
     S('IMAGE_GENERATE', 'Scene Images', 40, { parallelGroup: 2 }),
     S('MUSIC_GENERATE', 'Background Music', 20, { parallelGroup: 2 }),
     S('VIDEO_GENERATE', 'Scene Videos', 60),
     S('THUMBNAIL', 'Thumbnail', 10),
-    S('EDIT_PLAN', 'Timeline Assembly', 45),
+    S('EDIT_PLAN', 'Timeline Assembly', 45, { optional: true }),
     S('RENDER', 'Rendering', 90),
     S('PACKAGE', 'Upload-Ready Package', 5),
   ],
@@ -61,7 +63,7 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
     S('IMAGE_BRIEF', 'Image Briefs', 35),
     S('IMAGE_GENERATE', 'Scene Images', 40),
     S('VIDEO_GENERATE', 'Scene Videos', 60),
-    S('SUBTITLE_GENERATE', 'Subtitles', 45),
+    S('SUBTITLE_GENERATE', 'Subtitles', 45, { optional: true }),
     S('THUMBNAIL', 'Thumbnail', 10),
     S('PACKAGE', 'Package', 5),
   ],
