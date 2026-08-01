@@ -128,13 +128,25 @@ export class PublishingService {
     } catch (err) {
       if (err instanceof HttpException) throw err;
       this.logger.error(`[Publish] Upload error — channelId=${opts.channelId}`);
+      // Mark video + project as FAILED so the UI reflects the error state
+      const failedVideo = await this.prisma.video.update({
+        where: { id: opts.videoId },
+        data: { status: 'FAILED' as VideoStatus },
+        select: { projectId: true },
+      }).catch(() => null);
+      if (failedVideo?.projectId) {
+        await this.prisma.project.update({
+          where: { id: failedVideo.projectId },
+          data: { publishingStatus: 'FAILED' },
+        }).catch(() => null);
+      }
       await this.channels.handleGoogleError(opts.channelId, err);
     }
 
     const youtubeVideoId = res!.data.id!;
     this.logger.log(`[Publish] Upload complete — youtubeVideoId=${youtubeVideoId}`);
 
-    await this.prisma.video.update({
+    const video = await this.prisma.video.update({
       where: { id: opts.videoId },
       data: {
         youtubeVideoId,
@@ -143,7 +155,16 @@ export class PublishingService {
         publishedAt: opts.scheduledAt ? null : new Date(),
         scheduledAt: opts.scheduledAt,
       },
+      select: { projectId: true },
     });
+
+    // Propagate publishing state back to the project
+    if (video.projectId) {
+      await this.prisma.project.update({
+        where: { id: video.projectId },
+        data: { publishingStatus: opts.scheduledAt ? 'SCHEDULED' : 'PUBLISHED' },
+      });
+    }
 
     return youtubeVideoId;
   }

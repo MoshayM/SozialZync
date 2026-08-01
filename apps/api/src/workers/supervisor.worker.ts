@@ -1373,6 +1373,11 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             const files = await this.exportsSvc.buildPackage(projectId);
             stageResults['PACKAGE'] = files;
             this.log(jobId, projectId, 'Package ready ✓', `${files.length} file(s) in exports`);
+            // Mark project as ready to publish
+            await this.prisma.project.update({
+              where: { id: projectId },
+              data: { publishingStatus: 'READY' },
+            });
             return;
           }
           // Each stage is a real child job: results persist for resume and
