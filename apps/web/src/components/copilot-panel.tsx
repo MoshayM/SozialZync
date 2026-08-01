@@ -1,12 +1,13 @@
-'use client';
+﻿'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Bot, X, Send, Mic, MicOff, ShieldCheck,
+  X, Send, Mic, MicOff, ShieldCheck,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
-  BookOpen, FileText, Calendar, Search, Clock, Sparkles, Volume2, VolumeX,
+  BookOpen, FileText, Calendar, Search, Sparkles, Volume2, VolumeX,
+  MessageSquare, ListChecks,
 } from 'lucide-react';
-import { apiClient, api } from '@/lib/api';
+import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -62,12 +63,12 @@ interface QuickAction {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: 'research', icon: BookOpen,  label: 'Research',       description: "I'll dig into any topic for you",                placeholder: 'What topic?',                   template: v => `Research this topic in depth for a YouTube video: ${v}`,                                   color: '#3b82f6', bg: '#eff6ff' },
-  { id: 'script',   icon: FileText,  label: 'Script Ideas',   description: 'Build a full script from scratch',               placeholder: 'Video title or concept?',       template: v => `Generate a detailed script outline for a YouTube video titled: "${v}"`,               color: '#7C3AED', bg: '#f5f2fd' },
-  { id: 'calendar', icon: Calendar,  label: 'Content Plan',   description: 'Lock in your posting schedule',                  placeholder: "What's your niche?",            template: v => `Suggest a 2-week content calendar for a YouTube channel about: ${v}`,               color: '#10b981', bg: '#ecfdf5' },
-  { id: 'seo',      icon: Search,    label: 'SEO Analysis',   description: 'Boost your reach with smarter SEO',              placeholder: 'Topic or keyword?',             template: v => `Analyze the SEO potential and suggest optimized titles, tags, and keywords for: ${v}`, color: '#d97706', bg: '#fefce8' },
-  { id: 'ideas',    icon: Sparkles,  label: 'Video Ideas',    description: "Brainstorm ideas that'll actually get views",     placeholder: "What's your channel niche?",    template: v => `Give me 10 viral YouTube video ideas for a channel focused on: ${v}`,               color: '#ec4899', bg: '#fdf2f8' },
-  { id: 'factcheck',icon: ShieldCheck, label: 'Fact Check',  description: "Don't get caught slipping — I'll check it",      placeholder: 'Claim to verify?',              template: v => `Fact-check this claim for my YouTube video: "${v}"`,                                color: '#0d9488', bg: '#f0fdfa' },
+  { id: 'research', icon: BookOpen,    label: 'Research',     description: "I'll dig into any topic for you",            placeholder: 'What topic?',                template: v => `Research this topic in depth for a YouTube video: ${v}`,                                   color: '#3b82f6', bg: '#eff6ff' },
+  { id: 'script',   icon: FileText,    label: 'Script Ideas', description: 'Build a full script from scratch',           placeholder: 'Video title or concept?',    template: v => `Generate a detailed script outline for a YouTube video titled: "${v}"`,               color: '#7C3AED', bg: '#f5f2fd' },
+  { id: 'calendar', icon: Calendar,    label: 'Content Plan', description: 'Lock in your posting schedule',              placeholder: "What's your niche?",         template: v => `Suggest a 2-week content calendar for a YouTube channel about: ${v}`,               color: '#10b981', bg: '#ecfdf5' },
+  { id: 'seo',      icon: Search,      label: 'SEO Analysis', description: 'Boost your reach with smarter SEO',          placeholder: 'Topic or keyword?',          template: v => `Analyze the SEO potential and suggest optimized titles, tags, and keywords for: ${v}`, color: '#d97706', bg: '#fefce8' },
+  { id: 'ideas',    icon: Sparkles,    label: 'Video Ideas',  description: "Brainstorm ideas that'll get views",         placeholder: "What's your channel niche?", template: v => `Give me 10 viral YouTube video ideas for a channel focused on: ${v}`,             color: '#ec4899', bg: '#fdf2f8' },
+  { id: 'factcheck',icon: ShieldCheck, label: 'Fact Check',   description: "Don't get caught slipping — I'll check it", placeholder: 'Claim to verify?',           template: v => `Fact-check this claim for my YouTube video: "${v}"`,                                color: '#0d9488', bg: '#f0fdfa' },
 ];
 
 const PROMPT_CHIPS = [
@@ -122,34 +123,18 @@ function getBrowserRecognition(): SpeechRecognitionLike | null {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-// ── Voice bar animation ────────────────────────────────────────────────────────
-
 const BAR_HEIGHTS = ['16px','26px','38px','48px','54px','48px','38px','26px','16px'];
 const BAR_DELAYS  = ['0s','.09s','.18s','.06s','.15s','.03s','.21s','.12s','.09s'];
 
 function VoiceBars({ active, color = '#fff', compact = false }: { active: boolean; color?: string; compact?: boolean }) {
-  const heights = compact
-    ? ['5px','9px','13px','17px','19px','17px','13px','9px','5px']
-    : BAR_HEIGHTS;
+  const heights = compact ? ['5px','9px','13px','17px','19px','17px','13px','9px','5px'] : BAR_HEIGHTS;
   const w = compact ? '2.5px' : '4px';
   const gap = compact ? '2px' : '3.5px';
   const containerH = compact ? '22px' : '60px';
   return (
     <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap,height:containerH }}>
       {heights.map((h, i) => (
-        <span
-          key={i}
-          style={{
-            display:'inline-block', width:w, borderRadius:'4px',
-            background: color,
-            height: h,
-            transformOrigin: 'center',
-            transform: active ? 'scaleY(1)' : 'scaleY(0.12)',
-            opacity: active ? 1 : 0.25,
-            animation: active ? `cfVoiceBar .75s ease-in-out ${BAR_DELAYS[i]} infinite` : 'none',
-            transition: 'transform .4s cubic-bezier(.4,0,.2,1), opacity .4s',
-          }}
-        />
+        <span key={i} style={{ display:'inline-block', width:w, borderRadius:'4px', background:color, height:h, transformOrigin:'center', transform:active?'scaleY(1)':'scaleY(0.12)', opacity:active?1:0.25, animation:active?`cfVoiceBar .75s ease-in-out ${BAR_DELAYS[i]} infinite`:'none', transition:'transform .4s cubic-bezier(.4,0,.2,1), opacity .4s' }} />
       ))}
     </div>
   );
@@ -157,9 +142,9 @@ function VoiceBars({ active, color = '#fff', compact = false }: { active: boolea
 
 function StepIcon({ status }: { status: PlanStep['status'] }) {
   if (status === 'done')    return <CheckCircle2 style={{ width:14,height:14,color:'#4ADE80',flexShrink:0 }} />;
-  if (status === 'running') return <Loader2 style={{ width:14,height:14,color:'#A78BFA',flexShrink:0,animation:'spin 1s linear infinite' }} />;
+  if (status === 'running') return <Loader2 style={{ width:14,height:14,color:'#A78BFA',flexShrink:0,animation:'cfSpinSimple 1s linear infinite' }} />;
   if (status === 'failed')  return <AlertCircle style={{ width:14,height:14,color:'#F87171',flexShrink:0 }} />;
-  return <Circle style={{ width:14,height:14,color:'rgba(0,0,0,.2)',flexShrink:0 }} />;
+  return <Circle style={{ width:14,height:14,color:'rgba(255,255,255,.2)',flexShrink:0 }} />;
 }
 
 function JobDot({ status }: { status: string }) {
@@ -169,49 +154,27 @@ function JobDot({ status }: { status: string }) {
 
 // ── TTS helpers ────────────────────────────────────────────────────────────────
 
-/**
- * Strip markdown and symbols before handing text to the browser TTS engine.
- * Unprocessed markdown causes "asterisk asterisk", "hashtag", "backtick" etc.
- */
 function cleanForTTS(raw: string): string {
   return raw
-    // Fenced code blocks → brief label so the user knows it was there
     .replace(/```[\s\S]*?```/g, 'code example.')
-    // Inline code → bare content
     .replace(/`([^`\n]+)`/g, '$1')
-    // Markdown headings
     .replace(/^#{1,6}\s+/gm, '')
-    // Bold / italic (**, __, *, _)
     .replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1')
     .replace(/_{1,2}([^_\n]+)_{1,2}/g, '$1')
-    // Markdown links → just the label
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    // Bare URLs
     .replace(/https?:\/\/\S+/g, '')
-    // Blockquotes
     .replace(/^>\s*/gm, '')
-    // Horizontal rules
     .replace(/^[-*_]{3,}\s*$/gm, '')
-    // List markers (bullets and numbered)
     .replace(/^[\s]*[•·▪▸◦\-\*]\s+/gm, '')
     .replace(/^(\s*\d+)[.)]\s+/gm, '$1, ')
-    // Decorative arrows / symbols that have no spoken form
     .replace(/[→←↑↓↗↘•·▪▸◦–—]/g, ' ')
-    // Paragraph breaks → natural pause
     .replace(/\n{2,}/g, '. ')
-    // Remaining line breaks
     .replace(/\n/g, ' ')
-    // Collapse whitespace
     .replace(/\s{2,}/g, ' ')
-    // Remove stray punctuation clusters left by stripping
     .replace(/([.!?,])\s*([.!?,])+/g, '$1')
     .trim();
 }
 
-/**
- * Score voices so we pick the most natural-sounding one available.
- * Higher score = preferred.
- */
 function pickBestVoice(voices: SpeechSynthesisVoice[], langTag: string): SpeechSynthesisVoice | null {
   const prefix = langTag.split('-')[0]!.toLowerCase();
   const candidates = voices.filter(v => {
@@ -219,50 +182,160 @@ function pickBestVoice(voices: SpeechSynthesisVoice[], langTag: string): SpeechS
     return vl === langTag.toLowerCase() || vl.startsWith(prefix + '-') || vl === prefix;
   });
   if (!candidates.length) {
-    // Fallback: any English voice
     const enFallback = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
     if (enFallback.length) return pickBestVoice(enFallback, 'en-US') ?? enFallback[0] ?? null;
     return null;
   }
-
-  // Keywords that indicate higher-quality synthesis (order = priority)
-  const PREFER = ['natural', 'neural', 'enhanced', 'premium', 'online', 'aria', 'jenny', 'guy',
-                  'samantha', 'alex', 'zira', 'google us english', 'google uk english'];
-  const AVOID  = ['compact', 'linear'];
-
+  const PREFER = ['natural','neural','enhanced','premium','online','aria','jenny','guy','samantha','alex','zira','google us english','google uk english'];
+  const AVOID  = ['compact','linear'];
   const scored = candidates.map(v => {
     const name = v.name.toLowerCase();
     let score = 0;
-    if (AVOID.some(a => name.includes(a)))  score -= 20;
+    if (AVOID.some(a => name.includes(a))) score -= 20;
     PREFER.forEach((p, i) => { if (name.includes(p)) score += (PREFER.length - i) * 2; });
-    if (v.localService) score += 3;  // local voices are more reliable than remote
+    if (v.localService) score += 3;
     if (v.default)      score += 1;
     return { v, score };
   });
-
   scored.sort((a, b) => b.score - a.score);
   return scored[0]?.v ?? null;
 }
 
-/**
- * Split cleaned text into sentence-sized chunks.
- * Prevents the iOS 200-char TTS bug and Chrome's ~15 s pause on long utterances.
- */
 function chunkForTTS(text: string, maxChars = 160): string[] {
-  // Split at natural sentence boundaries
   const parts = text.match(/[^.!?]+[.!?]*\s*/g) ?? [text];
   const chunks: string[] = [];
   let current = '';
   for (const part of parts) {
-    if (current.length + part.length > maxChars && current.trim()) {
-      chunks.push(current.trim());
-      current = part;
-    } else {
-      current += part;
-    }
+    if (current.length + part.length > maxChars && current.trim()) { chunks.push(current.trim()); current = part; }
+    else current += part;
   }
   if (current.trim()) chunks.push(current.trim());
   return chunks.filter(Boolean);
+}
+
+// ── Robot types ───────────────────────────────────────────────────────────────
+
+type RobotState = 'idle' | 'listening' | 'thinking' | 'speaking';
+type PanelId = 'chat' | 'actions' | 'jobs';
+
+// ── Robot Avatar — PNG from folder 1 ─────────────────────────────────────────
+
+function RobotAvatar({ state, excited = false }: { state: RobotState; excited?: boolean }) {
+  const glow = state === 'listening'
+    ? 'drop-shadow(0 0 1px rgba(255,255,255,0.55)) drop-shadow(0 0 14px rgba(74,222,128,0.5)) drop-shadow(0 5px 10px rgba(0,0,0,0.2))'
+    : state === 'thinking'
+    ? 'drop-shadow(0 0 1px rgba(255,255,255,0.5)) drop-shadow(0 0 14px rgba(251,191,36,0.45)) drop-shadow(0 5px 10px rgba(0,0,0,0.2))'
+    : state === 'speaking'
+    ? 'drop-shadow(0 0 1px rgba(255,255,255,0.55)) drop-shadow(0 0 18px rgba(0,200,255,0.55)) drop-shadow(0 5px 10px rgba(0,0,0,0.2))'
+    : 'drop-shadow(0 0 1px rgba(255,255,255,0.45)) drop-shadow(0 5px 10px rgba(0,0,0,0.22))';
+
+  const wrapAnim = excited
+    ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
+    : state === 'speaking'
+    ? 'cfHeadBob 0.55s ease-in-out infinite'
+    : state === 'idle'
+    ? 'cfFloat 3s ease-in-out infinite'
+    : 'none';
+
+  return (
+    <div style={{ position:'relative', display:'inline-block', animation: wrapAnim }}>
+      {/* Listening ripples */}
+      {state === 'listening' && (<>
+        <div style={{ position:'absolute', top:10, left:20, width:180, height:180, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.42)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top:10, left:20, width:180, height:180, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.2)', animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
+      </>)}
+      {state === 'thinking' && (
+        <div style={{ position:'absolute', top:10, left:20, width:180, height:180, borderRadius:'50%', border:'2.5px solid transparent', borderTopColor:'#FBBF24', borderRightColor:'rgba(251,191,36,0.3)', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />
+      )}
+      {state === 'speaking' && (
+        <div style={{ position:'absolute', top:10, left:20, width:180, height:180, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.28)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/copilot-robot.png"
+        alt="AI Copilot"
+        width={220}
+        height={220}
+        style={{ objectFit:'contain', display:'block', filter: glow, transition:'filter 0.4s ease', userSelect:'none', pointerEvents:'none', maxWidth:'100%' }}
+      />
+
+      {/* ── Emotion-driven eye blinks (eyelid covers eye) ── */}
+      {(() => {
+        // Each state has its own blink character
+        const blinkAnim = state === 'listening'
+          ? 'cfEyeBlinkAlert 3s linear infinite'      // alert: rare micro-twitch, eyes stay wide
+          : state === 'thinking'
+          ? 'cfEyeBlinkThink 2.5s ease-in-out infinite' // thoughtful: slow sustained squint
+          : state === 'speaking'
+          ? 'cfEyeBlinkSpeak 0.55s ease-in-out infinite' // expressive: emphatic sync-blink
+          : 'cfEyeBlinkIdle 4s ease-in-out infinite'; // idle: natural lazy blink
+        const lidBase: React.CSSProperties = {
+          position:'absolute', width:10, height:10, borderRadius:'50%',
+          background:'#0c0c18', // dark like the robot visor — covers the bright blue eye
+          transformOrigin:'top center',
+          pointerEvents:'none', zIndex:2,
+        };
+        return (<>
+          <div style={{ ...lidBase, top:40, left:93, animation: blinkAnim }} />
+          <div style={{
+            ...lidBase, top:37, left:115, animation: blinkAnim,
+            // Slight async delay: natural idle/alert, asymmetric squint for thinking
+            animationDelay: state === 'thinking' ? '0.38s' : '0.045s',
+          }} />
+        </>);
+      })()}
+
+      {/* ── Chest activity indicator ── */}
+      {(state === 'speaking' || state === 'listening') && (
+        <div style={{ position:'absolute', top:92, left:85, display:'flex', alignItems:'flex-end', gap:2, pointerEvents:'none' }}>
+          {(state === 'speaking'
+            ? [{ h:'6px',d:'0s' },{ h:'13px',d:'0.1s' },{ h:'17px',d:'0.2s' },{ h:'13px',d:'0.1s' },{ h:'6px',d:'0s' }]
+            : [{ h:'4px',d:'0s' },{ h:'8px',d:'0.07s' },{ h:'13px',d:'0.14s' },{ h:'16px',d:'0.21s' },{ h:'10px',d:'0.07s' },{ h:'6px',d:'0.14s' },{ h:'3px',d:'0s' }]
+          ).map((b, i) => (
+            <span key={i} style={{
+              display:'inline-block', width:'2.5px', height: b.h, borderRadius:'2px',
+              background: state === 'speaking' ? 'rgba(0,200,255,0.88)' : 'rgba(74,222,128,0.88)',
+              boxShadow: state === 'speaking' ? '0 0 4px rgba(0,200,255,0.55)' : '0 0 4px rgba(74,222,128,0.55)',
+              animation:`cfVoiceBar ${state === 'speaking' ? '0.55s' : '0.38s'} ease-in-out ${b.d} infinite`,
+            }} />
+          ))}
+        </div>
+      )}
+
+      {excited && [
+        {dx:'-32px',dy:'-30px'},{dx:'32px',dy:'-30px'},{dx:'-42px',dy:'4px'},
+        {dx:'42px',dy:'4px'},{dx:'-22px',dy:'34px'},{dx:'22px',dy:'34px'},
+      ].map((s,i) => (
+        <span key={i} style={{
+          position:'absolute', top:50, left:100, width:5, height:5,
+          borderRadius:'50%', background: i % 2 === 0 ? '#00CCFF' : '#A78BFA',
+          '--dx':s.dx, '--dy':s.dy,
+          animation:`cfSparkle 0.6s ease-out ${i*0.07}s forwards`,
+          pointerEvents:'none', zIndex:20,
+        } as React.CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
+// ── Speech Bubble ─────────────────────────────────────────────────────────────
+
+function SpeechBubble({ text, state }: { text: string; state: RobotState }) {
+  const isSpecial = state !== 'idle';
+  return (
+    <div style={{ textAlign:'center', marginBottom:6, maxWidth:240 }}>
+      <div style={{
+        display:'inline-block', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)',
+        borderRadius:14, padding:'8px 13px', fontSize:12, color:isSpecial?'#7C3AED':'#1a1a2e',
+        fontWeight:isSpecial?600:500, lineHeight:1.5, maxWidth:220, boxShadow:'0 4px 20px rgba(0,0,0,0.2)',
+        wordBreak:'break-word', border:`1px solid ${isSpecial?'rgba(167,139,250,0.5)':'rgba(200,200,220,0.6)'}`,
+        fontStyle:state==='thinking'?'italic':'normal', animation:'cfSlideUp 0.28s ease-out both',
+      }}>
+        {text}
+      </div>
+      <div style={{ width:0, height:0, borderLeft:'6px solid transparent', borderRight:'6px solid transparent', borderTop:'6px solid rgba(255,255,255,0.96)', margin:'0 auto' }} />
+    </div>
+  );
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -270,27 +343,29 @@ function chunkForTTS(text: string, maxChars = 160): string[] {
 export function CopilotPanel() {
   const router = useRouter();
 
-  // open state
-  const [open, setOpen]         = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat'|'actions'|'jobs'>('chat');
+  // panel
+  const [activePanel, setActivePanel] = useState<PanelId | null>(null);
 
   // chat
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput]       = useState('');
-  const [busy, setBusy]         = useState(false);
-  const [pending, setPending]   = useState<CopilotResponse['needsConfirmation']|null>(null);
+  const [messages, setMessages]     = useState<ChatMessage[]>([]);
+  const [input, setInput]           = useState('');
+  const [busy, setBusy]             = useState(false);
+  const [excited, setExcited]       = useState(false);
+  const [pending, setPending]       = useState<CopilotResponse['needsConfirmation']|null>(null);
   const [pendingEst, setPendingEst] = useState<number|null>(null);
 
   // voice
-  const [listening, setListening] = useState(false);
-  const [speaking, setSpeaking]   = useState(false);
+  const [voiceEnabled, setVoiceEnabled]   = useState(false);
+  const [listening, setListening]         = useState(false);
+  const [speaking, setSpeaking]           = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [recording, setRecording] = useState(false);
-  const [micError, setMicError]   = useState<string|null>(null);
-  const [serverStt, setServerStt] = useState<boolean|null>(null);
-  const [lang]                    = useState<string>('en-US');
-  const [speakingIdx, setSpeakingIdx] = useState<number|null>(null);
-  const [ttsAvailable, setTtsAvailable] = useState<boolean | null>(null);
+  const [recording, setRecording]         = useState(false);
+  const [micError, setMicError]           = useState<string|null>(null);
+  const [serverStt, setServerStt]         = useState<boolean|null>(null);
+  const [lang]                            = useState<string>('en-US');
+  const [speakingIdx, setSpeakingIdx]     = useState<number|null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [ttsAvailable, setTtsAvailable]   = useState<boolean|null>(null);
 
   // quick actions
   const [activeAction, setActiveAction] = useState<string|null>(null);
@@ -299,52 +374,66 @@ export function CopilotPanel() {
   // jobs
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([]);
 
-  // history
+  // history (kept in state for future use)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [history, setHistory] = useState<{ text:string; ts:number }[]>([]);
-
-  function handleDeleteHistory(text: string) {
-    removeFromHistory(text);
-    setHistory(loadHistory());
-  }
-
-  function handleClearHistory() {
-    localStorage.removeItem(HISTORY_KEY);
-    setHistory([]);
-  }
 
   // misc
   const [currentPlan, setCurrentPlan] = useState<TaskPlan|null>(null);
-  const conversationRef   = useRef(false);
-  const recognitionRef    = useRef<SpeechRecognitionLike|null>(null);
-  const mediaRecorderRef  = useRef<MediaRecorder|null>(null);
-  const audioChunksRef    = useRef<Blob[]>([]);
-  const messagesEndRef    = useRef<HTMLDivElement>(null);
-  const textareaRef       = useRef<HTMLTextAreaElement>(null);
-  const speechPrimedRef   = useRef(false);
-  const busyRef           = useRef(false);
+
+  // widget collapsed/expanded
+  const [widgetOpen, setWidgetOpen] = useState(false);
+
+  // bubble show/hide
+  const [showBubble, setShowBubble]   = useState(false);
+  const bubbleTimerRef = useRef<ReturnType<typeof setTimeout>|null>(null);
+
+  // refs
+  const conversationRef  = useRef(false);
+  const recognitionRef   = useRef<SpeechRecognitionLike|null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder|null>(null);
+  const audioChunksRef   = useRef<Blob[]>([]);
+  const messagesEndRef   = useRef<HTMLDivElement>(null);
+  const textareaRef      = useRef<HTMLTextAreaElement>(null);
+  const speechPrimedRef  = useRef(false);
+  const busyRef          = useRef(false);
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const handler = () => { setOpen(true); setActiveTab('chat'); };
+    const handler = () => {
+      setWidgetOpen(open => !open);
+      if (widgetOpen) setActivePanel(null);
+    };
     window.addEventListener('cf:open-copilot', handler as EventListener);
     return () => window.removeEventListener('cf:open-copilot', handler as EventListener);
-  }, []);
+  }, [widgetOpen]);
 
   useEffect(() => {
-    if (!open) return;
+    setVoiceEnabled(localStorage.getItem('cf_copilot_voice') === 'true');
+    setTtsAvailable('speechSynthesis' in window);
     setHistory(loadHistory());
     apiClient.get('/copilot/stt-status')
       .then(r => setServerStt((r.data as { available: boolean }).available))
       .catch(() => setServerStt(false));
-  }, [open]);
+  }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior:'smooth' });
   }, [messages, busy, pending, currentPlan]);
 
+  // Show bubble for 8s after new assistant message
   useEffect(() => {
-    if (!open || activeTab !== 'jobs') return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === 'assistant') {
+      setShowBubble(true);
+      if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+      bubbleTimerRef.current = setTimeout(() => setShowBubble(false), 8000);
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (activePanel !== 'jobs') return;
     const fetch = () => {
       apiClient.get('/copilot/jobs?take=10')
         .then(r => setRecentJobs((r.data as { data: RecentJob[] }).data))
@@ -353,7 +442,7 @@ export function CopilotPanel() {
     fetch();
     const id = setInterval(fetch, 5000);
     return () => clearInterval(id);
-  }, [open, activeTab]);
+  }, [activePanel]);
 
   useEffect(() => {
     if (!micError) return;
@@ -361,35 +450,36 @@ export function CopilotPanel() {
     return () => clearTimeout(id);
   }, [micError]);
 
-  useEffect(() => {
-    setTtsAvailable('speechSynthesis' in window);
-  }, []);
-
   // ── Audio priming ──────────────────────────────────────────────────────────
-  // iOS requires speechSynthesis.speak() inside a user gesture to unlock TTS.
-  // Android Chrome additionally needs AudioContext.resume() to unblock audio.
-  // Both must run synchronously from the click handler — not from async callbacks.
+
   const primeAudio = useCallback(() => {
     if (speechPrimedRef.current || typeof window === 'undefined') return;
     speechPrimedRef.current = true;
-    // Unlock Web Audio (Android requirement)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const AC: typeof AudioContext = (window as any).AudioContext ?? (window as any).webkitAudioContext;
       if (AC) { const ctx = new AC(); ctx.resume().catch(() => {}); }
     } catch {}
-    // Unlock speechSynthesis (iOS requirement).
-    // Empty string fails in iOS WKWebView — use a zero-width space with fast rate
-    // so it resolves instantly without audible output.
     if (!('speechSynthesis' in window)) return;
     try {
       const silent = new SpeechSynthesisUtterance('​');
-      silent.volume = 0;
-      silent.rate = 10;
+      silent.volume = 0; silent.rate = 10;
       window.speechSynthesis.speak(silent);
     } catch {}
-    // Pre-warm voices so they're available synchronously on the first real speak()
     try { window.speechSynthesis.getVoices(); } catch {}
+  }, []);
+
+  // iOS requires speechSynthesis.speak() to be called synchronously within a
+  // user-gesture handler. This re-primes the session on every send so that
+  // the TTS that fires after the async API response is still allowed by iOS.
+  const primeSpeechSession = useCallback(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance('​');
+      u.volume = 0; u.rate = 10;
+      window.speechSynthesis.speak(u);
+    } catch {}
   }, []);
 
   // ── TTS ────────────────────────────────────────────────────────────────────
@@ -399,90 +489,51 @@ export function CopilotPanel() {
   const speak = useCallback((text: string, replyLang?: string, onDone?: () => void, msgIdx?: number) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) { onDone?.(); return; }
     if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
-
-    // Always default to en-US; only switch if API is confident AND a good voice exists
     const target = replyLang ?? lang;
     window.speechSynthesis.cancel();
-
     const cleaned = cleanForTTS(text);
     if (!cleaned) { onDone?.(); return; }
-
     const chunks = chunkForTTS(cleaned);
     let chunkIdx = 0;
-    // Chrome bug: TTS pauses silently after ~15 s — keep-alive interval resumes it
     let keepAlive: ReturnType<typeof setInterval> | null = null;
 
     const doSpeak = () => {
       const voices = window.speechSynthesis.getVoices();
       const bestVoice = pickBestVoice(voices, target);
-
       function next() {
         if (chunkIdx >= chunks.length) {
           if (keepAlive) clearInterval(keepAlive);
-          setSpeaking(false);
-          setSpeakingIdx(null);
-          onDone?.();
+          setSpeaking(false); setSpeakingIdx(null); onDone?.();
           return;
         }
         const chunk = chunks[chunkIdx++]!;
         const utt = new SpeechSynthesisUtterance(chunk);
-        utt.lang   = bestVoice?.lang ?? target;
-        utt.rate   = 0.93;   // slightly slower than 1.0 — more natural for AI replies
-        utt.pitch  = 1.0;
-        utt.volume = 1.0;
+        utt.lang = bestVoice?.lang ?? target;
+        utt.rate = 0.93; utt.pitch = 1.0; utt.volume = 1.0;
         if (bestVoice) utt.voice = bestVoice;
         if (chunkIdx === 1) utt.onstart = () => setSpeaking(true);
-        utt.onend   = next;
+        utt.onend = next;
         utt.onerror = (e) => {
           if (keepAlive) clearInterval(keepAlive);
-          setSpeaking(false);
-          setSpeakingIdx(null);
-          // 'canceled' and 'interrupted' are normal (user stopped or new speak() called); only warn on unexpected errors
-          if (e.error !== 'canceled' && e.error !== 'interrupted') {
-            console.warn('[TTS] error:', e.error);
-          }
-          /* do NOT call onDone on cancel/error — prevents spurious auto-listen */
+          setSpeaking(false); setSpeakingIdx(null);
+          if (e.error !== 'canceled' && e.error !== 'interrupted') console.warn('[TTS] error:', e.error);
         };
         window.speechSynthesis.speak(utt);
       }
-
-      // Chrome keep-alive: resume if paused mid-utterance
-      keepAlive = setInterval(() => {
-        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-      }, 10_000);
-
+      keepAlive = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 5_000);
       next();
     };
 
-    // Voices may not be loaded yet on first call (Chrome async).
-    // On some Android versions, calling speak() from onvoiceschanged (async) is
-    // treated as outside a user gesture and silently blocked. Poll as fallback.
     const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      doSpeak();
-    } else {
+    if (voices.length > 0) { doSpeak(); }
+    else {
       let fired = false;
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        if (!fired) { fired = true; doSpeak(); }
-      };
-      // Polling fallback for Android: voices often arrive within 100-300 ms.
-      // After ~3 s (20 × 150 ms) give up waiting and attempt to speak anyway —
-      // Firefox on Android never fires onvoiceschanged but speak() may still work.
+      window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } };
       let attempts = 0;
       const poll = setInterval(() => {
         if (fired) { clearInterval(poll); return; }
-        if (window.speechSynthesis.getVoices().length > 0) {
-          clearInterval(poll);
-          window.speechSynthesis.onvoiceschanged = null;
-          if (!fired) { fired = true; doSpeak(); }
-          return;
-        }
-        if (++attempts > 20) {
-          clearInterval(poll);
-          window.speechSynthesis.onvoiceschanged = null;
-          if (!fired) { fired = true; doSpeak(); } // attempt with no voice preference
-        }
+        if (window.speechSynthesis.getVoices().length > 0) { clearInterval(poll); window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } return; }
+        if (++attempts > 20) { clearInterval(poll); window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } }
       }, 150);
     }
   }, [lang]);
@@ -490,6 +541,10 @@ export function CopilotPanel() {
   // ── Send ───────────────────────────────────────────────────────────────────
 
   const send = useCallback(async (text: string, confirmedCommand?: Record<string, unknown>) => {
+    // Prime iOS speech session synchronously before any await — iOS blocks
+    // speechSynthesis.speak() called from async context (after fetch resolves).
+    if (voiceEnabled || conversationRef.current) primeSpeechSession();
+
     const nextMessages: ChatMessage[] = text
       ? [...messages, { role: 'user' as const, content: text }]
       : messages;
@@ -503,25 +558,20 @@ export function CopilotPanel() {
     setPending(null);
     setPendingEst(null);
 
-    // Safety guardrails
     if (text.trim()) {
       const safety = checkInputSafety(text.trim());
       if (!safety.ok) {
         const cat = safety.category ?? 'abuse';
         const colors = SAFETY_COLORS[cat];
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `${colors.icon} ${safety.message}`,
-          fromCache: false,
-        }]);
+        setMessages(prev => [...prev, { role:'assistant', content:`${colors.icon} ${safety.message}`, fromCache:false }]);
         return;
       }
     }
 
-    if (busyRef.current) return; // prevent concurrent sends
+    if (busyRef.current) return;
     busyRef.current = true;
+    setActivePanel(null); // close popup immediately on submit
     setBusy(true);
-    setActiveTab('chat');
     try {
       const res = await apiClient.post('/copilot/chat', {
         messages: nextMessages.slice(-10),
@@ -531,34 +581,36 @@ export function CopilotPanel() {
         ...(!confirmedCommand && pending ? { pendingCommand: pending } : {}),
       }, { timeout: 90_000 });
       const data = res.data as CopilotResponse;
-      setMessages(m => [...m, { role: 'assistant', content: data.reply, fromCache: data.fromCache }]);
-      if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); }
+      setMessages(m => [...m, { role:'assistant', content:data.reply, fromCache:data.fromCache }]);
+      setExcited(true); setTimeout(() => setExcited(false), 700);
+      if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); setActivePanel('chat'); }
       if (data.plan)     setCurrentPlan(data.plan);
       if (data.navigate) router.push(data.navigate);
-      // Only auto-speak in voice conversation mode; text mode uses per-message buttons
-      if (conversationRef.current) {
-        const newIdx = nextMessages.length; // index of the assistant reply just added
-        speak(data.reply, data.language, () => { if (conversationRef.current) startListeningRef.current(); }, newIdx);
+      const wasVoiceInput = conversationRef.current;
+      if (voiceEnabled || wasVoiceInput) {
+        conversationRef.current = true;
+        const newIdx = nextMessages.length;
+        speak(data.reply, data.language, () => { if (voiceEnabled) startListeningRef.current(); }, newIdx);
+      } else {
+        conversationRef.current = false;
       }
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number }; code?: string; message?: string };
+      const axiosErr = err as { response?: { status?: number }; code?: string };
       const status = axiosErr.response?.status;
       const isTimeout = axiosErr.code === 'ECONNABORTED' || axiosErr.code === 'ERR_NETWORK' || status === 504;
       const msg = status === 504
         ? 'The AI is taking longer than expected. Try again in a moment.'
-        : status
-        ? httpErrorMessage(status)
-        : isTimeout
-        ? 'The AI is taking longer than expected. Check your connection and try again.'
+        : status ? httpErrorMessage(status)
+        : isTimeout ? 'The AI is taking longer than expected. Check your connection and try again.'
         : 'Connection error — check your network and try again.';
-      setMessages(m => [...m, { role: 'assistant', content: `⚠️ ${msg}`, fromCache: false }]);
+      setMessages(m => [...m, { role:'assistant', content:`⚠️ ${msg}`, fromCache:false }]);
       conversationRef.current = false;
       window.speechSynthesis?.cancel();
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [messages, speak, pending, router]);
+  }, [messages, speak, pending, router, voiceEnabled, primeSpeechSession]);
 
   // ── STT ────────────────────────────────────────────────────────────────────
 
@@ -572,8 +624,7 @@ export function CopilotPanel() {
     let stream: MediaStream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
     catch { setListening(false); setMicError('Microphone permission denied'); return; }
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
       : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
     const recorder = new MediaRecorder(stream, { mimeType });
     mediaRecorderRef.current = recorder;
@@ -649,7 +700,7 @@ export function CopilotPanel() {
   startListeningRef.current = startListening;
 
   const toggleMic = useCallback(() => {
-    primeAudio(); // unlock iOS speechSynthesis from user gesture
+    primeAudio();
     if (listening || recording) {
       conversationRef.current = false;
       if (mediaRecorderRef.current) stopServerSTT();
@@ -661,17 +712,20 @@ export function CopilotPanel() {
     startListening();
   }, [listening, recording, startListening, stopServerSTT, primeAudio]);
 
-  const close = useCallback(() => {
-    conversationRef.current = false;
-    if (mediaRecorderRef.current) stopServerSTT();
-    recognitionRef.current?.stop();
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+  function toggleVoice() {
+    primeAudio();
+    const next = !voiceEnabled;
+    setVoiceEnabled(next);
+    localStorage.setItem('cf_copilot_voice', String(next));
+    if (!next) {
+      conversationRef.current = false;
+      if (mediaRecorderRef.current) stopServerSTT();
+      recognitionRef.current?.stop();
+      window.speechSynthesis?.cancel();
+      setListening(false); setRecording(false); setSpeaking(false); setSpeakingIdx(null);
+      setActivePanel(null);
     }
-    setSpeaking(false);
-    setSpeakingIdx(null);
-    setOpen(false);
-  }, [stopServerSTT]);
+  }
 
   // ── Input handlers ─────────────────────────────────────────────────────────
 
@@ -686,580 +740,423 @@ export function CopilotPanel() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (input.trim()) void send(input.trim()); }
   }
 
-  const statusLabel = micError ? micError : listening ? 'Listening…' : speaking ? 'Speaking…' : busy ? 'Thinking…' : 'Ready';
-  const statusColor = micError ? '#F87171' : listening ? '#4ADE80' : speaking ? '#A78BFA' : busy ? '#FBBF24' : '#4ADE80';
+  // ── Derived values ─────────────────────────────────────────────────────────
 
-  const currentAction = QUICK_ACTIONS.find(a => a.id === activeAction);
+  const isVoiceActive   = listening || recording;
+  const isTranscribing  = liveTranscript === 'Transcribing…';
+  const currentAction   = QUICK_ACTIONS.find(a => a.id === activeAction);
+  const statusLabel     = micError ? micError : listening ? 'Listening…' : speaking ? 'Speaking…' : busy ? 'Thinking…' : 'Ready';
+  const statusColor     = micError ? '#F87171' : listening ? '#4ADE80' : speaking ? '#A78BFA' : busy ? '#FBBF24' : '#4ADE80';
+
+  const robotState: RobotState = isVoiceActive ? 'listening' : busy ? 'thinking' : speaking ? 'speaking' : 'idle';
+
+  const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+  const bubbleText =
+    micError ? micError :
+    isVoiceActive ? (liveTranscript || "I'm all ears, go ahead…") :
+    busy ? "Let me think on that…" :
+    speaking ? "Saying that back to you…" :
+    lastAssistant ? (lastAssistant.content.length > 68 ? lastAssistant.content.slice(0, 68) + '…' : lastAssistant.content) :
+    "Scripts, SEO, ideas — just say the word!";
+
+  const shouldShowBubble = showBubble || robotState !== 'idle';
 
   // ── Render ─────────────────────────────────────────────────────────────────
-
-  const isVoiceActive = listening || recording;
-  const isTranscribing = liveTranscript === 'Transcribing…';
 
   return (
     <>
       <style>{`
-        .cf-copilot-drawer textarea::placeholder { color: rgba(255,255,255,0.32); }
-        .cf-copilot-drawer textarea { caret-color: #A78BFA; }
-        .cf-copilot-input-wrap:focus-within {
+        .cf-copilot-widget * { box-sizing: border-box; }
+        .cf-copilot-widget textarea::placeholder { color: rgba(255,255,255,0.32); }
+        .cf-copilot-widget textarea { caret-color: #A78BFA; }
+        .cf-popup-input:focus-within {
           border-color: rgba(167,139,250,0.55) !important;
-          box-shadow: 0 0 0 3px rgba(124,58,237,0.14), inset 0 0 0 1px rgba(167,139,250,0.12);
+          box-shadow: 0 0 0 3px rgba(124,58,237,0.14) !important;
         }
-        .cf-msg-assistant { transition: background 0.2s; }
-        .cf-msg-assistant:hover { background: rgba(255,255,255,0.13) !important; }
-        .cf-action-card { transition: background 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s; }
-        .cf-action-card:hover:not(.active) {
-          background: rgba(255,255,255,0.11) !important;
-          border-color: rgba(167,139,250,0.35) !important;
+        .cf-foot-btn { transition: all 0.17s; }
+        .cf-foot-btn:hover { background: rgba(255,255,255,0.14) !important; }
+        .cf-act-card { transition: background 0.17s, border-color 0.17s, transform 0.15s; }
+        .cf-act-card:hover:not(.cf-act-active) {
+          background: rgba(255,255,255,0.1) !important;
+          border-color: rgba(167,139,250,0.3) !important;
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px -8px rgba(124,58,237,0.25);
         }
-        .cf-job-row { transition: background 0.15s; }
-        .cf-job-row:hover { background: rgba(255,255,255,0.11) !important; }
-        .cf-chip { transition: background 0.15s, border-color 0.15s, transform 0.15s; }
-        .cf-chip:hover { background: rgba(255,255,255,0.18) !important; border-color: rgba(167,139,250,0.5) !important; transform: translateY(-1px); }
-        @keyframes cfVoiceBar {
-          0%,100% { transform: scaleY(0.25); opacity:0.5; }
-          50%      { transform: scaleY(1);    opacity:1;   }
+        .cf-msg-row:hover .cf-msg-assistant { background: rgba(255,255,255,0.13) !important; }
+        @media (max-width: 768px) {
+          .cf-copilot-widget { bottom: 76px !important; right: 12px !important; }
         }
-        @keyframes cfRipple {
-          0%   { transform: scale(1);   opacity: 0.65; }
-          100% { transform: scale(1.9); opacity: 0;    }
+        @keyframes cfVoiceBar   { 0%,100%{transform:scaleY(0.25);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
+        @keyframes cfRipple     { 0%{transform:scale(1);opacity:0.65} 100%{transform:scale(1.9);opacity:0} }
+        @keyframes cfPulse      { 0%,100%{opacity:1} 50%{opacity:0.45} }
+        @keyframes cfEyeBlinkIdle  { 0%,91%,95%,100%{transform:scaleY(0)} 93%{transform:scaleY(1)} }
+        @keyframes cfEyeBlinkAlert { 0%,97%,100%{transform:scaleY(0)} 98.5%{transform:scaleY(0.18)} }
+        @keyframes cfEyeBlinkThink { 0%,18%,68%,100%{transform:scaleY(0)} 38%,54%{transform:scaleY(0.68)} }
+        @keyframes cfEyeBlinkSpeak { 0%,28%,72%,100%{transform:scaleY(0)} 50%{transform:scaleY(0.8)} }
+        @keyframes cfSlideUp    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes cfFloat      { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+        @keyframes cfSpin       { from{transform:translate(-50%,-50%) rotate(0deg)} to{transform:translate(-50%,-50%) rotate(360deg)} }
+        @keyframes cfSpinSimple { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes cfPanelIn    { from{opacity:0;transform:translateY(14px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes cfBlink      { 0%,88%,92%,100%{transform:scaleY(1)} 90%{transform:scaleY(0.04)} }
+        @keyframes cfHeadBob    { 0%,100%{transform:translateY(0) rotate(0deg)} 20%{transform:translateY(-6px) rotate(-2.5deg)} 50%{transform:translateY(-2px) rotate(2deg)} 75%{transform:translateY(-5px) rotate(-1.5deg)} }
+        @keyframes cfMouthTalk  { 0%,100%{transform:scaleY(0.3)} 50%{transform:scaleY(1)} }
+        @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 50%{transform:translateY(3px) scale(0.97)} 80%{transform:translateY(-5px) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
+        @keyframes cfArmWave    { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-18deg)} 70%{transform:rotate(12deg)} }
+        @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
+        @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
+        @media (max-width: 480px) {
+          .cf-copilot-widget { bottom: 80px !important; right: 10px !important; transform: scale(0.88); transform-origin: bottom right; }
         }
-        @keyframes cfPulse {
-          0%,100% { opacity: 1; }
-          50%     { opacity: 0.5; }
-        }
-        @keyframes cfSlideUp {
-          from { opacity:0; transform: translateY(6px); }
-          to   { opacity:1; transform: translateY(0); }
-        }
-        @keyframes cfMicGlow {
-          0%,100% {
-            box-shadow: 0 0 0 0px rgba(74,222,128,.45),
-                        0 0 0 0px rgba(74,222,128,.2),
-                        0 8px 28px rgba(0,0,0,.22);
-          }
-          50% {
-            box-shadow: 0 0 0 10px rgba(74,222,128,.08),
-                        0 0 0 20px rgba(74,222,128,.03),
-                        0 8px 28px rgba(0,0,0,.22);
-          }
+        @media (max-width: 380px) {
+          .cf-copilot-widget { transform: scale(0.78); }
         }
       `}</style>
-      {/* Backdrop */}
-      <div
-        onClick={close}
-        style={{
-          position:'fixed', inset:0, zIndex:45,
-          background: open ? 'rgba(10,8,28,.35)' : 'transparent',
-          backdropFilter: open ? 'blur(3px)' : 'none',
-          WebkitBackdropFilter: open ? 'blur(3px)' : 'none',
-          pointerEvents: open ? 'auto' : 'none',
-          transition:'background 280ms ease, backdrop-filter 280ms ease',
-        }}
-      />
 
-      {/* Drawer — dark-tinted frosted glass */}
+      {/* ── Floating widget ── */}
       <div
-        onClick={e => e.stopPropagation()}
-        className="cf-copilot-drawer"
-        style={{
-          position:'fixed', top:0, right:0, bottom:0,
-          zIndex:46,
-          width: 'min(400px, 92vw)',
-          background: 'rgba(12,9,32,0.68)',
-          backdropFilter: 'blur(72px) saturate(220%) brightness(0.9)',
-          WebkitBackdropFilter: 'blur(72px) saturate(220%) brightness(0.9)',
-          borderLeft:'1px solid rgba(139,92,246,0.22)',
-          boxShadow:'-40px 0 100px -20px rgba(10,8,28,.55), inset 1px 0 0 rgba(255,255,255,0.06)',
-          display:'flex', flexDirection:'column',
-          transform: open ? 'translateX(0)' : 'translateX(100%)',
-          transition:'transform 320ms cubic-bezier(.22,1,.36,1)',
-        }}
+        className="cf-copilot-widget"
+        style={{ position:'fixed', bottom:24, right:24, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'center' }}
       >
-        {/* ── Header ── */}
-        <div style={{
-          padding:'0 18px',
-          height:'64px',
-          display:'flex', alignItems:'center', gap:'12px',
-          background:'linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%)',
-          flexShrink:0,
-        }}>
-          <div style={{ width:'38px',height:'38px',borderRadius:'11px',background:'rgba(255,255,255,.15)',border:'1px solid rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-            <Bot style={{ width:'20px',height:'20px',color:'#fff' }} />
-          </div>
-          <div style={{ flex:'1 1 auto', minWidth:0 }}>
-            <div style={{ fontSize:'15px',fontWeight:700,color:'#fff',letterSpacing:'-.2px' }}>Copilot</div>
-            <div style={{ display:'flex',alignItems:'center',gap:'5px',marginTop:'1px' }}>
-              <span style={{ width:'6px',height:'6px',borderRadius:'50%',background:statusColor,flexShrink:0,transition:'background .3s',boxShadow:`0 0 0 3px ${statusColor}30` }} />
-              <span style={{ fontSize:'11.5px',color:'rgba(255,255,255,.68)',fontWeight:500 }}>{statusLabel}</span>
-              {serverStt !== null && (
-                <span style={{ marginLeft:'4px',fontSize:'10px',fontWeight:600,color:'rgba(255,255,255,.4)',background:'rgba(255,255,255,.1)',padding:'1px 6px',borderRadius:'9px' }}>
-                  {serverStt ? 'Server STT' : 'Browser STT'}
-                </span>
-              )}
-            </div>
-          </div>
-          {/* Mic */}
-          <div style={{ position:'relative',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center' }}>
-            {isVoiceActive && (
-              <>
-                <div style={{ position:'absolute',width:'48px',height:'48px',borderRadius:'50%',border:'2px solid rgba(74,222,128,.5)',animation:'cfRipple 1.4s ease-out infinite',pointerEvents:'none' }} />
-                <div style={{ position:'absolute',width:'48px',height:'48px',borderRadius:'50%',border:'2px solid rgba(74,222,128,.3)',animation:'cfRipple 1.4s ease-out .7s infinite',pointerEvents:'none' }} />
-              </>
-            )}
-            <button
-              type="button"
-              title={isVoiceActive ? 'Stop recording' : 'Voice input'}
-              onClick={toggleMic}
-              style={{
-                width:'36px',height:'36px',borderRadius:'10px',zIndex:1,
-                background: isVoiceActive ? 'rgba(74,222,128,.25)' : 'rgba(255,255,255,.12)',
-                border: `1.5px solid ${isVoiceActive ? 'rgba(74,222,128,.6)' : 'rgba(255,255,255,.18)'}`,
-                color: isVoiceActive ? '#4ADE80' : 'rgba(255,255,255,.82)',
-                display:'flex',alignItems:'center',justifyContent:'center',
-                cursor:'pointer',transition:'background .2s,border-color .2s',
-              }}
-            >
-              {isVoiceActive ? <MicOff style={{ width:'16px',height:'16px' }} /> : <Mic style={{ width:'16px',height:'16px' }} />}
-            </button>
-          </div>
-          {/* Close */}
-          <button
-            type="button"
-            title="Close Copilot"
-            onClick={close}
-            style={{
-              width:'36px',height:'36px',borderRadius:'10px',flexShrink:0,
-              background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.18)',
-              color:'rgba(255,255,255,.82)',display:'flex',alignItems:'center',justifyContent:'center',
-              cursor:'pointer',transition:'background .2s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,.22)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,.12)'; }}
-          >
-            <X style={{ width:'18px',height:'18px' }} />
-          </button>
-        </div>
 
-        {/* ── Tabs ── */}
-        <div style={{ display:'flex',borderBottom:'1px solid rgba(255,255,255,0.07)',background:'rgba(0,0,0,0.18)',flexShrink:0,padding:'0 6px' }}>
-          {(['chat','actions','jobs'] as const).map(tab => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              style={{
-                padding:'12px 16px',
-                fontSize:'12.5px',
-                fontWeight: activeTab===tab ? 700 : 500,
-                color: activeTab===tab ? '#C4B5FD' : 'rgba(255,255,255,0.42)',
-                background:'none',border:'none',
-                borderBottomWidth:'2px',
-                borderBottomStyle:'solid',
-                borderBottomColor: activeTab===tab ? '#A78BFA' : 'transparent',
-                cursor:'pointer',
-                transition:'color 150ms, border-color 150ms',
-                letterSpacing:'.2px',
-                textTransform:'uppercase',
-              }}
-            >
-              {tab === 'chat' ? 'Chat' : tab === 'actions' ? 'Actions' : 'Tasks'}
-            </button>
-          ))}
-        </div>
+        {/* ── OPEN WIDGET ── */}
+        {widgetOpen && (
+        <div style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center' }}>
 
-        {/* ── Chat tab ── */}
-        {activeTab === 'chat' && (
-          <>
-            {/* Messages */}
-            <div style={{ flex:'1 1 auto', overflowY:'auto', padding:'16px 14px', display:'flex', flexDirection:'column', gap:'12px' }}>
-              {messages.length === 0 && !busy && (
-                <div style={{ textAlign:'center', paddingTop:'32px' }}>
-                  <div style={{ width:'52px',height:'52px',borderRadius:'16px',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px',boxShadow:'0 8px 20px -8px rgba(124,58,237,.5)' }}>
-                    <Bot style={{ width:'26px',height:'26px',color:'#fff' }} />
-                  </div>
-                  <div style={{ fontSize:'16px',fontWeight:700,color:'#fff',marginBottom:'6px' }}>What's on your mind?</div>
-                  <div style={{ fontSize:'13px',color:'rgba(255,255,255,0.58)',marginBottom:'24px',lineHeight:1.5 }}>Scripts, SEO, ideas, research — just say the word.</div>
-                  <div style={{ display:'flex',flexWrap:'wrap',gap:'8px',justifyContent:'center' }}>
-                    {PROMPT_CHIPS.map(chip => (
-                      <button
-                        key={chip}
-                        onClick={() => void send(chip)}
-                        className="cf-chip"
-                        style={{
-                          padding:'8px 14px',borderRadius:'99px',fontSize:'12.5px',fontWeight:500,
-                          background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)',color:'rgba(255,255,255,0.78)',
-                          cursor:'pointer',
-                        }}
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
+          {/* ── COMPACT POPUP (slides up over robot — robot goes behind it) ── */}
+          {activePanel && (
+            <div style={{
+              position:'absolute', bottom:0, right:0, zIndex:10,
+              width:340, maxWidth:'calc(100vw - 28px)',
+              background:'rgba(10,7,28,0.9)',
+              backdropFilter:'blur(60px) saturate(200%) brightness(0.9)',
+              WebkitBackdropFilter:'blur(60px) saturate(200%) brightness(0.9)',
+              borderRadius:18,
+              border:'1px solid rgba(139,92,246,0.28)',
+              boxShadow:'0 -8px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04)',
+              overflow:'hidden',
+              animation:'cfPanelIn 0.22s cubic-bezier(.22,1,.36,1) both',
+            }}>
+
+              {/* Popup header */}
+              <div style={{ padding:'12px 14px 10px', display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+                <div style={{ flex:'1 1 auto', fontSize:13, fontWeight:700, color:'#fff', letterSpacing:'-.1px' }}>
+                  {activePanel === 'chat' ? '💬 Chat' : activePanel === 'actions' ? '⚡ Quick Actions' : '✅ Recent Tasks'}
                 </div>
-              )}
+                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, transition:'background .3s' }} />
+                  <span style={{ fontSize:10.5, color:'rgba(255,255,255,.5)', fontWeight:500 }}>{statusLabel}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActivePanel(null)}
+                  style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}
+                >
+                  <X style={{ width:13, height:13 }} />
+                </button>
+              </div>
 
-              {messages.map((m, i) => (
-                <div key={i} style={{ display:'flex', gap:'10px', flexDirection: m.role==='user' ? 'row-reverse' : 'row', alignItems:'flex-end' }}>
-                  <div style={{
-                    width:'30px',height:'30px',borderRadius:'9px',flexShrink:0,
-                    display:'flex',alignItems:'center',justifyContent:'center',
-                    background: m.role==='user'
-                      ? 'rgba(255,255,255,0.12)'
-                      : 'linear-gradient(135deg,#7C3AED,#4F1D96)',
-                    border: m.role==='user' ? '1px solid rgba(255,255,255,0.18)' : 'none',
-                    color:'#fff',fontSize:'11px',fontWeight:700,
-                    boxShadow: m.role==='assistant' ? '0 4px 12px -4px rgba(124,58,237,.45)' : 'none',
-                  }}>
-                    {m.role==='user' ? 'U' : <Zap style={{ width:'14px',height:'14px' }} />}
-                  </div>
-                  <div style={{ maxWidth:'78%', display:'flex', flexDirection:'column', gap:'4px', alignItems: m.role==='user' ? 'flex-end' : 'flex-start' }}>
-                    <div className={m.role==='assistant' ? 'cf-msg-assistant' : ''} style={{
-                      padding:'11px 14px',
-                      borderRadius: m.role==='user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
-                      fontSize:'13.5px',lineHeight:1.6,whiteSpace:'pre-wrap',
-                      background: m.role==='user'
-                        ? 'linear-gradient(135deg,#7C3AED 0%,#4F1D96 100%)'
-                        : 'rgba(255,255,255,0.09)',
-                      color: '#fff',
-                      boxShadow: m.role==='user'
-                        ? '0 6px 20px -6px rgba(124,58,237,.55)'
-                        : '0 2px 12px rgba(0,0,0,.18)',
-                      border: m.role==='assistant'
-                        ? '1px solid rgba(255,255,255,0.10)'
-                        : '1px solid rgba(167,139,250,0.25)',
-                      animation: 'cfSlideUp 0.22s ease-out both',
-                    }}>
-                      {m.content}
-                      {m.fromCache && <span style={{ fontSize:'10px',color:'rgba(255,255,255,.45)',marginLeft:'6px' }}>cached</span>}
-                    </div>
-                    {/* Read-aloud button on assistant messages — hidden on browsers without Web Speech API */}
-                    {m.role === 'assistant' && ttsAvailable === true && (
-                      <button
-                        type="button"
-                        title={speakingIdx === i ? 'Stop' : 'Read aloud'}
-                        onClick={() => {
-                          if (speakingIdx === i) {
-                            window.speechSynthesis.cancel();
-                            setSpeaking(false);
-                            setSpeakingIdx(null);
-                          } else {
-                            primeAudio(); // unlock iOS TTS + Android AudioContext from user gesture
-                            speak(m.content, lang, undefined, i);
-                          }
-                        }}
-                        style={{
-                          display:'flex',alignItems:'center',gap:'4px',
-                          padding:'3px 8px',borderRadius:'8px',
-                          background: speakingIdx === i ? 'rgba(167,139,250,0.18)' : 'transparent',
-                          border: `1px solid ${speakingIdx === i ? 'rgba(167,139,250,0.4)' : 'transparent'}`,
-                          color: speakingIdx === i ? '#C4B5FD' : 'rgba(255,255,255,0.35)',
-                          fontSize:'11px',fontWeight:500,cursor:'pointer',
-                          transition:'background .15s,color .15s,border-color .15s',
-                        }}
-                        onMouseEnter={e => { if (speakingIdx !== i) { (e.currentTarget as HTMLElement).style.background='rgba(167,139,250,0.12)'; (e.currentTarget as HTMLElement).style.color='#C4B5FD'; (e.currentTarget as HTMLElement).style.borderColor='rgba(167,139,250,0.3)'; } }}
-                        onMouseLeave={e => { if (speakingIdx !== i) { (e.currentTarget as HTMLElement).style.background='transparent'; (e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.35)'; (e.currentTarget as HTMLElement).style.borderColor='transparent'; } }}
-                      >
-                        {speakingIdx === i
-                          ? <><VolumeX style={{ width:'11px',height:'11px' }} /> Stop</>
-                          : <><Volume2 style={{ width:'11px',height:'11px' }} /> Listen</>
-                        }
-                      </button>
+              {/* ── CHAT ── */}
+              {activePanel === 'chat' && (
+                <>
+                  <div style={{ maxHeight:280, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:9 }}>
+                    {messages.length === 0 && !busy && (
+                      <div style={{ padding:'6px 0 4px' }}>
+                        <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginBottom:10, lineHeight:1.5 }}>
+                          Scripts, SEO, ideas, research — ask me anything.
+                        </div>
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                          {PROMPT_CHIPS.map(chip => (
+                            <button key={chip} onClick={() => void send(chip)} style={{ padding:'5px 10px', borderRadius:99, fontSize:11, fontWeight:500, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.72)', cursor:'pointer' }}>
+                              {chip}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </div>
-              ))}
 
-              {busy && (
-                <div style={{ display:'flex',gap:'10px',alignItems:'flex-end' }}>
-                  <div style={{ width:'30px',height:'30px',borderRadius:'9px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#7C3AED,#5B21B6)' }}>
-                    <Zap style={{ width:'14px',height:'14px',color:'#fff' }} />
-                  </div>
-                  <div style={{ padding:'10px 16px 8px',borderRadius:'16px 16px 16px 4px',background:'linear-gradient(160deg,#7C3AED 0%,#5B21B6 100%)',border:'1px solid rgba(124,58,237,.2)',boxShadow:'0 4px 16px -4px rgba(124,58,237,.3)' }}>
-                    <VoiceBars active compact color="rgba(233,213,255,.85)" />
-                    <div style={{ fontSize:'10.5px',fontWeight:600,color:'rgba(233,213,255,.55)',textAlign:'center',marginTop:'2px',letterSpacing:'.3px' }}>Hmm…</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Task plan */}
-              {currentPlan && (
-                <div style={{ background:'#1E1B2E',borderRadius:'14px',padding:'14px 16px',border:'1px solid rgba(124,58,237,.3)' }}>
-                  <div style={{ display:'flex',alignItems:'center',gap:'7px',marginBottom:'10px' }}>
-                    <BrainCircuit style={{ width:14,height:14,color:'#A78BFA' }} />
-                    <span style={{ fontSize:'11px',fontWeight:700,color:'#A78BFA',letterSpacing:'.5px' }}>TASK PLAN</span>
-                    <div style={{ flex:'1 1 auto' }} />
-                    <button type="button" onClick={() => setCurrentPlan(null)} style={{ background:'none',border:'none',color:'rgba(255,255,255,.35)',cursor:'pointer',padding:0 }}><X style={{ width:12,height:12 }} /></button>
-                  </div>
-                  <p style={{ fontSize:'13px',fontWeight:600,color:'#fff',marginBottom:'10px' }}>{currentPlan.goal}</p>
-                  <div style={{ display:'flex',flexDirection:'column',gap:'7px' }}>
-                    {currentPlan.steps.map((step, i) => (
-                      <div key={i} style={{ display:'flex',alignItems:'center',gap:'8px' }}>
-                        <StepIcon status={step.status} />
-                        <span style={{ fontSize:'12px',color:step.status==='pending'?'rgba(255,255,255,.45)':step.status==='failed'?'#F87171':'#fff',fontWeight:step.status==='running'?700:500 }}>{step.label}</span>
-                        {step.agentName && <span style={{ fontSize:'11px',color:'rgba(255,255,255,.3)',marginLeft:'4px' }}>{step.agentName}</span>}
+                    {messages.map((m, i) => (
+                      <div key={i} className="cf-msg-row" style={{ display:'flex', gap:7, flexDirection:m.role==='user'?'row-reverse':'row', alignItems:'flex-end' }}>
+                        <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:m.role==='user'?'rgba(255,255,255,0.12)':'linear-gradient(135deg,#7C3AED,#4F1D96)', border:m.role==='user'?'1px solid rgba(255,255,255,0.2)':'none', color:'#fff', fontSize:9, fontWeight:700 }}>
+                          {m.role==='user' ? 'U' : <Zap style={{ width:10, height:10 }} />}
+                        </div>
+                        <div className={m.role==='assistant'?'cf-msg-assistant':''} style={{ maxWidth:'82%', padding:'8px 11px', borderRadius:m.role==='user'?'12px 12px 3px 12px':'3px 12px 12px 12px', fontSize:12.5, lineHeight:1.55, whiteSpace:'pre-wrap', background:m.role==='user'?'linear-gradient(135deg,#7C3AED,#4F1D96)':'rgba(255,255,255,0.09)', color:'#fff', border:m.role==='assistant'?'1px solid rgba(255,255,255,0.09)':'1px solid rgba(167,139,250,0.22)', boxShadow:m.role==='user'?'0 4px 14px -4px rgba(124,58,237,.5)':'none', animation:'cfSlideUp 0.2s ease-out both', transition:'background 0.2s' }}>
+                          {m.content}
+                          {m.fromCache && <span style={{ fontSize:9, color:'rgba(255,255,255,.4)', marginLeft:5 }}>cached</span>}
+                        </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
 
-              {/* Confirm action */}
-              {pending && (
-                <div style={{ background:'rgba(251,191,36,0.10)',border:'1px solid rgba(251,191,36,0.28)',borderRadius:'14px',padding:'14px 16px',animation:'cfSlideUp 0.2s ease-out both' }}>
-                  <div style={{ display:'flex',alignItems:'center',gap:'6px',color:'#FCD34D',fontWeight:600,fontSize:'13px',marginBottom:'4px' }}>
-                    <ShieldCheck style={{ width:'15px',height:'15px' }} />
-                    Confirm: {pending.action.replace(/_/g,' ')}
-                  </div>
-                  <p style={{ fontSize:'12px',color:'rgba(252,211,77,0.7)',marginBottom:'12px' }}>
-                    {pendingEst !== null ? `Estimated: ${pendingEst.toLocaleString()} credits` : 'Cost varies — charged at actual usage'}
-                  </p>
-                  <div style={{ display:'flex',gap:'8px' }}>
-                    <button onClick={() => void send('', pending)} style={{ padding:'7px 14px',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',borderRadius:'9px',fontSize:'12.5px',fontWeight:600,border:'none',cursor:'pointer' }}>Confirm</button>
-                    <button onClick={() => { setPending(null); setPendingEst(null); }} style={{ padding:'7px 14px',background:'rgba(255,255,255,0.08)',color:'rgba(255,255,255,0.65)',borderRadius:'9px',fontSize:'12.5px',fontWeight:600,border:'1px solid rgba(255,255,255,0.12)',cursor:'pointer' }}>Cancel</button>
-                  </div>
-                </div>
-              )}
+                    {busy && (
+                      <div style={{ display:'flex', gap:7, alignItems:'flex-end' }}>
+                        <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#7C3AED,#5B21B6)' }}>
+                          <Zap style={{ width:10, height:10, color:'#fff' }} />
+                        </div>
+                        <div style={{ padding:'8px 12px', borderRadius:'3px 12px 12px 12px', background:'linear-gradient(160deg,#7C3AED,#5B21B6)', border:'1px solid rgba(124,58,237,.2)' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:2, height:14 }}>
+                            {['5px','9px','13px','9px','5px'].map((h,i) => (
+                              <span key={i} style={{ display:'inline-block', width:2.5, borderRadius:3, background:'rgba(233,213,255,.85)', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                            ))}
+                          </div>
+                          <div style={{ fontSize:9.5, fontWeight:600, color:'rgba(233,213,255,.5)', marginTop:2 }}>Thinking…</div>
+                        </div>
+                      </div>
+                    )}
 
-              <div ref={messagesEndRef} />
-            </div>
+                    {currentPlan && (
+                      <div style={{ background:'#1E1B2E', borderRadius:12, padding:'10px 12px', border:'1px solid rgba(124,58,237,.3)' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                          <BrainCircuit style={{ width:12, height:12, color:'#A78BFA' }} />
+                          <span style={{ fontSize:10, fontWeight:700, color:'#A78BFA', letterSpacing:'.5px' }}>TASK PLAN</span>
+                          <button type="button" onClick={() => setCurrentPlan(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'rgba(255,255,255,.35)', cursor:'pointer', padding:0 }}><X style={{ width:10, height:10 }} /></button>
+                        </div>
+                        <p style={{ fontSize:11.5, fontWeight:600, color:'#fff', marginBottom:8 }}>{currentPlan.goal}</p>
+                        <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                          {currentPlan.steps.map((step, si) => (
+                            <div key={si} style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <StepIcon status={step.status} />
+                              <span style={{ fontSize:11, color:step.status==='pending'?'rgba(255,255,255,.45)':step.status==='failed'?'#F87171':'#fff', fontWeight:step.status==='running'?700:500 }}>{step.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-            {/* Input bar */}
-            <div style={{ padding:'12px 16px 16px',background:'rgba(0,0,0,0.22)',borderTop:'1px solid rgba(255,255,255,0.06)',flexShrink:0 }}>
-              {isVoiceActive ? (
-                /* Voice-active input bar */
-                <div style={{ display:'flex',alignItems:'center',gap:'10px',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',borderRadius:'16px',padding:'10px 12px 10px 16px' }}>
-                  {/* Mini waveform */}
-                  <div style={{ display:'flex',alignItems:'center',gap:'2.5px',flexShrink:0 }}>
-                    {['10px','18px','24px','18px','10px'].map((h, i) => (
-                      <span key={i} style={{ display:'inline-block',width:'3px',borderRadius:'3px',background:'rgba(255,255,255,.9)',height:h,animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite`,opacity:.9 }} />
-                    ))}
+                    {pending && (
+                      <div style={{ background:'rgba(251,191,36,0.10)', border:'1px solid rgba(251,191,36,0.28)', borderRadius:12, padding:'10px 12px', animation:'cfSlideUp 0.2s ease-out both' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:5, color:'#FCD34D', fontWeight:600, fontSize:12, marginBottom:4 }}>
+                          <ShieldCheck style={{ width:13, height:13 }} />
+                          Confirm: {pending.action.replace(/_/g,' ')}
+                        </div>
+                        <p style={{ fontSize:11, color:'rgba(252,211,77,0.7)', marginBottom:10 }}>
+                          {pendingEst !== null ? `Est. ${pendingEst.toLocaleString()} credits` : 'Cost varies'}
+                        </p>
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button onClick={() => void send('', pending)} style={{ padding:'6px 12px', background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', borderRadius:8, fontSize:11.5, fontWeight:600, border:'none', cursor:'pointer' }}>Confirm</button>
+                          <button onClick={() => { setPending(null); setPendingEst(null); }} style={{ padding:'6px 12px', background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.65)', borderRadius:8, fontSize:11.5, fontWeight:600, border:'1px solid rgba(255,255,255,0.12)', cursor:'pointer' }}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
                   </div>
-                  <span style={{ flex:'1 1 auto',fontSize:'13.5px',fontWeight:500,color:'rgba(255,255,255,.85)' }}>Listening… go ahead</span>
-                  <button
-                    type="button"
-                    onClick={toggleMic}
-                    style={{ display:'flex',alignItems:'center',gap:'6px',padding:'7px 14px',borderRadius:'10px',background:'rgba(255,255,255,.18)',border:'1px solid rgba(255,255,255,.3)',color:'#fff',fontSize:'12.5px',fontWeight:600,cursor:'pointer',flexShrink:0 }}
-                  >
-                    <span style={{ width:'8px',height:'8px',borderRadius:'2px',background:'#fff',flexShrink:0 }} />
-                    Stop
-                  </button>
-                </div>
-              ) : isTranscribing ? (
-                /* Transcribing state */
-                <div style={{ display:'flex',alignItems:'center',gap:'10px',background:'#F5F2FD',border:'1.5px solid #DDD6FE',borderRadius:'16px',padding:'12px 16px' }}>
-                  <Loader2 style={{ width:'18px',height:'18px',color:'#7C3AED',animation:'spin 1s linear infinite',flexShrink:0 }} />
-                  <span style={{ fontSize:'13.5px',fontWeight:500,color:'#6D28D9' }}>Got it, processing…</span>
-                </div>
-              ) : (busy || speaking) ? (
-                /* AI thinking / speaking state */
-                <div style={{ display:'flex',alignItems:'center',gap:'10px',background:'#1E1B2E',borderRadius:'16px',padding:'10px 14px 10px 16px' }}>
-                  <div style={{ display:'flex',alignItems:'center',gap:'2px',flexShrink:0 }}>
-                    {['8px','14px','20px','14px','8px'].map((h, i) => (
-                      <span key={i} style={{ display:'inline-block',width:'3px',borderRadius:'3px',background:'rgba(167,139,250,.9)',height:h,animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
-                    ))}
+
+                  {/* Input bar */}
+                  <div style={{ padding:'8px 10px 10px', background:'rgba(0,0,0,0.25)', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+                    {isVoiceActive ? (
+                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'linear-gradient(135deg,#7C3AED,#5B21B6)', borderRadius:12, padding:'8px 12px' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:2 }}>
+                          {['8px','14px','18px','14px','8px'].map((h,i) => (
+                            <span key={i} style={{ display:'inline-block', width:2.5, borderRadius:2, background:'rgba(255,255,255,.9)', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                          ))}
+                        </div>
+                        <span style={{ flex:'1 1 auto', fontSize:12.5, fontWeight:500, color:'rgba(255,255,255,.85)' }}>Listening…</span>
+                        <button type="button" onClick={toggleMic} style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:9, background:'rgba(255,255,255,.18)', border:'1px solid rgba(255,255,255,.3)', color:'#fff', fontSize:11.5, fontWeight:600, cursor:'pointer' }}>
+                          <span style={{ width:7, height:7, borderRadius:1.5, background:'#fff' }} /> Stop
+                        </button>
+                      </div>
+                    ) : isTranscribing ? (
+                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(124,58,237,0.15)', border:'1px solid rgba(167,139,250,0.35)', borderRadius:12, padding:'10px 14px' }}>
+                        <Loader2 style={{ width:15, height:15, color:'#A78BFA', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
+                        <span style={{ fontSize:12.5, fontWeight:500, color:'#C4B5FD' }}>Processing…</span>
+                      </div>
+                    ) : micError ? (
+                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:12, padding:'9px 12px' }}>
+                        <MicOff style={{ width:14, height:14, color:'#F87171', flexShrink:0 }} />
+                        <span style={{ flex:'1 1 auto', fontSize:12, fontWeight:500, color:'#FCA5A5' }}>{micError}</span>
+                        <button type="button" onClick={() => setMicError(null)} style={{ background:'none', border:'none', color:'#F87171', cursor:'pointer', padding:0 }}><X style={{ width:12, height:12 }} /></button>
+                      </div>
+                    ) : (
+                      <div className="cf-popup-input" style={{ display:'flex', alignItems:'flex-end', gap:6, background:'rgba(255,255,255,0.07)', border:'1.5px solid rgba(255,255,255,0.10)', borderRadius:12, padding:'6px 6px 6px 12px', transition:'border-color .2s, box-shadow .2s' }}>
+                        <textarea
+                          ref={textareaRef}
+                          value={input}
+                          onChange={handleTextarea}
+                          onKeyDown={handleKeyDown}
+                          disabled={busy}
+                          placeholder="What's on your mind?"
+                          rows={1}
+                          style={{ flex:'1 1 auto', background:'none', border:'none', outline:'none', resize:'none', fontSize:13, color:'#fff', fontFamily:'inherit', maxHeight:80, lineHeight:1.5, paddingTop:2 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={toggleMic}
+                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:voiceEnabled?'rgba(74,222,128,0.2)':'rgba(255,255,255,0.09)', border:`1px solid ${voiceEnabled?'rgba(74,222,128,0.4)':'rgba(255,255,255,0.14)'}`, color:voiceEnabled?'#4ADE80':'rgba(255,255,255,0.55)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}
+                        >
+                          <Mic style={{ width:13, height:13 }} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { if (input.trim()) void send(input.trim()); }}
+                          disabled={!input.trim() || busy}
+                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', opacity:(!input.trim()||busy)?0.4:1, transition:'opacity .15s' }}
+                        >
+                          <Send style={{ width:13, height:13 }} />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <span style={{ flex:'1 1 auto',fontSize:'13.5px',fontWeight:500,color:'rgba(255,255,255,.7)' }}>
-                    {speaking ? 'Saying it out loud…' : 'On it…'}
-                  </span>
-                  <span style={{ fontSize:'13px',color:'rgba(167,139,250,.5)',animation:'cfPulse 1.5s ease-in-out infinite',letterSpacing:'3px' }}>•••</span>
-                </div>
-              ) : micError ? (
-                /* Mic error */
-                <div style={{ display:'flex',alignItems:'center',gap:'10px',background:'#FEF2F2',border:'1.5px solid #FECACA',borderRadius:'16px',padding:'12px 16px' }}>
-                  <MicOff style={{ width:'16px',height:'16px',color:'#EF4444',flexShrink:0 }} />
-                  <span style={{ flex:'1 1 auto',fontSize:'13px',fontWeight:500,color:'#B91C1C' }}>{micError}</span>
-                  <button type="button" onClick={() => setMicError(null)} style={{ background:'none',border:'none',color:'#EF4444',cursor:'pointer',padding:0,display:'flex' }}><X style={{ width:'14px',height:'14px' }} /></button>
-                </div>
-              ) : (
-                /* Normal text input */
-                <>
-                  <div className="cf-copilot-input-wrap" style={{ display:'flex',alignItems:'flex-end',gap:'8px',background:'rgba(255,255,255,0.07)',border:'1.5px solid rgba(255,255,255,0.10)',borderRadius:'16px',padding:'8px 8px 8px 14px',transition:'border-color .2s, box-shadow .2s' }}>
-                    <textarea
-                      ref={textareaRef}
-                      value={input}
-                      onChange={handleTextarea}
-                      onKeyDown={handleKeyDown}
-                      disabled={busy}
-                      placeholder="What's on your mind?"
-                      rows={1}
-                      style={{ flex:'1 1 auto',background:'none',border:'none',outline:'none',resize:'none',fontSize:'14px',color:'#fff',fontFamily:'inherit',maxHeight:'100px',lineHeight:1.5,paddingTop:'2px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => { if (input.trim()) void send(input.trim()); }}
-                      disabled={!input.trim() || busy}
-                      style={{
-                        width:'34px',height:'34px',borderRadius:'10px',flexShrink:0,
-                        background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',
-                        display:'flex',alignItems:'center',justifyContent:'center',
-                        border:'none',cursor:'pointer',
-                        opacity: (!input.trim() || busy) ? 0.4 : 1,
-                        transition:'opacity .15s',
-                      }}
-                    >
-                      <Send style={{ width:'15px',height:'15px' }} />
-                    </button>
-                  </div>
-                  <p className="hidden sm:block" style={{ fontSize:'11px',color:'rgba(255,255,255,0.35)',textAlign:'center',marginTop:'7px',fontWeight:500 }}>Enter to send  ·  Shift+Enter to break</p>
                 </>
               )}
-            </div>
-          </>
-        )}
 
-        {/* ── Quick Actions tab ── */}
-        {activeTab === 'actions' && (
-          <div style={{ flex:'1 1 auto',overflowY:'auto',padding:'16px' }}>
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'20px' }}>
-              {QUICK_ACTIONS.map(action => {
-                const Icon = action.icon;
-                const isActive = activeAction === action.id;
-                return (
-                  <button
-                    key={action.id}
-                    type="button"
-                    onClick={() => { setActiveAction(isActive ? null : action.id); setActionInput(''); }}
-                    className={`cf-action-card${isActive ? ' active' : ''}`}
-                    style={{
-                      display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'10px',
-                      padding:'14px',borderRadius:'14px',textAlign:'left',cursor:'pointer',
-                      background: isActive ? `${action.color}18` : 'rgba(255,255,255,0.06)',
-                      border: `1.5px solid ${isActive ? action.color+'55' : 'rgba(255,255,255,0.09)'}`,
-                      boxShadow: isActive ? `0 0 0 1px ${action.color}22, 0 8px 24px -8px ${action.color}33` : 'none',
-                    }}
-                    onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.11)'; } }}
-                    onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.06)'; } }}
-                  >
-                    <div style={{ width:'32px',height:'32px',borderRadius:'10px',background:`${action.color}22`,display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${action.color}33`,boxShadow:`0 4px 12px -4px ${action.color}40` }}>
-                      <Icon style={{ width:'16px',height:'16px',color:action.color }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize:'13px',fontWeight:600,color: isActive ? action.color : 'rgba(255,255,255,0.9)',marginBottom:'2px' }}>{action.label}</div>
-                      <div style={{ fontSize:'11.5px',color:'rgba(255,255,255,0.5)',lineHeight:1.4 }}>{action.description}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+              {/* ── ACTIONS ── */}
+              {activePanel === 'actions' && (
+                <div style={{ padding:'10px', maxHeight:380, overflowY:'auto' }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:currentAction?10:0 }}>
+                    {QUICK_ACTIONS.map(action => {
+                      const Icon = action.icon;
+                      const isAct = activeAction === action.id;
+                      return (
+                        <button
+                          key={action.id}
+                          type="button"
+                          onClick={() => { setActiveAction(isAct ? null : action.id); setActionInput(''); }}
+                          className={`cf-act-card${isAct?' cf-act-active':''}`}
+                          style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:7, padding:'11px', borderRadius:12, textAlign:'left', cursor:'pointer', background:isAct?`${action.color}18`:'rgba(255,255,255,0.06)', border:`1.5px solid ${isAct?action.color+'55':'rgba(255,255,255,0.09)'}` }}
+                        >
+                          <div style={{ width:28, height:28, borderRadius:9, background:`${action.color}22`, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${action.color}33` }}>
+                            <Icon style={{ width:14, height:14, color:action.color }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize:12, fontWeight:600, color:isAct?action.color:'rgba(255,255,255,0.88)', marginBottom:1 }}>{action.label}</div>
+                            <div style={{ fontSize:10.5, color:'rgba(255,255,255,0.45)', lineHeight:1.4 }}>{action.description}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-            {/* Expanded action input */}
-            {currentAction && (
-              <div style={{ background:`${currentAction.color}12`,border:`1.5px solid ${currentAction.color}44`,borderRadius:'14px',padding:'14px',marginBottom:'20px',backdropFilter:'blur(8px)' }}>
-                <p style={{ fontSize:'12.5px',fontWeight:600,color:currentAction.color,marginBottom:'10px' }}>{currentAction.description}</p>
-                <input
-                  autoFocus
-                  value={actionInput}
-                  onChange={e => setActionInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && actionInput.trim()) {
-                      void send(currentAction.template(actionInput.trim()));
-                      setActiveAction(null);
-                      setActionInput('');
-                    }
-                  }}
-                  placeholder={currentAction.placeholder}
-                  style={{ width:'100%',padding:'9px 12px',borderRadius:'10px',border:`1px solid ${currentAction.color}44`,fontSize:'13.5px',outline:'none',background:'rgba(0,0,0,0.25)',color:'#fff',fontFamily:'inherit',boxSizing:'border-box' }}
-                />
-                <div style={{ display:'flex',gap:'8px',marginTop:'10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => { if (actionInput.trim()) { void send(currentAction.template(actionInput.trim())); setActiveAction(null); setActionInput(''); } }}
-                    disabled={!actionInput.trim()}
-                    style={{ flex:'1 1 auto',padding:'9px',borderRadius:'10px',fontSize:'13px',fontWeight:600,color:'#fff',background:`linear-gradient(135deg,${currentAction.color},${currentAction.color}cc)`,border:'none',cursor:'pointer',opacity:actionInput.trim()?1:0.4 }}
-                  >
-                    Ask Copilot →
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setActiveAction(null); setActionInput(''); }}
-                    style={{ width:'38px',borderRadius:'10px',background:'#fff',border:'1px solid #E2DCF5',color:'#8b88a0',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}
-                  >
-                    <X style={{ width:'14px',height:'14px' }} />
-                  </button>
+                  {currentAction && (
+                    <div style={{ background:`${currentAction.color}12`, border:`1.5px solid ${currentAction.color}44`, borderRadius:12, padding:'11px', marginTop:2 }}>
+                      <p style={{ fontSize:11.5, fontWeight:600, color:currentAction.color, marginBottom:8 }}>{currentAction.description}</p>
+                      <input
+                        autoFocus
+                        value={actionInput}
+                        onChange={e => setActionInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && actionInput.trim()) {
+                            void send(currentAction.template(actionInput.trim()));
+                            setActiveAction(null); setActionInput('');
+                          }
+                        }}
+                        placeholder={currentAction.placeholder}
+                        style={{ width:'100%', padding:'8px 11px', borderRadius:9, border:`1px solid ${currentAction.color}44`, fontSize:13, outline:'none', background:'rgba(0,0,0,0.3)', color:'#fff', fontFamily:'inherit', boxSizing:'border-box' }}
+                      />
+                      <div style={{ display:'flex', gap:6, marginTop:8 }}>
+                        <button
+                          type="button"
+                          onClick={() => { if (actionInput.trim()) { void send(currentAction.template(actionInput.trim())); setActiveAction(null); setActionInput(''); } }}
+                          disabled={!actionInput.trim()}
+                          style={{ flex:'1 1 auto', padding:'8px', borderRadius:9, fontSize:12.5, fontWeight:600, color:'#fff', background:`linear-gradient(135deg,${currentAction.color},${currentAction.color}cc)`, border:'none', cursor:'pointer', opacity:actionInput.trim()?1:0.4 }}
+                        >
+                          Ask Copilot →
+                        </button>
+                        <button type="button" onClick={() => { setActiveAction(null); setActionInput(''); }} style={{ width:34, borderRadius:9, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                          <X style={{ width:13, height:13 }} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Recent prompts */}
-            <div style={{ marginBottom:'8px' }}>
-              <div style={{ display:'flex',alignItems:'center',gap:'6px',fontSize:'11px',fontWeight:700,letterSpacing:'.5px',textTransform:'uppercase',color:'rgba(255,255,255,0.4)',marginBottom:'10px' }}>
-                <Clock style={{ width:'12px',height:'12px' }} /> Recent
-                {history.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearHistory}
-                    style={{ marginLeft:'auto',fontSize:'11px',fontWeight:600,color:'rgba(255,255,255,0.4)',background:'none',border:'none',cursor:'pointer',padding:0,letterSpacing:'normal',textTransform:'none',fontFamily:'inherit' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color='#F87171'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.4)'; }}
-                  >
-                    Clear all
-                  </button>
-                )}
-              </div>
-              {history.length === 0 ? (
-                <p style={{ fontSize:'12.5px',color:'rgba(255,255,255,0.4)',textAlign:'center',marginTop:'16px' }}>Your recent prompts will appear here</p>
-              ) : (
-                <div style={{ display:'flex',flexDirection:'column',gap:'4px' }}>
-                  {history.map((h, i) => (
-                    <div
-                      key={i}
-                      style={{ display:'flex',alignItems:'center',gap:'4px',borderRadius:'10px',transition:'background .15s' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.10)'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='transparent'; }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => { setActiveTab('chat'); void send(h.text); }}
-                        style={{ flex:'1 1 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',padding:'10px 12px',borderRadius:'10px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left' }}
-                      >
-                        <span style={{ fontSize:'13px',color:'rgba(255,255,255,0.85)',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:'1 1 auto' }}>{h.text}</span>
-                        <span style={{ fontSize:'11px',color:'rgba(255,255,255,0.4)',fontWeight:500,flexShrink:0 }}>{relTime(h.ts)}</span>
-                      </button>
-                      <button
-                        type="button"
-                        title="Remove"
-                        onClick={() => handleDeleteHistory(h.text)}
-                        style={{ width:'26px',height:'26px',borderRadius:'7px',background:'transparent',border:'none',color:'#c4c0d4',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,marginRight:'4px',transition:'background .15s,color .15s' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='#FEE2E2'; (e.currentTarget as HTMLElement).style.color='#EF4444'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='transparent'; (e.currentTarget as HTMLElement).style.color='#c4c0d4'; }}
-                      >
-                        <X style={{ width:'12px',height:'12px' }} />
-                      </button>
+              {/* ── TASKS ── */}
+              {activePanel === 'jobs' && (
+                <div style={{ padding:'8px 10px 10px', maxHeight:300, overflowY:'auto', display:'flex', flexDirection:'column', gap:6 }}>
+                  {recentJobs.length === 0 ? (
+                    <div style={{ textAlign:'center', padding:'20px 0' }}>
+                      <Zap style={{ width:24, height:24, color:'#C4B5FD', margin:'0 auto 8px' }} />
+                      <p style={{ fontSize:12.5, color:'rgba(255,255,255,0.45)' }}>No tasks yet</p>
+                    </div>
+                  ) : recentJobs.map(j => (
+                    <div key={j.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 11px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10 }}>
+                      <JobDot status={j.status} />
+                      <div style={{ flex:'1 1 auto', minWidth:0 }}>
+                        <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.9)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{j.type.replace(/_/g,' ')}</div>
+                        <div style={{ fontSize:10.5, color:'rgba(255,255,255,0.45)', marginTop:1 }}>{j.project.title.slice(0,32)}</div>
+                        {j.error && <div style={{ fontSize:10, color:'#F87171', marginTop:1 }}>{j.error.slice(0,45)}</div>}
+                      </div>
+                      <span style={{ fontSize:10.5, fontWeight:600, color:'rgba(255,255,255,0.45)', flexShrink:0, textTransform:'capitalize' }}>{j.status.toLowerCase()}</span>
                     </div>
                   ))}
                 </div>
               )}
+
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Jobs tab ── */}
-        {activeTab === 'jobs' && (
-          <div style={{ flex:'1 1 auto',overflowY:'auto',padding:'16px',display:'flex',flexDirection:'column',gap:'8px' }}>
-            {recentJobs.length === 0 ? (
-              <div style={{ textAlign:'center',paddingTop:'32px' }}>
-                <Zap style={{ width:'32px',height:'32px',color:'#C4B5FD',margin:'0 auto 12px' }} />
-                <p style={{ fontSize:'13.5px',color:'rgba(255,255,255,0.5)' }}>No tasks yet</p>
-              </div>
-            ) : (
-              recentJobs.map(j => (
-                <div key={j.id} className="cf-job-row" style={{ display:'flex',alignItems:'center',gap:'10px',padding:'12px 14px',background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px' }}>
-                  <JobDot status={j.status} />
-                  <div style={{ flex:'1 1 auto',minWidth:0 }}>
-                    <div style={{ fontSize:'13px',fontWeight:600,color:'rgba(255,255,255,0.9)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{j.type.replace(/_/g,' ')}</div>
-                    <div style={{ fontSize:'11.5px',color:'rgba(255,255,255,0.5)',marginTop:'1px' }}>{j.project.title.slice(0,36)}</div>
-                    {j.error && <div style={{ fontSize:'11px',color:'#F87171',marginTop:'2px' }}>{j.error.slice(0,50)}</div>}
-                  </div>
-                  <span style={{ fontSize:'11px',fontWeight:600,color:'rgba(255,255,255,0.5)',flexShrink:0,textTransform:'capitalize' }}>{j.status.toLowerCase()}</span>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+          {/* ── Speech bubble ── */}
+          {shouldShowBubble && (
+            <SpeechBubble text={bubbleText} state={robotState} />
+          )}
 
+          {/* ── Robot avatar (z-index:1 so panel slides over it) ── */}
+          <div style={{ position:'relative', zIndex:1 }}>
+            <RobotAvatar state={robotState} excited={excited} />
+          </div>
+
+          {/* ── Foot pill bar — matching bu.png ── */}
+          <div style={{
+            display:'flex', alignItems:'center', justifyContent:'center', gap:3,
+            padding:'7px 10px', borderRadius:999, marginTop:8,
+            background:'rgba(18,12,32,0.88)',
+            backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+            border:'1px solid rgba(255,255,255,0.07)',
+            boxShadow:'0 8px 32px rgba(0,0,0,0.55)',
+          }}>
+            {([
+              { id:'chat'    as PanelId, Icon:MessageSquare, label:'Chat' },
+              { id:'actions' as PanelId, Icon:Zap,           label:'Actions' },
+              { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks' },
+            ]).map(({ id, Icon, label }) => {
+              const isA = activePanel === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className="cf-foot-btn"
+                  onClick={() => setActivePanel(isA ? null : id)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:5,
+                    padding:'8px 14px', borderRadius:999,
+                    background: isA ? '#fff' : 'transparent',
+                    border: 'none',
+                    color: isA ? '#1a1030' : 'rgba(255,255,255,0.5)',
+                    fontSize:13, fontWeight:600, cursor:'pointer',
+                    transition:'all 0.18s',
+                  }}
+                >
+                  <Icon style={{ width:13, height:13 }} />{label}
+                </button>
+              );
+            })}
+
+            {/* Voice / speaker toggle — circular, matches bu.png speaker button */}
+            <button
+              type="button"
+              className="cf-foot-btn"
+              onClick={toggleVoice}
+              title={voiceEnabled ? 'Voice ON — click to disable' : 'Voice OFF — click to enable'}
+              style={{
+                display:'flex', alignItems:'center', justifyContent:'center',
+                width:36, height:36, borderRadius:'50%', marginLeft:2,
+                background: voiceEnabled ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.09)',
+                border: `1.5px solid ${voiceEnabled ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.14)'}`,
+                color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.45)',
+                cursor:'pointer', flexShrink:0,
+                boxShadow: voiceEnabled ? '0 0 14px rgba(74,222,128,0.25)' : 'none',
+                transition:'all 0.18s',
+              }}
+            >
+              {voiceEnabled
+                ? <Volume2 style={{ width:14, height:14 }} />
+                : <VolumeX style={{ width:14, height:14 }} />
+              }
+            </button>
+
+          </div>
+
+        </div>
+        )} {/* end widgetOpen */}
       </div>
     </>
   );

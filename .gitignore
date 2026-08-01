@@ -42,3 +42,4 @@ yt-dlp/
 .zap/zap-summary.json
 .vercel
 infra/k8s/secret.yaml
+.aider*
