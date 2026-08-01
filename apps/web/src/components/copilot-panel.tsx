@@ -5,8 +5,10 @@ import {
   X, Send, Mic, MicOff, ShieldCheck,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
   BookOpen, FileText, Calendar, Search, Sparkles, Volume2, VolumeX,
-  MessageSquare, ListChecks,
+  MessageSquare, ListChecks, type LucideIcon,
 } from 'lucide-react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
 
@@ -51,7 +53,7 @@ interface RecentJob {
 
 interface QuickAction {
   id: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   description: string;
   placeholder: string;
@@ -218,97 +220,270 @@ function chunkForTTS(text: string, maxChars = 160): string[] {
 type RobotState = 'idle' | 'listening' | 'thinking' | 'speaking';
 type PanelId = 'chat' | 'actions' | 'jobs';
 
-// ── Robot Avatar — PNG from folder 1 ─────────────────────────────────────────
+// ── 3D Robot Avatar — React Three Fiber, procedural geometry, zero external assets ──
 
-function RobotAvatar({ state, excited = false }: { state: RobotState; excited?: boolean }) {
-  const glow = state === 'listening'
-    ? 'drop-shadow(0 0 1px rgba(255,255,255,0.55)) drop-shadow(0 0 14px rgba(74,222,128,0.5)) drop-shadow(0 5px 10px rgba(0,0,0,0.2))'
-    : state === 'thinking'
-    ? 'drop-shadow(0 0 1px rgba(255,255,255,0.5)) drop-shadow(0 0 14px rgba(251,191,36,0.45)) drop-shadow(0 5px 10px rgba(0,0,0,0.2))'
-    : state === 'speaking'
-    ? 'drop-shadow(0 0 1px rgba(255,255,255,0.55)) drop-shadow(0 0 18px rgba(0,200,255,0.55)) drop-shadow(0 5px 10px rgba(0,0,0,0.2))'
-    : 'drop-shadow(0 0 1px rgba(255,255,255,0.45)) drop-shadow(0 5px 10px rgba(0,0,0,0.22))';
+// Inner mesh component lives inside <Canvas> so useFrame is available
+function Robot3DMesh({ state, excited }: { state: RobotState; excited: boolean }) {
+  const rootRef   = useRef<THREE.Group>(null!);
+  const headRef   = useRef<THREE.Group>(null!);
+  const rArmRef   = useRef<THREE.Group>(null!);
+  const lEyeRef   = useRef<THREE.MeshStandardMaterial>(null!);
+  const rEyeRef   = useRef<THREE.MeshStandardMaterial>(null!);
+  const antRef    = useRef<THREE.MeshStandardMaterial>(null!);
+  // EQ bar mesh refs (5 speaking + 7 listening = keep 7 slots)
+  const barRefs   = useRef<(THREE.Mesh | null)[]>(Array(7).fill(null));
 
-  const wrapAnim = excited
-    ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
-    : state === 'speaking'
-    ? 'cfHeadBob 0.55s ease-in-out infinite'
-    : state === 'idle'
-    ? 'cfFloat 3s ease-in-out infinite'
-    : 'none';
+  // Reusable color to avoid per-frame allocations
+  const eyeCol = useRef(new THREE.Color('#60A5FA'));
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    const root = rootRef.current;
+    const head = headRef.current;
+    const rArm = rArmRef.current;
+    if (!root || !head || !rArm) return;
+
+    // ── body / root animations ──────────────────────────────────────────────
+    if (state === 'idle') {
+      root.position.y = Math.sin(t * 0.9) * 0.06;
+      root.rotation.y = Math.sin(t * 0.35) * 0.07;
+      // Right arm wave
+      rArm.rotation.z = -0.35 + Math.sin(t * 2.2) * 0.25;
+    } else if (state === 'listening') {
+      root.position.y = Math.sin(t * 1.6) * 0.035;
+      root.rotation.y = 0;
+      rArm.rotation.z = -0.35;
+    } else if (state === 'thinking') {
+      root.position.y = Math.sin(t * 0.55) * 0.025;
+      root.rotation.y = Math.sin(t * 0.2) * 0.08;
+      rArm.rotation.z = -0.35;
+    } else {
+      root.position.y = Math.sin(t * Math.PI / 0.55) * 0.03;
+      root.rotation.y = 0;
+      rArm.rotation.z = -0.35;
+    }
+
+    // ── head animations ────────────────────────────────────────────────────
+    head.rotation.set(0, 0, 0);
+    if (state === 'listening') {
+      head.rotation.x = -0.09 + Math.sin(t * 2.1) * 0.03;
+    } else if (state === 'thinking') {
+      head.rotation.y = Math.sin(t * 1.1) * 0.38;
+      head.rotation.x = Math.sin(t * 1.6) * 0.07;
+    } else if (state === 'speaking') {
+      head.rotation.x = Math.sin(t * Math.PI / 0.275) * 0.10;
+    }
+
+    // ── excited bounce ─────────────────────────────────────────────────────
+    root.scale.y = excited ? 1 + Math.abs(Math.sin(t * 14)) * 0.10 : 1;
+
+    // ── eye / antenna colour + glow ─────────────────────────────────────────
+    const hex = state === 'listening' ? '#4ADE80'
+      : state === 'thinking'  ? '#FBBF24'
+      : state === 'speaking'  ? '#00C8FF'
+      : '#60A5FA';
+    eyeCol.current.set(hex);
+
+    const pulse = state === 'idle'      ? 0.6  + Math.sin(t * 1.5)         * 0.35
+      : state === 'listening' ? 1.3  + Math.sin(t * 4.0)         * 0.55
+      : state === 'thinking'  ? 0.9  + Math.abs(Math.sin(t * 2)) * 0.65
+      :                         1.4  + Math.abs(Math.sin(t * Math.PI / 0.55)) * 1.0;
+
+    for (const m of [lEyeRef.current, rEyeRef.current, antRef.current]) {
+      if (!m) continue;
+      m.color.copy(eyeCol.current);
+      m.emissive.copy(eyeCol.current);
+      m.emissiveIntensity = pulse * (m === antRef.current ? 0.75 : 1);
+    }
+
+    // ── chest EQ bars ──────────────────────────────────────────────────────
+    const active = state === 'speaking' || state === 'listening';
+    const barCount = state === 'speaking' ? 5 : 7;
+    const barColor = state === 'speaking' ? '#00C8FF' : '#4ADE80';
+    const period   = state === 'speaking' ? 0.55 : 0.38;
+    const delays   = state === 'speaking'
+      ? [0, 0.11, 0.22, 0.11, 0]
+      : [0, 0.07, 0.14, 0.21, 0.07, 0.14, 0];
+
+    barRefs.current.forEach((bar, i) => {
+      if (!bar) return;
+      if (!active || i >= barCount) {
+        bar.scale.y = 0.001;
+        bar.visible = false;
+        return;
+      }
+      bar.visible = true;
+      const phase = (t + delays[i]!) / period;
+      bar.scale.y = 0.25 + Math.abs(Math.sin(phase * Math.PI)) * 0.75;
+      (bar.material as THREE.MeshStandardMaterial).color.set(barColor);
+      (bar.material as THREE.MeshStandardMaterial).emissive.set(barColor);
+    });
+  });
+
+  const WHITE  = '#f0f0fa';
+  const SILVER = '#c8c8d8';
+  const VISOR  = '#0c0c1e';
+
+  // EQ bar X positions for 7 bars, centered on chest panel
+  const barXPositions7 = [-0.084, -0.056, -0.028, 0, 0.028, 0.056, 0.084];
 
   return (
-    <div style={{ position:'relative', display:'inline-block', animation: wrapAnim }}>
-      {/* Listening ripples */}
+    <group ref={rootRef}>
+      {/* ── TORSO ── */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[0.78, 0.98, 0.46]} />
+        <meshStandardMaterial color={WHITE} roughness={0.18} metalness={0.82} />
+      </mesh>
+
+      {/* Chest panel (dark) */}
+      <mesh position={[0, 0.05, 0.245]}>
+        <boxGeometry args={[0.48, 0.40, 0.04]} />
+        <meshStandardMaterial color={VISOR} roughness={0.2} metalness={0.6} />
+      </mesh>
+
+      {/* EQ bars on chest panel (7 slots, toggled by state) */}
+      {barXPositions7.map((x, i) => (
+        <mesh
+          key={i}
+          ref={el => { barRefs.current[i] = el; }}
+          position={[x, 0.04, 0.268]}
+          scale={[1, 0.001, 1]}
+        >
+          <boxGeometry args={[0.016, 0.14, 0.012]} />
+          <meshStandardMaterial color="#4ADE80" emissive="#4ADE80" emissiveIntensity={0.9} roughness={0.1} metalness={0.1} transparent opacity={0.9} />
+        </mesh>
+      ))}
+
+      {/* ── NECK ── */}
+      <mesh position={[0, 0.555, 0]}>
+        <cylinderGeometry args={[0.09, 0.112, 0.14, 12]} />
+        <meshStandardMaterial color={SILVER} roughness={0.3} metalness={0.76} />
+      </mesh>
+
+      {/* ── HEAD group ── */}
+      <group ref={headRef} position={[0, 0.66, 0]}>
+        <mesh>
+          <boxGeometry args={[0.68, 0.58, 0.54]} />
+          <meshStandardMaterial color={WHITE} roughness={0.14} metalness={0.88} />
+        </mesh>
+
+        {/* Visor strip */}
+        <mesh position={[0, 0.02, 0.285]}>
+          <boxGeometry args={[0.57, 0.22, 0.055]} />
+          <meshStandardMaterial color={VISOR} roughness={0.04} metalness={0.96} transparent opacity={0.92} />
+        </mesh>
+
+        {/* Left eye */}
+        <mesh position={[-0.135, 0.02, 0.315]}>
+          <sphereGeometry args={[0.068, 20, 20]} />
+          <meshStandardMaterial ref={lEyeRef} color="#60A5FA" emissive="#60A5FA" emissiveIntensity={0.8} roughness={0.05} metalness={0.05} />
+        </mesh>
+
+        {/* Right eye */}
+        <mesh position={[0.135, 0.02, 0.315]}>
+          <sphereGeometry args={[0.068, 20, 20]} />
+          <meshStandardMaterial ref={rEyeRef} color="#60A5FA" emissive="#60A5FA" emissiveIntensity={0.8} roughness={0.05} metalness={0.05} />
+        </mesh>
+
+        {/* Antenna pole */}
+        <mesh position={[0, 0.375, 0]}>
+          <cylinderGeometry args={[0.022, 0.022, 0.15, 10]} />
+          <meshStandardMaterial color="#909098" roughness={0.3} metalness={0.88} />
+        </mesh>
+
+        {/* Antenna tip — glows with eye colour */}
+        <mesh position={[0, 0.46, 0]}>
+          <sphereGeometry args={[0.044, 14, 14]} />
+          <meshStandardMaterial ref={antRef} color="#60A5FA" emissive="#60A5FA" emissiveIntensity={0.9} roughness={0.04} metalness={0.08} />
+        </mesh>
+      </group>
+
+      {/* ── LEFT ARM ── */}
+      <group position={[-0.51, 0.14, 0]} rotation={[0, 0, 0.28]}>
+        <mesh>
+          <cylinderGeometry args={[0.092, 0.082, 0.64, 12]} />
+          <meshStandardMaterial color={SILVER} roughness={0.24} metalness={0.80} />
+        </mesh>
+        {/* Left hand */}
+        <mesh position={[0, -0.38, 0]}>
+          <boxGeometry args={[0.19, 0.19, 0.15]} />
+          <meshStandardMaterial color={SILVER} roughness={0.28} metalness={0.75} />
+        </mesh>
+      </group>
+
+      {/* ── RIGHT ARM (waves when idle) ── */}
+      <group ref={rArmRef} position={[0.51, 0.14, 0]} rotation={[0, 0, -0.35]}>
+        <mesh>
+          <cylinderGeometry args={[0.092, 0.082, 0.64, 12]} />
+          <meshStandardMaterial color={SILVER} roughness={0.24} metalness={0.80} />
+        </mesh>
+        {/* Right hand */}
+        <mesh position={[0, -0.38, 0]}>
+          <boxGeometry args={[0.19, 0.19, 0.15]} />
+          <meshStandardMaterial color={SILVER} roughness={0.28} metalness={0.75} />
+        </mesh>
+      </group>
+
+      {/* ── LEGS ── */}
+      <mesh position={[-0.20, -0.73, 0]}>
+        <cylinderGeometry args={[0.122, 0.102, 0.50, 12]} />
+        <meshStandardMaterial color={SILVER} roughness={0.30} metalness={0.74} />
+      </mesh>
+      <mesh position={[0.20, -0.73, 0]}>
+        <cylinderGeometry args={[0.122, 0.102, 0.50, 12]} />
+        <meshStandardMaterial color={SILVER} roughness={0.30} metalness={0.74} />
+      </mesh>
+
+      {/* ── FEET ── */}
+      <mesh position={[-0.20, -1.04, 0.045]}>
+        <boxGeometry args={[0.26, 0.12, 0.34]} />
+        <meshStandardMaterial color="#b8b8ca" roughness={0.34} metalness={0.70} />
+      </mesh>
+      <mesh position={[0.20, -1.04, 0.045]}>
+        <boxGeometry args={[0.26, 0.12, 0.34]} />
+        <meshStandardMaterial color="#b8b8ca" roughness={0.34} metalness={0.70} />
+      </mesh>
+    </group>
+  );
+}
+
+function RobotAvatar({ state, excited = false }: { state: RobotState; excited?: boolean }) {
+  return (
+    <div style={{ position:'relative', width:220, height:220 }}>
+      {/* State ring behind robot */}
       {state === 'listening' && (<>
-        <div style={{ position:'absolute', top:10, left:20, width:180, height:180, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.42)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', top:10, left:20, width:180, height:180, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.2)', animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.42)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.2)',  animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
       </>)}
       {state === 'thinking' && (
-        <div style={{ position:'absolute', top:10, left:20, width:180, height:180, borderRadius:'50%', border:'2.5px solid transparent', borderTopColor:'#FBBF24', borderRightColor:'rgba(251,191,36,0.3)', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2.5px solid transparent', borderTopColor:'#FBBF24', borderRightColor:'rgba(251,191,36,0.3)', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />
       )}
       {state === 'speaking' && (
-        <div style={{ position:'absolute', top:10, left:20, width:180, height:180, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.28)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />
-      )}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/copilot-robot.png"
-        alt="AI Copilot"
-        width={220}
-        height={220}
-        style={{ objectFit:'contain', display:'block', filter: glow, transition:'filter 0.4s ease', userSelect:'none', pointerEvents:'none', maxWidth:'100%' }}
-      />
-
-      {/* ── Emotion-driven eye blinks (eyelid covers eye) ── */}
-      {(() => {
-        // Each state has its own blink character
-        const blinkAnim = state === 'listening'
-          ? 'cfEyeBlinkAlert 3s linear infinite'      // alert: rare micro-twitch, eyes stay wide
-          : state === 'thinking'
-          ? 'cfEyeBlinkThink 2.5s ease-in-out infinite' // thoughtful: slow sustained squint
-          : state === 'speaking'
-          ? 'cfEyeBlinkSpeak 0.55s ease-in-out infinite' // expressive: emphatic sync-blink
-          : 'cfEyeBlinkIdle 4s ease-in-out infinite'; // idle: natural lazy blink
-        const lidBase: React.CSSProperties = {
-          position:'absolute', width:10, height:10, borderRadius:'50%',
-          background:'#0c0c18', // dark like the robot visor — covers the bright blue eye
-          transformOrigin:'top center',
-          pointerEvents:'none', zIndex:2,
-        };
-        return (<>
-          <div style={{ ...lidBase, top:40, left:93, animation: blinkAnim }} />
-          <div style={{
-            ...lidBase, top:37, left:115, animation: blinkAnim,
-            // Slight async delay: natural idle/alert, asymmetric squint for thinking
-            animationDelay: state === 'thinking' ? '0.38s' : '0.045s',
-          }} />
-        </>);
-      })()}
-
-      {/* ── Chest activity indicator ── */}
-      {(state === 'speaking' || state === 'listening') && (
-        <div style={{ position:'absolute', top:92, left:85, display:'flex', alignItems:'flex-end', gap:2, pointerEvents:'none' }}>
-          {(state === 'speaking'
-            ? [{ h:'6px',d:'0s' },{ h:'13px',d:'0.1s' },{ h:'17px',d:'0.2s' },{ h:'13px',d:'0.1s' },{ h:'6px',d:'0s' }]
-            : [{ h:'4px',d:'0s' },{ h:'8px',d:'0.07s' },{ h:'13px',d:'0.14s' },{ h:'16px',d:'0.21s' },{ h:'10px',d:'0.07s' },{ h:'6px',d:'0.14s' },{ h:'3px',d:'0s' }]
-          ).map((b, i) => (
-            <span key={i} style={{
-              display:'inline-block', width:'2.5px', height: b.h, borderRadius:'2px',
-              background: state === 'speaking' ? 'rgba(0,200,255,0.88)' : 'rgba(74,222,128,0.88)',
-              boxShadow: state === 'speaking' ? '0 0 4px rgba(0,200,255,0.55)' : '0 0 4px rgba(74,222,128,0.55)',
-              animation:`cfVoiceBar ${state === 'speaking' ? '0.55s' : '0.38s'} ease-in-out ${b.d} infinite`,
-            }} />
-          ))}
-        </div>
+        <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.28)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />
       )}
 
+      {/* 3D Canvas — transparent background, no external assets */}
+      <Canvas
+        camera={{ position: [0, 0.05, 3.1], fov: 46 }}
+        gl={{ antialias: true, alpha: true }}
+        style={{ background: 'transparent' }}
+        dpr={[1, 2]}
+      >
+        <ambientLight intensity={0.55} />
+        <directionalLight position={[3, 5, 5]}  intensity={1.6} />
+        <directionalLight position={[-3, 2, -2]} intensity={0.45} color="#8888ff" />
+        <pointLight       position={[0, 0.5, 2]} intensity={0.6}  color="#a0b4ff" />
+        <Robot3DMesh state={state} excited={excited} />
+      </Canvas>
+
+      {/* Sparkles on excited */}
       {excited && [
         {dx:'-32px',dy:'-30px'},{dx:'32px',dy:'-30px'},{dx:'-42px',dy:'4px'},
         {dx:'42px',dy:'4px'},{dx:'-22px',dy:'34px'},{dx:'22px',dy:'34px'},
-      ].map((s,i) => (
+      ].map((s, i) => (
         <span key={i} style={{
           position:'absolute', top:50, left:100, width:5, height:5,
-          borderRadius:'50%', background: i % 2 === 0 ? '#00CCFF' : '#A78BFA',
+          borderRadius:'50%', background: i%2===0 ? '#00CCFF' : '#A78BFA',
           '--dx':s.dx, '--dy':s.dy,
           animation:`cfSparkle 0.6s ease-out ${i*0.07}s forwards`,
           pointerEvents:'none', zIndex:20,
