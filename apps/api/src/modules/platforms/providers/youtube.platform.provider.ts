@@ -16,13 +16,13 @@ export class YouTubePlatformProvider implements IPlatformProvider {
   async getConnectionStatus(userId: string): Promise<ConnectionStatus> {
     const channel = await this.prisma.channel.findFirst({
       where: { userId, active: true },
-      select: { id: true, title: true, channelId: true, tokenExpiresAt: true },
+      select: { id: true, title: true, youtubeChannelId: true, tokenExpiresAt: true },
     });
     if (!channel) return { connected: false };
     return {
       connected: true,
       accountName: channel.title ?? undefined,
-      accountId: channel.channelId ?? undefined,
+      accountId: channel.youtubeChannelId ?? undefined,
       expiresAt: channel.tokenExpiresAt ?? undefined,
     };
   }

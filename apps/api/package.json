@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "build": "prisma generate && nest build",
-    "dev": "nest start --watch",
-    "start": "node dist/src/main",
+    "dev": "NODE_OPTIONS=--max-old-space-size=4096 nest start --watch",
+    "start": "node dist/main",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "test": "jest",
