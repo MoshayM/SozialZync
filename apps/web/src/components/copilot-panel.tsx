@@ -2,9 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  X, Send, Mic, MicOff, ShieldCheck,
+  X, Send, Mic, MicOff, ShieldCheck, Trash2,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
-  BookOpen, FileText, Calendar, Search, Sparkles, Volume2, VolumeX,
+  BookOpen, FileText, Calendar, Search, Sparkles,
   MessageSquare, ListChecks, type LucideIcon,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -79,6 +79,7 @@ const PROMPT_CHIPS = [
 ];
 
 const HISTORY_KEY = 'cf_copilot_history';
+const CHAT_KEY    = 'cf_copilot_chat';
 const MAX_HISTORY = 12;
 
 function loadHistory(): { text: string; ts: number }[] {
@@ -240,138 +241,160 @@ function detectEmotion(text: string): 'excited' | 'error' | 'neutral' {
   return 'neutral';
 }
 
-// RobotBody renders the robot's head+torso (shared between compact and full views)
-function RobotBody({ state, excited, compact }: { state: RobotState; excited: boolean; compact: boolean }) {
-  const eyeCol = state === 'listening' ? '#4ADE80'
-    : state === 'thinking'  ? '#FBBF24'
-    : state === 'speaking'  ? '#00C8FF'
-    : '#60A5FA';
+// CSS plastic robot body with SVG camera-lens eyes (matching Capture.PNG style)
+function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean }) {
+  const [pupilOff, setPupilOff] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const eyeGlow = `0 0 ${compact?'8px 3px':'10px 4px'} ${eyeCol}88`;
-  const antGlow = `0 0 ${compact?'10px 3px':'14px 5px'} ${eyeCol}55`;
-  const W = '#f4f4ff', S = '#d0d0e2';
+  useEffect(() => {
+    if (state !== 'idle') { setPupilOff({ x: 0, y: 0 }); return undefined; }
+    const POS: [number, number][] = [[0,0],[0,0],[0,0],[-2,0],[2,0],[0,-1.5],[1.5,1],[-1.5,0.8]];
+    const interval = setInterval(() => {
+      const p = POS[Math.floor(Math.random() * POS.length)]!;
+      setPupilOff({ x: p[0], y: p[1] });
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [state]);
+
+  const isSpeaking = state === 'speaking';
+  const isListening = state === 'listening';
+  const isThinking = state === 'thinking';
+
+  // Plastic body colors matching Capture.PNG CSS robot
+  const W = '#f4f4ff';
+  const S = '#d0d0e2';
   const grad = `linear-gradient(155deg,${W} 40%,${S})`;
-  const sc = compact ? 0.54 : 1;
 
-  const wrapAnim = excited
-    ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
-    : state === 'speaking' ? 'cfHeadBob 0.55s ease-in-out infinite'
-    : state === 'idle'     ? 'cfFloat 3s ease-in-out infinite'
-    : 'none';
+  const eyeCol = isThinking ? '#FBBF24' : isListening ? '#4ADE80' : '#60A5FA';
+  const antCol = isListening ? '#4ADE80' : isThinking ? '#FBBF24' : '#00C8D8';
+  const antGlow = `0 0 12px 5px ${antCol}66`;
 
-  // eye/arm sizes scaled for compact
-  const ew = compact ? 11 : 16, eh = compact ? 11 : 16;
-  const headW = compact ? 54 : 76, headH = compact ? 42 : 58;
-  const bodyW = compact ? 64 : 90, bodyH = compact ? 64 : 90;
-  const armW = compact ? 11 : 15, armH = compact ? 46 : 66;
-  const armOff = compact ? -13 : -19;
-  const neckW = compact ? 15 : 20, neckH = compact ? 7 : 9;
-  const antH = compact ? 12 : 18, tipS = compact ? 10 : 13;
+  const armWaving = isSpeaking || excited;
+
+  // Eye blink animation per state
+  const blinkL: React.CSSProperties = {
+    transformOrigin: '15px 11px', transformBox: 'fill-box',
+    animation: isThinking ? 'cfEyeBlinkThink 2.4s ease-in-out infinite' : 'cfBlink 4.5s ease-in-out 0.3s infinite',
+  };
+  const blinkR: React.CSSProperties = {
+    transformOrigin: '45px 11px', transformBox: 'fill-box',
+    animation: isThinking ? 'cfEyeBlinkThink 2.4s ease-in-out 0.25s infinite' : 'cfBlink 4.5s ease-in-out 0.55s infinite',
+  };
 
   return (
-    <div style={{ animation:wrapAnim, userSelect:'none', pointerEvents:'none', display:'inline-block' }}>
-      {/* Antenna */}
-      <div style={{ margin:'0 auto', width:compact?3:4, height:antH, background:'linear-gradient(90deg,#8a8a98,#c4c4d8)', borderRadius:2 }} />
-      <div style={{
-        margin:'-2px auto 0', width:tipS, height:tipS, borderRadius:'50%',
-        background:eyeCol, boxShadow:antGlow,
-        transition:'background .4s, box-shadow .4s', animation:'cfPulse 2s ease-in-out infinite',
-      }} />
-
-      {/* Head */}
-      <div style={{ marginTop:compact?3:4, position:'relative' }}>
-        <div style={{
-          width:headW, height:headH, borderRadius:compact?9:13, background:grad,
-          boxShadow:`3px 4px ${compact?10:14}px rgba(0,0,0,0.3),-1px -1px ${compact?3:5}px rgba(255,255,255,0.4)`,
-          position:'relative',
-        }}>
-          <div style={{
-            position:'absolute', top:'27%', left:'8%', right:'8%', height:'38%',
-            background:'linear-gradient(180deg,#090920,#0d0d26)',
-            borderRadius:compact?5:8, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
-            display:'flex', alignItems:'center',
-          }}>
-            <div style={{ marginLeft:'13%', width:ew, height:eh, borderRadius:'50%', background:eyeCol, boxShadow:eyeGlow, transition:'background .4s, box-shadow .4s', animation:'cfPulse 1.6s ease-in-out infinite', flexShrink:0 }} />
-            <div style={{ flex:1 }} />
-            <div style={{ marginRight:'13%', width:ew, height:eh, borderRadius:'50%', background:eyeCol, boxShadow:eyeGlow, transition:'background .4s, box-shadow .4s', animation:'cfPulse 1.6s ease-in-out 0.06s infinite', flexShrink:0 }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Neck */}
-      <div style={{ margin:'0 auto', width:neckW, height:neckH, background:`linear-gradient(160deg,${S},#b0b0c6)`, borderRadius:'0 0 4px 4px' }} />
-
-      {/* Body + arms */}
-      <div style={{ position:'relative' }}>
-        <div style={{
-          position:'absolute', top:compact?6:8, left:armOff, width:armW, height:armH, borderRadius:compact?5:8,
-          background:`linear-gradient(160deg,${S},#b8b8cc)`, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)',
-          transformOrigin:'top center', transform:'rotate(7deg)',
-          animation: state==='idle' ? 'cfArmWave 3s ease-in-out 1.5s infinite' : 'none',
-        }} />
-        <div style={{
-          position:'absolute', top:compact?6:8, right:armOff, width:armW, height:armH, borderRadius:compact?5:8,
-          background:`linear-gradient(160deg,${S},#b8b8cc)`, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)',
-          transformOrigin:'top center', transform:'rotate(-7deg)',
-          animation: state==='idle' ? 'cfArmWave 3s ease-in-out infinite' : 'none',
-        }} />
-        <div style={{
-          width:bodyW, height:bodyH, borderRadius:compact?10:14, background:grad,
-          boxShadow:`4px 5px ${compact?12:18}px rgba(0,0,0,0.28),-2px -2px 6px rgba(255,255,255,0.35)`,
-          position:'relative', overflow:'hidden',
-        }}>
-          <div style={{
-            position:'absolute', top:'15%', left:'12%', right:'12%', bottom:'18%',
-            background:'#080820', borderRadius:compact?6:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
-            display:'flex', alignItems:'flex-end', justifyContent:'center',
-            gap:compact?2:3, paddingBottom:compact?4:6,
-          }}>
-            {(state==='speaking'||state==='listening')
-              ? [0,1,2,3,4].map(i => (
-                  <div key={i} style={{
-                    width:compact?3:5, height:'55%', borderRadius:2, transformOrigin:'bottom',
-                    background: state==='speaking' ? '#00C8FF' : '#4ADE80',
-                    boxShadow:`0 0 4px ${state==='speaking'?'#00C8FFaa':'#4ADE80aa'}`,
-                    animation:`cfVoiceBar ${state==='speaking'?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite`,
-                  }} />
-                ))
-              : <div style={{ width:compact?7:10, height:compact?7:10, borderRadius:'50%', marginBottom:2, background:eyeCol, boxShadow:`0 0 6px 2px ${eyeCol}55`, transition:'background .4s', animation:'cfPulse 2s ease-in-out infinite' }} />
-            }
-          </div>
-        </div>
-      </div>
-
-      {/* Feet only (full size only) — no legs */}
-      {!compact && (
-        <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:4 }}>
-          {[0,1].map(i => <div key={i} style={{ width:30, height:12, borderRadius:'4px 4px 10px 10px', background:'linear-gradient(160deg,#b2b2c6,#8e8ea2)', boxShadow:'2px 3px 8px rgba(0,0,0,0.25)' }} />)}
-        </div>
+    <div style={{ position:'relative', display:'inline-block', userSelect:'none', pointerEvents:'none' }}>
+      {/* State rings */}
+      {isThinking && (
+        <div style={{ position:'absolute', inset:-12, borderRadius:'50%', border:'2.5px solid transparent', borderTopColor:'#FBBF24', borderRightColor:'rgba(251,191,36,0.3)', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />
       )}
+      {isListening && (<>
+        <div style={{ position:'absolute', inset:-12, borderRadius:'50%', border:'1.5px solid rgba(74,222,128,0.45)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', inset:-12, borderRadius:'50%', border:'1.5px solid rgba(74,222,128,0.22)', animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
+      </>)}
+      {isSpeaking && (
+        <div style={{ position:'absolute', inset:-10, borderRadius:'50%', border:'1.5px solid rgba(0,200,255,0.3)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />
+      )}
+
+      {/* ── CSS plastic robot body ── */}
+      <div>
+        {/* Antenna pole */}
+        <div style={{ margin:'0 auto', width:4, height:14, background:'linear-gradient(90deg,#9090a0,#c0c0d4)', borderRadius:2 }} />
+        {/* Antenna tip */}
+        <div style={{ margin:'-2px auto 0', width:12, height:12, borderRadius:'50%', background:antCol, boxShadow:antGlow, transition:'background 0.4s, box-shadow 0.4s', animation:'cfPulse 2s ease-in-out infinite' }} />
+
+        {/* Head */}
+        <div style={{ marginTop:5, width:76, height:58, borderRadius:14, background:grad, boxShadow:'3px 4px 14px rgba(0,0,0,0.28),-1px -1px 5px rgba(255,255,255,0.4)', position:'relative' }}>
+          {/* Visor strip with SVG camera-lens eyes */}
+          <div style={{ position:'absolute', top:'26%', left:'8%', right:'8%', height:'40%', background:'linear-gradient(180deg,#090920,#0d0d26)', borderRadius:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.92)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+            <svg width="60" height="22" viewBox="0 0 60 22" fill="none">
+              <defs>
+                <radialGradient id="cfEyeLG" cx="35%" cy="30%" r="65%" gradientUnits="objectBoundingBox">
+                  <stop offset="0%" stopColor="#7EEEFF" />
+                  <stop offset="40%" stopColor={eyeCol} />
+                  <stop offset="100%" stopColor="#001824" />
+                </radialGradient>
+              </defs>
+              {/* Left eye — camera lens with blink */}
+              <g style={blinkL}>
+                <circle cx="15" cy="11" r="9.5" fill="#0C1A38" />
+                <circle cx="15" cy="11" r="8.5" fill="url(#cfEyeLG)" />
+                <circle cx="15" cy="11" r="6.5" fill="none" stroke="rgba(120,210,255,0.25)" strokeWidth={1} />
+                <circle cx="15" cy="11" r="3.5" fill="#040C20" style={{ transform:`translate(${pupilOff.x}px,${pupilOff.y}px)`, transition:'transform 0.45s cubic-bezier(.4,0,.2,1)', transformOrigin:'15px 11px', transformBox:'fill-box' }} />
+                <circle cx="11.5" cy="7.5" r="3" fill="rgba(255,255,255,0.92)" />
+                <circle cx="17.5" cy="13.5" r="1.5" fill="rgba(255,255,255,0.5)" />
+                {isSpeaking && <circle cx="15" cy="11" r="8" fill="none" stroke="rgba(0,200,216,0.45)" strokeWidth={1} style={{ animation:'cfPulse 0.42s ease-in-out infinite' }} />}
+              </g>
+              {/* Right eye */}
+              <g style={blinkR}>
+                <circle cx="45" cy="11" r="9.5" fill="#0C1A38" />
+                <circle cx="45" cy="11" r="8.5" fill="url(#cfEyeLG)" />
+                <circle cx="45" cy="11" r="6.5" fill="none" stroke="rgba(120,210,255,0.25)" strokeWidth={1} />
+                <circle cx="45" cy="11" r="3.5" fill="#040C20" style={{ transform:`translate(${pupilOff.x}px,${pupilOff.y}px)`, transition:'transform 0.45s cubic-bezier(.4,0,.2,1)', transformOrigin:'45px 11px', transformBox:'fill-box' }} />
+                <circle cx="41.5" cy="7.5" r="3" fill="rgba(255,255,255,0.92)" />
+                <circle cx="47.5" cy="13.5" r="1.5" fill="rgba(255,255,255,0.5)" />
+                {isSpeaking && <circle cx="45" cy="11" r="8" fill="none" stroke="rgba(0,200,216,0.45)" strokeWidth={1} style={{ animation:'cfPulse 0.42s ease-in-out 0.21s infinite' }} />}
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        {/* Neck */}
+        <div style={{ margin:'0 auto', width:20, height:8, background:`linear-gradient(160deg,${S},#b0b0c6)`, borderRadius:'0 0 4px 4px' }} />
+
+        {/* Body + arms wrapper */}
+        <div style={{ position:'relative' }}>
+          {/* Left arm — hand nested inside so it follows rotation naturally */}
+          <div style={{ position:'absolute', top:8, left:-17, width:15, height:64, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'none', transition:'transform 0.5s', overflow:'visible' }}>
+            {/* Left hand — pivots from wrist at bottom of arm */}
+            <div style={{ position:'absolute', bottom:-10, left:'50%', transform:'translateX(-50%)', width:22, height:14, borderRadius:7, background:`linear-gradient(160deg,${S},#b8b8ce)`, boxShadow:'1px 3px 8px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandDangle 0.7s ease-in-out 0.18s infinite':'cfHandDangle 3.5s ease-in-out 0.9s infinite' }} />
+          </div>
+          {/* Right arm */}
+          <div style={{ position:'absolute', top:8, right:-17, width:15, height:64, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'none', transition:'transform 0.5s', overflow:'visible' }}>
+            {/* Right hand */}
+            <div style={{ position:'absolute', bottom:-10, left:'50%', transform:'translateX(-50%)', width:22, height:14, borderRadius:7, background:`linear-gradient(160deg,${S},#b8b8ce)`, boxShadow:'1px 3px 8px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandDangle 0.7s ease-in-out 0.53s infinite':'cfHandDangle 3.5s ease-in-out 0.45s infinite' }} />
+          </div>
+
+          {/* Body */}
+          <div style={{ width:86, height:86, borderRadius:14, background:grad, boxShadow:'4px 5px 18px rgba(0,0,0,0.26),-2px -2px 6px rgba(255,255,255,0.33)', position:'relative', overflow:'hidden' }}>
+            {/* Chest panel */}
+            <div style={{ position:'absolute', top:'14%', left:'12%', right:'12%', bottom:'14%', background:'#080820', borderRadius:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)', display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3, paddingBottom:6 }}>
+              {(isSpeaking || isListening) ? [0,1,2,3,4].map(i => (
+                <div key={i} style={{ width:5, height:'52%', borderRadius:2, transformOrigin:'bottom', background:isSpeaking?'#00C8FF':'#4ADE80', boxShadow:`0 0 5px ${isSpeaking?'#00C8FFaa':'#4ADE80aa'}`, animation:`cfVoiceBar ${isSpeaking?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite` }} />
+              )) : (
+                <div style={{ width:10, height:10, borderRadius:'50%', marginBottom:2, background:eyeCol, boxShadow:`0 0 8px 3px ${eyeCol}55`, transition:'background 0.4s, box-shadow 0.4s', animation:'cfPulse 2s ease-in-out infinite' }} />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Feet (no legs) */}
+        <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:4 }}>
+          {[0,1].map(i => (
+            <div key={i} style={{ width:26, height:11, borderRadius:'3px 3px 8px 8px', background:`linear-gradient(160deg,#c4c4d8,#8e8ea2)`, boxShadow:'2px 2px 6px rgba(0,0,0,0.22)' }} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 function RobotAvatar({ state, excited = false, compact = false }: { state: RobotState; excited?: boolean; compact?: boolean }) {
-  const eyeCol = state === 'listening' ? '#4ADE80'
-    : state === 'thinking'  ? '#FBBF24'
-    : state === 'speaking'  ? '#00C8FF'
-    : '#60A5FA';
+  const robotAnim: React.CSSProperties['animation'] = excited
+    ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
+    : state === 'speaking' ? 'cfHeadBob 0.38s ease-in-out infinite'
+    : state === 'idle'     ? 'cfFloat 3s ease-in-out infinite'
+    : 'none';
+
+  const sparkleColors = ['#00CCFF','#A78BFA','#34D399','#FBBF24','#F472B6'];
 
   if (compact) {
     return (
-      <div style={{ position:'relative', width:82, height:96, flexShrink:0 }}>
-        {/* State ring */}
-        {state === 'listening' && <div style={{ position:'absolute', inset:4, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.5)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />}
-        {state === 'thinking'  && <div style={{ position:'absolute', inset:4, borderRadius:'50%', border:'2px solid transparent', borderTopColor:'#FBBF24', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />}
-        {state === 'speaking'  && <div style={{ position:'absolute', inset:4, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.35)', animation:'cfPulse 0.8s ease-in-out infinite', pointerEvents:'none' }} />}
-        <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}>
-          <RobotBody state={state} excited={excited} compact />
+      <div style={{ position:'relative', width:76, height:90, flexShrink:0, animation:robotAnim }}>
+        <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-52%) scale(0.72)', transformOrigin:'center center' }}>
+          <RobotSvgBody state={state} excited={excited} />
         </div>
-        {excited && [
-          {dx:'-20px',dy:'-18px'},{dx:'20px',dy:'-18px'},{dx:'-24px',dy:'4px'},{dx:'24px',dy:'4px'},
-        ].map((s, i) => (
-          <span key={i} style={{ position:'absolute', top:30, left:41, width:4, height:4, borderRadius:'50%',
-            background:i%2===0?'#00CCFF':'#A78BFA', '--dx':s.dx, '--dy':s.dy,
+        {excited && [{dx:'-20px',dy:'-18px'},{dx:'20px',dy:'-18px'},{dx:'-24px',dy:'4px'},{dx:'24px',dy:'4px'}].map((s, i) => (
+          <span key={i} style={{ position:'absolute', top:28, left:38, width:4, height:4, borderRadius:'50%',
+            background:sparkleColors[i % sparkleColors.length], '--dx':s.dx, '--dy':s.dy,
             animation:`cfSparkle 0.6s ease-out ${i*0.08}s forwards`, pointerEvents:'none', zIndex:20,
           } as React.CSSProperties} />
         ))}
@@ -379,21 +402,12 @@ function RobotAvatar({ state, excited = false, compact = false }: { state: Robot
     );
   }
 
-  // Full size (unused in main layout but kept for possible future use)
   return (
-    <div style={{ position:'relative', width:160, height:148 }}>
-      {state === 'listening' && (<>
-        <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.42)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.2)', animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
-      </>)}
-      {state === 'thinking' && <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2.5px solid transparent', borderTopColor:'#FBBF24', borderRightColor:'rgba(251,191,36,0.3)', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />}
-      {state === 'speaking' && <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.28)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />}
-      <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-46%)' }}>
-        <RobotBody state={state} excited={excited} compact={false} />
-      </div>
+    <div style={{ display:'inline-block', position:'relative', animation:robotAnim }}>
+      <RobotSvgBody state={state} excited={excited} />
       {excited && [{dx:'-32px',dy:'-30px'},{dx:'32px',dy:'-30px'},{dx:'-42px',dy:'4px'},{dx:'42px',dy:'4px'},{dx:'-22px',dy:'34px'},{dx:'22px',dy:'34px'}].map((s, i) => (
-        <span key={i} style={{ position:'absolute', top:50, left:80, width:5, height:5, borderRadius:'50%',
-          background:i%2===0?'#00CCFF':'#A78BFA', '--dx':s.dx, '--dy':s.dy,
+        <span key={i} style={{ position:'absolute', top:50, left:48, width:5, height:5, borderRadius:'50%',
+          background:sparkleColors[i % sparkleColors.length], '--dx':s.dx, '--dy':s.dy,
           animation:`cfSparkle 0.6s ease-out ${i*0.07}s forwards`, pointerEvents:'none', zIndex:20,
         } as React.CSSProperties} />
       ))}
@@ -404,19 +418,25 @@ function RobotAvatar({ state, excited = false, compact = false }: { state: Robot
 // ── Speech Bubble ─────────────────────────────────────────────────────────────
 
 function SpeechBubble({ text, state }: { text: string; state: RobotState }) {
-  const isSpecial = state !== 'idle';
+  const color = state === 'listening' ? '#4ADE80' : state === 'thinking' ? '#FBBF24' : state === 'speaking' ? '#C4B5FD' : 'rgba(255,255,255,0.88)';
+  const isLong = text.length > 38;
   return (
-    <div style={{ textAlign:'center', marginBottom:6, maxWidth:240 }}>
+    <div style={{ textAlign:'center', marginBottom:6, width:224, overflow:'hidden' }}>
       <div style={{
-        display:'inline-block', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)',
-        borderRadius:14, padding:'8px 13px', fontSize:12, color:isSpecial?'#7C3AED':'#1a1a2e',
-        fontWeight:isSpecial?600:500, lineHeight:1.5, maxWidth:220, boxShadow:'0 4px 20px rgba(0,0,0,0.2)',
-        wordBreak:'break-word', border:`1px solid ${isSpecial?'rgba(167,139,250,0.5)':'rgba(200,200,220,0.6)'}`,
-        fontStyle:state==='thinking'?'italic':'normal', animation:'cfSlideUp 0.28s ease-out both',
+        display:'inline-block', background:'rgba(8,4,20,0.52)', backdropFilter:'blur(16px)',
+        WebkitBackdropFilter:'blur(16px)', borderRadius:99, padding:'6px 16px',
+        fontSize:12, color, fontWeight:500, lineHeight:1.4,
+        border:'1px solid rgba(255,255,255,0.10)', boxShadow:'0 4px 24px rgba(0,0,0,0.32)',
+        animation:'cfSlideUp 0.28s ease-out both',
+        maxWidth:224, overflow:'hidden', whiteSpace:'nowrap',
+        fontStyle: state === 'thinking' ? 'italic' : 'normal',
       }}>
-        {text}
+        {isLong ? (
+          <span style={{ display:'inline-block', animation:'cfTicker 10s linear infinite', whiteSpace:'nowrap', paddingRight:32 }}>
+            {text}&nbsp;&nbsp;&nbsp;{text}
+          </span>
+        ) : text}
       </div>
-      <div style={{ width:0, height:0, borderLeft:'6px solid transparent', borderRight:'6px solid transparent', borderTop:'6px solid rgba(255,255,255,0.96)', margin:'0 auto' }} />
     </div>
   );
 }
@@ -430,8 +450,11 @@ export function CopilotPanel() {
   const [activePanel, setActivePanel] = useState<PanelId | null>(null);
   const [greetingIdx, setGreetingIdx] = useState(0);
 
-  // chat
-  const [messages, setMessages]     = useState<ChatMessage[]>([]);
+  // chat — persisted across page loads
+  const [messages, setMessages]     = useState<ChatMessage[]>(() => {
+    try { const s = localStorage.getItem(CHAT_KEY); return s ? (JSON.parse(s) as ChatMessage[]) : []; }
+    catch { return []; }
+  });
   const [input, setInput]           = useState('');
   const [busy, setBusy]             = useState(false);
   const [excited, setExcited]       = useState(false);
@@ -481,6 +504,11 @@ export function CopilotPanel() {
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
   const speechPrimedRef  = useRef(false);
   const busyRef          = useRef(false);
+
+  // Persist chat messages to localStorage whenever they change
+  useEffect(() => {
+    try { localStorage.setItem(CHAT_KEY, JSON.stringify(messages)); } catch { /* storage full */ }
+  }, [messages]);
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -637,6 +665,7 @@ export function CopilotPanel() {
     // Prime iOS speech session synchronously before any await — iOS blocks
     // speechSynthesis.speak() called from async context (after fetch resolves).
     if (voiceEnabled || conversationRef.current) primeSpeechSession();
+    const isVoiceSend = conversationRef.current;
 
     const nextMessages: ChatMessage[] = text
       ? [...messages, { role: 'user' as const, content: text }]
@@ -676,8 +705,8 @@ export function CopilotPanel() {
       setMessages(m => [...m, { role:'assistant', content:data.reply, fromCache:data.fromCache }]);
       const emotion = detectEmotion(data.reply);
       if (emotion === 'excited') { setExcited(true); setTimeout(() => setExcited(false), 700); }
-      // Open chat panel to show the reply if not already in it
-      setActivePanel(prev => prev ?? 'chat');
+      // Voice replies show in speech bubble; only auto-open chat panel for text interactions
+      if (!isVoiceSend) setActivePanel(prev => prev ?? 'chat');
       if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); }
       if (data.plan)     setCurrentPlan(data.plan);
       if (data.navigate) router.push(data.navigate);
@@ -812,7 +841,14 @@ export function CopilotPanel() {
     const next = !voiceEnabled;
     setVoiceEnabled(next);
     localStorage.setItem('cf_copilot_voice', String(next));
-    if (!next) {
+    if (next) {
+      // Voice ON → immediately enter listening mode
+      conversationRef.current = true;
+      setListening(true);
+      setMicError(null);
+      // Small delay: iOS needs the silent utterance from primeAudio() to settle
+      setTimeout(() => startListeningRef.current(), 150);
+    } else {
       conversationRef.current = false;
       if (mediaRecorderRef.current) stopServerSTT();
       recognitionRef.current?.stop();
@@ -849,7 +885,7 @@ export function CopilotPanel() {
     micError ? micError :
     isVoiceActive ? (liveTranscript || "I'm all ears, go ahead…") :
     busy ? "Let me think on that…" :
-    speaking ? "Saying that back to you…" :
+    speaking ? (lastAssistant?.content ?? "Speaking…") :
     lastAssistant ? (lastAssistant.content.length > 68 ? lastAssistant.content.slice(0, 68) + '…' : lastAssistant.content) :
     "Scripts, SEO, ideas — just say the word!";
 
@@ -889,6 +925,7 @@ export function CopilotPanel() {
         @keyframes cfEyeBlinkThink { 0%,18%,68%,100%{transform:scaleY(0)} 38%,54%{transform:scaleY(0.68)} }
         @keyframes cfEyeBlinkSpeak { 0%,28%,72%,100%{transform:scaleY(0)} 50%{transform:scaleY(0.8)} }
         @keyframes cfSlideUp    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes cfTicker     { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         @keyframes cfFloat      { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
         @keyframes cfSpin       { from{transform:translate(-50%,-50%) rotate(0deg)} to{transform:translate(-50%,-50%) rotate(360deg)} }
         @keyframes cfSpinSimple { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
@@ -898,8 +935,10 @@ export function CopilotPanel() {
         @keyframes cfMouthTalk  { 0%,100%{transform:scaleY(0.3)} 50%{transform:scaleY(1)} }
         @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 50%{transform:translateY(3px) scale(0.97)} 80%{transform:translateY(-5px) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
         @keyframes cfArmWave    { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-18deg)} 70%{transform:rotate(12deg)} }
+        @keyframes cfHandDangle { 0%,100%{transform:translateX(-50%) rotate(-8deg)} 50%{transform:translateX(-50%) rotate(8deg)} }
         @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
         @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
+        @keyframes cfScanRing   { 0%{transform:scale(0.4);opacity:0.85} 100%{transform:scale(1.4);opacity:0} }
         @media (max-width: 480px) {
           .cf-copilot-widget { bottom: 86px !important; right: 8px !important; }
         }
@@ -944,6 +983,14 @@ export function CopilotPanel() {
                 <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, transition:'background .3s' }} />
                 <span style={{ fontSize:10.5, color:'rgba(255,255,255,.45)', fontWeight:500 }}>{statusLabel}</span>
               </div>
+              {activePanel === 'chat' && messages.length > 0 && (
+                <button type="button"
+                  title="Clear chat history"
+                  onClick={() => { setMessages([]); localStorage.removeItem(CHAT_KEY); }}
+                  style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.10)', color:'rgba(248,113,113,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <Trash2 style={{ width:12, height:12 }} />
+                </button>
+              )}
               <button type="button" onClick={() => setActivePanel(null)}
                 style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
                 <X style={{ width:13, height:13 }} />
@@ -1226,21 +1273,22 @@ export function CopilotPanel() {
             })}
           </div>
 
-          {/* ── Voice on/off ── */}
+          {/* ── Mic on/off (voice auto-listen toggle) ── */}
           <button type="button" onClick={toggleVoice}
-            title={voiceEnabled ? 'Voice ON — click to disable' : 'Voice OFF — click to enable'}
+            title={isVoiceActive ? 'Listening… tap to turn off' : voiceEnabled ? 'Mic ON — tap to turn off' : 'Mic OFF — tap for hands-free voice'}
             style={{
               position:'relative', zIndex:5,
               width:38, height:38, borderRadius:'50%',
-              background: voiceEnabled ? 'rgba(74,222,128,0.18)' : 'rgba(14,10,28,0.85)',
-              border: `1.5px solid ${voiceEnabled ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.12)'}`,
+              background: isVoiceActive ? 'rgba(74,222,128,0.28)' : voiceEnabled ? 'rgba(74,222,128,0.15)' : 'rgba(14,10,28,0.85)',
+              border: `1.5px solid ${isVoiceActive ? 'rgba(74,222,128,0.75)' : voiceEnabled ? 'rgba(74,222,128,0.45)' : 'rgba(255,255,255,0.12)'}`,
               backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-              color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.45)',
+              color: voiceEnabled || isVoiceActive ? '#4ADE80' : 'rgba(255,255,255,0.38)',
               display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-              boxShadow: voiceEnabled ? '0 0 16px rgba(74,222,128,0.3)' : '0 4px 14px rgba(0,0,0,0.35)',
+              boxShadow: isVoiceActive ? '0 0 20px rgba(74,222,128,0.5)' : voiceEnabled ? '0 0 14px rgba(74,222,128,0.25)' : '0 4px 14px rgba(0,0,0,0.35)',
+              animation: isVoiceActive ? 'cfPulse 1s ease-in-out infinite' : 'none',
               transition:'all 0.18s',
             }}>
-            {voiceEnabled ? <Volume2 style={{ width:15, height:15 }} /> : <VolumeX style={{ width:15, height:15 }} />}
+            {voiceEnabled || isVoiceActive ? <Mic style={{ width:15, height:15 }} /> : <MicOff style={{ width:15, height:15 }} />}
           </button>
 
         </div>
