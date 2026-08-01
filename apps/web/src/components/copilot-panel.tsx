@@ -341,15 +341,12 @@ function RobotBody({ state, excited, compact }: { state: RobotState; excited: bo
         </div>
       </div>
 
-      {/* Legs + feet (full size only) */}
-      {!compact && (<>
-        <div style={{ display:'flex', justifyContent:'center', gap:12, marginTop:3 }}>
-          {[0,1].map(i => <div key={i} style={{ width:21, height:36, borderRadius:'4px 4px 7px 7px', background:`linear-gradient(160deg,${S},#a6a6ba)`, boxShadow:'2px 3px 8px rgba(0,0,0,0.2)' }} />)}
+      {/* Feet only (full size only) — no legs */}
+      {!compact && (
+        <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:4 }}>
+          {[0,1].map(i => <div key={i} style={{ width:30, height:12, borderRadius:'4px 4px 10px 10px', background:'linear-gradient(160deg,#b2b2c6,#8e8ea2)', boxShadow:'2px 3px 8px rgba(0,0,0,0.25)' }} />)}
         </div>
-        <div style={{ display:'flex', justifyContent:'center', gap:8 }}>
-          {[0,1].map(i => <div key={i} style={{ width:28, height:10, borderRadius:'3px 3px 8px 8px', background:'linear-gradient(160deg,#b2b2c6,#8e8ea2)', boxShadow:'2px 2px 6px rgba(0,0,0,0.2)' }} />)}
-        </div>
-      </>)}
+      )}
     </div>
   );
 }
@@ -384,7 +381,7 @@ function RobotAvatar({ state, excited = false, compact = false }: { state: Robot
 
   // Full size (unused in main layout but kept for possible future use)
   return (
-    <div style={{ position:'relative', width:160, height:180 }}>
+    <div style={{ position:'relative', width:160, height:148 }}>
       {state === 'listening' && (<>
         <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.42)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
         <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.2)', animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
@@ -954,9 +951,8 @@ export function CopilotPanel() {
               </button>
             </div>
 
-          {/* panel content — reusing existing panel sections */}
-          {activePanel && (
-            <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', flex:'1 1 auto' }}>
+          {/* panel content */}
+          <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', flex:'1 1 auto' }}>
 
               {/* ── CHAT ── */}
               {activePanel === 'chat' && (
@@ -1185,7 +1181,6 @@ export function CopilotPanel() {
               )}
 
             </div>
-          )}
 
           </div>)} {/* end panel absolute */}
 
