@@ -32,7 +32,7 @@ interface CommandHistory {
 
 interface QuickAction {
   id: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   description: string;
   placeholder: string;

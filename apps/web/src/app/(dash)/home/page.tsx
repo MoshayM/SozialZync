@@ -86,7 +86,7 @@ function daysUntil(dateStr: string): number {
 }
 
 // ── Section heading ───────────────────────────────────────────────────────────
-function SectionLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+function SectionLabel({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; children: React.ReactNode }) {
   return (
     <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
       <Icon className="w-3.5 h-3.5" />

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Server, Cpu, Zap, HardDrive, Puzzle, ArrowRight, CheckCircle } from 'lucide-react';
 
 interface Section {
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   title: string;
   color: string;
   bg: string;

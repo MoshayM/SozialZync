@@ -44,7 +44,7 @@ interface RepurposeResult {
   items: RepurposeItem[];
 }
 
-const PLATFORM_META: Record<Platform, { label: string; icon: React.ElementType; color: string; bg: string; border: string }> = {
+const PLATFORM_META: Record<Platform, { label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; color: string; bg: string; border: string }> = {
   shorts: { label: 'YouTube Shorts', icon: Film, color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
   instagram: { label: 'Instagram Reel', icon: Instagram, color: 'text-pink-700', bg: 'bg-pink-50', border: 'border-pink-200' },
   tiktok: { label: 'TikTok', icon: Smartphone, color: 'text-gray-900', bg: 'bg-gray-50', border: 'border-gray-200' },

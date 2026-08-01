@@ -337,7 +337,7 @@ export default function AutopilotPage() {
         + Math.min((stats.total ?? 0) / 10, 1) * 0.2) * 100)
     : null;
 
-  const TABS: { id: Tab; icon: React.ElementType; label: string; badge?: string }[] = [
+  const TABS: { id: Tab; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; badge?: string }[] = [
     { id: 'planner',  icon: CalendarClock, label: 'Planner',  badge: proposed.length > 0 ? String(proposed.length) : undefined },
     { id: 'settings', icon: Settings2,     label: 'Settings' },
     { id: 'insights', icon: BarChart3,     label: 'Insights' },

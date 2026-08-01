@@ -10,7 +10,7 @@ import Link from 'next/link';
 type Tab = 'editor' | 'shorts' | 'projects';
 
 interface Step {
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   title: string;
   desc: string;
   tip?: string;
@@ -78,7 +78,7 @@ function StepCard({ step, idx }: { step: Step; idx: number }) {
 export default function GuidePage() {
   const [tab, setTab] = useState<Tab>('editor');
 
-  const tabs: { id: Tab; icon: React.ElementType; label: string; href: string; steps: Step[] }[] = [
+  const tabs: { id: Tab; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; href: string; steps: Step[] }[] = [
     { id: 'editor',   icon: Film,       label: 'Video Editor',  href: '/editor',        steps: EDITOR_STEPS  },
     { id: 'shorts',   icon: Scissors,   label: 'Shorts Studio', href: '/shorts-studio', steps: SHORTS_STEPS  },
     { id: 'projects', icon: FolderOpen, label: 'Projects',      href: '/projects',      steps: PROJECTS_STEPS },

@@ -5,7 +5,7 @@ import { apiClient } from '@/lib/api';
 
 type Tool = 'normalize' | 'denoise' | 'trim';
 
-const TOOLS: { id: Tool; icon: React.ElementType; label: string; description: string; color: string; bg: string }[] = [
+const TOOLS: { id: Tool; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; description: string; color: string; bg: string }[] = [
   {
     id: 'normalize',
     icon: Volume2,
