@@ -223,14 +223,35 @@ type PanelId = 'chat' | 'actions' | 'jobs';
 // Replaced R3F / WebGL canvas with pure CSS because WebGL in a position:fixed
 // overlay fails silently on many mobile browsers (iOS Safari, Android WebView).
 
-function RobotAvatar({ state, excited = false }: { state: RobotState; excited?: boolean }) {
+// Greetings the robot cycles through when idle
+const GREETINGS = [
+  "Hey! Ready to create something amazing? 🚀",
+  "What shall we build today?",
+  "I'm your AI creative partner — ask me anything! ✨",
+  "Let's make your next video go viral 🎯",
+  "Scripts, ideas, SEO — I've got you covered!",
+  "Your channel growth starts here 📈",
+];
+
+function detectEmotion(text: string): 'excited' | 'error' | 'neutral' {
+  const t = text.toLowerCase();
+  if (/error|fail|sorry|unable|can't|cannot|problem|issue/.test(t)) return 'error';
+  if (/great|amazing|awesome|perfect|done|created|success|ready|excellent|wonderful/.test(t)) return 'excited';
+  return 'neutral';
+}
+
+// RobotBody renders the robot's head+torso (shared between compact and full views)
+function RobotBody({ state, excited, compact }: { state: RobotState; excited: boolean; compact: boolean }) {
   const eyeCol = state === 'listening' ? '#4ADE80'
     : state === 'thinking'  ? '#FBBF24'
     : state === 'speaking'  ? '#00C8FF'
     : '#60A5FA';
 
-  const eyeGlow = `0 0 10px 4px ${eyeCol}88`;
-  const antGlow = `0 0 14px 5px ${eyeCol}55`;
+  const eyeGlow = `0 0 ${compact?'8px 3px':'10px 4px'} ${eyeCol}88`;
+  const antGlow = `0 0 ${compact?'10px 3px':'14px 5px'} ${eyeCol}55`;
+  const W = '#f4f4ff', S = '#d0d0e2';
+  const grad = `linear-gradient(155deg,${W} 40%,${S})`;
+  const sc = compact ? 0.54 : 1;
 
   const wrapAnim = excited
     ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
@@ -238,184 +259,145 @@ function RobotAvatar({ state, excited = false }: { state: RobotState; excited?: 
     : state === 'idle'     ? 'cfFloat 3s ease-in-out infinite'
     : 'none';
 
-  const W = '#f4f4ff';
-  const S = '#d0d0e2';
-  const grad = `linear-gradient(155deg,${W} 40%,${S})`;
+  // eye/arm sizes scaled for compact
+  const ew = compact ? 11 : 16, eh = compact ? 11 : 16;
+  const headW = compact ? 54 : 76, headH = compact ? 42 : 58;
+  const bodyW = compact ? 64 : 90, bodyH = compact ? 64 : 90;
+  const armW = compact ? 11 : 15, armH = compact ? 46 : 66;
+  const armOff = compact ? -13 : -19;
+  const neckW = compact ? 15 : 20, neckH = compact ? 7 : 9;
+  const antH = compact ? 12 : 18, tipS = compact ? 10 : 13;
 
   return (
-    <div style={{ position:'relative', width:220, height:220 }}>
-
-      {/* State rings */}
-      {state === 'listening' && (<>
-        <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.42)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.2)',  animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
-      </>)}
-      {state === 'thinking' && (
-        <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2.5px solid transparent', borderTopColor:'#FBBF24', borderRightColor:'rgba(251,191,36,0.3)', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />
-      )}
-      {state === 'speaking' && (
-        <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.28)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />
-      )}
-
-      {/* ── CSS Robot ── */}
+    <div style={{ animation:wrapAnim, userSelect:'none', pointerEvents:'none', display:'inline-block' }}>
+      {/* Antenna */}
+      <div style={{ margin:'0 auto', width:compact?3:4, height:antH, background:'linear-gradient(90deg,#8a8a98,#c4c4d8)', borderRadius:2 }} />
       <div style={{
-        position:'absolute', top:'50%', left:'50%',
-        transform:'translate(-50%, -46%)',
-        animation: wrapAnim,
-        userSelect:'none', pointerEvents:'none',
-      }}>
+        margin:'-2px auto 0', width:tipS, height:tipS, borderRadius:'50%',
+        background:eyeCol, boxShadow:antGlow,
+        transition:'background .4s, box-shadow .4s', animation:'cfPulse 2s ease-in-out infinite',
+      }} />
 
-        {/* Antenna pole */}
-        <div style={{ margin:'0 auto', width:4, height:18, background:'linear-gradient(90deg,#8a8a98,#c4c4d8)', borderRadius:2 }} />
-        {/* Antenna tip */}
+      {/* Head */}
+      <div style={{ marginTop:compact?3:4, position:'relative' }}>
         <div style={{
-          margin:'-3px auto 0', width:13, height:13, borderRadius:'50%',
-          background:eyeCol, boxShadow:antGlow,
-          transition:'background .4s, box-shadow .4s',
-          animation:'cfPulse 2s ease-in-out infinite',
+          width:headW, height:headH, borderRadius:compact?9:13, background:grad,
+          boxShadow:`3px 4px ${compact?10:14}px rgba(0,0,0,0.3),-1px -1px ${compact?3:5}px rgba(255,255,255,0.4)`,
+          position:'relative',
+        }}>
+          <div style={{
+            position:'absolute', top:'27%', left:'8%', right:'8%', height:'38%',
+            background:'linear-gradient(180deg,#090920,#0d0d26)',
+            borderRadius:compact?5:8, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
+            display:'flex', alignItems:'center',
+          }}>
+            <div style={{ marginLeft:'13%', width:ew, height:eh, borderRadius:'50%', background:eyeCol, boxShadow:eyeGlow, transition:'background .4s, box-shadow .4s', animation:'cfPulse 1.6s ease-in-out infinite', flexShrink:0 }} />
+            <div style={{ flex:1 }} />
+            <div style={{ marginRight:'13%', width:ew, height:eh, borderRadius:'50%', background:eyeCol, boxShadow:eyeGlow, transition:'background .4s, box-shadow .4s', animation:'cfPulse 1.6s ease-in-out 0.06s infinite', flexShrink:0 }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Neck */}
+      <div style={{ margin:'0 auto', width:neckW, height:neckH, background:`linear-gradient(160deg,${S},#b0b0c6)`, borderRadius:'0 0 4px 4px' }} />
+
+      {/* Body + arms */}
+      <div style={{ position:'relative' }}>
+        <div style={{
+          position:'absolute', top:compact?6:8, left:armOff, width:armW, height:armH, borderRadius:compact?5:8,
+          background:`linear-gradient(160deg,${S},#b8b8cc)`, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)',
+          transformOrigin:'top center', transform:'rotate(7deg)',
+          animation: state==='idle' ? 'cfArmWave 3s ease-in-out 1.5s infinite' : 'none',
         }} />
-
-        {/* Head */}
-        <div style={{ marginTop:4, position:'relative' }}>
+        <div style={{
+          position:'absolute', top:compact?6:8, right:armOff, width:armW, height:armH, borderRadius:compact?5:8,
+          background:`linear-gradient(160deg,${S},#b8b8cc)`, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)',
+          transformOrigin:'top center', transform:'rotate(-7deg)',
+          animation: state==='idle' ? 'cfArmWave 3s ease-in-out infinite' : 'none',
+        }} />
+        <div style={{
+          width:bodyW, height:bodyH, borderRadius:compact?10:14, background:grad,
+          boxShadow:`4px 5px ${compact?12:18}px rgba(0,0,0,0.28),-2px -2px 6px rgba(255,255,255,0.35)`,
+          position:'relative', overflow:'hidden',
+        }}>
           <div style={{
-            width:76, height:58, borderRadius:13, background:grad,
-            boxShadow:'3px 4px 14px rgba(0,0,0,0.3),-1px -1px 5px rgba(255,255,255,0.4)',
-            position:'relative',
+            position:'absolute', top:'15%', left:'12%', right:'12%', bottom:'18%',
+            background:'#080820', borderRadius:compact?6:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
+            display:'flex', alignItems:'flex-end', justifyContent:'center',
+            gap:compact?2:3, paddingBottom:compact?4:6,
           }}>
-            {/* Visor strip */}
-            <div style={{
-              position:'absolute', top:'27%', left:'8%', right:'8%', height:'38%',
-              background:'linear-gradient(180deg,#090920,#0d0d26)',
-              borderRadius:8, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
-              display:'flex', alignItems:'center',
-            }}>
-              {/* Left eye */}
-              <div style={{
-                marginLeft:'13%', width:16, height:16, borderRadius:'50%',
-                background:eyeCol, boxShadow:eyeGlow,
-                transition:'background .4s, box-shadow .4s',
-                animation:'cfPulse 1.6s ease-in-out infinite', flexShrink:0,
-              }} />
-              <div style={{ flex:1 }} />
-              {/* Right eye */}
-              <div style={{
-                marginRight:'13%', width:16, height:16, borderRadius:'50%',
-                background:eyeCol, boxShadow:eyeGlow,
-                transition:'background .4s, box-shadow .4s',
-                animation:'cfPulse 1.6s ease-in-out 0.06s infinite', flexShrink:0,
-              }} />
-            </div>
+            {(state==='speaking'||state==='listening')
+              ? [0,1,2,3,4].map(i => (
+                  <div key={i} style={{
+                    width:compact?3:5, height:'55%', borderRadius:2, transformOrigin:'bottom',
+                    background: state==='speaking' ? '#00C8FF' : '#4ADE80',
+                    boxShadow:`0 0 4px ${state==='speaking'?'#00C8FFaa':'#4ADE80aa'}`,
+                    animation:`cfVoiceBar ${state==='speaking'?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite`,
+                  }} />
+                ))
+              : <div style={{ width:compact?7:10, height:compact?7:10, borderRadius:'50%', marginBottom:2, background:eyeCol, boxShadow:`0 0 6px 2px ${eyeCol}55`, transition:'background .4s', animation:'cfPulse 2s ease-in-out infinite' }} />
+            }
           </div>
         </div>
+      </div>
 
-        {/* Neck */}
-        <div style={{ margin:'0 auto', width:20, height:9, background:`linear-gradient(160deg,${S},#b0b0c6)`, borderRadius:'0 0 4px 4px' }} />
-
-        {/* Body + arms wrapper */}
-        <div style={{ position:'relative' }}>
-
-          {/* Left arm */}
-          <div style={{
-            position:'absolute', top:8, left:-19, width:15, height:66, borderRadius:8,
-            background:`linear-gradient(160deg,${S},#b8b8cc)`,
-            boxShadow:'2px 3px 10px rgba(0,0,0,0.22)',
-            transformOrigin:'top center', transform:'rotate(7deg)',
-            animation: state==='idle' ? 'cfArmWave 3s ease-in-out 1.5s infinite' : 'none',
-          }} />
-          {/* Left hand */}
-          <div style={{
-            position:'absolute', top:70, left:-23, width:21, height:15, borderRadius:5,
-            background:`linear-gradient(160deg,${S},#b0b0c4)`,
-            boxShadow:'1px 2px 6px rgba(0,0,0,0.2)',
-          }} />
-
-          {/* Right arm */}
-          <div style={{
-            position:'absolute', top:8, right:-19, width:15, height:66, borderRadius:8,
-            background:`linear-gradient(160deg,${S},#b8b8cc)`,
-            boxShadow:'2px 3px 10px rgba(0,0,0,0.22)',
-            transformOrigin:'top center', transform:'rotate(-7deg)',
-            animation: state==='idle' ? 'cfArmWave 3s ease-in-out infinite' : 'none',
-          }} />
-          {/* Right hand */}
-          <div style={{
-            position:'absolute', top:70, right:-23, width:21, height:15, borderRadius:5,
-            background:`linear-gradient(160deg,${S},#b0b0c4)`,
-            boxShadow:'1px 2px 6px rgba(0,0,0,0.2)',
-          }} />
-
-          {/* Body */}
-          <div style={{
-            width:90, height:90, borderRadius:14, background:grad,
-            boxShadow:'4px 5px 18px rgba(0,0,0,0.28),-2px -2px 6px rgba(255,255,255,0.35)',
-            position:'relative', overflow:'hidden',
-          }}>
-            {/* Chest panel */}
-            <div style={{
-              position:'absolute', top:'15%', left:'12%', right:'12%', bottom:'18%',
-              background:'#080820', borderRadius:9,
-              boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
-              display:'flex', alignItems:'flex-end', justifyContent:'center',
-              gap:3, paddingBottom:6,
-            }}>
-              {(state==='speaking'||state==='listening')
-                ? [0,1,2,3,4].map(i => (
-                    <div key={i} style={{
-                      width:5, height:'55%', borderRadius:2,
-                      transformOrigin:'bottom',
-                      background: state==='speaking' ? '#00C8FF' : '#4ADE80',
-                      boxShadow:`0 0 5px ${state==='speaking'?'#00C8FFaa':'#4ADE80aa'}`,
-                      animation:`cfVoiceBar ${state==='speaking'?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite`,
-                    }} />
-                  ))
-                : (
-                    <div style={{
-                      width:10, height:10, borderRadius:'50%', marginBottom:2,
-                      background:eyeCol, boxShadow:`0 0 8px 2px ${eyeCol}66`,
-                      transition:'background .4s, box-shadow .4s',
-                      animation:'cfPulse 2s ease-in-out infinite',
-                    }} />
-                  )
-              }
-            </div>
-          </div>
-        </div>
-
-        {/* Legs */}
+      {/* Legs + feet (full size only) */}
+      {!compact && (<>
         <div style={{ display:'flex', justifyContent:'center', gap:12, marginTop:3 }}>
-          {[0,1].map(i => (
-            <div key={i} style={{
-              width:21, height:36, borderRadius:'4px 4px 7px 7px',
-              background:`linear-gradient(160deg,${S},#a6a6ba)`,
-              boxShadow:'2px 3px 8px rgba(0,0,0,0.2)',
-            }} />
-          ))}
+          {[0,1].map(i => <div key={i} style={{ width:21, height:36, borderRadius:'4px 4px 7px 7px', background:`linear-gradient(160deg,${S},#a6a6ba)`, boxShadow:'2px 3px 8px rgba(0,0,0,0.2)' }} />)}
         </div>
-
-        {/* Feet */}
         <div style={{ display:'flex', justifyContent:'center', gap:8 }}>
-          {[0,1].map(i => (
-            <div key={i} style={{
-              width:28, height:10, borderRadius:'3px 3px 8px 8px',
-              background:'linear-gradient(160deg,#b2b2c6,#8e8ea2)',
-              boxShadow:'2px 2px 6px rgba(0,0,0,0.2)',
-            }} />
-          ))}
+          {[0,1].map(i => <div key={i} style={{ width:28, height:10, borderRadius:'3px 3px 8px 8px', background:'linear-gradient(160deg,#b2b2c6,#8e8ea2)', boxShadow:'2px 2px 6px rgba(0,0,0,0.2)' }} />)}
         </div>
+      </>)}
+    </div>
+  );
+}
 
-      </div>{/* end robot */}
+function RobotAvatar({ state, excited = false, compact = false }: { state: RobotState; excited?: boolean; compact?: boolean }) {
+  const eyeCol = state === 'listening' ? '#4ADE80'
+    : state === 'thinking'  ? '#FBBF24'
+    : state === 'speaking'  ? '#00C8FF'
+    : '#60A5FA';
 
-      {/* Sparkles on excited */}
-      {excited && [
-        {dx:'-32px',dy:'-30px'},{dx:'32px',dy:'-30px'},{dx:'-42px',dy:'4px'},
-        {dx:'42px',dy:'4px'},{dx:'-22px',dy:'34px'},{dx:'22px',dy:'34px'},
-      ].map((s, i) => (
-        <span key={i} style={{
-          position:'absolute', top:50, left:100, width:5, height:5,
-          borderRadius:'50%', background: i%2===0 ? '#00CCFF' : '#A78BFA',
-          '--dx':s.dx, '--dy':s.dy,
-          animation:`cfSparkle 0.6s ease-out ${i*0.07}s forwards`,
-          pointerEvents:'none', zIndex:20,
+  if (compact) {
+    return (
+      <div style={{ position:'relative', width:82, height:96, flexShrink:0 }}>
+        {/* State ring */}
+        {state === 'listening' && <div style={{ position:'absolute', inset:4, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.5)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />}
+        {state === 'thinking'  && <div style={{ position:'absolute', inset:4, borderRadius:'50%', border:'2px solid transparent', borderTopColor:'#FBBF24', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />}
+        {state === 'speaking'  && <div style={{ position:'absolute', inset:4, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.35)', animation:'cfPulse 0.8s ease-in-out infinite', pointerEvents:'none' }} />}
+        <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}>
+          <RobotBody state={state} excited={excited} compact />
+        </div>
+        {excited && [
+          {dx:'-20px',dy:'-18px'},{dx:'20px',dy:'-18px'},{dx:'-24px',dy:'4px'},{dx:'24px',dy:'4px'},
+        ].map((s, i) => (
+          <span key={i} style={{ position:'absolute', top:30, left:41, width:4, height:4, borderRadius:'50%',
+            background:i%2===0?'#00CCFF':'#A78BFA', '--dx':s.dx, '--dy':s.dy,
+            animation:`cfSparkle 0.6s ease-out ${i*0.08}s forwards`, pointerEvents:'none', zIndex:20,
+          } as React.CSSProperties} />
+        ))}
+      </div>
+    );
+  }
+
+  // Full size (unused in main layout but kept for possible future use)
+  return (
+    <div style={{ position:'relative', width:160, height:180 }}>
+      {state === 'listening' && (<>
+        <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.42)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.2)', animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
+      </>)}
+      {state === 'thinking' && <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2.5px solid transparent', borderTopColor:'#FBBF24', borderRightColor:'rgba(251,191,36,0.3)', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />}
+      {state === 'speaking' && <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.28)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />}
+      <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-46%)' }}>
+        <RobotBody state={state} excited={excited} compact={false} />
+      </div>
+      {excited && [{dx:'-32px',dy:'-30px'},{dx:'32px',dy:'-30px'},{dx:'-42px',dy:'4px'},{dx:'42px',dy:'4px'},{dx:'-22px',dy:'34px'},{dx:'22px',dy:'34px'}].map((s, i) => (
+        <span key={i} style={{ position:'absolute', top:50, left:80, width:5, height:5, borderRadius:'50%',
+          background:i%2===0?'#00CCFF':'#A78BFA', '--dx':s.dx, '--dy':s.dy,
+          animation:`cfSparkle 0.6s ease-out ${i*0.07}s forwards`, pointerEvents:'none', zIndex:20,
         } as React.CSSProperties} />
       ))}
     </div>
@@ -448,7 +430,8 @@ export function CopilotPanel() {
   const router = useRouter();
 
   // panel
-  const [activePanel, setActivePanel] = useState<PanelId | null>(null);
+  const [activePanel, setActivePanel] = useState<PanelId | null>('chat');
+  const [greetingIdx, setGreetingIdx] = useState(0);
 
   // chat
   const [messages, setMessages]     = useState<ChatMessage[]>([]);
@@ -506,12 +489,14 @@ export function CopilotPanel() {
 
   useEffect(() => {
     const handler = () => {
-      setWidgetOpen(open => !open);
-      if (widgetOpen) setActivePanel(null);
+      setWidgetOpen(open => {
+        if (!open) setActivePanel('chat'); // reset to chat on open
+        return !open;
+      });
     };
     window.addEventListener('cf:open-copilot', handler as EventListener);
     return () => window.removeEventListener('cf:open-copilot', handler as EventListener);
-  }, [widgetOpen]);
+  }, []);
 
   useEffect(() => {
     setVoiceEnabled(localStorage.getItem('cf_copilot_voice') === 'true');
@@ -521,6 +506,13 @@ export function CopilotPanel() {
       .then(r => setServerStt((r.data as { available: boolean }).available))
       .catch(() => setServerStt(false));
   }, []);
+
+  // Cycle greeting when idle
+  useEffect(() => {
+    if (!widgetOpen || activePanel !== 'chat' || messages.length > 0) return;
+    const t = setInterval(() => setGreetingIdx(i => (i + 1) % GREETINGS.length), 4000);
+    return () => clearInterval(t);
+  }, [widgetOpen, activePanel, messages.length]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior:'smooth' });
@@ -674,7 +666,6 @@ export function CopilotPanel() {
 
     if (busyRef.current) return;
     busyRef.current = true;
-    setActivePanel(null); // close popup immediately on submit
     setBusy(true);
     try {
       const res = await apiClient.post('/copilot/chat', {
@@ -686,8 +677,10 @@ export function CopilotPanel() {
       }, { timeout: 90_000 });
       const data = res.data as CopilotResponse;
       setMessages(m => [...m, { role:'assistant', content:data.reply, fromCache:data.fromCache }]);
-      setExcited(true); setTimeout(() => setExcited(false), 700);
-      if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); setActivePanel('chat'); }
+      const emotion = detectEmotion(data.reply);
+      if (emotion === 'excited') { setExcited(true); setTimeout(() => setExcited(false), 700); }
+      setActivePanel('chat');
+      if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); }
       if (data.plan)     setCurrentPlan(data.plan);
       if (data.navigate) router.push(data.navigate);
       const wasVoiceInput = conversationRef.current;
@@ -887,7 +880,7 @@ export function CopilotPanel() {
         }
         .cf-msg-row:hover .cf-msg-assistant { background: rgba(255,255,255,0.13) !important; }
         @media (max-width: 768px) {
-          .cf-copilot-widget { bottom: 76px !important; right: 12px !important; }
+          .cf-copilot-widget { bottom: 80px !important; right: 10px !important; }
         }
         @keyframes cfVoiceBar   { 0%,100%{transform:scaleY(0.25);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
         @keyframes cfRipple     { 0%{transform:scale(1);opacity:0.65} 100%{transform:scale(1.9);opacity:0} }
@@ -909,55 +902,88 @@ export function CopilotPanel() {
         @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
         @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
         @media (max-width: 480px) {
-          .cf-copilot-widget { bottom: 80px !important; right: 10px !important; transform: scale(0.88); transform-origin: bottom right; }
-        }
-        @media (max-width: 380px) {
-          .cf-copilot-widget { transform: scale(0.78); }
+          .cf-copilot-widget { bottom: 82px !important; right: 8px !important; }
+          .cf-copilot-widget > div { max-width: calc(100vw - 16px) !important; }
         }
       `}</style>
 
       {/* ── Floating widget ── */}
       <div
         className="cf-copilot-widget"
-        style={{ position:'fixed', bottom:24, right:24, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'center' }}
+        style={{ position:'fixed', bottom:24, right:24, zIndex:9999 }}
       >
 
-        {/* ── OPEN WIDGET ── */}
+        {/* ── OPEN WIDGET — full card ── */}
         {widgetOpen && (
-        <div style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center' }}>
+        <div style={{
+          width:340, maxWidth:'calc(100vw - 24px)',
+          background:'rgba(10,7,28,0.93)',
+          backdropFilter:'blur(60px) saturate(200%)',
+          WebkitBackdropFilter:'blur(60px) saturate(200%)',
+          borderRadius:20,
+          border:'1px solid rgba(139,92,246,0.3)',
+          boxShadow:'0 12px 60px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.04)',
+          overflow:'hidden',
+          animation:'cfPanelIn 0.22s cubic-bezier(.22,1,.36,1) both',
+          display:'flex', flexDirection:'column',
+        }}>
 
-          {/* ── COMPACT POPUP (slides up over robot — robot goes behind it) ── */}
-          {activePanel && (
-            <div style={{
-              position:'absolute', bottom:0, right:0, zIndex:10,
-              width:340, maxWidth:'calc(100vw - 28px)',
-              background:'rgba(10,7,28,0.9)',
-              backdropFilter:'blur(60px) saturate(200%) brightness(0.9)',
-              WebkitBackdropFilter:'blur(60px) saturate(200%) brightness(0.9)',
-              borderRadius:18,
-              border:'1px solid rgba(139,92,246,0.28)',
-              boxShadow:'0 -8px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04)',
-              overflow:'hidden',
-              animation:'cfPanelIn 0.22s cubic-bezier(.22,1,.36,1) both',
-            }}>
-
-              {/* Popup header */}
-              <div style={{ padding:'12px 14px 10px', display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ flex:'1 1 auto', fontSize:13, fontWeight:700, color:'#fff', letterSpacing:'-.1px' }}>
-                  {activePanel === 'chat' ? '💬 Chat' : activePanel === 'actions' ? '⚡ Quick Actions' : '✅ Recent Tasks'}
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, transition:'background .3s' }} />
-                  <span style={{ fontSize:10.5, color:'rgba(255,255,255,.5)', fontWeight:500 }}>{statusLabel}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActivePanel(null)}
-                  style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}
-                >
-                  <X style={{ width:13, height:13 }} />
-                </button>
+          {/* ── CARD HEADER: robot + greeting + status + close ── */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
+            {/* Compact robot */}
+            <div style={{ flexShrink:0 }}>
+              <RobotAvatar state={robotState} excited={excited} compact />
+            </div>
+            {/* Greeting + status */}
+            <div style={{ flex:'1 1 auto', minWidth:0 }}>
+              <div style={{ fontSize:12.5, fontWeight:700, color:'#fff', lineHeight:1.35, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {messages.length === 0 ? GREETINGS[greetingIdx] : (
+                  lastAssistant ? (lastAssistant.content.length > 42 ? lastAssistant.content.slice(0,42)+'…' : lastAssistant.content) : 'AI Copilot'
+                )}
               </div>
+              <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:3 }}>
+                <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, flexShrink:0, transition:'background .3s' }} />
+                <span style={{ fontSize:10.5, color:'rgba(255,255,255,.45)', fontWeight:500 }}>{statusLabel}</span>
+              </div>
+            </div>
+            {/* Close */}
+            <button type="button" onClick={() => setWidgetOpen(false)}
+              style={{ width:28, height:28, borderRadius:9, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+              <X style={{ width:13, height:13 }} />
+            </button>
+          </div>
+
+          {/* ── TAB BAR ── */}
+          <div style={{ display:'flex', alignItems:'center', padding:'6px 10px', gap:3, borderBottom:'1px solid rgba(255,255,255,0.06)', flexShrink:0, background:'rgba(0,0,0,0.2)' }}>
+            {([
+              { id:'chat'    as PanelId, Icon:MessageSquare, label:'Chat' },
+              { id:'actions' as PanelId, Icon:Zap,           label:'Actions' },
+              { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks' },
+            ]).map(({ id, Icon, label }) => {
+              const isA = activePanel === id;
+              return (
+                <button key={id} type="button" className="cf-foot-btn"
+                  onClick={() => setActivePanel(id)}
+                  style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:999, background:isA?'rgba(255,255,255,0.12)':'transparent', border:'none', color:isA?'#fff':'rgba(255,255,255,0.45)', fontSize:12, fontWeight:isA?700:500, cursor:'pointer', transition:'all 0.15s' }}>
+                  <Icon style={{ width:12, height:12 }} />{label}
+                </button>
+              );
+            })}
+            <div style={{ flex:'1 1 auto' }} />
+            {/* Voice toggle */}
+            <button type="button" className="cf-foot-btn" onClick={toggleVoice}
+              title={voiceEnabled ? 'Voice ON' : 'Voice OFF'}
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:'50%', background:voiceEnabled?'rgba(74,222,128,0.18)':'rgba(255,255,255,0.08)', border:`1.5px solid ${voiceEnabled?'rgba(74,222,128,0.5)':'rgba(255,255,255,0.12)'}`, color:voiceEnabled?'#4ADE80':'rgba(255,255,255,0.4)', cursor:'pointer', flexShrink:0 }}>
+              {voiceEnabled ? <Volume2 style={{ width:13, height:13 }} /> : <VolumeX style={{ width:13, height:13 }} />}
+            </button>
+          </div>
+
+          {/* ── CONTENT AREA (scrollable, panel-specific) ── */}
+          <div style={{ flex:'1 1 auto', overflow:'hidden', position:'relative' }}>
+
+          {/* ── (was activePanel && (...)) — now inline in card ── */}
+          {activePanel && (
+            <div style={{ height:'100%', display:'flex', flexDirection:'column' }}>
 
               {/* ── CHAT ── */}
               {activePanel === 'chat' && (
@@ -1188,76 +1214,7 @@ export function CopilotPanel() {
             </div>
           )}
 
-          {/* ── Speech bubble ── */}
-          {shouldShowBubble && (
-            <SpeechBubble text={bubbleText} state={robotState} />
-          )}
-
-          {/* ── Robot avatar (z-index:1 so panel slides over it) ── */}
-          <div style={{ position:'relative', zIndex:1 }}>
-            <RobotAvatar state={robotState} excited={excited} />
-          </div>
-
-          {/* ── Foot pill bar — matching bu.png ── */}
-          <div style={{
-            display:'flex', alignItems:'center', justifyContent:'center', gap:3,
-            padding:'7px 10px', borderRadius:999, marginTop:8,
-            background:'rgba(18,12,32,0.88)',
-            backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-            border:'1px solid rgba(255,255,255,0.07)',
-            boxShadow:'0 8px 32px rgba(0,0,0,0.55)',
-          }}>
-            {([
-              { id:'chat'    as PanelId, Icon:MessageSquare, label:'Chat' },
-              { id:'actions' as PanelId, Icon:Zap,           label:'Actions' },
-              { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks' },
-            ]).map(({ id, Icon, label }) => {
-              const isA = activePanel === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  className="cf-foot-btn"
-                  onClick={() => setActivePanel(isA ? null : id)}
-                  style={{
-                    display:'flex', alignItems:'center', gap:5,
-                    padding:'8px 14px', borderRadius:999,
-                    background: isA ? '#fff' : 'transparent',
-                    border: 'none',
-                    color: isA ? '#1a1030' : 'rgba(255,255,255,0.5)',
-                    fontSize:13, fontWeight:600, cursor:'pointer',
-                    transition:'all 0.18s',
-                  }}
-                >
-                  <Icon style={{ width:13, height:13 }} />{label}
-                </button>
-              );
-            })}
-
-            {/* Voice / speaker toggle — circular, matches bu.png speaker button */}
-            <button
-              type="button"
-              className="cf-foot-btn"
-              onClick={toggleVoice}
-              title={voiceEnabled ? 'Voice ON — click to disable' : 'Voice OFF — click to enable'}
-              style={{
-                display:'flex', alignItems:'center', justifyContent:'center',
-                width:36, height:36, borderRadius:'50%', marginLeft:2,
-                background: voiceEnabled ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.09)',
-                border: `1.5px solid ${voiceEnabled ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.14)'}`,
-                color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.45)',
-                cursor:'pointer', flexShrink:0,
-                boxShadow: voiceEnabled ? '0 0 14px rgba(74,222,128,0.25)' : 'none',
-                transition:'all 0.18s',
-              }}
-            >
-              {voiceEnabled
-                ? <Volume2 style={{ width:14, height:14 }} />
-                : <VolumeX style={{ width:14, height:14 }} />
-              }
-            </button>
-
-          </div>
+          </div>{/* end content area */}
 
         </div>
         )} {/* end widgetOpen */}
