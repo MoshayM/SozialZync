@@ -818,7 +818,6 @@ export function CopilotPanel() {
       recognitionRef.current?.stop();
       window.speechSynthesis?.cancel();
       setListening(false); setRecording(false); setSpeaking(false); setSpeakingIdx(null);
-      setActivePanel(null);
     }
   }
 
