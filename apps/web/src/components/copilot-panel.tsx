@@ -7,8 +7,6 @@ import {
   BookOpen, FileText, Calendar, Search, Sparkles, Volume2, VolumeX,
   MessageSquare, ListChecks, type LucideIcon,
 } from 'lucide-react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
 import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
 
@@ -220,237 +218,34 @@ function chunkForTTS(text: string, maxChars = 160): string[] {
 type RobotState = 'idle' | 'listening' | 'thinking' | 'speaking';
 type PanelId = 'chat' | 'actions' | 'jobs';
 
-// ── 3D Robot Avatar — React Three Fiber, procedural geometry, zero external assets ──
+// ── Robot Avatar — CSS 3D, zero deps, works on all devices + offline ─────────────
 
-// Inner mesh component lives inside <Canvas> so useFrame is available
-function Robot3DMesh({ state, excited }: { state: RobotState; excited: boolean }) {
-  const rootRef   = useRef<THREE.Group>(null!);
-  const headRef   = useRef<THREE.Group>(null!);
-  const rArmRef   = useRef<THREE.Group>(null!);
-  const lEyeRef   = useRef<THREE.MeshStandardMaterial>(null!);
-  const rEyeRef   = useRef<THREE.MeshStandardMaterial>(null!);
-  const antRef    = useRef<THREE.MeshStandardMaterial>(null!);
-  // EQ bar mesh refs (5 speaking + 7 listening = keep 7 slots)
-  const barRefs   = useRef<(THREE.Mesh | null)[]>(Array(7).fill(null));
-
-  // Reusable color to avoid per-frame allocations
-  const eyeCol = useRef(new THREE.Color('#60A5FA'));
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    const root = rootRef.current;
-    const head = headRef.current;
-    const rArm = rArmRef.current;
-    if (!root || !head || !rArm) return;
-
-    // ── body / root animations ──────────────────────────────────────────────
-    if (state === 'idle') {
-      root.position.y = Math.sin(t * 0.9) * 0.06;
-      root.rotation.y = Math.sin(t * 0.35) * 0.07;
-      // Right arm wave
-      rArm.rotation.z = -0.35 + Math.sin(t * 2.2) * 0.25;
-    } else if (state === 'listening') {
-      root.position.y = Math.sin(t * 1.6) * 0.035;
-      root.rotation.y = 0;
-      rArm.rotation.z = -0.35;
-    } else if (state === 'thinking') {
-      root.position.y = Math.sin(t * 0.55) * 0.025;
-      root.rotation.y = Math.sin(t * 0.2) * 0.08;
-      rArm.rotation.z = -0.35;
-    } else {
-      root.position.y = Math.sin(t * Math.PI / 0.55) * 0.03;
-      root.rotation.y = 0;
-      rArm.rotation.z = -0.35;
-    }
-
-    // ── head animations ────────────────────────────────────────────────────
-    head.rotation.set(0, 0, 0);
-    if (state === 'listening') {
-      head.rotation.x = -0.09 + Math.sin(t * 2.1) * 0.03;
-    } else if (state === 'thinking') {
-      head.rotation.y = Math.sin(t * 1.1) * 0.38;
-      head.rotation.x = Math.sin(t * 1.6) * 0.07;
-    } else if (state === 'speaking') {
-      head.rotation.x = Math.sin(t * Math.PI / 0.275) * 0.10;
-    }
-
-    // ── excited bounce ─────────────────────────────────────────────────────
-    root.scale.y = excited ? 1 + Math.abs(Math.sin(t * 14)) * 0.10 : 1;
-
-    // ── eye / antenna colour + glow ─────────────────────────────────────────
-    const hex = state === 'listening' ? '#4ADE80'
-      : state === 'thinking'  ? '#FBBF24'
-      : state === 'speaking'  ? '#00C8FF'
-      : '#60A5FA';
-    eyeCol.current.set(hex);
-
-    const pulse = state === 'idle'      ? 0.6  + Math.sin(t * 1.5)         * 0.35
-      : state === 'listening' ? 1.3  + Math.sin(t * 4.0)         * 0.55
-      : state === 'thinking'  ? 0.9  + Math.abs(Math.sin(t * 2)) * 0.65
-      :                         1.4  + Math.abs(Math.sin(t * Math.PI / 0.55)) * 1.0;
-
-    for (const m of [lEyeRef.current, rEyeRef.current, antRef.current]) {
-      if (!m) continue;
-      m.color.copy(eyeCol.current);
-      m.emissive.copy(eyeCol.current);
-      m.emissiveIntensity = pulse * (m === antRef.current ? 0.75 : 1);
-    }
-
-    // ── chest EQ bars ──────────────────────────────────────────────────────
-    const active = state === 'speaking' || state === 'listening';
-    const barCount = state === 'speaking' ? 5 : 7;
-    const barColor = state === 'speaking' ? '#00C8FF' : '#4ADE80';
-    const period   = state === 'speaking' ? 0.55 : 0.38;
-    const delays   = state === 'speaking'
-      ? [0, 0.11, 0.22, 0.11, 0]
-      : [0, 0.07, 0.14, 0.21, 0.07, 0.14, 0];
-
-    barRefs.current.forEach((bar, i) => {
-      if (!bar) return;
-      if (!active || i >= barCount) {
-        bar.scale.y = 0.001;
-        bar.visible = false;
-        return;
-      }
-      bar.visible = true;
-      const phase = (t + delays[i]!) / period;
-      bar.scale.y = 0.25 + Math.abs(Math.sin(phase * Math.PI)) * 0.75;
-      (bar.material as THREE.MeshStandardMaterial).color.set(barColor);
-      (bar.material as THREE.MeshStandardMaterial).emissive.set(barColor);
-    });
-  });
-
-  const WHITE  = '#f0f0fa';
-  const SILVER = '#c8c8d8';
-  const VISOR  = '#0c0c1e';
-
-  // EQ bar X positions for 7 bars, centered on chest panel
-  const barXPositions7 = [-0.084, -0.056, -0.028, 0, 0.028, 0.056, 0.084];
-
-  return (
-    <group ref={rootRef}>
-      {/* ── TORSO ── */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[0.78, 0.98, 0.46]} />
-        <meshStandardMaterial color={WHITE} roughness={0.18} metalness={0.82} />
-      </mesh>
-
-      {/* Chest panel (dark) */}
-      <mesh position={[0, 0.05, 0.245]}>
-        <boxGeometry args={[0.48, 0.40, 0.04]} />
-        <meshStandardMaterial color={VISOR} roughness={0.2} metalness={0.6} />
-      </mesh>
-
-      {/* EQ bars on chest panel (7 slots, toggled by state) */}
-      {barXPositions7.map((x, i) => (
-        <mesh
-          key={i}
-          ref={el => { barRefs.current[i] = el; }}
-          position={[x, 0.04, 0.268]}
-          scale={[1, 0.001, 1]}
-        >
-          <boxGeometry args={[0.016, 0.14, 0.012]} />
-          <meshStandardMaterial color="#4ADE80" emissive="#4ADE80" emissiveIntensity={0.9} roughness={0.1} metalness={0.1} transparent opacity={0.9} />
-        </mesh>
-      ))}
-
-      {/* ── NECK ── */}
-      <mesh position={[0, 0.555, 0]}>
-        <cylinderGeometry args={[0.09, 0.112, 0.14, 12]} />
-        <meshStandardMaterial color={SILVER} roughness={0.3} metalness={0.76} />
-      </mesh>
-
-      {/* ── HEAD group ── */}
-      <group ref={headRef} position={[0, 0.66, 0]}>
-        <mesh>
-          <boxGeometry args={[0.68, 0.58, 0.54]} />
-          <meshStandardMaterial color={WHITE} roughness={0.14} metalness={0.88} />
-        </mesh>
-
-        {/* Visor strip */}
-        <mesh position={[0, 0.02, 0.285]}>
-          <boxGeometry args={[0.57, 0.22, 0.055]} />
-          <meshStandardMaterial color={VISOR} roughness={0.04} metalness={0.96} transparent opacity={0.92} />
-        </mesh>
-
-        {/* Left eye */}
-        <mesh position={[-0.135, 0.02, 0.315]}>
-          <sphereGeometry args={[0.068, 20, 20]} />
-          <meshStandardMaterial ref={lEyeRef} color="#60A5FA" emissive="#60A5FA" emissiveIntensity={0.8} roughness={0.05} metalness={0.05} />
-        </mesh>
-
-        {/* Right eye */}
-        <mesh position={[0.135, 0.02, 0.315]}>
-          <sphereGeometry args={[0.068, 20, 20]} />
-          <meshStandardMaterial ref={rEyeRef} color="#60A5FA" emissive="#60A5FA" emissiveIntensity={0.8} roughness={0.05} metalness={0.05} />
-        </mesh>
-
-        {/* Antenna pole */}
-        <mesh position={[0, 0.375, 0]}>
-          <cylinderGeometry args={[0.022, 0.022, 0.15, 10]} />
-          <meshStandardMaterial color="#909098" roughness={0.3} metalness={0.88} />
-        </mesh>
-
-        {/* Antenna tip — glows with eye colour */}
-        <mesh position={[0, 0.46, 0]}>
-          <sphereGeometry args={[0.044, 14, 14]} />
-          <meshStandardMaterial ref={antRef} color="#60A5FA" emissive="#60A5FA" emissiveIntensity={0.9} roughness={0.04} metalness={0.08} />
-        </mesh>
-      </group>
-
-      {/* ── LEFT ARM ── */}
-      <group position={[-0.51, 0.14, 0]} rotation={[0, 0, 0.28]}>
-        <mesh>
-          <cylinderGeometry args={[0.092, 0.082, 0.64, 12]} />
-          <meshStandardMaterial color={SILVER} roughness={0.24} metalness={0.80} />
-        </mesh>
-        {/* Left hand */}
-        <mesh position={[0, -0.38, 0]}>
-          <boxGeometry args={[0.19, 0.19, 0.15]} />
-          <meshStandardMaterial color={SILVER} roughness={0.28} metalness={0.75} />
-        </mesh>
-      </group>
-
-      {/* ── RIGHT ARM (waves when idle) ── */}
-      <group ref={rArmRef} position={[0.51, 0.14, 0]} rotation={[0, 0, -0.35]}>
-        <mesh>
-          <cylinderGeometry args={[0.092, 0.082, 0.64, 12]} />
-          <meshStandardMaterial color={SILVER} roughness={0.24} metalness={0.80} />
-        </mesh>
-        {/* Right hand */}
-        <mesh position={[0, -0.38, 0]}>
-          <boxGeometry args={[0.19, 0.19, 0.15]} />
-          <meshStandardMaterial color={SILVER} roughness={0.28} metalness={0.75} />
-        </mesh>
-      </group>
-
-      {/* ── LEGS ── */}
-      <mesh position={[-0.20, -0.73, 0]}>
-        <cylinderGeometry args={[0.122, 0.102, 0.50, 12]} />
-        <meshStandardMaterial color={SILVER} roughness={0.30} metalness={0.74} />
-      </mesh>
-      <mesh position={[0.20, -0.73, 0]}>
-        <cylinderGeometry args={[0.122, 0.102, 0.50, 12]} />
-        <meshStandardMaterial color={SILVER} roughness={0.30} metalness={0.74} />
-      </mesh>
-
-      {/* ── FEET ── */}
-      <mesh position={[-0.20, -1.04, 0.045]}>
-        <boxGeometry args={[0.26, 0.12, 0.34]} />
-        <meshStandardMaterial color="#b8b8ca" roughness={0.34} metalness={0.70} />
-      </mesh>
-      <mesh position={[0.20, -1.04, 0.045]}>
-        <boxGeometry args={[0.26, 0.12, 0.34]} />
-        <meshStandardMaterial color="#b8b8ca" roughness={0.34} metalness={0.70} />
-      </mesh>
-    </group>
-  );
-}
+// Replaced R3F / WebGL canvas with pure CSS because WebGL in a position:fixed
+// overlay fails silently on many mobile browsers (iOS Safari, Android WebView).
 
 function RobotAvatar({ state, excited = false }: { state: RobotState; excited?: boolean }) {
+  const eyeCol = state === 'listening' ? '#4ADE80'
+    : state === 'thinking'  ? '#FBBF24'
+    : state === 'speaking'  ? '#00C8FF'
+    : '#60A5FA';
+
+  const eyeGlow = `0 0 10px 4px ${eyeCol}88`;
+  const antGlow = `0 0 14px 5px ${eyeCol}55`;
+
+  const wrapAnim = excited
+    ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
+    : state === 'speaking' ? 'cfHeadBob 0.55s ease-in-out infinite'
+    : state === 'idle'     ? 'cfFloat 3s ease-in-out infinite'
+    : 'none';
+
+  const W = '#f4f4ff';
+  const S = '#d0d0e2';
+  const grad = `linear-gradient(155deg,${W} 40%,${S})`;
+
   return (
     <div style={{ position:'relative', width:220, height:220 }}>
-      {/* State ring behind robot */}
+
+      {/* State rings */}
       {state === 'listening' && (<>
         <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.42)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
         <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(74,222,128,0.2)',  animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
@@ -462,19 +257,153 @@ function RobotAvatar({ state, excited = false }: { state: RobotState; excited?: 
         <div style={{ position:'absolute', inset:10, borderRadius:'50%', border:'2px solid rgba(0,200,255,0.28)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />
       )}
 
-      {/* 3D Canvas — transparent background, no external assets */}
-      <Canvas
-        camera={{ position: [0, 0.05, 3.1], fov: 46 }}
-        gl={{ antialias: true, alpha: true }}
-        style={{ background: 'transparent' }}
-        dpr={[1, 2]}
-      >
-        <ambientLight intensity={0.55} />
-        <directionalLight position={[3, 5, 5]}  intensity={1.6} />
-        <directionalLight position={[-3, 2, -2]} intensity={0.45} color="#8888ff" />
-        <pointLight       position={[0, 0.5, 2]} intensity={0.6}  color="#a0b4ff" />
-        <Robot3DMesh state={state} excited={excited} />
-      </Canvas>
+      {/* ── CSS Robot ── */}
+      <div style={{
+        position:'absolute', top:'50%', left:'50%',
+        transform:'translate(-50%, -46%)',
+        animation: wrapAnim,
+        userSelect:'none', pointerEvents:'none',
+      }}>
+
+        {/* Antenna pole */}
+        <div style={{ margin:'0 auto', width:4, height:18, background:'linear-gradient(90deg,#8a8a98,#c4c4d8)', borderRadius:2 }} />
+        {/* Antenna tip */}
+        <div style={{
+          margin:'-3px auto 0', width:13, height:13, borderRadius:'50%',
+          background:eyeCol, boxShadow:antGlow,
+          transition:'background .4s, box-shadow .4s',
+          animation:'cfPulse 2s ease-in-out infinite',
+        }} />
+
+        {/* Head */}
+        <div style={{ marginTop:4, position:'relative' }}>
+          <div style={{
+            width:76, height:58, borderRadius:13, background:grad,
+            boxShadow:'3px 4px 14px rgba(0,0,0,0.3),-1px -1px 5px rgba(255,255,255,0.4)',
+            position:'relative',
+          }}>
+            {/* Visor strip */}
+            <div style={{
+              position:'absolute', top:'27%', left:'8%', right:'8%', height:'38%',
+              background:'linear-gradient(180deg,#090920,#0d0d26)',
+              borderRadius:8, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
+              display:'flex', alignItems:'center',
+            }}>
+              {/* Left eye */}
+              <div style={{
+                marginLeft:'13%', width:16, height:16, borderRadius:'50%',
+                background:eyeCol, boxShadow:eyeGlow,
+                transition:'background .4s, box-shadow .4s',
+                animation:'cfPulse 1.6s ease-in-out infinite', flexShrink:0,
+              }} />
+              <div style={{ flex:1 }} />
+              {/* Right eye */}
+              <div style={{
+                marginRight:'13%', width:16, height:16, borderRadius:'50%',
+                background:eyeCol, boxShadow:eyeGlow,
+                transition:'background .4s, box-shadow .4s',
+                animation:'cfPulse 1.6s ease-in-out 0.06s infinite', flexShrink:0,
+              }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Neck */}
+        <div style={{ margin:'0 auto', width:20, height:9, background:`linear-gradient(160deg,${S},#b0b0c6)`, borderRadius:'0 0 4px 4px' }} />
+
+        {/* Body + arms wrapper */}
+        <div style={{ position:'relative' }}>
+
+          {/* Left arm */}
+          <div style={{
+            position:'absolute', top:8, left:-19, width:15, height:66, borderRadius:8,
+            background:`linear-gradient(160deg,${S},#b8b8cc)`,
+            boxShadow:'2px 3px 10px rgba(0,0,0,0.22)',
+            transformOrigin:'top center', transform:'rotate(7deg)',
+            animation: state==='idle' ? 'cfArmWave 3s ease-in-out 1.5s infinite' : 'none',
+          }} />
+          {/* Left hand */}
+          <div style={{
+            position:'absolute', top:70, left:-23, width:21, height:15, borderRadius:5,
+            background:`linear-gradient(160deg,${S},#b0b0c4)`,
+            boxShadow:'1px 2px 6px rgba(0,0,0,0.2)',
+          }} />
+
+          {/* Right arm */}
+          <div style={{
+            position:'absolute', top:8, right:-19, width:15, height:66, borderRadius:8,
+            background:`linear-gradient(160deg,${S},#b8b8cc)`,
+            boxShadow:'2px 3px 10px rgba(0,0,0,0.22)',
+            transformOrigin:'top center', transform:'rotate(-7deg)',
+            animation: state==='idle' ? 'cfArmWave 3s ease-in-out infinite' : 'none',
+          }} />
+          {/* Right hand */}
+          <div style={{
+            position:'absolute', top:70, right:-23, width:21, height:15, borderRadius:5,
+            background:`linear-gradient(160deg,${S},#b0b0c4)`,
+            boxShadow:'1px 2px 6px rgba(0,0,0,0.2)',
+          }} />
+
+          {/* Body */}
+          <div style={{
+            width:90, height:90, borderRadius:14, background:grad,
+            boxShadow:'4px 5px 18px rgba(0,0,0,0.28),-2px -2px 6px rgba(255,255,255,0.35)',
+            position:'relative', overflow:'hidden',
+          }}>
+            {/* Chest panel */}
+            <div style={{
+              position:'absolute', top:'15%', left:'12%', right:'12%', bottom:'18%',
+              background:'#080820', borderRadius:9,
+              boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
+              display:'flex', alignItems:'flex-end', justifyContent:'center',
+              gap:3, paddingBottom:6,
+            }}>
+              {(state==='speaking'||state==='listening')
+                ? [0,1,2,3,4].map(i => (
+                    <div key={i} style={{
+                      width:5, height:'55%', borderRadius:2,
+                      transformOrigin:'bottom',
+                      background: state==='speaking' ? '#00C8FF' : '#4ADE80',
+                      boxShadow:`0 0 5px ${state==='speaking'?'#00C8FFaa':'#4ADE80aa'}`,
+                      animation:`cfVoiceBar ${state==='speaking'?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite`,
+                    }} />
+                  ))
+                : (
+                    <div style={{
+                      width:10, height:10, borderRadius:'50%', marginBottom:2,
+                      background:eyeCol, boxShadow:`0 0 8px 2px ${eyeCol}66`,
+                      transition:'background .4s, box-shadow .4s',
+                      animation:'cfPulse 2s ease-in-out infinite',
+                    }} />
+                  )
+              }
+            </div>
+          </div>
+        </div>
+
+        {/* Legs */}
+        <div style={{ display:'flex', justifyContent:'center', gap:12, marginTop:3 }}>
+          {[0,1].map(i => (
+            <div key={i} style={{
+              width:21, height:36, borderRadius:'4px 4px 7px 7px',
+              background:`linear-gradient(160deg,${S},#a6a6ba)`,
+              boxShadow:'2px 3px 8px rgba(0,0,0,0.2)',
+            }} />
+          ))}
+        </div>
+
+        {/* Feet */}
+        <div style={{ display:'flex', justifyContent:'center', gap:8 }}>
+          {[0,1].map(i => (
+            <div key={i} style={{
+              width:28, height:10, borderRadius:'3px 3px 8px 8px',
+              background:'linear-gradient(160deg,#b2b2c6,#8e8ea2)',
+              boxShadow:'2px 2px 6px rgba(0,0,0,0.2)',
+            }} />
+          ))}
+        </div>
+
+      </div>{/* end robot */}
 
       {/* Sparkles on excited */}
       {excited && [
