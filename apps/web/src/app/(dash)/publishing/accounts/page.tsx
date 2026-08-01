@@ -112,7 +112,7 @@ export default function PublishingAccountsPage() {
                   {isYT ? (
                     status.connected ? (
                       <a
-                        href="/projects?tab=channels"
+                        href="/publish?tab=accounts"
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
                       >
                         <ExternalLink className="w-3 h-3" /> Manage

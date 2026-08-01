@@ -1,9 +1,10 @@
 'use client';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Upload, CheckCircle, CalendarClock, Sparkles, FlaskConical } from 'lucide-react';
+import { Upload, CheckCircle, CalendarClock, Sparkles, FlaskConical, Link2 } from 'lucide-react';
 import { ProBanner } from '@/components/pro-gate';
 import PublishingPage from '../publishing/page';
+import PublishingAccountsPage from '../publishing/accounts/page';
 import ApprovalsPage from '../approvals/page';
 import SchedulerPage from '../scheduler/page';
 import AutonomyPage from '../autonomy/page';
@@ -18,6 +19,12 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
+  {
+    id: 'accounts',
+    label: 'Accounts',
+    icon: Link2,
+    description: 'Connect and manage your publishing accounts across all platforms',
+  },
   {
     id: 'approvals',
     label: 'Review',
@@ -123,6 +130,7 @@ function PublishContent() {
       )}
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
+      {activeTab === 'accounts'   && <PublishingAccountsPage />}
       {activeTab === 'approvals'  && <ApprovalsPage />}
       {activeTab === 'scheduler'  && <SchedulerPage />}
       {activeTab === 'publishing' && <PublishingPage />}

@@ -1250,7 +1250,7 @@ function ProjectsTab({
                     {otherChannels.length === 0 ? (
                       <p style={{ fontSize: 12, color: '#9ca3af' }}>
                         No other accounts connected yet.{' '}
-                        <Link href="/projects?tab=channels" className="text-[#6D4AE0] font-semibold hover:underline" onClick={closeCreate}>Connect accounts →</Link>
+                        <Link href="/publish?tab=accounts" className="text-[#6D4AE0] font-semibold hover:underline" onClick={closeCreate}>Connect accounts →</Link>
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-2 mt-1">
