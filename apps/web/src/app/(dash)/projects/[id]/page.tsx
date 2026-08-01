@@ -1571,7 +1571,19 @@ export default function ProjectDetailPage() {
                  style={{ background: '#faf9ff' }}>
               <p className="text-xs text-gray-500">
                 💡 <strong>Offline mode</strong> — All AI tools work without a connected channel. Connect later when you want to publish.{' '}
-                <Link href="/library?tab=channels" className="text-[#6D4AE0] font-semibold hover:underline">Connect a channel →</Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const _apiUrl = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+                    const returnPath = `/projects/${id}?publish=1`;
+                    api.channels.getAuthUrl(`${_apiUrl}/channels/oauth/callback`, 'PUBLISH', returnPath)
+                      .then((r) => { window.location.href = (r.data as { url: string }).url; })
+                      .catch(() => { window.location.href = '/projects?tab=channels'; });
+                  }}
+                  className="text-[#6D4AE0] font-semibold hover:underline"
+                >
+                  Connect a channel →
+                </button>
               </p>
             </div>
           )}

@@ -2,6 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
+import { api } from '@/lib/api';
+
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
 
 const PLATFORMS = [
   { id: 'YOUTUBE',   label: 'YouTube',     color: '#FF0000', emoji: '▶' },
@@ -33,11 +36,16 @@ export function PublishPlatformModal({
 
   const connected = new Set(connectedPlatforms.map((p) => p.toUpperCase()));
 
-  function handleConnect(platformId: string) {
-    const returnUrl =
-      window.location.pathname + '?publishProjectId=' + projectId;
-    sessionStorage.setItem('cf.oauth.returnUrl', returnUrl);
-    router.push('/library?tab=channels');
+  async function handleConnect(_platformId: string) {
+    try {
+      const returnUrl = window.location.pathname + '?publishProjectId=' + projectId;
+      sessionStorage.setItem('cf.oauth.returnUrl', returnUrl);
+      const redirectUri = `${API_URL}/channels/oauth/callback`;
+      const { data } = await api.channels.getAuthUrl(redirectUri, 'PUBLISH', returnUrl) as { data: { url: string } };
+      window.location.href = data.url;
+    } catch {
+      router.push('/projects?tab=channels');
+    }
   }
 
   function handlePublish() {
@@ -68,7 +76,13 @@ export function PublishPlatformModal({
           <p className="text-sm text-gray-500 mb-4 truncate">{projectTitle}</p>
         )}
 
-        <ul className="space-y-3 mt-4">
+        <div className="rounded-xl px-4 py-3 mb-4" style={{ background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}>
+          <p className="text-xs" style={{ color: '#4c1d95' }}>
+            ℹ You don&apos;t need to connect any account now. Create your content first. Connect whenever you&apos;re ready to publish.
+          </p>
+        </div>
+
+        <ul className="space-y-3">
           {PLATFORMS.map((platform) => {
             const isConnected = connected.has(platform.id);
             return (
@@ -107,7 +121,7 @@ export function PublishPlatformModal({
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleConnect(platform.id)}
+                    onClick={() => void handleConnect(platform.id)}
                     className="rounded-lg border border-[#6D4AE0] px-4 py-1.5 text-sm font-medium text-[#6D4AE0] hover:bg-[#6D4AE0]/5 transition-colors"
                   >
                     Connect

@@ -67,6 +67,40 @@ const PRESETS = [
   { value: 'SQUARE',    label: 'Square 1:1' },
 ] as const;
 
+// Platform-specific render profiles sent to the backend RENDER stage.
+// Each entry maps to a PLATFORM_PROFILES entry in supervisor.worker.ts.
+const RENDER_PLATFORMS = [
+  { value: 'YOUTUBE',         label: 'YouTube',            format: '16:9 · 1920×1080', icon: '▶', quality: 'CRF 18 · 8 Mbps · 192 kbps AAC 48 kHz' },
+  { value: 'YOUTUBE_SHORTS',  label: 'YouTube Shorts',     format: '9:16 · 1080×1920', icon: '▶', quality: 'CRF 20 · 3.5 Mbps · 128 kbps AAC' },
+  { value: 'INSTAGRAM_REELS', label: 'Instagram Reels',    format: '9:16 · 1080×1920', icon: '◉', quality: 'CRF 20 · 3.5 Mbps · 128 kbps AAC' },
+  { value: 'INSTAGRAM_FEED',  label: 'Instagram Feed',     format: '1:1 · 1080×1080',  icon: '◉', quality: 'CRF 20 · 3.5 Mbps · 128 kbps AAC' },
+  { value: 'TIKTOK',          label: 'TikTok',             format: '9:16 · 1080×1920', icon: '♪', quality: 'CRF 20 · 3.5 Mbps · 128 kbps AAC' },
+  { value: 'FACEBOOK',        label: 'Facebook',           format: '16:9 · 1920×1080', icon: 'f', quality: 'CRF 20 · 8 Mbps · 192 kbps AAC 48 kHz' },
+  { value: 'TWITTER_X',       label: 'Twitter / X',        format: '16:9 · 1920×1080', icon: 'X', quality: 'CRF 20 · 5 Mbps · 128 kbps AAC' },
+  { value: 'LINKEDIN',        label: 'LinkedIn',           format: '16:9 · 1920×1080', icon: 'in', quality: 'CRF 20 · 5 Mbps · 128 kbps AAC' },
+  { value: 'BROADCAST',       label: 'Broadcast / Archive', format: '16:9 · 1920×1080', icon: '◈', quality: 'CRF 14 · 25 Mbps · 320 kbps AAC 48 kHz' },
+] as const;
+
+type RenderPlatformValue = typeof RENDER_PLATFORMS[number]['value'];
+
+const VIDEO_TYPES = [
+  { value: 'long-form',    label: 'Long-form video',  hint: 'Tutorial, documentary, review — any length' },
+  { value: 'short',        label: 'Short / Reels',    hint: '15–90 seconds for Shorts, Reels, TikTok' },
+  { value: 'ad',           label: 'Advertisement',    hint: '15–60 second promo or product ad' },
+  { value: 'tutorial',     label: 'Tutorial / How-to', hint: 'Step-by-step instructional content' },
+] as const;
+
+// Map the coarse research platform to a sensible render-platform default
+const PLATFORM_TO_RENDER: Record<string, RenderPlatformValue> = {
+  YouTube:   'YOUTUBE',
+  Facebook:  'FACEBOOK',
+  Instagram: 'INSTAGRAM_REELS',
+  TikTok:    'TIKTOK',
+  LinkedIn:  'LINKEDIN',
+  Podcast:   'YOUTUBE',
+  Custom:    'YOUTUBE',
+};
+
 const FULL_MEDIA_REGENERATE = ['VOICE_GENERATE', 'IMAGE_GENERATE', 'MUSIC_GENERATE', 'VIDEO_GENERATE', 'EDIT_PLAN', 'RENDER'] as const;
 
 function latest(jobs: Job[], type: string): Job | undefined {
@@ -300,6 +334,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
   const [voiceKey, setVoiceKey] = useState('');
   const [voiceKeySaved, setVoiceKeySaved] = useState(false);
+  // Pre-render settings dialog
+  const [showRenderDialog, setShowRenderDialog] = useState(false);
+  const [renderPlatform, setRenderPlatform] = useState<RenderPlatformValue>(() =>
+    PLATFORM_TO_RENDER[platform] ?? 'YOUTUBE');
+  const [renderVideoType, setRenderVideoType] = useState<typeof VIDEO_TYPES[number]['value']>('long-form');
 
   const { data: channels = [] } = useQuery({
     queryKey: ['channels'],
@@ -1027,20 +1066,10 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           </div>
         ) : (
           <button
-            onClick={() =>
-              enqueue.mutate({
-                type: 'FULL_PRODUCTION',
-                payload: {
-                  scope: 'FULL',
-                  preset,
-                  ...(refreshMedia
-                    ? { regenerate: [...FULL_MEDIA_REGENERATE] }
-                    : renderDone
-                      ? { regenerate: ['RENDER'] }
-                      : {}),
-                },
-              })
-            }
+            onClick={() => {
+              setRenderPlatform(PLATFORM_TO_RENDER[platform] ?? 'YOUTUBE');
+              setShowRenderDialog(true);
+            }}
             disabled={busy || !scriptDone}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-colors disabled:opacity-40 ${
               renderDone
@@ -1119,6 +1148,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   }
 
   return (
+    <>
     <div className="mb-6">
       {/* Content Pipeline header (design ref: 1.png) */}
       <div className="flex items-center gap-4 flex-wrap mb-4">
@@ -1348,5 +1378,107 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
         Complete each step in order for the best results.
       </p>
     </div>
+
+    {/* ── Pre-render settings dialog ──────────────────────────────────────── */}
+    {showRenderDialog && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Render settings</h3>
+              <p className="text-[11px] text-gray-500 mt-0.5">Choose where this video will be published</p>
+            </div>
+            <button onClick={() => setShowRenderDialog(false)} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Platform grid */}
+          <div className="px-5 pt-4 pb-2">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Target platform</p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {RENDER_PLATFORMS.map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => setRenderPlatform(p.value)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                    renderPlatform === p.value
+                      ? 'border-brand-500 bg-brand-50 text-brand-900'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  }`}
+                >
+                  <span className="w-6 h-6 flex items-center justify-center text-xs font-bold rounded-md bg-gray-100 shrink-0">{p.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold">{p.label}</span>
+                      <span className="text-[10px] text-gray-500 ml-2 shrink-0">{p.format}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 truncate">{p.quality}</p>
+                  </div>
+                  {renderPlatform === p.value && (
+                    <CheckCircle className="w-4 h-4 text-brand-500 shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Video type */}
+          <div className="px-5 pt-3 pb-2">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Video type</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {VIDEO_TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setRenderVideoType(t.value)}
+                  className={`flex flex-col px-3 py-2 rounded-xl border text-left transition-colors ${
+                    renderVideoType === t.value
+                      ? 'border-brand-500 bg-brand-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="text-xs font-semibold text-gray-900">{t.label}</span>
+                  <span className="text-[10px] text-gray-400 mt-0.5">{t.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
+            <button
+              onClick={() => setShowRenderDialog(false)}
+              className="px-4 py-2 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowRenderDialog(false);
+                enqueue.mutate({
+                  type: 'FULL_PRODUCTION',
+                  payload: {
+                    scope: 'FULL',
+                    platform: renderPlatform,
+                    videoType: renderVideoType,
+                    ...(refreshMedia
+                      ? { regenerate: [...FULL_MEDIA_REGENERATE] }
+                      : renderDone
+                        ? { regenerate: ['RENDER'] }
+                        : {}),
+                  },
+                });
+              }}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 shadow-sm transition-colors"
+            >
+              <Play className="w-3 h-3" />
+              {renderDone ? 'Re-render' : 'Start rendering'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
