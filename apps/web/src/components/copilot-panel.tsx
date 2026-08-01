@@ -722,11 +722,13 @@ export function CopilotPanel() {
       const axiosErr = err as { response?: { status?: number }; code?: string };
       const status = axiosErr.response?.status;
       const isTimeout = axiosErr.code === 'ECONNABORTED' || axiosErr.code === 'ERR_NETWORK' || status === 504;
+      const is502 = status === 502 || status === 503;
       const msg = status === 504
         ? 'The AI is taking longer than expected. Try again in a moment.'
+        : is502 ? 'Backend API not reachable. For full functionality, access the app via your local network (http://[your-PC-IP]:3007) or configure API_URL in your deployment.'
         : status ? httpErrorMessage(status)
         : isTimeout ? 'The AI is taking longer than expected. Check your connection and try again.'
-        : 'Connection error — check your network and try again.';
+        : 'Cannot reach the server — make sure the API server is running at port 4007.';
       setMessages(m => [...m, { role:'assistant', content:`⚠️ ${msg}`, fromCache:false }]);
       conversationRef.current = false;
       window.speechSynthesis?.cancel();
