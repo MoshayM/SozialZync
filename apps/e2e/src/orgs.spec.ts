@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
 
-const BASE = 'http://localhost:4007/api/v1';
+const PROXY = 'http://localhost:3007/api/proxy';
 
 const MOCK_ORG = {
   id: 'org-1',
@@ -37,16 +37,16 @@ const MOCK_TEAMS = [
 
 async function mockOrgRoutes(page: Page, opts?: { orgs?: unknown[]; role?: string; teams?: unknown[] }) {
   const orgs = opts?.orgs ?? [{ ...MOCK_ORG, role: opts?.role ?? 'ORG_ADMIN' }];
-  await page.route(`${BASE}/orgs/mine`, (route) => route.fulfill({ json: orgs }));
-  await page.route(`${BASE}/orgs/org-1/members`, (route) => {
+  await page.route(`${PROXY}/orgs/mine`, (route) => route.fulfill({ json: orgs }));
+  await page.route(`${PROXY}/orgs/org-1/members`, (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: MOCK_MEMBERS });
     return route.fulfill({ status: 201, json: MOCK_MEMBERS[1] });
   });
-  await page.route(`${BASE}/orgs/org-1/teams`, (route) => {
+  await page.route(`${PROXY}/orgs/org-1/teams`, (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: opts?.teams ?? [] });
     return route.fulfill({ status: 201, json: MOCK_TEAMS[0] });
   });
-  await page.route(/\/api\/v1\/orgs\/org-1\/budget/, (route) => {
+  await page.route(/\/api\/proxy\/orgs\/org-1\/budget/, (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: MOCK_BUDGET });
     return route.fulfill({ json: MOCK_BUDGET.period });
   });
@@ -69,7 +69,7 @@ test.describe('Organization page', () => {
   test('creating an org POSTs /orgs with the entered name', async ({ page }) => {
     await mockOrgRoutes(page, { orgs: [] });
     let posted: Record<string, unknown> | null = null;
-    await page.route(`${BASE}/orgs`, (route) => {
+    await page.route(`${PROXY}/orgs`, (route) => {
       posted = route.request().postDataJSON() as Record<string, unknown>;
       return route.fulfill({ status: 201, json: { ...MOCK_ORG, name: posted['name'] } });
     });
@@ -101,7 +101,7 @@ test.describe('Organization page', () => {
   test('saving a budget period PUTs the entered allocation', async ({ page }) => {
     await mockOrgRoutes(page);
     let putBody: Record<string, unknown> | null = null;
-    await page.route(/\/api\/v1\/orgs\/org-1\/budget/, (route) => {
+    await page.route(/\/api\/proxy\/orgs\/org-1\/budget/, (route) => {
       if (route.request().method() === 'PUT') {
         putBody = route.request().postDataJSON() as Record<string, unknown>;
         return route.fulfill({ json: MOCK_BUDGET.period });
@@ -139,7 +139,7 @@ test.describe('Teams (Wave 8)', () => {
   test('teams card lists teams and creating one POSTs the name', async ({ page }) => {
     await mockOrgRoutes(page, { teams: MOCK_TEAMS });
     let posted: Record<string, unknown> | null = null;
-    await page.route(`${BASE}/orgs/org-1/teams`, (route) => {
+    await page.route(`${PROXY}/orgs/org-1/teams`, (route) => {
       if (route.request().method() === 'POST') {
         posted = route.request().postDataJSON() as Record<string, unknown>;
         return route.fulfill({ status: 201, json: { ...MOCK_TEAMS[0], id: 'team-3', name: posted['name'] } });
@@ -160,7 +160,7 @@ test.describe('Teams (Wave 8)', () => {
     await mockOrgRoutes(page, { teams: MOCK_TEAMS });
     const budgetGets: Array<string | null> = [];
     let putBody: Record<string, unknown> | null = null;
-    await page.route(/\/api\/v1\/orgs\/org-1\/budget/, (route) => {
+    await page.route(/\/api\/proxy\/orgs\/org-1\/budget/, (route) => {
       if (route.request().method() === 'PUT') {
         putBody = route.request().postDataJSON() as Record<string, unknown>;
         return route.fulfill({ json: MOCK_BUDGET.period });
@@ -186,7 +186,7 @@ test.describe('Teams (Wave 8)', () => {
   test('add-member form sends the selected teamId', async ({ page }) => {
     await mockOrgRoutes(page, { teams: MOCK_TEAMS });
     let posted: Record<string, unknown> | null = null;
-    await page.route(`${BASE}/orgs/org-1/members`, (route) => {
+    await page.route(`${PROXY}/orgs/org-1/members`, (route) => {
       if (route.request().method() === 'POST') {
         posted = route.request().postDataJSON() as Record<string, unknown>;
         return route.fulfill({ status: 201, json: MOCK_MEMBERS[1] });
@@ -212,7 +212,7 @@ test.describe('Bill-to-org pickers', () => {
   test('copilot panel sends the selected orgId with the turn', async ({ page }) => {
     await mockOrgRoutes(page);
     let chatBody: Record<string, unknown> | null = null;
-    await page.route(`${BASE}/copilot/chat`, (route) => {
+    await page.route(`${PROXY}/copilot/chat`, (route) => {
       chatBody = route.request().postDataJSON() as Record<string, unknown>;
       return route.fulfill({ json: { reply: 'Done.' } });
     });
@@ -231,7 +231,7 @@ test.describe('Bill-to-org pickers', () => {
   test('project page billing picker PUTs billingOrgId', async ({ page }) => {
     await mockOrgRoutes(page);
     let putBody: Record<string, unknown> | null = null;
-    await page.route(/\/api\/v1\/projects\/proj-1$/, (route) => {
+    await page.route(/\/api\/proxy\/projects\/proj-1$/, (route) => {
       if (route.request().method() === 'PUT') {
         putBody = route.request().postDataJSON() as Record<string, unknown>;
         return route.fulfill({ json: {} });

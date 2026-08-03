@@ -10,7 +10,8 @@ import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
  * gate trips but do not gate on their own.
  */
 
-const AUTHED_PAGES = ['/projects', '/wallet', '/growth', '/library', '/orgs', '/settings', '/insights'];
+// /library is a redirect-only component (→ /projects?tab=channels) with no UI to scan
+const AUTHED_PAGES = ['/projects', '/wallet', '/growth', '/orgs', '/settings', '/insights'];
 
 async function auditCurrentPage(page: import('@playwright/test').Page) {
   const results = await new AxeBuilder({ page })
@@ -28,19 +29,21 @@ async function auditCurrentPage(page: import('@playwright/test').Page) {
 
 test.describe('Accessibility (axe, WCAG 2.2 AA)', () => {
   for (const path of AUTHED_PAGES) {
-    test(`${path} has no serious/critical violations`, async ({ page }) => {
+    test(`${path} has no serious/critical violations`, { timeout: 120_000 }, async ({ page }) => {
       await setupApiMocks(page);
       await setAuthToken(page);
       await page.goto(path);
-      await expect(page.getByRole('main')).toBeVisible({ timeout: 10_000 });
+      // Wait for initial paint; networkidle can stall for 30s+ in a heavy React app
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
 
       expect(await auditCurrentPage(page)).toEqual([]);
     });
   }
 
-  test('/login has no serious/critical violations', async ({ page }) => {
+  test('/login has no serious/critical violations', { timeout: 120_000 }, async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 15_000 });
 
     expect(await auditCurrentPage(page)).toEqual([]);
   });

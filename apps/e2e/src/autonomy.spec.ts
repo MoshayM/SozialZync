@@ -11,7 +11,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
 
-const BASE = 'http://localhost:4007/api/v1';
+const PROXY = 'http://localhost:3007/api/proxy';
 const CHANNEL_ID = 'ch-auto-1';
 const ENTRY_ID_1 = 'entry-auto-1';
 const ENTRY_ID_2 = 'entry-auto-2';
@@ -139,8 +139,13 @@ const AUTOMATION_SETTINGS = {
 // ── Route mock setup ──────────────────────────────────────────────────────────
 
 async function setupAutonomyMocks(page: Page) {
+  // Shared state — declared first so all route closures can reference them
+  const approvedIds = new Set<string>();
+  const dismissedIds = new Set<string>();
+  let generated = false;
+
   // Override channels to return only our synthetic channel
-  await page.route(`${BASE}/channels`, async (route) => {
+  await page.route(`${PROXY}/channels`, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({ json: [SYNTHETIC_CHANNEL] });
     } else {
@@ -152,43 +157,6 @@ async function setupAutonomyMocks(page: Page) {
   await page.route(new RegExp(`/autonomy/channels/${CHANNEL_ID}/profile`), async (route) => {
     await route.fulfill({ json: SYNTHETIC_PROFILE });
   });
-
-  // Generate (sync) — state machine: first call returns entries, subsequent calls re-fetch
-  let generated = false;
-  await page.route(
-    new RegExp(`/autonomy/channels/${CHANNEL_ID}/calendar/generate$`),
-    async (route) => {
-      generated = true;
-      await route.fulfill({ json: GENERATE_RESULT });
-    },
-  );
-
-  // Generate (async) — returns a jobId
-  await page.route(
-    new RegExp(`/autonomy/channels/${CHANNEL_ID}/calendar/generate-async$`),
-    async (route) => {
-      await route.fulfill({ json: { jobId: 'job-cal-1' } });
-    },
-  );
-
-  // Calendar list — returns proposals if generated, else empty
-  let approvedIds = new Set<string>();
-  let dismissedIds = new Set<string>();
-  await page.route(
-    new RegExp(`/autonomy/channels/${CHANNEL_ID}/calendar`),
-    async (route) => {
-      const url = new URL(route.request().url());
-      const status = url.searchParams.get('status');
-      let entries = generated ? [...SYNTHETIC_ENTRIES_PROPOSED] : [];
-      entries = entries.map((e) => {
-        if (approvedIds.has(e.id)) return { ...e, status: 'APPROVED', videoId: 'video-draft-1' };
-        if (dismissedIds.has(e.id)) return { ...e, status: 'DISMISSED' };
-        return e;
-      });
-      if (status) entries = entries.filter((e) => e.status === status);
-      await route.fulfill({ json: entries });
-    },
-  );
 
   // Approve
   await page.route(/\/autonomy\/calendar\/[^/]+\/approve$/, async (route) => {
@@ -221,12 +189,48 @@ async function setupAutonomyMocks(page: Page) {
   await page.route(/\/publishing\/videos/, async (route) => {
     await route.fulfill({ json: { data: [], total: 0, take: 50, skip: 0 } });
   });
+
+  // Calendar list — registered before generate so generate routes win in LIFO (last-in wins).
+  // The broad pattern /calendar matches both GET /calendar and POST /calendar/generate, so
+  // the more-specific generate routes must be registered AFTER this to have higher LIFO priority.
+  await page.route(
+    new RegExp(`/autonomy/channels/${CHANNEL_ID}/calendar`),
+    async (route) => {
+      const url = new URL(route.request().url());
+      const status = url.searchParams.get('status');
+      let entries = generated ? [...SYNTHETIC_ENTRIES_PROPOSED] : [];
+      entries = entries.map((e) => {
+        if (approvedIds.has(e.id)) return { ...e, status: 'APPROVED', videoId: 'video-draft-1' };
+        if (dismissedIds.has(e.id)) return { ...e, status: 'DISMISSED' };
+        return e;
+      });
+      if (status) entries = entries.filter((e) => e.status === status);
+      await route.fulfill({ json: entries });
+    },
+  );
+
+  // Generate (async) — registered after calendar list so it wins for /calendar/generate-async
+  await page.route(
+    new RegExp(`/autonomy/channels/${CHANNEL_ID}/calendar/generate-async$`),
+    async (route) => {
+      await route.fulfill({ json: { jobId: 'job-cal-1' } });
+    },
+  );
+
+  // Generate (sync) — registered LAST so it wins over calendar list for POST /calendar/generate
+  await page.route(
+    new RegExp(`/autonomy/channels/${CHANNEL_ID}/calendar/generate$`),
+    async (route) => {
+      generated = true;
+      await route.fulfill({ json: GENERATE_RESULT });
+    },
+  );
 }
 
 async function seedLocalStorage(page: Page) {
   await page.evaluate(
     ([chId]) => {
-      localStorage.setItem('cf.autonomy.channelId', chId);
+      localStorage.setItem('cf.autopilot.channelId', chId);
       localStorage.setItem('cf.scheduler.channelId', chId);
       localStorage.setItem('cf.automation.channelId', chId);
     },
@@ -247,16 +251,15 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   // ── Navigation ──────────────────────────────────────────────────────────────
 
   test('Autopilot nav entry is present and active on the page', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
-    const navLink = page.locator('a[href="/autonomy"]');
-    await expect(navLink).toBeVisible({ timeout: 10_000 });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
+    // Sidebar no longer has a direct /autonomy link — page is accessed via URL
     await expect(page.locator('h1')).toContainText('Autopilot', { timeout: 10_000 });
   });
 
   // ── Channel profile ─────────────────────────────────────────────────────────
 
   test('channel profile stat cards render with synthetic data', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Avg views (90d)')).toBeVisible();
     await expect(page.getByText('Best slots')).toBeVisible();
@@ -267,7 +270,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   });
 
   test('channel selector shows the synthetic channel name', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
     const selector = page.locator('select').first();
     await expect(selector).toContainText('Synthetic Test Channel');
@@ -276,7 +279,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   // ── Calendar generation ─────────────────────────────────────────────────────
 
   test('Generate calendar button POSTs and shows proposals', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     const generateReq = page.waitForRequest(
@@ -291,7 +294,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   });
 
   test('self-critique paragraph appears after generation', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: /generate calendar/i }).click();
@@ -301,26 +304,23 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   });
 
   test('Dry run toggle sends dryRun=true and does not persist entries', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
-    // Toggle dry run
-    await page.getByRole('button', { name: /dry run/i }).click();
-
-    let sentBody: Record<string, unknown> = {};
+    // "Dry run" directly calls generate.mutate(true) — set up interceptor before clicking
     const generateReq = page.waitForRequest(
       (r) => r.method() === 'POST' && r.url().includes('/calendar/generate'),
     );
-    await page.getByRole('button', { name: /generate calendar/i }).click();
+    await page.getByRole('button', { name: /dry run/i }).click();
     const req = await generateReq;
-    sentBody = req.postDataJSON() as Record<string, unknown>;
+    const sentBody = req.postDataJSON() as Record<string, unknown>;
     expect(sentBody['dryRun']).toBe(true);
   });
 
   // ── Approve / dismiss ───────────────────────────────────────────────────────
 
   test('Approve button POSTs approve and moves entry to Approved section', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     // Generate first
@@ -339,7 +339,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   });
 
   test('Dismiss button POSTs dismiss endpoint', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: /generate calendar/i }).click();
@@ -363,8 +363,8 @@ test.describe('Autonomy — Phase 6 full flow', () => {
       },
     );
 
-    await page.goto('/scheduler', { waitUntil: 'networkidle' });
-    await expect(page.locator('h1')).toContainText('Scheduler', { timeout: 10_000 });
+    await page.goto('/scheduler', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Scheduler' })).toBeVisible({ timeout: 10_000 });
 
     // Calendar month view
     await expect(page.getByText(/July 2026|August 2026/i)).toBeVisible({ timeout: 8_000 });
@@ -374,33 +374,41 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   });
 
   test('Scheduler summary stat cards render', async ({ page }) => {
-    await page.goto('/scheduler', { waitUntil: 'networkidle' });
-    await expect(page.locator('h1')).toContainText('Scheduler', { timeout: 10_000 });
-    await expect(page.getByText('Scheduled')).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText('Published')).toBeVisible();
-    await expect(page.getByText('Failed')).toBeVisible();
+    await page.goto('/scheduler', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Scheduler' })).toBeVisible({ timeout: 10_000 });
+    // Use paragraph role to avoid matching calendar legend <span> elements and description text
+    await expect(page.getByRole('paragraph').filter({ hasText: /^Scheduled$/ })).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('paragraph').filter({ hasText: /^Published$/ })).toBeVisible();
+    await expect(page.getByRole('paragraph').filter({ hasText: /^Failed$/ })).toBeVisible();
   });
 
   test('Scheduler list view renders after clicking List', async ({ page }) => {
-    await page.goto('/scheduler', { waitUntil: 'networkidle' });
-    await expect(page.locator('h1')).toContainText('Scheduler', { timeout: 10_000 });
-
-    await page.getByRole('button', { name: /list/i }).click();
-    // Status filter tabs
-    await expect(page.getByRole('tab', { name: /all/i }).or(page.getByText(/All/i))).toBeVisible({ timeout: 5_000 });
+    // Navigate to the final URL directly (skip the /scheduler redirect).
+    await page.goto('/publish?tab=scheduler', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: 'Scheduler' })).toBeVisible({ timeout: 10_000 });
+    // The channel combobox reads localStorage in its useState initializer and only shows 'ch-auto-1'
+    // after React fully mounts on the client (not during SSR). This is the reliable hydration signal
+    // that React is interactive and onClick handlers are attached before we click List.
+    await expect(page.getByRole('combobox', { name: 'Select channel' })).toHaveValue('ch-auto-1', { timeout: 10_000 });
+    await page.getByRole('button', { name: 'List' }).click();
+    // After switching, the list view's search input appears (aria-label="Search videos", unique to list view)
+    await expect(page.getByRole('searchbox', { name: 'Search videos' })).toBeVisible({ timeout: 10_000 });
   });
 
   // ── Automation page toggles ─────────────────────────────────────────────────
 
   test('Automation page shows Auto-plan and Auto-research toggles', async ({ page }) => {
-    await page.goto('/automation', { waitUntil: 'networkidle' });
-    await expect(page.locator('h1')).toContainText('Automation', { timeout: 10_000 });
-    await expect(page.getByText('Auto-plan content calendar')).toBeVisible({ timeout: 8_000 });
+    // /automation redirects to /autonomy (next.config.ts), so the Autopilot page renders
+    await page.goto('/automation', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1')).toContainText('Autopilot', { timeout: 10_000 });
+    // Feature toggles live in the Settings tab — click it first
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await expect(page.getByText('Auto-plan calendar')).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText('Auto-research on approve')).toBeVisible({ timeout: 8_000 });
   });
 
   test('Autonomy phase-6 guiding constraint: no autonomous publish toggle exposed', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Autopilot', { timeout: 10_000 });
     // There must never be a "publish" button inside the Autonomy page
     const publishBtn = page.getByRole('button', { name: /^publish$/i });
@@ -419,7 +427,18 @@ test.describe('Autonomy — synthetic channel alpha (heuristic path)', () => {
     await setAuthToken(page);
     await seedLocalStorage(page);
 
-    // Override generate to simulate heuristic (source='heuristic', no critique)
+    // Calendar list override — registered FIRST (lower LIFO priority) so the generate override
+    // below still wins for POST /calendar/generate. Always returns entries so post-generate
+    // re-fetch shows heuristic titles (setupAutonomyMocks' generated flag is never set here).
+    await page.route(
+      new RegExp(`/autonomy/channels/${CHANNEL_ID}/calendar`),
+      async (route) => {
+        await route.fulfill({ json: SYNTHETIC_ENTRIES_PROPOSED });
+      },
+    );
+
+    // Override generate to simulate heuristic (source='heuristic', no critique).
+    // Registered AFTER calendar override so it wins for POST /calendar/generate (LIFO).
     await page.route(
       new RegExp(`/autonomy/channels/${CHANNEL_ID}/calendar/generate$`),
       async (route) => {
@@ -429,7 +448,7 @@ test.describe('Autonomy — synthetic channel alpha (heuristic path)', () => {
       },
     );
 
-    await page.goto('/autonomy', { waitUntil: 'networkidle' });
+    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: /generate calendar/i }).click();

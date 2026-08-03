@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
 
-const BASE = 'http://localhost:4007/api/v1';
+const PROXY = 'http://localhost:3007/api/proxy';
 
 const MOCK_BALANCE = {
   balanceCredits: 1_240,
@@ -117,11 +117,11 @@ async function setupWalletMocks(
   const budget = opts.budgetStatus === 'OK' ? MOCK_BUDGET_OK : MOCK_BUDGET_NONE;
   let currentBudget = { ...budget };
 
-  await page.route(`${BASE}/wallet/balance`, async (route) => {
+  await page.route(`${PROXY}/wallet/balance`, async (route) => {
     await route.fulfill({ json: MOCK_BALANCE });
   });
 
-  await page.route(`${BASE}/wallet/budget`, async (route) => {
+  await page.route(`${PROXY}/wallet/budget`, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({ json: currentBudget });
     } else if (route.request().method() === 'PUT') {
@@ -140,27 +140,27 @@ async function setupWalletMocks(
     }
   });
 
-  await page.route(`${BASE}/wallet/usage-summary*`, async (route) => {
+  await page.route(`${PROXY}/wallet/usage-summary*`, async (route) => {
     await route.fulfill({ json: MOCK_USAGE_SUMMARY });
   });
 
-  await page.route(`${BASE}/wallet/transactions*`, async (route) => {
+  await page.route(`${PROXY}/wallet/transactions*`, async (route) => {
     await route.fulfill({ json: MOCK_TRANSACTIONS });
   });
 
-  await page.route(`${BASE}/wallet/lots`, async (route) => {
+  await page.route(`${PROXY}/wallet/lots`, async (route) => {
     await route.fulfill({ json: MOCK_LOTS });
   });
 
-  await page.route(`${BASE}/marketplace/packs*`, async (route) => {
+  await page.route(`${PROXY}/marketplace/packs*`, async (route) => {
     await route.fulfill({ json: MOCK_PACKS });
   });
 }
 
 test.describe('Wallet', () => {
   test.beforeEach(async ({ page }) => {
-    await setupWalletMocks(page);
     await setupApiMocks(page);
+    await setupWalletMocks(page);
     await setAuthToken(page);
     await page.goto('/wallet');
     await page.waitForLoadState('domcontentloaded');
@@ -211,7 +211,7 @@ test.describe('Wallet', () => {
 
   test('after saving budget the progress bar renders', async ({ page }) => {
     // Switch to OK budget state via the edit flow
-    await page.route(`${BASE}/wallet/budget`, async (route) => {
+    await page.route(`${PROXY}/wallet/budget`, async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({ json: MOCK_BUDGET_OK });
       } else {
@@ -267,7 +267,7 @@ test.describe('Wallet', () => {
     await expect(page.getByText('5,000 credits', { exact: true })).toBeVisible();
     await expect(page.getByText('$39.99')).toBeVisible();
 
-    await page.route(`${BASE}/wallet/recharge`, async (route) => {
+    await page.route(`${PROXY}/wallet/recharge`, async (route) => {
       await route.fulfill({ json: { checkoutUrl: null } });
     });
 
@@ -283,7 +283,7 @@ test.describe('Wallet', () => {
   // ── Provider-outage copy (risk R-06, Wave 19) ──────────────────────────────
 
   test('a PROVIDER-coded failure shows actionable outage copy, not the raw error', async ({ page }) => {
-    await page.route(`${BASE}/wallet/recharge`, async (route) => {
+    await page.route(`${PROXY}/wallet/recharge`, async (route) => {
       await route.fulfill({ status: 503, json: PROVIDER_OUTAGE_ENVELOPE });
     });
 

@@ -37,23 +37,25 @@ test.describe('Projects', () => {
 
   test('clicking New Project shows creation form', async ({ page }) => {
     await page.getByRole('button', { name: /new project/i }).click();
-    await expect(page.getByText('Create Project')).toBeVisible();
-    await expect(page.getByRole('combobox')).toBeVisible();
-    await expect(page.getByPlaceholder('Project title')).toBeVisible();
-    await expect(page.getByPlaceholder('Niche (optional)')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New Project' })).toBeVisible({ timeout: 5_000 });
+    // Step 1 shows Platform & Format — advance to step 2 to see account/detail fields
+    await page.getByRole('button', { name: /next/i }).click();
+    await expect(page.getByText('Accounts & Details')).toBeVisible({ timeout: 5_000 });
   });
 
   test('can cancel project creation', async ({ page }) => {
     await page.getByRole('button', { name: /new project/i }).click();
-    await expect(page.getByText('Create Project')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New Project' })).toBeVisible({ timeout: 5_000 });
     await page.getByRole('button', { name: /cancel/i }).click();
-    await expect(page.getByText('Create Project')).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New Project' })).not.toBeVisible();
   });
 
   test('create button disabled when form incomplete', async ({ page }) => {
     await page.getByRole('button', { name: /new project/i }).click();
-    const createBtn = page.getByRole('button', { name: /^create$/i });
-    await expect(createBtn).toBeDisabled();
+    // Advance to step 2 where the Create project button lives
+    await page.getByRole('button', { name: /next/i }).click();
+    const createBtn = page.getByRole('button', { name: /create project/i });
+    await expect(createBtn).toBeDisabled({ timeout: 5_000 });
   });
 
   test('clicking project card navigates to detail', async ({ page }) => {
@@ -79,7 +81,7 @@ test.describe('Project Detail', () => {
   test('shows guided studio flow with channel header and stage tiles', async ({ page }) => {
     await expect(page.getByText('Producing for channel')).toBeVisible({ timeout: 8_000 });
     for (const tile of ['Analyse', 'Suggestion', 'Script', 'Voice over', 'Music', 'Video']) {
-      await expect(page.getByText(tile, { exact: true })).toBeVisible();
+      await expect(page.getByText(tile, { exact: true }).first()).toBeVisible();
     }
   });
 
@@ -94,7 +96,7 @@ test.describe('Project Detail', () => {
   test('analyse tile runs trend analysis', async ({ page }) => {
     // Mock data has a completed TREND_ANALYSIS, so the Analyse tile offers Re-run;
     // assert the click enqueues the right job type
-    const jobPost = page.waitForRequest((r) => r.method() === 'POST' && r.url().includes('/api/v1/jobs'));
+    const jobPost = page.waitForRequest((r) => r.method() === 'POST' && r.url().includes('/api/proxy/jobs'));
     await page.getByRole('button', { name: /re-run/i }).first().click();
     const posted = (await jobPost).postDataJSON() as { type?: string };
     expect(posted.type).toBe('TREND_ANALYSIS');

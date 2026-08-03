@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
 
-const BASE = 'http://localhost:4007/api/v1';
+const PROXY = 'http://localhost:3007/api/proxy';
 
 const MOCK_NOTIFICATIONS_UNREAD = {
   items: [
@@ -39,13 +39,13 @@ async function setupNotificationMocks(page: import('@playwright/test').Page) {
   let unreadCount = 2;
   let currentItems = [...MOCK_NOTIFICATIONS_UNREAD.items];
 
-  await page.route(`${BASE}/notifications*`, async (route) => {
+  await page.route(`${PROXY}/notifications*`, async (route) => {
     await route.fulfill({
       json: { items: currentItems, unreadCount },
     });
   });
 
-  await page.route(`${BASE}/notifications/read-all`, async (route) => {
+  await page.route(`${PROXY}/notifications/read-all`, async (route) => {
     if (route.request().method() === 'POST') {
       unreadCount = 0;
       currentItems = MOCK_NOTIFICATIONS_ALL_READ.items;
@@ -53,7 +53,7 @@ async function setupNotificationMocks(page: import('@playwright/test').Page) {
     }
   });
 
-  await page.route(/\/notifications\/[^/]+\/read$/, async (route) => {
+  await page.route(/\/api\/proxy\/notifications\/[^/]+\/read$/, async (route) => {
     if (route.request().method() === 'POST') {
       await route.fulfill({ json: { ok: true } });
     }
@@ -62,8 +62,8 @@ async function setupNotificationMocks(page: import('@playwright/test').Page) {
 
 test.describe('Notifications bell', () => {
   test.beforeEach(async ({ page }) => {
-    await setupNotificationMocks(page);
     await setupApiMocks(page);
+    await setupNotificationMocks(page);
     await setAuthToken(page);
     // Navigate to any dash page to load the shell layout
     await page.goto('/projects');
@@ -114,7 +114,7 @@ test.describe('Notifications bell', () => {
     await expect(page.getByRole('dialog', { name: 'Notifications' })).toBeVisible({ timeout: 8_000 });
 
     // Override notifications mock to return 0 unread after mark-all-read fires
-    await page.route(`${BASE}/notifications*`, async (route) => {
+    await page.route(`${PROXY}/notifications*`, async (route) => {
       await route.fulfill({ json: MOCK_NOTIFICATIONS_ALL_READ });
     });
 

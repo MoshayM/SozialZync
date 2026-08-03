@@ -1,8 +1,14 @@
 import { Page, request } from '@playwright/test';
 
+// Direct backend URL — used only by setAuthToken's real-JWT acquisition
 const BASE = 'http://localhost:4007/api/v1';
 
-export const MOCK_TOKEN = 'mock-jwt-token-for-testing';
+// The browser goes through Next.js /api/proxy/* (never directly to port 4007),
+// so ALL page.route() mocks must intercept the proxy URL.
+const PROXY = 'http://localhost:3007/api/proxy';
+
+// Encodes { sub, email, role: SUPER_ADMIN, plan: ENTERPRISE } so PlanGate reads correct claims
+export const MOCK_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLXRlc3QtMSIsImVtYWlsIjoidGVzdEBjcmVhdG9yZm9yY2UuYWkiLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJwbGFuIjoiRU5URVJQUklTRSIsImlhdCI6MTcyMDAwMDAwMCwiZXhwIjo5OTk5OTk5OTk5fQ.mock-sig';
 
 type StoreChannel = {
   id: string; youtubeChannelId: string; title: string; description: string;
@@ -63,23 +69,91 @@ const MOCK_SUBSCRIPTION = {
   cancelAtPeriodEnd: false,
 };
 
+const MOCK_USER = {
+  id: 'user-test-1',
+  email: 'test@creatorforce.ai',
+  name: 'Test User',
+  role: 'SUPER_ADMIN',
+  phone: null,
+  avatarUrl: null,
+};
+
 export async function setupApiMocks(page: Page) {
+  // ── Catch-all (lowest priority — specific routes registered below override via LIFO) ──
+  // Prevents unmocked API calls from returning 401 and triggering window.location.href='/login'
+  await page.route('**/api/proxy/**', async (route) => {
+    await route.fulfill({ json: {} });
+  });
+
   // ── Auth ──────────────────────────────────────────────────────────────────
-  await page.route(`${BASE}/auth/login`, async (route) => {
+  await page.route(`${PROXY}/auth/login`, async (route) => {
     const body = route.request().postDataJSON() as { email?: string; password?: string } | null;
     if (body?.email && body?.password) {
-      await route.fulfill({ json: { accessToken: MOCK_TOKEN } });
+      await route.fulfill({ json: { accessToken: MOCK_TOKEN, refreshToken: 'mock-refresh-token' } });
     } else {
       await route.fulfill({ status: 401, json: { message: 'Invalid credentials' } });
     }
   });
 
-  await page.route(`${BASE}/auth/register`, async (route) => {
-    await route.fulfill({ status: 201, json: { accessToken: MOCK_TOKEN } });
+  await page.route(`${PROXY}/auth/register`, async (route) => {
+    await route.fulfill({ status: 201, json: { accessToken: MOCK_TOKEN, refreshToken: 'mock-refresh-token' } });
+  });
+
+  // /auth/me — validates the token; without this mock the frontend gets 401 and
+  // redirects every protected page to /login, causing setAuthToken tests to fail
+  await page.route(`${PROXY}/auth/me`, async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: MOCK_USER });
+    } else {
+      // PATCH /auth/me/profile
+      await route.fulfill({ json: MOCK_USER });
+    }
+  });
+
+  await page.route(/\/api\/proxy\/auth\/me\//, async (route) => {
+    await route.fulfill({ json: MOCK_USER });
+  });
+
+  // Settings endpoints — return empty arrays so the page doesn't crash when
+  // isOwner=true and these queries fire (catch-all returns {} which breaks .map())
+  await page.route(`${PROXY}/settings/api-keys`, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+  await page.route(/\/api\/proxy\/dev\/webhooks/, async (route) => {
+    await route.fulfill({ json: { webhooks: [] } });
+  });
+
+  // Growth page endpoints — catch-all returns {} which causes .map() crash in UpgradeNudges
+  // and OfferCenter. Return proper empty-array/false-hasTrial values instead.
+  await page.route(`${PROXY}/upgrade/recommendations`, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+  await page.route(`${PROXY}/offers`, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+  await page.route(`${PROXY}/trial/status`, async (route) => {
+    await route.fulfill({ json: { hasTrial: false } });
+  });
+
+  // Additional auth endpoints used by sessions/providers specs
+  await page.route(`${PROXY}/auth/providers`, async (route) => {
+    await route.fulfill({ json: { google: false, apple: false, facebook: false } });
+  });
+  await page.route(`${PROXY}/auth/links`, async (route) => {
+    await route.fulfill({ json: { password: true, links: [] } });
+  });
+  await page.route(`${PROXY}/auth/sessions`, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+  await page.route(`${PROXY}/auth/logout`, async (route) => {
+    await route.fulfill({ json: { ok: true } });
+  });
+  await page.route(`${PROXY}/auth/refresh`, async (route) => {
+    await route.fulfill({ json: { accessToken: MOCK_TOKEN, refreshToken: 'mock-refresh-token' } });
   });
 
   // ── Channels ──────────────────────────────────────────────────────────────
-  await page.route(/\/api\/v1\/channels\/auth-url/, async (route) => {
+  await page.route(/\/api\/proxy\/channels\/auth-url/, async (route) => {
     // Simulate OAuth succeeding — add a new channel to the store so the list updates after redirect
     const info = CHANNEL_NAMES[channelSeq % CHANNEL_NAMES.length]!;
     const now = new Date().toISOString();
@@ -100,7 +174,7 @@ export async function setupApiMocks(page: Page) {
     await route.fulfill({ json: { url: 'http://localhost:3007/settings?connected=true' } });
   });
 
-  await page.route(/\/api\/v1\/channels\/status/, async (route) => {
+  await page.route(/\/api\/proxy\/channels\/status/, async (route) => {
     const active = channelStore.find((c) => c.active);
     if (!active) {
       await route.fulfill({ json: { connected: false } });
@@ -118,7 +192,7 @@ export async function setupApiMocks(page: Page) {
     }
   });
 
-  await page.route(`${BASE}/channels/connect-by-url`, async (route) => {
+  await page.route(`${PROXY}/channels/connect-by-url`, async (route) => {
     const body = route.request().postDataJSON() as { channelUrl?: string } | null;
     const raw = (body?.channelUrl ?? '').trim();
     if (!raw) {
@@ -148,12 +222,12 @@ export async function setupApiMocks(page: Page) {
     await route.fulfill({ status: 201, json: { ...newCh, readOnly: true } });
   });
 
-  await page.route(`${BASE}/channels`, async (route) => {
+  await page.route(`${PROXY}/channels`, async (route) => {
     await route.fulfill({ json: [...channelStore] });
   });
 
   // ── Projects ──────────────────────────────────────────────────────────────
-  await page.route(`${BASE}/projects`, async (route) => {
+  await page.route(`${PROXY}/projects`, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({ json: { data: MOCK_PROJECTS, nextCursor: null } });
     } else {
@@ -163,7 +237,7 @@ export async function setupApiMocks(page: Page) {
   });
 
   // Specific project IDs — registered AFTER the list route, so they take priority (LIFO)
-  await page.route(/\/api\/v1\/projects\/[^/]+$/, async (route) => {
+  await page.route(/\/api\/proxy\/projects\/[^/]+$/, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({ json: MOCK_PROJECT_DETAIL });
     } else {
@@ -172,16 +246,16 @@ export async function setupApiMocks(page: Page) {
   });
 
   // ── Jobs ──────────────────────────────────────────────────────────────────
-  await page.route(/\/api\/v1\/jobs\/project\/[^/]+$/, async (route) => {
+  await page.route(/\/api\/proxy\/jobs\/project\/[^/]+$/, async (route) => {
     await route.fulfill({ json: MOCK_PROJECT_DETAIL.jobs });
   });
 
-  await page.route(`${BASE}/jobs`, async (route) => {
+  await page.route(`${PROXY}/jobs`, async (route) => {
     const body = route.request().postDataJSON() as { type?: string } | null;
     await route.fulfill({ status: 201, json: { id: 'job-new', projectId: 'proj-1', type: body?.type ?? 'TREND_ANALYSIS', status: 'QUEUED', payload: {}, result: null, error: null, attempts: 0, startedAt: null, completedAt: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } });
   });
 
-  await page.route(/\/api\/v1\/jobs\/[^/]+$/, async (route) => {
+  await page.route(/\/api\/proxy\/jobs\/[^/]+$/, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({ json: MOCK_PROJECT_DETAIL.jobs[0] });
     } else {
@@ -190,30 +264,123 @@ export async function setupApiMocks(page: Page) {
   });
 
   // ── Approvals ─────────────────────────────────────────────────────────────
-  await page.route(`${BASE}/approvals/pending`, async (route) => {
+  await page.route(`${PROXY}/approvals/pending`, async (route) => {
     await route.fulfill({ json: { data: MOCK_APPROVALS, nextCursor: null } });
   });
 
-  await page.route(/\/api\/v1\/approvals\/[^/]+\/approve$/, async (route) => {
+  await page.route(/\/api\/proxy\/approvals\/[^/]+\/approve$/, async (route) => {
     await route.fulfill({ json: { id: 'appr-1', status: 'APPROVED' } });
   });
 
-  await page.route(/\/api\/v1\/approvals\/[^/]+\/reject$/, async (route) => {
+  await page.route(/\/api\/proxy\/approvals\/[^/]+\/reject$/, async (route) => {
     await route.fulfill({ json: { id: 'appr-1', status: 'REJECTED' } });
   });
 
   // ── Trends ────────────────────────────────────────────────────────────────
-  await page.route(`${BASE}/trends/analyze`, async (route) => {
+  await page.route(`${PROXY}/trends/analyze`, async (route) => {
     await route.fulfill({ json: MOCK_TRENDS });
   });
 
   // ── Billing ───────────────────────────────────────────────────────────────
-  await page.route(`${BASE}/billing/subscription`, async (route) => {
+  await page.route(`${PROXY}/billing/subscription`, async (route) => {
     await route.fulfill({ json: MOCK_SUBSCRIPTION });
   });
 
-  await page.route(`${BASE}/billing/checkout`, async (route) => {
+  await page.route(`${PROXY}/billing/checkout`, async (route) => {
     await route.fulfill({ json: { url: 'https://checkout.stripe.com/mock-session' } });
+  });
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+  await page.route(/\/api\/proxy\/notifications/, async (route) => {
+    await route.fulfill({ json: { items: [], unreadCount: 0 } });
+  });
+
+  // ── System ────────────────────────────────────────────────────────────────
+  await page.route(/\/api\/proxy\/system\//, async (route) => {
+    await route.fulfill({ json: {} });
+  });
+
+  // ── Token usage / admin ───────────────────────────────────────────────────
+  await page.route(`${PROXY}/token-usage/summary`, async (route) => {
+    await route.fulfill({ json: { totalTokensIn: 0, totalTokensOut: 0, totalCostUsd: 0, cacheSavingsUsd: 0, cacheHitRate: 0, topModels: [], byProvider: [], dailyTrend: [], byVideoType: [] } });
+  });
+
+  // ── Wallet / credits ──────────────────────────────────────────────────────
+  const MOCK_BALANCE = { balanceCredits: 5_000, buckets: { purchasedCredits: 5_000, trialCredits: 0, bonusCredits: 0, referralCredits: 0, promotionalCredits: 0 }, lifetimePurchased: 5_000, lifetimeUsed: 0 };
+  await page.route(`${PROXY}/wallet/balance`, async (route) => {
+    await route.fulfill({ json: MOCK_BALANCE });
+  });
+  await page.route(`${PROXY}/wallet/budget`, async (route) => {
+    await route.fulfill({ json: { status: 'NONE', monthlyLimit: 0, spent: 0, remaining: 0, willExceed: false, blocked: false, alertThreshold: 80, hardCap: false } });
+  });
+  await page.route(`${PROXY}/wallet/forecast`, async (route) => {
+    await route.fulfill({ json: { daysToEmpty: 45, projectedDailySpend: 110, rechargeRecommendation: null } });
+  });
+  await page.route(/\/api\/proxy\/wallet\/usage-summary/, async (route) => {
+    await route.fulfill({ json: { totalSpent: 0, byAction: [] } });
+  });
+  await page.route(`${PROXY}/wallet/transactions`, async (route) => {
+    await route.fulfill({ json: { data: [], nextCursor: null } });
+  });
+  await page.route(`${PROXY}/wallet/lots`, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+  await page.route(`${PROXY}/wallet/recommendations`, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+  await page.route(`${PROXY}/credits/balance`, async (route) => {
+    await route.fulfill({ json: MOCK_BALANCE });
+  });
+  await page.route(`${PROXY}/credits/budget`, async (route) => {
+    await route.fulfill({ json: { status: 'NONE', monthlyLimit: 0, spent: 0, remaining: 0, willExceed: false, blocked: false, alertThreshold: 80, hardCap: false } });
+  });
+  await page.route(`${PROXY}/credits/usage`, async (route) => {
+    await route.fulfill({ json: { totalSpent: 0, byAction: [] } });
+  });
+  await page.route(`${PROXY}/credits/transactions`, async (route) => {
+    await route.fulfill({ json: { data: [], nextCursor: null } });
+  });
+  await page.route(`${PROXY}/credits/lots`, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+
+  // ── Orgs ──────────────────────────────────────────────────────────────────
+  await page.route(`${PROXY}/orgs/mine`, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+
+  // ── Growth / analytics ────────────────────────────────────────────────────
+  await page.route(`${PROXY}/analytics/channel-profile`, async (route) => {
+    await route.fulfill({ json: null });
+  });
+  await page.route(`${PROXY}/analytics/performance`, async (route) => {
+    await route.fulfill({ json: { videos: [] } });
+  });
+
+  // ── Autonomy / scheduler ──────────────────────────────────────────────────
+  await page.route(/\/api\/proxy\/autonomy\//, async (route) => {
+    await route.fulfill({ json: {} });
+  });
+  await page.route(/\/api\/proxy\/scheduler\//, async (route) => {
+    await route.fulfill({ json: [] });
+  });
+
+  // ── Library / media ───────────────────────────────────────────────────────
+  await page.route(/\/api\/proxy\/media\//, async (route) => {
+    await route.fulfill({ json: { data: [], nextCursor: null } });
+  });
+  await page.route(/\/api\/proxy\/library\//, async (route) => {
+    await route.fulfill({ json: { data: [], nextCursor: null } });
+  });
+
+  // ── Insights (catch-all for analytics sub-routes) ─────────────────────────
+  await page.route(/\/api\/proxy\/insights\//, async (route) => {
+    await route.fulfill({ json: {} });
+  });
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  await page.route(/\/api\/proxy\/admin\//, async (route) => {
+    await route.fulfill({ json: {} });
   });
 }
 

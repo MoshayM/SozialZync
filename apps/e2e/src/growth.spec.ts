@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
 
-const BASE = 'http://localhost:4007/api/v1';
+const PROXY = 'http://localhost:3007/api/proxy';
 
 // Five days from now
 const EXPIRES_AT = new Date(Date.now() + 5 * 24 * 60 * 60_000).toISOString();
@@ -65,48 +65,48 @@ const MOCK_LEADERBOARD = [
 ];
 
 async function setupGrowthMocks(page: import('@playwright/test').Page) {
-  await page.route(`${BASE}/trial/status`, async (route) => {
+  await page.route(`${PROXY}/trial/status`, async (route) => {
     await route.fulfill({ json: MOCK_TRIAL_STATUS });
   });
 
-  await page.route(`${BASE}/upgrade/recommendations`, async (route) => {
+  await page.route(`${PROXY}/upgrade/recommendations`, async (route) => {
     await route.fulfill({ json: MOCK_UPGRADE_RECS });
   });
 
-  await page.route(/\/upgrade\/recommendations\/[^/]+\/dismiss$/, async (route) => {
+  await page.route(/\/api\/proxy\/upgrade\/recommendations\/[^/]+\/dismiss$/, async (route) => {
     await route.fulfill({ json: { dismissed: true } });
   });
 
-  await page.route(`${BASE}/offers`, async (route) => {
+  await page.route(`${PROXY}/offers`, async (route) => {
     await route.fulfill({ json: [MOCK_OFFER_DIRECT, MOCK_OFFER_AUTO] });
   });
 
-  await page.route(/\/offers\/[^/]+\/redeem$/, async (route) => {
+  await page.route(/\/api\/proxy\/offers\/[^/]+\/redeem$/, async (route) => {
     await route.fulfill({ json: { redeemed: true, credits: 250 } });
   });
 
   // Referral code (POST to get-or-create)
-  await page.route(`${BASE}/referral/code`, async (route) => {
+  await page.route(`${PROXY}/referral/code`, async (route) => {
     await route.fulfill({ json: MOCK_REFERRAL_CODE });
   });
 
-  await page.route(`${BASE}/referral/earnings`, async (route) => {
+  await page.route(`${PROXY}/referral/earnings`, async (route) => {
     await route.fulfill({ json: MOCK_REFERRAL_EARNINGS });
   });
 
-  await page.route(`${BASE}/referral/leaderboard`, async (route) => {
+  await page.route(`${PROXY}/referral/leaderboard`, async (route) => {
     await route.fulfill({ json: MOCK_LEADERBOARD });
   });
 
-  await page.route(`${BASE}/referral/redeem`, async (route) => {
+  await page.route(`${PROXY}/referral/redeem`, async (route) => {
     await route.fulfill({ json: { ok: true } });
   });
 }
 
 test.describe('Growth', () => {
   test.beforeEach(async ({ page }) => {
-    await setupGrowthMocks(page);
     await setupApiMocks(page);
+    await setupGrowthMocks(page);
     await setAuthToken(page);
     await page.goto('/growth');
     await page.waitForLoadState('domcontentloaded');
@@ -142,13 +142,13 @@ test.describe('Growth', () => {
     await expect(page.getByText(/running low on trial credits/i)).toBeVisible({ timeout: 8_000 });
 
     let dismissedId = '';
-    await page.route(/\/upgrade\/recommendations\/[^/]+\/dismiss$/, async (route) => {
+    await page.route(/\/api\/proxy\/upgrade\/recommendations\/[^/]+\/dismiss$/, async (route) => {
       dismissedId = route.request().url().split('/').slice(-2)[0]!;
       await route.fulfill({ json: { dismissed: true } });
     });
 
     // Mock the refetch to return empty list so the banner disappears
-    await page.route(`${BASE}/upgrade/recommendations`, async (route) => {
+    await page.route(`${PROXY}/upgrade/recommendations`, async (route) => {
       await route.fulfill({ json: [] });
     });
 
@@ -215,7 +215,7 @@ test.describe('Growth', () => {
 
   test('409 response from redeem shows inline error message', async ({ page }) => {
     // Override the redeem mock to return 409
-    await page.route(`${BASE}/referral/redeem`, async (route) => {
+    await page.route(`${PROXY}/referral/redeem`, async (route) => {
       await route.fulfill({
         status: 409,
         json: { message: 'Code already redeemed' },

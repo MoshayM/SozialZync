@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
 
-const BASE = 'http://localhost:4007/api/v1';
+const PROXY = 'http://localhost:3007/api/proxy';
 
 const MOCK_PROVIDERS = { google: true, apple: false, facebook: false };
 
@@ -41,20 +41,26 @@ async function setupSessionsMocks(page: import('@playwright/test').Page) {
   const CURRENT_SESSION_ID = 'sess-current';
   let sessions = makeSessions(CURRENT_SESSION_ID);
 
-  await page.route(`${BASE}/auth/providers`, async (route) => {
+  // Use proxy URL so browser-initiated requests are intercepted (not direct-to-4007)
+  // Must be registered AFTER setupApiMocks (LIFO — later registration wins)
+  await page.route(`${PROXY}/auth/providers`, async (route) => {
     await route.fulfill({ json: MOCK_PROVIDERS });
   });
 
-  await page.route(`${BASE}/auth/links`, async (route) => {
+  await page.route(`${PROXY}/auth/links`, async (route) => {
     await route.fulfill({ json: MOCK_AUTH_LINKS });
   });
 
-  await page.route(`${BASE}/auth/sessions`, async (route) => {
-    await route.fulfill({ json: sessions });
+  await page.route(`${PROXY}/auth/sessions`, async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: sessions });
+    } else {
+      await route.continue();
+    }
   });
 
   // Revoke a specific session
-  await page.route(/\/auth\/sessions\/[^/]+$/, async (route) => {
+  await page.route(/\/api\/proxy\/auth\/sessions\/[^/]+$/, async (route) => {
     if (route.request().method() === 'DELETE') {
       const url = route.request().url();
       const id = url.split('/').pop()!;
@@ -69,8 +75,9 @@ async function setupSessionsMocks(page: import('@playwright/test').Page) {
 
 test.describe('Settings — Sign-in & Security', () => {
   test.beforeEach(async ({ page }) => {
-    await setupSessionsMocks(page);
     await setupApiMocks(page);
+    // setupSessionsMocks registered AFTER → higher LIFO priority → overrides setupApiMocks defaults
+    await setupSessionsMocks(page);
     await setAuthToken(page);
     await page.goto('/settings');
     await page.waitForLoadState('domcontentloaded');

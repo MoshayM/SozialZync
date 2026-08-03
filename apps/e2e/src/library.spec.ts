@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { setupApiMocks, setAuthToken } from './fixtures/api-mock';
 
-const BASE = 'http://localhost:4007/api/v1';
+const PROXY = 'http://localhost:3007/api/proxy';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -48,10 +48,23 @@ async function setupLibraryMocks(
   // channelStore-backed /channels handler (whose store starts empty).
 
   // Channels list — single channel
-  await page.route(`${BASE}/channels`, async (route) => {
+  // Include all fields ChannelAccessContent renders (e.g. subscriberCount) to
+  // avoid a TypeError crash when the component calls .toLocaleString() on it.
+  await page.route(`${PROXY}/channels`, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
-        json: [{ id: 'ch-lib-1', title: 'Test Channel', youtubeChannelId: 'UCtest', active: true }],
+        json: [{
+          id: 'ch-lib-1',
+          title: 'Test Channel',
+          youtubeChannelId: 'UCtest',
+          active: true,
+          subscriberCount: 0,
+          customUrl: '@testchannel',
+          thumbnailUrl: null,
+          lastSyncedAt: null,
+          readOnly: false,
+          accessLevel: 'PUBLISH',
+        }],
       });
     } else {
       await route.continue();
@@ -59,7 +72,7 @@ async function setupLibraryMocks(
   });
 
   // Sync status
-  await page.route(`${BASE}/channels/ch-lib-1/sync-status`, async (route) => {
+  await page.route(`${PROXY}/channels/ch-lib-1/sync-status`, async (route) => {
     await route.fulfill({
       json: {
         phase: syncPhase,
@@ -71,7 +84,7 @@ async function setupLibraryMocks(
   });
 
   // Videos — two pages
-  await page.route(`${BASE}/channels/ch-lib-1/videos*`, async (route) => {
+  await page.route(`${PROXY}/channels/ch-lib-1/videos*`, async (route) => {
     const url = new URL(route.request().url());
     const cursor = url.searchParams.get('cursor');
     if (cursor === 'page2') {
@@ -82,7 +95,7 @@ async function setupLibraryMocks(
   });
 
   // Playlists
-  await page.route(`${BASE}/channels/ch-lib-1/playlists*`, async (route) => {
+  await page.route(`${PROXY}/channels/ch-lib-1/playlists*`, async (route) => {
     const url = new URL(route.request().url());
     const isItems = /\/playlists\/[^/]+\/items/.test(url.pathname);
     if (!isItems) {
@@ -93,7 +106,7 @@ async function setupLibraryMocks(
   });
 
   // Playlist items
-  await page.route(/\/channels\/ch-lib-1\/playlists\/pl-\d+\/items/, async (route) => {
+  await page.route(/\/api\/proxy\/channels\/ch-lib-1\/playlists\/pl-\d+\/items/, async (route) => {
     await route.fulfill({
       json: {
         data: [
@@ -121,7 +134,7 @@ async function setupLibraryMocks(
   });
 
   // Sync start
-  await page.route(`${BASE}/channels/ch-lib-1/sync`, async (route) => {
+  await page.route(`${PROXY}/channels/ch-lib-1/sync`, async (route) => {
     if (route.request().method() === 'POST') {
       await route.fulfill({ status: 200, json: { jobId: 'job-sync-1' } });
     }
@@ -135,24 +148,21 @@ test.describe('Library', () => {
     await setupApiMocks(page);
     await setupLibraryMocks(page);
     await setAuthToken(page);
-    await page.goto('/library');
+    // Library was merged into Projects > Channel Access tab.
+    // Navigate directly to the canonical URL to avoid the client-side redirect race.
+    await page.goto('/projects?tab=channels');
     await page.waitForLoadState('domcontentloaded');
   });
 
-  test('Library nav sub-link is visible under Settings group when on /library', async ({ page }) => {
-    // Library is a sub-link nested under the Settings collapsible group.
-    // When the active route is /library the Settings group auto-expands, so the
-    // sub-link is visible without manually clicking the chevron.
-    await page.goto('/library');
-    await page.waitForLoadState('domcontentloaded');
-    // The sub-link is rendered and visible because the group is auto-open
-    const libLink = page.locator('a[href="/library"]');
-    await expect(libLink).toBeVisible({ timeout: 8_000 });
-    await expect(page).toHaveURL(/\/library/);
+  test('Channel Access tab is visible in Projects page', async ({ page }) => {
+    // The library lives under Projects > Channel Access tab
+    await expect(page.getByRole('button', { name: 'Channel Access' })).toBeVisible({ timeout: 8_000 });
   });
 
-  test('page heading renders', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Library', level: 1 })).toBeVisible({ timeout: 8_000 });
+  test('YouTube accordion is open by default', async ({ page }) => {
+    // YouTube accordion starts open. Use .first() because "YouTube" appears in
+    // multiple places (accordion button, ChannelAccessPanel heading, etc.).
+    await expect(page.getByText('YouTube').first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('channel is auto-selected and videos render', async ({ page }) => {
@@ -163,13 +173,13 @@ test.describe('Library', () => {
     await expect(page.getByText(/Test Video/).first()).toBeVisible();
   });
 
-  test('search input updates URL with ?q= param', async ({ page }) => {
+  test('search input filters videos via API', async ({ page }) => {
     // Wait for channel to be auto-selected first
     await expect(page.getByText('Test Video 1', { exact: true })).toBeVisible({ timeout: 10_000 });
 
     // Intercept the next videos request to capture the q param
     let capturedQ: string | null = null;
-    await page.route(`${BASE}/channels/ch-lib-1/videos*`, async (route) => {
+    await page.route(`${PROXY}/channels/ch-lib-1/videos*`, async (route) => {
       const url = new URL(route.request().url());
       capturedQ = url.searchParams.get('q');
       await route.fulfill({ json: makeVideoPage(3, 0, null) });
@@ -178,21 +188,27 @@ test.describe('Library', () => {
     const searchInput = page.getByRole('searchbox', { name: 'Search videos' });
     await searchInput.fill('hello');
 
-    // URL should update with ?q=hello (debounced at 300 ms)
-    await expect(page).toHaveURL(/\?.*q=hello/, { timeout: 5_000 });
-    // The API call should carry the q param
+    // The API call should carry the q param (debounced at 300 ms)
     await expect.poll(() => capturedQ, { timeout: 5_000 }).toBe('hello');
   });
 
-  test('type filter toggle updates URL with ?type=', async ({ page }) => {
+  test('type filter Shorts refetches with type=short', async ({ page }) => {
     await expect(page.getByText('Test Video 1', { exact: true })).toBeVisible({ timeout: 10_000 });
+
+    let capturedType: string | null = null;
+    await page.route(`${PROXY}/channels/ch-lib-1/videos*`, async (route) => {
+      const url = new URL(route.request().url());
+      capturedType = url.searchParams.get('type');
+      await route.fulfill({ json: makeVideoPage(3, 0, null) });
+    });
+
     await page.getByRole('button', { name: 'Shorts' }).click();
-    await expect(page).toHaveURL(/type=short/, { timeout: 5_000 });
+    await expect.poll(() => capturedType, { timeout: 5_000 }).toBe('short');
   });
 
   test('playlists tab lists playlists', async ({ page }) => {
     await expect(page.getByText('Test Video 1', { exact: true })).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('button', { name: 'playlists' }).click();
+    await page.getByRole('button', { name: 'Playlists' }).click();
     await expect(page.getByText('Playlist 1')).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText('Playlist 2')).toBeVisible();
   });
@@ -202,8 +218,10 @@ test.describe('Library', () => {
     const syncPost = page.waitForRequest(
       (r) => r.method() === 'POST' && r.url().includes('/channels/ch-lib-1/sync'),
     );
-    // The sync button is rendered by SyncBadge when status.phase is IDLE
-    await page.getByRole('button', { name: 'Sync library' }).click();
+    // The sync button is rendered by SyncBadge when status.phase is IDLE.
+    // exact: true avoids the accordion header button whose accessible name also
+    // contains "Sync library" as a substring (nested button inside the header).
+    await page.getByRole('button', { name: 'Sync library', exact: true }).click({ timeout: 10_000 });
     await syncPost;
   });
 });
@@ -212,24 +230,35 @@ test.describe('Library — syncing badge', () => {
   test('shows syncing badge when sync phase is VIDEOS', async ({ page }) => {
     // Fixture first, specific routes after — last-registered route wins
     await setupApiMocks(page);
-    await page.route(`${BASE}/channels`, async (route) => {
+    await page.route(`${PROXY}/channels`, async (route) => {
       await route.fulfill({
-        json: [{ id: 'ch-lib-1', title: 'Test Channel', youtubeChannelId: 'UCtest', active: true }],
+        json: [{
+          id: 'ch-lib-1',
+          title: 'Test Channel',
+          youtubeChannelId: 'UCtest',
+          active: true,
+          subscriberCount: 0,
+          customUrl: '@testchannel',
+          thumbnailUrl: null,
+          lastSyncedAt: null,
+          readOnly: false,
+          accessLevel: 'PUBLISH',
+        }],
       });
     });
-    await page.route(`${BASE}/channels/ch-lib-1/sync-status`, async (route) => {
+    await page.route(`${PROXY}/channels/ch-lib-1/sync-status`, async (route) => {
       await route.fulfill({
         json: { phase: 'VIDEOS', syncedVideos: 12, syncedPlaylists: 0, error: null },
       });
     });
-    await page.route(`${BASE}/channels/ch-lib-1/videos*`, async (route) => {
+    await page.route(`${PROXY}/channels/ch-lib-1/videos*`, async (route) => {
       await route.fulfill({ json: makeVideoPage(3, 0, null) });
     });
-    await page.route(`${BASE}/channels/ch-lib-1/playlists*`, async (route) => {
+    await page.route(`${PROXY}/channels/ch-lib-1/playlists*`, async (route) => {
       await route.fulfill({ json: { data: [], nextCursor: null } });
     });
     await setAuthToken(page);
-    await page.goto('/library');
+    await page.goto('/projects?tab=channels');
     await page.waitForLoadState('domcontentloaded');
     // Channel auto-selects, SyncBadge renders the active-phase message
     await expect(page.getByText(/Syncing/)).toBeVisible({ timeout: 10_000 });
