@@ -279,7 +279,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   // ── Calendar generation ─────────────────────────────────────────────────────
 
   test('Generate calendar button POSTs and shows proposals', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
+    await page.goto('/autonomy', { waitUntil: 'networkidle' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     const generateReq = page.waitForRequest(
@@ -294,7 +294,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   });
 
   test('self-critique paragraph appears after generation', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
+    await page.goto('/autonomy', { waitUntil: 'networkidle' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: /generate calendar/i }).click();
@@ -304,7 +304,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   });
 
   test('Dry run toggle sends dryRun=true and does not persist entries', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
+    await page.goto('/autonomy', { waitUntil: 'networkidle' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     // "Dry run" directly calls generate.mutate(true) — set up interceptor before clicking
@@ -320,7 +320,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   // ── Approve / dismiss ───────────────────────────────────────────────────────
 
   test('Approve button POSTs approve and moves entry to Approved section', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
+    await page.goto('/autonomy', { waitUntil: 'networkidle' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     // Generate first
@@ -339,7 +339,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
   });
 
   test('Dismiss button POSTs dismiss endpoint', async ({ page }) => {
-    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
+    await page.goto('/autonomy', { waitUntil: 'networkidle' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: /generate calendar/i }).click();
@@ -399,7 +399,7 @@ test.describe('Autonomy — Phase 6 full flow', () => {
 
   test('Automation page shows Auto-plan and Auto-research toggles', async ({ page }) => {
     // /automation redirects to /autonomy (next.config.ts), so the Autopilot page renders
-    await page.goto('/automation', { waitUntil: 'domcontentloaded' });
+    await page.goto('/automation', { waitUntil: 'networkidle' });
     await expect(page.locator('h1')).toContainText('Autopilot', { timeout: 10_000 });
     // Feature toggles live in the Settings tab — click it first
     await page.getByRole('button', { name: 'Settings' }).click();
@@ -448,7 +448,7 @@ test.describe('Autonomy — synthetic channel alpha (heuristic path)', () => {
       },
     );
 
-    await page.goto('/autonomy', { waitUntil: 'domcontentloaded' });
+    await page.goto('/autonomy', { waitUntil: 'networkidle' });
     await expect(page.getByText('Uploads / week (90d)')).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: /generate calendar/i }).click();
