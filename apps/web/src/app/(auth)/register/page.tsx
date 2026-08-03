@@ -128,7 +128,7 @@ function RegisterInner() {
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1.5">
             Phone number
-            <span className="ml-1.5 text-[10px] text-gray-400 font-normal">(optional — enables OTP sign-in)</span>
+            <span className="ml-1.5 text-[10px] text-gray-600 font-normal">(optional — enables OTP sign-in)</span>
           </label>
           <div
             className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
@@ -193,7 +193,7 @@ function RegisterInner() {
         </button>
 
         {/* Terms note */}
-        <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+        <p className="text-[11px] text-gray-600 text-center leading-relaxed">
           By signing up you agree to our{' '}
           <Link href="/terms" className="text-[#6D4AE0] hover:underline">Terms of Service</Link>
           {' '}and{' '}

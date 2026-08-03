@@ -23,7 +23,7 @@ export default function DashError({
       </div>
       <div>
         <h2 className="text-lg font-bold text-gray-900 mb-1">Something went wrong</h2>
-        <p className="text-sm text-gray-500 max-w-xs">
+        <p className="text-sm text-gray-600 max-w-xs">
           This can happen after a new update is deployed. Reloading usually fixes it.
         </p>
       </div>

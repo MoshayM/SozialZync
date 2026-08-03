@@ -256,7 +256,7 @@ function useDebounced<T>(value: T, delay: number): T {
 
 // ── Shared input styles ───────────────────────────────────────────────────────
 
-const inputCls = 'w-full bg-white rounded-2xl px-4 py-3 text-sm text-gray-800 outline-none transition-all focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] placeholder:text-gray-400';
+const inputCls = 'w-full bg-white rounded-2xl px-4 py-3 text-sm text-gray-800 outline-none transition-all focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] placeholder:text-gray-600';
 const inputStyle = { border: '1.5px solid #e3e0f0' };
 
 // ── Projects sub-components ───────────────────────────────────────────────────
@@ -315,7 +315,7 @@ function Field({ label, hint, children }: { label: React.ReactNode; hint?: strin
     <div>
       <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</label>
       {children}
-      {hint && <p className="text-[11px] text-gray-400 mt-1">{hint}</p>}
+      {hint && <p className="text-[11px] text-gray-600 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -339,7 +339,7 @@ function CardMenu({ onRename, onDelete }: { onRename: () => void; onDelete: () =
         type="button"
         aria-label="Project options"
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
-        className="w-7 h-7 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
+        className="w-7 h-7 rounded-xl flex items-center justify-center text-gray-600 hover:text-gray-700 hover:bg-gray-100 transition-all"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
@@ -392,9 +392,9 @@ function RenameModal({ project, onClose, onSuccess }: { project: Project; onClos
         <div className="px-7 py-5 flex items-center justify-between" style={{ borderBottom: '1.5px solid #f0edf9' }}>
           <div>
             <h2 className="text-lg font-extrabold text-gray-900">Rename project</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Update the title for this project</p>
+            <p className="text-xs text-gray-600 mt-0.5">Update the title for this project</p>
           </div>
-          <button type="button" onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors text-lg leading-none">×</button>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-colors text-lg leading-none">×</button>
         </div>
         <div className="px-7 py-6">
           <Field label="Project title">
@@ -407,7 +407,7 @@ function RenameModal({ project, onClose, onSuccess }: { project: Project; onClos
           </Field>
         </div>
         <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f0edf9' }}>
-          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
+          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
           <button
             type="button" onClick={() => renameMutation.mutate()} disabled={disabled}
             className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
@@ -439,7 +439,7 @@ function DeleteModal({ project, onClose, onSuccess }: { project: Project; onClos
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
         <div className="px-7 py-5 flex items-center justify-between" style={{ borderBottom: '1.5px solid #f0edf9' }}>
           <h2 className="text-lg font-extrabold text-gray-900">Delete this project?</h2>
-          <button type="button" onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors text-lg leading-none">×</button>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-colors text-lg leading-none">×</button>
         </div>
         <div className="px-7 py-6 space-y-3">
           <p className="text-sm font-semibold text-gray-800">
@@ -450,7 +450,7 @@ function DeleteModal({ project, onClose, onSuccess }: { project: Project; onClos
           </div>
         </div>
         <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f0edf9' }}>
-          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
+          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
           <button
             type="button" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}
             className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
@@ -662,7 +662,7 @@ function MediaLibraryTab() {
                 className="px-2.5 py-1 rounded-full text-xs font-semibold shrink-0"
                 style={connected
                   ? { background: '#ecfdf5', color: '#15803d' }
-                  : { background: '#f3f4f6', color: '#9ca3af' }}
+                  : { background: '#f3f4f6', color: '#374151' }}
               >
                 {connected ? `${platChannels.length} channel${platChannels.length > 1 ? 's' : ''}` : 'Not connected'}
               </span>
@@ -675,7 +675,7 @@ function MediaLibraryTab() {
 
               <ChevronDown
                 className="w-4 h-4 shrink-0 transition-transform duration-200"
-                style={{ color: '#9ca3af', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+                style={{ color: '#374151', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
               />
             </button>
 
@@ -691,7 +691,7 @@ function MediaLibraryTab() {
                       <plat.Icon className="w-7 h-7" style={{ color: plat.color }} />
                     </div>
                     <p className="text-sm font-extrabold text-gray-900 mb-1">{plat.label} not connected</p>
-                    <p className="text-xs text-gray-400 mb-4">Connect your {plat.label} account to browse your media here.</p>
+                    <p className="text-xs text-gray-600 mb-4">Connect your {plat.label} account to browse your media here.</p>
                     <Link
                       href="/projects?tab=channels"
                       className="px-5 py-2.5 rounded-2xl text-sm font-bold text-white hover:opacity-90 transition-all"
@@ -710,7 +710,7 @@ function MediaLibraryTab() {
                       Coming Soon
                     </div>
                     <p className="text-sm font-extrabold text-gray-900 mb-1">{plat.label} Media Library</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-600">
                       Your channel is connected. Media sync for {plat.label} is coming soon —<br />
                       you&apos;ll be able to browse all your {plat.label} content here.
                     </p>
@@ -734,7 +734,7 @@ function MediaLibraryTab() {
                           {platChannels.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                         </select>
                       ) : (
-                        <span className="text-xs font-medium text-gray-500">{platChannels[0]?.title}</span>
+                        <span className="text-xs font-medium text-gray-700">{platChannels[0]?.title}</span>
                       )}
                     </div>
 
@@ -748,7 +748,7 @@ function MediaLibraryTab() {
                           className="px-5 py-3.5 text-sm shrink-0 border-b-2 transition-all whitespace-nowrap"
                           style={ytMediaTab === t.id
                             ? { borderColor: plat.color, color: plat.color, fontWeight: 700 }
-                            : { borderColor: 'transparent', color: '#6b7280', fontWeight: 500 }}
+                            : { borderColor: 'transparent', color: '#4b5563', fontWeight: 500 }}
                         >
                           {t.label}
                         </button>
@@ -760,7 +760,7 @@ function MediaLibraryTab() {
                       {ytMediaTab === 'assets' && (
                         <div className="space-y-5">
                           <div>
-                            <label htmlFor="assets-project" className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Select Project</label>
+                            <label htmlFor="assets-project" className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-2">Select Project</label>
                             <div className="relative">
                               <select
                                 id="assets-project"
@@ -772,7 +772,7 @@ function MediaLibraryTab() {
                                 <option value="">Choose a project…</option>
                                 {assetProjects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
                               </select>
-                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
                             </div>
                           </div>
                           {assetsLoading && <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6D4AE0' }} /></div>}
@@ -781,7 +781,7 @@ function MediaLibraryTab() {
                             <div className="rounded-3xl p-12 flex flex-col items-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
                               <Layers className="w-10 h-10 mb-3" style={{ color: '#6D4AE0' }} />
                               <p className="text-sm font-semibold text-gray-700">No assets yet for this project</p>
-                              <p className="text-xs text-gray-400 mt-1">Run Voice Spec, Image Brief, or Music Brief from the project pipeline.</p>
+                              <p className="text-xs text-gray-600 mt-1">Run Voice Spec, Image Brief, or Music Brief from the project pipeline.</p>
                             </div>
                           )}
                           {Object.entries(groupedAssets).map(([kind, kindAssets]) => {
@@ -790,7 +790,7 @@ function MediaLibraryTab() {
                               <div key={kind}>
                                 <h3 className="flex items-center gap-2 mb-3">
                                   <KindIcon className="w-4 h-4 text-[#6D4AE0]" />
-                                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{kind.replace('_', ' ')}</span>
+                                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{kind.replace('_', ' ')}</span>
                                   <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{kindAssets.length}</span>
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -807,7 +807,7 @@ function MediaLibraryTab() {
                                             {status.label}
                                           </span>
                                         </div>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-gray-600">
                                           {asset.versions.length} version{asset.versions.length !== 1 ? 's' : ''}
                                           {latest?.provider ? ` · ${latest.provider}` : ''}
                                           {latest?.durationMs ? ` · ${Math.round(latest.durationMs / 1000)}s` : ''}
@@ -856,7 +856,7 @@ function MediaLibraryTab() {
                             </select>
                           </div>
                           {videosLoading && (
-                            <div className="flex items-center gap-2 py-16 justify-center text-gray-400">
+                            <div className="flex items-center gap-2 py-16 justify-center text-gray-700">
                               <Loader2 className="w-5 h-5 animate-spin" style={{ color: plat.color }} /> Loading library…
                             </div>
                           )}
@@ -864,7 +864,7 @@ function MediaLibraryTab() {
                             <div className="rounded-3xl p-14 flex flex-col items-center justify-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
                               <ListVideo className="w-10 h-10 mb-3" style={{ color: '#6D4AE0' }} />
                               <p className="text-base font-extrabold text-gray-900 mb-1">No videos synced yet</p>
-                              <p className="text-sm text-gray-400 mb-4">Sync your channel to see videos here.</p>
+                              <p className="text-sm text-gray-600 mb-4">Sync your channel to see videos here.</p>
                               <SyncBadge channelId={ytChannelId} />
                             </div>
                           )}
@@ -952,7 +952,7 @@ function ProjectsTab({
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Projects</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-sm text-gray-400">Manage your content campaigns</p>
+            <p className="text-sm text-gray-600">Manage your content campaigns</p>
             {isFreeTier && (
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>
                 {projects.length}/{limits.maxProjects} Free
@@ -985,7 +985,7 @@ function ProjectsTab({
       {/* Search result indicator */}
       {searchQuery && !isLoading && (
         <div className="flex items-center justify-between text-sm">
-          <p className="text-gray-500">
+          <p className="text-gray-600">
             {filteredProjects.length > 0
               ? <><span className="font-semibold text-gray-800">{filteredProjects.length}</span> result{filteredProjects.length !== 1 ? 's' : ''} for &ldquo;<span className="text-[#6D4AE0] font-semibold">{searchQuery}</span>&rdquo;</>
               : <>No projects match &ldquo;<span className="text-[#6D4AE0] font-semibold">{searchQuery}</span>&rdquo;</>}
@@ -1005,13 +1005,13 @@ function ProjectsTab({
         <div className="rounded-3xl flex flex-col items-center justify-center py-16 px-6 text-center" style={{ background: 'white', border: '1.5px solid #e3ddf8' }}>
           <div className="text-4xl mb-4">🔍</div>
           <h2 className="text-lg font-extrabold text-gray-900 mb-1">No results</h2>
-          <p className="text-gray-400 text-sm">Try a different keyword or <button type="button" onClick={() => router.replace('/projects')} className="text-[#6D4AE0] font-semibold hover:underline">clear the search</button>.</p>
+          <p className="text-gray-600 text-sm">Try a different keyword or <button type="button" onClick={() => router.replace('/projects')} className="text-[#6D4AE0] font-semibold hover:underline">clear the search</button>.</p>
         </div>
       ) : projects.length === 0 ? (
         <div className="rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ background: 'white', border: '1.5px solid #e3ddf8' }}>
           <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>🎬</div>
           <h2 className="text-xl font-extrabold text-gray-900 mb-2">No projects yet</h2>
-          <p className="text-gray-400 text-sm max-w-xs mb-8 leading-relaxed">
+          <p className="text-gray-600 text-sm max-w-xs mb-8 leading-relaxed">
             Create your first content campaign — YouTube videos, Instagram Reels, LinkedIn articles, TikTok videos, and more.
           </p>
           <button
@@ -1041,7 +1041,7 @@ function ProjectsTab({
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-extrabold text-gray-900 text-sm leading-tight truncate mb-1">{p.title}</h3>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-600">
                         <PlatformIcon platform={platform} size={14} />
                         {p.channel?.title
                           ? <span className="truncate">{p.channel.title}</span>
@@ -1054,7 +1054,7 @@ function ProjectsTab({
                               const cpPlatform = cpCh ? platformFromChannel(cpCh) : 'YOUTUBE';
                               return <PlatformIcon key={i} platform={cpPlatform} size={12} />;
                             })}
-                            {crossPosts.length > 3 && <span className="text-[10px] text-gray-400">+{crossPosts.length - 3}</span>}
+                            {crossPosts.length > 3 && <span className="text-[10px] text-gray-600">+{crossPosts.length - 3}</span>}
                           </span>
                         )}
                         {p.niche && <><span>·</span><span className="truncate">{p.niche}</span></>}
@@ -1094,10 +1094,10 @@ function ProjectsTab({
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: pdCfg.bg, color: pdCfg.textColor }}>
                         {formatEmoji(format)} {formatLabel(format)}
                       </span>
-                      <span className="flex items-center gap-1 text-xs text-gray-400"><Zap className="w-3 h-3" /> {p._count.jobs} jobs</span>
-                      <span className="flex items-center gap-1 text-xs text-gray-400"><Video className="w-3 h-3" /> {p._count.videos}</span>
+                      <span className="flex items-center gap-1 text-xs text-gray-600"><Zap className="w-3 h-3" /> {p._count.jobs} jobs</span>
+                      <span className="flex items-center gap-1 text-xs text-gray-600"><Video className="w-3 h-3" /> {p._count.videos} videos</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-600">
                       <Clock className="w-3 h-3" />
                       {relativeTime(p.updatedAt)}
                       <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#6D4AE0] transition-colors ml-1" />
@@ -1129,14 +1129,14 @@ function ProjectsTab({
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   {[{ n: 1, label: 'Platform & Format' }, { n: 2, label: 'Accounts & Details' }].map(({ n, label }) => (
                     <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: createStep >= n ? '#6D4AE0' : '#e5e7eb', color: createStep >= n ? '#fff' : '#9ca3af' }}>{n}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: createStep === n ? '#6D4AE0' : '#9ca3af' }}>{label}</span>
+                      <span style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: createStep >= n ? '#6D4AE0' : '#e5e7eb', color: createStep >= n ? '#fff' : '#4b5563' }}>{n}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: createStep === n ? '#6D4AE0' : '#4b5563' }}>{label}</span>
                       {n < 2 && <span style={{ width: 24, height: 2, background: '#e5e7eb', borderRadius: 2 }} />}
                     </div>
                   ))}
                 </div>
               </div>
-              <button type="button" onClick={closeCreate} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors text-lg leading-none shrink-0">×</button>
+              <button type="button" onClick={closeCreate} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-colors text-lg leading-none shrink-0">×</button>
             </div>
 
             {createStep === 1 && (
@@ -1184,14 +1184,14 @@ function ProjectsTab({
                         >
                           <span style={{ fontSize: 18 }}>{fd.emoji}</span>
                           <span style={{ fontSize: 12, fontWeight: 700, color: form.contentFormat === fd.type ? selPlatform.textColor : '#374151' }}>{fd.label}</span>
-                          <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35 }}>{fd.desc}</span>
+                          <span style={{ fontSize: 10, color: '#4b5563', lineHeight: 1.35 }}>{fd.desc}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
                 <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f0edf9' }}>
-                  <button type="button" onClick={closeCreate} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
+                  <button type="button" onClick={closeCreate} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
                   <button
                     type="button" onClick={() => setCreateStep(2)}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
@@ -1219,7 +1219,7 @@ function ProjectsTab({
                     {platformChannels.length === 0 ? (
                       <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}>
                         <p className="font-semibold mb-1" style={{ color: '#4c1d95' }}>ℹ No accounts connected yet</p>
-                        <p style={{ color: '#6b7280' }}>You don&apos;t need to connect any account now. Create your content first.</p>
+                        <p style={{ color: '#4b5563' }}>You don&apos;t need to connect any account now. Create your content first.</p>
                         <p className="mt-2">
                           <button
                             type="button"
@@ -1228,7 +1228,7 @@ function ProjectsTab({
                           >
                             Connect Account →
                           </button>
-                          {' '}<span style={{ color: '#9ca3af', fontSize: 12 }}>(optional)</span>
+                          {' '}<span style={{ color: '#4b5563', fontSize: 12 }}>(optional)</span>
                         </p>
                       </div>
                     ) : (
@@ -1241,14 +1241,14 @@ function ProjectsTab({
                           <option value="">Select a {selPlatform.label} account…</option>
                           {platformChannels.map(ch => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
                         </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
                       </div>
                     )}
                   </Field>
 
                   <Field label="Cross-post to (optional)" hint="Also publish this content to other connected accounts.">
                     {otherChannels.length === 0 ? (
-                      <p style={{ fontSize: 12, color: '#9ca3af' }}>
+                      <p style={{ fontSize: 12, color: '#4b5563' }}>
                         No other accounts connected yet.{' '}
                         <Link href="/publish?tab=accounts" className="text-[#6D4AE0] font-semibold hover:underline" onClick={closeCreate}>Connect accounts →</Link>
                       </p>
@@ -1309,7 +1309,7 @@ function ProjectsTab({
 
                 {createError && <p className="px-7 pb-2 text-sm text-red-600">{createError}</p>}
                 <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f0edf9' }}>
-                  <button type="button" onClick={() => setCreateStep(1)} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">← Back</button>
+                  <button type="button" onClick={() => setCreateStep(1)} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">← Back</button>
                   <button
                     type="button" onClick={() => createMutation.mutate()}
                     disabled={!form.title || createMutation.isPending}
@@ -1365,7 +1365,7 @@ function ProjectsViewRouter() {
               style={
                 isActive
                   ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.30)' }
-                  : { background: 'transparent', color: '#7c5ae8' }
+                  : { background: 'transparent', color: '#5b3ab5' }
               }
             >
               {label}
@@ -1520,7 +1520,7 @@ function ProjectsInner() {
                 type="button"
                 onClick={() => setMainTab(t.id)}
                 className="flex items-center gap-2 px-4 py-4 text-sm font-semibold transition-all relative"
-                style={{ color: mainTab === t.id ? '#6D4AE0' : '#6b7280' }}
+                style={{ color: mainTab === t.id ? '#6D4AE0' : '#374151' }}
               >
                 <span>{t.icon}</span>
                 {t.label}

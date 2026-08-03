@@ -240,12 +240,12 @@ function SettingsContent() {
         {/* Page header */}
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Settings</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage your profile, security, and developer integrations</p>
+          <p className="text-sm text-gray-600 mt-0.5">Manage your profile, security, and developer integrations</p>
         </div>
 
         {/* ── AI Providers shortcut ────────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">AI</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI</p>
           <a
             href="/settings/ai-providers"
             className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f5f2fd]"
@@ -256,7 +256,7 @@ function SettingsContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">AI Providers</p>
-              <p className="text-xs text-gray-500">Configure local and cloud LLM providers</p>
+              <p className="text-xs text-gray-600">Configure local and cloud LLM providers</p>
             </div>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0' }}>NEW</span>
           </a>
@@ -270,7 +270,7 @@ function SettingsContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Model Manager</p>
-              <p className="text-xs text-gray-500">Download and manage local AI models</p>
+              <p className="text-xs text-gray-600">Download and manage local AI models</p>
             </div>
           </a>
           <a
@@ -283,7 +283,7 @@ function SettingsContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Music Library</p>
-              <p className="text-xs text-gray-500">Royalty-free tracks for your videos</p>
+              <p className="text-xs text-gray-600">Royalty-free tracks for your videos</p>
             </div>
           </a>
           <a
@@ -296,7 +296,7 @@ function SettingsContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Storage</p>
-              <p className="text-xs text-gray-500">Manage local AI-generated files, models, and cache.</p>
+              <p className="text-xs text-gray-600">Manage local AI-generated files, models, and cache.</p>
             </div>
           </a>
           <a
@@ -309,7 +309,7 @@ function SettingsContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Queue Manager</p>
-              <p className="text-xs text-gray-500">Monitor BullMQ job queue — active, waiting, failed jobs.</p>
+              <p className="text-xs text-gray-600">Monitor BullMQ job queue — active, waiting, failed jobs.</p>
             </div>
           </a>
           <a
@@ -322,7 +322,7 @@ function SettingsContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">GPU &amp; Hardware</p>
-              <p className="text-xs text-gray-500">Detected compute hardware — GPU backend, VRAM, utilization.</p>
+              <p className="text-xs text-gray-600">Detected compute hardware — GPU backend, VRAM, utilization.</p>
             </div>
           </a>
           <a
@@ -335,7 +335,7 @@ function SettingsContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Audio Studio</p>
-              <p className="text-xs text-gray-500">Loudness normalize, noise removal, silence trimmer — FFmpeg local processing</p>
+              <p className="text-xs text-gray-600">Loudness normalize, noise removal, silence trimmer — FFmpeg local processing</p>
             </div>
           </a>
         </section>
@@ -347,7 +347,7 @@ function SettingsContent() {
 
         {/* ── Profile ──────────────────────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Profile</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Profile</p>
           <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="flex items-center gap-2 mb-4">
               <User className="w-5 h-5" style={{ color: '#6D4AE0' }} />
@@ -367,7 +367,7 @@ function SettingsContent() {
                   {me?.name?.[0]?.toUpperCase() ?? ''}
                 </div>
               )}
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-600">
                 <p suppressHydrationWarning className="font-medium text-gray-700">{me?.email ?? ''}</p>
                 <p suppressHydrationWarning className="text-xs mt-0.5 capitalize">{me?.role?.toLowerCase() ?? ''}</p>
               </div>
@@ -385,7 +385,7 @@ function SettingsContent() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Avatar URL <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Avatar URL <span className="text-gray-600 font-normal">(optional)</span></label>
                 <input
                   type="url"
                   value={profileAvatar}
@@ -416,7 +416,7 @@ function SettingsContent() {
 
         {/* ── Sign-in & security ───────────────────────────────────────── */}
         <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Sign-in &amp; Security</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Sign-in &amp; Security</p>
 
           {/* Linked accounts */}
           <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
@@ -424,7 +424,7 @@ function SettingsContent() {
               <Shield className="w-4 h-4" style={{ color: '#6D4AE0' }} />
               <div>
                 <p className="text-sm font-semibold text-gray-800">Linked accounts</p>
-                <p className="text-xs text-gray-500 mt-0.5">Connect social accounts to sign in without a password.</p>
+                <p className="text-xs text-gray-600 mt-0.5">Connect social accounts to sign in without a password.</p>
               </div>
             </div>
             {(['google', 'apple'] as OAuthProvider[]).map((provider) => {
@@ -459,9 +459,9 @@ function SettingsContent() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800">{label}</p>
                     {linkedAccount ? (
-                      <p className="text-xs text-gray-500 truncate">{linkedAccount.email}</p>
+                      <p className="text-xs text-gray-600 truncate">{linkedAccount.email}</p>
                     ) : (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-600">
                         {providerEnabled ? 'Not connected' : 'Not configured'}
                       </p>
                     )}
@@ -488,7 +488,7 @@ function SettingsContent() {
                       Connect
                     </button>
                   ) : (
-                    <span className="text-xs text-gray-500 italic">Not configured</span>
+                    <span className="text-xs text-gray-600 italic">Not configured</span>
                   )}
                 </div>
               );
@@ -504,7 +504,7 @@ function SettingsContent() {
               </svg>
               <div>
                 <p className="text-sm font-semibold text-gray-800">Content Channels</p>
-                <p className="text-xs text-gray-500 mt-0.5">Connect and manage all your publishing accounts in one place.</p>
+                <p className="text-xs text-gray-600 mt-0.5">Connect and manage all your publishing accounts in one place.</p>
               </div>
             </div>
             <div className="px-4 py-5 flex items-center justify-between gap-4">
@@ -527,7 +527,7 @@ function SettingsContent() {
                   <Monitor className="w-4 h-4 text-gray-500" />
                   Active sessions
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">Devices currently signed in to your account.</p>
+                <p className="text-xs text-gray-600 mt-0.5">Devices currently signed in to your account.</p>
               </div>
               {sessions.filter((s) => !s.current).length > 0 && (
                 <button
@@ -545,7 +545,7 @@ function SettingsContent() {
             </div>
 
             {sessions.length === 0 && !sessionsLoading && (
-              <div className="px-4 py-6 text-center text-sm text-gray-500">No active sessions found.</div>
+              <div className="px-4 py-6 text-center text-sm text-gray-600">No active sessions found.</div>
             )}
 
             {sessions.map((session) => {
@@ -566,14 +566,14 @@ function SettingsContent() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-600 mt-0.5">
                       {session.ip} &middot; Last active {new Date(session.lastUsedAt).toLocaleString()}
                     </p>
                   </div>
 
                   {isConfirming ? (
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-600">
                         {session.current ? 'You will be signed out.' : 'Revoke?'}
                       </span>
                       <button
@@ -611,18 +611,18 @@ function SettingsContent() {
 
         {/* ── Developer Webhooks — OWNER / SUPER_ADMIN only ───────────── */}
         {isOwner && <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Developer Webhooks</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Developer Webhooks</p>
           <div className="bg-white rounded-2xl mb-3" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
               <Webhook className="w-4 h-4" style={{ color: '#6D4AE0' }} />
               <div>
                 <p className="text-sm font-semibold text-gray-800">Webhooks</p>
-                <p className="text-xs text-gray-500 mt-0.5">Receive HTTP POST notifications when events happen in your account.</p>
+                <p className="text-xs text-gray-600 mt-0.5">Receive HTTP POST notifications when events happen in your account.</p>
               </div>
             </div>
 
             {webhooks.length === 0 && (
-              <div className="px-4 py-6 text-center text-sm text-gray-500">No webhooks yet.</div>
+              <div className="px-4 py-6 text-center text-sm text-gray-600">No webhooks yet.</div>
             )}
             {webhooks.map((wh) => {
               const testResult = webhookTestResults[wh.id];
@@ -749,13 +749,13 @@ function SettingsContent() {
         {/* ── API Keys (Owner only) ─────────────────────────── */}
         {isOwner && (
           <section>
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">API Keys</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">API Keys</p>
             <div className="bg-white rounded-2xl mb-3" style={{ border: '1.5px solid #e3ddf8' }}>
               <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
                 <Key className="w-4 h-4" style={{ color: '#6D4AE0' }} />
                 <div>
                   <p className="text-sm font-semibold text-gray-800">API Keys</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Configure provider API keys used by the AI agents. Visible to owner only.</p>
+                  <p className="text-xs text-gray-600 mt-0.5">Configure provider API keys used by the AI agents. Visible to owner only.</p>
                 </div>
               </div>
 
@@ -768,7 +768,7 @@ function SettingsContent() {
                   <div key={entry.key} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800">{entry.label}</p>
-                      <p className="text-xs text-gray-500 font-mono mt-0.5">
+                      <p className="text-xs text-gray-600 font-mono mt-0.5">
                         {entry.key}
                       </p>
                     </div>
@@ -782,7 +782,7 @@ function SettingsContent() {
                           onChange={(e) =>
                             setApiKeyDrafts((prev) => ({ ...prev, [entry.key]: e.target.value }))
                           }
-                          className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono placeholder:text-gray-500 placeholder:font-sans"
+                          className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono placeholder:text-gray-600 placeholder:font-sans"
                           style={{ border: '1.5px solid #e3e0f0', paddingRight: entry.set && draft === undefined ? '5rem' : '2.5rem' }}
                         />
                         {entry.set && draft === undefined && (

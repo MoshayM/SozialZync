@@ -94,7 +94,7 @@ function TrialStatusCard() {
         <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
         <div>
           <span className="text-sm font-semibold text-gray-800">Trial converted</span>
-          <span className="ml-1 text-gray-500 text-sm">— you are on a paid plan now.</span>
+          <span className="ml-1 text-gray-600 text-sm">— you are on a paid plan now.</span>
         </div>
       </div>
     );
@@ -115,7 +115,7 @@ function TrialStatusCard() {
       </div>
       {trialCreditsRemaining !== undefined && creditsGranted !== undefined && (
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-gray-600">
             <span>{fmtCredits(trialCreditsRemaining)} remaining</span>
             <span>{fmtCredits(creditsGranted)} granted</span>
           </div>
@@ -125,7 +125,7 @@ function TrialStatusCard() {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500">{pct}% remaining</p>
+          <p className="text-xs text-gray-600">{pct}% remaining</p>
         </div>
       )}
       {days !== null && expiresAt && (
@@ -162,7 +162,7 @@ function UpgradeNudges() {
           <AlertCircle className="w-4 h-4 text-[#6D4AE0] shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm text-gray-800">{reasonLabel(rec.reasonCode)}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-600 mt-0.5">
               Recommended plan: <span className="font-semibold">{rec.recommendedPlan}</span>
             </p>
           </div>
@@ -223,10 +223,10 @@ function OfferCenter() {
               </div>
               <p className="text-xs text-green-700 font-semibold">+{fmtCredits(offer.rewardValue)} bonus credits</p>
               {offer.minRechargeMinor !== null && (
-                <p className="text-xs text-gray-500">Applied automatically on recharge &ge; ${(offer.minRechargeMinor / 100).toFixed(2)}</p>
+                <p className="text-xs text-gray-600">Applied automatically on recharge &ge; ${(offer.minRechargeMinor / 100).toFixed(2)}</p>
               )}
               {offer.validTo && (
-                <p className="text-xs text-gray-500">Expires {new Date(offer.validTo).toLocaleDateString()}</p>
+                <p className="text-xs text-gray-600">Expires {new Date(offer.validTo).toLocaleDateString()}</p>
               )}
             </div>
             <div className="shrink-0">
@@ -331,7 +331,7 @@ function ReferralCenter() {
         {codeData && (
           <>
             <div className="space-y-2">
-              <p className="text-xs text-gray-500">Your referral code</p>
+              <p className="text-xs text-gray-600">Your referral code</p>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold tracking-widest text-[#6D4AE0] font-mono">{codeData.code}</span>
                 <button
@@ -346,7 +346,7 @@ function ReferralCenter() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs text-gray-500">Share link</p>
+              <p className="text-xs text-gray-600">Share link</p>
               <div className="flex gap-2">
                 <input
                   ref={inputRef}
@@ -359,7 +359,7 @@ function ReferralCenter() {
                 <button
                   onClick={() => void copyCode(shareUrl)}
                   aria-label="Copy share link"
-                  className="px-3 py-2 rounded-2xl text-gray-500 hover:text-[#6D4AE0] transition-colors text-xs font-semibold"
+                  className="px-3 py-2 rounded-2xl text-gray-600 hover:text-[#6D4AE0] transition-colors text-xs font-semibold"
                   style={{ border: '1.5px solid #e3ddf8' }}
                 >
                   {copied ? 'Copied!' : 'Copy'}
@@ -368,7 +368,7 @@ function ReferralCenter() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Share via:</span>
+              <span className="text-xs text-gray-600">Share via:</span>
               <a href={twitterUrl} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-black text-white hover:bg-gray-800 transition-colors">
                 <Share2 className="w-3 h-3" /> X / Twitter
@@ -389,21 +389,21 @@ function ReferralCenter() {
         {earnings && (
           <div className="flex flex-wrap gap-3">
             <div className="flex flex-col bg-gray-50 rounded-2xl px-3 py-2 min-w-[80px]">
-              <span className="text-xs text-gray-500">Total earned</span>
+              <span className="text-xs text-gray-600">Total earned</span>
               <span className="text-lg font-bold text-gray-800">{fmtCredits(earnings.totalCredits)}</span>
-              <span className="text-[10px] text-gray-500">credits</span>
+              <span className="text-[10px] text-gray-600">credits</span>
             </div>
             <div className="flex flex-col bg-[#ecfdf5] rounded-2xl px-3 py-2 min-w-[80px]">
-              <span className="text-xs text-gray-500">Qualified</span>
+              <span className="text-xs text-gray-600">Qualified</span>
               <span className="text-lg font-bold text-[#065f46]">{earnings.qualifiedCount}</span>
             </div>
             <div className="flex flex-col bg-yellow-50 rounded-2xl px-3 py-2 min-w-[80px]">
-              <span className="text-xs text-gray-500">Pending</span>
+              <span className="text-xs text-gray-600">Pending</span>
               <span className="text-lg font-bold text-yellow-700">{earnings.pendingCount}</span>
             </div>
             {earnings.flaggedCount > 0 && (
               <div className="flex flex-col bg-red-50 rounded-2xl px-3 py-2 min-w-[80px]">
-                <span className="text-xs text-gray-500">Under review</span>
+                <span className="text-xs text-gray-600">Under review</span>
                 <span className="text-lg font-bold text-red-600">{earnings.flaggedCount}</span>
               </div>
             )}
@@ -414,7 +414,7 @@ function ReferralCenter() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-gray-700">
               <thead>
-                <tr className="text-gray-500 border-b border-gray-100">
+                <tr className="text-gray-600 border-b border-gray-100">
                   <th className="text-left pb-2 font-medium">Date</th>
                   <th className="text-left pb-2 font-medium">Status</th>
                   <th className="text-right pb-2 font-medium">Reward</th>
@@ -423,7 +423,7 @@ function ReferralCenter() {
               <tbody className="divide-y divide-gray-50">
                 {earnings.referrals.map((r) => (
                   <tr key={r.id}>
-                    <td className="py-1.5 text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td className="py-1.5 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
                     <td className="py-1.5">
                       <span className={`border rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipStyle(r.status)}`}>
                         {r.status}
@@ -479,7 +479,7 @@ function ReferralCenter() {
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
             <Trophy className="w-4 h-4 text-amber-500" />
             <span className="text-sm font-semibold text-gray-800">Referral Leaderboard</span>
-            <span className="text-xs text-gray-400">(top 10)</span>
+            <span className="text-xs text-gray-600">(top 10)</span>
           </div>
           <div className="divide-y divide-gray-50">
             {leaderboard.slice(0, 10).map((entry) => (
@@ -488,7 +488,7 @@ function ReferralCenter() {
                   {entry.rank}
                 </span>
                 <span className="flex-1 text-sm text-gray-700 truncate">{entry.userLabel}</span>
-                <div className="text-right text-xs text-gray-500">
+                <div className="text-right text-xs text-gray-600">
                   <p className="font-semibold text-gray-800">{entry.qualifiedCount} referred</p>
                   <p>{fmtCredits(entry.totalCredits)} credits</p>
                 </div>
@@ -525,7 +525,7 @@ function ScorecardTab() {
         {statItems.map((s) => (
           <div key={s.label} className={`${s.bg} rounded-2xl p-4`}>
             {pubLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
             ) : (
               <p className={`text-2xl font-bold ${s.color}`}>{String(s.value)}</p>
             )}
@@ -550,7 +550,7 @@ function ScorecardTab() {
           <Zap className="w-5 h-5" />
           <span className="font-semibold text-lg">Unlock More Power</span>
         </div>
-        <p className="text-sm text-white/80 mb-4">
+        <p className="text-sm text-white mb-4">
           Upgrade to Pro for advanced analytics, unlimited AI generations, priority rendering, and multi-channel management.
         </p>
         <Link href="/wallet" className="inline-flex items-center gap-2 bg-white text-[#6D4AE0] font-semibold px-4 py-2 rounded-2xl text-sm hover:bg-[#f5f2fd] transition-colors">
@@ -602,16 +602,16 @@ function CreditsTab() {
       <div className="rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #4f35a8 100%)' }}>
         <div className="flex items-center gap-2 mb-1">
           <Coins className="w-5 h-5" />
-          <span className="text-sm font-medium text-white/80">Current Balance</span>
+          <span className="text-sm font-medium text-white">Current Balance</span>
         </div>
         {balLoading ? (
           <Loader2 className="w-5 h-5 animate-spin mt-2" />
         ) : balError ? (
-          <p className="text-sm text-white/60 mt-2">Unable to load balance — check your connection</p>
+          <p className="text-sm text-white mt-2">Unable to load balance — check your connection</p>
         ) : (
           <>
             <p className="text-4xl font-bold">{balance ? fmtCredits(balance.balance) : '—'}</p>
-            <p className="text-sm text-white/70 mt-1">credits{balance?.tier ? ` · ${balance.tier} plan` : ''}</p>
+            <p className="text-sm text-white mt-1">credits{balance?.tier ? ` · ${balance.tier} plan` : ''}</p>
           </>
         )}
         <Link href="/wallet" className="inline-flex items-center gap-2 mt-4 bg-white/20 hover:bg-white/30 text-white text-sm font-medium px-4 py-2 rounded-2xl transition-colors">
@@ -623,15 +623,15 @@ function CreditsTab() {
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-semibold text-gray-800">Usage by Action (last 30 days)</span>
-          {usage && <span className="text-xs text-gray-400 ml-auto">{fmtCredits(usage.totalSpent)} total spent</span>}
+          {usage && <span className="text-xs text-gray-600 ml-auto">{fmtCredits(usage.totalSpent)} total spent</span>}
         </div>
 
         {usageLoading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+          <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-gray-600" /></div>
         ) : usageError ? (
           <p className="text-sm text-amber-600 py-4 text-center">Could not load usage data. The server may be unavailable.</p>
         ) : topActions.length === 0 ? (
-          <p className="text-sm text-gray-400 py-4 text-center">No usage data yet</p>
+          <p className="text-sm text-gray-600 py-4 text-center">No usage data yet</p>
         ) : (
           <>
             {/* Stacked bar */}
@@ -652,7 +652,7 @@ function CreditsTab() {
                   <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${segColors[i % segColors.length]}`} />
                   <span className="text-xs text-gray-700 flex-1">{actionLabels[a.action] ?? a.action.replace(/_/g, ' ')}</span>
                   <span className="text-xs font-medium text-gray-800">{fmtCredits(a.credits)}</span>
-                  <span className="text-xs text-gray-400 w-10 text-right">{Math.round((a.credits / total) * 100)}%</span>
+                  <span className="text-xs text-gray-600 w-10 text-right">{Math.round((a.credits / total) * 100)}%</span>
                 </div>
               ))}
             </div>
@@ -737,7 +737,7 @@ function GoalsTab() {
 
         <div className="space-y-4">
           <div>
-            <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block mb-2">Weekly video target</label>
+            <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 block mb-2">Weekly video target</label>
             <div className="flex gap-2 flex-wrap">
               {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                 <button
@@ -753,7 +753,7 @@ function GoalsTab() {
           </div>
 
           <div>
-            <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block mb-2">Monthly Shorts target</label>
+            <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 block mb-2">Monthly Shorts target</label>
             <div className="flex gap-2 flex-wrap">
               {[0, 2, 4, 8, 12, 16, 20].map((n) => (
                 <button
@@ -838,7 +838,7 @@ function GoalsTab() {
             <p className="text-sm text-amber-800">{tip}</p>
           </div>
         ) : (
-          <p className="text-xs text-gray-400">Click "Get Tip" for an AI-powered content strategy suggestion.</p>
+          <p className="text-xs text-gray-600">Click "Get Tip" for an AI-powered content strategy suggestion.</p>
         )}
       </div>
     </div>
@@ -866,7 +866,7 @@ export default function GrowthPage() {
           <TrendingUp className="w-7 h-7 text-[#6D4AE0]" />
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Growth</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Track performance, referrals, credits, and content goals</p>
+            <p className="text-sm text-gray-600 mt-0.5">Track performance, referrals, credits, and content goals</p>
           </div>
         </div>
 
@@ -875,7 +875,7 @@ export default function GrowthPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-medium transition-all ${tab === t.id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-medium transition-all ${tab === t.id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600 hover:text-gray-800'}`}
             >
               {t.icon}
               {t.label}

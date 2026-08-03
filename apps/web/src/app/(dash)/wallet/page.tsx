@@ -215,13 +215,13 @@ function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBud
             ) : null}
           </div>
           <div>
-            <p className="text-white/60 text-sm font-medium mb-1">AI credits remaining</p>
+            <p className="text-white/90 text-sm font-medium mb-1">AI credits remaining</p>
             <p className="text-5xl sm:text-6xl font-extrabold text-white tabular-nums leading-none">
               {balance ? fmt(balance.balanceCredits) : '—'}
             </p>
           </div>
           {sub?.currentPeriodEnd && (
-            <p className="text-white/45 text-xs mt-2">
+            <p className="text-white/90 text-xs mt-2">
               Renews {new Date(sub.currentPeriodEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
           )}
@@ -239,14 +239,14 @@ function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBud
           {budget && budget.status !== 'NONE' ? (
             <>
               <UsageRing pct={pct} />
-              <p className="text-white/55 text-[11px]">of monthly budget</p>
+              <p className="text-white/90 text-[11px]">of monthly budget</p>
             </>
           ) : (
             <button onClick={onSetBudget} className="flex flex-col items-center gap-1 group">
               <div className="w-24 h-24 rounded-full border-2 border-dashed border-white/25 flex items-center justify-center group-hover:border-white/50 transition-colors">
-                <AlertCircle className="w-8 h-8 text-white/35 group-hover:text-white/60 transition-colors" />
+                <AlertCircle className="w-8 h-8 text-white/35 group-hover:text-white/60 transition-colors" aria-hidden="true" />
               </div>
-              <span className="text-white/50 text-[11px] group-hover:text-white/70 transition-colors">Set budget</span>
+              <span className="text-white/90 text-[11px] group-hover:text-white transition-colors">Set budget</span>
             </button>
           )}
         </div>
@@ -264,9 +264,9 @@ function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBud
           },
         ].map(({ label, value, unit, color }) => (
           <div key={label} className="px-4 py-3 text-center">
-            <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">{label}</p>
+            <p className="text-[10px] text-white/90 uppercase tracking-wider mb-0.5">{label}</p>
             <p className="text-lg font-bold tabular-nums" style={{ color: color ?? '#fff' }}>{value}</p>
-            <p className="text-[10px] text-white/35">{unit}</p>
+            <p className="text-[10px] text-white/90">{unit}</p>
           </div>
         ))}
       </div>
@@ -298,7 +298,7 @@ function CostByAction() {
           {([7, 30, 90] as const).map((d) => (
             <button key={d} onClick={() => setDays(d)}
               className="px-3 py-1 rounded-[10px] text-xs font-semibold transition-all"
-              style={days === d ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 1px 3px rgba(0,0,0,.08)' } : { color: '#6b7280' }}>
+              style={days === d ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 1px 3px rgba(0,0,0,.08)' } : { color: '#374151' }}>
               {d}d
             </button>
           ))}
@@ -307,7 +307,7 @@ function CostByAction() {
 
       {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#7C3AED' }} />}
 
-      {data && top.length === 0 && <p className="text-sm text-gray-400 italic py-4 text-center">No usage in this period.</p>}
+      {data && top.length === 0 && <p className="text-sm text-gray-600 italic py-4 text-center">No usage in this period.</p>}
 
       <div className="space-y-3">
         {top.map(({ action, credits }) => {
@@ -317,7 +317,7 @@ function CostByAction() {
             <div key={action}>
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-gray-700 font-medium capitalize">{action.replace(/_/g, ' ').toLowerCase()}</span>
-                <span className="text-gray-500 tabular-nums">{fmt(credits)} <span className="text-gray-400">· {ofTotal}%</span></span>
+                <span className="text-gray-600 tabular-nums">{fmt(credits)} <span className="text-gray-600">· {ofTotal}%</span></span>
               </div>
               <div className="h-2 rounded-full overflow-hidden" style={{ background: '#f3f4f6' }}>
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #a78bfa, #7C3AED)' }} />
@@ -328,7 +328,7 @@ function CostByAction() {
       </div>
 
       {data && data.totalSpent > 0 && (
-        <p className="text-xs text-gray-400 pt-1">
+        <p className="text-xs text-gray-600 pt-1">
           Total: <span className="font-semibold text-gray-700">{fmt(data.totalSpent)} credits</span> in {days} days
         </p>
       )}
@@ -347,7 +347,7 @@ function SpendForecast() {
   });
 
   const daysLeft = forecast?.daysToEmpty != null ? Math.round(forecast.daysToEmpty) : null;
-  const daysColor = daysLeft == null ? '#6b7280' : daysLeft <= 7 ? '#b91c1c' : daysLeft <= 30 ? '#c2410c' : '#059669';
+  const daysColor = daysLeft == null ? '#374151' : daysLeft <= 7 ? '#b91c1c' : daysLeft <= 30 ? '#c2410c' : '#059669';
 
   return (
     <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
@@ -359,18 +359,18 @@ function SpendForecast() {
       {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#7C3AED' }} />}
 
       {forecast && forecast.dailyBurn === 0 && (
-        <p className="text-sm text-gray-400 italic py-2">No usage yet — nothing to forecast.</p>
+        <p className="text-sm text-gray-600 italic py-2">No usage yet — nothing to forecast.</p>
       )}
 
       {forecast && forecast.dailyBurn > 0 && (
         <div className="space-y-3">
           {[
-            { label: 'Daily burn rate',     value: `${fmt(Math.round(forecast.dailyBurn))} cr/day`, color: '#6b7280' },
+            { label: 'Daily burn rate',     value: `${fmt(Math.round(forecast.dailyBurn))} cr/day`, color: '#374151' },
             { label: 'Balance lasts',        value: daysLeft != null ? `~${daysLeft} days` : 'No limit', color: daysColor },
-            { label: 'Month-end projected',  value: `${fmt(forecast.projectedMonthEndSpend)} credits`, color: '#6b7280' },
+            { label: 'Month-end projected',  value: `${fmt(forecast.projectedMonthEndSpend)} credits`, color: '#374151' },
           ].map(({ label, value, color }) => (
             <div key={label} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
-              <span className="text-sm text-gray-500">{label}</span>
+              <span className="text-sm text-gray-600">{label}</span>
               <span className="text-sm font-bold tabular-nums" style={{ color }}>{value}</span>
             </div>
           ))}
@@ -397,7 +397,7 @@ function SpendForecast() {
                 : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }}>
               {rec.severity === 'warning'
                 ? <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                : <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5 text-gray-400" />}
+                : <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5 text-gray-400" aria-hidden="true" />}
               {rec.message}
             </li>
           ))}
@@ -477,7 +477,7 @@ function SmartTopUp() {
         </div>
       </div>
 
-      <p className="text-xs text-gray-400">~{CREDITS_PER_DOLLAR.toLocaleString()} credits per $1 USD</p>
+      <p className="text-xs text-gray-600">~{CREDITS_PER_DOLLAR.toLocaleString()} credits per $1 USD</p>
 
       {/* Amount pills */}
       <div className="grid grid-cols-5 gap-2">
@@ -503,7 +503,7 @@ function SmartTopUp() {
               <span className="text-sm font-bold" style={{ color: (isSelected || isBest) ? '#fff' : '#111827' }}>
                 {conf.symbol}{amount}
               </span>
-              <span className="text-[10px] mt-0.5" style={{ color: (isSelected || isBest) ? 'rgba(255,255,255,.7)' : '#9ca3af' }}>
+              <span className="text-[10px] mt-0.5" style={{ color: (isSelected || isBest) ? 'rgba(255,255,255,.85)' : '#374151' }}>
                 ${usdEq < 1 ? usdEq.toFixed(2) : Math.round(usdEq)} USD
               </span>
             </button>
@@ -514,7 +514,7 @@ function SmartTopUp() {
       {/* Custom amount */}
       <div className="flex gap-2">
         <div className="flex items-center flex-1 rounded-2xl bg-white" style={{ border: '1.5px solid #e3e0f0' }}>
-          <span className="pl-3.5 text-sm font-semibold text-gray-500">{conf.symbol}</span>
+          <span className="pl-3.5 text-sm font-semibold text-gray-600">{conf.symbol}</span>
           <input
             type="number"
             min={1}
@@ -556,7 +556,7 @@ function SmartTopUp() {
       {/* Credit packs from API */}
       {buyPacks.data && buyPacks.data.length > 0 && (
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Packs</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-2">Packs</p>
           <div className="flex flex-wrap gap-2">
             {buyPacks.data.map((pack) => {
               const price = new Intl.NumberFormat(undefined, { style: 'currency', currency: pack.currency.toUpperCase() }).format(pack.priceMinor / 100);
@@ -630,7 +630,7 @@ function PlansGrid() {
               : hasCreditsPro ? 'Pro access — active via credits'
               : 'Free tier'}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-600 mt-0.5">
             {isSuperAdmin
               ? 'Owner/developer account · bypasses all plan gates · full access to all features'
               : isEnterprise
@@ -702,7 +702,7 @@ function PlansGrid() {
                   style={{ background: tier.id === 'PRO' ? '#f5f2fd' : tier.id === 'ENTERPRISE' ? '#fffbeb' : '#f9fafb' }}
                 >
                   <p className="text-sm font-extrabold" style={{ color: tier.color }}>{tier.unlockLabel}</p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">{tier.unlockSub}</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5">{tier.unlockSub}</p>
                 </div>
 
                 {/* Features */}
@@ -719,7 +719,7 @@ function PlansGrid() {
                 {tier.id === 'FREE' && (
                   <div
                     className="mt-auto w-full py-2.5 rounded-2xl text-sm font-bold text-center"
-                    style={{ background: '#f3f4f6', color: '#6b7280' }}
+                    style={{ background: '#f3f4f6', color: '#374151' }}
                   >
                     {plan === 'free' && !hasCreditsPro ? 'Current plan' : 'Included'}
                   </div>
@@ -744,7 +744,7 @@ function PlansGrid() {
                         Top up to unlock Pro
                       </button>
                     )}
-                    <p className="text-[10px] text-center text-gray-400">
+                    <p className="text-[10px] text-center text-gray-600">
                       From {conf.symbol}{minTopUp} · no subscription · credits never expire
                     </p>
                   </div>
@@ -784,7 +784,7 @@ function PlansGrid() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Request Enterprise Access</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Our team will review and activate payment within 24h</p>
+                <p className="text-xs text-gray-600 mt-0.5">Our team will review and activate payment within 24h</p>
               </div>
               <button type="button" onClick={() => setShowEnterpriseModal(false)} className="p-2 rounded-xl hover:bg-gray-100">
                 <X className="w-4 h-4 text-gray-500" />
@@ -974,12 +974,12 @@ function TransactionHistory() {
       </div>
 
       {isLoading && <div className="p-5"><Loader2 className="w-5 h-5 animate-spin" style={{ color: '#7C3AED' }} /></div>}
-      {!isLoading && txns.length === 0 && <p className="px-5 py-8 text-sm text-gray-400 text-center italic">No transactions yet.</p>}
+      {!isLoading && txns.length === 0 && <p className="px-5 py-8 text-sm text-gray-600 text-center italic">No transactions yet.</p>}
 
       {groups.map((group) => (
         <div key={group.label}>
           <div className="px-5 py-2" style={{ background: '#f9f7ff', borderBottom: '1px solid #f0edf9', borderTop: '1px solid #f0edf9' }}>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{group.label}</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{group.label}</span>
           </div>
           {group.items.map((tx) => (
             <div key={tx.id} className="flex items-center gap-3 px-5 py-3 hover:bg-[#faf9ff] transition-colors" style={{ borderBottom: '1px solid #f9f7ff' }}>
@@ -987,13 +987,13 @@ function TransactionHistory() {
               <div className="w-2 h-2 rounded-full shrink-0" style={{ background: TYPE_COLORS[tx.entryType] ?? '#9ca3af' }} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800">{TYPE_LABELS[tx.entryType] ?? tx.entryType.replace(/_/g, ' ').toLowerCase()}</p>
-                <p className="text-xs text-gray-400">{timeAgo(tx.createdAt)}</p>
+                <p className="text-xs text-gray-600">{timeAgo(tx.createdAt)}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-sm font-bold tabular-nums" style={{ color: tx.amount >= 0 ? '#059669' : '#b91c1c' }}>
                   {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
                 </p>
-                <p className="text-[11px] text-gray-400 tabular-nums">{fmt(tx.balanceAfter)} after</p>
+                <p className="text-[11px] text-gray-600 tabular-nums">{fmt(tx.balanceAfter)} after</p>
               </div>
             </div>
           ))}
@@ -1040,7 +1040,7 @@ function BudgetEditor({ onClose }: { onClose: () => void }) {
           <AlertCircle className="w-4 h-4" style={{ color: '#7C3AED' }} />
           <span className="text-sm font-semibold text-gray-800">Monthly Budget</span>
         </div>
-        <button onClick={onClose} className="text-xs font-semibold text-gray-400 hover:text-gray-600">Cancel</button>
+        <button onClick={onClose} className="text-xs font-semibold text-gray-600 hover:text-gray-800">Cancel</button>
       </div>
 
       <div>
@@ -1126,10 +1126,10 @@ function CreditExpiry() {
           <div key={lot.id} className="flex items-center justify-between px-5 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f9f7ff' }}>
             <div>
               <p className="text-sm font-medium text-gray-800">
-                {fmt(lot.remaining)} <span className="text-gray-400 font-normal">of {fmt(lot.amount)}</span>{' '}
+                {fmt(lot.remaining)} <span className="text-gray-600 font-normal">of {fmt(lot.amount)}</span>{' '}
                 {(BUCKET_LABELS[lot.bucket] ?? lot.bucket).toLowerCase()} credits
               </p>
-              <p className="text-[11px] text-gray-400">granted {new Date(lot.createdAt).toLocaleDateString()}</p>
+              <p className="text-[11px] text-gray-600">granted {new Date(lot.createdAt).toLocaleDateString()}</p>
             </div>
             <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={urgStyle}>
               {d == null ? 'never expires' : d === 0 ? 'expires today' : `${d}d left`}
@@ -1189,7 +1189,7 @@ function SubscriptionManager() {
       </div>
       <div className="p-5 space-y-4">
         {endsAt && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-600">
             {sub?.cancelAtPeriodEnd ? `Cancels on ${endsAt}` : `Renews ${endsAt}`}
           </p>
         )}
@@ -1217,7 +1217,7 @@ function SubscriptionManager() {
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Cancel at period end?</span>
+                  <span className="text-xs text-gray-600">Cancel at period end?</span>
                   <button
                     onClick={() => cancelMutation.mutate()}
                     disabled={cancelMutation.isPending}
@@ -1227,7 +1227,7 @@ function SubscriptionManager() {
                   </button>
                   <button
                     onClick={() => setCancelConfirm(false)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-700"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-800"
                   >
                     Keep it
                   </button>
@@ -1305,7 +1305,7 @@ function WalletContent() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Billing &amp; Wallet</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage your subscription and AI credits separately</p>
+            <p className="text-sm text-gray-600 mt-0.5">Manage your subscription and AI credits separately</p>
           </div>
         </div>
 
@@ -1317,17 +1317,17 @@ function WalletContent() {
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">Subscription Plan</p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">Controls which features you can access — projects, platforms, team seats. Billed monthly.</p>
+              <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">Controls which features you can access — projects, platforms, team seats. Billed monthly.</p>
             </div>
           </div>
-          <div className="hidden sm:flex items-center text-gray-300 font-bold">+</div>
+          <div className="hidden sm:flex items-center text-gray-300 font-bold" aria-hidden="true">+</div>
           <div className="flex-1 flex items-start gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#ede9fe' }}>
               <Zap className="w-4 h-4" style={{ color: '#7C3AED' }} />
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">AI Credits</p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">Fuel for every AI action — scripts, videos, captions. Your plan includes a monthly allowance; top up anytime for more.</p>
+              <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">Fuel for every AI action — scripts, videos, captions. Your plan includes a monthly allowance; top up anytime for more.</p>
             </div>
           </div>
         </div>
@@ -1346,7 +1346,7 @@ function WalletContent() {
               className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold rounded-t-2xl transition-all -mb-px"
               style={tab === id
                 ? { background: '#fff', border: '1.5px solid #ede9f8', borderBottom: '1.5px solid #fff', color: '#6D4AE0' }
-                : { color: '#9ca3af', border: '1.5px solid transparent' }
+                : { color: '#374151', border: '1.5px solid transparent' }
               }
             >
               {icon} {label}

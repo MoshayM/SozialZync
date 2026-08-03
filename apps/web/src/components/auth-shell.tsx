@@ -189,7 +189,7 @@ export function LoginShell({
             border: '1px solid rgba(255,255,255,0.15)',
           }}
         >
-          <div className="flex gap-0.5 mb-3" aria-label="5 stars">
+          <div className="flex gap-0.5 mb-3" role="img" aria-label="5 stars">
             {[...Array(5)].map((_, i) => (
               <span key={i} className="text-[#f0c14d] text-sm" aria-hidden>★</span>
             ))}
@@ -220,12 +220,12 @@ export function LoginShell({
 
           <div className="mb-8">
             <h2 className="text-[1.9rem] font-extrabold text-gray-900 leading-tight mb-1.5">Welcome back</h2>
-            <p className="text-gray-400 text-sm">Sign in to continue to your dashboard</p>
+            <p className="text-gray-600 text-sm">Sign in to continue to your dashboard</p>
           </div>
 
           {children}
 
-          <p className="text-center text-sm text-gray-400 mt-8">{footer}</p>
+          <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
         </div>
       </div>
     </div>
@@ -253,11 +253,11 @@ export function LoginInput({
         style={{ border: '1.5px solid #e3e0f0' }}
       >
         {icon && (
-          <span className="pl-3.5 text-gray-400 shrink-0">{icon}</span>
+          <span className="pl-3.5 text-gray-600 shrink-0">{icon}</span>
         )}
         <input
           {...inputProps}
-          className="flex-1 min-w-0 bg-transparent px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+          className="flex-1 min-w-0 bg-transparent px-3 py-3 text-sm text-gray-800 placeholder-gray-600 focus:outline-none"
         />
         {rightElement && (
           <span className="pr-2 shrink-0">{rightElement}</span>
@@ -386,7 +386,7 @@ export function RegisterShell({
             border: '1px solid rgba(255,255,255,0.15)',
           }}
         >
-          <div className="flex gap-0.5 mb-3" aria-label="5 stars">
+          <div className="flex gap-0.5 mb-3" role="img" aria-label="5 stars">
             {[...Array(5)].map((_, i) => (
               <span key={i} className="text-[#f0c14d] text-sm" aria-hidden>★</span>
             ))}
@@ -417,12 +417,12 @@ export function RegisterShell({
 
           <div className="mb-7">
             <h2 className="text-[1.75rem] font-extrabold text-gray-900 leading-tight mb-1.5">Create your account</h2>
-            <p className="text-gray-400 text-sm">Free forever · No credit card required</p>
+            <p className="text-gray-600 text-sm">Free forever · No credit card required</p>
           </div>
 
           {children}
 
-          <p className="text-center text-sm text-gray-400 mt-7">{footer}</p>
+          <p className="text-center text-sm text-gray-600 mt-7">{footer}</p>
         </div>
       </div>
     </div>
@@ -537,7 +537,7 @@ export function ForgotPasswordShell({
             <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
           </div>
           {children}
-          <p className="text-center text-sm text-gray-400 mt-8">{footer}</p>
+          <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
         </div>
       </div>
     </div>
@@ -628,7 +628,7 @@ export function ResetPasswordShell({
             <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
           </div>
           {children}
-          <p className="text-center text-sm text-gray-400 mt-8">{footer}</p>
+          <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
         </div>
       </div>
     </div>
@@ -811,7 +811,7 @@ export function OAuthCallbackShell({
 
           {children}
 
-          <p className="text-center text-sm text-gray-400 mt-8">{footer}</p>
+          <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
         </div>
       </div>
     </div>
@@ -864,7 +864,7 @@ export function SocialRow({
 }) {
   return (
     <div className="mt-5">
-      <div className="flex items-center gap-3 text-xs text-gray-400">
+      <div className="flex items-center gap-3 text-xs text-gray-600">
         <span className="flex-1 h-px bg-gray-200" />
         or continue with
         <span className="flex-1 h-px bg-gray-200" />

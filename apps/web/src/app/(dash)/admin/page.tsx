@@ -59,7 +59,7 @@ function aiProviderLabel(p: string): string {
 }
 
 function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] | undefined | null }) {
-  if (!byDay?.length) return <p className="text-xs text-gray-400 py-4 text-center">No daily data</p>;
+  if (!byDay?.length) return <p className="text-xs text-gray-600 py-4 text-center">No daily data</p>;
   const max = Math.max(...byDay.map((d) => d.costUsd), 0.0001);
   return (
     <div className="flex items-end gap-[3px] h-20 w-full overflow-hidden">
@@ -203,7 +203,7 @@ function HBar({ label, icon, value, max, color, suffix = '' }: {
           <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctVal}%`, background: color }} />
         </div>
       </div>
-      <span className="text-xs tabular-nums text-gray-400 w-10 text-right">{pctVal.toFixed(1)}%</span>
+      <span className="text-xs tabular-nums text-gray-600 w-10 text-right">{pctVal.toFixed(1)}%</span>
     </div>
   );
 }
@@ -458,7 +458,7 @@ export default function AdminDashboardPage() {
       <div className="min-h-full bg-[#faf9ff] flex flex-col items-center justify-center text-center p-8">
         <ShieldAlert className="w-10 h-10 text-gray-300 mb-3" />
         <p className="text-sm font-semibold text-gray-600">Admin access required</p>
-        <p className="text-xs text-gray-400 mt-1">This dashboard is available to platform owners and super admins.</p>
+        <p className="text-xs text-gray-600 mt-1">This dashboard is available to platform owners and super admins.</p>
       </div>
     );
   }
@@ -527,7 +527,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">AI Usage — All Users</h1>
-              <p className="text-sm text-gray-400 mt-0.5">Platform-wide token spend, model breakdown, and copilot cache health</p>
+              <p className="text-sm text-gray-600 mt-0.5">Platform-wide token spend, model breakdown, and copilot cache health</p>
             </div>
             <button
               type="button"
@@ -543,7 +543,7 @@ export default function AdminDashboardPage() {
           {aiUsageLoading && (
             <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
               <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
-              <p className="text-sm text-gray-400">Loading AI usage data…</p>
+              <p className="text-sm text-gray-600">Loading AI usage data…</p>
             </div>
           )}
 
@@ -559,7 +559,7 @@ export default function AdminDashboardPage() {
                 <Cpu className="w-8 h-8" style={{ color: '#6D4AE0' }} />
               </div>
               <p className="text-base font-extrabold text-gray-900 mb-1">No AI usage yet</p>
-              <p className="text-sm text-gray-400">Run the content pipeline to start generating AI usage data.</p>
+              <p className="text-sm text-gray-600">Run the content pipeline to start generating AI usage data.</p>
             </div>
           )}
 
@@ -580,37 +580,37 @@ export default function AdminDashboardPage() {
               <>
                 {/* Summary stat cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <StatCard tone="lilac"      icon={<DollarSign className="w-5 h-5" />} label="Total Cost"  value={`$${aiUsage.totals.costUsd.toFixed(4)}`}                              sub={`last ${aiUsage.sinceDays}d`}   subClassName="text-gray-500" />
-                  <StatCard tone="pink"       icon={<Activity className="w-5 h-5" />}   label="API Calls"  value={aiUsage.totals.calls.toLocaleString()}                               sub="provider requests"              subClassName="text-gray-500" />
-                  <StatCard tone="cream"      icon={<TrendingUp className="w-5 h-5" />} label="Tokens In"  value={`${(aiUsage.totals.tokensIn / 1000).toFixed(1)}K`}                  sub="prompt tokens"                  subClassName="text-gray-500" />
-                  <StatCard tone="periwinkle" icon={<BarChart2 className="w-5 h-5" />}  label="Tokens Out" value={`${(aiUsage.totals.tokensOut / 1000).toFixed(1)}K`}                 sub="completion tokens"              subClassName="text-gray-500" />
+                  <StatCard tone="lilac"      icon={<DollarSign className="w-5 h-5" />} label="Total Cost"  value={`$${aiUsage.totals.costUsd.toFixed(4)}`}                              sub={`last ${aiUsage.sinceDays}d`}   subClassName="text-gray-600" />
+                  <StatCard tone="pink"       icon={<Activity className="w-5 h-5" />}   label="API Calls"  value={aiUsage.totals.calls.toLocaleString()}                               sub="provider requests"              subClassName="text-gray-600" />
+                  <StatCard tone="cream"      icon={<TrendingUp className="w-5 h-5" />} label="Tokens In"  value={`${(aiUsage.totals.tokensIn / 1000).toFixed(1)}K`}                  sub="prompt tokens"                  subClassName="text-gray-600" />
+                  <StatCard tone="periwinkle" icon={<BarChart2 className="w-5 h-5" />}  label="Tokens Out" value={`${(aiUsage.totals.tokensOut / 1000).toFixed(1)}K`}                 sub="completion tokens"              subClassName="text-gray-600" />
                 </div>
 
                 {/* Daily trend + Copilot cache */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div className="sm:col-span-2 bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Daily Cost Trend</p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Daily Cost Trend</p>
                     <DailyTrendBars byDay={aiUsage.byDay} />
                     {(aiUsage.byDay?.length ?? 0) > 0 && (
                       <div className="flex justify-between mt-1">
-                        <span className="text-[10px] text-gray-400">{aiUsage.byDay[0]?.date}</span>
-                        <span className="text-[10px] text-gray-400">{aiUsage.byDay[aiUsage.byDay.length - 1]?.date}</span>
+                        <span className="text-[10px] text-gray-600">{aiUsage.byDay[0]?.date}</span>
+                        <span className="text-[10px] text-gray-600">{aiUsage.byDay[aiUsage.byDay.length - 1]?.date}</span>
                       </div>
                     )}
                   </div>
                   <div className="bg-white rounded-2xl p-5 flex flex-col justify-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Copilot Cache</p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-2">Copilot Cache</p>
                     {aiUsage.copilot.cacheHitRate != null ? (
                       <>
                         <p className="text-3xl font-black" style={{ color: aiUsage.copilot.cacheHitRate >= 0.8 ? '#16a34a' : '#c2410c' }}>
                           {(aiUsage.copilot.cacheHitRate * 100).toFixed(0)}%
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">cache-hit rate</p>
-                        <p className="text-xs text-gray-400">{aiUsage.copilot.cacheHits} hits / {aiUsage.copilot.turns} turns</p>
+                        <p className="text-xs text-gray-600 mt-1">cache-hit rate</p>
+                        <p className="text-xs text-gray-600">{aiUsage.copilot.cacheHits} hits / {aiUsage.copilot.turns} turns</p>
                         <p className="text-[10px] text-gray-300 mt-1">target ≥ 80%</p>
                       </>
                     ) : (
-                      <p className="text-sm text-gray-400">No copilot turns yet</p>
+                      <p className="text-sm text-gray-600">No copilot turns yet</p>
                     )}
                   </div>
                 </div>
@@ -619,11 +619,11 @@ export default function AdminDashboardPage() {
                 {providerList.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Cost by Provider</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Cost by Provider</p>
                       <PastelBars data={barData} formatValue={(v) => `$${v.toFixed(4)}`} />
                     </div>
                     <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Provider Share</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Provider Share</p>
                       <PastelDonut segments={donutSegments} />
                     </div>
                   </div>
@@ -631,15 +631,15 @@ export default function AdminDashboardPage() {
 
                 {/* Per-model detail table */}
                 <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Per Model Breakdown</p>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Per Model Breakdown</p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left">
-                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Provider / Model</th>
-                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
-                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
-                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Provider / Model</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Calls</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Tokens</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Cost</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -649,11 +649,11 @@ export default function AdminDashboardPage() {
                               <div className="flex items-center gap-2">
                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: aiProviderColor(m.provider) }} />
                                 <span className="font-medium text-gray-800">{aiProviderLabel(m.provider)}</span>
-                                <span className="text-gray-400 text-xs truncate max-w-[160px]">{m.model}</span>
+                                <span className="text-gray-600 text-xs truncate max-w-[160px]">{m.model}</span>
                               </div>
                             </td>
-                            <td className="py-2 text-right text-gray-500">{m.calls.toLocaleString()}</td>
-                            <td className="py-2 text-right text-gray-500">{(m.tokensIn + m.tokensOut).toLocaleString()}</td>
+                            <td className="py-2 text-right text-gray-600">{m.calls.toLocaleString()}</td>
+                            <td className="py-2 text-right text-gray-600">{(m.tokensIn + m.tokensOut).toLocaleString()}</td>
                             <td className="py-2 text-right font-bold text-gray-900">${m.costUsd.toFixed(4)}</td>
                           </tr>
                         ))}
@@ -665,22 +665,22 @@ export default function AdminDashboardPage() {
                 {/* Cost by video */}
                 {(aiUsage.byVideo ?? []).length > 0 && (
                   <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Cost by Video (top 15)</p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Cost by Video (top 15)</p>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left">
-                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Video</th>
-                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
-                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
-                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Video</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Calls</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Tokens</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Cost</th>
                         </tr>
                       </thead>
                       <tbody>
                         {aiUsage.byVideo.map((v) => (
                           <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
                             <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
-                            <td className="py-1.5 text-right text-gray-500">{v.calls}</td>
-                            <td className="py-1.5 text-right text-gray-500">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
+                            <td className="py-1.5 text-right text-gray-600">{v.calls}</td>
+                            <td className="py-1.5 text-right text-gray-600">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
                             <td className="py-1.5 text-right font-bold text-gray-900">${v.costUsd.toFixed(3)}</td>
                           </tr>
                         ))}
@@ -700,7 +700,7 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Page Views</h1>
-              <p className="text-sm text-gray-400 mt-0.5">Session analytics by platform and subscription plan</p>
+              <p className="text-sm text-gray-600 mt-0.5">Session analytics by platform and subscription plan</p>
             </div>
             {/* Range selector */}
             <div className="flex items-center gap-1 rounded-2xl p-1" style={{ background: '#f0edf9' }}>
@@ -712,7 +712,7 @@ export default function AdminDashboardPage() {
                   className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                   style={viewRange === r
                     ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
-                    : { color: '#6b7280' }
+                    : { color: '#374151' }
                   }
                 >
                   {r}
@@ -746,7 +746,7 @@ export default function AdminDashboardPage() {
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                   <Monitor className="w-4 h-4 text-[#9d6ff0]" /> By Platform
                 </h2>
-                <span className="text-xs text-gray-400 tabular-nums">{totalPlatformViews.toLocaleString()} total</span>
+                <span className="text-xs text-gray-600 tabular-nums">{totalPlatformViews.toLocaleString()} total</span>
               </div>
               <div className="divide-y divide-gray-50">
                 {platformRows.map((row) => {
@@ -764,7 +764,7 @@ export default function AdminDashboardPage() {
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                   <Star className="w-4 h-4 text-[#9d6ff0]" /> By Plan Tier
                 </h2>
-                <span className="text-xs text-gray-400 tabular-nums">{totalPlanViews.toLocaleString()} total</span>
+                <span className="text-xs text-gray-600 tabular-nums">{totalPlanViews.toLocaleString()} total</span>
               </div>
               <div className="divide-y divide-gray-50">
                 {planRows.map((row) => (
@@ -790,7 +790,7 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">User Accounts</h1>
-              <p className="text-sm text-gray-400 mt-0.5">Search, filter, and access any user account as superadmin</p>
+              <p className="text-sm text-gray-600 mt-0.5">Search, filter, and access any user account as superadmin</p>
             </div>
           </div>
 
@@ -815,7 +815,7 @@ export default function AdminDashboardPage() {
                   className="px-3 py-2 rounded-xl text-xs font-semibold transition-all capitalize"
                   style={planFilter === p
                     ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
-                    : { color: '#6b7280' }
+                    : { color: '#374151' }
                   }
                 >
                   {p}
@@ -830,12 +830,12 @@ export default function AdminDashboardPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-[#f0edf9]">
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">User</th>
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Plan</th>
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 hidden sm:table-cell">Channels</th>
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 hidden md:table-cell">Last seen</th>
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 hidden md:table-cell">Status</th>
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Action</th>
+                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">User</th>
+                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Plan</th>
+                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 hidden sm:table-cell">Channels</th>
+                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 hidden md:table-cell">Last seen</th>
+                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 hidden md:table-cell">Status</th>
+                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f9f7ff]">
@@ -847,7 +847,7 @@ export default function AdminDashboardPage() {
                     </tr>
                   ) : filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-5 py-10 text-center text-sm text-gray-400">
+                      <td colSpan={6} className="px-5 py-10 text-center text-sm text-gray-600">
                         {users.length === 0 ? 'No users loaded — check admin:users permission' : 'No users match your search'}
                       </td>
                     </tr>
@@ -865,13 +865,13 @@ export default function AdminDashboardPage() {
                             </div>
                             <div>
                               <p className="font-semibold text-gray-800">{displayName}</p>
-                              <p className="text-xs text-gray-400">{u.email}</p>
+                              <p className="text-xs text-gray-600">{u.email}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-5 py-3.5"><PlanChip plan={plan} /></td>
                         <td className="px-5 py-3.5 hidden sm:table-cell text-gray-600 tabular-nums">{u._count.channels}</td>
-                        <td className="px-5 py-3.5 hidden md:table-cell text-gray-400 text-xs">{joined}</td>
+                        <td className="px-5 py-3.5 hidden md:table-cell text-gray-600 text-xs">{joined}</td>
                         <td className="px-5 py-3.5 hidden md:table-cell">
                           <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold capitalize" style={isFrozen ? { background: '#fff1f2', color: '#9f1239' } : { background: '#ecfdf5', color: '#065f46' }}>
                             {isFrozen ? 'frozen' : 'active'}
@@ -898,8 +898,8 @@ export default function AdminDashboardPage() {
               </table>
             </div>
             <div className="px-5 py-3 border-t border-[#f0edf9] flex items-center justify-between">
-              <span className="text-xs text-gray-400">{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} shown</span>
-              <span className="text-xs text-gray-400">Superadmin access · All actions logged</span>
+              <span className="text-xs text-gray-600">{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} shown</span>
+              <span className="text-xs text-gray-600">Superadmin access · All actions logged</span>
             </div>
           </section>
 
@@ -930,7 +930,7 @@ export default function AdminDashboardPage() {
         <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Enterprise Access Requests</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Review, AI-validate, and approve or reject enterprise tier applications</p>
+            <p className="text-sm text-gray-600 mt-0.5">Review, AI-validate, and approve or reject enterprise tier applications</p>
           </div>
 
           {/* Status legend */}
@@ -948,7 +948,7 @@ export default function AdminDashboardPage() {
           {enterpriseRequests.length === 0 && (
             <div className="bg-white rounded-2xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
               <Building2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">No enterprise requests yet</p>
+              <p className="text-sm text-gray-600">No enterprise requests yet</p>
             </div>
           )}
 
@@ -979,7 +979,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{req.userName}</p>
-                        <p className="text-xs text-gray-400 truncate">{req.userEmail}</p>
+                        <p className="text-xs text-gray-600 truncate">{req.userEmail}</p>
                         <p className="text-xs font-semibold text-amber-700 mt-0.5">{req.company} · {req.teamSize} people · {req.budget}/mo budget</p>
                       </div>
                     </div>
@@ -989,7 +989,7 @@ export default function AdminDashboardPage() {
                       <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize" style={statusStyles[req.status]}>
                         {statusIcons[req.status]} {req.status}
                       </span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-600">
                         {new Date(req.submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -1012,14 +1012,14 @@ export default function AdminDashboardPage() {
                     <div className="border-t border-[#f0edf9] p-5 space-y-4">
                       {/* Use case */}
                       <div>
-                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Use Case</p>
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Use Case</p>
                         <p className="text-sm text-gray-700 leading-relaxed">{req.useCase}</p>
                       </div>
 
                       {/* AI Assessment */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">AI Validation</p>
+                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">AI Validation</p>
                           {!req.aiAssessment && (
                             <button
                               type="button"
@@ -1053,7 +1053,7 @@ export default function AdminDashboardPage() {
                                 }}>
                                   {req.aiAssessment.riskScore}
                                 </div>
-                                <span className="text-[10px] text-gray-400 mt-1">Risk score</span>
+                                <span className="text-[10px] text-gray-600 mt-1">Risk score</span>
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
@@ -1074,7 +1074,7 @@ export default function AdminDashboardPage() {
 
                             {/* Signals */}
                             <div>
-                              <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1.5">Signals detected</p>
+                              <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1.5">Signals detected</p>
                               <ul className="space-y-1">
                                 {req.aiAssessment.signals.map((s, i) => (
                                   <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
@@ -1163,7 +1163,7 @@ export default function AdminDashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Enterprise Dashboard</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Revenue, AI economics, forecasts and provider health</p>
+            <p className="text-sm text-gray-600 mt-0.5">Revenue, AI economics, forecasts and provider health</p>
           </div>
           <button
             type="button"
@@ -1181,7 +1181,7 @@ export default function AdminDashboardPage() {
         )}
 
         {loading && !metrics ? (
-          <p className="text-sm text-gray-400 py-16 text-center">Loading enterprise metrics…</p>
+          <p className="text-sm text-gray-600 py-16 text-center">Loading enterprise metrics…</p>
         ) : metrics ? (
           <>
             <div className="grid grid-cols-1">
@@ -1221,14 +1221,14 @@ export default function AdminDashboardPage() {
                   <Cpu className="w-4 h-4 text-[#9d6ff0]" /> Most-used AI models (30d, by cost)
                 </h2>
                 {metrics.topModels.length === 0 ? (
-                  <p className="text-sm text-gray-400 py-8 text-center">No AI usage yet</p>
+                  <p className="text-sm text-gray-600 py-8 text-center">No AI usage yet</p>
                 ) : (
                   <ul className="divide-y divide-gray-50">
                     {metrics.topModels.map((m) => (
                       <li key={m.model} className="flex items-center justify-between py-2.5">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-800 truncate">{m.model}</p>
-                          <p className="text-[11px] text-gray-500 tabular-nums">
+                          <p className="text-[11px] text-gray-600 tabular-nums">
                             {((m.tokensIn + m.tokensOut) / 1000).toFixed(1)}k tokens
                           </p>
                         </div>
@@ -1257,18 +1257,18 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
               {forecasts.length === 0 ? (
-                <p className="text-sm text-gray-400 py-6 text-center">
+                <p className="text-sm text-gray-600 py-6 text-center">
                   No forecasts yet — they generate daily, or trigger one now.
                 </p>
               ) : (
                 <div className="grid sm:grid-cols-3 gap-3">
                   {forecasts.map((f) => (
                     <div key={f.id} className="bg-[#faf9ff] rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{FORECAST_LABELS[f.metric] ?? f.metric}</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{FORECAST_LABELS[f.metric] ?? f.metric}</p>
                       <p className="text-xl font-bold text-gray-900 mt-1 tabular-nums">
                         {formatForecastValue(f.metric, f.predictedValue)}
                       </p>
-                      <p className="text-[11px] text-gray-500 mt-1 tabular-nums">
+                      <p className="text-[11px] text-gray-600 mt-1 tabular-nums">
                         {formatForecastValue(f.metric, f.confidenceLow)} – {formatForecastValue(f.metric, f.confidenceHigh)}
                         {' · '}{f.method.replace('_', ' ')}
                       </p>
@@ -1283,18 +1283,18 @@ export default function AdminDashboardPage() {
                 <Activity className="w-4 h-4 text-[#9d6ff0]" /> AI providers
               </h2>
               {providers.length === 0 ? (
-                <p className="text-sm text-gray-400 py-6 text-center">Provider registry unavailable for your role</p>
+                <p className="text-sm text-gray-600 py-6 text-center">Provider registry unavailable for your role</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left">
-                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Provider</th>
-                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Status</th>
-                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Health</th>
-                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Failure rate</th>
-                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Quality</th>
-                        <th className="py-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Cost ($/1M in · out)</th>
+                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Provider</th>
+                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Status</th>
+                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Health</th>
+                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Failure rate</th>
+                        <th className="py-2 pr-4 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Quality</th>
+                        <th className="py-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Cost ($/1M in · out)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">

@@ -264,7 +264,7 @@ export default function LoginPage() {
               <br />
             </>
           )}
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-600">
             By continuing, you agree to our{' '}
             <Link href="/terms" className="text-[#6D4AE0] hover:underline">Terms of Service</Link>
             {' '}and{' '}
@@ -281,7 +281,7 @@ export default function LoginPage() {
           className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${
             tab === 'password'
               ? 'bg-white shadow text-[#6D4AE0]'
-              : 'text-gray-400 hover:text-gray-600'
+              : 'text-gray-600 hover:text-gray-800'
           }`}
         >
           Password
@@ -292,7 +292,7 @@ export default function LoginPage() {
           className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${
             tab === 'otp'
               ? 'bg-white shadow text-[#6D4AE0]'
-              : 'text-gray-400 hover:text-gray-600'
+              : 'text-gray-600 hover:text-gray-800'
           }`}
         >
           Sign in with OTP
@@ -326,7 +326,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-700 transition-colors"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -369,11 +369,11 @@ export default function LoginPage() {
           {otpStep === 'link-email' ? (
             <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-4">
               <div className="bg-[#f0edf9] rounded-xl px-4 py-3 text-center">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-600">
                   First time signing in with{' '}
                   <span className="font-semibold text-[#6D4AE0]">{otpIdentifier}</span>
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">Enter your email to receive the sign-in code.</p>
+                <p className="text-xs text-gray-600 mt-0.5">Enter your email to receive the sign-in code.</p>
               </div>
               <LoginInput
                 icon={<Mail className="w-4 h-4" />}
@@ -409,14 +409,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => { setOtpStep('send'); setError(''); setInfo(''); setPhoneEmail(''); }}
-                className="w-full text-xs text-gray-400 hover:text-gray-600 py-1"
+                className="w-full text-xs text-gray-600 hover:text-gray-800 py-1"
               >
                 ← Back
               </button>
             </form>
           ) : otpStep === 'send' ? (
             <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-4">
-              <p className="text-xs text-gray-400 text-center">
+              <p className="text-xs text-gray-600 text-center">
                 Enter your email or phone to receive a one-time sign-in code.
                 <br />
                 <span className="text-[#6D4AE0]">New here? We'll create your account automatically.</span>
@@ -430,7 +430,7 @@ export default function LoginPage() {
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-[10px] transition-all ${
                     otpMode === 'email'
                       ? 'bg-white shadow text-[#6D4AE0]'
-                      : 'text-gray-400 hover:text-gray-600'
+                      : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5" /> Email
@@ -441,7 +441,7 @@ export default function LoginPage() {
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-[10px] transition-all ${
                     otpMode === 'phone'
                       ? 'bg-white shadow text-[#6D4AE0]'
-                      : 'text-gray-400 hover:text-gray-600'
+                      : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
                   <Phone className="w-3.5 h-3.5" /> Phone
@@ -500,7 +500,7 @@ export default function LoginPage() {
           ) : (
             <form ref={verifyFormRef} onSubmit={(e) => { void handleOtpVerify(e); }} className="space-y-4">
               <div className="bg-[#f0edf9] rounded-xl px-4 py-3 text-center">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-600">
                   Code sent to{' '}
                   <span className="font-semibold text-[#6D4AE0]">
                     {maskedEmail || otpIdentifier}
@@ -517,7 +517,7 @@ export default function LoginPage() {
 
               {/* 6-digit OTP input — large and clear */}
               <div className="space-y-1.5">
-                <label className="block text-xs text-gray-500 font-medium px-1">
+                <label className="block text-xs text-gray-700 font-medium px-1">
                   Enter 6-digit code
                 </label>
                 <div
@@ -542,7 +542,7 @@ export default function LoginPage() {
                     className="flex-1 px-3 py-3 text-center text-xl font-bold tracking-[0.35em] outline-none bg-transparent text-gray-800 placeholder:text-gray-300 placeholder:font-normal placeholder:tracking-normal placeholder:text-base"
                   />
                   {otpCode.length > 0 && (
-                    <div className="pr-4 text-xs font-medium" style={{ color: otpCode.length === 6 ? '#22c55e' : '#9ca3af' }}>
+                    <div className="pr-4 text-xs font-medium" style={{ color: otpCode.length === 6 ? '#22c55e' : '#374151' }}>
                       {otpCode.length}/6
                     </div>
                   )}
@@ -578,7 +578,7 @@ export default function LoginPage() {
               {/* Resend with countdown */}
               <div className="text-center">
                 {resendCooldown > 0 ? (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-600">
                     Resend code in <span className="font-semibold text-[#6D4AE0]">{resendCooldown}s</span>
                   </p>
                 ) : (

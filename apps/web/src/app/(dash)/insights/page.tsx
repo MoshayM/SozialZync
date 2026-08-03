@@ -32,7 +32,7 @@ function InsightsContent() {
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="px-5 pt-5 pb-0 sm:px-7">
         <h1 className="text-xl font-extrabold text-gray-900 leading-tight">Insights Hub</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Analytics, strategy, growth and monitoring in one place</p>
+        <p className="text-sm text-gray-600 mt-0.5">Analytics, strategy, growth and monitoring in one place</p>
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
@@ -51,7 +51,7 @@ function InsightsContent() {
                 'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
                 active
                   ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
+                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200',
               ].join(' ')}
             >
               <t.icon className={`w-4 h-4 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
@@ -63,7 +63,7 @@ function InsightsContent() {
 
       {/* ── Context description strip ────────────────────────────────────── */}
       <div className="px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9]">
-        <p className="text-xs text-gray-500 leading-none">{activeTabDef?.description}</p>
+        <p className="text-xs text-gray-600 leading-none">{activeTabDef?.description}</p>
       </div>
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}

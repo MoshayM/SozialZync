@@ -55,10 +55,10 @@ function WeekCard({ week }: { week: WeekPlan }) {
           </span>
           <div>
             <p className="font-semibold text-gray-900 text-sm">{week.theme}</p>
-            <p className="text-xs text-gray-500">{week.videos.length} video{week.videos.length !== 1 ? 's' : ''}{week.cumulativeGrowthEstimate ? ` · ${week.cumulativeGrowthEstimate}` : ''}</p>
+            <p className="text-xs text-gray-600">{week.videos.length} video{week.videos.length !== 1 ? 's' : ''}{week.cumulativeGrowthEstimate ? ` · ${week.cumulativeGrowthEstimate}` : ''}</p>
           </div>
         </div>
-        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        {open ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
       </button>
 
       {open && (
@@ -74,7 +74,7 @@ function WeekCard({ week }: { week: WeekPlan }) {
                   <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{v.suggestedFormat}</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed">{v.rationale}</p>
+              <p className="text-xs text-gray-600 leading-relaxed">{v.rationale}</p>
               <div className="mt-2 flex items-center gap-2">
                 <div className="flex-1 bg-gray-100 rounded-full h-1.5">
                   <div
@@ -82,7 +82,7 @@ function WeekCard({ week }: { week: WeekPlan }) {
                     style={{ width: `${v.estimatedImpact}%`, background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
                   />
                 </div>
-                <span className="text-xs text-gray-500 flex-shrink-0">Impact: {v.estimatedImpact}%</span>
+                <span className="text-xs text-gray-600 flex-shrink-0">Impact: {v.estimatedImpact}%</span>
               </div>
             </div>
           ))}
@@ -132,7 +132,7 @@ export default function StrategyPage() {
           <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2">
             <Target className="w-6 h-6" style={{ color: '#6D4AE0' }} /> Content Strategy Planner
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">AI decomposes your growth goal into a concrete weekly content plan</p>
+          <p className="text-sm text-gray-600 mt-0.5">AI decomposes your growth goal into a concrete weekly content plan</p>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-6">
@@ -155,7 +155,7 @@ export default function StrategyPage() {
                       <option key={c.id} value={c.id}>{c.title}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
                 </div>
               </div>
 
@@ -185,7 +185,7 @@ export default function StrategyPage() {
                     <option value={12}>12 weeks (3 months)</option>
                     <option value={16}>16 weeks (4 months)</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
                 </div>
               </div>
             </div>
@@ -215,7 +215,7 @@ export default function StrategyPage() {
                 </div>
                 {plan.resources.toolsNeeded.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Tools needed</p>
+                    <p className="text-xs text-gray-600 mb-1">Tools needed</p>
                     <ul className="space-y-0.5">
                       {plan.resources.toolsNeeded.map((t, i) => (
                         <li key={i} className="text-xs text-gray-600">· {t}</li>
@@ -234,8 +234,8 @@ export default function StrategyPage() {
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
                   <Target className="w-8 h-8" style={{ color: '#6D4AE0' }} />
                 </div>
-                <p className="font-medium text-gray-500">Your strategy plan will appear here</p>
-                <p className="text-sm mt-1 text-gray-400">Set a goal, choose a channel, and click Generate</p>
+                <p className="font-medium text-gray-600">Your strategy plan will appear here</p>
+                <p className="text-sm mt-1 text-gray-600">Set a goal, choose a channel, and click Generate</p>
               </div>
             )}
 
@@ -274,7 +274,7 @@ export default function StrategyPage() {
                           </span>
                           <div>
                             <p className="font-medium text-gray-900 text-sm">{m.milestone}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{m.metric}</p>
+                            <p className="text-xs text-gray-600 mt-0.5">{m.metric}</p>
                           </div>
                         </div>
                       ))}
@@ -284,7 +284,7 @@ export default function StrategyPage() {
 
                 {/* Weekly plan */}
                 <div>
-                  <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Weekly Content Plan</h3>
+                  <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Weekly Content Plan</h3>
                   <div className="space-y-3">
                     {plan.weeklyPlan.map((week, i) => (
                       <WeekCard key={i} week={week} />

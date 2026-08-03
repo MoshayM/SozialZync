@@ -16,7 +16,7 @@ export function StatCard({
   label,
   value,
   sub,
-  subClassName = 'text-gray-500',
+  subClassName = 'text-gray-600',
 }: {
   tone: StatTone;
   icon: React.ReactNode;
@@ -37,7 +37,7 @@ export function StatCard({
       >
         {icon}
       </div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{label}</p>
       <div className="text-3xl font-extrabold text-gray-900 mt-0.5 tabular-nums leading-none">{value}</div>
       {sub && <p className={`text-xs mt-1.5 font-medium ${subClassName}`}>{sub}</p>}
     </div>
@@ -65,14 +65,14 @@ export function PastelBars({
           className="flex flex-col items-center gap-2 flex-1 min-w-0"
           title={b.title ?? `${b.label}: ${formatValue ? formatValue(b.value) : b.value}`}
         >
-          <span className="text-[10px] text-gray-500 tabular-nums">
+          <span className="text-[10px] text-gray-600 tabular-nums">
             {formatValue ? formatValue(b.value) : b.value}
           </span>
           <div
             className="w-6 rounded-full transition-all duration-500"
             style={{ height: `${Math.max((b.value / max) * 120, 8)}px`, backgroundColor: COLORS[i % COLORS.length] }}
           />
-          <span className="text-[10px] text-gray-500 truncate max-w-full">{b.label}</span>
+          <span className="text-[10px] text-gray-600 truncate max-w-full">{b.label}</span>
         </div>
       ))}
     </div>
@@ -86,7 +86,7 @@ export function PastelDonut({
   segments: Array<{ label: string; value: number; color: string }>;
 }) {
   const total = segments.reduce((s, x) => s + x.value, 0);
-  if (total === 0) return <p className="text-sm text-gray-500 py-8 text-center">No data yet</p>;
+  if (total === 0) return <p className="text-sm text-gray-600 py-8 text-center">No data yet</p>;
 
   let acc = 0;
   const stops = segments

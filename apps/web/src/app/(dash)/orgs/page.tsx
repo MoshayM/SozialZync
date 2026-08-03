@@ -45,7 +45,7 @@ function CreateOrgCard({ onCreated }: { onCreated: (org: Org) => void }) {
         <PlusCircle className="w-4 h-4" style={{ color: '#6D4AE0' }} />
         <span className="text-sm font-semibold text-gray-800">Create Organization</span>
       </div>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-gray-600">
         An organization has a shared credit wallet and budgets — team members bill AI work to it instead of their personal wallets.
       </p>
       <div className="grid sm:grid-cols-2 gap-3">
@@ -175,19 +175,19 @@ function BudgetCard({ org }: { org: Org }) {
       {budget && (
         <div className="grid sm:grid-cols-3 gap-3 text-center">
           <div className="bg-gray-50 rounded-2xl p-3">
-            <p className="text-xs text-gray-500">Org balance</p>
+            <p className="text-xs text-gray-600">Org balance</p>
             <p className="text-lg font-bold text-gray-900">{budget.orgBalance.toLocaleString()}</p>
-            <p className="text-[11px] text-gray-500">credits</p>
+            <p className="text-[11px] text-gray-600">credits</p>
           </div>
           <div className="bg-gray-50 rounded-2xl p-3">
-            <p className="text-xs text-gray-500">Period budget</p>
+            <p className="text-xs text-gray-600">Period budget</p>
             <p className="text-lg font-bold text-gray-900">{period ? period.allocatedCredits.toLocaleString() : '—'}</p>
-            <p className="text-[11px] text-gray-500">{period ? (period.hardCap ? 'hard cap' : 'soft cap') : 'no current period'}</p>
+            <p className="text-[11px] text-gray-600">{period ? (period.hardCap ? 'hard cap' : 'soft cap') : 'no current period'}</p>
           </div>
           <div className="bg-gray-50 rounded-2xl p-3">
-            <p className="text-xs text-gray-500">Remaining</p>
+            <p className="text-xs text-gray-600">Remaining</p>
             <p className="text-lg font-bold text-gray-900">{budget.remaining !== null ? budget.remaining.toLocaleString() : '—'}</p>
-            <p className="text-[11px] text-gray-500">{period ? `${consumedPct}% consumed` : 'unlimited'}</p>
+            <p className="text-[11px] text-gray-600">{period ? `${consumedPct}% consumed` : 'unlimited'}</p>
           </div>
         </div>
       )}
@@ -203,7 +203,7 @@ function BudgetCard({ org }: { org: Org }) {
 
       {editing && (
         <div className="space-y-3 border-t border-gray-100 pt-3">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-600">
             New period for{' '}
             <span className="font-medium text-gray-700">
               {teamId ? `team "${teams.find((t) => t.id === teamId)?.name ?? teamId}"` : 'the whole organization'}
@@ -246,7 +246,7 @@ function BudgetCard({ org }: { org: Org }) {
             >
               {save.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save period
             </button>
-            <button onClick={() => { setEditing(false); setError(null); }} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-3 rounded-2xl font-semibold" style={{ border: '1.5px solid #e3ddf8' }}>
+            <button onClick={() => { setEditing(false); setError(null); }} className="text-sm text-gray-600 hover:text-gray-800 px-3 py-3 rounded-2xl font-semibold" style={{ border: '1.5px solid #e3ddf8' }}>
               Cancel
             </button>
           </div>
@@ -289,7 +289,7 @@ function MembersCard({ org }: { org: Org }) {
       <div className="flex items-center gap-2">
         <Users className="w-4 h-4" style={{ color: '#6D4AE0' }} />
         <span className="text-sm font-semibold text-gray-800">Members</span>
-        <span className="text-xs text-gray-500">{members.length}</span>
+        <span className="text-xs text-gray-600">{members.length}</span>
       </div>
 
       {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} />}
@@ -297,7 +297,7 @@ function MembersCard({ org }: { org: Org }) {
       {members.length > 0 && (
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs text-gray-500">
+            <tr className="text-left text-xs text-gray-600">
               <th className="py-1.5 font-medium">Member</th>
               <th className="py-1.5 font-medium">Role</th>
               <th className="py-1.5 font-medium">Team</th>
@@ -313,8 +313,8 @@ function MembersCard({ org }: { org: Org }) {
                     {m.role.replace(/_/g, ' ')}
                   </span>
                 </td>
-                <td className="py-2 text-gray-500 text-xs">{teamName(m.teamId)}</td>
-                <td className="py-2 text-gray-500 text-xs">
+                <td className="py-2 text-gray-600 text-xs">{teamName(m.teamId)}</td>
+                <td className="py-2 text-gray-600 text-xs">
                   {m.approvalRequired ? (
                     <span className="inline-flex items-center gap-1 text-amber-700"><ShieldCheck className="w-3.5 h-3.5" /> manager approval</span>
                   ) : (
@@ -410,9 +410,9 @@ function TeamsCard({ org }: { org: Org }) {
       <div className="flex items-center gap-2">
         <Layers className="w-4 h-4" style={{ color: '#6D4AE0' }} />
         <span className="text-sm font-semibold text-gray-800">Teams</span>
-        <span className="text-xs text-gray-500">{teams.length}</span>
+        <span className="text-xs text-gray-600">{teams.length}</span>
       </div>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-gray-600">
         Teams scope budgets: a budget period created for a team only gates members assigned to it.
       </p>
 
@@ -485,7 +485,7 @@ function UsageReportCard({ org }: { org: Org }) {
     <div className="bg-white rounded-2xl p-5 flex items-center justify-between" style={{ border: '1.5px solid #e3ddf8' }}>
       <div>
         <p className="text-sm font-semibold text-gray-800">Usage report</p>
-        <p className="text-xs text-gray-500">Per-member credit usage rollup for this organization.</p>
+        <p className="text-xs text-gray-600">Per-member credit usage rollup for this organization.</p>
         {error && (
           <p className="flex items-center gap-1.5 text-xs text-red-600 mt-1"><AlertCircle className="w-3.5 h-3.5" /> {error}</p>
         )}
@@ -523,7 +523,7 @@ export default function OrgsPage() {
           <h1 className="flex items-center gap-2 text-2xl font-extrabold text-gray-900 leading-tight">
             <Building2 className="w-6 h-6" style={{ color: '#6D4AE0' }} /> Organization
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <p className="text-sm text-gray-600 mt-0.5">
             Shared wallets, budgets and member roles. Projects and copilot turns can bill here instead of your personal wallet.
           </p>
         </div>

@@ -64,7 +64,7 @@ function providerLabel(p: string): string {
 }
 
 function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] }) {
-  if (!byDay.length) return <p className="text-xs text-gray-400 py-4 text-center">No daily data</p>;
+  if (!byDay.length) return <p className="text-xs text-gray-600 py-4 text-center">No daily data</p>;
   const max = Math.max(...byDay.map((d) => d.costUsd), 0.0001);
   return (
     <div className="flex items-end gap-[3px] h-20 w-full overflow-hidden">
@@ -98,7 +98,7 @@ async function callApi<T>(path: string, method = 'GET', body?: unknown): Promise
 function ImpactBadge({ impact }: { impact: 'positive' | 'negative' | 'neutral' }) {
   if (impact === 'positive') return <span className="flex items-center gap-1 text-green-600 text-xs"><TrendingUp className="w-3 h-3" /> Positive</span>;
   if (impact === 'negative') return <span className="flex items-center gap-1 text-red-500 text-xs"><TrendingDown className="w-3 h-3" /> Negative</span>;
-  return <span className="flex items-center gap-1 text-gray-500 text-xs"><Minus className="w-3 h-3" /> Neutral</span>;
+  return <span className="flex items-center gap-1 text-gray-600 text-xs"><Minus className="w-3 h-3" /> Neutral</span>;
 }
 
 function PriorityBadge({ priority }: { priority: 'high' | 'medium' | 'low' }) {
@@ -205,7 +205,7 @@ export default function AnalyticsPage() {
             <BarChart2 className="w-6 h-6" style={{ color: '#6D4AE0' }} />
             Analytics &amp; Growth
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">AI-powered channel diagnostics and next-video recommendations</p>
+          <p className="text-sm text-gray-600 mt-0.5">AI-powered channel diagnostics and next-video recommendations</p>
         </div>
 
         {/* AI Usage dashboard — SUPER_ADMIN / OWNER only */}
@@ -214,13 +214,13 @@ export default function AnalyticsPage() {
             {tokenUsage === null && (
               <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
                 <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
-                <p className="text-sm text-gray-400">Loading AI usage…</p>
+                <p className="text-sm text-gray-600">Loading AI usage…</p>
               </div>
             )}
 
             {tokenUsage === 'unavailable' && (
               <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <p className="text-sm text-gray-400">AI usage data unavailable.</p>
+                <p className="text-sm text-gray-600">AI usage data unavailable.</p>
               </div>
             )}
 
@@ -230,7 +230,7 @@ export default function AnalyticsPage() {
                   <BarChart2 className="w-8 h-8" style={{ color: '#6D4AE0' }} />
                 </div>
                 <p className="text-base font-extrabold text-gray-900 mb-1">No AI usage yet</p>
-                <p className="text-sm text-gray-400">Run the content pipeline to start generating AI usage data.</p>
+                <p className="text-sm text-gray-600">Run the content pipeline to start generating AI usage data.</p>
               </div>
             )}
 
@@ -254,52 +254,52 @@ export default function AnalyticsPage() {
                   {/* Summary stat cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Total Cost</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Total Cost</p>
                       <p className="text-2xl font-black text-gray-900">${tokenUsage.totals.costUsd.toFixed(4)}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">last {tokenUsage.sinceDays}d</p>
+                      <p className="text-xs text-gray-600 mt-0.5">last {tokenUsage.sinceDays}d</p>
                     </div>
                     <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">API Calls</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">API Calls</p>
                       <p className="text-2xl font-black text-gray-900">{tokenUsage.totals.calls.toLocaleString()}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">provider requests</p>
+                      <p className="text-xs text-gray-600 mt-0.5">provider requests</p>
                     </div>
                     <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Tokens In</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Tokens In</p>
                       <p className="text-2xl font-black text-gray-900">{(tokenUsage.totals.tokensIn / 1000).toFixed(1)}K</p>
-                      <p className="text-xs text-gray-400 mt-0.5">prompt tokens</p>
+                      <p className="text-xs text-gray-600 mt-0.5">prompt tokens</p>
                     </div>
                     <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Tokens Out</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Tokens Out</p>
                       <p className="text-2xl font-black text-gray-900">{(tokenUsage.totals.tokensOut / 1000).toFixed(1)}K</p>
-                      <p className="text-xs text-gray-400 mt-0.5">completion tokens</p>
+                      <p className="text-xs text-gray-600 mt-0.5">completion tokens</p>
                     </div>
                   </div>
 
                   {/* Daily Trend + Copilot cache */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                     <div className="sm:col-span-2 bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Daily Cost Trend</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Daily Cost Trend</p>
                       <DailyTrendBars byDay={tokenUsage.byDay} />
                       {tokenUsage.byDay.length > 0 && (
                         <div className="flex justify-between mt-1">
-                          <span className="text-[10px] text-gray-400">{tokenUsage.byDay[0]?.date}</span>
-                          <span className="text-[10px] text-gray-400">{tokenUsage.byDay[tokenUsage.byDay.length - 1]?.date}</span>
+                          <span className="text-[10px] text-gray-600">{tokenUsage.byDay[0]?.date}</span>
+                          <span className="text-[10px] text-gray-600">{tokenUsage.byDay[tokenUsage.byDay.length - 1]?.date}</span>
                         </div>
                       )}
                     </div>
                     <div className="bg-white rounded-2xl p-5 flex flex-col justify-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Copilot Cache</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-2">Copilot Cache</p>
                       {tokenUsage.copilot.cacheHitRate != null ? (
                         <>
                           <p className="text-3xl font-black" style={{ color: tokenUsage.copilot.cacheHitRate >= 0.8 ? '#16a34a' : '#c2410c' }}>
                             {(tokenUsage.copilot.cacheHitRate * 100).toFixed(0)}%
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">cache-hit rate</p>
-                          <p className="text-xs text-gray-400">{tokenUsage.copilot.cacheHits} hits / {tokenUsage.copilot.turns} turns</p>
+                          <p className="text-xs text-gray-600 mt-1">cache-hit rate</p>
+                          <p className="text-xs text-gray-600">{tokenUsage.copilot.cacheHits} hits / {tokenUsage.copilot.turns} turns</p>
                           <p className="text-[10px] text-gray-300 mt-1">target ≥ 80%</p>
                         </>
                       ) : (
-                        <p className="text-sm text-gray-400">No copilot turns yet</p>
+                        <p className="text-sm text-gray-600">No copilot turns yet</p>
                       )}
                     </div>
                   </div>
@@ -308,11 +308,11 @@ export default function AnalyticsPage() {
                   {providerList.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Cost by Provider</p>
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Cost by Provider</p>
                         <PastelBars data={barData} formatValue={(v) => `$${v.toFixed(4)}`} />
                       </div>
                       <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Provider Share</p>
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Provider Share</p>
                         <PastelDonut segments={donutSegments} />
                       </div>
                     </div>
@@ -320,15 +320,15 @@ export default function AnalyticsPage() {
 
                   {/* Per-model detail table */}
                   <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Per Model Breakdown</p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Per Model Breakdown</p>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-left">
-                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Provider / Model</th>
-                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
-                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
-                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
+                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Provider / Model</th>
+                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Calls</th>
+                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Tokens</th>
+                            <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Cost</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -341,11 +341,11 @@ export default function AnalyticsPage() {
                                   <div className="flex items-center gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: providerColor(m.provider) }} />
                                     <span className="font-medium text-gray-800">{providerLabel(m.provider)}</span>
-                                    <span className="text-gray-400 text-xs truncate max-w-[160px]">{m.model}</span>
+                                    <span className="text-gray-600 text-xs truncate max-w-[160px]">{m.model}</span>
                                   </div>
                                 </td>
-                                <td className="py-2 text-right text-gray-500">{m.calls.toLocaleString()}</td>
-                                <td className="py-2 text-right text-gray-500">{(m.tokensIn + m.tokensOut).toLocaleString()}</td>
+                                <td className="py-2 text-right text-gray-600">{m.calls.toLocaleString()}</td>
+                                <td className="py-2 text-right text-gray-600">{(m.tokensIn + m.tokensOut).toLocaleString()}</td>
                                 <td className="py-2 text-right font-bold text-gray-900">${m.costUsd.toFixed(4)}</td>
                               </tr>
                           ))}
@@ -357,22 +357,22 @@ export default function AnalyticsPage() {
                   {/* Cost by video (if any) */}
                   {(tokenUsage.byVideo ?? []).length > 0 && (
                     <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Cost by Video</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Cost by Video</p>
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-left">
-                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Video</th>
-                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Calls</th>
-                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Tokens</th>
-                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 text-right">Cost</th>
+                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Video</th>
+                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Calls</th>
+                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Tokens</th>
+                            <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Cost</th>
                           </tr>
                         </thead>
                         <tbody>
                           {tokenUsage.byVideo.map((v) => (
                             <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
                               <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
-                              <td className="py-1.5 text-right text-gray-500">{v.calls}</td>
-                              <td className="py-1.5 text-right text-gray-500">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
+                              <td className="py-1.5 text-right text-gray-600">{v.calls}</td>
+                              <td className="py-1.5 text-right text-gray-600">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
                               <td className="py-1.5 text-right font-bold text-gray-900">${v.costUsd.toFixed(3)}</td>
                             </tr>
                           ))}
@@ -388,7 +388,7 @@ export default function AnalyticsPage() {
 
         {/* Channel selector + run — only show run button on analytics tab */}
         <div className="bg-white rounded-2xl p-5 no-print" style={{ border: '1.5px solid #e3ddf8' }}>
-          <label htmlFor="analytics-channel" className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Select Channel</label>
+          <label htmlFor="analytics-channel" className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-2">Select Channel</label>
           <div className="flex gap-3">
             {channels.length > 0 ? (
               <div className="relative flex-1">
@@ -404,7 +404,7 @@ export default function AnalyticsPage() {
                     <option key={c.id} value={c.id}>{c.title}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
               </div>
             ) : (
               <input
@@ -450,7 +450,7 @@ export default function AnalyticsPage() {
                     activeView === v
                       ? { borderColor: '#6D4AE0', color: '#6D4AE0' }
                       : locked
-                      ? { borderColor: 'transparent', color: '#9ca3af', cursor: 'not-allowed' }
+                      ? { borderColor: 'transparent', color: '#374151', cursor: 'not-allowed' }
                       : { borderColor: 'transparent', color: '#374151' }
                   }
                 >
@@ -471,34 +471,34 @@ export default function AnalyticsPage() {
                   <BarChart2 className="w-8 h-8" style={{ color: '#6D4AE0' }} />
                 </div>
                 <p className="text-base font-extrabold text-gray-900 mb-1">No channel selected</p>
-                <p className="text-sm text-gray-400">Select a channel above to see its performance scorecard.</p>
+                <p className="text-sm text-gray-600">Select a channel above to see its performance scorecard.</p>
               </div>
             )}
             {channelId && scorecardLoading && (
               <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
                 <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
-                <p className="text-sm text-gray-400">Loading scorecard…</p>
+                <p className="text-sm text-gray-600">Loading scorecard…</p>
               </div>
             )}
             {channelId && !scorecardLoading && scorecard && (
               <>
                 {/* Publishing KPIs */}
                 <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Publishing</p>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Publishing</p>
                   <div className="grid grid-cols-3 gap-4">
-                    <StatCard tone="lilac" icon={<Video className="w-5 h-5" />} label="Published" value={scorecard.publishing?.published ?? '—'} sub="videos uploaded" subClassName="text-gray-500" />
-                    <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Scheduled" value={scorecard.publishing?.scheduled ?? '—'} sub="queued for publish" subClassName="text-gray-500" />
-                    <StatCard tone="pink" icon={<AlertTriangle className="w-5 h-5" />} label="Failed" value={scorecard.publishing?.failed ?? '—'} sub="publish errors" subClassName={scorecard.publishing?.failed ? 'text-red-500' : 'text-gray-500'} />
+                    <StatCard tone="lilac" icon={<Video className="w-5 h-5" />} label="Published" value={scorecard.publishing?.published ?? '—'} sub="videos uploaded" subClassName="text-gray-600" />
+                    <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Scheduled" value={scorecard.publishing?.scheduled ?? '—'} sub="queued for publish" subClassName="text-gray-600" />
+                    <StatCard tone="pink" icon={<AlertTriangle className="w-5 h-5" />} label="Failed" value={scorecard.publishing?.failed ?? '—'} sub="publish errors" subClassName={scorecard.publishing?.failed ? 'text-red-500' : 'text-gray-600'} />
                   </div>
                 </div>
 
                 {/* Autonomy KPIs */}
                 <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">AI Autonomy</p>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI Autonomy</p>
                   <div className="grid grid-cols-3 gap-4">
-                    <StatCard tone="periwinkle" icon={<BarChart2 className="w-5 h-5" />} label="Proposals" value={scorecard.calendar?.total ?? '—'} sub="calendar entries" subClassName="text-gray-500" />
+                    <StatCard tone="periwinkle" icon={<BarChart2 className="w-5 h-5" />} label="Proposals" value={scorecard.calendar?.total ?? '—'} sub="calendar entries" subClassName="text-gray-600" />
                     <StatCard tone="lilac" icon={<TrendingUp className="w-5 h-5" />} label="Approval Rate" value={scorecard.calendar ? `${Math.round(scorecard.calendar.approvalRate)}%` : '—'} sub="of proposals approved" subClassName={scorecard.calendar && scorecard.calendar.approvalRate >= 50 ? 'text-green-600' : 'text-amber-500'} />
-                    <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Upcoming (7d)" value={scorecard.calendar?.upcoming7d ?? '—'} sub="approved slots" subClassName="text-gray-500" />
+                    <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Upcoming (7d)" value={scorecard.calendar?.upcoming7d ?? '—'} sub="approved slots" subClassName="text-gray-600" />
                   </div>
                 </div>
 
@@ -523,8 +523,8 @@ export default function AnalyticsPage() {
                       </div>
                       <div>
                         <p className="text-lg font-bold text-gray-900">Performance Grade: {gradeLabels[grade]}</p>
-                        <p className="text-sm text-gray-400 mt-1">Composite score based on approval rate, publish volume, and failure rate.</p>
-                        <div className="flex gap-4 mt-2 text-xs text-gray-400">
+                        <p className="text-sm text-gray-600 mt-1">Composite score based on approval rate, publish volume, and failure rate.</p>
+                        <div className="flex gap-4 mt-2 text-xs text-gray-600">
                           <span>Autonomy rate: {Math.round(cal.approvalRate)}%</span>
                           <span>Published: {pub.published}</span>
                           <span>Failure rate: {(failureRate * 100).toFixed(0)}%</span>
@@ -557,7 +557,7 @@ export default function AnalyticsPage() {
         {activeView === 'analytics' && canAccessAiAnalysis && analytics && !loadingAnalytics && (
           <div className="space-y-5 fade-in">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-600">
                 {analyticsDurationMs != null && `Report generated in ${formatDuration(analyticsDurationMs)}`}
                 {growthDurationMs != null && ` · growth report in ${formatDuration(growthDurationMs)}`}
               </p>
@@ -573,7 +573,7 @@ export default function AnalyticsPage() {
                 tone="lilac"
                 icon={<Gauge className="w-5 h-5" />}
                 label="Overall Score"
-                value={<>{analytics.overallScore}<span className="text-base text-gray-500 font-medium">/100</span></>}
+                value={<>{analytics.overallScore}<span className="text-base text-gray-600 font-medium">/100</span></>}
                 sub={analytics.overallScore >= 70 ? 'Healthy channel' : analytics.overallScore >= 40 ? 'Room to grow' : 'Needs attention'}
                 subClassName={analytics.overallScore >= 70 ? 'text-green-600' : analytics.overallScore >= 40 ? 'text-amber-500' : 'text-red-500'}
               />
@@ -610,7 +610,7 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                 <h2 className="font-bold text-gray-900 mb-1">Performance Overview</h2>
-                <p className="text-xs text-gray-400 mb-3">Click-through rate per top video</p>
+                <p className="text-xs text-gray-600 mb-3">Click-through rate per top video</p>
                 {analytics.topPerformers.some((v) => Number.isFinite(v.ctr) && v.ctr > 0) ? (
                   <PastelBars
                     data={analytics.topPerformers.map((v, i) => ({
@@ -621,12 +621,12 @@ export default function AnalyticsPage() {
                     formatValue={(v) => `${v.toFixed(1)}%`}
                   />
                 ) : (
-                  <p className="text-sm text-gray-400 py-8 text-center">No CTR data available for this channel yet</p>
+                  <p className="text-sm text-gray-600 py-8 text-center">No CTR data available for this channel yet</p>
                 )}
               </div>
               <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                 <h2 className="font-bold text-gray-900 mb-1">Insight Breakdown</h2>
-                <p className="text-xs text-gray-400 mb-4">Impact of the findings across your channel</p>
+                <p className="text-xs text-gray-600 mb-4">Impact of the findings across your channel</p>
                 <PastelDonut
                   segments={[
                     { label: 'Positive', value: analytics.insights.filter((i) => i.impact === 'positive').length, color: '#9fd8a5' },
@@ -656,7 +656,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{insight.metric}</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{insight.metric}</span>
                         <ImpactBadge impact={insight.impact} />
                       </div>
                       <p className="text-sm text-gray-800 mb-1">{insight.finding}</p>
@@ -675,7 +675,7 @@ export default function AnalyticsPage() {
                   {analytics.topPerformers.map((v, i) => (
                     <div key={i} className="flex items-center justify-between p-3 rounded-2xl" style={{ background: '#faf9ff' }}>
                       <p className="text-sm font-medium text-gray-800 flex-1 truncate">{v.title}</p>
-                      <div className="flex gap-4 text-xs text-gray-400 ml-4 shrink-0">
+                      <div className="flex gap-4 text-xs text-gray-600 ml-4 shrink-0">
                         <span>CTR {(v.ctr * 100).toFixed(1)}%</span>
                         <span>Avg {Math.round(v.avgWatchTimeSecs)}s</span>
                       </div>
@@ -730,7 +730,7 @@ export default function AnalyticsPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{t.topic}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{t.rationale}</p>
+                          <p className="text-xs text-gray-600 mt-0.5">{t.rationale}</p>
                         </div>
                       </div>
                     ))}
@@ -744,7 +744,7 @@ export default function AnalyticsPage() {
                       <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: '#faf9ff' }}>
                         <PriorityBadge priority={a.priority} />
                         <div>
-                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{a.area}</p>
+                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{a.area}</p>
                           <p className="text-sm text-gray-800">{a.action}</p>
                           <p className="text-xs mt-0.5" style={{ color: '#6D4AE0' }}>{a.expectedImpact}</p>
                         </div>

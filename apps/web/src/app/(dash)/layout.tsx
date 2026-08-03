@@ -484,7 +484,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" style={{ borderRadius: '11px', boxShadow: '0 6px 14px -6px rgba(124,58,237,.5)' }} />
           <div className="leading-[1.15] hidden sm:block">
             <div className="font-bold text-[15px] tracking-[-0.3px]">Sozialzync</div>
-            <div className="text-[11px] font-medium" style={{ color: '#8b88a0' }}>AI Content Platform</div>
+            <div className="text-[11px] font-medium" style={{ color: '#5a576b' }}>AI Content Platform</div>
           </div>
           <span className="font-bold text-[15px] tracking-[-0.3px] sm:hidden">Sozialzync</span>
         </div>
@@ -610,6 +610,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         <div className="relative shrink-0" ref={userMenuRef}>
           <button
             type="button"
+            aria-label="Open user menu"
             onClick={() => setUserMenuOpen(o => !o)}
             className="flex items-center gap-2 hover:bg-[#F6F5FC] active:bg-[#EDE9FD] transition-colors cursor-pointer touch-manipulation"
             style={{ background: '#fff', border: '1px solid #ECECF3', borderRadius: '12px', padding: '5px 5px 5px 5px' }}
@@ -624,7 +625,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             {/* Name — shown on sm+ screens */}
             <div className="hidden sm:block max-w-[120px]" style={{ lineHeight: 1.2, textAlign: 'left', paddingRight: '6px' }}>
               <div className="truncate" style={{ fontWeight: 700, fontSize: '13.5px' }}>{meData?.name ?? userName}</div>
-              <div style={{ fontSize: '11.5px', color: '#8b88a0', fontWeight: 500 }}>Creator</div>
+              <div style={{ fontSize: '11.5px', color: '#5a576b', fontWeight: 500 }}>Creator</div>
             </div>
             <ChevronDown className="hidden sm:block w-3.5 h-3.5 shrink-0 mr-2" style={{ color: '#9a97ab', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />
           </button>
@@ -747,7 +748,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <>
                 <div style={{ overflow: 'hidden', lineHeight: 1.35, flex: '1 1 auto' }}>
                   <div style={{ fontWeight: 800, fontSize: '16px', color: '#fff', letterSpacing: '-.4px', whiteSpace: 'nowrap' }}>Sozialzync</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.48)', fontWeight: 500, letterSpacing: '.15px', whiteSpace: 'nowrap' }}>AI Content Platform</div>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.9)', fontWeight: 500, letterSpacing: '.15px', whiteSpace: 'nowrap' }}>AI Content Platform</div>
                 </div>
                 {/* Close button — only visible on mobile */}
                 <button

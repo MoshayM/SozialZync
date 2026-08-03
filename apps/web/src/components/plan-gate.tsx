@@ -121,10 +121,10 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
           {featureLabel ? `${featureLabel} requires ` : 'Requires '}
           <span style={{ color: '#6D4AE0' }}>{PLAN_LABEL[requiredPlan]}</span>
           {PLAN_PRICE[requiredPlan] && (
-            <span className="text-gray-400 font-medium"> ({PLAN_PRICE[requiredPlan]})</span>
+            <span className="text-gray-600 font-medium"> ({PLAN_PRICE[requiredPlan]})</span>
           )}
         </p>
-        <p className="text-xs text-gray-400 mb-5 text-center px-10 leading-relaxed">
+        <p className="text-xs text-gray-600 mb-5 text-center px-10 leading-relaxed">
           {PLAN_DESC[requiredPlan]}
         </p>
 
@@ -139,7 +139,7 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
           Upgrade to {PLAN_LABEL[requiredPlan]}
         </Link>
 
-        <p className="text-[11px] text-gray-400 mt-3">
+        <p className="text-[11px] text-gray-600 mt-3">
           Current plan: <span className="font-semibold">{PLAN_LABEL[userPlan]}</span>
         </p>
       </div>

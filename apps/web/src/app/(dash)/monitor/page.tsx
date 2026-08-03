@@ -72,7 +72,7 @@ function StatusDot({ status }: { status: string }) {
     return <span className="flex items-center gap-1 rounded-full px-2 py-0.5 bg-[#fef2f2] text-red-700 text-xs font-medium"><AlertCircle className="w-3 h-3" />Failed</span>;
   if (s === 'cancelled')
     return <span className="flex items-center gap-1 rounded-full px-2 py-0.5 bg-[#f3f4f6] text-[#4b5563] text-xs font-medium"><X className="w-3 h-3" />Cancelled</span>;
-  return <span className="text-gray-400 text-xs">{status}</span>;
+  return <span className="text-gray-600 text-xs">{status}</span>;
 }
 
 export default function MonitorPage() {
@@ -114,16 +114,16 @@ export default function MonitorPage() {
             </div>
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">AI Job Monitor</h1>
-              <p className="text-sm text-gray-400 mt-0.5">Real-time view of all pipeline jobs across your projects</p>
+              <p className="text-sm text-gray-600 mt-0.5">Real-time view of all pipeline jobs across your projects</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {dataUpdatedAt > 0 && (
-              <span className="text-xs text-gray-400">Updated {timeAgo(new Date(dataUpdatedAt).toISOString())}</span>
+              <span className="text-xs text-gray-600">Updated {timeAgo(new Date(dataUpdatedAt).toISOString())}</span>
             )}
             <button
               onClick={() => setAutoRefresh((v) => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${autoRefresh ? 'border-green-300 bg-green-50 text-green-700' : 'text-gray-500 hover:border-gray-300'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${autoRefresh ? 'border-green-300 bg-green-50 text-green-700' : 'text-gray-600 hover:border-gray-300'}`}
               style={autoRefresh ? undefined : { border: '1.5px solid #e3ddf8' }}
             >
               <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
@@ -149,7 +149,7 @@ export default function MonitorPage() {
             label="Running"
             value={running}
             sub={running > 0 ? 'Active now' : 'Idle'}
-            subClassName={running > 0 ? 'text-blue-700' : 'text-gray-500'}
+            subClassName={running > 0 ? 'text-blue-700' : 'text-gray-600'}
           />
           <StatCard
             tone="cream"
@@ -179,13 +179,13 @@ export default function MonitorPage() {
 
         {/* Filters */}
         <div className="bg-white rounded-2xl p-4 flex flex-wrap items-center gap-3" style={{ border: '1.5px solid #e3ddf8' }}>
-          <Filter className="w-4 h-4 text-gray-400 shrink-0" />
+          <Filter className="w-4 h-4 text-gray-600 shrink-0" />
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             {STATUS_FILTER_OPTIONS.map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1 text-xs font-medium rounded-2xl capitalize transition-colors ${statusFilter === s ? 'bg-white shadow text-[#6D4AE0]' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-3 py-1 text-xs font-medium rounded-2xl capitalize transition-colors ${statusFilter === s ? 'bg-white shadow text-[#6D4AE0]' : 'text-gray-600 hover:text-gray-700'}`}
               >
                 {s}
               </button>
@@ -201,23 +201,23 @@ export default function MonitorPage() {
               <option value="all">All types</option>
               {uniqueTypes.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600 pointer-events-none" />
           </div>
           {(statusFilter !== 'all' || typeFilter !== 'all') && (
             <button
               onClick={() => { setStatusFilter('all'); setTypeFilter('all'); }}
-              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              className="text-xs text-gray-600 hover:text-gray-700 flex items-center gap-1"
             >
               <X className="w-3 h-3" /> Clear
             </button>
           )}
-          <span className="ml-auto text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{jobs.length} jobs</span>
+          <span className="ml-auto text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{jobs.length} jobs</span>
         </div>
 
         {/* Jobs list */}
         <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
           {isLoading && jobs.length === 0 ? (
-            <div className="flex items-center justify-center py-16 text-gray-400">
+            <div className="flex items-center justify-center py-16 text-gray-600">
               <Loader2 className="w-6 h-6 animate-spin mr-2" />
               <span className="text-sm">Loading jobs…</span>
             </div>
@@ -226,11 +226,11 @@ export default function MonitorPage() {
               <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
                 <Activity className="w-8 h-8 text-[#6D4AE0]" />
               </div>
-              <p className="text-sm text-gray-500">No jobs match the current filter.</p>
+              <p className="text-sm text-gray-600">No jobs match the current filter.</p>
             </div>
           ) : (
             <div>
-              <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-5 py-2.5 bg-[#faf9ff] border-b border-gray-100 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">
+              <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-5 py-2.5 bg-[#faf9ff] border-b border-gray-100 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">
                 <span>Status</span>
                 <span>Job / Project</span>
                 <span className="text-right">Duration</span>
@@ -263,22 +263,22 @@ export default function MonitorPage() {
                     {job.project ? (
                       <Link
                         href={`/projects/${job.project.id}`}
-                        className="text-xs text-gray-500 hover:text-[#6D4AE0] hover:underline truncate block mt-0.5"
+                        className="text-xs text-gray-600 hover:text-[#6D4AE0] hover:underline truncate block mt-0.5"
                       >
                         {job.project.title}
                       </Link>
                     ) : (
-                      <span className="text-xs text-gray-400 mt-0.5 block">No project</span>
+                      <span className="text-xs text-gray-600 mt-0.5 block">No project</span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500 text-right tabular-nums">
+                  <span className="text-xs text-gray-600 text-right tabular-nums">
                     {job.status === 'COMPLETED' && job.startedAt && job.completedAt
                       ? elapsed(job.startedAt, job.completedAt)
                       : job.status === 'RUNNING' && job.startedAt
                       ? elapsed(job.startedAt)
                       : '—'}
                   </span>
-                  <span className="text-xs text-gray-400 text-right tabular-nums whitespace-nowrap">
+                  <span className="text-xs text-gray-600 text-right tabular-nums whitespace-nowrap">
                     {job.startedAt ? timeAgo(job.startedAt) : timeAgo(job.createdAt)}
                   </span>
                 </div>
