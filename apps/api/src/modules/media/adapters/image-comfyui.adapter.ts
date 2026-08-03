@@ -1,4 +1,4 @@
-import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage } from '../media.types';
+import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage, ImageAdapter, ImageRequest, GeneratedMedia } from '../media.types';
 
 const BASE_URL = process.env['COMFYUI_URL'] ?? 'http://localhost:8188';
 
@@ -13,7 +13,7 @@ type ComfyHistoryEntry = {
  * ComfyUI image adapter. Activates when COMFYUI_URL env is set.
  * Uses ComfyUI's /prompt API with a basic SDXL txt2img workflow.
  */
-export class ComfyUIImageAdapter implements SelfHostedImageAdapter {
+export class ComfyUIImageAdapter implements SelfHostedImageAdapter, ImageAdapter {
   readonly name = 'comfyui';
 
   available(): boolean {
@@ -102,5 +102,22 @@ export class ComfyUIImageAdapter implements SelfHostedImageAdapter {
       }
     }
     throw new Error('ComfyUI generation timed out after 5 minutes');
+  }
+
+  async generateImage(req: ImageRequest): Promise<GeneratedMedia> {
+    const result = await this.generate({
+      prompt: req.prompt,
+      negativePrompt: req.negativePrompt,
+      width: req.width,
+      height: req.height,
+      seed: req.seed,
+    });
+    return {
+      buffer: result.buffer,
+      mimeType: result.mimeType,
+      ext: result.mimeType === 'image/jpeg' ? 'jpg' : result.mimeType === 'image/webp' ? 'webp' : 'png',
+      model: result.model,
+      notes: `ComfyUI generated ${result.width}×${result.height}`,
+    };
   }
 }

@@ -1,6 +1,6 @@
 import type { VideoAdapter, SceneVideoRequest, GeneratedMedia } from '../media.types';
 
-const BASE_URL = 'https://api.dev.runwayml.com/v1';
+const BASE_URL = 'https://api.runwayml.com/v1';
 const MAX_DURATION_SECS = 10; // Runway Gen-3 Alpha max clip
 const POLL_INTERVAL_MS = 6000;
 const MAX_POLLS = 100;
@@ -17,31 +17,33 @@ interface RunwayTask {
 
 function authHeaders(): Record<string, string> {
   return {
-    Authorization: `Bearer ${process.env['RUNWAYML_API_KEY'] ?? ''}`,
+    Authorization: `Bearer ${process.env['RUNWAYML_API_SECRET'] ?? ''}`,
     'Content-Type': 'application/json',
     Accept: 'application/json',
     'X-Runway-Version': '2024-11-06',
   };
 }
 
-function ratio(width: number, height: number): '1280:768' | '768:1280' | '1104:832' | '832:1104' | '960:960' {
+function ratio(width: number, height: number): '1280:720' | '720:1280' | '1104:832' | '832:1104' | '960:960' {
   const r = width / height;
-  if (r >= 1.5) return '1280:768';
-  if (r <= 0.67) return '768:1280';
+  if (r >= 1.5) return '1280:720';
+  if (r <= 0.67) return '720:1280';
+  if (r >= 1.1) return '1104:832';
+  if (r <= 0.91) return '832:1104';
   return '960:960';
 }
 
 /**
- * AI video generation via Runway Gen-3 Alpha.
+ * AI video generation via Runway Gen-4 Turbo.
  * Supports text-to-video and image-to-video (when req.imagePath is a URL).
- * Activates when RUNWAYML_API_KEY is set.
- * Env: RUNWAYML_API_KEY
+ * Activates when RUNWAYML_API_SECRET is set.
+ * Env: RUNWAYML_API_SECRET
  */
 export class RunwayVideoAdapter implements VideoAdapter {
-  readonly name = 'runway-gen3-alpha';
+  readonly name = 'runway-gen4-turbo';
 
   available(): boolean {
-    return !!process.env['RUNWAYML_API_KEY'];
+    return !!process.env['RUNWAYML_API_SECRET'];
   }
 
   async renderScene(req: SceneVideoRequest): Promise<GeneratedMedia> {
@@ -49,7 +51,7 @@ export class RunwayVideoAdapter implements VideoAdapter {
     const resolution = ratio(req.width, req.height);
 
     const body: Record<string, unknown> = {
-      model: 'gen3a_turbo',
+      model: 'gen4_turbo',
       promptText: req.prompt,
       duration,
       ratio: resolution,
@@ -93,7 +95,7 @@ export class RunwayVideoAdapter implements VideoAdapter {
       mimeType: 'video/mp4',
       ext: 'mp4',
       durationMs: duration * 1000,
-      model: 'runway-gen3a-turbo',
+      model: 'runway-gen4-turbo',
       notes: req.imagePath ? 'image-to-video' : 'text-to-video',
     };
   }

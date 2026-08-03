@@ -1,4 +1,4 @@
-import type { VideoGenerationAdapter, VideoRequest, GeneratedVideo } from '../media.types';
+import type { VideoGenerationAdapter, VideoRequest, GeneratedVideo, VideoAdapter, SceneVideoRequest, GeneratedMedia } from '../media.types';
 
 const BASE_URL = process.env['COMFYUI_URL'] ?? 'http://localhost:8188';
 
@@ -7,7 +7,7 @@ const BASE_URL = process.env['COMFYUI_URL'] ?? 'http://localhost:8188';
  * workflow. Activates when COMFYUI_URL env is set.
  * Supports SVD (img2vid) and generic txt2vid via KSampler + VHS_VideoCombine.
  */
-export class ComfyUIVideoAdapter implements VideoGenerationAdapter {
+export class ComfyUIVideoAdapter implements VideoGenerationAdapter, VideoAdapter {
   readonly name = 'comfyui-video';
 
   available(): boolean {
@@ -111,6 +111,25 @@ export class ComfyUIVideoAdapter implements VideoGenerationAdapter {
       }
     }
     throw new Error('ComfyUI video generation timed out after 10 minutes');
+  }
+
+  async renderScene(req: SceneVideoRequest): Promise<GeneratedMedia> {
+    const result = await this.generate({
+      prompt: req.prompt,
+      width: req.width ?? 1024,
+      height: req.height ?? 576,
+      durationSeconds: req.durationSecs,
+      fps: 8,
+      referenceImageUrl: req.imagePath,
+    });
+    return {
+      buffer: result.buffer,
+      mimeType: result.mimeType,
+      ext: 'mp4',
+      durationMs: result.durationSeconds * 1000,
+      model: result.model,
+      notes: `ComfyUI video ${result.width}×${result.height} @ ${result.fps}fps`,
+    };
   }
 
   private buildTxt2VidWorkflow(

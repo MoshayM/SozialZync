@@ -25,6 +25,10 @@ import { FfmpegSceneVideoAdapter } from './adapters/video-ffmpeg.adapter';
 import { LumaVideoAdapter } from './adapters/video-luma.adapter';
 import { RunwayVideoAdapter } from './adapters/video-runway.adapter';
 import { KlingVideoAdapter } from './adapters/video-kling.adapter';
+import { ComfyUIImageAdapter } from './adapters/image-comfyui.adapter';
+import { A1111ImageAdapter } from './adapters/image-a1111.adapter';
+import { ComfyUIVideoAdapter } from './adapters/video-comfyui.adapter';
+import { MusicGenLocalAdapter } from './adapters/music-musicgen.adapter';
 import { validateMediaBuffer, formatIssues, type MediaValidationKind } from './media-validation.util';
 
 export interface StoredAsset {
@@ -59,16 +63,18 @@ export class MediaService {
   };
   private readonly image: AdapterChain<ImageAdapter> = {
     configured: process.env['IMAGE_PROVIDER'],
-    // Gemini first: the OpenAI key on this install is revoked (401-latched)
-    adapters: [new GeminiImageAdapter(), new OpenAiImageAdapter(), new OfflineImageAdapter()],
+    // Local self-hosted first (free, no rate limits), then cloud APIs, then placeholder
+    adapters: [new ComfyUIImageAdapter(), new A1111ImageAdapter(), new GeminiImageAdapter(), new OpenAiImageAdapter(), new OfflineImageAdapter()],
   };
   private readonly music: AdapterChain<MusicAdapter> = {
     configured: process.env['MUSIC_PROVIDER'],
-    adapters: [new StabilityMusicAdapter(), new ReplicateMusicAdapter(), new OfflineMusicAdapter()],
+    // Local MusicGen first, then cloud APIs, then synth placeholder
+    adapters: [new MusicGenLocalAdapter(), new StabilityMusicAdapter(), new ReplicateMusicAdapter(), new OfflineMusicAdapter()],
   };
   private readonly video: AdapterChain<VideoAdapter> = {
     configured: process.env['VIDEO_PROVIDER'],
-    adapters: [new LumaVideoAdapter(), new RunwayVideoAdapter(), new KlingVideoAdapter(), new FfmpegSceneVideoAdapter()],
+    // Cloud AI first (best quality), then local ComfyUI SVD, then FFmpeg scene builder
+    adapters: [new LumaVideoAdapter(), new RunwayVideoAdapter(), new KlingVideoAdapter(), new ComfyUIVideoAdapter(), new FfmpegSceneVideoAdapter()],
   };
 
   constructor(

@@ -1,4 +1,4 @@
-import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage } from '../media.types';
+import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage, ImageAdapter, ImageRequest, GeneratedMedia } from '../media.types';
 
 const BASE_URL = process.env['A1111_URL'] ?? 'http://localhost:7860';
 
@@ -9,7 +9,7 @@ type A1111InfoJson = { seed?: number };
  * Automatic1111/Forge/InvokeAI adapter. Activates when A1111_URL env is set.
  * Uses /sdapi/v1/txt2img (standard A1111 API, compatible with Forge + InvokeAI).
  */
-export class A1111ImageAdapter implements SelfHostedImageAdapter {
+export class A1111ImageAdapter implements SelfHostedImageAdapter, ImageAdapter {
   readonly name = 'a1111';
 
   available(): boolean {
@@ -83,6 +83,23 @@ export class A1111ImageAdapter implements SelfHostedImageAdapter {
       model: req.model ?? 'default',
       seed: actualSeed,
       prompt: req.prompt,
+    };
+  }
+
+  async generateImage(req: ImageRequest): Promise<GeneratedMedia> {
+    const result = await this.generate({
+      prompt: req.prompt,
+      negativePrompt: req.negativePrompt,
+      width: req.width,
+      height: req.height,
+      seed: req.seed,
+    });
+    return {
+      buffer: result.buffer,
+      mimeType: result.mimeType,
+      ext: 'png',
+      model: result.model,
+      notes: `A1111 generated ${result.width}×${result.height} seed=${result.seed ?? -1}`,
     };
   }
 }

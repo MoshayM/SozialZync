@@ -1,46 +1,34 @@
 import type { VideoAdapter, SceneVideoRequest, GeneratedMedia } from '../media.types';
-import { createHmac } from 'crypto';
 
-const BASE_URL = 'https://api.klingai.com/v1/videos';
-const MAX_DURATION_SECS = 10;
-const POLL_INTERVAL_MS = 5000;
-const MAX_POLLS = 120;
+const BASE_URL = 'https://api.piapi.ai';
+const POLL_INTERVAL_MS = 6000;
+const MAX_POLLS = 100;
 
-type KlingStatus = 'submitted' | 'processing' | 'succeed' | 'failed';
+type PiStatus = 'pending' | 'processing' | 'succeed' | 'failed' | 'canceled';
 
-interface KlingTask {
+interface PiVideoResult {
+  url: string;
+  duration?: string;
+}
+
+interface PiTaskData {
   task_id: string;
-  task_status: KlingStatus;
-  task_status_msg?: string;
-  task_result?: { videos?: Array<{ url: string; duration: string }> };
+  status?: PiStatus;
+  task_status?: PiStatus;
+  output?: { works?: Array<{ resource?: { resource?: string } }> };
+  task_result?: { videos?: PiVideoResult[] };
+  error?: { message?: string };
 }
 
-interface KlingResponse {
+interface PiResponse {
   code: number;
-  message: string;
-  data: KlingTask;
+  message?: string;
+  data: PiTaskData;
 }
 
-/**
- * Build a JWT for Kling API authentication.
- * Header: { alg: HS256, typ: JWT }
- * Payload: { iss: accessKeyId, exp: now + 1800, nbf: now - 5 }
- */
-function buildJwt(): string {
-  const accessKeyId = process.env['KLING_ACCESS_KEY_ID'] ?? '';
-  const secret = process.env['KLING_ACCESS_KEY_SECRET'] ?? '';
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-  const payload = Buffer.from(JSON.stringify({ iss: accessKeyId, exp: now + 1800, nbf: now - 5 })).toString('base64url');
-  const signing = `${header}.${payload}`;
-  const sig = createHmac('sha256', secret).update(signing).digest('base64url');
-  return `${signing}.${sig}`;
-}
-
-function authHeaders(): Record<string, string> {
+function piHeaders(): Record<string, string> {
   return {
-    Authorization: `Bearer ${buildJwt()}`,
+    'X-API-Key': process.env['PIAPI_API_KEY'] ?? '',
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
@@ -53,69 +41,79 @@ function klingRatio(width: number, height: number): '16:9' | '9:16' | '1:1' {
   return '1:1';
 }
 
+function extractVideoUrl(data: PiTaskData): string | undefined {
+  // PiAPI wraps Kling — two known response shapes:
+  return (
+    data.task_result?.videos?.[0]?.url ??
+    data.output?.works?.[0]?.resource?.resource
+  );
+}
+
+function getStatus(data: PiTaskData): PiStatus | undefined {
+  return data.status ?? data.task_status;
+}
+
 /**
- * AI video generation via Kling AI (Kuaishou).
- * Supports text-to-video and image-to-video.
- * Activates when KLING_ACCESS_KEY_ID + KLING_ACCESS_KEY_SECRET are set.
- * Env: KLING_ACCESS_KEY_ID, KLING_ACCESS_KEY_SECRET
+ * AI video generation via Kling AI through PiAPI (api.piapi.ai).
+ * Activates when PIAPI_API_KEY is set.
+ * Env: PIAPI_API_KEY
  */
 export class KlingVideoAdapter implements VideoAdapter {
   readonly name = 'kling-ai';
 
   available(): boolean {
-    return !!(process.env['KLING_ACCESS_KEY_ID'] && process.env['KLING_ACCESS_KEY_SECRET']);
+    return !!process.env['PIAPI_API_KEY'];
   }
 
   async renderScene(req: SceneVideoRequest): Promise<GeneratedMedia> {
-    const duration = (Math.min(Math.max(req.durationSecs, 5), MAX_DURATION_SECS) >= 8 ? 10 : 5) as 5 | 10;
+    const duration = Math.min(Math.max(req.durationSecs, 5), 10) >= 8 ? 10 : 5;
     const ratio = klingRatio(req.width, req.height);
 
-    const endpoint = req.imagePath ? `${BASE_URL}/image2video` : `${BASE_URL}/text2video`;
-
-    const body: Record<string, unknown> = {
-      model_name: 'kling-v1',
+    const input: Record<string, unknown> = {
       prompt: req.prompt,
       duration: String(duration),
       aspect_ratio: ratio,
-      mode: 'std',
     };
+    if (req.imagePath) input['img_url'] = req.imagePath;
 
-    if (req.imagePath) {
-      body['image_url'] = req.imagePath;
-    }
-
-    const startRes = await fetch(endpoint, {
+    const startRes = await fetch(`${BASE_URL}/kling/videogen`, {
       method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify(body),
+      headers: piHeaders(),
+      body: JSON.stringify({ input }),
     });
 
     if (!startRes.ok) {
       const text = await startRes.text().catch(() => '');
-      throw new Error(`Kling start failed: ${startRes.status} ${text.slice(0, 200)}`);
+      throw new Error(`Kling/PiAPI start failed: ${startRes.status} ${text.slice(0, 200)}`);
     }
 
-    let resp = (await startRes.json()) as KlingResponse;
-    if (resp.code !== 0) throw new Error(`Kling error: ${resp.message}`);
+    const startData = (await startRes.json()) as PiResponse;
+    if (startData.code !== 200 && startData.code !== 0) {
+      throw new Error(`Kling/PiAPI error: ${startData.message ?? startData.code}`);
+    }
 
-    let task = resp.data;
+    const taskId = startData.data.task_id;
 
-    for (
-      let i = 0;
-      i < MAX_POLLS && task.task_status !== 'succeed' && task.task_status !== 'failed';
-      i++
-    ) {
+    let taskData = startData.data;
+    let status = getStatus(taskData);
+
+    for (let i = 0; i < MAX_POLLS && status !== 'succeed' && status !== 'failed' && status !== 'canceled'; i++) {
       await new Promise<void>((r) => setTimeout(r, POLL_INTERVAL_MS));
-      const pollRes = await fetch(`${BASE_URL}/${task.task_id}`, { headers: authHeaders() });
-      if (!pollRes.ok) throw new Error(`Kling poll failed: ${pollRes.status}`);
-      resp = (await pollRes.json()) as KlingResponse;
-      if (resp.code !== 0) throw new Error(`Kling poll error: ${resp.message}`);
-      task = resp.data;
+      const pollRes = await fetch(`${BASE_URL}/kling/fetch`, {
+        method: 'POST',
+        headers: piHeaders(),
+        body: JSON.stringify({ task_id: taskId }),
+      });
+      if (!pollRes.ok) throw new Error(`Kling/PiAPI poll failed: ${pollRes.status}`);
+      const pollData = (await pollRes.json()) as PiResponse;
+      if (pollData.code !== 200 && pollData.code !== 0) throw new Error(`Kling/PiAPI poll error: ${pollData.message}`);
+      taskData = pollData.data;
+      status = getStatus(taskData);
     }
 
-    const videoUrl = task.task_result?.videos?.[0]?.url;
-    if (task.task_status !== 'succeed' || !videoUrl) {
-      throw new Error(`Kling AI failed: ${task.task_status_msg ?? task.task_status}`);
+    const videoUrl = extractVideoUrl(taskData);
+    if (status !== 'succeed' || !videoUrl) {
+      throw new Error(`Kling/PiAPI failed: ${taskData.error?.message ?? status}`);
     }
 
     const videoRes = await fetch(videoUrl);
@@ -127,7 +125,7 @@ export class KlingVideoAdapter implements VideoAdapter {
       mimeType: 'video/mp4',
       ext: 'mp4',
       durationMs: duration * 1000,
-      model: 'kling-v1',
+      model: 'kling-v1-via-piapi',
       notes: req.imagePath ? 'image-to-video' : 'text-to-video',
     };
   }

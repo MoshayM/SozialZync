@@ -15,6 +15,20 @@ import {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+interface MediaProviderEntry {
+  name: string;
+  category: string;
+  available: boolean;
+  isOffline: boolean;
+}
+interface MediaProvidersStatus {
+  voice: MediaProviderEntry[];
+  image: MediaProviderEntry[];
+  music: MediaProviderEntry[];
+  video: MediaProviderEntry[];
+  env: Record<string, string>;
+}
+
 interface ProviderConfig {
   provider: string;
   label: string;
@@ -243,6 +257,18 @@ export default function ProviderHealthPage() {
   const [lastChecked, setLastChecked] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(POLL_INTERVAL_MS / 1000);
   const [providerError, setProviderError] = useState<string | null>(null);
+  const [mediaProviders, setMediaProviders] = useState<MediaProvidersStatus | null>(null);
+  const [mediaLoading, setMediaLoading] = useState(true);
+
+  // Fetch media adapter status
+  useEffect(() => {
+    setMediaLoading(true);
+    apiClient
+      .get<MediaProvidersStatus>('/system/media-providers')
+      .then((r) => setMediaProviders(r.data))
+      .catch(() => setMediaProviders(null))
+      .finally(() => setMediaLoading(false));
+  }, []);
 
   // Fetch configured providers
   useEffect(() => {
@@ -448,6 +474,73 @@ export default function ProviderHealthPage() {
             </div>
           </section>
         )}
+
+        {/* ── Media Providers ────────────────────────────────────────────── */}
+        <section>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">
+            Media Generation Providers
+          </p>
+          {mediaLoading ? (
+            <div className="flex items-center gap-2 py-6 text-gray-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Checking media providers…</span>
+            </div>
+          ) : !mediaProviders ? (
+            <div className="text-sm text-gray-400 py-4">Could not reach API for media provider status.</div>
+          ) : (
+            <div className="space-y-4">
+              {(['voice', 'image', 'music', 'video'] as const).map(cat => {
+                const entries = mediaProviders[cat];
+                const active = entries.filter(e => e.available && !e.isOffline);
+                const offline = entries.filter(e => e.available && e.isOffline);
+                const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+                return (
+                  <div key={cat} className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-bold text-gray-900">{catLabel} Generation</p>
+                      <span
+                        className="text-xs font-bold px-2.5 py-1 rounded-full"
+                        style={active.length > 0
+                          ? { background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #bbf7d0' }
+                          : offline.length > 0
+                          ? { background: '#fefce8', color: '#ca8a04', border: '1.5px solid #fde68a' }
+                          : { background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca' }}
+                      >
+                        {active.length > 0 ? `${active[0].name} active` : offline.length > 0 ? 'offline mode' : 'no providers'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {entries.map(e => (
+                        <span
+                          key={e.name}
+                          className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                          style={!e.available
+                            ? { background: '#f3f4f6', color: '#9ca3af', border: '1.5px solid #e5e7eb' }
+                            : e.isOffline
+                            ? { background: '#fefce8', color: '#92400e', border: '1.5px solid #fde68a' }
+                            : { background: '#f0fdf4', color: '#15803d', border: '1.5px solid #bbf7d0' }}
+                        >
+                          {e.available ? '✓' : '✗'} {e.name}{e.isOffline ? ' (offline)' : ''}
+                        </span>
+                      ))}
+                    </div>
+                    {mediaProviders.env[`${cat.toUpperCase()}_PROVIDER`] && (
+                      <p className="text-[11px] text-gray-400 mt-2">
+                        Pinned: <code className="bg-gray-50 px-1 rounded">{mediaProviders.env[`${cat.toUpperCase()}_PROVIDER`]}</code>
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+              {mediaProviders.env['ALLOW_OFFLINE_MEDIA'] === 'true' && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+                  ALLOW_OFFLINE_MEDIA=true — offline placeholder adapters are enabled.
+                  Set to false in Railway to force real providers.
+                </div>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Fallback chain reference */}
         <div className="rounded-2xl p-5 space-y-3" style={{ background: '#fffbeb', border: '1.5px solid #fde68a' }}>
