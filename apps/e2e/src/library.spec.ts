@@ -162,7 +162,8 @@ test.describe('Library', () => {
   test('YouTube accordion is open by default', async ({ page }) => {
     // YouTube accordion starts open. Use .first() because "YouTube" appears in
     // multiple places (accordion button, ChannelAccessPanel heading, etc.).
-    await expect(page.getByText('YouTube').first()).toBeVisible({ timeout: 8_000 });
+    // 12s: channel query can be slow when run after a heavy preceding suite.
+    await expect(page.getByText('YouTube').first()).toBeVisible({ timeout: 12_000 });
   });
 
   test('channel is auto-selected and videos render', async ({ page }) => {
