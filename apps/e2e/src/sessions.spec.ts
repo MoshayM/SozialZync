@@ -79,10 +79,9 @@ test.describe('Settings — Sign-in & Security', () => {
     // setupSessionsMocks registered AFTER → higher LIFO priority → overrides setupApiMocks defaults
     await setupSessionsMocks(page);
     await setAuthToken(page);
-    await page.goto('/settings');
-    await page.waitForLoadState('domcontentloaded');
+    await page.goto('/settings', { waitUntil: 'domcontentloaded' });
     // Ensure the Sign-in & Security section is visible before each test
-    await expect(page.getByRole('heading', { name: /sign-in.*security/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Sign-in.*Security/i)).toBeVisible({ timeout: 10_000 });
   });
 
   // ── Linked accounts ──────────────────────────────────────────────────────────

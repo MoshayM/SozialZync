@@ -162,8 +162,7 @@ test.describe('Wallet', () => {
     await setupApiMocks(page);
     await setupWalletMocks(page);
     await setAuthToken(page);
-    await page.goto('/wallet');
-    await page.waitForLoadState('domcontentloaded');
+    await page.goto('/wallet', { waitUntil: 'domcontentloaded' });
   });
 
   test('page heading renders', async ({ page }) => {
@@ -176,23 +175,18 @@ test.describe('Wallet', () => {
     await expect(page.getByText('1,240')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('renders bucket breakdown chips (trial + purchased)', async ({ page }) => {
-    // Purchased bucket label
-    await expect(page.getByText(/1,000 Purchased/)).toBeVisible({ timeout: 8_000 });
-    // Trial bucket label
-    await expect(page.getByText(/200 Trial/)).toBeVisible();
+  test('balance card shows stat strip labels', async ({ page }) => {
+    await expect(page.getByText('1,240')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/spent this month/i)).toBeVisible({ timeout: 8_000 });
   });
 
-  test('NONE budget shows "No budget set" copy', async ({ page }) => {
-    await expect(
-      page.getByText(/No budget set/i),
-    ).toBeVisible({ timeout: 8_000 });
+  test('NONE budget shows the Set-budget prompt', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Set budget' })).toBeVisible({ timeout: 8_000 });
   });
 
   test('editing budget PUTs /wallet/budget with correct body', async ({ page }) => {
-    // Open the edit form. Exact name: /edit/i would also match "Add credits"
-    // (…cr-edit-s) on the balance card, which sits earlier in the DOM.
-    const editBtn = page.getByRole('button', { name: 'Edit', exact: true });
+    await expect(page.getByText('1,240')).toBeVisible({ timeout: 15_000 });
+    const editBtn = page.getByRole('button', { name: 'Set budget' });
     await editBtn.click();
 
     // Fill in the monthly limit field
@@ -210,32 +204,30 @@ test.describe('Wallet', () => {
   });
 
   test('after saving budget the progress bar renders', async ({ page }) => {
-    // Switch to OK budget state via the edit flow
+    // Confirm NONE-state budget loaded (Set budget button will be visible)
+    await expect(page.getByText('1,240')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: 'Set budget' })).toBeVisible({ timeout: 8_000 });
+
+    // Override: future budget requests (PUT + subsequent GET) return OK status
     await page.route(`${PROXY}/wallet/budget`, async (route) => {
-      if (route.request().method() === 'GET') {
-        await route.fulfill({ json: MOCK_BUDGET_OK });
-      } else {
-        await route.fulfill({ json: MOCK_BUDGET_OK });
-      }
+      await route.fulfill({ json: MOCK_BUDGET_OK });
     });
 
-    const editBtn = page.getByRole('button', { name: 'Edit', exact: true });
+    const editBtn = page.getByRole('button', { name: 'Set budget' });
     await editBtn.click();
     const limitInput = page.getByPlaceholder('e.g. 10000');
     await limitInput.fill('5000');
     await page.getByRole('button', { name: /save budget/i }).click();
 
-    // After refetch with OK status the progress bar must appear (24% used)
-    await expect(page.getByText(/spent/)).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText(/% used/)).toBeVisible({ timeout: 8_000 });
+    // After refetch with OK status the UsageRing appears (24% of 5000)
+    await expect(page.getByText(/spent/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText('of monthly budget')).toBeVisible({ timeout: 8_000 });
   });
 
   test('transaction table shows entryType badges', async ({ page }) => {
-    // exact: getByText is case-insensitive substring by default, so 'TRIAL'
-    // would also hit the "200 Trial" bucket chip.
-    await expect(page.getByText('TRIAL', { exact: true })).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText('PURCHASE', { exact: true })).toBeVisible();
-    await expect(page.getByText('USAGE DEBIT', { exact: true })).toBeVisible();
+    await expect(page.getByText('Trial credits')).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText('Top-up')).toBeVisible();
+    await expect(page.getByText('AI usage')).toBeVisible();
   });
 
   test('transaction table shows positive and negative amounts', async ({ page }) => {
@@ -248,9 +240,9 @@ test.describe('Wallet', () => {
   // ── Expiry timeline (Phase 6 §11, Wave 14) ─────────────────────────────────
 
   test('expiry timeline lists lots soonest-first with day chip and never-expires badge', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Credit Expiry' })).toBeVisible({ timeout: 8_000 });
-    // Soon-expiring promo lot: "40 of 100 promotional credits" + "3d left"
-    await expect(page.getByText(/promotional credits/)).toBeVisible();
+    await expect(page.getByText('Credit Expiry')).toBeVisible({ timeout: 8_000 });
+    // Soon-expiring promo lot: "40 of 100 promo credits" + "3d left"
+    await expect(page.getByText(/promo credits/)).toBeVisible();
     await expect(page.getByText(/3d left/)).toBeVisible();
     // Never-expiring purchased lot
     await expect(page.getByText('never expires')).toBeVisible();
@@ -259,12 +251,10 @@ test.describe('Wallet', () => {
   // ── Credit marketplace (Phase 6 §12, Wave 14) ──────────────────────────────
 
   test('marketplace renders packs with price and buying POSTs recharge with packId + Idempotency-Key', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Buy Credits' })).toBeVisible({ timeout: 8_000 });
-    // Identify packs by their credits line — pack names collide with the
-    // sidebar brand ("Sozialzync") and role badge under substring matching.
-    await expect(page.getByText('1,000 credits', { exact: true })).toBeVisible();
+    await expect(page.getByText('Top Up Credits', { exact: true })).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/Starter.*1,000 cr/)).toBeVisible();
     await expect(page.getByText('$9.99')).toBeVisible();
-    await expect(page.getByText('5,000 credits', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Creator.*5,000 cr/)).toBeVisible();
     await expect(page.getByText('$39.99')).toBeVisible();
 
     await page.route(`${PROXY}/wallet/recharge`, async (route) => {
@@ -274,7 +264,7 @@ test.describe('Wallet', () => {
     const postReq = page.waitForRequest(
       (r) => r.method() === 'POST' && r.url().includes('/wallet/recharge'),
     );
-    await page.getByRole('button', { name: /buy/i }).first().click();
+    await page.getByRole('button', { name: /Starter/i }).click();
     const req = await postReq;
     expect((req.postDataJSON() as { packId?: string }).packId).toBe('pack-1');
     expect(req.headers()['idempotency-key']).toBeTruthy();
@@ -287,7 +277,10 @@ test.describe('Wallet', () => {
       await route.fulfill({ status: 503, json: PROVIDER_OUTAGE_ENVELOPE });
     });
 
-    await page.getByRole('button', { name: /buy/i }).first().click();
+    // Custom-amount Buy button is disabled until an amount is entered
+    await expect(page.getByText('Top Up Credits', { exact: true })).toBeVisible({ timeout: 8_000 });
+    await page.locator('input[placeholder="Custom amount"]').fill('10');
+    await page.getByRole('button', { name: 'Buy', exact: true }).click();
 
     await expect(page.getByText(/temporary provider outage/i)).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText(/nothing was charged/i)).toBeVisible();

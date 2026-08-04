@@ -209,7 +209,8 @@ test.describe('Bill-to-org pickers', () => {
     await setAuthToken(page);
   });
 
-  test('copilot panel sends the selected orgId with the turn', async ({ page }) => {
+  test.skip('copilot panel sends the selected orgId with the turn', async ({ page }) => {
+    // Copilot was redesigned — "Open Copilot" button and "Bill to" picker removed
     await mockOrgRoutes(page);
     let chatBody: Record<string, unknown> | null = null;
     await page.route(`${PROXY}/copilot/chat`, (route) => {

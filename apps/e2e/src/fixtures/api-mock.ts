@@ -388,7 +388,9 @@ export async function setupApiMocks(page: Page) {
 let _cachedToken: string | null = null;
 
 export async function setAuthToken(page: Page) {
-  await page.goto('/login');
+  // waitUntil: 'domcontentloaded' — we only need JS context for localStorage.setItem.
+  // Default 'load' hangs on external resources (OAuth SDKs) beyond the 60s test timeout.
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('domcontentloaded');
 
   // Use a real JWT obtained via Node.js (outside page context so Playwright

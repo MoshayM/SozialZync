@@ -155,7 +155,8 @@ test.describe('Growth', () => {
     const dismissReq = page.waitForRequest(
       (r) => r.method() === 'POST' && r.url().includes('/upgrade/recommendations/') && r.url().includes('/dismiss'),
     );
-    await page.getByRole('button', { name: /dismiss recommendation/i }).click();
+    // Component renders aria-label="Dismiss" (not "Dismiss recommendation")
+    await page.getByRole('button', { name: 'Dismiss' }).click();
     await dismissReq;
     expect(dismissedId).toBe('rec-1');
 
@@ -182,51 +183,63 @@ test.describe('Growth', () => {
     await redeemReq;
   });
 
-  // ── Referral Center ──────────────────────────────────────────────────────────
+  // ── Referral Center (nested describe: must switch to Referrals tab) ──────────
 
-  test('referral code is displayed', async ({ page }) => {
-    await expect(page.getByText('AB2CD3EF')).toBeVisible({ timeout: 8_000 });
-  });
-
-  test('share URL contains ?ref=AB2CD3EF', async ({ page }) => {
-    await expect(page.getByText('AB2CD3EF')).toBeVisible({ timeout: 8_000 });
-    // The share link input is a read-only text field that contains the ref param
-    const shareInput = page.locator('input[readonly]');
-    await expect(shareInput).toHaveValue(/ref=AB2CD3EF/, { timeout: 8_000 });
-  });
-
-  test('referral leaderboard renders two entries', async ({ page }) => {
-    await expect(page.getByText('Referral Leaderboard')).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText('TopCreator (you)')).toBeVisible();
-    await expect(page.getByText('OtherUser')).toBeVisible();
-  });
-
-  test('redeem box POSTs /referral/redeem on Apply', async ({ page }) => {
-    const redeemReq = page.waitForRequest(
-      (r) => r.method() === 'POST' && r.url().includes('/referral/redeem'),
-    );
-    const codeInput = page.getByRole('textbox', { name: /referral code input/i });
-    await codeInput.fill('FRIEND99');
-    await page.getByRole('button', { name: /apply/i }).click();
-    const req = await redeemReq;
-    const body = req.postDataJSON() as { code?: string };
-    expect(body.code).toBe('FRIEND99');
-  });
-
-  test('409 response from redeem shows inline error message', async ({ page }) => {
-    // Override the redeem mock to return 409
-    await page.route(`${PROXY}/referral/redeem`, async (route) => {
-      await route.fulfill({
-        status: 409,
-        json: { message: 'Code already redeemed' },
-      });
+  test.describe('Referrals tab', () => {
+    test.beforeEach(async ({ page }) => {
+      // The outer beforeEach already navigated to /growth (scorecard tab).
+      // Wait for React to hydrate: trial card ACTIVE chip is rendered by React Query
+      // (client-only fetch), so its visibility confirms React has fully mounted.
+      await expect(page.getByText('ACTIVE')).toBeVisible({ timeout: 10_000 });
+      await page.getByRole('button', { name: 'Referrals' }).click();
+      // Wait for ReferralCenter heading to confirm tab content rendered
+      await expect(page.getByText('Referral Center')).toBeVisible({ timeout: 8_000 });
     });
 
-    const codeInput = page.getByRole('textbox', { name: /referral code input/i });
-    await codeInput.fill('USED123');
-    await page.getByRole('button', { name: /apply/i }).click();
+    test('referral code is displayed', async ({ page }) => {
+      await expect(page.getByText('AB2CD3EF')).toBeVisible({ timeout: 8_000 });
+    });
 
-    // The component sets redeemError from the response message
-    await expect(page.getByText('Code already redeemed')).toBeVisible({ timeout: 8_000 });
+    test('share URL contains ?ref=AB2CD3EF', async ({ page }) => {
+      await expect(page.getByText('AB2CD3EF')).toBeVisible({ timeout: 8_000 });
+      // The share link input is a read-only text field that contains the ref param
+      const shareInput = page.locator('input[readonly]');
+      await expect(shareInput).toHaveValue(/ref=AB2CD3EF/, { timeout: 8_000 });
+    });
+
+    test('referral leaderboard renders two entries', async ({ page }) => {
+      await expect(page.getByText('Referral Leaderboard')).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByText('TopCreator (you)')).toBeVisible();
+      await expect(page.getByText('OtherUser')).toBeVisible();
+    });
+
+    test('redeem box POSTs /referral/redeem on Apply', async ({ page }) => {
+      const redeemReq = page.waitForRequest(
+        (r) => r.method() === 'POST' && r.url().includes('/referral/redeem'),
+      );
+      const codeInput = page.getByRole('textbox', { name: /referral code input/i });
+      await codeInput.fill('FRIEND99');
+      await page.getByRole('button', { name: /apply/i }).click();
+      const req = await redeemReq;
+      const body = req.postDataJSON() as { code?: string };
+      expect(body.code).toBe('FRIEND99');
+    });
+
+    test('409 response from redeem shows inline error message', async ({ page }) => {
+      // Override the redeem mock to return 409
+      await page.route(`${PROXY}/referral/redeem`, async (route) => {
+        await route.fulfill({
+          status: 409,
+          json: { message: 'Code already redeemed' },
+        });
+      });
+
+      const codeInput = page.getByRole('textbox', { name: /referral code input/i });
+      await codeInput.fill('USED123');
+      await page.getByRole('button', { name: /apply/i }).click();
+
+      // The component sets redeemError from the response message
+      await expect(page.getByText('Code already redeemed')).toBeVisible({ timeout: 8_000 });
+    });
   });
 });
