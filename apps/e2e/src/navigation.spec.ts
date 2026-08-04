@@ -81,12 +81,19 @@ test.describe('Navigation', () => {
     // Visit as unauthenticated (no token set)
     await page.goto('/login');
     await page.waitForLoadState('domcontentloaded');
-    await page.evaluate(() => localStorage.removeItem('cf_token'));
+    await page.evaluate(() => {
+      localStorage.removeItem('cf_token');
+      sessionStorage.clear();
+    });
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
-    // The landing page is a marketing page — not the dashboard.
+    // Hydration gate: wait for the banner element itself before querying within it.
+    // Without this, getByRole('banner').getByRole('link') can resolve before React
+    // hydrates the nav, yielding a flaky "element not found" on slow CI runners.
+    const banner = page.getByRole('banner');
+    await expect(banner).toBeVisible({ timeout: 10_000 });
     // Scope "Log in" to the header banner (footer also has a "Log in" link → strict mode)
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Log in' })).toBeVisible({ timeout: 8_000 });
+    await expect(banner.getByRole('link', { name: 'Log in' })).toBeVisible({ timeout: 8_000 });
     // CTA button text is "Get started free" — use first() since it appears in both header & hero
     await expect(page.getByRole('link', { name: 'Get started free' }).first()).toBeVisible({ timeout: 8_000 });
     // Must NOT be redirected to /projects

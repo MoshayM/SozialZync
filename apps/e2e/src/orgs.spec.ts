@@ -203,30 +203,32 @@ test.describe('Teams (Wave 8)', () => {
   });
 });
 
-test.describe('Bill-to-org pickers', () => {
+test.describe('Copilot page & bill-to-org pickers', () => {
   test.beforeEach(async ({ page }) => {
     await setupApiMocks(page);
     await setAuthToken(page);
   });
 
-  test.skip('copilot panel sends the selected orgId with the turn', async ({ page }) => {
-    // Copilot was redesigned — "Open Copilot" button and "Bill to" picker removed
-    await mockOrgRoutes(page);
+  test('copilot page renders and sending a message POSTs messages+inputMode to /copilot/chat', async ({ page }) => {
     let chatBody: Record<string, unknown> | null = null;
     await page.route(`${PROXY}/copilot/chat`, (route) => {
       chatBody = route.request().postDataJSON() as Record<string, unknown>;
-      return route.fulfill({ json: { reply: 'Done.' } });
+      return route.fulfill({ json: { reply: 'Great question! Here is my answer.' } });
     });
-    await page.goto('/projects');
-    await page.getByRole('button', { name: 'Open Copilot' }).click();
-    const picker = page.getByLabel('Bill to');
-    await expect(picker).toBeVisible();
-    await picker.selectOption('org-1');
-    const input = page.getByPlaceholder('Ask or command…');
-    await input.fill('status of my project');
-    await input.press('Enter');
-    await expect.poll(() => chatBody).not.toBeNull();
-    expect(chatBody!['orgId']).toBe('org-1');
+    await page.goto('/copilot', { waitUntil: 'domcontentloaded' });
+    // Heading confirms the page loaded
+    await expect(page.getByRole('heading', { name: 'AI Copilot' })).toBeVisible({ timeout: 10_000 });
+    // Type and send a message
+    await page.getByPlaceholder("What's on your mind?").fill('Give me video ideas');
+    await page.getByRole('button', { name: 'Send message' }).click();
+    // Assert the POST shape: messages array + inputMode
+    await expect.poll(() => chatBody, { timeout: 8_000 }).not.toBeNull();
+    const body = chatBody!;
+    expect(Array.isArray(body['messages'])).toBe(true);
+    expect((body['messages'] as unknown[]).length).toBeGreaterThan(0);
+    expect(body['inputMode']).toBe('text');
+    // Reply should appear in the chat
+    await expect(page.getByText('Great question! Here is my answer.')).toBeVisible({ timeout: 8_000 });
   });
 
   test('project page billing picker PUTs billingOrgId', async ({ page }) => {
