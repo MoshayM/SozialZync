@@ -13,20 +13,20 @@ interface State {
 }
 
 export class SentryErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, eventId: null };
+  override state: State = { hasError: false, eventId: null };
 
   static getDerivedStateFromError(): Partial<State> {
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
+  override componentDidCatch(error: Error, info: ErrorInfo) {
     const eventId = Sentry.captureException(error, {
       extra: { componentStack: info.componentStack },
     });
     this.setState({ eventId: eventId ?? null });
   }
 
-  render() {
+  override render() {
     if (!this.state.hasError) return this.props.children;
     if (this.props.fallback) return this.props.fallback;
     return (
