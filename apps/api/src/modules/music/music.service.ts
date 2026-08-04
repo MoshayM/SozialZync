@@ -3,6 +3,7 @@ import { callAIStructured } from '@cf/shared';
 import { MusicBriefOutputSchema, type MusicBriefOutput } from '@cf/shared';
 import type { ScriptOutput } from '@cf/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { MusicExternalService } from './music-external.service';
 
 const MUSIC_SYSTEM = `You are a music director for YouTube content. Create detailed AI music generation briefs. All output is original creator-licensed AI generation. Respond only with valid JSON.`;
 
@@ -43,7 +44,7 @@ export interface ListMusicTracksQuery {
 export class MusicService {
   private readonly logger = new Logger(MusicService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly externalMusic: MusicExternalService) {}
 
   // ── AI brief generation (original capability, used by SupervisorWorker) ──────
 
@@ -124,5 +125,73 @@ export class MusicService {
   async getGenres(userId: string): Promise<string[]> {
     const tracks = await this.prisma.musicTrack.findMany({ where: { userId }, select: { genre: true } });
     return [...new Set(tracks.flatMap(t => t.genre))].sort();
+  }
+
+  async autoSelectTrack(userId: string, scriptText: string, projectId: string): Promise<{
+    track: Record<string, unknown> | null;
+    brief: MusicBriefOutput;
+    source: 'library' | 'external' | 'none';
+    reason: string;
+  }> {
+    const pseudoScript = {
+      title: 'Auto-select',
+      hook: scriptText.slice(0, 200),
+      estimatedDurationMins: 5,
+      sections: [],
+      callToAction: '',
+    } as never;
+
+    const brief = await this.generateBrief(pseudoScript, projectId).catch(() => ({
+      mood: 'upbeat',
+      genre: 'electronic',
+      bpm: 120,
+      instruments: [],
+      energy: 'medium',
+      durationSecs: 300,
+      structure: '',
+      prompt: '',
+      provider: 'suno',
+    } as MusicBriefOutput));
+
+    const mood = typeof brief.mood === 'string' ? brief.mood : 'upbeat';
+    const genre = typeof brief.genre === 'string' ? brief.genre : 'electronic';
+
+    const localByMood = await this.list(userId, { mood, limit: 5 });
+    if (localByMood.tracks.length > 0) {
+      return { track: localByMood.tracks[0] as unknown as Record<string, unknown>, brief, source: 'library', reason: `Mood match: "${mood}" from your library` };
+    }
+
+    const localByGenre = await this.list(userId, { genre, limit: 5 });
+    if (localByGenre.tracks.length > 0) {
+      return { track: localByGenre.tracks[0] as unknown as Record<string, unknown>, brief, source: 'library', reason: `Genre match: "${genre}" from your library` };
+    }
+
+    try {
+      const external = await this.externalMusic.search({ mood, genre, limit: 5 });
+      if (external.length > 0) {
+        const pick = external[0];
+        const imported = await this.create(userId, {
+          title: pick.title,
+          artist: pick.artist,
+          album: pick.album,
+          duration: pick.duration,
+          bpm: pick.bpm,
+          mood: pick.mood,
+          genre: pick.genre,
+          license: pick.license,
+          licenseUrl: pick.licenseUrl,
+          source: pick.externalUrl,
+          attribution: pick.attribution,
+          fileUrl: pick.audioUrl,
+          previewUrl: pick.previewUrl,
+          isAiGenerated: false,
+        });
+        return { track: imported as unknown as Record<string, unknown>, brief, source: 'external', reason: `AI matched: "${mood}" ${genre} from ${pick.source}` };
+      }
+    } catch {
+      // external search failed gracefully
+    }
+
+    return { track: null, brief, source: 'none', reason: 'No matching track found' };
   }
 }

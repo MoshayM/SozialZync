@@ -53,6 +53,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   providerConfigs     UserProviderConfig[]
   musicTracks  MusicTrack[]
+  characters   Character[]
 
   @@map("users")
 }
@@ -2184,4 +2185,28 @@ model MusicTrack {
   @@index([userId, license])
   @@index([userId, mood])
   @@map("music_tracks")
+}
+
+// ── Character Studio ──────────────────────────────────────────────────────────
+
+model Character {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  personality   String?
+  voiceProvider String   @default("openai")
+  voiceId       String   @default("nova")
+  voicePitch    Float    @default(1.0)
+  voiceSpeed    Float    @default(1.0)
+  voiceEffect   String   @default("none")
+  videoStyle    String   @default("realistic")
+  avatarStyle   String   @default("avataaars")
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

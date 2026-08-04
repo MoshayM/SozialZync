@@ -171,11 +171,42 @@ export default function CopilotPage() {
       return;
     }
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(msg.content);
-    u.onend = () => setSpeakingId(null);
-    u.onerror = () => setSpeakingId(null);
-    window.speechSynthesis.speak(u);
-    setSpeakingId(msg.id);
+    // Strip ⚠️ / emoji prefix and limit length for mobile reliability
+    const text = msg.content.replace(/^[⚠️🔴🟡✅\s]+/, '').slice(0, 600);
+    if (!text) return;
+
+    const doSpeak = () => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.94; u.pitch = 1.0; u.volume = 1.0;
+      // Pick best available voice
+      const voices = window.speechSynthesis.getVoices();
+      const eng = voices.find(v => v.lang.startsWith('en') && v.localService) ?? voices.find(v => v.lang.startsWith('en'));
+      if (eng) u.voice = eng;
+      u.onend = () => setSpeakingId(null);
+      u.onerror = (e) => {
+        setSpeakingId(null);
+        // canceled/interrupted are normal — user stopped or new message started
+        if (e.error !== 'canceled' && e.error !== 'interrupted') {
+          console.warn('[TTS] voice error:', e.error);
+        }
+      };
+      window.speechSynthesis.speak(u);
+      setSpeakingId(msg.id);
+    };
+
+    // Android Chrome: voices may not be loaded yet — wait for them
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      doSpeak();
+    } else {
+      let done = false;
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        if (!done) { done = true; doSpeak(); }
+      };
+      // Fallback: speak anyway after 400ms even if voices never fire
+      setTimeout(() => { if (!done) { done = true; doSpeak(); } }, 400);
+    }
   }
 
   useEffect(() => {

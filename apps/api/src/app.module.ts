@@ -48,6 +48,7 @@ import { ProviderConfigModule } from './modules/provider-config/provider-config.
 import { SystemModule } from './modules/system/system.module';
 import { PlatformsModule } from './modules/platforms/platforms.module';
 import { PluginsModule } from './modules/plugins/plugins.module';
+import { CharacterModule } from './modules/character/character.module';
 
 @Module({
   imports: [
@@ -124,6 +125,7 @@ import { PluginsModule } from './modules/plugins/plugins.module';
     SystemModule,
     PlatformsModule,
     PluginsModule,
+    CharacterModule,
     MetricsModule,
     HealthModule,
   ],

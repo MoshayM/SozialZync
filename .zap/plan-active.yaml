@@ -1,0 +1,46 @@
+# ZAP Automation Framework — active scan (attack mode).
+# Runs after the passive baseline to probe for exploitable vulnerabilities.
+# Findings are informational on CI (continue-on-error: true in workflow).
+# Burp Suite Pro equivalent: ZAP active scan covers OWASP Top 10 attack categories.
+env:
+  contexts:
+    - name: creatorforce-web-active
+      urls:
+        - http://localhost:3007
+      includePaths:
+        - http://localhost:3007.*
+  parameters:
+    failOnError: false
+    progressToStdout: true
+
+jobs:
+  - type: spider
+    parameters:
+      context: creatorforce-web-active
+      url: http://localhost:3007
+      maxDuration: 2
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 2
+
+  - type: activeScan
+    parameters:
+      context: creatorforce-web-active
+      policy: Default Policy
+      maxDuration: 10
+
+  - type: report
+    parameters:
+      template: traditional-md
+      reportDir: /zap/wrk
+      reportFile: zap-active-web
+      reportTitle: CreatorForce web active scan
+      reportDescription: Active (attack-mode) scan — OWASP Top 10 probing
+
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: /zap/wrk
+      reportFile: zap-active-web
+      reportTitle: CreatorForce web active scan

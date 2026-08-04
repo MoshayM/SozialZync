@@ -2,11 +2,12 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } fro
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { MusicService, type CreateMusicTrackDto, type ListMusicTracksQuery } from './music.service';
+import { MusicExternalService, type ExternalTrack } from './music-external.service';
 
 @Controller('music')
 @UseGuards(JwtAuthGuard)
 export class MusicController {
-  constructor(private readonly svc: MusicService) {}
+  constructor(private readonly svc: MusicService, private readonly external: MusicExternalService) {}
 
   // ── Music library endpoints ────────────────────────────────────────────────
 
@@ -20,6 +21,55 @@ export class MusicController {
 
   @Get('genres')
   genres(@CurrentUser() u: JwtPayload) { return this.svc.getGenres(u.sub); }
+
+  // ── AI auto-select ────────────────────────────────────────────────────────
+
+  @Post('auto-select')
+  async autoSelect(
+    @CurrentUser() u: JwtPayload,
+    @Body() body: { scriptText: string; projectId: string },
+  ) {
+    return this.svc.autoSelectTrack(u.sub, body.scriptText ?? '', body.projectId ?? 'auto');
+  }
+
+  // ── External browse endpoints (Jamendo + Pixabay) ─────────────────────────
+
+  @Get('browse/trending')
+  browseTrending() {
+    return this.external.getTrending();
+  }
+
+  @Get('browse/search')
+  browseSearch(
+    @Query('q') q?: string,
+    @Query('genre') genre?: string,
+    @Query('mood') mood?: string,
+    @Query('bpm') bpm?: string,
+    @Query('source') source?: 'jamendo' | 'pixabay' | 'all',
+    @Query('limit') limit?: string,
+  ) {
+    return this.external.search({ q, genre, mood, bpm: bpm ? Number(bpm) : undefined, source, limit: limit ? Number(limit) : 20 });
+  }
+
+  @Post('browse/import')
+  async browseImport(@CurrentUser() u: JwtPayload, @Body() track: ExternalTrack) {
+    return this.svc.create(u.sub, {
+      title: track.title,
+      artist: track.artist,
+      album: track.album,
+      duration: track.duration,
+      bpm: track.bpm,
+      mood: track.mood,
+      genre: track.genre,
+      license: track.license,
+      licenseUrl: track.licenseUrl,
+      source: track.externalUrl,
+      attribution: track.attribution,
+      fileUrl: track.audioUrl,
+      previewUrl: track.previewUrl,
+      isAiGenerated: false,
+    });
+  }
 
   @Get(':id')
   findOne(@CurrentUser() u: JwtPayload, @Param('id') id: string) {

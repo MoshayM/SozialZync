@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@cf/shared": "workspace:*",
+    "@clerk/nextjs": "^6.0.0",
     "@floating-ui/react": "^0.27.20",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-dialog": "^1.1.4",

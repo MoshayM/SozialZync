@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Loader2, KeyRound, Phone, Mail, Lock, AtSign } from 'lucide-react';
+import { SignIn } from '@clerk/nextjs';
 import { api, setTokens, type OAuthProviders, type OAuthProvider } from '@/lib/api';
 import { LoginShell, LoginInput, SocialRow, type OAuthProviderName } from '@/components/auth-shell';
 import CountryCodeSelect, { COUNTRIES, type Country } from '@/components/country-code-select';
@@ -622,6 +623,23 @@ export default function LoginPage() {
           providers={providers}
           onProviderClick={(p) => { void handleSocialLogin(p); }}
         />
+      )}
+
+      {/* ── Clerk auth (social + passkey) ──────────────────────── */}
+      {process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'] && (
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-gray-400 font-medium">Or continue with</span>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-center">
+            <SignIn routing="hash" afterSignInUrl="/projects" />
+          </div>
+        </div>
       )}
     </LoginShell>
   );

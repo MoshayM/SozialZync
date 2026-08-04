@@ -103,6 +103,14 @@ jobs:
           path: apps/api/coverage/
           retention-days: 7
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: apps/api/coverage/
+          flags: unit
+          fail_ci_if_error: false
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -150,6 +158,28 @@ jobs:
           name: bundle-budget-report
           path: apps/web/.next/bundle-budget-report.json
           if-no-files-found: ignore
+
+      - name: Upload Next.js standalone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-standalone
+          path: |
+            apps/web/.next/standalone/
+            apps/web/.next/static/
+            apps/web/public/
+          retention-days: 1
+
+      - name: Create Sentry release
+        if: github.ref == 'refs/heads/master' && env.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          npx @sentry/cli releases new ${{ github.sha }}
+          npx @sentry/cli releases set-commits ${{ github.sha }} --auto
+          npx @sentry/cli releases finalize ${{ github.sha }}
+          npx @sentry/cli releases deploys ${{ github.sha }} new -e production
 
   security:
     name: Security Audit
@@ -207,15 +237,15 @@ jobs:
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
-  # DAST baseline (docs4/23): spider + passive scan of the production web
-  # build on every PR/push. High-risk findings fail the job (severity gate in
-  # .zap/check-zap-summary.mjs); Medium and below are reported in the artifact.
-  # The web app runs without the API — passive scanning only inspects
-  # responses/headers, so client-side fetch failures don't affect findings.
-  zap-baseline:
-    name: ZAP Baseline (DAST)
+  # DAST (docs4/23): passive + active scan of the production web build on every
+  # PR/push. Reuses the pre-built standalone artifact from the build job so no
+  # rebuild is needed. High-risk findings from the passive scan fail the job;
+  # the active scan runs in continue-on-error mode (informational).
+  zap-security:
+    name: ZAP Security Scan (DAST)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    needs: [build]
     env:
       SKIP_ENV_VALIDATION: 'true'
       NEXT_TELEMETRY_DISABLED: '1'
@@ -231,42 +261,104 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Install dependencies
+      - name: Install dependencies (no build — reusing artifact)
         run: pnpm install --frozen-lockfile
 
-      - name: Build web app (with workspace deps)
-        run: pnpm --filter @cf/web... build
+      - name: Download pre-built Next.js standalone
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-standalone
+          path: apps/web/.next/standalone
 
-      - name: Start web app in background
+      - name: Copy static assets into standalone
         run: |
-          pnpm --filter @cf/web exec next start -p 3007 &
+          cp -r apps/web/.next/static apps/web/.next/standalone/.next/static
+          cp -r apps/web/public apps/web/.next/standalone/public
+
+      - name: Start web app from pre-built artifact
+        run: |
+          node apps/web/.next/standalone/server.js &
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:3007/login > /dev/null 2>&1; then
+            if curl -sf http://localhost:3007/ > /dev/null 2>&1; then
               echo "Web is up"; break
             fi
             echo "Waiting for web... ($i/30)"
             sleep 1
           done
+        env:
+          PORT: 3007
+          HOSTNAME: '0.0.0.0'
 
-      - name: Run ZAP baseline scan
+      - name: Run ZAP passive baseline scan
         run: |
           chmod a+w .zap
           docker run --network host -v "$PWD/.zap:/zap/wrk" \
             ghcr.io/zaproxy/zaproxy:stable \
             zap.sh -cmd -silent -autorun /zap/wrk/plan.yaml
 
-      - name: Gate on High-risk findings
+      - name: Gate on High-risk findings (passive)
         run: node .zap/check-zap-summary.mjs .zap/zap-baseline-web.json
 
-      - name: Upload ZAP report
+      - name: Run ZAP active scan
+        # Active scan attempts real attacks — runs after passive to extend findings.
+        # Uses a separate plan to avoid overwriting the passive report.
+        run: |
+          chmod a+w .zap
+          docker run --network host -v "$PWD/.zap:/zap/wrk" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap.sh -cmd -silent -autorun /zap/wrk/plan-active.yaml
+        continue-on-error: true
+
+      - name: Upload ZAP reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: zap-baseline-report
+          name: zap-security-report
           path: |
             .zap/zap-baseline-web.md
             .zap/zap-baseline-web.json
+            .zap/zap-active-web.md
+            .zap/zap-active-web.json
             .zap/zap-summary.json
+          retention-days: 30
+
+  trufflehog:
+    name: Secret Scan (TruffleHog)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  owasp-dep-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'creatorforce-ai'
+          path: '.'
+          format: 'HTML'
+          out: 'reports'
+          args: >
+            --enableRetired
+            --failOnCVSS 9
+        continue-on-error: true
+      - name: Upload OWASP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: owasp-dep-check-report
+          path: reports/
           retention-days: 30
 
   e2e:

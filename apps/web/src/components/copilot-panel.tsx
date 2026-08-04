@@ -342,15 +342,19 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
 
         {/* Body + arms wrapper */}
         <div style={{ position:'relative' }}>
-          {/* Left arm — hand nested inside so it follows rotation naturally */}
-          <div style={{ position:'absolute', top:8, left:-17, width:15, height:64, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'none', transition:'transform 0.5s', overflow:'visible' }}>
-            {/* Left hand — pivots from wrist at bottom of arm */}
-            <div style={{ position:'absolute', bottom:-10, left:'50%', transform:'translateX(-50%)', width:22, height:14, borderRadius:7, background:`linear-gradient(160deg,${S},#b8b8ce)`, boxShadow:'1px 3px 8px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandDangle 0.7s ease-in-out 0.18s infinite':'cfHandDangle 3.5s ease-in-out 0.9s infinite' }} />
+          {/* Left shoulder joint — gray ball at pivot point */}
+          <div style={{ position:'absolute', top:5, left:-14, width:13, height:13, borderRadius:'50%', background:'linear-gradient(135deg,#9898b0,#787890)', boxShadow:'0 2px 5px rgba(0,0,0,0.28)', zIndex:2 }} />
+          {/* Left arm */}
+          <div style={{ position:'absolute', top:10, left:-17, width:15, height:60, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'cfArmSway 4.5s ease-in-out 0.2s infinite', transition:'transform 0.5s', overflow:'visible' }}>
+            {/* Left hand — free-swinging at wrist */}
+            <div style={{ position:'absolute', bottom:-9, left:'50%', transform:'translateX(-50%)', width:19, height:13, borderRadius:7, background:grad, boxShadow:'1px 3px 7px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandSwing 0.55s ease-in-out 0.12s infinite':'cfHandSwing 1.8s ease-in-out 0.6s infinite' }} />
           </div>
+          {/* Right shoulder joint */}
+          <div style={{ position:'absolute', top:5, right:-14, width:13, height:13, borderRadius:'50%', background:'linear-gradient(135deg,#9898b0,#787890)', boxShadow:'0 2px 5px rgba(0,0,0,0.28)', zIndex:2 }} />
           {/* Right arm */}
-          <div style={{ position:'absolute', top:8, right:-17, width:15, height:64, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'none', transition:'transform 0.5s', overflow:'visible' }}>
-            {/* Right hand */}
-            <div style={{ position:'absolute', bottom:-10, left:'50%', transform:'translateX(-50%)', width:22, height:14, borderRadius:7, background:`linear-gradient(160deg,${S},#b8b8ce)`, boxShadow:'1px 3px 8px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandDangle 0.7s ease-in-out 0.53s infinite':'cfHandDangle 3.5s ease-in-out 0.45s infinite' }} />
+          <div style={{ position:'absolute', top:10, right:-17, width:15, height:60, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'cfArmSwayR 4.5s ease-in-out 0.9s infinite', transition:'transform 0.5s', overflow:'visible' }}>
+            {/* Right hand — free-swinging at wrist */}
+            <div style={{ position:'absolute', bottom:-9, left:'50%', transform:'translateX(-50%)', width:19, height:13, borderRadius:7, background:grad, boxShadow:'1px 3px 7px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandSwing 0.55s ease-in-out 0.53s infinite':'cfHandSwing 1.8s ease-in-out 0.3s infinite' }} />
           </div>
 
           {/* Body */}
@@ -771,7 +775,15 @@ export function CopilotPanel() {
         const text = (data as { text: string }).text?.trim() ?? '';
         if (text) { conversationRef.current = true; setLiveTranscript(text); void send(text); }
         else      { setLiveTranscript(''); conversationRef.current = false; }
-      } catch { setLiveTranscript('Transcription failed — try again'); conversationRef.current = false; }
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        const msg = status === 400
+          ? 'Voice input not configured — type your message instead'
+          : 'Voice transcription failed — please type your message';
+        setLiveTranscript(msg);
+        setMicError(msg);
+        conversationRef.current = false;
+      }
     };
     recorder.start(250);
     window.speechSynthesis?.cancel();
@@ -938,6 +950,9 @@ export function CopilotPanel() {
         @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 50%{transform:translateY(3px) scale(0.97)} 80%{transform:translateY(-5px) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
         @keyframes cfArmWave    { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-18deg)} 70%{transform:rotate(12deg)} }
         @keyframes cfHandDangle { 0%,100%{transform:translateX(-50%) rotate(-8deg)} 50%{transform:translateX(-50%) rotate(8deg)} }
+        @keyframes cfArmSway    { 0%,100%{transform:rotate(7deg)} 50%{transform:rotate(3deg)} }
+        @keyframes cfArmSwayR   { 0%,100%{transform:rotate(-7deg)} 50%{transform:rotate(-3deg)} }
+        @keyframes cfHandSwing  { 0%,100%{transform:translateX(-50%) rotate(-16deg)} 50%{transform:translateX(-50%) rotate(16deg)} }
         @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
         @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
         @keyframes cfScanRing   { 0%{transform:scale(0.4);opacity:0.85} 100%{transform:scale(1.4);opacity:0} }

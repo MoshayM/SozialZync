@@ -1,0 +1,77 @@
+name: Lighthouse CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  lighthouse:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: []   # Runs independently — downloads pre-built artifact from build job when available
+    env:
+      SKIP_ENV_VALIDATION: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_API_URL: 'http://localhost:4007/api/v1'
+      NEXT_PUBLIC_USE_MOCK: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @cf/tsconfig --filter @cf/shared build
+
+      - name: Build web app
+        run: pnpm --filter @cf/web... build
+        env:
+          SKIP_ENV_VALIDATION: 'true'
+          NEXT_TELEMETRY_DISABLED: '1'
+
+      - name: Start web app
+        run: |
+          node apps/web/.next/standalone/server.js &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3007/ > /dev/null 2>&1; then
+              echo "Web is up"; break
+            fi
+            sleep 1
+          done
+        env:
+          PORT: 3007
+          HOSTNAME: '0.0.0.0'
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.14.x
+
+      - name: Run Lighthouse CI
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 30
