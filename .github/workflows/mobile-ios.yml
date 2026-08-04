@@ -54,7 +54,7 @@ jobs:
         working-directory: apps/mobile
 
       - name: Upload iOS simulator build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sozialzync-ios-simulator-${{ github.sha }}
           path: apps/mobile/ios-build/Build/Products/Release-iphonesimulator/
@@ -150,7 +150,7 @@ jobs:
         working-directory: apps/mobile
 
       - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sozialzync-ios-release-${{ github.sha }}
           path: apps/mobile/ios-ipa/
