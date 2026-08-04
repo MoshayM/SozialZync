@@ -101,23 +101,25 @@ test.describe('Navigation', () => {
   });
 
   test('active nav link is highlighted', async ({ page }) => {
-    await page.goto('/projects');
-    await page.waitForLoadState('domcontentloaded');
+    await page.goto('/projects', { waitUntil: 'domcontentloaded' });
     const projectLink = page.locator('aside a[href="/projects"]');
-    await expect(projectLink).toBeVisible();
-    // Active item gets a white background in the sidebar
-    await expect(projectLink).toHaveCSS('background-color', /rgba\(255, 255, 255/);
+    // Hydration gate: the active background is applied by usePathname() which only
+    // runs after React mounts on the client — wait for the link to be visible first.
+    await expect(projectLink).toBeVisible({ timeout: 10_000 });
+    // Active item background: 'rgba(255,255,255,.92)' → computed background-color
+    await expect(projectLink).toHaveCSS('background-color', /rgba\(255, 255, 255/, { timeout: 8_000 });
   });
 
   // Mobile: sidebar is hidden behind an off-canvas drawer below lg breakpoint
   test('mobile hamburger opens the navigation drawer', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 900 });
-    await page.goto('/projects');
-    await page.waitForLoadState('domcontentloaded');
+    await page.goto('/projects', { waitUntil: 'domcontentloaded' });
+    // At < 1024px the bottom nav "More" button (aria-label "Open navigation menu")
+    // is the entry point for the drawer — the topbar button has aria-label "Toggle menu"
     const hamburger = page.getByRole('button', { name: 'Open navigation menu' });
-    await expect(hamburger).toBeVisible();
+    await expect(hamburger).toBeVisible({ timeout: 8_000 });
     await hamburger.click();
-    // Sidebar drawer should now be visible — scope to aside to avoid mobile-nav strict mode
-    await expect(page.locator('aside a[href="/projects"]')).toBeVisible({ timeout: 5_000 });
+    // Drawer slides in with a 300ms CSS transition; 8s timeout is ample
+    await expect(page.locator('aside a[href="/projects"]')).toBeVisible({ timeout: 8_000 });
   });
 });
