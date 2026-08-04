@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Loader2, KeyRound, Phone, Mail, Lock, AtSign } from 'lucide-react';
-import { SignIn } from '@clerk/nextjs';
 import { api, setTokens, type OAuthProviders, type OAuthProvider } from '@/lib/api';
 import { LoginShell, LoginInput, SocialRow, type OAuthProviderName } from '@/components/auth-shell';
 import CountryCodeSelect, { COUNTRIES, type Country } from '@/components/country-code-select';
@@ -637,7 +636,7 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="mt-4 flex justify-center">
-            <SignIn routing="hash" afterSignInUrl="/projects" />
+            {/* Social OAuth buttons are handled by SocialRow above */}
           </div>
         </div>
       )}

@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
-import { ClerkProvider } from '@clerk/nextjs';
 import { Providers } from '@/components/providers';
 import { SwRegister } from '@/components/sw-register';
 import { PwaInstallBanner } from '@/components/pwa-install';
@@ -52,14 +51,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={plusJakarta.className}>
-          <Providers>{children}</Providers>
-          <SwRegister />
-          <PwaInstallBanner />
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <body className={plusJakarta.className}>
+        <Providers>{children}</Providers>
+        <SwRegister />
+        <PwaInstallBanner />
+      </body>
+    </html>
   );
 }
