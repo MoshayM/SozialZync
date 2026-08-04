@@ -12,6 +12,7 @@ overrides:
   'lodash@>=4.0.0 <4.17.24': '>=4.17.24'
   'tmp@<0.2.6': '>=0.2.6'
 allowBuilds:
+  '@clerk/shared': set this to true or false
   '@nestjs/core': true
   '@prisma/client': true
   '@prisma/engines': true
