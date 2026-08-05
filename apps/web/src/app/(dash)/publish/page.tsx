@@ -6,7 +6,6 @@ import { ProBanner } from '@/components/pro-gate';
 import PublishingPage from '../publishing/page';
 import PublishingAccountsPage from '../publishing/accounts/page';
 import ApprovalsPage from '../approvals/page';
-import SchedulerPage from '../scheduler/page';
 import AutonomyPage from '../autonomy/page';
 import AbTestingPage from '../ab-testing/page';
 
@@ -132,7 +131,7 @@ function PublishContent() {
       {/* ── Tab content ─────────────────────────────────────────────────── */}
       {activeTab === 'accounts'   && <PublishingAccountsPage />}
       {activeTab === 'approvals'  && <ApprovalsPage />}
-      {activeTab === 'scheduler'  && <SchedulerPage />}
+      {activeTab === 'scheduler'  && <ApprovalsPage />}
       {activeTab === 'publishing' && <PublishingPage />}
       {activeTab === 'autonomy'   && <AutonomyPage />}
       {activeTab === 'ab-testing' && <AbTestingPage />}
