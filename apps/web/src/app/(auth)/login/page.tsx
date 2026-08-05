@@ -2,10 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Loader2, KeyRound, Phone, Mail, Lock, AtSign } from 'lucide-react';
+import { Eye, EyeOff, Loader2, KeyRound, Mail, Lock, AtSign } from 'lucide-react';
 import { api, setTokens, type OAuthProviders, type OAuthProvider } from '@/lib/api';
 import { LoginShell, LoginInput, SocialRow, type OAuthProviderName } from '@/components/auth-shell';
-import CountryCodeSelect, { COUNTRIES, type Country } from '@/components/country-code-select';
 
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
@@ -14,8 +13,7 @@ const LAST_ID_KEY = 'sz_last_otp_identifier';
 const RESEND_SECS = 30;
 
 type Tab = 'password' | 'otp';
-type OtpStep = 'send' | 'link-email' | 'verify';
-type OtpMode = 'email' | 'phone';
+type OtpStep = 'send' | 'verify';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,13 +25,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   // OTP fields
-  const [otpMode, setOtpMode] = useState<OtpMode>('email');
   const [otpEmail, setOtpEmail] = useState('');
-  const [otpPhone, setOtpPhone] = useState('');
-  const [otpCountry, setOtpCountry] = useState<Country>(COUNTRIES[0]);
   const [otpCode, setOtpCode] = useState('');
   const [otpStep, setOtpStep] = useState<OtpStep>('send');
-  const [phoneEmail, setPhoneEmail] = useState('');   // email linked to phone (first-time)
   const [maskedEmail, setMaskedEmail] = useState(''); // displayed in verify step
 
   // Resend countdown
@@ -45,23 +39,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [providers, setProviders] = useState<OAuthProviders | undefined>(undefined);
 
-  const otpIdentifier =
-    otpMode === 'email'
-      ? otpEmail.trim()
-      : `${otpCountry.dialCode}${otpPhone.trim().replace(/^0+/, '')}`;
+  const otpIdentifier = otpEmail.trim();
 
   // Prefill last-used identifier from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(LAST_ID_KEY);
-      if (saved) {
-        if (saved.includes('@')) {
-          setOtpMode('email');
-          setOtpEmail(saved);
-        } else {
-          setOtpMode('phone');
-          setOtpPhone(saved.replace(/^\+\d+/, ''));
-        }
+      if (saved && saved.includes('@')) {
+        setOtpEmail(saved);
       }
     } catch {
       // localStorage not available (SSR guard)
@@ -150,21 +135,12 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.auth.otpSend(
-        otpIdentifier,
-        otpMode === 'phone' && phoneEmail ? phoneEmail : undefined,
-      );
-      if (data.needsEmail) {
-        setOtpStep('link-email');
-        setInfo('Enter your email so we can send you a sign-in code.');
-      } else {
-        try { localStorage.setItem(LAST_ID_KEY, otpIdentifier); } catch { /* ignore */ }
-        setMaskedEmail(data.maskedEmail ?? '');
-        setOtpStep('verify');
-        const dest = data.maskedEmail ?? (otpMode === 'email' ? otpIdentifier : 'your email');
-        setInfo(`Code sent to ${dest}`);
-        startResendCooldown();
-      }
+      const { data } = await api.auth.otpSend(otpIdentifier, undefined);
+      try { localStorage.setItem(LAST_ID_KEY, otpIdentifier); } catch { /* ignore */ }
+      setMaskedEmail(data.maskedEmail ?? '');
+      setOtpStep('verify');
+      setInfo(`Code sent to ${data.maskedEmail ?? otpIdentifier}`);
+      startResendCooldown();
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 400) {
@@ -203,10 +179,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await api.auth.otpSend(
-        otpIdentifier,
-        otpMode === 'phone' && phoneEmail ? phoneEmail : undefined,
-      );
+      await api.auth.otpSend(otpIdentifier, undefined);
       setInfo('New code sent!');
       startResendCooldown();
     } catch (err: unknown) {
@@ -239,15 +212,6 @@ export default function LoginPage() {
     setInfo('');
     setOtpStep('send');
     setOtpCode('');
-    setPhoneEmail('');
-    setMaskedEmail('');
-  }
-
-  function switchOtpMode(m: OtpMode) {
-    setOtpMode(m);
-    setError('');
-    setInfo('');
-    setPhoneEmail('');
     setMaskedEmail('');
   }
 
@@ -366,116 +330,23 @@ export default function LoginPage() {
       ) : (
         /* ── OTP tab ───────────────────────────────────────────────── */
         <div className="space-y-4">
-          {otpStep === 'link-email' ? (
-            <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-4">
-              <div className="bg-[#f0edf9] rounded-xl px-4 py-3 text-center">
-                <p className="text-xs text-gray-600">
-                  First time signing in with{' '}
-                  <span className="font-semibold text-[#6D4AE0]">{otpIdentifier}</span>
-                </p>
-                <p className="text-xs text-gray-600 mt-0.5">Enter your email to receive the sign-in code.</p>
-              </div>
-              <LoginInput
-                icon={<Mail className="w-4 h-4" />}
-                type="email"
-                aria-label="Email address"
-                placeholder="you@example.com"
-                value={phoneEmail}
-                onChange={(e) => setPhoneEmail(e.target.value)}
-                required
-                autoFocus
-              />
-              {info && (
-                <div className="flex items-center gap-2 bg-[#f0edf9] border border-[#d4c8f5] rounded-xl px-3.5 py-2.5">
-                  <span className="text-[#6D4AE0] text-sm" aria-hidden>✓</span>
-                  <p className="text-[#6D4AE0] text-xs font-medium">{info}</p>
-                </div>
-              )}
-              {error && (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
-                  <span className="text-red-400 text-sm" aria-hidden>⚠</span>
-                  <p className="text-red-600 text-xs font-medium">{error}</p>
-                </div>
-              )}
-              <button
-                type="submit"
-                disabled={loading || !phoneEmail}
-                className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
-              >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? 'Sending…' : 'Send Code'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setOtpStep('send'); setError(''); setInfo(''); setPhoneEmail(''); }}
-                className="w-full text-xs text-gray-600 hover:text-gray-800 py-1"
-              >
-                ← Back
-              </button>
-            </form>
-          ) : otpStep === 'send' ? (
+          {otpStep === 'send' ? (
             <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-4">
               <p className="text-xs text-gray-600 text-center">
-                Enter your email or phone to receive a one-time sign-in code.
+                Enter your email to receive a one-time sign-in code.
                 <br />
                 <span className="text-[#6D4AE0]">New here? We'll create your account automatically.</span>
               </p>
 
-              {/* Email / Phone sub-toggle */}
-              <div className="flex bg-[#f0edf9] rounded-xl p-0.5">
-                <button
-                  type="button"
-                  onClick={() => switchOtpMode('email')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-[10px] transition-all ${
-                    otpMode === 'email'
-                      ? 'bg-white shadow text-[#6D4AE0]'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  <Mail className="w-3.5 h-3.5" /> Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchOtpMode('phone')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-[10px] transition-all ${
-                    otpMode === 'phone'
-                      ? 'bg-white shadow text-[#6D4AE0]'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  <Phone className="w-3.5 h-3.5" /> Phone
-                </button>
-              </div>
-
-              {otpMode === 'email' ? (
-                <LoginInput
-                  icon={<Mail className="w-4 h-4" />}
-                  type="email"
-                  aria-label="Email"
-                  placeholder="you@example.com"
-                  value={otpEmail}
-                  onChange={(e) => setOtpEmail(e.target.value)}
-                  required
-                />
-              ) : (
-                <div
-                  className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
-                  style={{ border: '1.5px solid #e3e0f0' }}
-                >
-                  <CountryCodeSelect value={otpCountry} onChange={setOtpCountry} />
-                  <input
-                    type="tel"
-                    aria-label="Phone number"
-                    placeholder="Mobile number"
-                    value={otpPhone}
-                    onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, ''))}
-                    inputMode="numeric"
-                    required
-                    className="flex-1 px-3 py-3 text-sm outline-none bg-transparent text-gray-800 placeholder:text-gray-400"
-                  />
-                </div>
-              )}
+              <LoginInput
+                icon={<Mail className="w-4 h-4" />}
+                type="email"
+                aria-label="Email"
+                placeholder="you@example.com"
+                value={otpEmail}
+                onChange={(e) => setOtpEmail(e.target.value)}
+                required
+              />
 
               {error && (
                 <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
