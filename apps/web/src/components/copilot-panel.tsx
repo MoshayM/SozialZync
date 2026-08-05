@@ -259,10 +259,10 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
   const isListening = state === 'listening';
   const isThinking = state === 'thinking';
 
-  // Plastic body colors matching Capture.PNG CSS robot
-  const W = '#f4f4ff';
-  const S = '#d0d0e2';
-  const grad = `linear-gradient(155deg,${W} 40%,${S})`;
+  // Vibrant purple-lavender body colors
+  const W = '#ede8ff';
+  const S = '#b0a4e8';
+  const grad = `linear-gradient(155deg,#f2efff 20%,${W} 50%,${S})`;
 
   const eyeCol = isThinking ? '#FBBF24' : isListening ? '#4ADE80' : '#60A5FA';
 
@@ -297,6 +297,11 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
       <div>
         {/* Head */}
         <div style={{ marginTop:5, width:76, height:58, borderRadius:14, background:grad, boxShadow:'3px 4px 14px rgba(0,0,0,0.28),-1px -1px 5px rgba(255,255,255,0.4)', position:'relative' }}>
+          {/* Antenna */}
+          <div style={{ position:'absolute', top:-24, left:'50%', transform:'translateX(-50%)', display:'flex', flexDirection:'column', alignItems:'center', zIndex:2, pointerEvents:'none' }}>
+            <div style={{ width:12, height:12, borderRadius:'50%', background:eyeCol, boxShadow:`0 0 10px 5px ${eyeCol}66`, animation:'cfPulse 1.5s ease-in-out infinite' }} />
+            <div style={{ width:4, height:16, background:`linear-gradient(180deg,${eyeCol}aa,${S})`, borderRadius:'2px 2px 0 0' }} />
+          </div>
           {/* Visor strip with SVG camera-lens eyes */}
           <div style={{ position:'absolute', top:'26%', left:'8%', right:'8%', height:'40%', background:'linear-gradient(180deg,#090920,#0d0d26)', borderRadius:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.92)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
             <svg width="60" height="22" viewBox="0 0 60 22" fill="none">
@@ -332,14 +337,14 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
         </div>
 
         {/* Neck */}
-        <div style={{ margin:'0 auto', width:20, height:8, background:`linear-gradient(160deg,${S},#b0b0c6)`, borderRadius:'0 0 4px 4px' }} />
+        <div style={{ margin:'0 auto', width:20, height:8, background:`linear-gradient(160deg,${S},#8878c8)`, borderRadius:'0 0 4px 4px' }} />
 
         {/* Body + arms wrapper */}
         <div style={{ position:'relative' }}>
           {/* Left arm — single piece, free swing from body edge */}
-          <div style={{ position:'absolute', top:8, left:-16, width:14, height:68, borderRadius:7, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'cfArmSway 4.5s ease-in-out 0.2s infinite', transition:'transform 0.5s' }} />
+          <div style={{ position:'absolute', top:8, left:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(12deg)', animation:armWaving?'cfArmWave 0.45s ease-in-out infinite':'cfArmSway 2.2s ease-in-out 0.2s infinite', transition:'transform 0.5s' }} />
           {/* Right arm — single piece, free swing from body edge */}
-          <div style={{ position:'absolute', top:8, right:-16, width:14, height:68, borderRadius:7, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'cfArmSwayR 4.5s ease-in-out 0.9s infinite', transition:'transform 0.5s' }} />
+          <div style={{ position:'absolute', top:8, right:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-12deg)', animation:armWaving?'cfArmWave 0.45s ease-in-out 0.22s infinite':'cfArmSwayR 2.2s ease-in-out 0.8s infinite', transition:'transform 0.5s' }} />
 
           {/* Body */}
           <div style={{ width:86, height:86, borderRadius:14, background:grad, boxShadow:'4px 5px 18px rgba(0,0,0,0.26),-2px -2px 6px rgba(255,255,255,0.33)', position:'relative', overflow:'hidden' }}>
@@ -357,7 +362,7 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
         {/* Feet (no legs) */}
         <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:4 }}>
           {[0,1].map(i => (
-            <div key={i} style={{ width:26, height:11, borderRadius:'3px 3px 8px 8px', background:`linear-gradient(160deg,#c4c4d8,#8e8ea2)`, boxShadow:'2px 2px 6px rgba(0,0,0,0.22)' }} />
+            <div key={i} style={{ width:26, height:11, borderRadius:'3px 3px 8px 8px', background:`linear-gradient(160deg,${W},${S})`, boxShadow:'2px 2px 6px rgba(80,60,180,0.22)' }} />
           ))}
         </div>
       </div>
@@ -935,10 +940,10 @@ export function CopilotPanel() {
         @keyframes cfHeadBob    { 0%,100%{transform:translateY(0) rotate(0deg)} 20%{transform:translateY(-6px) rotate(-2.5deg)} 50%{transform:translateY(-2px) rotate(2deg)} 75%{transform:translateY(-5px) rotate(-1.5deg)} }
         @keyframes cfMouthTalk  { 0%,100%{transform:scaleY(0.3)} 50%{transform:scaleY(1)} }
         @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 50%{transform:translateY(3px) scale(0.97)} 80%{transform:translateY(-5px) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
-        @keyframes cfArmWave    { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-18deg)} 70%{transform:rotate(12deg)} }
+        @keyframes cfArmWave    { 0%{transform:rotate(0deg)} 20%{transform:rotate(-44deg)} 40%{transform:rotate(14deg)} 60%{transform:rotate(-50deg)} 80%{transform:rotate(10deg)} 100%{transform:rotate(0deg)} }
         @keyframes cfHandDangle { 0%,100%{transform:translateX(-50%) rotate(-8deg)} 50%{transform:translateX(-50%) rotate(8deg)} }
-        @keyframes cfArmSway    { 0%,100%{transform:rotate(7deg)} 50%{transform:rotate(3deg)} }
-        @keyframes cfArmSwayR   { 0%,100%{transform:rotate(-7deg)} 50%{transform:rotate(-3deg)} }
+        @keyframes cfArmSway    { 0%{transform:rotate(12deg)} 22%{transform:rotate(-8deg)} 55%{transform:rotate(22deg)} 78%{transform:rotate(-4deg)} 100%{transform:rotate(12deg)} }
+        @keyframes cfArmSwayR   { 0%{transform:rotate(-12deg)} 22%{transform:rotate(8deg)} 55%{transform:rotate(-22deg)} 78%{transform:rotate(4deg)} 100%{transform:rotate(-12deg)} }
         @keyframes cfHandSwing  { 0%,100%{transform:translateX(-50%) rotate(-16deg)} 50%{transform:translateX(-50%) rotate(16deg)} }
         @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
         @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
