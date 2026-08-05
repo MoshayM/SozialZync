@@ -2,10 +2,9 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { User, AtSign, Lock, Eye, EyeOff, Loader2, Phone } from 'lucide-react';
+import { User, AtSign, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { api, setTokens, type OAuthProviders, type OAuthProvider } from '@/lib/api';
 import { RegisterShell, LoginInput, SocialRow, type OAuthProviderName } from '@/components/auth-shell';
-import CountryCodeSelect, { COUNTRIES, type Country } from '@/components/country-code-select';
 
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
@@ -16,8 +15,6 @@ function RegisterInner() {
   const searchParams = useSearchParams();
 
   const [form, setForm] = useState({ email: '', password: '', name: '' });
-  const [phone, setPhone] = useState('');
-  const [country, setCountry] = useState<Country>(COUNTRIES[0]);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,8 +49,7 @@ function RegisterInner() {
     }
 
     try {
-      const fullPhone = phone.trim() ? `${country.dialCode}${phone.trim().replace(/^0+/, '')}` : undefined;
-      const { data } = await api.auth.register(form.email, form.password, form.name, fullPhone);
+      const { data } = await api.auth.register(form.email, form.password, form.name);
       setTokens(data.accessToken, data.refreshToken);
       const pending = localStorage.getItem('cf.pendingReferralCode');
       if (pending) {
@@ -123,30 +119,6 @@ function RegisterInner() {
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
           required
         />
-
-        {/* Phone — optional, enables phone OTP sign-in later */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-            Phone number
-            <span className="ml-1.5 text-[10px] text-gray-600 font-normal">(optional — enables OTP sign-in)</span>
-          </label>
-          <div
-            className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
-            style={{ border: '1.5px solid #e3e0f0' }}
-          >
-            <CountryCodeSelect value={country} onChange={setCountry} />
-            <input
-              type="tel"
-              aria-label="Phone number (optional)"
-              placeholder="Mobile number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              inputMode="numeric"
-              className="flex-1 px-3 py-3 text-sm outline-none bg-transparent text-gray-800 placeholder:text-gray-400"
-            />
-            <Phone className="w-4 h-4 text-gray-300 mr-3 shrink-0" aria-hidden />
-          </div>
-        </div>
 
         {/* Password */}
         <LoginInput
