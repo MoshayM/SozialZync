@@ -1,8 +1,8 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+buildCommand = "pnpm install --no-frozen-lockfile && pnpm --filter @cf/shared build && pnpm --filter @cf/api build"
 
 [deploy]
+startCommand = "cd apps/api && npx prisma migrate deploy && node dist/main"
 healthcheckPath = "/api/v1"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
