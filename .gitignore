@@ -54,7 +54,7 @@ we.jpeg
 assets/design-refs/
 
 # Large local database dump (use infra/db/seed.sql for fixtures instead)
-*.sql
+# Do NOT use *.sql here — that would exclude Prisma migration files from railway up uploads
 local-db-export.sql
 
 # Generated build artifacts in root
@@ -72,3 +72,4 @@ screenshots/
 
 # Local cache files
 .thumbnail
+.env*
