@@ -342,9 +342,9 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
         {/* Body + arms wrapper */}
         <div style={{ position:'relative' }}>
           {/* Left arm — single piece, free swing from body edge */}
-          <div style={{ position:'absolute', top:8, left:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(12deg)', animation:armWaving?'cfArmWave 0.45s ease-in-out infinite':'cfArmSway 2.2s ease-in-out 0.2s infinite', transition:'transform 0.5s' }} />
+          <div style={{ position:'absolute', top:8, left:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(10deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'cfArmSway 3s ease-in-out 0.2s infinite', transition:'transform 0.6s ease-in-out' }} />
           {/* Right arm — single piece, free swing from body edge */}
-          <div style={{ position:'absolute', top:8, right:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-12deg)', animation:armWaving?'cfArmWave 0.45s ease-in-out 0.22s infinite':'cfArmSwayR 2.2s ease-in-out 0.8s infinite', transition:'transform 0.5s' }} />
+          <div style={{ position:'absolute', top:8, right:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-10deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'cfArmSwayR 3s ease-in-out 1.5s infinite', transition:'transform 0.6s ease-in-out' }} />
 
           {/* Body */}
           <div style={{ width:86, height:86, borderRadius:14, background:grad, boxShadow:'4px 5px 18px rgba(0,0,0,0.26),-2px -2px 6px rgba(255,255,255,0.33)', position:'relative', overflow:'hidden' }}>
@@ -373,7 +373,7 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
 function RobotAvatar({ state, excited = false, compact = false }: { state: RobotState; excited?: boolean; compact?: boolean }) {
   const robotAnim: React.CSSProperties['animation'] = excited
     ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
-    : state === 'speaking' ? 'cfHeadBob 0.38s ease-in-out infinite'
+    : state === 'speaking' ? 'cfHeadBob 0.9s ease-in-out infinite'
     : state === 'idle'     ? 'cfFloat 3s ease-in-out infinite'
     : 'none';
 
@@ -937,13 +937,13 @@ export function CopilotPanel() {
         @keyframes cfSpinSimple { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes cfPanelIn    { from{opacity:0;transform:translateY(14px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
         @keyframes cfBlink      { 0%,88%,92%,100%{transform:scaleY(1)} 90%{transform:scaleY(0.04)} }
-        @keyframes cfHeadBob    { 0%,100%{transform:translateY(0) rotate(0deg)} 20%{transform:translateY(-6px) rotate(-2.5deg)} 50%{transform:translateY(-2px) rotate(2deg)} 75%{transform:translateY(-5px) rotate(-1.5deg)} }
+        @keyframes cfHeadBob    { 0%,100%{transform:translateY(0) rotate(0deg)} 30%{transform:translateY(-4px) rotate(-1.5deg)} 70%{transform:translateY(-1px) rotate(1deg)} }
         @keyframes cfMouthTalk  { 0%,100%{transform:scaleY(0.3)} 50%{transform:scaleY(1)} }
-        @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 50%{transform:translateY(3px) scale(0.97)} 80%{transform:translateY(-5px) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
-        @keyframes cfArmWave    { 0%{transform:rotate(0deg)} 20%{transform:rotate(-44deg)} 40%{transform:rotate(14deg)} 60%{transform:rotate(-50deg)} 80%{transform:rotate(10deg)} 100%{transform:rotate(0deg)} }
+        @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 25%{transform:translateY(-7px) scale(1.04)} 55%{transform:translateY(2px) scale(0.98)} 80%{transform:translateY(-4px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
+        @keyframes cfArmWave    { 0%{transform:rotate(0deg)} 35%{transform:rotate(-28deg)} 65%{transform:rotate(10deg)} 100%{transform:rotate(0deg)} }
         @keyframes cfHandDangle { 0%,100%{transform:translateX(-50%) rotate(-8deg)} 50%{transform:translateX(-50%) rotate(8deg)} }
-        @keyframes cfArmSway    { 0%{transform:rotate(12deg)} 22%{transform:rotate(-8deg)} 55%{transform:rotate(22deg)} 78%{transform:rotate(-4deg)} 100%{transform:rotate(12deg)} }
-        @keyframes cfArmSwayR   { 0%{transform:rotate(-12deg)} 22%{transform:rotate(8deg)} 55%{transform:rotate(-22deg)} 78%{transform:rotate(4deg)} 100%{transform:rotate(-12deg)} }
+        @keyframes cfArmSway    { 0%,100%{transform:rotate(10deg)} 50%{transform:rotate(-6deg)} }
+        @keyframes cfArmSwayR   { 0%,100%{transform:rotate(-10deg)} 50%{transform:rotate(6deg)} }
         @keyframes cfHandSwing  { 0%,100%{transform:translateX(-50%) rotate(-16deg)} 50%{transform:translateX(-50%) rotate(16deg)} }
         @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
         @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
