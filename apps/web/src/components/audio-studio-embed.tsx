@@ -12,7 +12,7 @@ export function AudioStudioContent() {
   return (
     <div>
       {/* Sub-tab strip */}
-      <div className="px-5 pt-5">
+      <div className="px-5 pt-5 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div
           className="inline-flex items-center gap-1 rounded-2xl p-[3px]"
           style={{
@@ -23,7 +23,7 @@ export function AudioStudioContent() {
           <button
             type="button"
             onClick={() => setActiveTab('audio')}
-            className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all"
+            className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
             style={
               activeTab === 'audio'
                 ? {
@@ -43,7 +43,7 @@ export function AudioStudioContent() {
           <button
             type="button"
             onClick={() => setActiveTab('voice')}
-            className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all"
+            className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
             style={
               activeTab === 'voice'
                 ? {

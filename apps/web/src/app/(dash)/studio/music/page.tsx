@@ -321,12 +321,12 @@ export default function MusicLibraryPage() {
         </div>
 
         {/* ── Tab switcher ─────────────────────────────────────────────────── */}
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#f0edf9', width: 'fit-content' }}>
+        <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full" style={{ background: '#f0edf9', WebkitOverflowScrolling: 'touch' }}>
           {(['library', 'discover', 'ai'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="px-5 py-2 rounded-lg text-sm font-semibold transition-all"
+              className="px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
               style={tab === t
                 ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
                 : { color: '#9b8fc4' }}

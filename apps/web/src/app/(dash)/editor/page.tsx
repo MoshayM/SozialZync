@@ -38,8 +38,8 @@ type TabId = typeof TABS[number]['id'];
 function TabStrip({ active, onSelect }: { active: TabId; onSelect: (t: TabId) => void }) {
   return (
     <div
-      className="flex gap-1 p-1 rounded-2xl shrink-0"
-      style={{ background: '#f0edf9', border: '1.5px solid #e3ddf8' }}
+      className="flex gap-1 p-1 rounded-2xl overflow-x-auto no-scrollbar"
+      style={{ background: '#f0edf9', border: '1.5px solid #e3ddf8', WebkitOverflowScrolling: 'touch' }}
     >
       {TABS.map(({ id, label, Icon }) => {
         const isActive = active === id;
@@ -48,7 +48,7 @@ function TabStrip({ active, onSelect }: { active: TabId; onSelect: (t: TabId) =>
             key={id}
             type="button"
             onClick={() => onSelect(id)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
             style={
               isActive
                 ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.30)' }
@@ -232,9 +232,11 @@ function EditorInner() {
   return (
     <div className="min-h-full bg-[#faf9ff]">
       {/* Tab strip header */}
-      <div className="px-5 lg:px-7 pt-5 lg:pt-6 max-w-5xl mx-auto flex items-center justify-between gap-3 flex-wrap pb-1">
+      <div className="px-5 lg:px-7 pt-5 lg:pt-6 max-w-5xl mx-auto pb-1 space-y-3">
         <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Studio</h1>
-        <TabStrip active={tab} onSelect={selectTab} />
+        <div className="overflow-x-auto no-scrollbar -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <TabStrip active={tab} onSelect={selectTab} />
+        </div>
       </div>
 
       {/* Content — Shorts Studio owns its own padding; editor list uses inner padding */}

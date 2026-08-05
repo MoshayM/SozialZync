@@ -30,16 +30,11 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { href: '/home',     icon: Home,       label: 'Home' },
-      { href: '/projects', icon: FolderOpen, label: 'Projects' },
-      { href: '/editor',   icon: Film,       label: 'Video Editor' },
-    ],
-  },
-  {
-    category: 'Studio',
-    items: [
-      { href: '/studio/characters', icon: Users2,    label: 'Characters' },
-      { href: '/studio/assets',     icon: ImagePlus, label: 'Images & Assets' },
+      { href: '/home',              icon: Home,       label: 'Home' },
+      { href: '/projects',          icon: FolderOpen, label: 'Projects' },
+      { href: '/editor',            icon: Film,       label: 'Video Editor' },
+      { href: '/studio/characters', icon: Users2,     label: 'Characters' },
+      { href: '/studio/assets',     icon: ImagePlus,  label: 'Images & Assets' },
     ],
   },
   {
@@ -58,12 +53,13 @@ const BOTTOM_ITEMS: NavItem[] = [
   { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];
 
-/* Mobile bottom nav — 4 primary items + "More" button */
+/* Mobile bottom nav — 5 primary items + "More" button */
 const MOBILE_NAV_ITEMS = [
   { href: '/home',     icon: Home,       label: 'Home' },
   { href: '/projects', icon: FolderOpen, label: 'Projects' },
   { href: '/editor',   icon: Film,       label: 'Studio' },
   { href: '/publish',  icon: Upload,     label: 'Publish' },
+  { href: '/insights', icon: BarChart2,  label: 'Analytics' },
 ];
 
 function nameFromToken(): string {

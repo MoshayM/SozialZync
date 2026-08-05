@@ -1,8 +1,7 @@
 'use client';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CalendarClock, Sparkles, FlaskConical, Link2 } from 'lucide-react';
-import PublishingAccountsPage from '../publishing/accounts/page';
+import { CalendarClock, Sparkles, FlaskConical } from 'lucide-react';
 import ApprovalsPage from '../approvals/page';
 import AutonomyPage from '../autonomy/page';
 import AbTestingPage from '../ab-testing/page';
@@ -16,12 +15,6 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  {
-    id: 'accounts',
-    label: 'Accounts',
-    icon: Link2,
-    description: 'Connect and manage your publishing accounts across all platforms',
-  },
   {
     id: 'publish-center',
     label: 'Publish Center',
@@ -106,7 +99,6 @@ function PublishContent() {
       </div>
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
-      {activeTab === 'accounts'       && <PublishingAccountsPage />}
       {activeTab === 'publish-center' && <ApprovalsPage />}
       {activeTab === 'autonomy'       && <AutonomyPage />}
       {activeTab === 'ab-testing'     && <AbTestingPage />}

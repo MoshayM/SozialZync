@@ -630,11 +630,17 @@ export function CopilotPanel() {
         utt.onerror = (e) => {
           if (keepAlive) clearInterval(keepAlive);
           setSpeaking(false); setSpeakingIdx(null);
+          if (e.error === 'not-allowed') {
+            // Android Chrome blocks speech from async context — open chat so user can tap 🔊 Hear
+            setActivePanel('chat');
+            return;
+          }
           if (e.error !== 'canceled' && e.error !== 'interrupted') console.warn('[TTS] error:', e.error);
         };
         window.speechSynthesis.speak(utt);
       }
-      keepAlive = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 5_000);
+      // 250 ms keeps Android from stalling when the OS pauses synthesis mid-utterance
+      keepAlive = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 250);
       next();
     };
 
