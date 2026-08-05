@@ -818,80 +818,56 @@ export function OAuthCallbackShell({
   );
 }
 
-// ─── Social sign-in row (shared) ──────────────────────────────────────────────
+// ─── Google sign-in (shared) ──────────────────────────────────────────────────
 
-export type OAuthProviderName = 'google' | 'apple' | 'facebook';
+export type OAuthProviderName = 'google';
 
-const SOCIALS: Array<{ name: string; key: OAuthProviderName; svg: React.ReactNode }> = [
-  {
-    name: 'Google',
-    key: 'google',
-    svg: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden>
-        <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z" />
-        <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.1 0-5.8-2.1-6.8-5H1.3v3C3.3 21.3 7.3 24 12 24z" />
-        <path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4v-3H1.3C.5 8.2 0 10 0 12s.5 3.8 1.3 5.4l3.9-3z" />
-        <path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C16.9 1 14.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c1-2.9 3.7-4.9 6.8-4.9z" />
-      </svg>
-    ),
-  },
-  {
-    name: 'Apple',
-    key: 'apple',
-    svg: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-gray-900" aria-hidden>
-        <path d="M16.4 12.9c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 2.9-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.7c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.6-1-2.6-3.7zM14 5.6c.7-.8 1.1-1.9 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z" />
-      </svg>
-    ),
-  },
-  {
-    name: 'Facebook',
-    key: 'facebook',
-    svg: (
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#1877F2]" aria-hidden>
-        <path d="M24 12c0-6.6-5.4-12-12-12S0 5.4 0 12c0 6 4.4 11 10.1 11.9v-8.4H7.1V12h3v-2.6c0-3 1.8-4.7 4.6-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.3l-.5 3.5h-2.8v8.4C19.6 23 24 18 24 12z" />
-      </svg>
-    ),
-  },
-];
+const GoogleLogo = () => (
+  <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" aria-hidden>
+    <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z" />
+    <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.1 0-5.8-2.1-6.8-5H1.3v3C3.3 21.3 7.3 24 12 24z" />
+    <path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4v-3H1.3C.5 8.2 0 10 0 12s.5 3.8 1.3 5.4l3.9-3z" />
+    <path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C16.9 1 14.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c1-2.9 3.7-4.9 6.8-4.9z" />
+  </svg>
+);
 
 export function SocialRow({
   providers,
   onProviderClick,
 }: {
-  providers?: Record<OAuthProviderName, boolean>;
+  providers?: Record<string, boolean>;
   onProviderClick?: (provider: OAuthProviderName) => void;
 }) {
+  const googleEnabled = providers ? providers['google'] : false;
+
   return (
     <div className="mt-5">
-      <div className="flex items-center gap-3 text-xs text-gray-600">
+      {/* Divider */}
+      <div className="flex items-center gap-3 mb-4">
         <span className="flex-1 h-px bg-gray-200" />
-        or continue with
+        <span className="text-xs text-gray-400 font-medium tracking-wide">or</span>
         <span className="flex-1 h-px bg-gray-200" />
       </div>
-      <div className="flex justify-center gap-3 mt-3">
-        {SOCIALS.map((s) => {
-          const enabled = providers ? providers[s.key] : false;
-          return (
-            <button
-              key={s.name}
-              type="button"
-              disabled={!enabled}
-              onClick={enabled && onProviderClick ? () => onProviderClick(s.key) : undefined}
-              title={enabled ? `Continue with ${s.name}` : `${s.name} sign-in coming soon`}
-              aria-label={enabled ? `${s.name} sign-in` : `${s.name} sign-in (coming soon)`}
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                enabled
-                  ? 'bg-white shadow-md hover:shadow-lg cursor-pointer hover:-translate-y-0.5'
-                  : 'bg-white/70 shadow cursor-not-allowed opacity-60'
-              }`}
-              style={{ border: '1.5px solid #ede9f8' }}
-            >
-              {s.svg}
-            </button>
-          );
-        })}
-      </div>
+
+      {/* Google button — full width, Google brand style */}
+      <button
+        type="button"
+        disabled={!googleEnabled}
+        onClick={googleEnabled && onProviderClick ? () => onProviderClick('google') : undefined}
+        aria-label="Continue with Google"
+        className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl font-medium text-sm transition-all select-none ${
+          googleEnabled
+            ? 'bg-white text-gray-700 hover:bg-gray-50 hover:shadow-md active:scale-[0.99] cursor-pointer'
+            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+        }`}
+        style={{
+          border: '1.5px solid #e2e8f0',
+          boxShadow: googleEnabled ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+        }}
+      >
+        <GoogleLogo />
+        <span>Continue with Google</span>
+      </button>
     </div>
   );
 }

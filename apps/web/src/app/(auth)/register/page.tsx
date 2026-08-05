@@ -27,7 +27,7 @@ function RegisterInner() {
     if (MOCK_MODE) return;
     api.auth.providers()
       .then((r) => setProviders(r.data))
-      .catch(() => setProviders({ google: false, apple: false, facebook: false }));
+      .catch(() => setProviders({ google: false }));
   }, []);
 
   useEffect(() => {

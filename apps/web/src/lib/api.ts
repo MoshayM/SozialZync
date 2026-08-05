@@ -376,11 +376,9 @@ export interface NotificationListResponse {
 
 export interface OAuthProviders {
   google: boolean;
-  apple: boolean;
-  facebook: boolean;
 }
 
-export type OAuthProvider = 'google' | 'apple' | 'facebook';
+export type OAuthProvider = 'google';
 
 export interface OAuthStartResponse {
   authUrl: string;

@@ -57,7 +57,7 @@ export default function LoginPage() {
     if (MOCK_MODE) return;
     api.auth.providers()
       .then((r) => setProviders(r.data))
-      .catch(() => setProviders({ google: false, apple: false, facebook: false }));
+      .catch(() => setProviders({ google: false }));
   }, []);
 
   // Auto-submit OTP when all 6 digits are entered
