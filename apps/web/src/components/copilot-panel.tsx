@@ -718,6 +718,7 @@ export function CopilotPanel() {
       if (voiceEnabled || wasVoiceInput) {
         conversationRef.current = true;
         const newIdx = nextMessages.length;
+        primeSpeechSession(); // re-prime iOS — async API round-trip can expire the speech session
         speak(data.reply, data.language, () => { if (voiceEnabled) startListeningRef.current(); }, newIdx);
       } else {
         conversationRef.current = false;
@@ -732,7 +733,9 @@ export function CopilotPanel() {
         : is502 ? 'Backend API not reachable. For full functionality, access the app via your local network (http://[your-PC-IP]:3007) or configure API_URL in your deployment.'
         : status ? httpErrorMessage(status)
         : isTimeout ? 'The AI is taking longer than expected. Check your connection and try again.'
-        : 'Cannot reach the server — make sure the API server is running at port 4007.';
+        : (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+          ? 'Cannot reach the API server — run `pnpm dev` in apps/api (port 4007).'
+          : 'Connection error — please check your internet and try again.';
       setMessages(m => [...m, { role:'assistant', content:`⚠️ ${msg}`, fromCache:false }]);
       conversationRef.current = false;
       window.speechSynthesis?.cancel();
@@ -1044,6 +1047,26 @@ export function CopilotPanel() {
                         <div className={m.role==='assistant'?'cf-msg-assistant':''} style={{ maxWidth:'82%', padding:'8px 11px', borderRadius:m.role==='user'?'12px 12px 3px 12px':'3px 12px 12px 12px', fontSize:12.5, lineHeight:1.55, whiteSpace:'pre-wrap', background:m.role==='user'?'linear-gradient(135deg,#7C3AED,#4F1D96)':'rgba(255,255,255,0.09)', color:'#fff', border:m.role==='assistant'?'1px solid rgba(255,255,255,0.09)':'1px solid rgba(167,139,250,0.22)', boxShadow:m.role==='user'?'0 4px 14px -4px rgba(124,58,237,.5)':'none', animation:'cfSlideUp 0.2s ease-out both', transition:'background 0.2s' }}>
                           {m.content}
                           {m.fromCache && <span style={{ fontSize:9, color:'rgba(255,255,255,.4)', marginLeft:5 }}>cached</span>}
+                          {m.role === 'assistant' && ttsAvailable && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (speakingIdx === i) {
+                                  window.speechSynthesis.cancel();
+                                  setSpeakingIdx(null);
+                                  setSpeaking(false);
+                                  return;
+                                }
+                                primeSpeechSession();
+                                speak(m.content, undefined, undefined, i);
+                              }}
+                              style={{ background:'none', border:'none', cursor:'pointer', padding:'2px 0 0', marginTop:3, display:'block', fontSize:11, opacity:speakingIdx===i?1:0.45, color:speakingIdx===i?'#C4B5FD':'rgba(255,255,255,0.7)', transition:'opacity 0.2s' }}
+                              title={speakingIdx===i?'Stop':'Tap to hear'}
+                              aria-label={speakingIdx===i?'Stop speaking':'Read aloud'}
+                            >
+                              {speakingIdx===i?'⏹ Stop':'🔊 Hear'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
