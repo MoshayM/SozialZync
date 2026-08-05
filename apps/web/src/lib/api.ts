@@ -376,6 +376,7 @@ export interface NotificationListResponse {
 
 export interface OAuthProviders {
   google: boolean;
+  [key: string]: boolean;
 }
 
 export type OAuthProvider = 'google';
