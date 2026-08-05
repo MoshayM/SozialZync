@@ -91,7 +91,12 @@ function TrialStatusCard() {
         <Clock className="w-4 h-4 text-[#6D4AE0]" />
         <span className="text-sm font-semibold text-gray-800">Free Trial</span>
         {status && (
-          <span className={`text-[11px] font-medium border rounded-full px-2 py-0.5 ${statusChipStyle(status)}`}>
+          <span className={`text-[11px] font-medium border rounded-full px-2 py-0.5 ${
+            status === 'ACTIVE' ? 'bg-[#ecfdf5] text-[#065f46]' :
+            status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-200' :
+            status === 'CONVERTED' ? 'bg-[#f5f2fd] text-[#6D4AE0]' :
+            'bg-[#f3f4f6] text-[#4b5563]'
+          }`}>
             {status.replace(/_/g, ' ')}
           </span>
         )}
