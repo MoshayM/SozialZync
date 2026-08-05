@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@keyframes popIn{0%{opacity:0;transform:translateY(30px) scale(.7)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes speakPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes rotate3d{0%,100%{transform:rotateY(-12deg) rotateX(2deg)}50%{transform:rotateY(12deg) rotateX(-2deg)}}
+@keyframes msgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
+@keyframes slideInDesktop{0%{transform:translateX(100%)}100%{transform:translateX(0)}}
+@keyframes dotBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+@keyframes robotBounce{0%,100%{transform:translateY(0) rotateY(-10deg)}25%{transform:translateY(-26px) rotateY(0deg)}50%{transform:translateY(0) rotateY(10deg)}75%{transform:translateY(-14px) rotateY(0deg)}}
+@keyframes talkWiggle{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.05) rotate(-2deg)}50%{transform:scale(0.97) rotate(0deg)}75%{transform:scale(1.05) rotate(2deg)}}
+@keyframes captionIn{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#0b0620}
+@media (min-width:721px){.copilot-panel{width:340px !important;left:auto !important;right:40px !important}}
+</style>
+</helmet>
+
+<div style="position:relative;width:100%;height:100vh;overflow:hidden;background:#f4f3fb">
+  <div style="{{ bgStyle }}">
+    <div style="width:240px;flex-shrink:0;background:linear-gradient(180deg,#6d3fd6,#4c1fb0);padding:20px 16px;display:flex;flex-direction:column;gap:18px;color:#fff">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-weight:700">S</div>
+        <div>
+          <div style="font-weight:700;font-size:15px">Sozialzync</div>
+          <div style="font-size:11px;opacity:.75">AI Content Platform</div>
+        </div>
+      </div>
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:14px;background:{{ item.active }};color:#fff;font-weight:{{ item.weight }}">{{ item.label }}</div>
+      </sc-for>
+    </div>
+
+    <div style="flex:1;padding:28px 32px;overflow:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div style="background:#fff;border-radius:10px;padding:10px 16px;color:#8b8b9a;font-size:14px;width:360px;box-shadow:0 1px 2px rgba(0,0,0,.06)">Search projects, videos, channels...</div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <button onClick="{{ openPanel }}" style="width:44px;height:44px;border-radius:12px;border:none;background:#6d3fd6;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(109,63,214,.4);padding:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2a2 2 0 0 1 2 2v1.06A7.002 7.002 0 0 1 19 12v2.5l1.3 2.6a1 1 0 0 1-.9 1.45H4.6a1 1 0 0 1-.9-1.45L5 14.5V12a7.002 7.002 0 0 1 5-6.94V4a2 2 0 0 1 2-2Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><circle cx="9" cy="12" r="1.1" fill="#fff"/><circle cx="15" cy="12" r="1.1" fill="#fff"/><path d="M9 20a3 3 0 0 0 6 0" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+          <div style="width:36px;height:36px;border-radius:50%;background:#e4e0f7"></div>
+        </div>
+      </div>
+      <div style="background:linear-gradient(120deg,#7c4dea,#5a2fc2);border-radius:16px;padding:26px 30px;color:#fff;margin-bottom:22px">
+        <div style="font-size:13px;opacity:.85;margin-bottom:6px">Good evening, Ethonan</div>
+        <div style="font-size:22px;font-weight:700;margin-bottom:16px">What would you like to create today?</div>
+        <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:12px 16px;font-size:14px;opacity:.85">Describe what you want to create...</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <sc-for list="{{ statCards }}" as="c" hint-placeholder-count="4">
+          <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+            <div style="width:34px;height:34px;border-radius:9px;background:{{ c.bg }};color:{{ c.fg }};display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:12px">{{ c.icon }}</div>
+            <div style="font-size:11px;letter-spacing:.05em;color:#9a97ab;font-weight:600;margin-bottom:4px">{{ c.label }}</div>
+            <div style="font-size:24px;font-weight:700;color:#1f1c2e">{{ c.value }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePanel }}" style="position:absolute;inset:0;background:transparent;z-index:29"></div>
+
+    <div style="position:absolute;right:24px;bottom:0;z-index:31;display:flex;flex-direction:column;align-items:center;pointer-events:none">
+      <sc-if value="{{ captionText }}" hint-placeholder-val="{{ null }}">
+        <div style="pointer-events:auto;max-width:240px;background:rgba(20,10,45,.72);backdrop-filter:blur(10px);color:#fff;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.4;margin-bottom:10px;animation:captionIn .25s ease-out;box-shadow:0 8px 20px rgba(0,0,0,.3)">{{ captionText }}</div>
+      </sc-if>
+      <div onClick="{{ toggleDetails }}" style="position:relative;width:260px;height:260px;cursor:pointer;pointer-events:auto">
+        <img src="assets/copilot-robot.png" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 24px 32px rgba(0,0,0,.4));{{ speakingStyle }};animation:{{ robotAnimation }}" alt="Copilot 3D"/>
+        <div style="position:absolute;top:6%;left:28%;width:44%;height:32%;border-radius:50%"></div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px;background:rgba(18,12,32,.82);backdrop-filter:blur(10px);border-radius:999px;padding:8px 10px;pointer-events:auto;box-shadow:0 10px 30px rgba(0,0,0,.35)">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+          <div onClick="{{ t.select }}" style="display:flex;align-items:center;gap:6px;padding:9px 16px;font-size:13px;font-weight:600;color:{{ t.color }};background:{{ t.bg }};border-radius:999px;cursor:pointer;white-space:nowrap">{{ t.icon }} {{ t.label }}</div>
+        </sc-for>
+        <div onClick="{{ toggleVoice }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);cursor:pointer;flex-shrink:0">
+          <span style="font-size:15px">{{ voiceIcon }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="copilot-panel" style="position:absolute;left:0;right:0;bottom:0;top:auto;height:88vh;max-height:720px;width:100%;z-index:30;display:flex;flex-direction:column;background:transparent;overflow:hidden;pointer-events:none">
+
+      <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;pointer-events:auto">
+        <div style="flex:1">
+          <div style="color:#2c2740;font-weight:700;font-size:15px">Copilot</div>
+        </div>
+        <button onClick="{{ closePanel }}" style="background:rgba(124,77,234,.15);border:none;color:#4c1fb0;font-size:15px;cursor:pointer;width:32px;height:32px;border-radius:9px;flex-shrink:0">✕</button>
+      </div>
+
+      <sc-if value="{{ showDetails }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:0 18px 14px;display:flex;flex-direction:column;gap:10px;pointer-events:auto">
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ true }}">
+          <div style="background:linear-gradient(120deg,#7c4dea,#5a2fc2);border-radius:16px;padding:20px;color:#fff;text-align:center;margin-bottom:4px">
+            <div style="font-weight:700;font-size:17px;margin-bottom:6px">What's on your mind?</div>
+            <div style="font-size:13px;opacity:.85">Scripts, SEO, ideas, research — just say the word.</div>
+          </div>
+        </sc-if>
+
+        <sc-for list="{{ messages }}" as="m" hint-placeholder-count="0">
+          <div style="align-self:{{ m.align }};max-width:82%;animation:msgIn .25s ease-out">
+            <div style="background:{{ m.bg }};color:{{ m.color }};padding:10px 14px;border-radius:{{ m.radius }};font-size:14px;line-height:1.4">{{ m.text }}</div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ isTyping }}" hint-placeholder-val="{{ false }}">
+          <div style="align-self:flex-start;background:#fff;padding:12px 16px;border-radius:4px 16px 16px 16px;display:flex;gap:4px">
+            <span style="width:6px;height:6px;border-radius:50%;background:#a89ed4;display:inline-block;animation:dotBounce 1s infinite"></span>
+            <span style="width:6px;height:6px;border-radius:50%;background:#a89ed4;display:inline-block;animation:dotBounce 1s .15s infinite"></span>
+            <span style="width:6px;height:6px;border-radius:50%;background:#a89ed4;display:inline-block;animation:dotBounce 1s .3s infinite"></span>
+          </div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:6px">
+          <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="4">
+            <button onClick="{{ s.click }}" style="text-align:left;background:#fff;border:1px solid #e4e0f7;color:#2c2740;padding:12px 14px;border-radius:12px;font-size:13.5px;cursor:pointer">{{ s.text }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="padding:12px 18px calc(12px + env(safe-area-inset-bottom));pointer-events:auto">
+        <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e4e0f7;border-radius:12px;padding:6px 6px 6px 14px">
+          <input value="{{ inputVal }}" onChange="{{ onInput }}" onKeyDown="{{ onKeyDown }}" placeholder="What's on your mind?" style="flex:1;background:transparent;border:none;outline:none;color:#2c2740;font-size:14px;padding:8px 0"/>
+          <button onClick="{{ sendMessage }}" style="width:34px;height:34px;border-radius:9px;border:none;background:#7c4dea;color:#fff;cursor:pointer;font-size:15px;flex-shrink:0">➤</button>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    panelOpen: false,
+    activeTab: 'chat',
+    inputVal: '',
+    isTyping: false,
+    messages: [],
+    voiceOn: true,
+    speaking: false,
+    captionText: null,
+    showDetails: false
+  };
+
+  openPanel = () => this.setState({ panelOpen: true });
+  closePanel = () => this.setState({ panelOpen: false, showDetails: false, messages: [], inputVal: '', captionText: null });
+  toggleVoice = () => this.setState(s => ({ voiceOn: !s.voiceOn }));
+  toggleDetails = () => {
+    this.setState(s => ({ showDetails: !s.showDetails }));
+    if (!this.state.showDetails) this.speak("Hi, I'm Copilot. Here's your history and suggestions.");
+  };
+  speak(text) {
+    this.setState({ captionText: text, speaking: true });
+    if (this.state.voiceOn && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1; u.pitch = 1.05;
+      u.onend = () => this.setState({ speaking: false });
+      window.speechSynthesis.speak(u);
+    } else {
+      setTimeout(() => this.setState({ speaking: false }), 2200);
+    }
+  }
+  speakRobot = () => this.speak("Hi, I'm Copilot. Ask me anything about your content.");
+
+  reply(text) {
+    const responses = {
+      "What's blowing up in my niche right now?": "Short-form AI tool breakdowns and behind-the-scenes creator vlogs are trending hardest this week — want a list of 5 formats to try?",
+      "Give me 5 video ideas I can shoot next week": "Here you go: 1) A day in your workflow 2) Top 3 mistakes beginners make 3) Reacting to a viral trend 4) Tool comparison 5) Q&A from comments.",
+      "Help me plan my next 2 weeks of uploads": "I'd suggest 3 uploads/week: Mon (tutorial), Wed (short-form), Fri (opinion/reaction) — want me to draft the calendar?",
+      "Check my scripts before I post": "Send the script over and I'll flag pacing, hook strength, and SEO keywords before you publish."
+    };
+    return responses[text] || "Got it — I'm on it. Give me a moment to pull that together for you.";
+  }
+
+  pushUserMessage(text) {
+    if (!text.trim()) return;
+    const userMsg = { text, align: 'flex-end', bg: '#7c4dea', color: '#fff', radius: '16px 16px 4px 16px' };
+    this.setState(s => ({ messages: [...s.messages, userMsg], inputVal: '', isTyping: true }));
+    setTimeout(() => {
+      const replyText = this.reply(text);
+      const botMsg = { text: replyText, align: 'flex-start', bg: '#fff', color: '#2c2740', radius: '4px 16px 16px 16px' };
+      this.setState(s => ({ messages: [...s.messages, botMsg], isTyping: false }));
+      this.speak(replyText);
+    }, 1100);
+  }
+
+  sendMessage = () => this.pushUserMessage(this.state.inputVal);
+  onInput = (e) => this.setState({ inputVal: e.target.value });
+  onKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); } };
+  suggestionClick = (text) => () => this.pushUserMessage(text);
+  selectTab = (tab) => () => this.setState({ activeTab: tab });
+
+  renderVals() {
+    const { panelOpen, activeTab, inputVal, isTyping, messages, voiceOn, speaking, captionText, showDetails } = this.state;
+    const navLabels = [
+      { label: '🏠 Home', active: 'rgba(255,255,255,.18)', weight: 700 },
+      { label: '📁 Projects', active: 'transparent', weight: 400 },
+      { label: '🎬 Video Editor', active: 'transparent', weight: 400 },
+      { label: '📤 Publish Hub', active: 'transparent', weight: 400 },
+      { label: '📊 Analytics', active: 'transparent', weight: 400 }
+    ];
+    const statCards = [
+      { icon: '📁', bg: '#efe9fb', fg: '#6d3fd6', label: 'CHANNELS', value: '1' },
+      { icon: '⚡', bg: '#fdf1d8', fg: '#c98a1a', label: 'ACTIVE PROJECTS', value: '1' },
+      { icon: '🎥', bg: '#e2eefd', fg: '#2c7be5', label: 'VIDEOS', value: '14' },
+      { icon: '📈', bg: '#fbe4ec', fg: '#d6336c', label: 'AI JOBS', value: '318' }
+    ];
+    const tabDefs = [
+      { key: 'chat', label: 'CHAT' },
+      { key: 'actions', label: 'ACTIONS' },
+      { key: 'tasks', label: 'TASKS' }
+    ].map(t => ({
+      label: t.label,
+      color: activeTab === t.key ? '#4c1fb0' : '#5a5470',
+      bg: activeTab === t.key ? '#fff' : 'rgba(124,77,234,.08)',
+      select: this.selectTab(t.key)
+    }));
+    const suggestionTexts = [
+      "What's blowing up in my niche right now?",
+      "Give me 5 video ideas I can shoot next week",
+      "Help me plan my next 2 weeks of uploads",
+      "Check my scripts before I post"
+    ];
+
+    return {
+      bgStyle: `display:flex;height:100%;filter:${panelOpen ? 'blur(1px) brightness(.85)' : 'none'};transition:filter .3s`,
+      navItems: navLabels,
+      statCards,
+      openPanel: this.openPanel,
+      panelOpen,
+      closePanel: this.closePanel,
+      speakRobot: this.speakRobot,
+      toggleVoice: this.toggleVoice,
+      voiceIcon: voiceOn ? '🔊' : '🔇',
+      voiceTrackBg: voiceOn ? '#3ee08a' : 'rgba(255,255,255,.35)',
+      voiceKnobPos: voiceOn ? '14px' : '2px',
+      captionText,
+      showDetails,
+      toggleDetails: this.toggleDetails,
+      robotAnimation: speaking ? 'talkWiggle .5s ease-in-out infinite' : 'robotBounce 2.4s ease-in-out infinite',
+      speakingStyle: '',
+      tabs: tabDefs,
+      isEmpty: messages.length === 0,
+      messages,
+      isTyping,
+      suggestions: suggestionTexts.map(text => ({ text, click: this.suggestionClick(text) })),
+      inputVal,
+      onInput: this.onInput,
+      onKeyDown: this.onKeyDown,
+      sendMessage: this.sendMessage
+    };
+  }
+}
+
+</script>
+</body>
+</html>

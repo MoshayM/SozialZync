@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Copilot — Robot Widget Design Preview</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0f0a1e 0%, #1a0f35 50%, #0d1a2e 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  /* ─── Dashboard mock background ─── */
+  .mock-dashboard {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+  }
+  .mock-topbar {
+    height: 56px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex; align-items: center; padding: 0 24px; gap: 16px;
+  }
+  .mock-logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg,#7C3AED,#5B21B6); }
+  .mock-title { font-size: 15px; font-weight: 700; opacity: 0.8; }
+  .mock-body { flex: 1; display: flex; }
+  .mock-sidebar {
+    width: 200px; background: rgba(255,255,255,0.02);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .mock-nav { height: 36px; border-radius: 9px; background: rgba(255,255,255,0.05); margin-bottom: 2px; }
+  .mock-nav.active { background: rgba(124,58,237,0.25); }
+  .mock-content { flex: 1; padding: 28px; display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; align-content: start; }
+  .mock-card { height: 100px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); }
+
+  /* ─── Keyframes ─── */
+  @keyframes cfFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes cfBlink {
+    0%,75%,100% { transform: scaleY(1); }
+    80%,88% { transform: scaleY(0.06); }
+  }
+  @keyframes cfRipple { 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(2.2);opacity:0} }
+  @keyframes cfPulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+  @keyframes cfVoiceBar { 0%,100%{transform:scaleY(0.25);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
+  @keyframes cfHeadBob { 0%,100%{transform:translateY(0) rotate(0deg)} 30%{transform:translateY(-4px) rotate(-1.5deg)} 70%{transform:translateY(3px) rotate(1deg)} }
+  @keyframes cfMouthTalk { 0%,100%{transform:scaleY(0.35)} 50%{transform:scaleY(1.1)} }
+  @keyframes cfSpin { from{transform:translate(-50%,-50%) rotate(0deg)} to{transform:translate(-50%,-50%) rotate(360deg)} }
+  @keyframes cfPanelIn { from{opacity:0;transform:translateY(16px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes cfPanelOut { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(14px) scale(0.96)} }
+  @keyframes cfSlideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes cfExcite { 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 50%{transform:translateY(3px) scale(0.97)} 80%{transform:translateY(-5px) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
+  @keyframes cfArmWave { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-18deg)} 70%{transform:rotate(12deg)} }
+  @keyframes cfSparkle { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
+  @keyframes cfScan { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
+  @keyframes cfSpinSimple { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes cfLookLeft { from{transform:translateX(0)} to{transform:translateX(-2.5px)} }
+  @keyframes cfLookRight { from{transform:translateX(0)} to{transform:translateX(2.5px)} }
+
+  /* ─── Widget container ─── */
+  .cf-widget {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    z-index: 9999;
+    display: flex; flex-direction: column; align-items: center;
+    user-select: none;
+  }
+
+  /* ─── Compact popup panel ─── */
+  .cf-popup {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 330px;
+    background: rgba(8,5,22,0.92);
+    backdrop-filter: blur(60px) saturate(200%);
+    -webkit-backdrop-filter: blur(60px) saturate(200%);
+    border-radius: 20px;
+    border: 1px solid rgba(139,92,246,0.3);
+    box-shadow: 0 -12px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    overflow: hidden;
+    z-index: 10;
+    min-height: 340px;
+    display: flex; flex-direction: column;
+    animation: cfPanelIn 0.25s cubic-bezier(.22,1,.36,1) both;
+  }
+  .cf-popup.closing { animation: cfPanelOut 0.2s ease-in both; }
+
+  .cf-popup-header {
+    padding: 13px 14px 11px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  .cf-popup-title { flex: 1; font-size: 13px; font-weight: 700; color: #fff; letter-spacing: -.1px; }
+  .cf-popup-status { display: flex; align-items: center; gap: 5px; }
+  .cf-status-dot { width: 5px; height: 5px; border-radius: 50%; background: #4ADE80; }
+  .cf-status-label { font-size: 10.5px; color: rgba(255,255,255,.5); font-weight: 500; }
+  .cf-close-btn {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+    color: rgba(255,255,255,.7); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .15s;
+  }
+  .cf-close-btn:hover { background: rgba(255,255,255,.16); }
+  .cf-close-btn svg { width: 13px; height: 13px; }
+
+  /* ─── Chat messages area ─── */
+  .cf-messages {
+    flex: 1; overflow-y: auto; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 9px;
+    max-height: 220px;
+  }
+  .cf-msg {
+    display: flex; gap: 7px; align-items: flex-end;
+    animation: cfSlideUp 0.2s ease-out both;
+  }
+  .cf-msg.user { flex-direction: row-reverse; }
+  .cf-avatar {
+    width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #fff;
+  }
+  .cf-avatar.bot { background: linear-gradient(135deg,#7C3AED,#4F1D96); }
+  .cf-avatar.user-av { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,.2); }
+  .cf-bubble {
+    max-width: 82%; padding: 8px 11px; font-size: 12.5px; line-height: 1.55;
+    white-space: pre-wrap;
+  }
+  .cf-bubble.bot {
+    border-radius: 3px 12px 12px 12px;
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.09);
+    color: #fff;
+  }
+  .cf-bubble.user-b {
+    border-radius: 12px 12px 3px 12px;
+    background: linear-gradient(135deg,#7C3AED,#4F1D96);
+    border: 1px solid rgba(167,139,250,0.22);
+    color: #fff;
+    box-shadow: 0 4px 14px -4px rgba(124,58,237,.5);
+  }
+
+  /* ─── Chat input bar ─── */
+  .cf-input-bar {
+    padding: 8px 10px 10px;
+    background: rgba(0,0,0,0.25);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .cf-input-wrap {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.10);
+    border-radius: 12px; padding: 6px 6px 6px 12px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .cf-input-wrap:focus-within {
+    border-color: rgba(167,139,250,0.55);
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.14);
+  }
+  .cf-input {
+    flex: 1; background: none; border: none; outline: none; resize: none;
+    font-size: 13px; color: #fff; font-family: inherit; line-height: 1.5;
+  }
+  .cf-input::placeholder { color: rgba(255,255,255,0.32); }
+  .cf-send-btn {
+    width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(135deg,#7C3AED,#5B21B6); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    border: none; cursor: pointer; transition: opacity .15s;
+  }
+  .cf-send-btn svg { width: 13px; height: 13px; }
+
+  /* ─── Quick actions grid ─── */
+  .cf-actions-grid {
+    padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    overflow-y: auto; max-height: 290px;
+  }
+  .cf-action-card {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+    padding: 11px; border-radius: 12px; cursor: pointer;
+    background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.09);
+    transition: background .17s, border-color .17s, transform .15s;
+  }
+  .cf-action-card:hover { background: rgba(255,255,255,0.11); border-color: rgba(167,139,250,0.3); transform: translateY(-2px); }
+  .cf-action-icon {
+    width: 28px; height: 28px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cf-action-icon svg { width: 14px; height: 14px; }
+  .cf-action-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.88); }
+  .cf-action-desc { font-size: 10.5px; color: rgba(255,255,255,0.45); line-height: 1.4; }
+
+  /* ─── Tasks list ─── */
+  .cf-jobs { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 290px; }
+  .cf-job-row {
+    display: flex; align-items: center; gap: 8px; padding: 9px 11px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+  }
+  .cf-job-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .cf-job-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.9); }
+  .cf-job-project { font-size: 10.5px; color: rgba(255,255,255,0.45); }
+  .cf-job-status { font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.45); margin-left: auto; text-transform: capitalize; flex-shrink: 0; }
+
+  /* ─── Empty chat state ─── */
+  .cf-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 8px; }
+  .cf-chip {
+    padding: 5px 10px; border-radius: 99px; font-size: 11px; font-weight: 500;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.72); cursor: pointer; transition: background .15s;
+  }
+  .cf-chip:hover { background: rgba(255,255,255,0.14); }
+
+  /* ─── Robot widget body ─── */
+  .cf-robot-wrap {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* ─── Speech bubble ─── */
+  .cf-speech {
+    text-align: center; margin-bottom: 6px; max-width: 240px;
+    animation: cfSlideUp 0.3s ease-out both;
+  }
+  .cf-speech-inner {
+    display: inline-block; background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(8px); border-radius: 14px;
+    padding: 8px 13px; font-size: 12px; color: #1a1a2e;
+    font-weight: 500; line-height: 1.5; max-width: 220px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2); word-break: break-word;
+    border: 1px solid rgba(200,200,220,0.6);
+  }
+  .cf-speech-tail {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid rgba(255,255,255,0.96);
+    margin: 0 auto;
+  }
+
+  /* ─── Foot pill bar ─── */
+  .cf-foot-pill {
+    display: flex; align-items: center; justify-content: center;
+    gap: 4px; padding: 5px 8px; border-radius: 99px; margin-top: 8px;
+    background: rgba(8,5,22,0.85);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(139,92,246,0.35);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .cf-foot-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 11px; border-radius: 99px;
+    background: transparent; border: 1px solid transparent;
+    color: rgba(255,255,255,0.55); font-size: 11.5px; font-weight: 500;
+    cursor: pointer; transition: all .17s; white-space: nowrap;
+  }
+  .cf-foot-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .cf-foot-btn:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); }
+  .cf-foot-btn.active {
+    background: rgba(124,58,237,0.48);
+    border-color: rgba(167,139,250,0.45);
+    color: #C4B5FD; font-weight: 700;
+  }
+  .cf-voice-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.16);
+    color: rgba(255,255,255,0.4); cursor: pointer; transition: all .2s;
+  }
+  .cf-voice-btn svg { width: 12px; height: 12px; }
+  .cf-voice-btn.on {
+    background: rgba(74,222,128,0.2); border-color: rgba(74,222,128,0.55);
+    color: #4ADE80; box-shadow: 0 0 12px rgba(74,222,128,0.2);
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 600px) {
+    .cf-widget { bottom: 80px; right: 12px; }
+    .cf-popup { width: calc(100vw - 28px); }
+    .cf-foot-btn { padding: 5px 8px; font-size: 10.5px; }
+    .mock-sidebar { display: none; }
+    .mock-content { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 380px) {
+    .cf-robot-wrap { transform: scale(0.82); transform-origin: bottom center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Mock dashboard background -->
+<div class="mock-dashboard">
+  <div class="mock-topbar">
+    <div class="mock-logo"></div>
+    <div class="mock-title">CreatorForce AI</div>
+  </div>
+  <div class="mock-body">
+    <div class="mock-sidebar">
+      <div class="mock-nav active" style="height:36px;border-radius:9px;background:rgba(124,58,237,0.25);"></div>
+      <div class="mock-nav"></div><div class="mock-nav"></div>
+      <div class="mock-nav"></div><div class="mock-nav"></div>
+    </div>
+    <div class="mock-content">
+      <div class="mock-card"></div><div class="mock-card"></div>
+      <div class="mock-card"></div><div class="mock-card"></div>
+      <div class="mock-card"></div><div class="mock-card"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════ WIDGET ════ -->
+<div class="cf-widget" id="widget">
+
+  <!-- ── Compact popup (above robot) ── -->
+  <div id="popup" style="position:absolute;bottom:0;right:0;z-index:10;display:none;width:330px;"></div>
+
+  <!-- ── Robot + speech bubble ── -->
+  <div class="cf-robot-wrap" id="robotWrap">
+
+    <!-- Speech bubble -->
+    <div class="cf-speech" id="speechBubble" style="display:none;">
+      <div class="cf-speech-inner" id="speechText">Scripts, SEO, ideas — just say the word!</div>
+      <div class="cf-speech-tail"></div>
+    </div>
+
+    <!-- SVG Robot -->
+    <div id="robotAnim" style="position:relative;display:inline-block;">
+
+      <!-- Listening ripples — centred on head cx=48 cy=34 in 96×185 SVG -->
+      <div id="ripple1" style="display:none;position:absolute;top:-18px;left:-4px;width:104px;height:104px;border-radius:50%;border:2px solid rgba(74,222,128,0.38);pointer-events:none;animation:cfRipple 1.5s ease-out infinite;"></div>
+      <div id="ripple2" style="display:none;position:absolute;top:-18px;left:-4px;width:104px;height:104px;border-radius:50%;border:2px solid rgba(74,222,128,0.2);pointer-events:none;animation:cfRipple 1.5s ease-out 0.75s infinite;"></div>
+
+      <!-- Thinking ring — centred on head -->
+      <div id="thinkRing" style="display:none;position:absolute;top:-18px;left:-4px;width:104px;height:104px;border-radius:50%;border:2.5px solid transparent;border-top-color:#FBBF24;border-right-color:rgba(251,191,36,0.3);animation:cfSpinSimple 1.2s linear infinite;pointer-events:none;"></div>
+
+      <!-- Chibi robot SVG 96×185 -->
+      <svg id="robotSvg" width="96" height="185" viewBox="0 0 96 185" fill="none" xmlns="http://www.w3.org/2000/svg"
+        style="filter:drop-shadow(0 10px 28px rgba(0,0,0,0.35));transition:filter 0.4s;">
+        <defs>
+          <linearGradient id="hg" x1="48" y1="0" x2="48" y2="185" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="100%" stop-color="#D4E2F0"/>
+          </linearGradient>
+          <radialGradient id="eyeGrad" cx="34%" cy="30%" r="70%" gradientUnits="objectBoundingBox">
+            <stop offset="0%" stop-color="#7EEEFF"/>
+            <stop offset="40%" stop-color="#00C8D8"/>
+            <stop offset="100%" stop-color="#007090"/>
+          </radialGradient>
+          <linearGradient id="visorG" x1="48" y1="19" x2="48" y2="50" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#0B1122"/>
+            <stop offset="100%" stop-color="#030810"/>
+          </linearGradient>
+          <clipPath id="hL"><rect x="24" y="36" width="22" height="10"/></clipPath>
+          <clipPath id="hR"><rect x="50" y="36" width="22" height="10"/></clipPath>
+        </defs>
+
+        <!-- FEET -->
+        <rect x="20" y="168" width="26" height="13" rx="6.5" fill="url(#hg)" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+        <rect x="20" y="168" width="11" height="13" rx="6.5" fill="#1A1A2E"/>
+        <circle cx="25.5" cy="174.5" r="2.5" fill="white" opacity="0.5"/>
+        <rect x="50" y="168" width="26" height="13" rx="6.5" fill="url(#hg)" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+        <rect x="65" y="168" width="11" height="13" rx="6.5" fill="#1A1A2E"/>
+        <circle cx="70.5" cy="174.5" r="2.5" fill="white" opacity="0.5"/>
+
+        <!-- SHINS -->
+        <rect x="28" y="148" width="14" height="22" rx="6" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+        <rect x="54" y="148" width="14" height="22" rx="6" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+
+        <!-- KNEE JOINTS -->
+        <circle cx="35" cy="148" r="7.5" fill="#1A1A2E"/>
+        <circle cx="35" cy="148" r="4.5" fill="#3A3A4E"/>
+        <circle cx="35" cy="148" r="2" fill="white" opacity="0.75"/>
+        <circle cx="61" cy="148" r="7.5" fill="#1A1A2E"/>
+        <circle cx="61" cy="148" r="4.5" fill="#3A3A4E"/>
+        <circle cx="61" cy="148" r="2" fill="white" opacity="0.75"/>
+
+        <!-- THIGHS -->
+        <rect x="27" y="118" width="16" height="32" rx="7" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+        <rect x="53" y="118" width="16" height="32" rx="7" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+
+        <!-- HIP -->
+        <rect x="25" y="108" width="46" height="14" rx="6" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+        <rect x="32" y="111" width="32" height="5" rx="2.5" fill="rgba(255,255,255,0.75)"/>
+
+        <!-- UPPER ARMS -->
+        <rect id="armL" x="9" y="71" width="13" height="28" rx="6.5" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1" style="transform-origin:15.5px 71px;transform-box:fill-box;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);transform:rotate(12deg);"/>
+        <rect id="armR" x="74" y="71" width="13" height="28" rx="6.5" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1" style="transform-origin:80.5px 71px;transform-box:fill-box;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);transform:rotate(-128deg);"/>
+
+        <!-- ELBOW JOINTS -->
+        <circle cx="15.5" cy="100" r="7.5" fill="#1A1A2E"/>
+        <circle cx="15.5" cy="100" r="4.5" fill="#3A3A4E"/>
+        <circle cx="15.5" cy="100" r="2" fill="white" opacity="0.75"/>
+        <circle cx="80.5" cy="100" r="7.5" fill="#1A1A2E"/>
+        <circle cx="80.5" cy="100" r="4.5" fill="#3A3A4E"/>
+        <circle cx="80.5" cy="100" r="2" fill="white" opacity="0.75"/>
+
+        <!-- FOREARMS -->
+        <rect x="10" y="100" width="11" height="20" rx="5.5" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+        <rect x="75" y="100" width="11" height="20" rx="5.5" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+
+        <!-- HANDS (3-finger) -->
+        <rect x="9"  y="119" width="13" height="8" rx="4" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="0.8"/>
+        <rect x="10" y="111" width="3.5" height="10" rx="1.75" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="0.8"/>
+        <rect x="14.5" y="109" width="3.5" height="12" rx="1.75" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="0.8"/>
+        <rect x="19" y="111" width="3.5" height="10" rx="1.75" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="0.8"/>
+        <rect x="74" y="119" width="13" height="8" rx="4" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="0.8"/>
+        <rect x="75" y="111" width="3.5" height="10" rx="1.75" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="0.8"/>
+        <rect x="79.5" y="109" width="3.5" height="12" rx="1.75" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="0.8"/>
+        <rect x="84" y="111" width="3.5" height="10" rx="1.75" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="0.8"/>
+
+        <!-- TORSO -->
+        <rect x="23" y="68" width="50" height="44" rx="10" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+        <rect x="30" y="72" width="30" height="6" rx="3" fill="rgba(255,255,255,0.8)"/>
+        <rect x="30" y="81" width="36" height="22" rx="7" fill="rgba(0,200,216,0.12)" stroke="#00C8D8" stroke-width="0.8" stroke-opacity="0.6"/>
+        <rect x="33" y="85" width="30" height="4" rx="2" fill="rgba(0,200,216,0.45)"/>
+        <rect x="33" y="92" width="20" height="3" rx="1.5" fill="rgba(0,200,216,0.3)"/>
+        <circle cx="56" cy="93.5" r="2" fill="rgba(0,200,216,0.5)"/>
+
+        <!-- SHOULDER JOINTS -->
+        <circle cx="21" cy="75" r="8" fill="#1A1A2E"/>
+        <circle cx="21" cy="75" r="5" fill="#3A3A4E"/>
+        <circle cx="21" cy="75" r="2.2" fill="white" opacity="0.8"/>
+        <circle cx="75" cy="75" r="8" fill="#1A1A2E"/>
+        <circle cx="75" cy="75" r="5" fill="#3A3A4E"/>
+        <circle cx="75" cy="75" r="2.2" fill="white" opacity="0.8"/>
+
+        <!-- NECK -->
+        <rect x="40" y="64" width="16" height="8" rx="4" fill="url(#hg)" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
+
+        <!-- HEAD (large dome — drawn last) -->
+        <ellipse cx="48" cy="34" rx="30" ry="32" fill="url(#hg)" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+        <ellipse cx="37" cy="20" rx="13" ry="7" fill="rgba(255,255,255,0.7)" transform="rotate(-18 37 20)"/>
+
+        <!-- EAR PIECES -->
+        <circle cx="18" cy="34" r="9" fill="#00C8D8"/>
+        <circle cx="18" cy="34" r="6" fill="white"/>
+        <circle cx="18" cy="34" r="3.5" fill="#00C8D8"/>
+        <circle cx="16.8" cy="32.8" r="1.2" fill="white" opacity="0.8"/>
+        <circle cx="78" cy="34" r="9" fill="#00C8D8"/>
+        <circle cx="78" cy="34" r="6" fill="white"/>
+        <circle cx="78" cy="34" r="3.5" fill="#00C8D8"/>
+        <circle cx="76.8" cy="32.8" r="1.2" fill="white" opacity="0.8"/>
+
+        <!-- TOP SENSOR -->
+        <circle id="antLed" cx="48" cy="3" r="5.5" fill="#00C8D8"/>
+        <circle cx="48" cy="3" r="3.2" fill="#7EEEFF"/>
+        <circle cx="47" cy="1.8" r="1.3" fill="white" opacity="0.8"/>
+
+        <!-- DARK VISOR — helmet face shield -->
+        <rect x="18" y="19" width="60" height="30" rx="10" fill="url(#visorG)"/>
+        <rect x="22" y="21" width="36" height="5" rx="2.5" fill="rgba(255,255,255,0.1)"/>
+        <rect x="18" y="46" width="60" height="3" rx="1.5" fill="rgba(0,204,255,0.14)"/>
+
+        <!-- EYE SOCKETS (shadow rings) -->
+        <circle cx="37" cy="34" r="13" fill="rgba(0,15,50,0.13)"/>
+        <circle cx="59" cy="34" r="13" fill="rgba(0,15,50,0.13)"/>
+
+        <!-- LEFT EYE — 124.png camera-lens style, state-scaled outer wrapper, blink inner -->
+        <g id="eyeScaleL" style="transform-origin:37px 34px;transform-box:fill-box;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);">
+          <g id="eyeBlink" style="transform-origin:37px 34px;transform-box:fill-box;animation:cfBlink 4.5s ease-in-out 0.3s infinite;">
+            <circle cx="37" cy="34" r="12" fill="#0C1A38"/>
+            <circle cx="37" cy="34" r="11" fill="url(#eyeGrad)"/>
+            <circle cx="37" cy="34" r="9" fill="none" stroke="rgba(120,210,255,0.28)" stroke-width="1.5"/>
+            <circle id="pupilSzL" cx="37" cy="34" r="4.5" fill="#040C20"/>
+            <circle cx="32.5" cy="29.5" r="4" fill="rgba(255,255,255,0.93)"/>
+            <circle cx="40.5" cy="37.5" r="1.8" fill="rgba(255,255,255,0.55)"/>
+            <!-- speaking pulse ring -->
+            <circle id="eyeIdle" cx="37" cy="34" r="9.5" fill="none" stroke="rgba(0,200,216,0.45)" stroke-width="1" style="display:none;animation:cfPulse 0.42s ease-in-out infinite;"/>
+          </g>
+        </g>
+
+        <!-- RIGHT EYE -->
+        <g id="eyeScaleR" style="transform-origin:59px 34px;transform-box:fill-box;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);">
+          <g id="eyeBlinkR" style="transform-origin:59px 34px;transform-box:fill-box;animation:cfBlink 4.5s ease-in-out 0.55s infinite;">
+            <circle cx="59" cy="34" r="12" fill="#0C1A38"/>
+            <circle cx="59" cy="34" r="11" fill="url(#eyeGrad)"/>
+            <circle cx="59" cy="34" r="9" fill="none" stroke="rgba(120,210,255,0.28)" stroke-width="1.5"/>
+            <circle id="pupilSzR" cx="59" cy="34" r="4.5" fill="#040C20"/>
+            <circle cx="54.5" cy="29.5" r="4" fill="rgba(255,255,255,0.93)"/>
+            <circle cx="62.5" cy="37.5" r="1.8" fill="rgba(255,255,255,0.55)"/>
+            <circle id="eyeSpeaking" cx="59" cy="34" r="9.5" fill="none" stroke="rgba(0,200,216,0.45)" stroke-width="1" style="display:none;animation:cfPulse 0.42s ease-in-out 0.21s infinite;"/>
+          </g>
+        </g>
+
+        <!-- Listening/Thinking/Speaking eye state markers (invisible, used for JS state tracking) -->
+        <g id="eyeListening" style="display:none;"/>
+        <g id="eyeThinking" style="display:none;"/>
+        <g id="eyeBlink2" style="display:none;"/>
+
+        <!-- LISTENING SCAN RING (JS toggles display) -->
+        <circle id="scanRing" cx="48" cy="34" r="4" fill="none" stroke="#00C8D8" stroke-width="1.5"
+          style="display:none;animation:cfScan 1.2s ease-out infinite;opacity:0;"/>
+
+        <!-- PUPILS look-around (listening only, JS controlled) -->
+        <circle id="pupilL" cx="36" cy="36" r="3" fill="rgba(0,8,30,0.55)" style="display:none;transition:transform 0.45s cubic-bezier(.4,0,.2,1);transform-box:fill-box;"/>
+        <circle id="pupilR" cx="62" cy="36" r="3" fill="rgba(0,8,30,0.55)" style="display:none;transition:transform 0.45s cubic-bezier(.4,0,.2,1);transform-box:fill-box;"/>
+
+        <!-- CHEEKS (below visor on chin) -->
+        <ellipse cx="25" cy="52" rx="6" ry="4" fill="rgba(255,130,130,0.18)"/>
+        <ellipse cx="71" cy="52" rx="6" ry="4" fill="rgba(255,130,130,0.18)"/>
+
+        <!-- IDLE VISOR BREATHING GLOW (JS toggles) -->
+        <line id="idleGlow" x1="22" y1="49" x2="74" y2="49" stroke="#00C8D8" stroke-width="2" stroke-linecap="round"
+          style="opacity:0.35;animation:cfPulse 3s ease-in-out infinite;display:none;"/>
+
+        <!-- THINKING EYEBROWS (JS toggles) -->
+        <g id="thinkBrows" style="display:none;">
+          <path d="M26,17 Q34,13 42,17" stroke="#888" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M54,17 Q62,13 70,17" stroke="#888" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </g>
+
+        <!-- MOUTH -->
+        <g id="mouthGroup" style="transform-origin:48px 55px;">
+          <path id="mouthLine" d="M36,52 Q48,62 60,52" stroke="rgba(40,20,90,0.45)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <ellipse id="mouthOpen" cx="48" cy="55" rx="8" ry="5" fill="rgba(5,20,50,0.55)" style="display:none;"/>
+        </g>
+      </svg>
+
+      <!-- Mouth voice bars — over mouth area (y≈47-57) -->
+      <div id="mouthBars" style="display:none;position:absolute;top:47px;left:36px;width:24px;height:10px;align-items:center;justify-content:center;gap:1.5px;">
+        <span style="display:inline-block;width:2px;height:3px;background:#00C8D8;border-radius:1px;animation:cfVoiceBar 0.4s ease-in-out 0s infinite;"></span>
+        <span style="display:inline-block;width:2px;height:5px;background:#00C8D8;border-radius:1px;animation:cfVoiceBar 0.4s ease-in-out .05s infinite;"></span>
+        <span style="display:inline-block;width:2px;height:7px;background:#00C8D8;border-radius:1px;animation:cfVoiceBar 0.4s ease-in-out .1s infinite;"></span>
+        <span style="display:inline-block;width:2px;height:9px;background:#00C8D8;border-radius:1px;animation:cfVoiceBar 0.4s ease-in-out .05s infinite;"></span>
+        <span style="display:inline-block;width:2px;height:7px;background:#00C8D8;border-radius:1px;animation:cfVoiceBar 0.4s ease-in-out .1s infinite;"></span>
+        <span style="display:inline-block;width:2px;height:5px;background:#00C8D8;border-radius:1px;animation:cfVoiceBar 0.4s ease-in-out .05s infinite;"></span>
+        <span style="display:inline-block;width:2px;height:3px;background:#00C8D8;border-radius:1px;animation:cfVoiceBar 0.4s ease-in-out 0s infinite;"></span>
+      </div>
+
+      <!-- Chest panel overlay -->
+      <div id="chestPanel" style="position:absolute;top:88px;left:34px;width:28px;height:12px;display:flex;align-items:center;justify-content:center;gap:2px;">
+        <!-- filled by JS based on state -->
+      </div>
+
+      <!-- Sparkle burst container -->
+      <div id="sparkleContainer" style="position:absolute;top:0;left:0;width:96px;height:185px;pointer-events:none;overflow:visible;"></div>
+    </div>
+  </div>
+
+  <!-- ── Foot pill bar ── -->
+  <div class="cf-foot-pill">
+    <button class="cf-foot-btn" id="btn-chat" onclick="togglePanel('chat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      Chat
+    </button>
+    <button class="cf-foot-btn" id="btn-actions" onclick="togglePanel('actions')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      Actions
+    </button>
+    <button class="cf-foot-btn" id="btn-tasks" onclick="togglePanel('tasks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+      Tasks
+    </button>
+    <button class="cf-voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Toggle Voice">
+      <svg id="voiceIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let robotState = 'idle';
+let excited = false;
+let exciteTimer = null;
+let activePanel = null;
+let voiceOn = false;
+let lookInterval = null;
+let messages = [];
+
+const PANEL_CONTENTS = {
+  chat: {
+    title: '💬 Chat',
+    render: () => `
+      <div class="cf-messages" id="msgList">
+        <div style="padding:8px 0 4px;">
+          <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:10px;line-height:1.5;">Ask me about scripts, SEO, ideas, research…</div>
+          <div class="cf-chips">
+            <button class="cf-chip" onclick="sendChip(this)">Video ideas for next week</button>
+            <button class="cf-chip" onclick="sendChip(this)">Optimize my SEO</button>
+            <button class="cf-chip" onclick="sendChip(this)">Plan 2 weeks of content</button>
+            <button class="cf-chip" onclick="sendChip(this)">Check my script</button>
+          </div>
+        </div>
+      </div>
+      <div class="cf-input-bar">
+        <div class="cf-input-wrap">
+          <input class="cf-input" placeholder="What's on your mind?" id="chatInput" onkeydown="handleKey(event)" />
+          <button class="cf-send-btn" onclick="sendChat()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+      </div>
+    `
+  },
+  actions: {
+    title: '⚡ Quick Actions',
+    render: () => `
+      <div class="cf-actions-grid">
+        ${[
+          { icon: '📖', label: 'Research Topic', desc: "Deep-dive any topic", color: '#3b82f6' },
+          { icon: '📝', label: 'Script Ideas', desc: 'Build scripts from scratch', color: '#7C3AED' },
+          { icon: '📅', label: 'Content Plan', desc: 'Lock your posting schedule', color: '#10b981' },
+          { icon: '🔍', label: 'SEO Analysis', desc: 'Boost reach with smarter SEO', color: '#d97706' },
+          { icon: '💡', label: 'Video Ideas', desc: "Ideas that get views", color: '#ec4899' },
+          { icon: '✅', label: 'Fact Check', desc: "Verify before you post", color: '#0d9488' },
+        ].map(a => `
+          <button class="cf-action-card" onclick="selectAction('${a.label}')">
+            <div class="cf-action-icon" style="background:${a.color}22;border:1px solid ${a.color}33;">
+              <span style="font-size:14px;">${a.icon}</span>
+            </div>
+            <div>
+              <div class="cf-action-label" style="color:${a.color};">${a.label}</div>
+              <div class="cf-action-desc">${a.desc}</div>
+            </div>
+          </button>
+        `).join('')}
+      </div>
+    `
+  },
+  tasks: {
+    title: '✅ Recent Tasks',
+    render: () => `
+      <div class="cf-jobs">
+        ${[
+          { name: 'Script Generation', project: 'AI Tools Deep Dive', status: 'COMPLETED', dot: '#4ADE80' },
+          { name: 'SEO Analysis', project: 'Morning Routine Channel', status: 'RUNNING', dot: '#A78BFA' },
+          { name: 'Content Calendar', project: 'Tech Reviews 2025', status: 'PENDING', dot: '#FBBF24' },
+          { name: 'Fact Check', project: 'History Documentary', status: 'COMPLETED', dot: '#4ADE80' },
+        ].map(j => `
+          <div class="cf-job-row">
+            <span class="cf-job-dot" style="background:${j.dot};"></span>
+            <div style="flex:1;min-width:0;">
+              <div class="cf-job-name">${j.name}</div>
+              <div class="cf-job-project">${j.project}</div>
+            </div>
+            <span class="cf-job-status">${j.status.toLowerCase()}</span>
+          </div>
+        `).join('')}
+      </div>
+    `
+  }
+};
+
+// ─── Panel toggle ─────────────────────────────────────────────────────────────
+function togglePanel(id) {
+  if (activePanel === id) { closePanel(); return; }
+  activePanel = id;
+  document.querySelectorAll('.cf-foot-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + id).classList.add('active');
+  renderPanel(id);
+  showSpeech(false);
+}
+
+function renderPanel(id) {
+  const popup = document.getElementById('popup');
+  const content = PANEL_CONTENTS[id];
+  popup.innerHTML = `
+    <div class="cf-popup">
+      <div class="cf-popup-header">
+        <div class="cf-popup-title">${content.title}</div>
+        <div class="cf-popup-status">
+          <span class="cf-status-dot"></span>
+          <span class="cf-status-label">Ready</span>
+        </div>
+        <button class="cf-close-btn" onclick="closePanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      ${content.render()}
+    </div>
+  `;
+  popup.style.display = 'block';
+}
+
+function closePanel() {
+  const popup = document.getElementById('popup');
+  const inner = popup.querySelector('.cf-popup');
+  if (inner) { inner.classList.add('closing'); setTimeout(() => { popup.style.display = 'none'; popup.innerHTML = ''; }, 180); }
+  else { popup.style.display = 'none'; }
+  activePanel = null;
+  document.querySelectorAll('.cf-foot-btn').forEach(b => b.classList.remove('active'));
+}
+
+// ─── Chat simulation ──────────────────────────────────────────────────────────
+function sendChip(btn) { simulateSend(btn.textContent); }
+function handleKey(e) { if (e.key === 'Enter') sendChat(); }
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  if (!input || !input.value.trim()) return;
+  simulateSend(input.value.trim());
+}
+
+function simulateSend(text) {
+  closePanel();
+  setRobotState('thinking');
+  showSpeech(true, 'Let me think on that…', 'thinking');
+  setTimeout(() => {
+    setRobotState('speaking');
+    const replies = [
+      "Great idea! Here are 5 viral video concepts tailored to your niche that could hit 100K+ views…",
+      "I've analyzed your SEO and found 3 high-impact keywords you're missing. Let me break them down…",
+      "Your content calendar for the next 2 weeks is ready! I've optimized posting times for max engagement…",
+      "I checked that claim — it's partially accurate. Here's what the research actually says…"
+    ];
+    const reply = replies[Math.floor(Math.random() * replies.length)];
+    showSpeech(true, reply, 'speaking');
+    setTimeout(() => { setRobotState('idle'); showSpeechTemp("Done! Open Chat to see the full response."); }, 4000);
+  }, 2200);
+}
+
+function selectAction(name) {
+  closePanel();
+  setRobotState('thinking');
+  showSpeech(true, `Working on ${name}…`, 'thinking');
+  setTimeout(() => { setRobotState('speaking'); showSpeech(true, 'Done! Your result is ready. Open Chat to see it.', 'speaking'); setTimeout(() => setRobotState('idle'), 3500); }, 2000);
+}
+
+// ─── Speech bubble ────────────────────────────────────────────────────────────
+let speechTimer = null;
+function showSpeech(show, text, state) {
+  const bubble = document.getElementById('speechBubble');
+  const textEl = document.getElementById('speechText');
+  if (show && text) {
+    textEl.textContent = text;
+    bubble.style.display = 'block';
+    const isSpecial = state && state !== 'idle';
+    textEl.style.color = isSpecial ? '#7C3AED' : '#1a1a2e';
+    textEl.style.fontWeight = isSpecial ? '600' : '500';
+    textEl.style.fontStyle = state === 'thinking' ? 'italic' : 'normal';
+    bubble.style.animation = 'none'; void bubble.offsetWidth; bubble.style.animation = 'cfSlideUp 0.3s ease-out both';
+  } else { bubble.style.display = 'none'; }
+}
+function showSpeechTemp(text) {
+  showSpeech(true, text, 'idle');
+  if (speechTimer) clearTimeout(speechTimer);
+  speechTimer = setTimeout(() => showSpeech(false), 6000);
+}
+
+// ─── Sparkle burst ────────────────────────────────────────────────────────────
+function triggerExcitement() {
+  excited = true;
+  if (exciteTimer) clearTimeout(exciteTimer);
+  // Sparkle particles
+  const container = document.getElementById('sparkleContainer');
+  if (container) {
+    container.innerHTML = '';
+    const COLORS = ['#A78BFA','#60A5FA','#34D399','#FBBF24','#F472B6'];
+    for (let i = 0; i < 10; i++) {
+      const span = document.createElement('span');
+      const angle = (i / 10) * 360;
+      const dist = 28 + Math.random() * 24;
+      const dx = Math.round(Math.cos(angle * Math.PI / 180) * dist);
+      const dy = Math.round(Math.sin(angle * Math.PI / 180) * dist);
+      const color = COLORS[i % COLORS.length];
+      span.style.cssText = `
+        position:absolute;
+        top:34px;left:48px;
+        width:${4 + Math.random()*4}px;height:${4 + Math.random()*4}px;
+        border-radius:50%;background:${color};
+        --dx:${dx}px;--dy:${dy}px;
+        animation:cfSparkle 0.55s ease-out ${i*0.055}s forwards;
+      `;
+      container.appendChild(span);
+    }
+    setTimeout(() => { container.innerHTML = ''; }, 800);
+  }
+  exciteTimer = setTimeout(() => { excited = false; updateRobotVisuals(); }, 700);
+  updateRobotVisuals();
+}
+
+// ─── Robot state ──────────────────────────────────────────────────────────────
+function setRobotState(state) {
+  const wasThinkingOrSpeaking = robotState === 'thinking' && state === 'speaking';
+  robotState = state;
+  if (wasThinkingOrSpeaking) {
+    // Trigger excitement burst when switching from thinking → speaking (reply arrived)
+    triggerExcitement();
+  } else {
+    updateRobotVisuals();
+  }
+}
+
+function updateRobotVisuals() {
+  const s = robotState;
+  const svg = document.getElementById('robotSvg');
+  const antLed = document.getElementById('antLed');
+  const mouthBars = document.getElementById('mouthBars');
+  const mouthLine = document.getElementById('mouthLine');
+  const mouthOpen = document.getElementById('mouthOpen');
+  const mouthGroup = document.getElementById('mouthGroup');
+  const chestPanel = document.getElementById('chestPanel');
+  const ripple1 = document.getElementById('ripple1');
+  const ripple2 = document.getElementById('ripple2');
+  const thinkRing = document.getElementById('thinkRing');
+  const robotAnim = document.getElementById('robotAnim');
+  const pupilL = document.getElementById('pupilL');
+  const pupilR = document.getElementById('pupilR');
+  const scanRing = document.getElementById('scanRing');
+  const idleGlow = document.getElementById('idleGlow');
+  const thinkBrows = document.getElementById('thinkBrows');
+
+  // ── 124.png style open-face eyes: scale per state ──
+  const eyeScaleL = document.getElementById('eyeScaleL');
+  const eyeScaleR = document.getElementById('eyeScaleR');
+  const sc = s === 'thinking' ? 'scaleY(0.68)' : s === 'listening' ? 'scale(1.07)' : 'scale(1)';
+  if (eyeScaleL) eyeScaleL.style.transform = sc;
+  if (eyeScaleR) eyeScaleR.style.transform = sc;
+
+  // Pupil size: larger when speaking
+  const pupilSzL = document.getElementById('pupilSzL');
+  const pupilSzR = document.getElementById('pupilSzR');
+  const pr = s === 'speaking' ? '5.5' : '4.5';
+  if (pupilSzL) pupilSzL.setAttribute('r', pr);
+  if (pupilSzR) pupilSzR.setAttribute('r', pr);
+
+  // Speaking pulse ring on eyes
+  const eyeIdleEl = document.getElementById('eyeIdle');
+  const eyeSpeakingEl = document.getElementById('eyeSpeaking');
+  if (eyeIdleEl) eyeIdleEl.style.display = s === 'speaking' ? 'block' : 'none';
+  if (eyeSpeakingEl) eyeSpeakingEl.style.display = s === 'speaking' ? 'block' : 'none';
+
+  // Sensor color
+  const antColor = s === 'listening' ? '#4ADE80' : s === 'thinking' ? '#FBBF24' : '#00C8D8';
+  if (antLed) antLed.setAttribute('fill', antColor);
+
+  // Ripples
+  ripple1.style.display = s === 'listening' ? 'block' : 'none';
+  ripple2.style.display = s === 'listening' ? 'block' : 'none';
+
+  // Think ring + brows
+  thinkRing.style.display = s === 'thinking' ? 'block' : 'none';
+  if (thinkBrows) thinkBrows.style.display = s === 'thinking' ? 'block' : 'none';
+
+  // Scan ring (listening only)
+  if (scanRing) scanRing.style.display = s === 'listening' ? 'block' : 'none';
+
+  // Idle ambient glow
+  if (idleGlow) idleGlow.style.display = s === 'idle' ? 'block' : 'none';
+
+  // Pupils
+  if (s === 'thinking' || s === 'speaking') {
+    clearInterval(lookInterval);
+    if (pupilL) { pupilL.style.display = 'none'; pupilL.style.transform = 'translate(0,0)'; }
+    if (pupilR) { pupilR.style.display = 'none'; pupilR.style.transform = 'translate(0,0)'; }
+  } else {
+    if (pupilL) pupilL.style.display = 'block';
+    if (pupilR) pupilR.style.display = 'block';
+  }
+
+  // Arm wave
+  const armL = document.getElementById('armL');
+  const armR = document.getElementById('armR');
+  if (armL && armR) {
+    const waveArm = s === 'speaking' || excited;
+    armL.style.animation = waveArm ? 'cfArmWave 0.7s ease-in-out infinite' : 'none';
+    armL.style.transform = waveArm ? 'none' : 'rotate(12deg)';
+    armR.style.animation = waveArm ? 'cfArmWave 0.7s ease-in-out 0.35s infinite' : 'none';
+    armR.style.transform = waveArm ? 'none' : (s === 'idle' ? 'rotate(-128deg)' : 'rotate(-20deg)');
+  }
+
+  // Main robot animation
+  if (excited) {
+    robotAnim.style.animation = 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both';
+  } else if (s === 'speaking') {
+    robotAnim.style.animation = 'cfHeadBob 0.38s ease-in-out infinite';
+  } else if (s === 'idle') {
+    robotAnim.style.animation = 'cfFloat 3s ease-in-out infinite';
+  } else {
+    robotAnim.style.animation = 'none';
+  }
+
+  // SVG glow
+  if (s === 'listening') svg.style.filter = 'drop-shadow(0 10px 28px rgba(74,222,128,0.3)) drop-shadow(0 0 16px rgba(74,222,128,0.2))';
+  else if (s === 'thinking') svg.style.filter = 'drop-shadow(0 10px 28px rgba(251,191,36,0.25)) drop-shadow(0 0 12px rgba(251,191,36,0.15))';
+  else if (s === 'speaking') svg.style.filter = 'drop-shadow(0 10px 28px rgba(167,139,250,0.3)) drop-shadow(0 0 16px rgba(124,58,237,0.2))';
+  else svg.style.filter = 'drop-shadow(0 10px 28px rgba(0,0,0,0.45))';
+
+  // Mouth — shape changes per state
+  if (s === 'speaking') {
+    mouthBars.style.display = 'flex';
+    mouthGroup.style.animation = 'cfMouthTalk 0.32s ease-in-out infinite';
+    mouthLine.style.display = 'none';
+    mouthOpen.style.display = 'block';
+  } else {
+    mouthBars.style.display = 'none';
+    mouthGroup.style.animation = 'none';
+    mouthLine.style.display = 'block';
+    mouthOpen.style.display = 'none';
+    if (s === 'thinking') {
+      mouthLine.setAttribute('d','M38,54 Q48,57 58,54');
+      mouthLine.setAttribute('stroke','#FBBF24');
+    } else {
+      mouthLine.setAttribute('d','M36,52 Q48,62 60,52');
+      mouthLine.setAttribute('stroke','rgba(40,20,90,0.45)');
+    }
+    mouthLine.setAttribute('stroke-width','2.5');
+  }
+
+  // Chest panel
+  if (s === 'thinking') {
+    chestPanel.innerHTML = [0,1,2].map(i => `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#FBBF24;animation:cfPulse 1s ease-in-out ${i*0.28}s infinite;"></span>`).join('');
+  } else if (s === 'listening') {
+    chestPanel.innerHTML = ['2px','5px','8px','11px','8px','5px','2px'].map((h,i) => `<span style="display:inline-block;width:2px;height:${h};background:#4ADE80;border-radius:1px;animation:cfVoiceBar 0.7s ease-in-out ${[0,.09,.18,.06,.15,.03,.21][i]}s infinite;"></span>`).join('');
+  } else if (s === 'speaking') {
+    chestPanel.innerHTML = ['4px','8px','12px','16px','12px','8px','4px'].map((h,i) => `<span style="display:inline-block;width:2px;height:${h};background:#00C8D8;border-radius:1px;animation:cfVoiceBar 0.7s ease-in-out ${[0,.09,.18,.06,.15,.03,.21][i]}s infinite;"></span>`).join('');
+  } else {
+    chestPanel.innerHTML = [1,2,3].map(i => `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#00C8D8;opacity:0.55;animation:cfPulse 2.2s ease-in-out ${i*0.55}s infinite;"></span>`).join('');
+  }
+
+  // Resume look-around if idle
+  if (s === 'idle') startLookAround();
+}
+
+// ─── Pupil look-around ────────────────────────────────────────────────────────
+function startLookAround() {
+  clearInterval(lookInterval);
+  const positions = [
+    [0,0],[0,0],[0,0],[0,0],
+    [-2.5,0],[2.5,0],[0,-2],[1.5,1.5],[-1.5,1],
+  ];
+  lookInterval = setInterval(() => {
+    if (robotState !== 'idle') return;
+    const [x,y] = positions[Math.floor(Math.random()*positions.length)];
+    document.getElementById('pupilL').style.transform = `translate(${x}px,${y}px)`;
+    document.getElementById('pupilR').style.transform = `translate(${x}px,${y}px)`;
+  }, 1800 + Math.random()*2000);
+}
+
+// ─── Voice toggle ─────────────────────────────────────────────────────────────
+function toggleVoice() {
+  voiceOn = !voiceOn;
+  const btn = document.getElementById('voiceBtn');
+  btn.classList.toggle('on', voiceOn);
+  if (voiceOn) showSpeechTemp('Voice mode ON — I\'ll speak my responses!');
+  else showSpeechTemp('Voice mode off.');
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+updateRobotVisuals();
+setTimeout(() => showSpeechTemp('Hey! I\'m your AI Copilot. Tap Chat, Actions or Tasks to get started!'), 1200);
+</script>
+</body>
+</html>

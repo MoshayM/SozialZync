@@ -22,6 +22,8 @@ logs/
 # Test artifacts (generated every run)
 apps/e2e/playwright-report/
 apps/e2e/test-results/
+test-results/
+e2e-run-results.txt
 
 # Root-level E2E screenshots and design mockups (local only)
 ss-*.png
@@ -43,3 +45,21 @@ yt-dlp/
 .vercel
 infra/k8s/secret.yaml
 .aider*
+
+# Personal photos / local reference images (not project source)
+me.jpeg
+co.jpeg
+story.jpeg
+we.jpeg
+assets/design-refs/
+
+# Large local database dump (use infra/db/seed.sql for fixtures instead)
+*.sql
+local-db-export.sql
+
+# Generated build artifacts in root
+support.js
+1/
+
+# Local design exports
+button.pdf
