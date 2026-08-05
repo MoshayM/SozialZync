@@ -7,7 +7,7 @@ import {
   FolderOpen, Settings, LogOut, Palette, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
-  WifiOff, Music2, Mic2, Users2, ImagePlus,
+  WifiOff, Users2, ImagePlus,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -39,8 +39,6 @@ const NAV_SECTIONS: NavSection[] = [
     category: 'Studio',
     items: [
       { href: '/studio/characters', icon: Users2,    label: 'Characters' },
-      { href: '/studio/voices',     icon: Mic2,      label: 'Voice Library' },
-      { href: '/studio/music',      icon: Music2,    label: 'Music Library' },
       { href: '/studio/assets',     icon: ImagePlus, label: 'Images & Assets' },
     ],
   },
