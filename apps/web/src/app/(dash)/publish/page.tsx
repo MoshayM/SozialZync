@@ -1,9 +1,7 @@
 'use client';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Upload, CheckCircle, CalendarClock, Sparkles, FlaskConical, Link2 } from 'lucide-react';
-import { ProBanner } from '@/components/pro-gate';
-import PublishingPage from '../publishing/page';
+import { CalendarClock, Sparkles, FlaskConical, Link2 } from 'lucide-react';
 import PublishingAccountsPage from '../publishing/accounts/page';
 import ApprovalsPage from '../approvals/page';
 import AutonomyPage from '../autonomy/page';
@@ -25,22 +23,10 @@ const TABS: TabDef[] = [
     description: 'Connect and manage your publishing accounts across all platforms',
   },
   {
-    id: 'approvals',
-    label: 'Review',
-    icon: CheckCircle,
-    description: 'Approve content before it goes live',
-  },
-  {
-    id: 'scheduler',
-    label: 'Schedule',
+    id: 'publish-center',
+    label: 'Publish Center',
     icon: CalendarClock,
-    description: 'Plan and time your posting calendar',
-  },
-  {
-    id: 'publishing',
-    label: 'History',
-    icon: Upload,
-    description: 'Published and upcoming videos',
+    description: 'Review, schedule and track your published content',
   },
   {
     id: 'autonomy',
@@ -61,7 +47,7 @@ const TABS: TabDef[] = [
 function PublishContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const activeTab = searchParams.get('tab') ?? 'approvals';
+  const activeTab = searchParams.get('tab') ?? 'publish-center';
   const activeTabDef = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
   return (
@@ -119,22 +105,11 @@ function PublishContent() {
         <p className="text-xs text-gray-500 leading-none">{activeTabDef.description}</p>
       </div>
 
-      {/* ── ProBanner — only on History tab ─────────────────────────────── */}
-      {activeTab === 'publishing' && (
-        <ProBanner
-          feature="Direct publishing"
-          description="Connect your YouTube, Instagram, TikTok and other accounts to publish directly. Upgrade to Pro to unlock channel connections and one-click publishing."
-          className="mx-4 mt-4 sm:mx-6"
-        />
-      )}
-
       {/* ── Tab content ─────────────────────────────────────────────────── */}
-      {activeTab === 'accounts'   && <PublishingAccountsPage />}
-      {activeTab === 'approvals'  && <ApprovalsPage />}
-      {activeTab === 'scheduler'  && <ApprovalsPage />}
-      {activeTab === 'publishing' && <PublishingPage />}
-      {activeTab === 'autonomy'   && <AutonomyPage />}
-      {activeTab === 'ab-testing' && <AbTestingPage />}
+      {activeTab === 'accounts'       && <PublishingAccountsPage />}
+      {activeTab === 'publish-center' && <ApprovalsPage />}
+      {activeTab === 'autonomy'       && <AutonomyPage />}
+      {activeTab === 'ab-testing'     && <AbTestingPage />}
     </div>
   );
 }
