@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-PRISMA=/app/node_modules/.bin/prisma
+PRISMA=/app/apps/api/node_modules/.bin/prisma
 SCHEMA=/app/apps/api/prisma/schema.prisma
 
 echo "=== start.sh: Migration fix ==="
