@@ -23,4 +23,4 @@ CREATE TABLE "Character" (
 CREATE INDEX "Character_userId_idx" ON "Character"("userId");
 
 -- AddForeignKey
-ALTER TABLE "Character" ADD CONSTRAINT "Character_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Character" ADD CONSTRAINT "Character_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
