@@ -265,8 +265,7 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
   const grad = `linear-gradient(155deg,${W} 40%,${S})`;
 
   const eyeCol = isThinking ? '#FBBF24' : isListening ? '#4ADE80' : '#60A5FA';
-  const antCol = isListening ? '#4ADE80' : isThinking ? '#FBBF24' : '#00C8D8';
-  const antGlow = `0 0 12px 5px ${antCol}66`;
+
 
   const armWaving = isSpeaking || excited;
 
@@ -296,11 +295,6 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
 
       {/* ── CSS plastic robot body ── */}
       <div>
-        {/* Antenna pole */}
-        <div style={{ margin:'0 auto', width:4, height:14, background:'linear-gradient(90deg,#9090a0,#c0c0d4)', borderRadius:2 }} />
-        {/* Antenna tip */}
-        <div style={{ margin:'-2px auto 0', width:12, height:12, borderRadius:'50%', background:antCol, boxShadow:antGlow, transition:'background 0.4s, box-shadow 0.4s', animation:'cfPulse 2s ease-in-out infinite' }} />
-
         {/* Head */}
         <div style={{ marginTop:5, width:76, height:58, borderRadius:14, background:grad, boxShadow:'3px 4px 14px rgba(0,0,0,0.28),-1px -1px 5px rgba(255,255,255,0.4)', position:'relative' }}>
           {/* Visor strip with SVG camera-lens eyes */}
