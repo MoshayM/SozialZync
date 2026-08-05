@@ -111,8 +111,9 @@ async function bootstrap() {
     SwaggerModule.setup('api/dev-docs', app, devDocument);
   }
 
-  const port = parseInt(process.env['API_PORT'] ?? '4007', 10);
-  await app.listen(port);
+  // Railway (and most PaaS) injects PORT; API_PORT is for local dev override
+  const port = parseInt(process.env['PORT'] ?? process.env['API_PORT'] ?? '4007', 10);
+  await app.listen(port, '0.0.0.0');
   const logger = new Logger('Bootstrap');
   logger.log(`AI CreatorForce API running on http://localhost:${port}/api/v1`);
   logger.log(`Swagger docs: http://localhost:${port}/api/docs`);

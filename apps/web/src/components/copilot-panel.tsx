@@ -342,20 +342,10 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
 
         {/* Body + arms wrapper */}
         <div style={{ position:'relative' }}>
-          {/* Left shoulder joint — gray ball at pivot point */}
-          <div style={{ position:'absolute', top:5, left:-14, width:13, height:13, borderRadius:'50%', background:'linear-gradient(135deg,#9898b0,#787890)', boxShadow:'0 2px 5px rgba(0,0,0,0.28)', zIndex:2 }} />
-          {/* Left arm */}
-          <div style={{ position:'absolute', top:10, left:-17, width:15, height:60, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'cfArmSway 4.5s ease-in-out 0.2s infinite', transition:'transform 0.5s', overflow:'visible' }}>
-            {/* Left hand — free-swinging at wrist */}
-            <div style={{ position:'absolute', bottom:-9, left:'50%', transform:'translateX(-50%)', width:19, height:13, borderRadius:7, background:grad, boxShadow:'1px 3px 7px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandSwing 0.55s ease-in-out 0.12s infinite':'cfHandSwing 1.8s ease-in-out 0.6s infinite' }} />
-          </div>
-          {/* Right shoulder joint */}
-          <div style={{ position:'absolute', top:5, right:-14, width:13, height:13, borderRadius:'50%', background:'linear-gradient(135deg,#9898b0,#787890)', boxShadow:'0 2px 5px rgba(0,0,0,0.28)', zIndex:2 }} />
-          {/* Right arm */}
-          <div style={{ position:'absolute', top:10, right:-17, width:15, height:60, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'cfArmSwayR 4.5s ease-in-out 0.9s infinite', transition:'transform 0.5s', overflow:'visible' }}>
-            {/* Right hand — free-swinging at wrist */}
-            <div style={{ position:'absolute', bottom:-9, left:'50%', transform:'translateX(-50%)', width:19, height:13, borderRadius:7, background:grad, boxShadow:'1px 3px 7px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandSwing 0.55s ease-in-out 0.53s infinite':'cfHandSwing 1.8s ease-in-out 0.3s infinite' }} />
-          </div>
+          {/* Left arm — single piece, free swing from body edge */}
+          <div style={{ position:'absolute', top:8, left:-16, width:14, height:68, borderRadius:7, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'cfArmSway 4.5s ease-in-out 0.2s infinite', transition:'transform 0.5s' }} />
+          {/* Right arm — single piece, free swing from body edge */}
+          <div style={{ position:'absolute', top:8, right:-16, width:14, height:68, borderRadius:7, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'cfArmSwayR 4.5s ease-in-out 0.9s infinite', transition:'transform 0.5s' }} />
 
           {/* Body */}
           <div style={{ width:86, height:86, borderRadius:14, background:grad, boxShadow:'4px 5px 18px rgba(0,0,0,0.26),-2px -2px 6px rgba(255,255,255,0.33)', position:'relative', overflow:'hidden' }}>
