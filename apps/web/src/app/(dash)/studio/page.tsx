@@ -562,18 +562,18 @@ function CharactersSection() {
 type TopTab = 'characters' | 'images' | 'thumbnails' | 'shorts' | 'audio' | 'content';
 
 const TOP_TABS: Array<{ id: TopTab; label: string; icon: typeof Layers }> = [
+  { id: 'content',    label: 'Content Tools', icon: FileText },
   { id: 'characters', label: 'Characters',    icon: Users },
   { id: 'images',     label: 'Images',        icon: ImageIcon },
-  { id: 'thumbnails', label: 'AI Thumbnails', icon: Sparkles },
-  { id: 'shorts',     label: 'Shorts Studio', icon: Scissors },
   { id: 'audio',      label: 'Audio Studio',  icon: Headphones },
-  { id: 'content',    label: 'Content Tools', icon: FileText },
+  { id: 'shorts',     label: 'Shorts Studio', icon: Scissors },
+  { id: 'thumbnails', label: 'AI Thumbnails', icon: Sparkles },
 ];
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function CreativeStudioPage() {
-  const [topTab, setTopTab] = useState<TopTab>('characters');
+  const [topTab, setTopTab] = useState<TopTab>('content');
 
   return (
     <div className="min-h-full bg-[#faf9ff]">
@@ -585,7 +585,7 @@ export default function CreativeStudioPage() {
             <Layers className="w-5 h-5" style={{ color: '#6D4AE0' }} />
             <h1 className="text-2xl font-extrabold text-gray-900">Creative Studio</h1>
           </div>
-          <p className="text-sm text-gray-500">Characters · Images · Thumbnails · Shorts · Audio Studio · Content Tools</p>
+          <p className="text-sm text-gray-500">Content Tools · Characters · Images · Audio Studio · Shorts Studio · AI Thumbnails</p>
         </div>
 
         {/* Top-level tab switcher */}
