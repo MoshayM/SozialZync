@@ -20,6 +20,10 @@ import { ComfyUIImageAdapter } from '../media/adapters/image-comfyui.adapter';
 import { A1111ImageAdapter } from '../media/adapters/image-a1111.adapter';
 import { ComfyUIVideoAdapter } from '../media/adapters/video-comfyui.adapter';
 import { MusicGenLocalAdapter } from '../media/adapters/music-musicgen.adapter';
+import { VeoVideoAdapter } from '../media/adapters/video-veo.adapter';
+import { PikaVideoAdapter } from '../media/adapters/video-pika.adapter';
+import { SunoMusicAdapter } from '../media/adapters/music-suno.adapter';
+import { UdioMusicAdapter } from '../media/adapters/music-udio.adapter';
 
 @Controller('system')
 @UseGuards(JwtAuthGuard)
@@ -82,9 +86,13 @@ export class SystemController {
         check('musicgen-local', new MusicGenLocalAdapter(), 'music'),
         check('stability',    new StabilityMusicAdapter(),  'music'),
         check('replicate',    new ReplicateMusicAdapter(),  'music'),
+        check('suno',         new SunoMusicAdapter(),       'music'),
+        check('udio',         new UdioMusicAdapter(),       'music'),
         check('offline',      new OfflineMusicAdapter(),    'music', true),
       ],
       video: [
+        check('veo-2',        new VeoVideoAdapter(),        'video'),
+        check('pika',         new PikaVideoAdapter(),       'video'),
         check('luma',         new LumaVideoAdapter(),       'video'),
         check('runway',       new RunwayVideoAdapter(),     'video'),
         check('kling',        new KlingVideoAdapter(),      'video'),

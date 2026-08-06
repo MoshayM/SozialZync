@@ -29,6 +29,10 @@ import { ComfyUIImageAdapter } from './adapters/image-comfyui.adapter';
 import { A1111ImageAdapter } from './adapters/image-a1111.adapter';
 import { ComfyUIVideoAdapter } from './adapters/video-comfyui.adapter';
 import { MusicGenLocalAdapter } from './adapters/music-musicgen.adapter';
+import { VeoVideoAdapter } from './adapters/video-veo.adapter';
+import { PikaVideoAdapter } from './adapters/video-pika.adapter';
+import { SunoMusicAdapter } from './adapters/music-suno.adapter';
+import { UdioMusicAdapter } from './adapters/music-udio.adapter';
 import { validateMediaBuffer, formatIssues, type MediaValidationKind } from './media-validation.util';
 
 export interface StoredAsset {
@@ -69,12 +73,12 @@ export class MediaService {
   private readonly music: AdapterChain<MusicAdapter> = {
     configured: process.env['MUSIC_PROVIDER'],
     // Local MusicGen first, then cloud APIs, then synth placeholder
-    adapters: [new MusicGenLocalAdapter(), new StabilityMusicAdapter(), new ReplicateMusicAdapter(), new OfflineMusicAdapter()],
+    adapters: [new MusicGenLocalAdapter(), new StabilityMusicAdapter(), new ReplicateMusicAdapter(), new SunoMusicAdapter(), new UdioMusicAdapter(), new OfflineMusicAdapter()],
   };
   private readonly video: AdapterChain<VideoAdapter> = {
     configured: process.env['VIDEO_PROVIDER'],
     // Cloud AI first (best quality), then local ComfyUI SVD, then FFmpeg scene builder
-    adapters: [new LumaVideoAdapter(), new RunwayVideoAdapter(), new KlingVideoAdapter(), new ComfyUIVideoAdapter(), new FfmpegSceneVideoAdapter()],
+    adapters: [new VeoVideoAdapter(), new PikaVideoAdapter(), new LumaVideoAdapter(), new RunwayVideoAdapter(), new KlingVideoAdapter(), new ComfyUIVideoAdapter(), new FfmpegSceneVideoAdapter()],
   };
 
   constructor(
