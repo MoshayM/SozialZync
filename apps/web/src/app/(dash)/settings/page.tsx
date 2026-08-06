@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle,
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
-  Webhook, Trash2, Play, Plus, Cpu, Download, Music, HardDrive, Activity, Mic2,
+  Webhook, Trash2, Play, Plus, Cpu, Download, HardDrive, Activity,
 } from 'lucide-react';
 import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse } from '@/lib/api';
 
@@ -243,102 +243,78 @@ function SettingsContent() {
           <p className="text-sm text-gray-600 mt-0.5">Manage your profile, security, and developer integrations</p>
         </div>
 
-        {/* ── AI Providers shortcut ────────────────────────────────────── */}
-        <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI</p>
-          <a
-            href="/settings/ai-providers"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f5f2fd]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f2fd' }}>
-              <Cpu className="w-5 h-5" style={{ color: '#6D4AE0' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">AI Providers</p>
-              <p className="text-xs text-gray-600">Configure local and cloud LLM providers</p>
-            </div>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0' }}>NEW</span>
-          </a>
-          <a
-            href="/settings/models"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-              <Download className="w-5 h-5" style={{ color: '#16a34a' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Model Manager</p>
-              <p className="text-xs text-gray-600">Download and manage local AI models</p>
-            </div>
-          </a>
-          <a
-            href="/studio/music"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#fefce8]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fefce8' }}>
-              <Music className="w-5 h-5" style={{ color: '#ca8a04' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Music Library</p>
-              <p className="text-xs text-gray-600">Royalty-free tracks for your videos</p>
-            </div>
-          </a>
-          <a
-            href="/settings/storage"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0f9ff]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0f9ff' }}>
-              <HardDrive className="w-5 h-5" style={{ color: '#0284c7' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Storage</p>
-              <p className="text-xs text-gray-600">Manage local AI-generated files, models, and cache.</p>
-            </div>
-          </a>
-          <a
-            href="/settings/queue"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#fff7ed]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fff7ed' }}>
-              <Activity className="w-5 h-5" style={{ color: '#ea580c' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Queue Manager</p>
-              <p className="text-xs text-gray-600">Monitor BullMQ job queue — active, waiting, failed jobs.</p>
-            </div>
-          </a>
-          <a
-            href="/settings/gpu"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-              <Cpu className="w-5 h-5" style={{ color: '#16a34a' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">GPU &amp; Hardware</p>
-              <p className="text-xs text-gray-600">Detected compute hardware — GPU backend, VRAM, utilization.</p>
-            </div>
-          </a>
-          <a
-            href="/studio/audio"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#ecfeff]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#ecfeff' }}>
-              <Mic2 className="w-5 h-5" style={{ color: '#0891b2' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Audio Studio</p>
-              <p className="text-xs text-gray-600">Loudness normalize, noise removal, silence trimmer — FFmpeg local processing</p>
-            </div>
-          </a>
-        </section>
+        {/* ── Admin-only: AI infrastructure ───────────────────────────── */}
+        {isOwner && (
+          <section>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI &amp; Infrastructure</p>
+            <a
+              href="/settings/ai-providers"
+              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f5f2fd]"
+              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f2fd' }}>
+                <Cpu className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-800">AI Providers</p>
+                <p className="text-xs text-gray-600">Configure local and cloud LLM providers</p>
+              </div>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0' }}>NEW</span>
+            </a>
+            <a
+              href="/settings/models"
+              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
+              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+                <Download className="w-5 h-5" style={{ color: '#16a34a' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-800">Model Manager</p>
+                <p className="text-xs text-gray-600">Download and manage local AI models</p>
+              </div>
+            </a>
+            <a
+              href="/settings/storage"
+              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0f9ff]"
+              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0f9ff' }}>
+                <HardDrive className="w-5 h-5" style={{ color: '#0284c7' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-800">Storage</p>
+                <p className="text-xs text-gray-600">Manage local AI-generated files, models, and cache.</p>
+              </div>
+            </a>
+            <a
+              href="/settings/queue"
+              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#fff7ed]"
+              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fff7ed' }}>
+                <Activity className="w-5 h-5" style={{ color: '#ea580c' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-800">Queue Manager</p>
+                <p className="text-xs text-gray-600">Monitor BullMQ job queue — active, waiting, failed jobs.</p>
+              </div>
+            </a>
+            <a
+              href="/settings/gpu"
+              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
+              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+                <Cpu className="w-5 h-5" style={{ color: '#16a34a' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-800">GPU &amp; Hardware</p>
+                <p className="text-xs text-gray-600">Detected compute hardware — GPU backend, VRAM, utilization.</p>
+              </div>
+            </a>
+          </section>
+        )}
 
         {/* Global notification banner */}
         {banner && (

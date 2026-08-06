@@ -7,7 +7,7 @@ import {
   FolderOpen, Settings, LogOut, Palette, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
-  WifiOff, Layers,
+  WifiOff, Layers, Link2,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -520,6 +520,18 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         >
           <Bot className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
         </button>
+
+        {/* Channel Access shortcut */}
+        <Link
+          href="/settings/channels"
+          title="Channel Access"
+          className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
+          style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; }}
+        >
+          <Link2 className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
+        </Link>
 
         {/* Notification bell */}
         <div className="relative shrink-0" ref={bellRef}>
