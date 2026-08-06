@@ -10,6 +10,7 @@ import { SessionsService } from './sessions.service';
 import { OAuthService } from './oauth.service';
 import { OtpService } from './otp.service';
 import { PasswordResetService } from './password-reset.service';
+import { WebAuthnService } from './webauthn.service';
 import { ProviderRegistry } from './providers/provider.registry';
 import { GoogleAdapter } from './providers/google.adapter';
 import { AppleAdapter } from './providers/apple.adapter';
@@ -39,12 +40,13 @@ import { TrialModule } from '../trial/trial.module';
     OAuthService,
     OtpService,
     PasswordResetService,
+    WebAuthnService,
     ProviderRegistry,
     GoogleAdapter,
     AppleAdapter,
     FacebookAdapter,
   ],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, SessionsService, OAuthService, OtpService, PasswordResetService],
+  exports: [AuthService, JwtModule, SessionsService, OAuthService, OtpService, PasswordResetService, WebAuthnService],
 })
 export class AuthModule {}

@@ -7,8 +7,10 @@ import {
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
   Webhook, Trash2, Play, Plus, Cpu, Download, HardDrive, Activity,
+  Fingerprint,
 } from 'lucide-react';
-import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse } from '@/lib/api';
+import { startRegistration } from '@simplewebauthn/browser';
+import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse, type PasskeyCredentialView } from '@/lib/api';
 
 interface WebhookEntry {
   id: string;
@@ -78,6 +80,51 @@ function SettingsContent() {
   });
 
   const [confirmRevokeSession, setConfirmRevokeSession] = useState<string | null>(null);
+
+  // ── Passkeys state ──────────────────────────────────────────────────────────
+  const passkeySupported = typeof window !== 'undefined' && typeof PublicKeyCredential !== 'undefined';
+  const [passkeyName, setPasskeyName] = useState('');
+  const [addingPasskey, setAddingPasskey] = useState(false);
+
+  const { data: passkeys = [], refetch: refetchPasskeys } = useQuery<PasskeyCredentialView[]>({
+    queryKey: ['passkeys'],
+    queryFn: () => api.auth.listPasskeys().then((r) => r.data),
+  });
+
+  const deletePasskeyMutation = useMutation({
+    mutationFn: (id: string) => api.auth.deletePasskey(id),
+    onSuccess: () => {
+      void refetchPasskeys();
+      setBanner({ type: 'success', message: 'Passkey removed.' });
+    },
+    onError: () => {
+      setBanner({ type: 'error', message: 'Failed to remove passkey.' });
+    },
+  });
+
+  async function handleAddPasskey() {
+    if (!passkeySupported) return;
+    setAddingPasskey(true);
+    try {
+      const { data: options } = await api.auth.webauthnRegisterOptions();
+      const credential = await startRegistration({ optionsJSON: options });
+      await api.auth.webauthnRegisterVerify(credential, passkeyName.trim() || undefined);
+      setPasskeyName('');
+      void refetchPasskeys();
+      setBanner({ type: 'success', message: 'Passkey added successfully.' });
+    } catch (err: unknown) {
+      const name = (err as { name?: string })?.name;
+      if (name === 'InvalidStateError') {
+        setBanner({ type: 'error', message: 'This device is already registered as a passkey.' });
+      } else if (name === 'NotAllowedError') {
+        setBanner({ type: 'error', message: 'Passkey registration was cancelled.' });
+      } else {
+        setBanner({ type: 'error', message: 'Failed to add passkey. Please try again.' });
+      }
+    } finally {
+      setAddingPasskey(false);
+    }
+  }
 
   const revokeSessionMutation = useMutation({
     mutationFn: (id: string) => api.auth.revokeSession(id),
@@ -458,6 +505,74 @@ function SettingsContent() {
               );
             })}
           </div>
+
+          {/* Passkeys */}
+          {passkeySupported && (
+            <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
+                <Fingerprint className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800">Passkeys</p>
+                  <p className="text-xs text-gray-600 mt-0.5">Sign in with Face ID, Touch ID, or a hardware key — no password needed.</p>
+                </div>
+              </div>
+
+              {/* Existing passkeys */}
+              {passkeys.length === 0 && (
+                <div className="px-4 py-4 text-sm text-gray-600">No passkeys registered yet.</div>
+              )}
+              {passkeys.map((pk) => (
+                <div key={pk.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                  <Key className="w-4 h-4 text-gray-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{pk.name ?? 'Unnamed passkey'}</p>
+                    <p className="text-xs text-gray-600">
+                      {pk.deviceType === 'multiDevice' ? 'Synced' : 'Device-bound'}
+                      {pk.backedUp && ' · Backed up'}
+                      {' · Added '}
+                      {new Date(pk.createdAt).toLocaleDateString()}
+                      {pk.lastUsedAt && ` · Last used ${new Date(pk.lastUsedAt).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Remove this passkey? You will no longer be able to sign in with it.')) {
+                        deletePasskeyMutation.mutate(pk.id);
+                      }
+                    }}
+                    disabled={deletePasskeyMutation.isPending}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-red-600 text-xs rounded-2xl hover:bg-red-50 transition-colors disabled:opacity-40"
+                    style={{ border: '1.5px solid #fecaca' }}
+                  >
+                    {deletePasskeyMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              {/* Add passkey row */}
+              <div className="px-4 py-3 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={passkeyName}
+                  onChange={(e) => setPasskeyName(e.target.value)}
+                  placeholder="Name this passkey (optional)"
+                  className="flex-1 text-sm px-3 py-2 rounded-xl bg-[#faf9ff] outline-none focus:ring-2 ring-[#6D4AE0]"
+                  style={{ border: '1.5px solid #e3ddf8' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => { void handleAddPasskey(); }}
+                  disabled={addingPasskey}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-white text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                >
+                  {addingPasskey ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  Add Passkey
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Content channels — link to Media Control */}
           <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>

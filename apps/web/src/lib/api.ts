@@ -1,4 +1,10 @@
 import axios from 'axios';
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+} from '@simplewebauthn/browser';
 
 // Browser requests go through the Next.js server-side proxy at /api/proxy so
 // the real backend URL is never exposed to the client and CORS is not needed.
@@ -106,6 +112,26 @@ apiClient.interceptors.response.use(
     return Promise.reject(err);
   },
 );
+
+// ── WebAuthn / Passkey types ──────────────────────────────────────────────────
+
+export interface PasskeyCredentialView {
+  id: string;
+  credentialId: string;
+  name: string | null;
+  deviceType: string;
+  backedUp: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+// Re-export for consumers that import from this module
+export type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+} from '@simplewebauthn/browser';
 
 // ── Library types ─────────────────────────────────────────────────────────────
 
@@ -578,6 +604,19 @@ export const api = {
       apiClient.post('/auth/forgot-password', { email }),
     resetPassword: (token: string, password: string) =>
       apiClient.post('/auth/reset-password', { token, password }),
+    // WebAuthn / Passkeys
+    webauthnRegisterOptions: () =>
+      apiClient.post<PublicKeyCredentialCreationOptionsJSON>('/auth/webauthn/register/options'),
+    webauthnRegisterVerify: (credential: RegistrationResponseJSON, name?: string) =>
+      apiClient.post<PasskeyCredentialView>('/auth/webauthn/register/verify', { credential, ...(name ? { name } : {}) }),
+    webauthnAuthOptions: () =>
+      apiClient.post<PublicKeyCredentialRequestOptionsJSON>('/auth/webauthn/authenticate/options'),
+    webauthnAuthVerify: (credential: AuthenticationResponseJSON) =>
+      apiClient.post<{ accessToken: string; refreshToken: string }>('/auth/webauthn/authenticate/verify', { credential }),
+    listPasskeys: () =>
+      apiClient.get<PasskeyCredentialView[]>('/auth/webauthn/credentials'),
+    deletePasskey: (id: string) =>
+      apiClient.delete(`/auth/webauthn/credentials/${id}`),
   },
   channels: {
     list: () => apiClient.get('/channels'),

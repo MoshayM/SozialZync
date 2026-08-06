@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Loader2, KeyRound, Mail, Lock, AtSign } from 'lucide-react';
+import { startAuthentication } from '@simplewebauthn/browser';
 import { api, setTokens, type OAuthProviders, type OAuthProvider } from '@/lib/api';
 import { LoginShell, LoginInput, SocialRow, type OAuthProviderName } from '@/components/auth-shell';
 
@@ -38,6 +39,8 @@ export default function LoginPage() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [providers, setProviders] = useState<OAuthProviders | undefined>(undefined);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const passkeySupported = typeof window !== 'undefined' && typeof PublicKeyCredential !== 'undefined';
 
   const otpIdentifier = otpEmail.trim();
 
@@ -191,6 +194,25 @@ export default function LoginPage() {
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePasskeyLogin() {
+    setPasskeyLoading(true);
+    setError('');
+    try {
+      const { data: options } = await api.auth.webauthnAuthOptions();
+      const credential = await startAuthentication({ optionsJSON: options });
+      const { data } = await api.auth.webauthnAuthVerify(credential);
+      setTokens(data.accessToken, data.refreshToken);
+      router.push('/home');
+    } catch (err: unknown) {
+      const message = (err as { name?: string })?.name === 'NotAllowedError'
+        ? 'Passkey sign-in was cancelled or not allowed.'
+        : 'Passkey sign-in failed. Please try a different method.';
+      setError(message);
+    } finally {
+      setPasskeyLoading(false);
     }
   }
 
@@ -495,19 +517,30 @@ export default function LoginPage() {
         />
       )}
 
-      {/* ── Clerk auth (social + passkey) ──────────────────────── */}
-      {process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'] && (
-        <div className="mt-6">
+      {/* ── Passkey sign-in ──────────────────────────────────────── */}
+      {passkeySupported && (
+        <div className="mt-4">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-400 font-medium">Or continue with</span>
+              <span className="bg-white px-2 text-gray-400 font-medium">Or</span>
             </div>
           </div>
           <div className="mt-4 flex justify-center">
-            {/* Social OAuth buttons are handled by SocialRow above */}
+            <button
+              type="button"
+              onClick={() => { void handlePasskeyLogin(); }}
+              disabled={passkeyLoading}
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white rounded-2xl hover:bg-[#f5f2fd] hover:text-[#6D4AE0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ border: '1.5px solid #e3ddf8' }}
+            >
+              {passkeyLoading
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <KeyRound className="w-4 h-4" />}
+              {passkeyLoading ? 'Verifying…' : 'Sign in with Passkey'}
+            </button>
           </div>
         </div>
       )}
