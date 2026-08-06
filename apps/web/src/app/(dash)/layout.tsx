@@ -7,7 +7,7 @@ import {
   FolderOpen, Settings, LogOut, Palette, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
-  WifiOff, Layers, Link2,
+  WifiOff, Layers, Link2, Plus, Sparkles, Compass,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -48,13 +48,14 @@ const BOTTOM_ITEMS: NavItem[] = [
   { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];
 
-/* Mobile bottom nav — 5 primary items + "More" button */
-const MOBILE_NAV_ITEMS = [
+/* Mobile bottom nav — 2 left + Create CTA + 2 right + More */
+const MOBILE_NAV_LEFT = [
   { href: '/home',     icon: Home,       label: 'Home' },
   { href: '/projects', icon: FolderOpen, label: 'Projects' },
-  { href: '/editor',   icon: Film,       label: 'Studio' },
+];
+const MOBILE_NAV_RIGHT = [
+  { href: '/studio',   icon: Sparkles,   label: 'Studio' },
   { href: '/publish',  icon: Upload,     label: 'Publish' },
-  { href: '/insights', icon: BarChart2,  label: 'Analytics' },
 ];
 
 function nameFromToken(): string {
@@ -867,38 +868,86 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
       {/* ── MOBILE BOTTOM NAV ────────────────────────────────────────────── */}
       <nav
-        className="cf-mobile-nav fixed bottom-0 inset-x-0 lg:hidden z-30 bg-white border-t border-[#ECECF3]"
+        className="cf-mobile-nav fixed bottom-0 inset-x-0 lg:hidden z-30"
         aria-label="Mobile navigation"
+        style={{ background: '#fff', borderTop: '1px solid #ECECF3' }}
       >
-        <div className="flex items-stretch h-14">
-          {MOBILE_NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+        <div className="flex items-end h-16">
+
+          {/* Left 2 tabs */}
+          {MOBILE_NAV_LEFT.map(({ href, icon: Icon, label }) => {
             const isActive = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link
                 key={href}
                 href={href}
-                className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-colors active:bg-[#F6F5FC] touch-manipulation"
-                style={{ color: isActive ? '#7C3AED' : '#9a97ab', minHeight: '44px' }}
+                className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative"
+                style={{ color: isActive ? '#7C3AED' : '#9a97ab' }}
+                aria-current={isActive ? 'page' : undefined}
               >
-                <Icon className="w-[21px] h-[21px]" style={{ color: isActive ? '#7C3AED' : '#9a97ab' }} />
-                <span className="text-[10px] font-semibold leading-none" style={{ color: isActive ? '#7C3AED' : '#9a97ab' }}>{label}</span>
                 {isActive && (
-                  <span className="absolute bottom-0 h-0.5 w-8 rounded-full" style={{ background: '#7C3AED' }} />
+                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#7C3AED' }} />
                 )}
+                <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
+                <span className="text-[10.5px] font-semibold leading-none">{label}</span>
               </Link>
             );
           })}
+
+          {/* Centre — Create CTA */}
+          <div className="flex-1 flex flex-col items-center justify-end pb-2 relative" style={{ zIndex: 10 }}>
+            <Link
+              href="/content"
+              aria-label="Create new content"
+              className="flex flex-col items-center gap-[3px] touch-manipulation"
+            >
+              <span
+                className="flex items-center justify-center rounded-2xl shadow-lg active:scale-95 transition-transform"
+                style={{
+                  width: 52, height: 52,
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #9D6FE8 100%)',
+                  boxShadow: '0 4px 16px rgba(124,58,237,0.40)',
+                  marginTop: -14, // lifts above the bar
+                }}
+              >
+                <Plus className="w-[26px] h-[26px] text-white" strokeWidth={2.5} />
+              </span>
+              <span className="text-[10.5px] font-semibold leading-none" style={{ color: '#7C3AED' }}>Create</span>
+            </Link>
+          </div>
+
+          {/* Right 2 tabs */}
+          {MOBILE_NAV_RIGHT.map(({ href, icon: Icon, label }) => {
+            const isActive = pathname === href || pathname.startsWith(href + '/');
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative"
+                style={{ color: isActive ? '#7C3AED' : '#9a97ab' }}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {isActive && (
+                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#7C3AED' }} />
+                )}
+                <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
+                <span className="text-[10.5px] font-semibold leading-none">{label}</span>
+              </Link>
+            );
+          })}
+
           {/* More — opens drawer */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-colors active:bg-[#F6F5FC] touch-manipulation border-none"
-            style={{ background: 'transparent', minHeight: '44px' }}
+            className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation border-none relative"
+            style={{ background: 'transparent', color: '#9a97ab' }}
             aria-label="Open navigation menu"
           >
-            <Menu className="w-[21px] h-[21px]" style={{ color: '#9a97ab' }} />
-            <span className="text-[10px] font-semibold leading-none" style={{ color: '#9a97ab' }}>More</span>
+            <Menu className="w-[22px] h-[22px]" strokeWidth={1.8} />
+            <span className="text-[10.5px] font-semibold leading-none">More</span>
           </button>
+
         </div>
       </nav>
 
