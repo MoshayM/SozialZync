@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
-  FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarClock,
+  FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarDays,
   CheckCircle2, Circle, ChevronRight, Bot, Mic2, MessageSquare, TrendingUp,
   Clock, Activity, PlayCircle, FileText, Music2, Image as ImageIcon, Film,
-  LayoutDashboard, Flame, Scissors, Send,
+  LayoutDashboard, Flame, Scissors, Send, Loader2,
 } from 'lucide-react';
 import { api, type TrialStatusResponse, type ChannelAutomation } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
@@ -62,7 +62,7 @@ const QUICK_ACTIONS = [
   { href: '/projects',   icon: Plus,          label: 'New Project',  sub: 'Start from scratch',          tileBg: '#6D4AE0' },
   { href: '/copilot',    icon: Bot,           label: 'AI Copilot',   sub: 'Chat with your AI crew',      tileBg: '#7c5ae8' },
   { href: '/autonomy',   icon: Sparkles,      label: 'AI Autonomy',  sub: 'Auto-generate content',       tileBg: '#ec4899' },
-  { href: '/scheduler',  icon: CalendarClock, label: 'Schedule',     sub: 'Plan publish calendar',       tileBg: '#0891b2' },
+  { href: '/calendar',   icon: CalendarDays,  label: 'Content Calendar', sub: 'AI-planned video schedule', tileBg: '#0891b2' },
 ];
 
 function greet(name: string): string {
@@ -115,6 +115,10 @@ export default function HomePage() {
   // greeting uses local time — must be client-only to avoid SSR/client hydration mismatch
   const [greeting, setGreeting] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [trendNiche, setTrendNiche] = useState('');
+  const [trendItems, setTrendItems] = useState<Array<{ topic: string; score: number }>>([]);
+  const [trendsLoading, setTrendsLoading] = useState(false);
+  const trendDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (localStorage.getItem('cf.onboarding.done') === '1') setOnboardingDone(true);
@@ -154,6 +158,37 @@ export default function HomePage() {
   const displayName = (me?.name ?? 'Creator').split(' ')[0] ?? 'Creator';
 
   useEffect(() => { setGreeting(greet(displayName)); }, [displayName]);
+
+  useEffect(() => {
+    setTrendNiche(localStorage.getItem('cf_channel_niche') ?? '');
+  }, []);
+
+  useEffect(() => {
+    if (trendDebounceRef.current) clearTimeout(trendDebounceRef.current);
+    if (!trendNiche.trim()) { setTrendItems([]); return; }
+    localStorage.setItem('cf_channel_niche', trendNiche);
+    trendDebounceRef.current = setTimeout(async () => {
+      setTrendsLoading(true);
+      try {
+        const res = await fetch('/api/v1/discover/trends', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ niche: trendNiche }),
+        });
+        if (res.ok) {
+          const data = await res.json() as { topics?: Array<{ topic: string; score: number }> };
+          setTrendItems(data.topics?.slice(0, 5) ?? []);
+        } else {
+          setTrendItems([]);
+        }
+      } catch {
+        setTrendItems([]);
+      } finally {
+        setTrendsLoading(false);
+      }
+    }, 800);
+    return () => { if (trendDebounceRef.current) clearTimeout(trendDebounceRef.current); };
+  }, [trendNiche]);
 
   const activeProjects = projects.filter((p) => p.status === 'ACTIVE');
   const totalVideos = projects.reduce((s, p) => s + p._count.videos, 0);
@@ -521,6 +556,48 @@ export default function HomePage() {
                   </Link>
                 ))}
               </div>
+            </Card>
+
+            {/* Trending Topics */}
+            <Card>
+              <SectionLabel icon={TrendingUp}>Trending Topics</SectionLabel>
+              <input
+                type="text"
+                placeholder="Enter your channel niche…"
+                value={trendNiche}
+                onChange={(e) => setTrendNiche(e.target.value)}
+                className="w-full text-sm rounded-xl px-3 py-2 mb-3 outline-none"
+                style={{ background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#1f1a3d' }}
+              />
+              {trendsLoading && (
+                <div className="flex items-center justify-center py-3">
+                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} />
+                </div>
+              )}
+              {!trendsLoading && trendItems.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {trendItems.map(({ topic, score }) => (
+                    <button
+                      key={topic}
+                      type="button"
+                      onClick={() => openCopilotWithPrompt(`Research trending topic: ${topic}`)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:opacity-80"
+                      style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ background: score > 80 ? '#10b981' : score > 60 ? '#f59e0b' : '#8b8fa8' }}
+                      />
+                      {topic}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!trendsLoading && trendItems.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-1">
+                  {trendNiche.trim() ? 'No trends found for this niche.' : 'Enter your niche to see trending topics.'}
+                </p>
+              )}
             </Card>
 
             {/* Connected channels */}

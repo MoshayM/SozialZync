@@ -1,12 +1,9 @@
 'use client';
 import { Suspense, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Film, Plus, Clock, Loader2, AlertCircle, Pencil, Clapperboard, Mic2, Music } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Film, Plus, Clock, Loader2, AlertCircle, Pencil } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
-import { ShortsStudioContent } from '@/components/shorts-studio-embed';
-import { AudioStudioContent } from '@/components/audio-studio-embed';
-import { MusicStudioContent } from '@/components/music-studio-embed';
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -24,45 +21,6 @@ const STATUS_STYLES: Record<string, React.CSSProperties> = {
   READY:     { background: '#ecfdf5', color: '#065f46' },
   FAILED:    { background: '#fef2f2', color: '#b91c1c' },
 };
-
-// ── Tab strip ─────────────────────────────────────────────────────────────────
-
-const TABS = [
-  { id: 'editor',  label: 'Video Editor',  Icon: Film        },
-  { id: 'shorts',  label: 'Shorts Studio', Icon: Clapperboard },
-  { id: 'audio',   label: 'Audio Studio',  Icon: Mic2        },
-  { id: 'music',   label: 'Music Studio',  Icon: Music       },
-] as const;
-type TabId = typeof TABS[number]['id'];
-
-function TabStrip({ active, onSelect }: { active: TabId; onSelect: (t: TabId) => void }) {
-  return (
-    <div
-      className="flex gap-1 p-1 rounded-2xl overflow-x-auto no-scrollbar"
-      style={{ background: '#f0edf9', border: '1.5px solid #e3ddf8', WebkitOverflowScrolling: 'touch' }}
-    >
-      {TABS.map(({ id, label, Icon }) => {
-        const isActive = active === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onSelect(id)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
-            style={
-              isActive
-                ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.30)' }
-                : { background: 'transparent', color: '#7c5ae8' }
-            }
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 // ── Editor list ───────────────────────────────────────────────────────────────
 
@@ -217,40 +175,14 @@ function VideoEditorContent() {
   );
 }
 
-// ── Inner (reads searchParams) ────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 function EditorInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const tab = (searchParams.get('tab') ?? 'editor') as TabId;
-
-  function selectTab(t: TabId) {
-    if (t === 'editor') router.replace('/editor');
-    else router.replace(`/editor?tab=${t}`);
-  }
-
   return (
     <div className="min-h-full bg-[#faf9ff]">
-      {/* Tab strip header */}
-      <div className="px-5 lg:px-7 pt-5 lg:pt-6 max-w-5xl mx-auto pb-1 space-y-3">
-        <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Studio</h1>
-        <div className="overflow-x-auto no-scrollbar -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <TabStrip active={tab} onSelect={selectTab} />
-        </div>
+      <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5 pt-5 lg:pt-6">
+        <VideoEditorContent />
       </div>
-
-      {/* Content — Shorts Studio owns its own padding; editor list uses inner padding */}
-      {tab === 'shorts' ? (
-        <ShortsStudioContent />
-      ) : tab === 'audio' ? (
-        <AudioStudioContent />
-      ) : tab === 'music' ? (
-        <MusicStudioContent />
-      ) : (
-        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5 pt-4 lg:pt-4">
-          <VideoEditorContent />
-        </div>
-      )}
     </div>
   );
 }

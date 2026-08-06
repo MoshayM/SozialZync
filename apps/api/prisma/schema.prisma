@@ -54,6 +54,7 @@ model User {
   providerConfigs     UserProviderConfig[]
   musicTracks  MusicTrack[]
   characters   Character[]
+  passkeys     PasskeyCredential[]
 
   @@map("users")
 }
@@ -2209,4 +2210,32 @@ model Character {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ── WebAuthn / Passkey ────────────────────────────────────────────────────────
+
+model PasskeyCredential {
+  id           String    @id @default(cuid())
+  userId       String
+  credentialId String    @unique
+  publicKey    String
+  counter      BigInt    @default(0)
+  deviceType   String    @default("singleDevice")
+  backedUp     Boolean   @default(false)
+  transports   String[]
+  name         String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WebAuthnChallenge {
+  id        String   @id @default(cuid())
+  challenge String   @unique
+  userId    String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
