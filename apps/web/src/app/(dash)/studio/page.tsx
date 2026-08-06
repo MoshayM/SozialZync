@@ -588,16 +588,26 @@ export default function CreativeStudioPage() {
           <p className="text-sm text-gray-500">Content Tools · Characters · Images · Audio Studio · Shorts Studio · AI Thumbnails</p>
         </div>
 
-        {/* Top-level tab switcher */}
-        <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ background: '#f0edf9', width: 'fit-content' }}>
-          {TOP_TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setTopTab(id)}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
-              style={topTab === id ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
-              <Icon className="w-3.5 h-3.5" />
-              {label}
-            </button>
-          ))}
+        {/* Top-level tab switcher — full-width scroll container so iOS can swipe */}
+        <div className="w-full overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="inline-flex gap-1 p-1 rounded-xl" style={{ background: '#f0edf9', minWidth: 'max-content' }}>
+            {TOP_TABS.map(({ id, label, icon: Icon }) => (
+              <button key={id} onClick={() => setTopTab(id)}
+                className="flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  ...(topTab === id
+                    ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
+                    : { color: '#9b8fc4' }),
+                }}>
+                <Icon className="w-4 h-4 shrink-0" />
+                {/* Label hidden on mobile (all 6 icons fit); visible sm+ */}
+                <span className="hidden sm:inline">{label}</span>
+                {/* On mobile show label only for active tab so user knows where they are */}
+                {topTab === id && <span className="sm:hidden text-xs">{label}</span>}
+              </button>
+            ))}
+          </div>
         </div>
 
         {topTab === 'characters' && <CharactersSection />}
