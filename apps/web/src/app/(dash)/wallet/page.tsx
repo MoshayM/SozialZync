@@ -586,7 +586,8 @@ function PlansGrid() {
   const { plan, credits, hasCreditsPro, isEnterprise, isSuperAdmin } = usePlan();
   const [localeKey, setLocaleKey] = useState<string>('DEFAULT');
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
-  const [enterpriseForm, setEnterpriseForm] = useState({ company: '', teamSize: '', useCase: '', budget: '' });
+  const [enterpriseForm, setEnterpriseForm] = useState({ company: '', teamSize: '', useCase: '' });
+  const [enterpriseTeamFile, setEnterpriseTeamFile] = useState<File | null>(null);
   const [enterpriseSubmitted, setEnterpriseSubmitted] = useState(false);
   const [enterpriseSubmitting, setEnterpriseSubmitting] = useState(false);
 
@@ -794,9 +795,8 @@ function PlansGrid() {
             <div className="space-y-3">
               {(
                 [
-                  { key: 'company',  label: 'Company / Brand name',   placeholder: 'Acme Corp'  },
-                  { key: 'teamSize', label: 'Team size',               placeholder: 'e.g. 10–50' },
-                  { key: 'budget',   label: 'Monthly AI budget (USD)', placeholder: 'e.g. $500'  },
+                  { key: 'company',  label: 'Company / Brand name', placeholder: 'Acme Corp'  },
+                  { key: 'teamSize', label: 'Team size',             placeholder: 'e.g. 10–50' },
                 ] as { key: keyof typeof enterpriseForm; label: string; placeholder: string }[]
               ).map(({ key, label, placeholder }) => (
                 <div key={key}>
@@ -810,6 +810,51 @@ function PlansGrid() {
                   />
                 </div>
               ))}
+
+              {/* Team member details PDF upload */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">
+                  Team Member Details <span className="text-gray-400 font-normal">(PDF — name &amp; email list)</span>
+                </label>
+                <label
+                  className="flex flex-col items-center justify-center gap-2 w-full rounded-xl cursor-pointer transition-all"
+                  style={{
+                    border: enterpriseTeamFile ? '2px solid #7C3AED' : '2px dashed #d1d5db',
+                    background: enterpriseTeamFile ? '#faf5ff' : '#fafafa',
+                    padding: '16px 12px',
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      if (f && f.type === 'application/pdf') setEnterpriseTeamFile(f);
+                    }}
+                  />
+                  {enterpriseTeamFile ? (
+                    <>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                      <span className="text-xs font-semibold text-purple-700 text-center break-all">{enterpriseTeamFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setEnterpriseTeamFile(null); }}
+                        className="text-[11px] text-red-500 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      <span className="text-xs font-medium text-gray-500">Click to upload PDF</span>
+                      <span className="text-[11px] text-gray-400">Include team member names &amp; email addresses</span>
+                    </>
+                  )}
+                </label>
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Use case / Why enterprise?</label>
                 <textarea
@@ -833,6 +878,7 @@ function PlansGrid() {
                   userName: localStorage.getItem('cf_user_name') ?? 'User',
                   userEmail: localStorage.getItem('cf_user_email') ?? '',
                   ...enterpriseForm,
+                  teamMemberFile: enterpriseTeamFile?.name ?? null,
                   status: 'pending',
                   submittedAt: new Date().toISOString(),
                 });
