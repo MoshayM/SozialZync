@@ -7,7 +7,7 @@ import {
   FolderOpen, Settings, LogOut, Palette, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
-  WifiOff, Users2, ImagePlus,
+  WifiOff, Music, Headphones, Scissors, Mic, Layers,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -30,11 +30,19 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { href: '/home',              icon: Home,       label: 'Home' },
-      { href: '/projects',          icon: FolderOpen, label: 'Projects' },
-      { href: '/editor',            icon: Film,       label: 'Video Editor' },
-      { href: '/studio/characters', icon: Users2,     label: 'Characters' },
-      { href: '/studio/assets',     icon: ImagePlus,  label: 'Images & Assets' },
+      { href: '/home',     icon: Home,       label: 'Home' },
+      { href: '/projects', icon: FolderOpen, label: 'Projects' },
+    ],
+  },
+  {
+    category: 'Studio',
+    items: [
+      { href: '/studio',        icon: Layers,     label: 'Characters & Assets' },
+      { href: '/editor',        icon: Film,       label: 'Video Editor' },
+      { href: '/shorts-studio', icon: Scissors,   label: 'Shorts Studio' },
+      { href: '/studio/audio',  icon: Headphones, label: 'Audio Studio' },
+      { href: '/studio/music',  icon: Music,      label: 'Music Studio' },
+      { href: '/studio/voices', icon: Mic,        label: 'Voice Library' },
     ],
   },
   {
@@ -240,7 +248,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   /* Mobile drawer overlay open */
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set<string>([]));
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set<string>(['Studio']));
   function toggleSection(cat: string) {
     setOpenSections(prev => {
       const next = new Set(prev);
@@ -391,7 +399,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           {isOpen && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {items.map(({ href, icon: Icon, label, badge, action }) => {
-                const isActive = !action && (pathname === href || pathname.startsWith(href + '/'));
+                const isActive = !action && (
+                  href === '/studio'
+                    ? (pathname === '/studio' || pathname === '/studio/characters' || pathname === '/studio/assets')
+                    : (pathname === href || pathname.startsWith(href + '/'))
+                );
                 const itemStyle: React.CSSProperties = {
                   gap: '11px',
                   padding: opts.collapsed ? '11px 0' : '10px 12px',
