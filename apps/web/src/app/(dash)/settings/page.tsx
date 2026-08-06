@@ -1,5 +1,5 @@
 'use client';
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -7,7 +7,7 @@ import {
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
   Webhook, Trash2, Play, Plus, Cpu, Download, HardDrive, Activity,
-  Fingerprint,
+  Fingerprint, Camera, X as XIcon,
 } from 'lucide-react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse, type PasskeyCredentialView } from '@/lib/api';
@@ -42,6 +42,8 @@ function SettingsContent() {
   const [profileName, setProfileName] = useState('');
   const [profileAvatar, setProfileAvatar] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Webhook state ───────────────────────────────────────────────────────────
   const [showAddWebhookForm, setShowAddWebhookForm] = useState(false);
@@ -203,6 +205,32 @@ function SettingsContent() {
       void refetchLinks();
     }
   }, [justLinkedProvider]);
+
+  // Compresses a selected image to 256×256 JPEG (~8-15 KB) for storage as data URI
+  function handleAvatarFile(file: File) {
+    if (!file.type.startsWith('image/')) return;
+    setAvatarUploading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const SIZE = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d')!;
+        const min = Math.min(img.width, img.height);
+        const ox = (img.width - min) / 2;
+        const oy = (img.height - min) / 2;
+        ctx.drawImage(img, ox, oy, min, min, 0, 0, SIZE, SIZE);
+        setProfileAvatar(canvas.toDataURL('image/jpeg', 0.88));
+        setAvatarUploading(false);
+      };
+      img.onerror = () => setAvatarUploading(false);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => setAvatarUploading(false);
+    reader.readAsDataURL(file);
+  }
 
   const updateProfileMutation = useMutation({
     mutationFn: () => api.auth.updateProfile({ name: profileName, avatarUrl: profileAvatar }),
@@ -371,71 +399,92 @@ function SettingsContent() {
         {/* ── Profile ──────────────────────────────────────────────────── */}
         <section>
           <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Profile</p>
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-white rounded-2xl p-5 space-y-5" style={{ border: '1.5px solid #e3ddf8' }}>
+            <div className="flex items-center gap-2">
               <User className="w-5 h-5" style={{ color: '#6D4AE0' }} />
               <span className="text-sm font-semibold text-gray-800">Your Profile</span>
             </div>
-            <div className="flex items-center gap-5 mb-5">
-              <div className="relative w-16 h-16 shrink-0">
-                {/* Gradient + initial: always visible as base layer */}
-                <div suppressHydrationWarning className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-2xl font-bold select-none">
-                  {(me?.name?.[0] ?? profileName[0] ?? '?').toUpperCase()}
+
+            {/* Avatar upload */}
+            <div className="flex items-center gap-5">
+              <div className="relative shrink-0 group">
+                {/* Base layer: gradient + initial */}
+                <div suppressHydrationWarning
+                  className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-3xl font-bold select-none"
+                  style={{ border: '2px solid #e3ddf8' }}>
+                  {(profileName[0] ?? me?.name?.[0] ?? '?').toUpperCase()}
                 </div>
-                {/* Profile image: layered on top, hides on error revealing the base */}
+                {/* Image layer */}
                 {profileAvatar && (
-                  <img
-                    src={profileAvatar}
-                    alt="Avatar"
-                    className="absolute inset-0 w-full h-full rounded-full object-cover"
+                  <img src={profileAvatar} alt="Avatar"
+                    className="absolute inset-0 w-full h-full rounded-2xl object-cover"
                     style={{ border: '2px solid #e3ddf8' }}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                )}
+                {/* Upload overlay */}
+                <button type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                  style={{ background: 'rgba(0,0,0,0.45)' }}
+                  title="Upload photo">
+                  {avatarUploading
+                    ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    : <Camera className="w-5 h-5 text-white" />}
+                  <span className="text-[10px] text-white font-semibold">{avatarUploading ? 'Processing…' : 'Upload'}</span>
+                </button>
+                {/* Clear button */}
+                {profileAvatar && (
+                  <button type="button"
+                    onClick={() => setProfileAvatar('')}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                    title="Remove photo">
+                    <XIcon className="w-3 h-3 text-white" />
+                  </button>
                 )}
               </div>
-              <div className="text-sm text-gray-600">
-                <p suppressHydrationWarning className="font-medium text-gray-700">{me?.email ?? ''}</p>
-                <p suppressHydrationWarning className="text-xs mt-0.5 capitalize">{me?.role?.toLowerCase() ?? ''}</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Display name</label>
-                <input
-                  type="text"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="Your name"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
-                  style={{ border: '1.5px solid #e3e0f0' }}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Avatar URL <span className="text-gray-600 font-normal">(optional)</span></label>
-                <input
-                  type="url"
-                  value={profileAvatar}
-                  onChange={(e) => setProfileAvatar(e.target.value)}
-                  placeholder="https://example.com/avatar.jpg"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
-                  style={{ border: '1.5px solid #e3e0f0' }}
-                />
-              </div>
-              <div className="flex justify-end pt-1">
-                <button
-                  onClick={() => updateProfileMutation.mutate()}
-                  disabled={updateProfileMutation.isPending}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
-                >
-                  {updateProfileMutation.isPending
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : profileSaved
-                    ? <CheckCircle className="w-3.5 h-3.5" />
-                    : <Save className="w-3.5 h-3.5" />}
-                  {profileSaved ? 'Saved!' : 'Save Profile'}
+
+              <div className="space-y-1">
+                <p suppressHydrationWarning className="text-sm font-semibold text-gray-800">{profileName || me?.name || 'Your Name'}</p>
+                <p suppressHydrationWarning className="text-xs text-gray-500">{me?.email ?? ''}</p>
+                <p suppressHydrationWarning className="text-xs capitalize" style={{ color: '#6D4AE0', fontWeight: 600 }}>{me?.role?.toLowerCase() ?? 'creator'}</p>
+                <button type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="mt-1 text-xs font-semibold underline underline-offset-2 disabled:opacity-50"
+                  style={{ color: '#6D4AE0' }}>
+                  {profileAvatar ? 'Change photo' : 'Upload photo'}
                 </button>
               </div>
+
+              {/* Hidden file input */}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarFile(f); e.target.value = ''; }} />
+            </div>
+
+            {/* Display name */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Display name</label>
+              <input type="text" value={profileName} onChange={(e) => setProfileName(e.target.value)}
+                placeholder="Your name"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                style={{ border: '1.5px solid #e3e0f0' }} />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-gray-400">Changes apply across the whole app</p>
+              <button
+                onClick={() => updateProfileMutation.mutate()}
+                disabled={updateProfileMutation.isPending || avatarUploading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}>
+                {updateProfileMutation.isPending
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : profileSaved
+                  ? <CheckCircle className="w-3.5 h-3.5" />
+                  : <Save className="w-3.5 h-3.5" />}
+                {profileSaved ? 'Saved!' : 'Save changes'}
+              </button>
             </div>
           </div>
         </section>
