@@ -7,7 +7,7 @@ import {
   FolderOpen, Settings, LogOut, Palette, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
-  WifiOff, Music, Headphones, Scissors, Mic, Layers,
+  WifiOff, Layers,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -32,23 +32,10 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/home',     icon: Home,       label: 'Home' },
       { href: '/projects', icon: FolderOpen, label: 'Projects' },
-    ],
-  },
-  {
-    category: 'Studio',
-    items: [
-      { href: '/studio',        icon: Layers,     label: 'Characters & Assets' },
-      { href: '/editor',        icon: Film,       label: 'Video Editor' },
-      { href: '/shorts-studio', icon: Scissors,   label: 'Shorts Studio' },
-      { href: '/studio/audio',  icon: Headphones, label: 'Audio Studio' },
-      { href: '/studio/music',  icon: Music,      label: 'Music Studio' },
-      { href: '/studio/voices', icon: Mic,        label: 'Voice Library' },
-    ],
-  },
-  {
-    items: [
-      { href: '/publish',  icon: Upload,    label: 'Publish Hub' },
-      { href: '/insights', icon: BarChart2, label: 'Analytics' },
+      { href: '/editor',   icon: Film,       label: 'Video Editing' },
+      { href: '/studio',   icon: Layers,     label: 'Studio' },
+      { href: '/publish',  icon: Upload,     label: 'Publish Hub' },
+      { href: '/insights', icon: BarChart2,  label: 'Analytics' },
     ],
   },
 ];
@@ -401,7 +388,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               {items.map(({ href, icon: Icon, label, badge, action }) => {
                 const isActive = !action && (
                   href === '/studio'
-                    ? (pathname === '/studio' || pathname === '/studio/characters' || pathname === '/studio/assets')
+                    ? (pathname === '/studio' || pathname.startsWith('/studio/') || pathname.startsWith('/shorts-studio'))
                     : (pathname === href || pathname.startsWith(href + '/'))
                 );
                 const itemStyle: React.CSSProperties = {
