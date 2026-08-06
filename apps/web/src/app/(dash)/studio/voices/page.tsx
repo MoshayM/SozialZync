@@ -91,7 +91,7 @@ export default function VoiceLibraryPage() {
     try {
       const params = new URLSearchParams();
       if (source !== 'all') params.set('source', source);
-      const res = await fetch(`/api/v1/voice/library?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(`/api/proxy/voice/library?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as VoiceLibraryResponse;
       setVoices(data.voices);

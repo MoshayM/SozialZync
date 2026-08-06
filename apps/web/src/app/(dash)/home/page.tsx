@@ -170,7 +170,7 @@ export default function HomePage() {
     trendDebounceRef.current = setTimeout(async () => {
       setTrendsLoading(true);
       try {
-        const res = await fetch('/api/v1/discover/trends', {
+        const res = await fetch('/api/proxy/discover/trends', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ niche: trendNiche }),

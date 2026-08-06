@@ -61,7 +61,7 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
     try {
       const params = new URLSearchParams({ q: q.trim(), perPage: '24' });
       if (source !== 'all') params.set('source', source);
-      const res = await fetch(`/api/v1/media-library/images/search?${params}`, {
+      const res = await fetch(`/api/proxy/media-library/images/search?${params}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

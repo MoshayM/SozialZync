@@ -300,7 +300,7 @@ function VoicesSection({ selectedId, onSelect }: {
     try {
       const params = new URLSearchParams();
       if (source !== 'all') params.set('source', source);
-      const res = await fetch(`/api/v1/voice/library?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(`/api/proxy/voice/library?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as VoiceLibraryResponse;
       setVoices(data.voices);
@@ -486,7 +486,7 @@ function MusicSection({ selectedId, onSelect }: {
       const { minDuration, maxDuration } = durationRange(durationFilter);
       if (minDuration != null) p.set('minDuration', String(minDuration));
       if (maxDuration != null) p.set('maxDuration', String(maxDuration));
-      const res = await fetch(`/api/v1/music?${p}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(`/api/proxy/music?${p}`, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as TrackListResponse;
       setTracks(data.tracks); setTotal(data.total);
@@ -496,7 +496,7 @@ function MusicSection({ selectedId, onSelect }: {
 
   const fetchMoods = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/music/moods', { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch('/api/proxy/music/moods', { headers: { Authorization: `Bearer ${getToken()}` } });
       if (res.ok) setAvailableMoods(await res.json() as string[]);
     } catch { /* non-fatal */ }
   }, []);
@@ -514,8 +514,8 @@ function MusicSection({ selectedId, onSelect }: {
       if (discoverSource !== 'all') p.set('source', discoverSource);
       p.set('limit', '30');
       const endpoint = (!discoverQuery && !discoverGenre && !discoverMood && !isSearch)
-        ? '/api/v1/music/browse/trending'
-        : `/api/v1/music/browse/search?${p}`;
+        ? '/api/proxy/music/browse/trending'
+        : `/api/proxy/music/browse/search?${p}`;
       const res = await fetch(endpoint, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setDiscoverResults(await res.json() as ExternalTrack[]);
@@ -528,7 +528,7 @@ function MusicSection({ selectedId, onSelect }: {
   async function handleImport(track: ExternalTrack) {
     setImportingId(track.externalId);
     try {
-      const res = await fetch('/api/v1/music/browse/import', {
+      const res = await fetch('/api/proxy/music/browse/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify(track),
@@ -550,7 +550,7 @@ function MusicSection({ selectedId, onSelect }: {
     if (isNaN(dur) || dur <= 0) { setAddError('Duration must be a positive number of seconds.'); return; }
     setSubmitting(true); setAddError(null);
     try {
-      const res = await fetch('/api/v1/music', {
+      const res = await fetch('/api/proxy/music', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
@@ -573,7 +573,7 @@ function MusicSection({ selectedId, onSelect }: {
   async function handleDelete(id: string) {
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/v1/music/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(`/api/proxy/music/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error();
       setTracks(prev => prev.filter(t => t.id !== id)); setTotal(prev => prev - 1);
       if (selectedId === id) onSelect('', '');

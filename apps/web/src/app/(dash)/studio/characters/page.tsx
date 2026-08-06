@@ -136,7 +136,7 @@ function VoicePreviewBtn({ character, size = 'sm' }: { character: Partial<Charac
     if (playing) { audioRef.current?.pause(); setPlaying(false); return; }
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/characters/preview-voice', {
+      const res = await fetch('/api/proxy/characters/preview-voice', {
         method: 'POST',
         headers: { ...headers(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -200,7 +200,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
     if (!name.trim()) { setError('Name is required'); return; }
     setSaving(true); setError(null);
     try {
-      const url = initial?.id ? `/api/v1/characters/${initial.id}` : '/api/v1/characters';
+      const url = initial?.id ? `/api/proxy/characters/${initial.id}` : '/api/proxy/characters';
       const method = initial?.id ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
@@ -375,7 +375,7 @@ export default function CharactersPage() {
   const fetchCharacters = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/v1/characters', { headers: headers() });
+      const res = await fetch('/api/proxy/characters', { headers: headers() });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setCharacters(await res.json() as Character[]);
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load characters'); }
@@ -384,7 +384,7 @@ export default function CharactersPage() {
 
   const fetchPresets = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/characters/presets', { headers: headers() });
+      const res = await fetch('/api/proxy/characters/presets', { headers: headers() });
       if (res.ok) setPresets(await res.json() as CharacterPreset[]);
     } catch { /* non-fatal */ }
   }, []);
@@ -394,7 +394,7 @@ export default function CharactersPage() {
   async function deleteCharacter(id: string) {
     setDeletingId(id);
     try {
-      await fetch(`/api/v1/characters/${id}`, { method: 'DELETE', headers: headers() });
+      await fetch(`/api/proxy/characters/${id}`, { method: 'DELETE', headers: headers() });
       setCharacters(prev => prev.filter(c => c.id !== id));
     } catch { /* non-fatal */ }
     finally { setDeletingId(null); }
@@ -403,7 +403,7 @@ export default function CharactersPage() {
   async function addFromPreset(presetId: string) {
     setAddingPresetId(presetId);
     try {
-      const res = await fetch(`/api/v1/characters/from-preset/${presetId}`, { method: 'POST', headers: headers() });
+      const res = await fetch(`/api/proxy/characters/from-preset/${presetId}`, { method: 'POST', headers: headers() });
       if (res.ok) {
         setAddedPresetIds(prev => new Set([...prev, presetId]));
         void fetchCharacters();

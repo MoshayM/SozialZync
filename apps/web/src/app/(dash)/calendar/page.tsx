@@ -260,7 +260,7 @@ function GenerateModal({
     setIdeas([]);
     localStorage.setItem(NICHE_KEY, niche.trim());
     try {
-      const res = await fetch('/api/proxy/api/v1/content/generate-ideas', {
+      const res = await fetch('/api/proxy/content/generate-ideas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('cf_token') ?? '' : ''}` },
         body: JSON.stringify({ niche: niche.trim(), count, month: month + 1, year }),
