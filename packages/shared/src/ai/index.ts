@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'ollama' | 'lm-studio' | 'localai' | 'vllm' | 'openrouter' | 'openai-compat' | 'textgen-webui' | 'koboldcpp' | 'llamacpp' | 'openwebui' | 'kimi' | 'github-copilot';
+export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'deepseek' | 'mistral' | 'grok' | 'cohere' | 'ollama' | 'lm-studio' | 'localai' | 'vllm' | 'openrouter' | 'openai-compat' | 'textgen-webui' | 'koboldcpp' | 'llamacpp' | 'openwebui' | 'kimi' | 'github-copilot';
 
 export interface CustomProviderConfig {
   id: string;
@@ -157,14 +157,31 @@ const CFG = {
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 const DEFAULT_OPENAI_MODEL    = 'gpt-4o';
 const DEFAULT_GEMINI_MODEL    = 'gemini-2.5-flash';
-const GEMINI_BASE_URL         = 'https://generativelanguage.googleapis.com/v1beta/openai/';
+const DEFAULT_DEEPSEEK_MODEL  = 'deepseek-chat';
+const DEFAULT_MISTRAL_MODEL   = 'mistral-large-latest';
+const DEFAULT_GROK_MODEL      = 'grok-3';
+const DEFAULT_COHERE_MODEL    = 'command-r-plus-08-2024';
+
+const GEMINI_BASE_URL    = 'https://generativelanguage.googleapis.com/v1beta/openai/';
+const DEEPSEEK_BASE_URL  = 'https://api.deepseek.com/v1';
+const MISTRAL_BASE_URL   = 'https://api.mistral.ai/v1';
+const GROK_BASE_URL      = 'https://api.x.ai/v1';
+const COHERE_BASE_URL    = 'https://api.cohere.com/compatibility/v1';
 
 let _anthropicKey: string | undefined;
 let _openaiKey: string | undefined;
 let _geminiKey: string | undefined;
+let _deepseekKey: string | undefined;
+let _mistralKey: string | undefined;
+let _grokKey: string | undefined;
+let _cohereKey: string | undefined;
 let _anthropic: Anthropic | null = null;
 let _openai: OpenAI | null = null;
 let _gemini: OpenAI | null = null;
+let _deepseek: OpenAI | null = null;
+let _mistral: OpenAI | null = null;
+let _grok: OpenAI | null = null;
+let _cohere: OpenAI | null = null;
 
 function getAnthropic(): Anthropic {
   const key = process.env['ANTHROPIC_API_KEY'];
@@ -184,6 +201,30 @@ function getGemini(): OpenAI {
   if (!_gemini || key !== _geminiKey) { _geminiKey = key; _gemini = new OpenAI({ apiKey: key, baseURL: GEMINI_BASE_URL }); }
   return _gemini;
 }
+function getDeepSeek(): OpenAI {
+  const key = process.env['DEEPSEEK_API_KEY'];
+  if (!key) throw new Error('DEEPSEEK_API_KEY not set');
+  if (!_deepseek || key !== _deepseekKey) { _deepseekKey = key; _deepseek = new OpenAI({ apiKey: key, baseURL: DEEPSEEK_BASE_URL }); }
+  return _deepseek;
+}
+function getMistral(): OpenAI {
+  const key = process.env['MISTRAL_API_KEY'];
+  if (!key) throw new Error('MISTRAL_API_KEY not set');
+  if (!_mistral || key !== _mistralKey) { _mistralKey = key; _mistral = new OpenAI({ apiKey: key, baseURL: MISTRAL_BASE_URL }); }
+  return _mistral;
+}
+function getGrok(): OpenAI {
+  const key = process.env['XAI_API_KEY'];
+  if (!key) throw new Error('XAI_API_KEY not set');
+  if (!_grok || key !== _grokKey) { _grokKey = key; _grok = new OpenAI({ apiKey: key, baseURL: GROK_BASE_URL }); }
+  return _grok;
+}
+function getCohere(): OpenAI {
+  const key = process.env['COHERE_API_KEY'];
+  if (!key) throw new Error('COHERE_API_KEY not set');
+  if (!_cohere || key !== _cohereKey) { _cohereKey = key; _cohere = new OpenAI({ apiKey: key, baseURL: COHERE_BASE_URL }); }
+  return _cohere;
+}
 
 // ── Provider Health & Scoring ─────────────────────────────────────────────────
 
@@ -199,6 +240,10 @@ const providerHealth = new Map<AIProvider, ProviderHealth>([
   ['anthropic', { score: 100, cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
   ['openai',    { score: 80,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
   ['gemini',    { score: 60,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['deepseek',  { score: 70,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['mistral',   { score: 65,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['grok',      { score: 55,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['cohere',    { score: 50,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
 ]);
 
 // ── Custom OpenAI-compatible providers (Ollama, LM Studio, vLLM, etc.) ─────────
@@ -547,10 +592,14 @@ function buildOptimizedMessages(messages: AIMessage[], systemPrompt: string): { 
 // Approximate USD per 1M tokens (input / output)
 // Custom/local providers default to 0 cost (self-hosted); their entries are absent.
 const PROVIDER_COST_PER_1M: Partial<Record<AIProvider, { input: number; output: number }>> = {
-  anthropic:  { input: 3.00, output: 15.00 },
-  openai:     { input: 2.50, output: 10.00 },
-  gemini:     { input: 0.10, output: 0.40  },
-  openrouter: { input: 0.00, output: 0.00  }, // billed per-model by OpenRouter; treat as 0 here
+  anthropic:  { input: 3.00,  output: 15.00 },
+  openai:     { input: 2.50,  output: 10.00 },
+  gemini:     { input: 0.10,  output: 0.40  },
+  deepseek:   { input: 0.27,  output: 1.10  }, // deepseek-chat V3 pricing
+  mistral:    { input: 2.00,  output: 6.00  }, // mistral-large-latest
+  grok:       { input: 3.00,  output: 15.00 }, // grok-3
+  cohere:     { input: 2.50,  output: 10.00 }, // command-r-plus
+  openrouter: { input: 0.00,  output: 0.00  }, // billed per-model by OpenRouter; treat as 0 here
 };
 
 function estimateCost(provider: AIProvider, tokensIn: number, tokensOut: number): number {
@@ -649,6 +698,20 @@ async function callAIProvider(
       model,
       provider: 'anthropic',
     };
+  }
+
+  if (provider === 'deepseek' || provider === 'mistral' || provider === 'grok' || provider === 'cohere') {
+    const clientFn = provider === 'deepseek' ? getDeepSeek : provider === 'mistral' ? getMistral : provider === 'grok' ? getGrok : getCohere;
+    const defaultModel = provider === 'deepseek' ? DEFAULT_DEEPSEEK_MODEL : provider === 'mistral' ? DEFAULT_MISTRAL_MODEL : provider === 'grok' ? DEFAULT_GROK_MODEL : DEFAULT_COHERE_MODEL;
+    const client = clientFn();
+    const model = opts.model ?? defaultModel;
+    const msgs: OpenAI.ChatCompletionMessageParam[] = opts.systemPrompt
+      ? [{ role: 'system', content: opts.systemPrompt }, ...messages.map((m) => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }))]
+      : messages.map((m) => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }));
+    const resp = await client.chat.completions.create({ model, messages: msgs, max_tokens: opts.maxTokens ?? 4096, temperature: opts.temperature ?? 0.7 });
+    const choice = resp.choices[0];
+    if (!choice) throw new Error(`${provider} returned no choices`);
+    return { content: choice.message.content ?? '', tokensIn: resp.usage?.prompt_tokens ?? 0, tokensOut: resp.usage?.completion_tokens ?? 0, model, provider };
   }
 
   if (provider === 'openai' || provider === 'gemini') {
@@ -789,8 +852,12 @@ export async function callAIStructured<T>(
   // Build provider chain sorted by health score
   const primary: AIProvider = opts.provider ?? 'anthropic';
   const candidates: AIProvider[] = [primary];
-  if (primary !== 'openai' && process.env['OPENAI_API_KEY']) candidates.push('openai');
-  if (primary !== 'gemini' && process.env['GEMINI_API_KEY']) candidates.push('gemini');
+  if (primary !== 'openai'    && process.env['OPENAI_API_KEY'])    candidates.push('openai');
+  if (primary !== 'gemini'    && process.env['GEMINI_API_KEY'])    candidates.push('gemini');
+  if (primary !== 'deepseek'  && process.env['DEEPSEEK_API_KEY'])  candidates.push('deepseek');
+  if (primary !== 'mistral'   && process.env['MISTRAL_API_KEY'])   candidates.push('mistral');
+  if (primary !== 'grok'      && process.env['XAI_API_KEY'])       candidates.push('grok');
+  if (primary !== 'cohere'    && process.env['COHERE_API_KEY'])    candidates.push('cohere');
   const chain = rankProviders(candidates);
 
   let result: AICallResult | null = null;
@@ -1173,15 +1240,19 @@ export function simulateRouting(
   estTokensIn: number,
   estTokensOut: number,
 ): RoutingCandidate[] {
-  const builtInProviders: AIProvider[] = ['anthropic', 'openai', 'gemini'];
+  const builtInProviders: AIProvider[] = ['anthropic', 'openai', 'gemini', 'deepseek', 'mistral', 'grok', 'cohere'];
   // Include any registered custom providers that appear in providerHealth
   const customProviderKeys = [..._customProviders.keys()] as AIProvider[];
   const allProviders: AIProvider[] = [...builtInProviders, ...customProviderKeys];
 
   const defaultModels: Partial<Record<AIProvider, string>> = {
     anthropic: DEFAULT_ANTHROPIC_MODEL,
-    openai: DEFAULT_OPENAI_MODEL,
-    gemini: DEFAULT_GEMINI_MODEL,
+    openai:    DEFAULT_OPENAI_MODEL,
+    gemini:    DEFAULT_GEMINI_MODEL,
+    deepseek:  DEFAULT_DEEPSEEK_MODEL,
+    mistral:   DEFAULT_MISTRAL_MODEL,
+    grok:      DEFAULT_GROK_MODEL,
+    cohere:    DEFAULT_COHERE_MODEL,
   };
   // Populate default models for registered custom providers
   for (const [key, entry] of _customProviders.entries()) {
