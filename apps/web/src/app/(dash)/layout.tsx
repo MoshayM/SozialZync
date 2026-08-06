@@ -202,6 +202,45 @@ function CreditsBanner() {
   );
 }
 
+// ── User avatar — shows profile image with deterministic gradient fallback ────
+// Works offline: if avatarUrl fails to load (network error, expired URL, CORS),
+// falls back to a gradient tile with the user's initial — no network required.
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#6D4AE0,#9C88DD)',
+  'linear-gradient(135deg,#7c5ae8,#a78bfa)',
+  'linear-gradient(135deg,#5B3BD0,#8B5CF6)',
+  'linear-gradient(135deg,#4338CA,#818CF8)',
+  'linear-gradient(135deg,#7C3AED,#C084FC)',
+];
+
+function UserAvatar({ name, url, size = 32 }: { name: string; url?: string | null; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const initial = (name || '?').charAt(0).toUpperCase();
+  const grad = AVATAR_GRADIENTS[(name.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length];
+  const radius = `${Math.round(size * 0.28)}px`;
+
+  const fallback = (
+    <div className="flex items-center justify-center text-white font-bold text-sm uppercase select-none shrink-0"
+      style={{ width: size, height: size, borderRadius: radius, background: grad, letterSpacing: '-0.01em' }}>
+      {initial}
+    </div>
+  );
+
+  if (!url || failed) return fallback;
+
+  return (
+    <img
+      src={url}
+      alt={initial}
+      width={size}
+      height={size}
+      onError={() => setFailed(true)}
+      style={{ width: size, height: size, borderRadius: radius, objectFit: 'cover', display: 'block', flexShrink: 0 }}
+    />
+  );
+}
+
 export default function DashLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -629,13 +668,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             className="flex items-center gap-2 hover:bg-[#F6F5FC] active:bg-[#EDE9FD] transition-colors cursor-pointer touch-manipulation"
             style={{ background: '#fff', border: '1px solid #ECECF3', borderRadius: '12px', padding: '5px 5px 5px 5px' }}
           >
-            {meData?.avatarUrl ? (
-              <img src={meData.avatarUrl} alt={meData.name ?? 'Avatar'} style={{ width: '32px', height: '32px', borderRadius: '9px', objectFit: 'cover' }} />
-            ) : (
-              <div className="flex items-center justify-center text-white font-bold text-sm uppercase" style={{ width: '32px', height: '32px', borderRadius: '9px', background: 'linear-gradient(135deg,#9C88DD,#7E62C9)' }}>
-                {(meData?.name ?? userName).charAt(0)}
-              </div>
-            )}
+            <UserAvatar name={meData?.name ?? userName} url={meData?.avatarUrl} size={32} />
             {/* Name — shown on sm+ screens */}
             <div className="hidden sm:block max-w-[120px]" style={{ lineHeight: 1.2, textAlign: 'left', paddingRight: '6px' }}>
               <div className="truncate" style={{ fontWeight: 700, fontSize: '13.5px' }}>{meData?.name ?? userName}</div>

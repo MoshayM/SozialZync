@@ -377,19 +377,22 @@ function SettingsContent() {
               <span className="text-sm font-semibold text-gray-800">Your Profile</span>
             </div>
             <div className="flex items-center gap-5 mb-5">
-              {profileAvatar ? (
-                <img
-                  src={profileAvatar}
-                  alt="Avatar"
-                  className="w-16 h-16 rounded-full object-cover shrink-0"
-                  style={{ border: '2px solid #e3ddf8' }}
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              ) : (
-                <div suppressHydrationWarning className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shrink-0 select-none">
-                  {me?.name?.[0]?.toUpperCase() ?? ''}
+              <div className="relative w-16 h-16 shrink-0">
+                {/* Gradient + initial: always visible as base layer */}
+                <div suppressHydrationWarning className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-2xl font-bold select-none">
+                  {(me?.name?.[0] ?? profileName[0] ?? '?').toUpperCase()}
                 </div>
-              )}
+                {/* Profile image: layered on top, hides on error revealing the base */}
+                {profileAvatar && (
+                  <img
+                    src={profileAvatar}
+                    alt="Avatar"
+                    className="absolute inset-0 w-full h-full rounded-full object-cover"
+                    style={{ border: '2px solid #e3ddf8' }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                )}
+              </div>
               <div className="text-sm text-gray-600">
                 <p suppressHydrationWarning className="font-medium text-gray-700">{me?.email ?? ''}</p>
                 <p suppressHydrationWarning className="text-xs mt-0.5 capitalize">{me?.role?.toLowerCase() ?? ''}</p>
