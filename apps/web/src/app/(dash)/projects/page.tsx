@@ -29,6 +29,7 @@ interface Project {
   id: string;
   title: string;
   niche?: string;
+  targetLang?: string;
   status: string;
   publishingStatus?: string;
   channel?: { title: string; thumbnailUrl?: string } | null;
@@ -189,6 +190,24 @@ const PLATFORMS: PlatformDef[] = [
       { type: 'FB_POST',  emoji: '📝', label: 'Post',  desc: 'Text + image post' },
     ],
   },
+];
+
+const LANGUAGES = [
+  { code: 'en', name: 'English',    flag: '🇺🇸' },
+  { code: 'es', name: 'Spanish',    flag: '🇪🇸' },
+  { code: 'fr', name: 'French',     flag: '🇫🇷' },
+  { code: 'de', name: 'German',     flag: '🇩🇪' },
+  { code: 'pt', name: 'Portuguese', flag: '🇧🇷' },
+  { code: 'hi', name: 'Hindi',      flag: '🇮🇳' },
+  { code: 'ar', name: 'Arabic',     flag: '🇸🇦' },
+  { code: 'ja', name: 'Japanese',   flag: '🇯🇵' },
+  { code: 'ko', name: 'Korean',     flag: '🇰🇷' },
+  { code: 'zh', name: 'Chinese',    flag: '🇨🇳' },
+  { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
+  { code: 'tr', name: 'Turkish',    flag: '🇹🇷' },
+  { code: 'ru', name: 'Russian',    flag: '🇷🇺' },
+  { code: 'it', name: 'Italian',    flag: '🇮🇹' },
+  { code: 'nl', name: 'Dutch',      flag: '🇳🇱' },
 ];
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; dot: string }> = {
@@ -908,7 +927,7 @@ interface ProjectsTabProps {
   form: {
     platform: Platform; contentFormat: ContentFormat;
     primaryChannelId: string; crossPostChannelIds: string[];
-    title: string; niche: string; goal: string;
+    title: string; niche: string; goal: string; targetLang: string;
   };
   setForm: React.Dispatch<React.SetStateAction<ProjectsTabProps['form']>>;
   closeCreate: () => void;
@@ -1040,7 +1059,17 @@ function ProjectsTab({
                       {formatEmoji(format)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-extrabold text-gray-900 text-sm leading-tight truncate mb-1">{p.title}</h3>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <h3 className="font-extrabold text-gray-900 text-sm leading-tight truncate">{p.title}</h3>
+                        {p.targetLang && p.targetLang !== 'en' && (() => {
+                          const lang = LANGUAGES.find(l => l.code === p.targetLang);
+                          return lang ? (
+                            <span className="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+                              {lang.flag} {lang.code.toUpperCase()}
+                            </span>
+                          ) : null;
+                        })()}
+                      </div>
                       <div className="flex items-center gap-1.5 text-xs text-gray-600">
                         <PlatformIcon platform={platform} size={14} />
                         {p.channel?.title
@@ -1305,6 +1334,22 @@ function ProjectsTab({
                       rows={2} className={inputCls} style={{ ...inputStyle, resize: 'none' }}
                     />
                   </Field>
+
+                  <Field label="Content Language" hint="AI will generate scripts and research in this language">
+                    <div className="relative">
+                      <select
+                        value={form.targetLang}
+                        onChange={(e) => setForm(f => ({ ...f, targetLang: e.target.value }))}
+                        className={`${inputCls} pr-10 appearance-none cursor-pointer`}
+                        style={inputStyle}
+                      >
+                        {LANGUAGES.map(l => (
+                          <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
+                    </div>
+                  </Field>
                 </div>
 
                 {createError && <p className="px-7 pb-2 text-sm text-red-600">{createError}</p>}
@@ -1435,6 +1480,7 @@ function ProjectsInner() {
     title: '',
     niche: '',
     goal: '',
+    targetLang: 'en',
   });
   const [renameProject, setRenameProject] = useState<Project | null>(null);
   const [deleteProject, setDeleteProject] = useState<Project | null>(null);
@@ -1453,7 +1499,7 @@ function ProjectsInner() {
     setShowCreate(false);
     setCreateStep(1);
     setCreateError(null);
-    setForm({ platform: 'YOUTUBE', contentFormat: 'YT_VIDEO', primaryChannelId: '', crossPostChannelIds: [], title: '', niche: '', goal: '' });
+    setForm({ platform: 'YOUTUBE', contentFormat: 'YT_VIDEO', primaryChannelId: '', crossPostChannelIds: [], title: '', niche: '', goal: '', targetLang: 'en' });
   }
 
   const createMutation = useMutation({
@@ -1463,6 +1509,7 @@ function ProjectsInner() {
         title: form.title,
         niche: form.niche || undefined,
         contentFormat: form.contentFormat,
+        targetLang: form.targetLang !== 'en' ? form.targetLang : undefined,
         platforms: [
           form.platform,
           ...form.crossPostChannelIds
