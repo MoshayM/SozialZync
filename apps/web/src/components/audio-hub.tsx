@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Loader2, Trash2, Music, Plus, X, Play, Pause, Download, Search, TrendingUp,
-  ChevronDown, Sparkles, Mic, ChevronRight, Waves, Volume2, Scissors,
+  ChevronDown, Sparkles, Mic, Waves, Volume2, Scissors,
   CheckCircle, AlertCircle, ChevronUp, ArrowDown, Headphones,
 } from 'lucide-react';
 import { AiMediaPicker } from '@/components/ai-media-picker';
@@ -1125,58 +1125,8 @@ export function AudioHub() {
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [selectedTrackTitle, setSelectedTrackTitle] = useState<string | null>(null);
 
-  const bothSelected = selectedVoiceName && selectedTrackTitle;
-
   return (
     <div className="space-y-5">
-      {/* Workflow strip — inline card, no sticky (lives inside Studio's padded container) */}
-      <div className="rounded-2xl px-4 py-3 flex items-center gap-1.5 flex-wrap"
-        style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mr-1">Workflow</span>
-
-        {selectedVoiceName ? (
-          <button onClick={() => setSection('voices')}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all hover:opacity-80"
-            style={{ background: '#fff', color: '#6D4AE0', border: '1.5px solid #d4c9f9' }}>
-            <Mic className="w-3 h-3" />{selectedVoiceName}
-            <X className="w-3 h-3 ml-0.5" onClick={e => { e.stopPropagation(); setSelectedVoiceId(null); setSelectedVoiceName(null); }} />
-          </button>
-        ) : (
-          <button onClick={() => setSection('voices')}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-400 transition-all hover:bg-white/60"
-            style={{ border: '1.5px dashed #c4b8f0' }}>
-            <Mic className="w-3 h-3" />Pick voice
-          </button>
-        )}
-
-        <ChevronRight className="w-3 h-3 text-[#c4b8f0] shrink-0" />
-
-        {selectedTrackTitle ? (
-          <button onClick={() => setSection('music')}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all hover:opacity-80"
-            style={{ background: '#fff', color: '#16a34a', border: '1.5px solid #bbf7d0' }}>
-            <Music className="w-3 h-3" />{selectedTrackTitle}
-            <X className="w-3 h-3 ml-0.5" onClick={e => { e.stopPropagation(); setSelectedTrackId(null); setSelectedTrackTitle(null); }} />
-          </button>
-        ) : (
-          <button onClick={() => setSection('music')}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-400 transition-all hover:bg-white/60"
-            style={{ border: '1.5px dashed #c4b8f0' }}>
-            <Music className="w-3 h-3" />Pick music
-          </button>
-        )}
-
-        <ChevronRight className="w-3 h-3 text-[#c4b8f0] shrink-0" />
-
-        <button onClick={() => setSection('tools')}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all hover:opacity-90"
-          style={bothSelected
-            ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.3)' }
-            : { background: section === 'tools' ? '#fff' : 'transparent', color: section === 'tools' ? '#6D4AE0' : '#9b8fc4', border: '1.5px solid', borderColor: section === 'tools' ? '#d4c9f9' : 'transparent' }}>
-          <Waves className="w-3 h-3" />Process Audio
-        </button>
-      </div>
-
       {/* Sub-tab bar */}
       <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: '#f0edf9' }}>
         {AUDIO_SECTIONS.map(({ id, label, icon: Icon }) => (

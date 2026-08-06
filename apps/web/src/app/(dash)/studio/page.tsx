@@ -1,11 +1,10 @@
 'use client';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Layers, Sparkles, Loader2, Plus, Trash2, Play, Pause, Pencil, Check, X, Users, Star, Wand2, Image as ImageIcon, Scissors, Headphones, FileText, Palette } from 'lucide-react';
+import { Layers, Sparkles, Loader2, Plus, Trash2, Play, Pause, Pencil, Check, X, Users, Star, Wand2, Image as ImageIcon, Scissors, Headphones, FileText } from 'lucide-react';
 import { ImageAssetBrowser } from '@/components/image-asset-browser';
 import { ThumbnailGenerator } from '@/components/thumbnail-generator';
 import { ContentToolsContent } from '@/components/content-tools-embed';
 import ShortsStudioPage from '../shorts-studio/page';
-import BrandKitPage from '../brand-kit/page';
 import { AudioHub } from '@/components/audio-hub';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -560,7 +559,7 @@ function CharactersSection() {
 
 // ── Top-level tabs ─────────────────────────────────────────────────────────────
 
-type TopTab = 'characters' | 'images' | 'thumbnails' | 'shorts' | 'audio' | 'content' | 'brand-kit';
+type TopTab = 'characters' | 'images' | 'thumbnails' | 'shorts' | 'audio' | 'content';
 
 const TOP_TABS: Array<{ id: TopTab; label: string; icon: typeof Layers }> = [
   { id: 'characters', label: 'Characters',    icon: Users },
@@ -569,7 +568,6 @@ const TOP_TABS: Array<{ id: TopTab; label: string; icon: typeof Layers }> = [
   { id: 'shorts',     label: 'Shorts Studio', icon: Scissors },
   { id: 'audio',      label: 'Audio Studio',  icon: Headphones },
   { id: 'content',    label: 'Content Tools', icon: FileText },
-  { id: 'brand-kit',  label: 'Brand Kit',     icon: Palette  },
 ];
 
 // ── Main page ──────────────────────────────────────────────────────────────────
@@ -587,7 +585,7 @@ export default function CreativeStudioPage() {
             <Layers className="w-5 h-5" style={{ color: '#6D4AE0' }} />
             <h1 className="text-2xl font-extrabold text-gray-900">Creative Studio</h1>
           </div>
-          <p className="text-sm text-gray-500">Characters · Images · Thumbnails · Shorts · Audio Studio · Content Tools · Brand Kit</p>
+          <p className="text-sm text-gray-500">Characters · Images · Thumbnails · Shorts · Audio Studio · Content Tools</p>
         </div>
 
         {/* Top-level tab switcher */}
@@ -608,7 +606,6 @@ export default function CreativeStudioPage() {
         {topTab === 'shorts'     && <ShortsStudioPage />}
         {topTab === 'audio'      && <AudioHub />}
         {topTab === 'content'    && <ContentToolsContent />}
-        {topTab === 'brand-kit'  && <BrandKitPage />}
       </div>
     </div>
   );
