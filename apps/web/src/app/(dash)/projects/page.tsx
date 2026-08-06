@@ -8,12 +8,7 @@ import {
   ChevronDown, ArrowRight, Bot, Clock, MoreVertical,
   ListVideo, Layers, Music, Image, Mic, FileText, RefreshCw, CheckCircle, AlertCircle,
   Youtube, Instagram, Facebook,
-  Search, ListOrdered, Award, ArrowRightLeft,
 } from 'lucide-react';
-import DiscoverPage from '../discover/page';
-import SeriesPlannerPage from '../series-planner/page';
-import ScoreScriptPage from '../score-script/page';
-import RepurposePage from '../repurpose/page';
 import { api } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
 import { usePlan } from '@/lib/plan';
@@ -1379,67 +1374,8 @@ function ProjectsTab({
   );
 }
 
-// ── View router ───────────────────────────────────────────────────────────────
-
-const VIEW_TABS = [
-  { id: 'projects',  label: 'Projects',       icon: FolderOpen    },
-  { id: 'discover',  label: 'Discover',        icon: Search        },
-  { id: 'series',    label: 'Series Planner',  icon: ListOrdered   },
-  { id: 'score',     label: 'Script Score',    icon: Award         },
-  { id: 'repurpose', label: 'Repurpose',       icon: ArrowRightLeft },
-] as const;
-type ViewId = typeof VIEW_TABS[number]['id'];
-
-function ProjectsViewRouter() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const view = (searchParams.get('view') ?? 'projects') as ViewId;
-
-  function selectView(v: ViewId) {
-    if (v === 'projects') router.replace('/projects');
-    else router.replace(`/projects?view=${v}`);
-  }
-
-  return (
-    <div className="flex flex-col min-h-full">
-      {/* Tab bar */}
-      <div
-        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] px-4 sm:px-6 flex overflow-x-auto no-scrollbar"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        {VIEW_TABS.map(({ id, label, icon: Icon }) => {
-          const active = view === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => selectView(id)}
-              className={[
-                'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
-                active
-                  ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
-              ].join(' ')}
-            >
-              <Icon className={`w-4 h-4 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Content */}
-      {view === 'projects'  && <ProjectsInner />}
-      {view === 'discover'  && <DiscoverPage />}
-      {view === 'series'    && <SeriesPlannerPage />}
-      {view === 'score'     && <ScoreScriptPage />}
-      {view === 'repurpose' && <RepurposePage />}
-    </div>
-  );
-}
-
 export default function ProjectsPage() {
-  return <Suspense fallback={null}><ProjectsViewRouter /></Suspense>;
+  return <Suspense fallback={null}><ProjectsInner /></Suspense>;
 }
 
 const _WIZARD_API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
