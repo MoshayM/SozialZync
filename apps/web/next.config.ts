@@ -74,7 +74,7 @@ const nextConfig: NextConfig = {
       { source: '/score-script',  destination: '/content?tab=score-script',  permanent: false },
       // Old individual Insights routes → combined /insights page
       { source: '/analytics',     destination: '/insights?tab=analytics',    permanent: false },
-      { source: '/strategy',      destination: '/insights?tab=strategy',     permanent: false },
+      { source: '/strategy',      destination: '/studio',                    permanent: false },
       { source: '/growth',        destination: '/insights?tab=growth',       permanent: false },
       { source: '/monitor',       destination: '/insights?tab=monitor',      permanent: false },
     ];

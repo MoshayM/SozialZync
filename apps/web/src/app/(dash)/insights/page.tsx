@@ -1,9 +1,8 @@
 'use client';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart2, Target, Gift, Activity } from 'lucide-react';
+import { BarChart2, Gift, Activity } from 'lucide-react';
 import AnalyticsPage from '../analytics/page';
-import StrategyPage from '../strategy/page';
 import GrowthPage from '../growth/page';
 import MonitorPage from '../monitor/page';
 
@@ -16,7 +15,6 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: 'analytics', label: 'Analytics', icon: BarChart2, description: 'Channel performance and video metrics' },
-  { id: 'strategy',  label: 'Strategy',  icon: Target,   description: 'AI-generated goal plans and content strategies' },
   { id: 'growth',    label: 'Growth',    icon: Gift,     description: 'Referrals, rewards and audience expansion' },
   { id: 'monitor',   label: 'Monitor',   icon: Activity, description: 'Real-time AI job pipeline status' },
 ];
@@ -32,7 +30,7 @@ function InsightsContent() {
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="px-5 pt-5 pb-0 sm:px-7">
         <h1 className="text-xl font-extrabold text-gray-900 leading-tight">Insights Hub</h1>
-        <p className="text-sm text-gray-600 mt-0.5">Analytics, strategy, growth and monitoring in one place</p>
+        <p className="text-sm text-gray-600 mt-0.5">Analytics, growth and monitoring in one place</p>
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
@@ -68,7 +66,6 @@ function InsightsContent() {
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
       {activeTab === 'analytics' && <AnalyticsPage />}
-      {activeTab === 'strategy'  && <StrategyPage />}
       {activeTab === 'growth'    && <GrowthPage />}
       {activeTab === 'monitor'   && <MonitorPage />}
     </div>
