@@ -1345,9 +1345,6 @@ export function CopilotPanel() {
 
           {/* ── Robot — full size, behind panel ── */}
           <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
-            {shouldShowBubble && !activePanel && (
-              <SpeechBubble text={bubbleText} state={robotState} />
-            )}
             <RobotAvatar state={robotState} excited={excited} onMicToggle={toggleVoice} voiceEnabled={voiceEnabled} />
           </div>
 
