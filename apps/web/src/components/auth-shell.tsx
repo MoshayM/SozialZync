@@ -72,17 +72,17 @@ export function AuthPillInput({
 // ─── Split-screen login shell ──────────────────────────────────────────────────
 
 const LOGIN_FEATURES = [
-  { icon: '✂️', text: 'Shorts from Long Videos' },
-  { icon: '📱', text: 'Vertical Auto-Format' },
-  { icon: '🎯', text: 'Hook Generator' },
-  { icon: '🧠', text: 'AI Script Writing' },
-  { icon: '📈', text: 'SEO Intelligence' },
-  { icon: '🚀', text: 'Multi-Platform Publish' },
+  { icon: '🤖', text: 'Voice AI Copilot' },
+  { icon: '🔬', text: 'Research & Fact-Check' },
+  { icon: '📝', text: 'AI Script Writer' },
+  { icon: '🎭', text: 'Character Studio' },
+  { icon: '✅', text: 'Compliance Engine' },
+  { icon: '🚀', text: 'YouTube Publishing' },
 ];
 
 const LOGIN_STATS = [
-  { value: '10K+', label: 'Creators' },
-  { value: '500K+', label: 'Shorts Made' },
+  { value: '100K+', label: 'Creators' },
+  { value: '5M+', label: 'Scripts Generated' },
   { value: '4.8★', label: 'Rating' },
 ];
 
@@ -118,8 +118,8 @@ export function LoginShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
 
@@ -130,12 +130,11 @@ export function LoginShell({
             style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            Powered by AI
+            AI YouTube Content OS
           </div>
 
           <h1 className="text-5xl xl:text-[3.4rem] font-extrabold text-white leading-[1.1] mb-5">
-            Turn Ideas<br />
-            Into{' '}
+            Research. Script.<br />
             <span
               style={{
                 WebkitTextFillColor: 'transparent',
@@ -144,13 +143,12 @@ export function LoginShell({
                 backgroundClip: 'text',
               }}
             >
-              Viral
+              Publish.
             </span>
-            {' '}Videos
           </h1>
 
           <p className="text-white/65 text-[1.05rem] leading-relaxed max-w-sm mb-10">
-            Research trends, write scripts, optimize SEO, and publish — your AI content team, available 24/7.
+            Your full YouTube content pipeline — from trend research and AI scripts to compliance-checked publishing. Available 24/7.
           </p>
 
           {/* Feature pills */}
@@ -195,7 +193,7 @@ export function LoginShell({
             ))}
           </div>
           <p className="text-white/80 text-sm leading-relaxed mb-4">
-            &ldquo;Sozialzync helped me grow from 5K to 150K subscribers in 6 months. The AI scripts are genuinely better than what I was writing myself.&rdquo;
+            &ldquo;AI CreatorForce helped me grow from 5K to 150K subscribers in 6 months. The research-backed scripts and compliance check saved me so much time.&rdquo;
           </p>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">
@@ -215,7 +213,7 @@ export function LoginShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
           </div>
 
           <div className="mb-8">
@@ -310,8 +308,8 @@ export function RegisterShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
 
@@ -326,7 +324,7 @@ export function RegisterShell({
           </div>
 
           <h1 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.1] mb-4">
-            Start Your<br />
+            Launch Your<br />
             <span
               style={{
                 WebkitTextFillColor: 'transparent',
@@ -335,13 +333,13 @@ export function RegisterShell({
                 backgroundClip: 'text',
               }}
             >
-              Creator Journey
+              YouTube Channel
             </span>
-            <br />Today
+            <br />with AI
           </h1>
 
           <p className="text-white/65 text-base leading-relaxed max-w-xs mb-8">
-            Everything you need to research, create, and grow your YouTube channel — powered by AI.
+            Your full YouTube content OS — research, scripts, characters, voice, thumbnails, and publishing in one place.
           </p>
 
           {/* Perks list */}
@@ -392,7 +390,7 @@ export function RegisterShell({
             ))}
           </div>
           <p className="text-white/80 text-sm leading-relaxed mb-4">
-            &ldquo;I was spending 20+ hours a week on content research. Sozialzync cut that to under 2 hours. The trend discovery alone is worth it.&rdquo;
+            &ldquo;I was spending 20+ hours a week on content research. AI CreatorForce cut that to under 2 hours. The research agent and fact-checker alone are worth it.&rdquo;
           </p>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">
@@ -412,7 +410,7 @@ export function RegisterShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
           </div>
 
           <div className="mb-7">
@@ -436,13 +434,13 @@ const RECOVERY_STEPS = [
     n: '1',
     icon: '📧',
     title: 'Enter your email',
-    desc: "We'll verify it's registered with Sozialzync",
+    desc: "We'll verify it's registered with AI CreatorForce",
   },
   {
     n: '2',
     icon: '📬',
     title: 'Check your inbox',
-    desc: 'Look for an email from Sozialzync (check spam too)',
+    desc: 'Look for an email from AI CreatorForce (check spam too)',
   },
   {
     n: '3',
@@ -473,8 +471,8 @@ export function ForgotPasswordShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
 
@@ -534,7 +532,7 @@ export function ForgotPasswordShell({
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
           </div>
           {children}
           <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
@@ -575,8 +573,8 @@ export function ResetPasswordShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
 
@@ -625,7 +623,7 @@ export function ResetPasswordShell({
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
           </div>
           {children}
           <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
@@ -692,8 +690,8 @@ export function OAuthCallbackShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">AI Social Media Platform</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
 
@@ -806,7 +804,7 @@ export function OAuthCallbackShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
           </div>
 
           {children}
