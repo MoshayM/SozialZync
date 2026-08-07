@@ -3,8 +3,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Eye, EyeOff, Loader2, KeyRound, Mail, Lock, AtSign,
-  Fingerprint, ArrowLeft, CheckCircle2,
+  Eye, EyeOff, Loader2, KeyRound, Mail,
+  Fingerprint, CheckCircle2, ChevronRight,
 } from 'lucide-react';
 import {
   startAuthentication,
@@ -12,7 +12,7 @@ import {
   platformAuthenticatorIsAvailable,
 } from '@simplewebauthn/browser';
 import { api, setTokens } from '@/lib/api';
-import { LoginShell, LoginInput } from '@/components/auth-shell';
+import { LoginShell } from '@/components/auth-shell';
 
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
@@ -32,31 +32,105 @@ function detectPasskeyLabel(): string {
   return 'Passkey';
 }
 
+// ── Shared primitives ──────────────────────────────────────────────────────────
+
+function Input({
+  type, placeholder, value, onChange, autoComplete, autoFocus, required,
+  rightElement, inputRef,
+}: {
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
+  autoFocus?: boolean;
+  required?: boolean;
+  rightElement?: React.ReactNode;
+  inputRef?: React.Ref<HTMLInputElement>;
+}) {
+  return (
+    <div
+      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
+      style={{ border: '1.5px solid #ece8f8', background: '#fff' }}
+    >
+      <input
+        ref={inputRef}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        autoFocus={autoFocus}
+        required={required}
+        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+      />
+      {rightElement && <span className="pr-2 shrink-0">{rightElement}</span>}
+    </div>
+  );
+}
+
+function PrimaryBtn({
+  loading, disabled, children, type = 'submit', onClick,
+}: {
+  loading?: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+  type?: 'submit' | 'button';
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type={type}
+      disabled={disabled ?? loading}
+      onClick={onClick}
+      className="w-full py-[11px] text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+      style={{
+        background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
+        boxShadow: '0 4px 16px rgba(109,74,224,0.28)',
+      }}
+    >
+      {loading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+      {children}
+    </button>
+  );
+}
+
+function ErrorNote({ msg }: { msg: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-red-50 border border-red-100">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
+      <p className="text-red-600 text-xs font-medium leading-relaxed">{msg}</p>
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
 export default function LoginPage() {
   const router = useRouter();
 
-  // ── Mode ──────────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<Mode>('password');
 
-  // ── Password ──────────────────────────────────────────────────────────────
+  // password mode
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // ── OTP ───────────────────────────────────────────────────────────────────
+  // otp mode
   const [otpEmail, setOtpEmail] = useState('');
-  const [otpCode, setOtpCode] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [maskedEmail, setMaskedEmail] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const otpBoxRefs = useRef<(HTMLInputElement | null)[]>([]);
   const verifyFormRef = useRef<HTMLFormElement>(null);
 
-  // ── Shared ────────────────────────────────────────────────────────────────
+  // shared
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // ── Passkey ───────────────────────────────────────────────────────────────
+  // passkey
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyLabel, setPasskeyLabel] = useState('Passkey');
   const [passkeySupported, setPasskeySupported] = useState(false);
@@ -64,8 +138,10 @@ export default function LoginPage() {
   const passkeyHandledRef = useRef(false);
 
   const otpIdentifier = otpEmail.trim();
+  const otpCode = otpDigits.join('');
 
-  // ── Passkey detection + conditional UI arm ───────────────────────────────
+  // ── Effects ──────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (typeof PublicKeyCredential === 'undefined') return;
     setPasskeySupported(true);
@@ -88,14 +164,13 @@ export default function LoginPage() {
         const { data } = await api.auth.webauthnAuthVerify(cred);
         setTokens(data.accessToken, data.refreshToken);
         router.push('/home');
-      } catch { /* user didn't pick from autofill — normal */ }
+      } catch { /* user dismissed autocomplete — normal */ }
     }
     void arm();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passkeySupported]);
 
-  // ── Restore last-used OTP email ───────────────────────────────────────────
   useEffect(() => {
     try {
       const saved = localStorage.getItem(LAST_OTP_KEY);
@@ -103,15 +178,16 @@ export default function LoginPage() {
     } catch { /* ignore */ }
   }, []);
 
-  // ── Cooldown cleanup ──────────────────────────────────────────────────────
   useEffect(() => () => { if (cooldownRef.current) clearInterval(cooldownRef.current); }, []);
 
-  // ── Auto-submit when 6 digits entered ────────────────────────────────────
+  // Auto-submit when all 6 digits filled
   useEffect(() => {
     if (otpCode.length === 6 && mode === 'otp-verify' && !loading) {
       verifyFormRef.current?.requestSubmit();
     }
   }, [otpCode, mode, loading]);
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function startResendCooldown() {
     setResendCooldown(RESEND_SECS);
@@ -125,18 +201,46 @@ export default function LoginPage() {
   }
 
   function goToOtp() {
-    // Carry over email from password form if available
     if (email.trim()) setOtpEmail(email.trim());
-    setError(''); setInfo(''); setOtpCode(''); setMaskedEmail('');
+    setError(''); setInfo(''); setOtpDigits(['', '', '', '', '', '']); setMaskedEmail('');
     setMode('otp-send');
   }
 
   function backToPassword() {
-    setError(''); setInfo(''); setOtpCode(''); setMaskedEmail('');
+    setError(''); setInfo(''); setOtpDigits(['', '', '', '', '', '']); setMaskedEmail('');
     setMode('password');
   }
 
-  // ── Passkey ───────────────────────────────────────────────────────────────
+  // ── OTP box handlers ─────────────────────────────────────────────────────────
+
+  function handleOtpBoxChange(index: number, value: string) {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const next = [...otpDigits];
+    next[index] = digit;
+    setOtpDigits(next);
+    if (digit && index < 5) otpBoxRefs.current[index + 1]?.focus();
+  }
+
+  function handleOtpBoxKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpBoxRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowLeft' && index > 0) otpBoxRefs.current[index - 1]?.focus();
+    if (e.key === 'ArrowRight' && index < 5) otpBoxRefs.current[index + 1]?.focus();
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent) {
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!text.length) return;
+    e.preventDefault();
+    const next = Array.from({ length: 6 }, (_, i) => text[i] ?? '');
+    setOtpDigits(next);
+    const focusIdx = Math.min(text.length, 5);
+    setTimeout(() => otpBoxRefs.current[focusIdx]?.focus(), 0);
+  }
+
+  // ── Actions ──────────────────────────────────────────────────────────────────
+
   const handlePasskeyLogin = useCallback(async () => {
     if (passkeyHandledRef.current) return;
     setPasskeyLoading(true);
@@ -153,7 +257,7 @@ export default function LoginPage() {
       passkeyHandledRef.current = false;
       const name = (err as { name?: string })?.name;
       setError(
-        name === 'NotAllowedError'   ? 'Passkey sign-in was cancelled.' :
+        name === 'NotAllowedError'   ? 'Sign-in was cancelled.' :
         name === 'InvalidStateError' ? 'No passkey on this device. Sign in with password, then add one in Settings.' :
         'Passkey sign-in failed. Try another method.'
       );
@@ -162,7 +266,6 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  // ── Password ──────────────────────────────────────────────────────────────
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError('');
@@ -178,19 +281,17 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       setError(
-        status === 401              ? 'Invalid email or password.' :
-        status === 429              ? 'Too many attempts. Wait a minute and try again.' :
-        !status                     ? 'Cannot reach the server — check your connection.' :
+        status === 401              ? 'Incorrect email or password.' :
+        status === 429              ? 'Too many attempts — wait a minute and try again.' :
+        !status                     ? 'Cannot reach the server. Check your connection.' :
         status >= 502 && status <= 504 ? 'Server is starting up — try again in a moment.' :
-        status >= 500               ? 'Server error. Please try again.' :
-        'Login failed. Check your credentials and try again.'
+        'Sign in failed. Please try again.'
       );
     } finally {
       setLoading(false);
     }
   }
 
-  // ── OTP send ──────────────────────────────────────────────────────────────
   async function handleOtpSend(e: React.FormEvent) {
     e.preventDefault();
     if (!otpIdentifier) return;
@@ -204,153 +305,138 @@ export default function LoginPage() {
       setMode('otp-verify');
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
-      setError(status === 400 ? 'Too many requests. Wait a few minutes.' : 'Could not send code. Try again.');
+      setError(status === 400 ? 'Too many requests — wait a few minutes.' : 'Could not send code. Try again.');
     } finally {
       setLoading(false);
     }
   }
 
-  // ── OTP verify ────────────────────────────────────────────────────────────
   async function handleOtpVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!otpCode.trim() || otpCode.length !== 6) return;
+    if (otpCode.length !== 6) return;
     setLoading(true); setError('');
     try {
-      const { data } = await api.auth.otpVerify(otpIdentifier, otpCode.trim());
+      const { data } = await api.auth.otpVerify(otpIdentifier, otpCode);
       setTokens(data.accessToken, data.refreshToken);
       router.push(data.hasPassword === false ? '/set-password' : '/home');
     } catch {
-      setError('Invalid or expired code. Try again.');
+      setError('Incorrect or expired code. Try again.');
+      setOtpDigits(['', '', '', '', '', '']);
+      setTimeout(() => otpBoxRefs.current[0]?.focus(), 50);
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Resend ────────────────────────────────────────────────────────────────
   async function handleResend() {
     if (resendCooldown > 0 || loading) return;
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setInfo('');
     try {
       await api.auth.otpSend(otpIdentifier, undefined);
       setInfo('New code sent!');
       startResendCooldown();
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
-      setError(status === 400 ? 'Too many requests. Wait a few minutes.' : 'Could not resend. Try again.');
+      setError(status === 400 ? 'Too many requests — wait a few minutes.' : 'Could not resend. Try again.');
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Shared sub-components ─────────────────────────────────────────────────
-  function ErrorBanner({ msg }: { msg: string }) {
-    return (
-      <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
-        <span className="text-red-400 text-sm mt-px shrink-0" aria-hidden>⚠</span>
-        <p className="text-red-600 text-xs font-medium leading-relaxed">{msg}</p>
-      </div>
-    );
-  }
-
-  function InfoBanner({ msg }: { msg: string }) {
-    return (
-      <div className="flex items-center gap-2 bg-[#f0edf9] border border-[#d4c8f5] rounded-xl px-3.5 py-2.5">
-        <CheckCircle2 className="w-4 h-4 text-[#6D4AE0] shrink-0" />
-        <p className="text-[#6D4AE0] text-xs font-medium">{msg}</p>
-      </div>
-    );
-  }
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <LoginShell
       footer={
         <>
           {mode === 'password' && (
-            <>
-              Don&rsquo;t have an account?{' '}
+            <span>
+              New to AI CreatorForce?{' '}
               <Link href="/register" className="text-[#6D4AE0] font-semibold hover:underline">
-                Create one free
+                Create a free account
               </Link>
-              <br />
-            </>
+            </span>
           )}
-          <span className="text-xs text-gray-600">
+          {mode !== 'password' && <span className="text-transparent select-none">·</span>}
+          <br />
+          <span className="text-xs text-gray-400 mt-1 inline-block">
             By continuing you agree to our{' '}
-            <Link href="/terms" className="text-[#6D4AE0] hover:underline">Terms</Link>
-            {' '}and{' '}
-            <Link href="/privacy" className="text-[#6D4AE0] hover:underline">Privacy Policy</Link>
+            <Link href="/terms" className="hover:underline">Terms</Link>
+            {' & '}
+            <Link href="/privacy" className="hover:underline">Privacy</Link>
           </span>
         </>
       }
     >
 
-      {/* ── 1. Passkey — always at top ────────────────────────────────── */}
-      {passkeySupported && (
-        <>
-          <button
-            type="button"
-            onClick={() => { void handlePasskeyLogin(); }}
-            disabled={passkeyLoading}
-            aria-label={`Sign in with ${passkeyLabel}`}
-            className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{
-              background: passkeyLoading
-                ? 'linear-gradient(135deg,#5b3ab0,#6D4AE0)'
-                : 'linear-gradient(135deg,#1a0f4a,#2d1b6e)',
-              color: '#fff',
-              boxShadow: '0 4px 18px rgba(45,27,110,0.4)',
-            }}
-          >
-            {passkeyLoading
-              ? <Loader2 className="w-5 h-5 animate-spin shrink-0" />
-              : hasPlatformAuth
-              ? <Fingerprint className="w-5 h-5 shrink-0" />
-              : <KeyRound className="w-5 h-5 shrink-0" />}
-            <span>{passkeyLoading ? 'Verifying…' : `Continue with ${passkeyLabel}`}</span>
-          </button>
-          <p className="text-center text-[11px] text-gray-400 -mt-1">
-            Use fingerprint, face, or device PIN
-          </p>
+      {/* ════════════════════════════════════════════════════════════
+          PASSWORD MODE
+          ════════════════════════════════════════════════════════════ */}
+      {mode === 'password' && (
+        <div className="space-y-4">
+
+          {/* Passkey — primary when available */}
+          {passkeySupported && (
+            <button
+              type="button"
+              onClick={() => { void handlePasskeyLogin(); }}
+              disabled={passkeyLoading}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 group text-left"
+              style={{
+                background: passkeyLoading
+                  ? 'linear-gradient(135deg,#5b3ab0,#6D4AE0)'
+                  : 'linear-gradient(135deg,#0d0620,#1c0e5a)',
+                boxShadow: '0 4px 18px rgba(13,6,32,0.5)',
+              }}
+            >
+              <span
+                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(255,255,255,0.10)' }}
+              >
+                {passkeyLoading
+                  ? <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  : hasPlatformAuth
+                  ? <Fingerprint className="w-[18px] h-[18px] text-white/90" />
+                  : <KeyRound className="w-[18px] h-[18px] text-white/90" />}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-white text-sm font-semibold">
+                  {passkeyLoading ? 'Verifying…' : 'Sign in instantly'}
+                </div>
+                <div className="text-white/45 text-[11px] truncate">{passkeyLabel}</div>
+              </div>
+              {!passkeyLoading && (
+                <ChevronRight className="w-4 h-4 text-white/25 group-hover:text-white/55 transition-colors shrink-0" />
+              )}
+            </button>
+          )}
 
           {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-200" />
+          {passkeySupported && (
+            <div className="flex items-center gap-3">
+              <span className="flex-1 h-px bg-gray-100" />
+              <span className="text-[11px] font-medium text-gray-400 uppercase tracking-widest">or</span>
+              <span className="flex-1 h-px bg-gray-100" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#faf9ff] px-3 text-gray-400 font-medium tracking-wide">
-                or sign in with email
-              </span>
-            </div>
-          </div>
-        </>
-      )}
+          )}
 
-      {/* ── 2a. Password mode ─────────────────────────────────────────── */}
-      {mode === 'password' && (
-        <>
-          <form onSubmit={(e) => { void handlePasswordSubmit(e); }} className="space-y-4">
-            <LoginInput
-              icon={<AtSign className="w-4 h-4" />}
-              label="Email address"
+          {/* Email + password form */}
+          <form onSubmit={(e) => { void handlePasswordSubmit(e); }} className="space-y-3">
+            <Input
               type="email"
-              aria-label="Email"
-              placeholder="you@example.com"
-              autoComplete="username webauthn"
+              placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username webauthn"
               required
             />
             <div className="space-y-1">
-              <LoginInput
-                icon={<Lock className="w-4 h-4" />}
-                label="Password"
+              <Input
                 type={showPassword ? 'text' : 'password'}
-                aria-label="Password"
-                placeholder="••••••••"
-                autoComplete="current-password"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
                 rightElement={
                   <button
@@ -364,239 +450,199 @@ export default function LoginPage() {
                 }
               />
               <div className="flex justify-end">
-                <Link href="/forgot-password" className="text-xs text-[#6D4AE0] hover:underline font-medium py-0.5">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-[#6D4AE0] hover:underline font-medium py-0.5"
+                >
                   Forgot password?
                 </Link>
               </div>
             </div>
 
-            {error && <ErrorBanner msg={error} />}
+            {error && <ErrorNote msg={error} />}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
-              style={{
-                background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-                boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
-              }}
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            <PrimaryBtn loading={loading}>
               {loading ? 'Signing in…' : 'Sign in'}
-            </button>
+            </PrimaryBtn>
           </form>
 
-          {/* ── OTP as alternative (where Google used to be) ── */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-100" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#faf9ff] px-3 text-gray-400 font-medium tracking-wide">or</span>
-            </div>
-          </div>
-
+          {/* OTP — secondary option, link-style */}
           <button
             type="button"
             onClick={goToOtp}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold transition-all hover:bg-[#f5f2fd] hover:text-[#6D4AE0] active:scale-[0.99]"
-            style={{
-              border: '1.5px solid #e3ddf8',
-              background: '#fff',
-              color: '#374151',
-            }}
+            className="w-full flex items-center justify-center gap-1.5 text-sm text-gray-500 hover:text-[#6D4AE0] transition-colors py-1 font-medium"
           >
-            <Mail className="w-4 h-4 shrink-0" />
-            Sign in with a one-time code
+            <Mail className="w-3.5 h-3.5 shrink-0" />
+            Use email code instead
           </button>
-        </>
-      )}
-
-      {/* ── 2b. OTP — email entry ─────────────────────────────────────── */}
-      {mode === 'otp-send' && (
-        <div className="space-y-4">
-          {/* Back */}
-          <button
-            type="button"
-            onClick={backToPassword}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#6D4AE0] transition-colors font-medium -mt-1"
-          >
-            <ArrowLeft className="w-4 h-4" /> Use password instead
-          </button>
-
-          {/* Explainer */}
-          <div className="rounded-2xl px-4 py-3.5 space-y-0.5" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
-            <p className="text-sm font-bold text-gray-900">Sign in without a password</p>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              We&apos;ll send a 6-digit code to your email. No password needed.
-              <span className="block mt-1 text-[#6D4AE0] font-medium">New here? We&apos;ll create your account automatically.</span>
-            </p>
-          </div>
-
-          <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-4">
-            <LoginInput
-              icon={<Mail className="w-4 h-4" />}
-              label="Email address"
-              type="email"
-              aria-label="Email"
-              placeholder="you@example.com"
-              autoComplete="username webauthn"
-              value={otpEmail}
-              onChange={(e) => setOtpEmail(e.target.value)}
-              autoFocus
-              required
-            />
-
-            {error && <ErrorBanner msg={error} />}
-
-            <button
-              type="submit"
-              disabled={loading || !otpIdentifier}
-              className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
-              style={{
-                background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-                boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
-              }}
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? 'Sending…' : 'Send code'}
-            </button>
-          </form>
         </div>
       )}
 
-      {/* ── 2c. OTP — code verify ─────────────────────────────────────── */}
-      {mode === 'otp-verify' && (
-        <div className="space-y-4">
-          {/* Header with destination */}
-          <div className="text-center space-y-1">
-            <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center mb-3" style={{ background: '#f0edf9' }}>
-              <Mail className="w-6 h-6" style={{ color: '#6D4AE0' }} />
-            </div>
-            <p className="text-sm font-bold text-gray-900">Check your email</p>
-            <p className="text-xs text-gray-600">
-              Code sent to{' '}
-              <span className="font-semibold text-gray-800">{maskedEmail || otpIdentifier}</span>
+      {/* ════════════════════════════════════════════════════════════
+          OTP — EMAIL ENTRY
+          ════════════════════════════════════════════════════════════ */}
+      {mode === 'otp-send' && (
+        <div className="space-y-5">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Get a sign-in code</h3>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              We&apos;ll email you a 6-digit code. No password needed.
             </p>
-            <button
-              type="button"
-              onClick={() => { setMode('otp-send'); setOtpCode(''); setError(''); setInfo(''); }}
-              className="text-[11px] text-[#6D4AE0] hover:underline font-medium"
-            >
-              Wrong address? Change →
-            </button>
           </div>
 
-          {/* 6-digit code input */}
-          <form ref={verifyFormRef} onSubmit={(e) => { void handleOtpVerify(e); }} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-gray-600 px-1">Enter 6-digit code</label>
-              <div
-                className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/25 focus-within:border-[#6D4AE0]"
-                style={{ border: '1.5px solid #e3ddf8' }}
-              >
-                <span className="pl-4 text-gray-300">
-                  <KeyRound className="w-4 h-4" />
-                </span>
-                <input
-                  type="text"
-                  aria-label="6-digit sign-in code"
-                  placeholder="· · · · · ·"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  autoFocus
-                  required
-                  className="flex-1 px-3 py-3.5 text-center text-2xl font-bold tracking-[0.4em] outline-none bg-transparent placeholder:font-normal placeholder:tracking-[0.25em] placeholder:text-gray-300 placeholder:text-lg"
-                  style={{ color: otpCode.length === 6 ? '#6D4AE0' : '#1a1a2e' }}
-                />
-                {/* Progress dots */}
-                <div className="pr-4 flex gap-1">
-                  {[...Array(6)].map((_, i) => (
-                    <span
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full transition-all"
-                      style={{
-                        background: i < otpCode.length
-                          ? otpCode.length === 6 ? '#22c55e' : '#6D4AE0'
-                          : '#e5e7eb',
-                        transform: i < otpCode.length ? 'scale(1.1)' : 'scale(1)',
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-              {otpCode.length === 6 && (
-                <p className="text-[11px] text-center text-green-600 font-medium">✓ Verifying automatically…</p>
-              )}
-            </div>
-
-            {info && <InfoBanner msg={info} />}
-            {error && <ErrorBanner msg={error} />}
-
-            <button
-              type="submit"
-              disabled={loading || otpCode.length !== 6}
-              className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
-              style={{
-                background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-                boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
-              }}
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? 'Verifying…' : 'Verify & sign in'}
-            </button>
-
-            {/* Resend */}
-            <div className="text-center">
-              {resendCooldown > 0 ? (
-                <p className="text-xs text-gray-600">
-                  Resend available in{' '}
-                  <span className="font-bold tabular-nums" style={{ color: '#6D4AE0' }}>{resendCooldown}s</span>
-                </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => { void handleResend(); }}
-                  disabled={loading}
-                  className="text-xs font-medium text-[#6D4AE0] hover:underline disabled:opacity-50"
-                >
-                  Didn&apos;t get it? Resend code
-                </button>
-              )}
-            </div>
-
-            {IS_DEV && (
-              <button
-                type="button"
-                disabled={loading}
-                className="w-full text-xs text-amber-500 hover:underline disabled:opacity-50 py-0.5"
-                onClick={async () => {
-                  try {
-                    const { data } = await api.auth.otpDevPeek(otpIdentifier);
-                    setOtpCode(data.code);
-                    setInfo(`[Dev] Auto-filled: ${data.code}`);
-                  } catch {
-                    setError('[Dev] No pending OTP found.');
-                  }
-                }}
-              >
-                [Dev] Auto-fill OTP from server
-              </button>
-            )}
+          <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-3">
+            <Input
+              type="email"
+              placeholder="your@email.com"
+              value={otpEmail}
+              onChange={(e) => setOtpEmail(e.target.value)}
+              autoComplete="username webauthn"
+              autoFocus
+              required
+            />
+            {error && <ErrorNote msg={error} />}
+            <PrimaryBtn loading={loading} disabled={!otpIdentifier}>
+              {loading ? 'Sending…' : 'Send code →'}
+            </PrimaryBtn>
           </form>
 
-          {/* Back to password */}
           <button
             type="button"
             onClick={backToPassword}
-            className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors py-1"
+            className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors py-0.5"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to password sign-in
+            ← Use password instead
           </button>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          OTP — CODE VERIFY
+          ════════════════════════════════════════════════════════════ */}
+      {mode === 'otp-verify' && (
+        <div className="space-y-5">
+
+          {/* Header */}
+          <div>
+            <div className="flex items-center justify-between mb-0.5">
+              <h3 className="text-lg font-bold text-gray-900">Check your email</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('otp-send');
+                  setOtpDigits(['', '', '', '', '', '']);
+                  setError('');
+                  setInfo('');
+                }}
+                className="text-xs text-[#6D4AE0] hover:underline font-medium"
+              >
+                Change email
+              </button>
+            </div>
+            <p className="text-sm text-gray-500">
+              Code sent to{' '}
+              <span className="font-semibold text-gray-700">{maskedEmail || otpIdentifier}</span>
+            </p>
+          </div>
+
+          {info && (
+            <div className="flex items-center gap-2 text-xs text-[#6D4AE0] font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              {info}
+            </div>
+          )}
+
+          {/* 6 individual digit boxes */}
+          <form ref={verifyFormRef} onSubmit={(e) => { void handleOtpVerify(e); }}>
+            <div
+              className="grid grid-cols-6 gap-2"
+              onPaste={handleOtpPaste}
+            >
+              {otpDigits.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { otpBoxRefs.current[i] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  value={digit}
+                  onChange={(e) => handleOtpBoxChange(i, e.target.value)}
+                  onKeyDown={(e) => handleOtpBoxKeyDown(i, e)}
+                  onFocus={(e) => e.target.select()}
+                  autoFocus={i === 0}
+                  autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                  aria-label={`Digit ${i + 1} of 6`}
+                  className="aspect-square text-center text-xl font-bold rounded-xl transition-all outline-none focus:ring-2 focus:ring-[#6D4AE0]/25"
+                  style={{
+                    border: `1.5px solid ${digit ? '#6D4AE0' : '#ece8f8'}`,
+                    background: digit ? '#f5f2fd' : '#fff',
+                    color: digit ? '#5a35c0' : '#1a1a2e',
+                  }}
+                />
+              ))}
+            </div>
+
+            {otpCode.length === 6 && !loading && (
+              <p className="text-[11px] text-center text-emerald-600 font-medium mt-2.5">
+                Verifying automatically…
+              </p>
+            )}
+            {error && <div className="mt-3"><ErrorNote msg={error} /></div>}
+
+            <div className="mt-4">
+              <PrimaryBtn loading={loading} disabled={otpCode.length !== 6}>
+                {loading ? 'Verifying…' : 'Verify & sign in'}
+              </PrimaryBtn>
+            </div>
+          </form>
+
+          {/* Resend */}
+          <div className="text-center">
+            {resendCooldown > 0 ? (
+              <p className="text-xs text-gray-500">
+                Resend in{' '}
+                <span className="font-bold tabular-nums" style={{ color: '#6D4AE0' }}>
+                  {resendCooldown}s
+                </span>
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { void handleResend(); }}
+                disabled={loading}
+                className="text-xs font-medium text-[#6D4AE0] hover:underline disabled:opacity-50"
+              >
+                Didn&apos;t get it? Resend code
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={backToPassword}
+            className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors py-0.5"
+          >
+            ← Back to password
+          </button>
+
+          {IS_DEV && (
+            <button
+              type="button"
+              disabled={loading}
+              className="w-full text-xs text-amber-500 hover:underline disabled:opacity-50 py-0.5"
+              onClick={async () => {
+                try {
+                  const { data } = await api.auth.otpDevPeek(otpIdentifier);
+                  setOtpDigits(Array.from({ length: 6 }, (_, i) => data.code[i] ?? ''));
+                  setInfo(`[Dev] Auto-filled: ${data.code}`);
+                } catch {
+                  setError('[Dev] No pending OTP found.');
+                }
+              }}
+            >
+              [Dev] Auto-fill OTP from server
+            </button>
+          )}
         </div>
       )}
 
