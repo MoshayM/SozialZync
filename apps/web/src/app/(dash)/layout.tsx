@@ -872,7 +872,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         aria-label="Mobile navigation"
         style={{ background: '#fff', borderTop: '1px solid #ECECF3' }}
       >
-        <div className="flex items-end h-16">
+        <div className="flex items-center h-14">
 
           {/* Left 2 tabs */}
           {MOBILE_NAV_LEFT.map(({ href, icon: Icon, label }) => {
@@ -895,22 +895,22 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           })}
 
           {/* Centre — Create CTA */}
-          <div className="flex-1 flex flex-col items-center justify-end pb-2 relative" style={{ zIndex: 10 }}>
+          <div className="flex-1 flex flex-col items-center justify-center h-full">
             <Link
               href="/content"
               aria-label="Create new content"
-              className="flex flex-col items-center gap-[3px] touch-manipulation"
+              className="flex flex-col items-center gap-[3px] touch-manipulation active:scale-95 transition-transform"
             >
               <span
-                className="flex items-center justify-center rounded-2xl shadow-lg active:scale-95 transition-transform"
+                className="flex items-center justify-center"
                 style={{
-                  width: 52, height: 52,
+                  width: 40, height: 40,
+                  borderRadius: 13,
                   background: 'linear-gradient(135deg, #7C3AED 0%, #9D6FE8 100%)',
-                  boxShadow: '0 4px 16px rgba(124,58,237,0.40)',
-                  marginTop: -14, // lifts above the bar
+                  boxShadow: '0 3px 12px rgba(124,58,237,0.38)',
                 }}
               >
-                <Plus className="w-[26px] h-[26px] text-white" strokeWidth={2.5} />
+                <Plus className="w-[21px] h-[21px] text-white" strokeWidth={2.5} />
               </span>
               <span className="text-[10.5px] font-semibold leading-none" style={{ color: '#7C3AED' }}>Create</span>
             </Link>

@@ -242,7 +242,7 @@ function detectEmotion(text: string): 'excited' | 'error' | 'neutral' {
 }
 
 // CSS plastic robot body with SVG camera-lens eyes (matching Capture.PNG style)
-function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean }) {
+function RobotSvgBody({ state, excited, onMicToggle, voiceEnabled }: { state: RobotState; excited: boolean; onMicToggle?: () => void; voiceEnabled?: boolean }) {
   const [pupilOff, setPupilOff] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -348,12 +348,46 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
 
           {/* Body */}
           <div style={{ width:86, height:86, borderRadius:14, background:grad, boxShadow:'4px 5px 18px rgba(0,0,0,0.26),-2px -2px 6px rgba(255,255,255,0.33)', position:'relative', overflow:'hidden' }}>
-            {/* Chest panel */}
-            <div style={{ position:'absolute', top:'14%', left:'12%', right:'12%', bottom:'14%', background:'#080820', borderRadius:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)', display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3, paddingBottom:6 }}>
-              {(isSpeaking || isListening) ? [0,1,2,3,4].map(i => (
-                <div key={i} style={{ width:5, height:'52%', borderRadius:2, transformOrigin:'bottom', background:isSpeaking?'#00C8FF':'#4ADE80', boxShadow:`0 0 5px ${isSpeaking?'#00C8FFaa':'#4ADE80aa'}`, animation:`cfVoiceBar ${isSpeaking?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite` }} />
-              )) : (
-                <div style={{ width:10, height:10, borderRadius:'50%', marginBottom:2, background:eyeCol, boxShadow:`0 0 8px 3px ${eyeCol}55`, transition:'background 0.4s, box-shadow 0.4s', animation:'cfPulse 2s ease-in-out infinite' }} />
+            {/* Chest panel — mic toggle button */}
+            <div
+              onClick={onMicToggle}
+              title={voiceEnabled ? 'Mic ON — tap to mute' : 'Tap to activate voice'}
+              style={{
+                position:'absolute', top:'14%', left:'12%', right:'12%', bottom:'14%',
+                background:'#080820', borderRadius:9,
+                boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
+                pointerEvents: onMicToggle ? 'auto' : 'none',
+                cursor: onMicToggle ? 'pointer' : 'default',
+                transition:'background 0.2s',
+                overflow:'hidden',
+              }}
+            >
+              {(isSpeaking || isListening) ? (
+                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3, height:'100%', width:'100%', paddingBottom:6 }}>
+                  {[0,1,2,3,4].map(i => (
+                    <div key={i} style={{ width:5, height:'52%', borderRadius:2, transformOrigin:'bottom', background:isSpeaking?'#00C8FF':'#4ADE80', boxShadow:`0 0 5px ${isSpeaking?'#00C8FFaa':'#4ADE80aa'}`, animation:`cfVoiceBar ${isSpeaking?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite` }} />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div style={{
+                    width:24, height:24, borderRadius:7,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    background: voiceEnabled ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${voiceEnabled ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                    color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.25)',
+                    boxShadow: voiceEnabled ? '0 0 8px rgba(74,222,128,0.4)' : 'none',
+                    animation: voiceEnabled ? 'cfPulse 2s ease-in-out infinite' : 'none',
+                    transition:'all 0.3s',
+                  }}>
+                    {voiceEnabled
+                      ? <Mic style={{ width:11, height:11 }} />
+                      : <MicOff style={{ width:11, height:11 }} />
+                    }
+                  </div>
+                  <div style={{ width:5, height:5, borderRadius:'50%', background: voiceEnabled ? '#4ADE80' : eyeCol, opacity: voiceEnabled ? 1 : 0.5, boxShadow:`0 0 5px 2px ${voiceEnabled?'#4ADE8055':eyeCol+'44'}`, animation:'cfPulse 2s ease-in-out infinite', transition:'background 0.4s' }} />
+                </>
               )}
             </div>
           </div>
@@ -370,7 +404,7 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
   );
 }
 
-function RobotAvatar({ state, excited = false, compact = false }: { state: RobotState; excited?: boolean; compact?: boolean }) {
+function RobotAvatar({ state, excited = false, compact = false, onMicToggle, voiceEnabled }: { state: RobotState; excited?: boolean; compact?: boolean; onMicToggle?: () => void; voiceEnabled?: boolean }) {
   const robotAnim: React.CSSProperties['animation'] = excited
     ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
     : state === 'speaking' ? 'cfHeadBob 0.9s ease-in-out infinite'
@@ -383,7 +417,7 @@ function RobotAvatar({ state, excited = false, compact = false }: { state: Robot
     return (
       <div style={{ position:'relative', width:76, height:90, flexShrink:0, animation:robotAnim }}>
         <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-52%) scale(0.72)', transformOrigin:'center center' }}>
-          <RobotSvgBody state={state} excited={excited} />
+          <RobotSvgBody state={state} excited={excited} onMicToggle={onMicToggle} voiceEnabled={voiceEnabled} />
         </div>
         {excited && [{dx:'-20px',dy:'-18px'},{dx:'20px',dy:'-18px'},{dx:'-24px',dy:'4px'},{dx:'24px',dy:'4px'}].map((s, i) => (
           <span key={i} style={{ position:'absolute', top:28, left:38, width:4, height:4, borderRadius:'50%',
@@ -397,7 +431,7 @@ function RobotAvatar({ state, excited = false, compact = false }: { state: Robot
 
   return (
     <div style={{ display:'inline-block', position:'relative', animation:robotAnim }}>
-      <RobotSvgBody state={state} excited={excited} />
+      <RobotSvgBody state={state} excited={excited} onMicToggle={onMicToggle} voiceEnabled={voiceEnabled} />
       {excited && [{dx:'-32px',dy:'-30px'},{dx:'32px',dy:'-30px'},{dx:'-42px',dy:'4px'},{dx:'42px',dy:'4px'},{dx:'-22px',dy:'34px'},{dx:'22px',dy:'34px'}].map((s, i) => (
         <span key={i} style={{ position:'absolute', top:50, left:48, width:5, height:5, borderRadius:'50%',
           background:sparkleColors[i % sparkleColors.length], '--dx':s.dx, '--dy':s.dy,
@@ -1270,7 +1304,7 @@ export function CopilotPanel() {
             {shouldShowBubble && !activePanel && (
               <SpeechBubble text={bubbleText} state={robotState} />
             )}
-            <RobotAvatar state={robotState} excited={excited} />
+            <RobotAvatar state={robotState} excited={excited} onMicToggle={toggleVoice} voiceEnabled={voiceEnabled} />
           </div>
 
           {/* ── Speech bubble inside greeting area (idle, no panel) ── */}
@@ -1308,23 +1342,6 @@ export function CopilotPanel() {
             })}
           </div>
 
-          {/* ── Mic on/off (voice auto-listen toggle) ── */}
-          <button type="button" onClick={toggleVoice}
-            title={isVoiceActive ? 'Listening… tap to turn off' : voiceEnabled ? 'Mic ON — tap to turn off' : 'Mic OFF — tap for hands-free voice'}
-            style={{
-              position:'relative', zIndex:5,
-              width:38, height:38, borderRadius:'50%',
-              background: isVoiceActive ? 'rgba(74,222,128,0.28)' : voiceEnabled ? 'rgba(74,222,128,0.15)' : 'rgba(14,10,28,0.85)',
-              border: `1.5px solid ${isVoiceActive ? 'rgba(74,222,128,0.75)' : voiceEnabled ? 'rgba(74,222,128,0.45)' : 'rgba(255,255,255,0.12)'}`,
-              backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-              color: voiceEnabled || isVoiceActive ? '#4ADE80' : 'rgba(255,255,255,0.38)',
-              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-              boxShadow: isVoiceActive ? '0 0 20px rgba(74,222,128,0.5)' : voiceEnabled ? '0 0 14px rgba(74,222,128,0.25)' : '0 4px 14px rgba(0,0,0,0.35)',
-              animation: isVoiceActive ? 'cfPulse 1s ease-in-out infinite' : 'none',
-              transition:'all 0.18s',
-            }}>
-            {voiceEnabled || isVoiceActive ? <Mic style={{ width:15, height:15 }} /> : <MicOff style={{ width:15, height:15 }} />}
-          </button>
 
         </div>
         )} {/* end widgetOpen */}
