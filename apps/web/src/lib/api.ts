@@ -1014,6 +1014,29 @@ export const api = {
       ),
     renderStatus: (editId: string) =>
       apiClient.get<{ renderStatus: RenderStatus; renderAssetId?: string | null; downloadPath?: string }>(`/editor/${editId}/render-status`),
+    generateVoice: (editId: string, body: { text: string; voiceId: string; source: 'elevenlabs' | 'openai' }) =>
+      apiClient.post<MediaBinEntry>(`/editor/${editId}/audio/generate-voice`, body),
+    enhanceAsset: (editId: string, body: {
+      assetVersionId: string;
+      trimSilence?: boolean;
+      denoise?: boolean;
+      normalize?: boolean;
+      denoiseStrength?: 'light' | 'medium' | 'strong';
+      targetLufs?: number;
+      thresholdDb?: number;
+    }) => apiClient.post<{ assetVersionId: string; durationMs: number }>(`/editor/${editId}/audio/enhance-asset`, body),
+  },
+  voice: {
+    library: (source?: 'elevenlabs' | 'openai' | 'all') =>
+      apiClient.get<VoiceLibraryEntry[]>('/voice/library', { params: { source } }),
+    autoSelect: (scriptText: string) =>
+      apiClient.post<{ voiceId: string; source: string; name: string }>('/voice/auto-select', { scriptText }),
+  },
+  music: {
+    list: (params?: { search?: string }) =>
+      apiClient.get<MusicTrack[]>('/music', { params }),
+    autoSelect: (scriptText: string, projectId?: string) =>
+      apiClient.post<{ track: MusicTrack | null; brief: Record<string, unknown> }>('/music/auto-select', { scriptText, projectId }),
   },
 };
 
@@ -1193,4 +1216,28 @@ export interface MediaBinEntry {
   /** Server-side storage path — NOT loadable by the browser; use versionId + signed URL instead. */
   previewPath: string | null;
   versionId: string | null;
+}
+
+export interface VoiceLibraryEntry {
+  id: string;
+  source: 'elevenlabs' | 'openai';
+  name: string;
+  description?: string;
+  previewUrl?: string;
+  gender?: string;
+  accent?: string;
+  useCase?: string;
+}
+
+export interface MusicTrack {
+  id: string;
+  title: string;
+  artist?: string;
+  duration: number;
+  fileUrl: string;
+  previewUrl?: string;
+  mood: string[];
+  genre: string[];
+  license: string;
+  isAiGenerated: boolean;
 }

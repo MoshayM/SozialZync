@@ -1686,4 +1686,152 @@ Respond with JSON only:
     ], 300_000);
     return outPath;
   }
+
+  /**
+   * Generate a TTS voiceover using ElevenLabs or OpenAI, save it as a VOICE asset
+   * in the edit project's container project, and return a MediaBinItem.
+   */
+  async generateVoice(
+    editId: string,
+    userId: string,
+    text: string,
+    voiceId: string,
+    source: 'elevenlabs' | 'openai',
+  ): Promise<MediaBinItem> {
+    const editProj = await this.assertEditProjectOwnership(editId, userId);
+    const { projectId } = editProj;
+
+    let audioBuffer: Buffer;
+    if (source === 'elevenlabs') {
+      const apiKey = process.env['ELEVENLABS_API_KEY'];
+      if (!apiKey) throw new BadRequestException('ELEVENLABS_API_KEY not configured — add it in Settings → AI Providers');
+      const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`, {
+        method: 'POST',
+        headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+        }),
+      });
+      if (!resp.ok) {
+        const msg = await resp.text().catch(() => String(resp.status));
+        throw new BadRequestException(`ElevenLabs TTS error: ${msg}`);
+      }
+      audioBuffer = Buffer.from(await resp.arrayBuffer());
+    } else {
+      const apiKey = process.env['OPENAI_API_KEY'];
+      if (!apiKey) throw new BadRequestException('OPENAI_API_KEY not configured — add it in Settings → AI Providers');
+      const resp = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'tts-1', input: text, voice: voiceId, response_format: 'mp3' }),
+      });
+      if (!resp.ok) {
+        const msg = await resp.text().catch(() => String(resp.status));
+        throw new BadRequestException(`OpenAI TTS error: ${msg}`);
+      }
+      audioBuffer = Buffer.from(await resp.arrayBuffer());
+    }
+
+    // Rough duration estimate: ~150 words/min → 400 ms/word
+    const wordCount = text.trim().split(/\s+/).length;
+    const durationMs = Math.max(1000, Math.round(wordCount * 400));
+
+    const label = `Voice: ${text.slice(0, 40)}${text.length > 40 ? '…' : ''}`;
+    const asset = await this.prisma.asset.create({
+      data: { projectId, kind: 'VOICE', label, status: 'READY' },
+    });
+    const r2Key = `assets/${projectId}/${asset.id}/v1/voice.mp3`;
+    await this.storage.put(r2Key, audioBuffer);
+    const version = await this.prisma.assetVersion.create({
+      data: {
+        assetId: asset.id,
+        version: 1,
+        r2Key,
+        provider: source,
+        model: source === 'elevenlabs' ? 'eleven_multilingual_v2' : 'tts-1',
+        sizeBytes: BigInt(audioBuffer.length),
+        durationMs,
+      },
+    });
+    await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
+
+    return {
+      id: asset.id,
+      kind: 'VOICE',
+      label,
+      durationMs,
+      previewPath: this.storage.resolve(r2Key),
+      versionId: version.id,
+    };
+  }
+
+  /**
+   * AI-enhance the audio of an existing asset version (trim silence, denoise, normalize).
+   * Requires the file to be locally accessible via the storage backend.
+   */
+  async enhanceAsset(
+    editId: string,
+    userId: string,
+    assetVersionId: string,
+    steps: {
+      trimSilence?: boolean;
+      denoise?: boolean;
+      normalize?: boolean;
+      denoiseStrength?: 'light' | 'medium' | 'strong';
+      targetLufs?: number;
+      thresholdDb?: number;
+    },
+  ): Promise<{ assetVersionId: string; durationMs: number }> {
+    await this.assertEditProjectOwnership(editId, userId);
+
+    const version = await this.prisma.assetVersion.findUnique({
+      where: { id: assetVersionId },
+      include: { asset: { select: { id: true, projectId: true } } },
+    });
+    if (!version) throw new NotFoundException('Asset version not found');
+    if (!version.r2Key || !this.storage.exists(version.r2Key)) {
+      throw new BadRequestException('Asset file is not locally accessible for audio processing');
+    }
+
+    let currentPath = this.storage.resolve(version.r2Key);
+    if (steps.trimSilence) currentPath = await this.removeSilence(currentPath, { thresholdDb: steps.thresholdDb });
+    if (steps.denoise) currentPath = await this.denoiseAudio(currentPath, steps.denoiseStrength ?? 'medium');
+    if (steps.normalize) currentPath = await this.normalizeAudio(currentPath, steps.targetLufs ?? -14);
+
+    let durationMs = version.durationMs ?? 0;
+    try {
+      const probe = await runFfmpegCapture(['-v', 'quiet', '-print_format', 'json', '-show_streams', '-i', currentPath], 30_000);
+      const parsed = JSON.parse(probe) as { streams?: Array<{ duration?: string }> };
+      const dur = parseFloat(parsed.streams?.[0]?.duration ?? '0');
+      if (dur > 0) durationMs = Math.round(dur * 1000);
+    } catch { /* keep original durationMs if probe fails */ }
+
+    const maxVer = await this.prisma.assetVersion.findFirst({
+      where: { assetId: version.asset.id },
+      orderBy: { version: 'desc' },
+      select: { version: true },
+    });
+    const nextVer = (maxVer?.version ?? 0) + 1;
+    const ext = currentPath.match(/\.[^.]+$/)?.[0] ?? '.mp3';
+    const r2Key = `assets/${version.asset.projectId}/${version.asset.id}/v${nextVer}/enhanced${ext}`;
+    await this.storage.copyIn(r2Key, currentPath);
+    const stat = await fsp.stat(currentPath);
+
+    const newVersion = await this.prisma.assetVersion.create({
+      data: {
+        assetId: version.asset.id,
+        version: nextVer,
+        r2Key,
+        provider: 'ffmpeg',
+        model: 'ai-enhance',
+        sizeBytes: BigInt(stat.size),
+        durationMs,
+      },
+    });
+    await this.prisma.asset.update({ where: { id: version.asset.id }, data: { currentVersionId: newVersion.id } });
+
+    return { assetVersionId: newVersion.id, durationMs };
+  }
 }
