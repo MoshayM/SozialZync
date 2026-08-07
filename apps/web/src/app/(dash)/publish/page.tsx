@@ -52,45 +52,49 @@ function PublishContent() {
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
+      {/* Outer: scroll container — separated from flex to fix iOS scroll bug */}
       <div
-        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 px-4 sm:px-6 flex overflow-x-auto no-scrollbar"
+        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 overflow-x-auto no-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {TABS.map((t) => {
-          const active = activeTab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => router.replace(`/publish?tab=${t.id}`)}
-              className={[
-                'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
-                active
-                  ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
-              ].join(' ')}
-            >
-              <t.icon className={`w-4 h-4 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
-              {t.label}
-              {t.badge && (
-                <span
-                  className="text-white font-bold leading-none"
-                  style={{
-                    fontSize: '9px',
-                    padding: '2px 5px',
-                    borderRadius: '99px',
-                    background:
-                      t.badge === 'NEW'
-                        ? 'linear-gradient(135deg,#10B981,#059669)'
-                        : 'linear-gradient(135deg,#F59E0B,#D97706)',
-                  }}
-                >
-                  {t.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        {/* Inner: flex row wider than screen triggers outer scroll */}
+        <div className="flex px-4 sm:px-6 min-w-max">
+          {TABS.map((t) => {
+            const active = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => router.replace(`/publish?tab=${t.id}`)}
+                className={[
+                  'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap touch-manipulation',
+                  active
+                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
+                ].join(' ')}
+              >
+                <t.icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
+                {t.label}
+                {t.badge && (
+                  <span
+                    className="text-white font-bold leading-none"
+                    style={{
+                      fontSize: '9px',
+                      padding: '2px 5px',
+                      borderRadius: '99px',
+                      background:
+                        t.badge === 'NEW'
+                          ? 'linear-gradient(135deg,#10B981,#059669)'
+                          : 'linear-gradient(135deg,#F59E0B,#D97706)',
+                    }}
+                  >
+                    {t.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Context description strip ────────────────────────────────────── */}

@@ -35,28 +35,30 @@ function InsightsContent() {
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 px-4 sm:px-6 flex overflow-x-auto no-scrollbar"
+        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 overflow-x-auto no-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {TABS.map((t) => {
-          const active = activeTab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => router.replace(`/insights?tab=${t.id}`)}
-              className={[
-                'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
-                active
-                  ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200',
-              ].join(' ')}
-            >
-              <t.icon className={`w-4 h-4 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
-              {t.label}
-            </button>
-          );
-        })}
+        <div className="flex px-4 sm:px-6 min-w-max">
+          {TABS.map((t) => {
+            const active = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => router.replace(`/insights?tab=${t.id}`)}
+                className={[
+                  'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap touch-manipulation',
+                  active
+                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200',
+                ].join(' ')}
+              >
+                <t.icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Context description strip ────────────────────────────────────── */}
