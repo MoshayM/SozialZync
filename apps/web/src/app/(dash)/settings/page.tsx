@@ -639,9 +639,9 @@ function SettingsContent() {
               </div>
             </div>
             <div className="px-4 py-5 flex items-center justify-between gap-4">
-              <p className="text-sm text-gray-600">YouTube, Instagram, TikTok, Facebook, X, LinkedIn, Threads — all managed from <span className="font-semibold text-gray-800">Media Control → Channel Access</span>.</p>
+              <p className="text-sm text-gray-600">YouTube, Instagram, TikTok, Facebook, X, LinkedIn, Threads — all managed in one place.</p>
               <a
-                href="/library?tab=channels"
+                href="/settings/channels"
                 className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 transition-opacity"
                 style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)', textDecoration: 'none' }}
               >

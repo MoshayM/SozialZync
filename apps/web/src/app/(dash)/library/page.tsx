@@ -8,10 +8,9 @@ function LibraryRedirect() {
   useEffect(() => {
     const tab = params.get('tab');
     const target =
-      tab === 'channels'  ? '/projects?tab=channels' :
-      tab === 'assets'    ? '/projects?tab=channels&media=assets' :
-      tab === 'playlists' ? '/projects?tab=channels&media=playlists' :
-                            '/projects?tab=channels';
+      tab === 'assets'    ? '/studio/assets' :
+      tab === 'playlists' ? '/settings/channels' :
+                            '/settings/channels';
     router.replace(target);
   }, [router, params]);
   return null;

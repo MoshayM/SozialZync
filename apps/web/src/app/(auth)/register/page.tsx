@@ -2,9 +2,9 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { User, AtSign, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { api, setTokens, type OAuthProviders, type OAuthProvider } from '@/lib/api';
-import { RegisterShell, LoginInput, SocialRow, type OAuthProviderName } from '@/components/auth-shell';
+import { User, AtSign, Lock, Eye, EyeOff, Loader2, Mail } from 'lucide-react';
+import { api, setTokens } from '@/lib/api';
+import { RegisterShell, LoginInput } from '@/components/auth-shell';
 
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
@@ -18,14 +18,6 @@ function RegisterInner() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [providers, setProviders] = useState<OAuthProviders | undefined>(undefined);
-
-  useEffect(() => {
-    if (MOCK_MODE) return;
-    api.auth.providers()
-      .then((r) => setProviders(r.data))
-      .catch(() => setProviders({ google: false }));
-  }, []);
 
   useEffect(() => {
     const ref = searchParams.get('ref');
@@ -39,7 +31,7 @@ function RegisterInner() {
 
     if (MOCK_MODE) {
       if (form.email === OWNER_EMAIL) {
-        setError('Email already registered. Please log in instead.');
+        setError('Email already registered. Please sign in instead.');
         setLoading(false);
         return;
       }
@@ -56,11 +48,12 @@ function RegisterInner() {
         api.referral.redeem(pending).catch(() => {});
         localStorage.removeItem('cf.pendingReferralCode');
       }
-      router.push('/home');
+      const supportsPasskey = typeof PublicKeyCredential !== 'undefined';
+      router.push(supportsPasskey ? '/setup-passkey' : '/home');
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 409) {
-        setError('Email already registered. Please log in instead.');
+        setError('Email already registered. Please sign in instead.');
       } else if (status === 429) {
         setError('Too many sign-up attempts. Please wait a minute and try again.');
       } else if (!status) {
@@ -70,18 +63,6 @@ function RegisterInner() {
       }
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleSocialRegister(provider: OAuthProviderName) {
-    setError('');
-    try {
-      const redirectUri = `${window.location.origin}/oauth/callback/${provider}`;
-      const { data } = await api.auth.oauthStart(provider as OAuthProvider, redirectUri, 'login');
-      sessionStorage.setItem('cf.oauth.state', data.state);
-      window.location.href = data.authUrl;
-    } catch {
-      setError(`Could not start ${provider} sign-up. Please try again.`);
     }
   }
 
@@ -97,7 +78,6 @@ function RegisterInner() {
       }
     >
       <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-4">
-        {/* Name */}
         <LoginInput
           icon={<User className="w-4 h-4" />}
           label="Full name"
@@ -108,25 +88,25 @@ function RegisterInner() {
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
         />
 
-        {/* Email */}
         <LoginInput
           icon={<AtSign className="w-4 h-4" />}
           label="Email address"
           type="email"
           aria-label="Email"
           placeholder="you@example.com"
+          autoComplete="email"
           value={form.email}
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
           required
         />
 
-        {/* Password */}
         <LoginInput
           icon={<Lock className="w-4 h-4" />}
           label="Password"
           type={showPassword ? 'text' : 'password'}
           aria-label="Password"
           placeholder="Min 8 characters"
+          autoComplete="new-password"
           value={form.password}
           onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
           required
@@ -142,7 +122,6 @@ function RegisterInner() {
           }
         />
 
-        {/* Error */}
         {error && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
             <span className="text-red-400 text-sm" aria-hidden>⚠</span>
@@ -150,7 +129,6 @@ function RegisterInner() {
           </div>
         )}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -164,8 +142,7 @@ function RegisterInner() {
           {loading ? 'Creating account…' : 'Create free account'}
         </button>
 
-        {/* Terms note */}
-        <p className="text-[11px] text-gray-600 text-center leading-relaxed">
+        <p className="text-[11px] text-gray-500 text-center leading-relaxed">
           By signing up you agree to our{' '}
           <Link href="/terms" className="text-[#6D4AE0] hover:underline">Terms of Service</Link>
           {' '}and{' '}
@@ -173,10 +150,25 @@ function RegisterInner() {
         </p>
       </form>
 
-      <SocialRow
-        providers={providers}
-        onProviderClick={(p) => { void handleSocialRegister(p); }}
-      />
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-gray-100" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-[#faf9ff] px-3 text-gray-400 font-medium tracking-wide">or</span>
+        </div>
+      </div>
+
+      {/* No-password sign-up via OTP on login page */}
+      <Link
+        href="/login"
+        className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold transition-all hover:bg-[#f5f2fd] hover:text-[#6D4AE0] active:scale-[0.99]"
+        style={{ border: '1.5px solid #e3ddf8', background: '#fff', color: '#374151' }}
+      >
+        <Mail className="w-4 h-4 shrink-0" />
+        Sign up with a one-time code instead
+      </Link>
     </RegisterShell>
   );
 }

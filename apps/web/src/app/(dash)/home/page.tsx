@@ -206,7 +206,7 @@ export default function HomePage() {
   const daysLeft = trialStatus?.expiresAt ? daysUntil(trialStatus.expiresAt) : null;
 
   const steps = [
-    { label: 'Connect a YouTube channel',     done: channels.length > 0,       href: '/library?tab=channels' },
+    { label: 'Connect a YouTube channel',     done: channels.length > 0,       href: '/settings/channels' },
     { label: 'Create your first project',      done: projects.length > 0,       href: '/projects' },
     { label: 'Enable AI automation',           done: automation?.enabled === true, href: '/automation' },
     { label: 'Generate your first AI content', done: totalJobs > 0,             href: '/autonomy' },
@@ -618,7 +618,7 @@ export default function HomePage() {
                   ))}
                   {channels.length === 0 && (
                     <Link
-                      href="/library?tab=channels"
+                      href="/settings/channels"
                       className="flex items-center gap-2 text-sm font-semibold hover:underline"
                       style={{ color: '#6D4AE0' }}
                     >
