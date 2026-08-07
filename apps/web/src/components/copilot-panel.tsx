@@ -348,45 +348,89 @@ function RobotSvgBody({ state, excited, onMicToggle, voiceEnabled }: { state: Ro
 
           {/* Body */}
           <div style={{ width:86, height:86, borderRadius:14, background:grad, boxShadow:'4px 5px 18px rgba(0,0,0,0.26),-2px -2px 6px rgba(255,255,255,0.33)', position:'relative', overflow:'hidden' }}>
-            {/* Chest panel — mic toggle button */}
+            {/* Chest panel — prominent mic toggle */}
             <div
               onClick={onMicToggle}
               title={voiceEnabled ? 'Mic ON — tap to mute' : 'Tap to activate voice'}
               style={{
-                position:'absolute', top:'14%', left:'12%', right:'12%', bottom:'14%',
-                background:'#080820', borderRadius:9,
-                boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)',
-                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
+                position:'absolute', top:'12%', left:'10%', right:'10%', bottom:'12%',
+                borderRadius:10,
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4,
                 pointerEvents: onMicToggle ? 'auto' : 'none',
                 cursor: onMicToggle ? 'pointer' : 'default',
-                transition:'background 0.2s',
                 overflow:'hidden',
+                transition:'background 0.3s, box-shadow 0.3s',
+                background: isListening
+                  ? 'rgba(74,222,128,0.18)'
+                  : isSpeaking
+                  ? 'rgba(0,200,255,0.15)'
+                  : isThinking
+                  ? 'rgba(251,191,36,0.13)'
+                  : voiceEnabled
+                  ? 'rgba(74,222,128,0.10)'
+                  : 'rgba(4,6,20,0.88)',
+                boxShadow: isListening
+                  ? 'inset 0 0 14px rgba(74,222,128,0.55), 0 0 12px rgba(74,222,128,0.4)'
+                  : isSpeaking
+                  ? 'inset 0 0 14px rgba(0,200,255,0.45), 0 0 12px rgba(0,200,255,0.3)'
+                  : isThinking
+                  ? 'inset 0 0 12px rgba(251,191,36,0.35)'
+                  : voiceEnabled
+                  ? 'inset 0 0 10px rgba(74,222,128,0.25)'
+                  : 'inset 0 2px 10px rgba(0,0,0,0.9)',
               }}
             >
-              {(isSpeaking || isListening) ? (
-                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3, height:'100%', width:'100%', paddingBottom:6 }}>
+              {/* Listening — big green bars */}
+              {isListening && (
+                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3.5, width:'100%', paddingBottom:4, paddingTop:4 }}>
                   {[0,1,2,3,4].map(i => (
-                    <div key={i} style={{ width:5, height:'52%', borderRadius:2, transformOrigin:'bottom', background:isSpeaking?'#00C8FF':'#4ADE80', boxShadow:`0 0 5px ${isSpeaking?'#00C8FFaa':'#4ADE80aa'}`, animation:`cfVoiceBar ${isSpeaking?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite` }} />
+                    <div key={i} style={{ width:6, height:'65%', borderRadius:3, transformOrigin:'bottom', background:'#4ADE80', boxShadow:'0 0 7px #4ADE80cc', animation:`cfVoiceBar 0.38s ease-in-out ${i*0.11}s infinite` }} />
                   ))}
                 </div>
-              ) : (
+              )}
+
+              {/* Speaking — big cyan bars */}
+              {isSpeaking && !isListening && (
+                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3.5, width:'100%', paddingBottom:4, paddingTop:4 }}>
+                  {[0,1,2,3,4].map(i => (
+                    <div key={i} style={{ width:6, height:'65%', borderRadius:3, transformOrigin:'bottom', background:'#00C8FF', boxShadow:'0 0 7px #00C8FFcc', animation:`cfVoiceBar 0.55s ease-in-out ${i*0.11}s infinite` }} />
+                  ))}
+                </div>
+              )}
+
+              {/* Thinking — amber pulse ring */}
+              {isThinking && !isListening && !isSpeaking && (
+                <div style={{ position:'relative', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:'2px solid #FBBF24', animation:'cfPulse 0.9s ease-in-out infinite' }} />
+                  <div style={{ width:10, height:10, borderRadius:'50%', background:'#FBBF24', boxShadow:'0 0 8px #FBBF24' }} />
+                </div>
+              )}
+
+              {/* Idle — big mic icon */}
+              {!isListening && !isSpeaking && !isThinking && (
                 <>
                   <div style={{
-                    width:24, height:24, borderRadius:7,
+                    width:34, height:34, borderRadius:10,
                     display:'flex', alignItems:'center', justifyContent:'center',
-                    background: voiceEnabled ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${voiceEnabled ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                    color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.25)',
-                    boxShadow: voiceEnabled ? '0 0 8px rgba(74,222,128,0.4)' : 'none',
+                    background: voiceEnabled ? 'rgba(74,222,128,0.22)' : 'rgba(255,255,255,0.07)',
+                    border: `1.5px solid ${voiceEnabled ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.15)'}`,
+                    color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.4)',
+                    boxShadow: voiceEnabled ? '0 0 14px rgba(74,222,128,0.5)' : 'none',
                     animation: voiceEnabled ? 'cfPulse 2s ease-in-out infinite' : 'none',
-                    transition:'all 0.3s',
+                    transition:'all 0.35s',
                   }}>
                     {voiceEnabled
-                      ? <Mic style={{ width:11, height:11 }} />
-                      : <MicOff style={{ width:11, height:11 }} />
+                      ? <Mic style={{ width:17, height:17 }} />
+                      : <MicOff style={{ width:17, height:17 }} />
                     }
                   </div>
-                  <div style={{ width:5, height:5, borderRadius:'50%', background: voiceEnabled ? '#4ADE80' : eyeCol, opacity: voiceEnabled ? 1 : 0.5, boxShadow:`0 0 5px 2px ${voiceEnabled?'#4ADE8055':eyeCol+'44'}`, animation:'cfPulse 2s ease-in-out infinite', transition:'background 0.4s' }} />
+                  <div style={{
+                    fontSize: 7, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase',
+                    color: voiceEnabled ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.22)',
+                    transition: 'color 0.35s',
+                  }}>
+                    {voiceEnabled ? 'ON' : 'TAP'}
+                  </div>
                 </>
               )}
             </div>
