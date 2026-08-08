@@ -86,7 +86,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const smtpHost = process.env['SMTP_HOST'];
   if (smtpHost) {
     const smtpUser = process.env['SMTP_USER'];
-    const smtpFrom = process.env['SMTP_FROM'] ?? smtpUser ?? 'noreply@aicreatorforce.com';
+    const smtpFrom = process.env['SMTP_FROM'] ?? smtpUser ?? 'noreply@sozialzync.com';
     // Google App Passwords are displayed with spaces but auth ignores them.
     const smtpPass = (process.env['SMTP_PASS'] ?? '').replace(/\s/g, '');
     console.log(`[relay] Trying Gmail SMTP user=${smtpUser} passLen=${smtpPass.length}`);

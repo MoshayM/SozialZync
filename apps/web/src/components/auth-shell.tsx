@@ -118,7 +118,7 @@ export function LoginShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -193,7 +193,7 @@ export function LoginShell({
             ))}
           </div>
           <p className="text-white/80 text-sm leading-relaxed mb-4">
-            &ldquo;AI CreatorForce helped me grow from 5K to 150K subscribers in 6 months. The research-backed scripts and compliance check saved me so much time.&rdquo;
+            &ldquo;Sozialzync helped me grow from 5K to 150K subscribers in 6 months. The research-backed scripts and compliance check saved me so much time.&rdquo;
           </p>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">
@@ -213,7 +213,7 @@ export function LoginShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
           </div>
 
           <div className="mb-8">
@@ -308,7 +308,7 @@ export function RegisterShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -390,7 +390,7 @@ export function RegisterShell({
             ))}
           </div>
           <p className="text-white/80 text-sm leading-relaxed mb-4">
-            &ldquo;I was spending 20+ hours a week on content research. AI CreatorForce cut that to under 2 hours. The research agent and fact-checker alone are worth it.&rdquo;
+            &ldquo;I was spending 20+ hours a week on content research. Sozialzync cut that to under 2 hours. The research agent and fact-checker alone are worth it.&rdquo;
           </p>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">
@@ -410,7 +410,7 @@ export function RegisterShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
           </div>
 
           <div className="mb-7">
@@ -434,13 +434,13 @@ const RECOVERY_STEPS = [
     n: '1',
     icon: '📧',
     title: 'Enter your email',
-    desc: "We'll verify it's registered with AI CreatorForce",
+    desc: "We'll verify it's registered with Sozialzync",
   },
   {
     n: '2',
     icon: '📬',
     title: 'Check your inbox',
-    desc: 'Look for an email from AI CreatorForce (check spam too)',
+    desc: 'Look for an email from Sozialzync (check spam too)',
   },
   {
     n: '3',
@@ -471,7 +471,7 @@ export function ForgotPasswordShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -532,7 +532,7 @@ export function ForgotPasswordShell({
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
           </div>
           {children}
           <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
@@ -573,7 +573,7 @@ export function ResetPasswordShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -623,7 +623,7 @@ export function ResetPasswordShell({
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
           </div>
           {children}
           <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
@@ -690,7 +690,7 @@ export function OAuthCallbackShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">AI CreatorForce</div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -804,7 +804,7 @@ export function OAuthCallbackShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>AI CreatorForce</span>
+            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
           </div>
 
           {children}

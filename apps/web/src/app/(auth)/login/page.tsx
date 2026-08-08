@@ -351,7 +351,7 @@ export default function LoginPage() {
         <>
           {mode === 'password' && (
             <span>
-              New to AI CreatorForce?{' '}
+              New to Sozialzync?{' '}
               <Link href="/register" className="text-[#6D4AE0] font-semibold hover:underline">
                 Create a free account
               </Link>

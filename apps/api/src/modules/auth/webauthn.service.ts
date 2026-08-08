@@ -30,7 +30,7 @@ function rpId(): string {
 }
 
 function rpName(): string {
-  return process.env['WEBAUTHN_RP_NAME'] ?? 'CreatorForce';
+  return process.env['WEBAUTHN_RP_NAME'] ?? 'Sozialzync';
 }
 
 function origin(): string {

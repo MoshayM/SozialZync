@@ -88,7 +88,7 @@ export default function AudioStudioPage() {
           type="text"
           value={inputPath}
           onChange={e => { setInputPath(e.target.value); setResult(null); setError(null); }}
-          placeholder="/data/aicreatorforce/projects/my-recording.mp4"
+          placeholder="/data/sozialzync/projects/my-recording.mp4"
           className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
           style={{ borderColor: '#d4c9f9' }}
         />

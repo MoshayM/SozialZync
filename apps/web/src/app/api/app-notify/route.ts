@@ -40,8 +40,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         },
         body: JSON.stringify({
           to: adminEmail,
-          subject: `[AI CreatorForce] App launch notification signup — ${label}`,
-          text: `New user signed up to be notified when the AI CreatorForce ${label} app launches.\n\nEmail: ${email}\nPlatform: ${platform}\nTimestamp: ${new Date().toISOString()}`,
+          subject: `[Sozialzync] App launch notification signup — ${label}`,
+          text: `New user signed up to be notified when the Sozialzync ${label} app launches.\n\nEmail: ${email}\nPlatform: ${platform}\nTimestamp: ${new Date().toISOString()}`,
           html: `<p>New signup for <strong>${label}</strong> launch notification.</p><p>Email: <strong>${email}</strong></p><p>Platform: ${platform}</p>`,
         }),
       });

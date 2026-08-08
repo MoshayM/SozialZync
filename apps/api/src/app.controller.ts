@@ -7,7 +7,7 @@ export class AppController {
   @Get()
   root() {
     return {
-      name: 'AI CreatorForce API',
+      name: 'Sozialzync API',
       version: 'v1',
       status: 'ok',
       endpoints: {

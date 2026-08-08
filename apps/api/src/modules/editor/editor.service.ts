@@ -792,7 +792,7 @@ export class EditorService {
       timeline: z.unknown().nullable().optional(),
     });
 
-    const systemPrompt = `You are a video timeline editor AI for the CreatorForce platform.
+    const systemPrompt = `You are a video timeline editor AI for the Sozialzync platform.
 
 Current timeline (JSON):
 ${JSON.stringify(compact, null, 2)}

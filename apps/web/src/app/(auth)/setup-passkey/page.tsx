@@ -58,7 +58,7 @@ export default function SetupPasskeyPage() {
             className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
             style={{ background: '#fff', color: '#2d1b6e' }}
           >
-            Continue to AI CreatorForce <ChevronRight className="w-4 h-4" />
+            Continue to Sozialzync <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>

@@ -7,7 +7,7 @@ import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','600','700','800'], variable: '--font-plus-jakarta' });
 
-const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://aicreatorforce.com';
+const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://sozialzync.com';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -19,9 +19,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'AI CreatorForce', template: '%s · AI CreatorForce' },
+  title: { default: 'Sozialzync', template: '%s · Sozialzync' },
   description: 'AI-powered YouTube Content Operating System. Create, grow and publish with AI — from research to viral shorts.',
-  applicationName: 'AI CreatorForce',
+  applicationName: 'Sozialzync',
   alternates: { canonical: '/' },
   icons: {
     icon: '/icon.svg',
@@ -31,20 +31,20 @@ export const metadata: Metadata = {
   // PWA / mobile app meta
   appleWebApp: {
     capable: true,
-    title: 'AI CreatorForce',
+    title: 'Sozialzync',
     statusBarStyle: 'black-translucent',
   },
   formatDetection: { telephone: false },
   openGraph: {
     type: 'website',
     url: SITE_URL,
-    siteName: 'AI CreatorForce',
-    title: 'AI CreatorForce — YouTube Content OS',
+    siteName: 'Sozialzync',
+    title: 'Sozialzync — YouTube Content OS',
     description: 'Turn long videos into publish-ready Shorts, edit with a full timeline, and publish — AI-assisted end to end.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI CreatorForce',
+    title: 'Sozialzync',
     description: 'AI-powered YouTube content creation platform.',
   },
 };
