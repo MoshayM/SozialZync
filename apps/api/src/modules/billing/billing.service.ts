@@ -371,7 +371,9 @@ export class BillingService {
   async refundPayment(paymentId: string, adminId: string, reason: string, amountMinor?: number) {
     const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
     if (!payment) throw new NotFoundException('Payment not found');
-    if (payment.gateway !== 'STRIPE') throw new BadRequestException(`Refunds for ${payment.gateway} are not implemented`);
+    if (payment.gateway !== 'STRIPE') {
+      return { ok: false, reason: 'Refund not supported for this payment gateway — contact support.' };
+    }
     if (payment.status !== 'SUCCEEDED' && payment.status !== 'PARTIALLY_REFUNDED') {
       throw new BadRequestException(`Payment is ${payment.status} — only succeeded payments can be refunded`);
     }

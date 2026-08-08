@@ -7,8 +7,9 @@ import {
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
   Webhook, Trash2, Play, Plus, Cpu, Download, HardDrive, Activity,
-  Fingerprint, Camera, X as XIcon,
+  Fingerprint, Camera, X as XIcon, Bell, BellOff,
 } from 'lucide-react';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { startRegistration } from '@simplewebauthn/browser';
 import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse, type PasskeyCredentialView } from '@/lib/api';
 
@@ -44,6 +45,34 @@ function SettingsContent() {
   const [profileSaved, setProfileSaved] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Push notifications ──────────────────────────────────────────────────────
+  const {
+    supported: pushSupported,
+    permission: pushPermission,
+    subscribing: pushSubscribing,
+    subscribe: pushSubscribe,
+    unsubscribe: pushUnsubscribe,
+  } = usePushNotifications();
+  const [pushBanner, setPushBanner] = useState<string | null>(null);
+
+  async function handlePushSubscribe() {
+    try {
+      await pushSubscribe();
+      setPushBanner('Browser notifications enabled.');
+    } catch {
+      setPushBanner('Could not enable notifications. Check your browser settings.');
+    }
+  }
+
+  async function handlePushUnsubscribe() {
+    try {
+      await pushUnsubscribe();
+      setPushBanner('Browser notifications disabled.');
+    } catch {
+      setPushBanner('Failed to disable notifications. Please try again.');
+    }
+  }
 
   // ── Webhook state ───────────────────────────────────────────────────────────
   const [showAddWebhookForm, setShowAddWebhookForm] = useState(false);
@@ -953,6 +982,74 @@ function SettingsContent() {
             )}
           </section>
         )}
+        {/* ── Notifications ─────────────────────────────────────────── */}
+        {pushSupported && (
+          <section>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Notifications</p>
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
+                <Bell className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800">Browser Notifications</p>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Get alerts in your browser when jobs complete, compliance fails, or a video publishes — even when the tab is in the background.
+                  </p>
+                </div>
+                <span
+                  className="text-[11px] font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap"
+                  style={{
+                    background: pushPermission === 'granted' ? '#ecfdf5' : pushPermission === 'denied' ? '#fef2f2' : '#f5f2fd',
+                    color: pushPermission === 'granted' ? '#065f46' : pushPermission === 'denied' ? '#991b1b' : '#6D4AE0',
+                  }}
+                >
+                  {pushPermission === 'granted' ? 'Enabled' : pushPermission === 'denied' ? 'Blocked' : 'Off'}
+                </span>
+              </div>
+
+              <div className="px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
+                <p className="text-sm text-gray-600">
+                  {pushPermission === 'granted'
+                    ? 'You are receiving browser push notifications on this device.'
+                    : pushPermission === 'denied'
+                    ? 'Notifications are blocked. Allow them in your browser site settings, then try again.'
+                    : 'Enable browser notifications to stay informed without keeping the app open.'}
+                </p>
+
+                {pushPermission === 'granted' ? (
+                  <button
+                    type="button"
+                    onClick={() => { void handlePushUnsubscribe(); }}
+                    className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-sm hover:bg-red-50 transition-colors"
+                    style={{ border: '1.5px solid #fecaca', color: '#dc2626' }}
+                  >
+                    <BellOff className="w-3.5 h-3.5" />
+                    Disable
+                  </button>
+                ) : pushPermission !== 'denied' ? (
+                  <button
+                    type="button"
+                    onClick={() => { void handlePushSubscribe(); }}
+                    disabled={pushSubscribing}
+                    className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                    style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                  >
+                    {pushSubscribing
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Bell className="w-3.5 h-3.5" />}
+                    Enable browser notifications
+                  </button>
+                ) : null}
+              </div>
+
+              {pushBanner && (
+                <div className="px-4 pb-3">
+                  <p className="text-xs px-3 py-2 rounded-xl bg-[#f5f2fd] text-gray-700">{pushBanner}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
       </div>
     </div>
   );

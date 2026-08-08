@@ -116,7 +116,16 @@ const QUALITIES: { value: RenderQuality; label: string; hint: string }[] = [
   { value: 'high', label: 'High', hint: 'Maximum quality, larger file' },
 ];
 
-function ExportDialog({ editId, onClose }: { editId: string; onClose: () => void }) {
+function ExportDialog({
+  editId,
+  onClose,
+  onBeforeRender,
+}: {
+  editId: string;
+  onClose: () => void;
+  /** Called before enqueueing the render job — use this to flush any unsaved timeline changes. */
+  onBeforeRender?: () => Promise<void>;
+}) {
   const [preset, setPreset] = useState<RenderPreset>('1080P_16_9');
   const [format, setFormat] = useState<RenderFormat>('mp4');
   const [quality, setQuality] = useState<RenderQuality>('standard');
@@ -137,6 +146,10 @@ function ExportDialog({ editId, onClose }: { editId: string; onClose: () => void
     setError(null);
     setRenderStatus(null);
     try {
+      // Flush any unsaved timeline edits (including effects/filters) to the server
+      // before enqueueing the render job. Without this, changes made since the last
+      // auto-save would be silently ignored by the render worker.
+      if (onBeforeRender) await onBeforeRender();
       const options: EditExportOptions = { preset, format, quality };
       const res = await api.editor.render(editId, options);
       setRenderStatus(res.data.renderStatus);
@@ -2215,7 +2228,7 @@ export default function EditorWorkspacePage() {
       </div>
 
       {/* Dialogs */}
-      {showExport && <ExportDialog editId={editId} onClose={() => setShowExport(false)} />}
+      {showExport && <ExportDialog editId={editId} onClose={() => setShowExport(false)} onBeforeRender={handleSave} />}
       {showAiEdit && (
         <AiEditDialog
           editId={editId}

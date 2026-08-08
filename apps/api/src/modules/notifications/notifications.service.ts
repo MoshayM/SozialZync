@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { decodeCursor, keysetWhereDesc, clampLimit, pageResult } from '../../common/pagination/cursor';
+import { PushService } from './push.service';
 
 // ── Pure helpers (exported for tests) ────────────────────────────────────────
 
@@ -81,7 +82,10 @@ const LIST_MAX_TAKE = 50;
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly pushService: PushService | null,
+  ) {}
 
   /**
    * Create a notification for a user.
@@ -131,6 +135,15 @@ export class NotificationsService {
       await this.prisma.notification.create({
         data: { userId, type, title, body, meta: meta as Prisma.InputJsonObject },
       });
+
+      // Best-effort web push — failure must never break the notification flow
+      if (this.pushService) {
+        void this.pushService.sendToUser(userId, {
+          title,
+          body: body ?? '',
+          url: typeof meta['url'] === 'string' ? meta['url'] : undefined,
+        });
+      }
     } catch (err) {
       this.logger.warn(
         `[notifications] notify failed (non-fatal) for user ${userId} type ${type}: ${err instanceof Error ? err.message : String(err)}`,
