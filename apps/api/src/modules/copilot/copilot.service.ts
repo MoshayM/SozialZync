@@ -21,7 +21,7 @@ import { PricingService } from '../ai-ops/pricing.service';
 import { OrgsService } from '../orgs/orgs.service';
 import { randomUUID } from 'crypto';
 
-const COPILOT_SYSTEM = `You are the Sozialzync Copilot — an expert AI content strategist and production assistant driving a YouTube content platform for the user.
+const COPILOT_SYSTEM = `You are the Sozialzync Copilot — an expert AI content strategist and production assistant driving a YouTube Content OS for the user.
 
 Conversation style — you are having a REAL two-way spoken conversation:
 - Your replies are spoken aloud and the user answers by voice. Talk like a warm, capable human assistant, not a system. Short natural sentences. No lists, no markdown, no ids read aloud unless asked.

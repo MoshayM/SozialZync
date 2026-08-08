@@ -259,20 +259,21 @@ function GenerateModal({
     setLoading(true);
     setIdeas([]);
     localStorage.setItem(NICHE_KEY, niche.trim());
+    const startDate = toDateStr(year, month, 1);
     try {
-      const res = await fetch('/api/proxy/content/generate-ideas', {
+      const apiUrl = process.env['NEXT_PUBLIC_API_URL'] ?? '/api/v1';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('cf_token') ?? '' : '';
+      const res = await fetch(`${apiUrl}/calendar/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('cf_token') ?? '' : ''}` },
-        body: JSON.stringify({ niche: niche.trim(), count, month: month + 1, year }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ niche: niche.trim(), count, startDate }),
       });
       if (!res.ok) throw new Error('api');
-      const data = await res.json() as { ideas?: Array<{ title: string; category?: string; date?: string }> };
-      const weekdays = getWeekdaysInMonth(year, month);
-      const step = Math.max(1, Math.floor(weekdays.length / count));
-      const parsed: GeneratedIdea[] = (data.ideas ?? []).slice(0, count).map((item, i) => ({
+      const data = await res.json() as { entries?: Array<{ title: string; category: string; date: string }> };
+      const parsed: GeneratedIdea[] = (data.entries ?? []).slice(0, count).map(item => ({
         title: item.title,
-        category: item.category ?? CATEGORIES[i % CATEGORIES.length] ?? 'Tutorial',
-        date: item.date ?? weekdays[Math.min(i * step, weekdays.length - 1)] ?? toDateStr(year, month, 1),
+        category: item.category,
+        date: item.date,
         selected: true,
       }));
       setIdeas(parsed.length ? parsed : fallbackGenerate(niche.trim(), count, year, month));

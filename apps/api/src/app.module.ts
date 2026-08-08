@@ -49,6 +49,7 @@ import { SystemModule } from './modules/system/system.module';
 import { PlatformsModule } from './modules/platforms/platforms.module';
 import { PluginsModule } from './modules/plugins/plugins.module';
 import { CharacterModule } from './modules/character/character.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 
 @Module({
   imports: [
@@ -126,6 +127,7 @@ import { CharacterModule } from './modules/character/character.module';
     PlatformsModule,
     PluginsModule,
     CharacterModule,
+    CalendarModule,
     MetricsModule,
     HealthModule,
   ],
