@@ -89,7 +89,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       // 3. Subscribe via PushManager
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+        applicationServerKey: urlBase64ToUint8Array(data.publicKey).buffer as ArrayBuffer,
       });
 
       // 4. POST subscription to backend
