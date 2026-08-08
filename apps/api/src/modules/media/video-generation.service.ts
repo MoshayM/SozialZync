@@ -1,18 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { VideoGenerationAdapter, VideoRequest, GeneratedVideo } from './media.types';
+import { LocalFfmpegVideoAdapter } from './adapters/video-local.adapter';
 import { ComfyUIVideoAdapter } from './adapters/video-comfyui.adapter';
 
 @Injectable()
 export class VideoGenerationService {
   private readonly logger = new Logger(VideoGenerationService.name);
-  private readonly adapters: VideoGenerationAdapter[] = [new ComfyUIVideoAdapter()];
+  private readonly adapters: VideoGenerationAdapter[] = [
+    new LocalFfmpegVideoAdapter(), // always-available local render, zero API cost
+    new ComfyUIVideoAdapter(),      // self-hosted ComfyUI for higher-quality generative video
+  ];
 
   async generate(req: VideoRequest): Promise<GeneratedVideo> {
     const available = this.adapters.filter((a) => a.available());
     if (!available.length) {
       throw new Error(
-        'No video generation provider configured. ' +
-          'Set COMFYUI_URL in environment variables to enable local video generation.',
+        'No video generation provider available. ' +
+          'ffmpeg must be on PATH (or set FFMPEG_PATH) for local rendering, ' +
+          'or set COMFYUI_URL for ComfyUI.',
       );
     }
 
