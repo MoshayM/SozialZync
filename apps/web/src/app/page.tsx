@@ -792,7 +792,7 @@ export default function LandingPage() {
             </nav>
           </div>
           <div className="mt-8 pt-8 text-center text-xs" style={{borderTop:'1px solid rgba(255,255,255,.06)',color:'rgba(255,255,255,.25)'}}>
-            &copy; {new Date().getFullYear()} Sozialzync. All rights reserved.
+            &copy; {new Date().getFullYear()} AI CreatorForce. All rights reserved.
           </div>
         </div>
       </footer>

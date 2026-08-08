@@ -303,6 +303,96 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
     streaming: true,
   },
   {
+    provider: 'groq',
+    label: 'Groq (Free Tier)',
+    tier: 'cloud',
+    defaultBaseUrl: 'https://api.groq.com/openai/v1',
+    requiresKey: true,
+    enabled: false,
+    baseUrl: 'https://api.groq.com/openai/v1',
+    apiKey: '',
+    model: 'llama-3.3-70b-versatile',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+    contextLength: 128000,
+  },
+  {
+    provider: 'cerebras',
+    label: 'Cerebras (Free Tier)',
+    tier: 'cloud',
+    defaultBaseUrl: 'https://api.cerebras.ai/v1',
+    requiresKey: true,
+    enabled: false,
+    baseUrl: 'https://api.cerebras.ai/v1',
+    apiKey: '',
+    model: 'llama3.1-70b',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+    contextLength: 128000,
+  },
+  {
+    provider: 'together',
+    label: 'Together AI',
+    tier: 'cloud',
+    defaultBaseUrl: 'https://api.together.xyz/v1',
+    requiresKey: true,
+    enabled: false,
+    baseUrl: 'https://api.together.xyz/v1',
+    apiKey: '',
+    model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+    contextLength: 128000,
+  },
+  {
+    provider: 'huggingface',
+    label: 'HuggingFace Inference',
+    tier: 'cloud',
+    defaultBaseUrl: 'https://api-inference.huggingface.co/v1',
+    requiresKey: true,
+    enabled: false,
+    baseUrl: 'https://api-inference.huggingface.co/v1',
+    apiKey: '',
+    model: 'meta-llama/Llama-3.3-70B-Instruct',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: false,
+    contextLength: 128000,
+  },
+  {
+    provider: 'perplexity',
+    label: 'Perplexity AI',
+    tier: 'cloud',
+    defaultBaseUrl: 'https://api.perplexity.ai',
+    requiresKey: true,
+    enabled: false,
+    baseUrl: 'https://api.perplexity.ai',
+    apiKey: '',
+    model: 'llama-3.1-sonar-large-128k-online',
+    temperature: 0.2,
+    maxTokens: 4096,
+    streaming: true,
+    contextLength: 128000,
+  },
+  {
+    provider: 'novita',
+    label: 'Novita AI',
+    tier: 'cloud',
+    defaultBaseUrl: 'https://api.novita.ai/v3/openai',
+    requiresKey: true,
+    enabled: false,
+    baseUrl: 'https://api.novita.ai/v3/openai',
+    apiKey: '',
+    model: 'meta-llama/llama-3.3-70b-instruct',
+    temperature: 0.7,
+    maxTokens: 4096,
+    streaming: true,
+    contextLength: 128000,
+  },
+  {
     provider: 'openai-compatible',
     label: 'OpenAI Compatible',
     tier: 'custom',
@@ -394,6 +484,12 @@ function ProviderIcon({ provider }: { provider: string }) {
     'openwebui': { bg: '#3b82f6', color: '#fff', letter: 'O' },
     'kimi': { bg: '#ff6b6b', color: '#fff', letter: 'K' },
     'github-copilot': { bg: '#24292e', color: '#fff', letter: 'G' },
+    groq:        { bg: '#f55036', color: '#fff', letter: 'G' },
+    cerebras:    { bg: '#00b4a6', color: '#fff', letter: 'C' },
+    together:    { bg: '#6366f1', color: '#fff', letter: 'T' },
+    huggingface: { bg: '#ffbd59', color: '#1a1a1a', letter: 'H' },
+    perplexity:  { bg: '#20b2aa', color: '#fff', letter: 'P' },
+    novita:      { bg: '#7c3aed', color: '#fff', letter: 'N' },
   };
   const cfg = icons[provider] ?? { bg: '#6D4AE0', color: '#fff', letter: provider[0]?.toUpperCase() ?? '?' };
   return (
@@ -561,6 +657,14 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
               <TierIcon tier={tier} />
               {tierStyle.label}
             </span>
+            {['groq', 'cerebras', 'huggingface'].includes(config.provider) && (
+              <span
+                className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: '#f0fdf4', color: '#16a34a' }}
+              >
+                Free
+              </span>
+            )}
             {config.enabled && (
               <span
                 className="text-[11px] font-bold px-2 py-0.5 rounded-full"

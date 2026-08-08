@@ -57,12 +57,119 @@ function formatDate(iso: string): string {
 // ── Suggested models ─────────────────────────────────────────────────────────
 
 const SUGGESTED_MODELS = [
-  'llama3.2:latest',
-  'mistral:7b',
-  'qwen2.5:7b',
-  'phi3:mini',
+  // Llama family (Meta)
+  'llama3.3:70b',
+  'llama3.3:latest',
+  'llama3.2:3b',
+  'llama3.2:1b',
+  'llama3.1:70b',
+  'llama3.1:8b',
+  // Gemma family (Google)
+  'gemma3:27b',
+  'gemma3:12b',
+  'gemma3:4b',
+  'gemma3:1b',
+  'gemma2:27b',
   'gemma2:9b',
+  // DeepSeek
+  'deepseek-r1:70b',
+  'deepseek-r1:32b',
+  'deepseek-r1:14b',
   'deepseek-r1:7b',
+  'deepseek-v3:latest',
+  // Qwen (Alibaba)
+  'qwen2.5:72b',
+  'qwen2.5:32b',
+  'qwen2.5:14b',
+  'qwen2.5:7b',
+  'qwq:32b',
+  // Mistral
+  'mistral:7b',
+  'mixtral:8x7b',
+  // Small/Fast models
+  'phi4:latest',
+  'phi3.5:mini',
+  'smollm2:1.7b',
+  // Vision models
+  'llava:34b',
+  'llava:13b',
+  'moondream:latest',
+  // Code models
+  'codellama:70b',
+  'codellama:13b',
+  'codegemma:7b',
+  // Embedding models
+  'nomic-embed-text:latest',
+  'mxbai-embed-large:latest',
+];
+
+// ── Task routing reference ────────────────────────────────────────────────────
+
+interface TaskModelRecommendation {
+  task: string;
+  description: string;
+  localModel: string;
+  freeCloudModel: string;
+  bestModel: string;
+}
+
+const TASK_MODEL_RECOMMENDATIONS: TaskModelRecommendation[] = [
+  {
+    task: 'Title & Tags',
+    description: 'Generate video titles and SEO keywords',
+    localModel: 'llama3.2:3b / gemma3:4b',
+    freeCloudModel: 'Groq llama-3.1-8b-instant',
+    bestModel: 'DeepSeek Chat',
+  },
+  {
+    task: 'Script Outline',
+    description: 'Create structured video script outlines',
+    localModel: 'llama3.3:70b / qwen2.5:32b',
+    freeCloudModel: 'Groq llama-3.3-70b-versatile',
+    bestModel: 'DeepSeek Chat',
+  },
+  {
+    task: 'Full Script',
+    description: 'Write complete 10-15 min video scripts',
+    localModel: 'llama3.3:70b / deepseek-r1:32b',
+    freeCloudModel: 'Cerebras llama3.1-70b',
+    bestModel: 'Claude Sonnet / DeepSeek',
+  },
+  {
+    task: 'Research',
+    description: 'Deep topic research and summarization',
+    localModel: 'deepseek-r1:70b / qwen2.5:72b',
+    freeCloudModel: 'Perplexity Sonar Online',
+    bestModel: 'Claude Sonnet / GPT-4o',
+  },
+  {
+    task: 'Fact Check',
+    description: 'Verify claims with web sources',
+    localModel: 'Not recommended (no web access)',
+    freeCloudModel: 'Perplexity Sonar Online',
+    bestModel: 'Perplexity Sonar Pro',
+  },
+  {
+    task: 'Compliance',
+    description: 'YouTube policy compliance gate',
+    localModel: 'Not recommended',
+    freeCloudModel: 'Not recommended',
+    bestModel: 'Claude Sonnet (required)',
+  },
+  {
+    task: 'AI Copilot Chat',
+    description: 'Real-time creator assistant',
+    localModel: 'llama3.3:70b / gemma3:12b',
+    freeCloudModel: 'Groq llama-3.3-70b-versatile',
+    bestModel: 'Claude Haiku / Gemini Flash',
+  },
+  {
+    task: 'Image Captions',
+    description: 'Describe images for thumbnails/storyboards',
+    localModel: 'llava:13b / moondream:latest',
+    freeCloudModel: 'Groq llama-3.2-90b-vision',
+    bestModel: 'GPT-4o Vision',
+  },
 ];
 
 // ── Main page ────────────────────────────────────────────────────────────────
@@ -572,6 +679,39 @@ export default function ModelManagerPage() {
             </div>
           </div>
         </section>
+
+        {/* Task Routing Reference */}
+        <div style={{ background: '#fff', borderRadius: 16, border: '1.5px solid #ece8f8', overflow: 'hidden', marginTop: 24 }}>
+          <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #ece8f8' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#1e1b4b', margin: 0 }}>Task → Model Routing Guide</h2>
+            <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0 0' }}>Which model the platform auto-selects per task type. Local models = $0/token.</p>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#f9f8ff' }}>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #ece8f8' }}>Task</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #ece8f8' }}>Local (Ollama)</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#059669', borderBottom: '1px solid #ece8f8' }}>Free Cloud</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#6D4AE0', borderBottom: '1px solid #ece8f8' }}>Best Quality</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TASK_MODEL_RECOMMENDATIONS.map((row, i) => (
+                  <tr key={row.task} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                    <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <div style={{ fontWeight: 600, color: '#1e1b4b' }}>{row.task}</div>
+                      <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>{row.description}</div>
+                    </td>
+                    <td style={{ padding: '10px 16px', color: '#374151', borderBottom: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: 12 }}>{row.localModel}</td>
+                    <td style={{ padding: '10px 16px', color: '#059669', borderBottom: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: 12 }}>{row.freeCloudModel}</td>
+                    <td style={{ padding: '10px 16px', color: '#6D4AE0', borderBottom: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: 12 }}>{row.bestModel}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
       </div>
     </div>

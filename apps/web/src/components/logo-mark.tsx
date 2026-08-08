@@ -6,7 +6,7 @@ interface LogoMarkProps {
 }
 
 /**
- * Sozialzync logo mark — "sync S" icon representing Social + Zync.
+ * AI CreatorForce logo mark — "sync S" icon representing Social + Zync.
  * Renders across every surface. useId() prevents gradient ID collisions.
  */
 export function LogoMark({ className, style }: LogoMarkProps) {

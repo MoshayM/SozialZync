@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'deepseek' | 'mistral' | 'grok' | 'cohere' | 'ollama' | 'lm-studio' | 'localai' | 'vllm' | 'openrouter' | 'openai-compat' | 'textgen-webui' | 'koboldcpp' | 'llamacpp' | 'openwebui' | 'kimi' | 'github-copilot';
+export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'deepseek' | 'mistral' | 'grok' | 'cohere' | 'groq' | 'cerebras' | 'together' | 'huggingface' | 'perplexity' | 'novita' | 'ollama' | 'lm-studio' | 'localai' | 'vllm' | 'openrouter' | 'openai-compat' | 'textgen-webui' | 'koboldcpp' | 'llamacpp' | 'openwebui' | 'kimi' | 'github-copilot';
 
 export interface CustomProviderConfig {
   id: string;
@@ -161,12 +161,24 @@ const DEFAULT_DEEPSEEK_MODEL  = 'deepseek-chat';
 const DEFAULT_MISTRAL_MODEL   = 'mistral-large-latest';
 const DEFAULT_GROK_MODEL      = 'grok-3';
 const DEFAULT_COHERE_MODEL    = 'command-r-plus-08-2024';
+const DEFAULT_GROQ_MODEL       = 'llama-3.3-70b-versatile';
+const DEFAULT_CEREBRAS_MODEL   = 'llama3.1-70b';
+const DEFAULT_TOGETHER_MODEL   = 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+const DEFAULT_HUGGINGFACE_MODEL = 'meta-llama/Llama-3.3-70B-Instruct';
+const DEFAULT_PERPLEXITY_MODEL = 'llama-3.1-sonar-large-128k-online';
+const DEFAULT_NOVITA_MODEL     = 'meta-llama/llama-3.3-70b-instruct';
 
 const GEMINI_BASE_URL    = 'https://generativelanguage.googleapis.com/v1beta/openai/';
 const DEEPSEEK_BASE_URL  = 'https://api.deepseek.com/v1';
 const MISTRAL_BASE_URL   = 'https://api.mistral.ai/v1';
 const GROK_BASE_URL      = 'https://api.x.ai/v1';
 const COHERE_BASE_URL    = 'https://api.cohere.com/compatibility/v1';
+const GROQ_BASE_URL        = 'https://api.groq.com/openai/v1';
+const CEREBRAS_BASE_URL    = 'https://api.cerebras.ai/v1';
+const TOGETHER_BASE_URL    = 'https://api.together.xyz/v1';
+const HUGGINGFACE_BASE_URL = 'https://api-inference.huggingface.co/v1';
+const PERPLEXITY_BASE_URL  = 'https://api.perplexity.ai';
+const NOVITA_BASE_URL      = 'https://api.novita.ai/v3/openai';
 
 let _anthropicKey: string | undefined;
 let _openaiKey: string | undefined;
@@ -182,6 +194,18 @@ let _deepseek: OpenAI | null = null;
 let _mistral: OpenAI | null = null;
 let _grok: OpenAI | null = null;
 let _cohere: OpenAI | null = null;
+let _groqKey: string | undefined;
+let _cerebrasKey: string | undefined;
+let _togetherKey: string | undefined;
+let _huggingfaceKey: string | undefined;
+let _perplexityKey: string | undefined;
+let _novitaKey: string | undefined;
+let _groq: OpenAI | null = null;
+let _cerebras: OpenAI | null = null;
+let _together: OpenAI | null = null;
+let _huggingface: OpenAI | null = null;
+let _perplexity: OpenAI | null = null;
+let _novita: OpenAI | null = null;
 
 function getAnthropic(): Anthropic {
   const key = process.env['ANTHROPIC_API_KEY'];
@@ -225,6 +249,42 @@ function getCohere(): OpenAI {
   if (!_cohere || key !== _cohereKey) { _cohereKey = key; _cohere = new OpenAI({ apiKey: key, baseURL: COHERE_BASE_URL }); }
   return _cohere;
 }
+function getGroq(): OpenAI {
+  const key = process.env['GROQ_API_KEY'];
+  if (!key) throw new Error('GROQ_API_KEY not set');
+  if (!_groq || key !== _groqKey) { _groqKey = key; _groq = new OpenAI({ apiKey: key, baseURL: GROQ_BASE_URL }); }
+  return _groq;
+}
+function getCerebras(): OpenAI {
+  const key = process.env['CEREBRAS_API_KEY'];
+  if (!key) throw new Error('CEREBRAS_API_KEY not set');
+  if (!_cerebras || key !== _cerebrasKey) { _cerebrasKey = key; _cerebras = new OpenAI({ apiKey: key, baseURL: CEREBRAS_BASE_URL }); }
+  return _cerebras;
+}
+function getTogether(): OpenAI {
+  const key = process.env['TOGETHER_API_KEY'];
+  if (!key) throw new Error('TOGETHER_API_KEY not set');
+  if (!_together || key !== _togetherKey) { _togetherKey = key; _together = new OpenAI({ apiKey: key, baseURL: TOGETHER_BASE_URL }); }
+  return _together;
+}
+function getHuggingFace(): OpenAI {
+  const key = process.env['HUGGINGFACE_API_KEY'];
+  if (!key) throw new Error('HUGGINGFACE_API_KEY not set');
+  if (!_huggingface || key !== _huggingfaceKey) { _huggingfaceKey = key; _huggingface = new OpenAI({ apiKey: key, baseURL: HUGGINGFACE_BASE_URL }); }
+  return _huggingface;
+}
+function getPerplexity(): OpenAI {
+  const key = process.env['PERPLEXITY_API_KEY'];
+  if (!key) throw new Error('PERPLEXITY_API_KEY not set');
+  if (!_perplexity || key !== _perplexityKey) { _perplexityKey = key; _perplexity = new OpenAI({ apiKey: key, baseURL: PERPLEXITY_BASE_URL }); }
+  return _perplexity;
+}
+function getNovita(): OpenAI {
+  const key = process.env['NOVITA_API_KEY'];
+  if (!key) throw new Error('NOVITA_API_KEY not set');
+  if (!_novita || key !== _novitaKey) { _novitaKey = key; _novita = new OpenAI({ apiKey: key, baseURL: NOVITA_BASE_URL }); }
+  return _novita;
+}
 
 // ── Provider Health & Scoring ─────────────────────────────────────────────────
 
@@ -244,6 +304,12 @@ const providerHealth = new Map<AIProvider, ProviderHealth>([
   ['mistral',   { score: 65,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
   ['grok',      { score: 55,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
   ['cohere',    { score: 50,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['groq',        { score: 85,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['cerebras',    { score: 82,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['together',    { score: 72,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['huggingface', { score: 60,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['perplexity',  { score: 68,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
+  ['novita',      { score: 63,  cooldownUntil: 0, consecutiveFailures: 0, successCount: 0, failureCount: 0 }],
 ]);
 
 // ── Custom OpenAI-compatible providers (Ollama, LM Studio, vLLM, etc.) ─────────
@@ -600,6 +666,12 @@ const PROVIDER_COST_PER_1M: Partial<Record<AIProvider, { input: number; output: 
   grok:       { input: 3.00,  output: 15.00 }, // grok-3
   cohere:     { input: 2.50,  output: 10.00 }, // command-r-plus
   openrouter: { input: 0.00,  output: 0.00  }, // billed per-model by OpenRouter; treat as 0 here
+  groq:        { input: 0.59,  output: 0.79  },  // llama-3.3-70b per 1M tokens
+  cerebras:    { input: 0.10,  output: 0.10  },  // very cheap
+  together:    { input: 0.90,  output: 0.90  },  // meta-llama 70B
+  huggingface: { input: 0.00,  output: 0.00  },  // free inference tier
+  perplexity:  { input: 1.00,  output: 1.00  },  // sonar models
+  novita:      { input: 0.20,  output: 0.20  },  // open model router
 };
 
 function estimateCost(provider: AIProvider, tokensIn: number, tokensOut: number): number {
@@ -703,6 +775,32 @@ async function callAIProvider(
   if (provider === 'deepseek' || provider === 'mistral' || provider === 'grok' || provider === 'cohere') {
     const clientFn = provider === 'deepseek' ? getDeepSeek : provider === 'mistral' ? getMistral : provider === 'grok' ? getGrok : getCohere;
     const defaultModel = provider === 'deepseek' ? DEFAULT_DEEPSEEK_MODEL : provider === 'mistral' ? DEFAULT_MISTRAL_MODEL : provider === 'grok' ? DEFAULT_GROK_MODEL : DEFAULT_COHERE_MODEL;
+    const client = clientFn();
+    const model = opts.model ?? defaultModel;
+    const msgs: OpenAI.ChatCompletionMessageParam[] = opts.systemPrompt
+      ? [{ role: 'system', content: opts.systemPrompt }, ...messages.map((m) => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }))]
+      : messages.map((m) => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }));
+    const resp = await client.chat.completions.create({ model, messages: msgs, max_tokens: opts.maxTokens ?? 4096, temperature: opts.temperature ?? 0.7 });
+    const choice = resp.choices[0];
+    if (!choice) throw new Error(`${provider} returned no choices`);
+    return { content: choice.message.content ?? '', tokensIn: resp.usage?.prompt_tokens ?? 0, tokensOut: resp.usage?.completion_tokens ?? 0, model, provider };
+  }
+
+  if (provider === 'groq' || provider === 'cerebras' || provider === 'together' || provider === 'huggingface' || provider === 'perplexity' || provider === 'novita') {
+    const clientFn =
+      provider === 'groq'        ? getGroq :
+      provider === 'cerebras'    ? getCerebras :
+      provider === 'together'    ? getTogether :
+      provider === 'huggingface' ? getHuggingFace :
+      provider === 'perplexity'  ? getPerplexity :
+                                   getNovita;
+    const defaultModel =
+      provider === 'groq'        ? DEFAULT_GROQ_MODEL :
+      provider === 'cerebras'    ? DEFAULT_CEREBRAS_MODEL :
+      provider === 'together'    ? DEFAULT_TOGETHER_MODEL :
+      provider === 'huggingface' ? DEFAULT_HUGGINGFACE_MODEL :
+      provider === 'perplexity'  ? DEFAULT_PERPLEXITY_MODEL :
+                                   DEFAULT_NOVITA_MODEL;
     const client = clientFn();
     const model = opts.model ?? defaultModel;
     const msgs: OpenAI.ChatCompletionMessageParam[] = opts.systemPrompt
@@ -858,6 +956,12 @@ export async function callAIStructured<T>(
   if (primary !== 'mistral'   && process.env['MISTRAL_API_KEY'])   candidates.push('mistral');
   if (primary !== 'grok'      && process.env['XAI_API_KEY'])       candidates.push('grok');
   if (primary !== 'cohere'    && process.env['COHERE_API_KEY'])    candidates.push('cohere');
+  if (primary !== 'groq'        && process.env['GROQ_API_KEY'])        candidates.push('groq');
+  if (primary !== 'cerebras'    && process.env['CEREBRAS_API_KEY'])    candidates.push('cerebras');
+  if (primary !== 'together'    && process.env['TOGETHER_API_KEY'])    candidates.push('together');
+  if (primary !== 'huggingface' && process.env['HUGGINGFACE_API_KEY']) candidates.push('huggingface');
+  if (primary !== 'perplexity'  && process.env['PERPLEXITY_API_KEY'])  candidates.push('perplexity');
+  if (primary !== 'novita'      && process.env['NOVITA_API_KEY'])      candidates.push('novita');
   const chain = rankProviders(candidates);
 
   let result: AICallResult | null = null;
@@ -1240,7 +1344,7 @@ export function simulateRouting(
   estTokensIn: number,
   estTokensOut: number,
 ): RoutingCandidate[] {
-  const builtInProviders: AIProvider[] = ['anthropic', 'openai', 'gemini', 'deepseek', 'mistral', 'grok', 'cohere'];
+  const builtInProviders: AIProvider[] = ['anthropic', 'openai', 'gemini', 'deepseek', 'mistral', 'grok', 'cohere', 'groq', 'cerebras', 'together', 'huggingface', 'perplexity', 'novita'];
   // Include any registered custom providers that appear in providerHealth
   const customProviderKeys = [..._customProviders.keys()] as AIProvider[];
   const allProviders: AIProvider[] = [...builtInProviders, ...customProviderKeys];
