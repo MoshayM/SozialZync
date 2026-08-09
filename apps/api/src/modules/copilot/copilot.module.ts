@@ -16,11 +16,13 @@ import { UsageLedgerService } from './usage-ledger.service';
 import { SpeechService } from './speech.service';
 import { IntentsController } from './intents.controller';
 import { TokenUsageController } from './token-usage.controller';
+import { PlanExecutorService } from './plan-executor.service';
+import { SessionMemoryService } from './session-memory.service';
 
 @Module({
   imports: [JobsModule, ApprovalsModule, ShortsStudioModule, WalletModule, AiOpsModule, MetricsModule, OrgsModule, TrendModule, CalendarModule, AnalyticsModule],
   controllers: [CopilotController, IntentsController, TokenUsageController],
-  providers: [CopilotService, IntentCacheService, UsageLedgerService, SpeechService],
+  providers: [CopilotService, IntentCacheService, UsageLedgerService, SpeechService, PlanExecutorService, SessionMemoryService],
   exports: [CopilotService, SpeechService],
 })
 export class CopilotModule {}
