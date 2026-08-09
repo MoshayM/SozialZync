@@ -22,6 +22,8 @@ import { OrgsService } from '../orgs/orgs.service';
 import { TrendService } from '../trend/trend.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { BenchmarkService } from '../analytics/benchmark.service';
+import { PlanExecutorService } from './plan-executor.service';
+import { SessionMemoryService } from './session-memory.service';
 import { randomUUID } from 'crypto';
 
 const COPILOT_SYSTEM = `You are the Sozialzync Copilot — an expert AI content strategist and production assistant driving a YouTube Content OS for the user.
@@ -113,6 +115,8 @@ export interface CopilotResponse {
   tokensUsed?: number;
   /** Multi-step task plan shown to the user (emitted by the LLM when multi-agent work is needed). */
   plan?: CopilotPlan;
+  /** ID of the registered plan execution — poll GET /copilot/plan/:planId for live step status. */
+  planId?: string;
   /** App route to navigate to — frontend calls router.push() when present. */
   navigate?: string;
 }
@@ -147,6 +151,8 @@ export class CopilotService {
     private readonly trendService: TrendService,
     private readonly calendarService: CalendarService,
     private readonly benchmarkService: BenchmarkService,
+    private readonly planExecutor: PlanExecutorService,
+    private readonly sessionMemory: SessionMemoryService,
   ) {}
 
   // §8.2 safety: simple per-user rate limit (20 copilot turns/minute)
@@ -162,6 +168,11 @@ export class CopilotService {
 
   async chat(userId: string, req: CopilotChatRequest): Promise<CopilotResponse> {
     this.assertRateLimit(userId);
+    // Fire-and-forget session compression: after COMPRESS_AFTER user turns, summarise
+    // the conversation into a compact system block so long sessions don't balloon tokens.
+    if (this.sessionMemory.shouldCompress(userId, req.messages)) {
+      void this.sessionMemory.compressSession(userId, req.messages).catch(() => undefined);
+    }
     const source: ActionSource = req.inputMode === 'voice' ? 'VOICE' : 'COPILOT';
     const lastUserText = [...req.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
 
@@ -228,7 +239,9 @@ export class CopilotService {
       // into the last user message — Anthropic (and most providers) reject
       // consecutive same-role messages, so adding a second 'user' turn after
       // the user's actual query causes a 400 on every first turn.
-      const contextSuffix = `\n\n---\nCONTEXT (current platform state — use ids from here only):\n${context}${pendingNote}\n\nRespond with valid JSON only: {"reply":"...","language":"...","command":{...}|null,"plan":{...}|undefined,"navigate":"..."|undefined}`;
+      const compressed = this.sessionMemory.getCompressed(userId);
+      const memoryBlock = compressed ? `\n[Session memory] ${compressed.summary}` : '';
+      const contextSuffix = `${memoryBlock}\n\n---\nCONTEXT (current platform state — use ids from here only):\n${context}${pendingNote}\n\nRespond with valid JSON only: {"reply":"...","language":"...","command":{...}|null,"plan":{...}|undefined,"navigate":"..."|undefined}`;
       const rawMsgs = req.messages.slice(-8).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
       const lastUserIdx = rawMsgs.reduce<number>((acc, m, i) => (m.role === 'user' ? i : acc), -1);
       const llmMessages: Array<{ role: 'user' | 'assistant'; content: string }> =
@@ -278,12 +291,14 @@ export class CopilotService {
 
     if (!decision.command) {
       await this.record(userId, 'chat.reply', null, 'EXECUTED', { source, fromCache, tokensUsed, lastUserText }, false);
+      const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
       return {
         reply: decision.reply,
         language: decision.language,
         fromCache,
         tokensUsed,
         ...(decision.plan ? { plan: decision.plan } : {}),
+        ...(planId ? { planId } : {}),
         ...(decision.navigate ? { navigate: decision.navigate } : {}),
       };
     }
@@ -302,6 +317,7 @@ export class CopilotService {
       const quote = await this.pricingService
         .resolvePrice({ action: decision.command.action })
         .catch(() => null);
+      const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
       return {
         reply: decision.reply,
         language: decision.language,
@@ -310,10 +326,12 @@ export class CopilotService {
         fromCache,
         tokensUsed,
         ...(decision.plan ? { plan: decision.plan } : {}),
+        ...(planId ? { planId } : {}),
         ...(decision.navigate ? { navigate: decision.navigate } : {}),
       };
     }
 
+    const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
     const result = await this.executeRecorded(userId, decision.command, { source, fromCache, tokensUsed, lastUserText });
     return {
       reply: `${decision.reply}\n\n${result.summary}`.trim(),
@@ -322,6 +340,7 @@ export class CopilotService {
       fromCache,
       tokensUsed,
       ...(decision.plan ? { plan: decision.plan } : {}),
+      ...(planId ? { planId } : {}),
       ...(decision.navigate ? { navigate: decision.navigate } : {}),
     };
   }

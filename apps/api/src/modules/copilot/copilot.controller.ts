@@ -1,6 +1,6 @@
 import {
   Controller, Post, Get, Body, UseGuards, BadRequestException,
-  UseInterceptors, UploadedFile, Query,
+  UseInterceptors, UploadedFile, Query, Param, NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CopilotChatRequestSchema } from '@cf/shared';
@@ -9,6 +9,7 @@ import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { CopilotService } from './copilot.service';
 import { SpeechService } from './speech.service';
+import { PlanExecutorService } from './plan-executor.service';
 
 @Controller('copilot')
 @UseGuards(JwtAuthGuard)
@@ -16,6 +17,7 @@ export class CopilotController {
   constructor(
     private readonly copilot: CopilotService,
     private readonly speech: SpeechService,
+    private readonly planExecutor: PlanExecutorService,
   ) {}
 
   @Post('chat')
@@ -53,5 +55,14 @@ export class CopilotController {
   @Get('jobs')
   async jobs(@CurrentUser() user: JwtPayload, @Query('take') take?: string) {
     return this.copilot.listRecentJobs(user.sub, take ? parseInt(take, 10) : 10);
+  }
+
+  /** Poll the live status of a multi-step plan execution. */
+  @Get('plan/:planId')
+  getPlan(@Param('planId') planId: string, @CurrentUser() user: JwtPayload) {
+    const exec = this.planExecutor.getExecution(planId);
+    // Guard: planId is userId-prefixed so users can't see others' plans
+    if (!exec || !planId.startsWith(user.sub + ':')) throw new NotFoundException('Plan not found');
+    return exec;
   }
 }
