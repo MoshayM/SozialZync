@@ -39,6 +39,8 @@ function makeService(): CopilotService {
     noop, // trendService
     noop, // calendarService
     noop, // benchmarkService
+    noop, // planExecutor
+    noop, // sessionMemory
   );
 }
 

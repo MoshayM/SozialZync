@@ -890,6 +890,10 @@ export const api = {
       apiClient.post<{ updated: number }>(`/autonomy/channels/${channelId}/calendar/bulk-dismiss`, { ids }),
     updateEntryTitle: (entryId: string, title: string) =>
       apiClient.patch<void>(`/autonomy/calendar/${entryId}/title`, { title }),
+    applyVariant: (entryId: string, title: string) =>
+      apiClient.patch<{ success: boolean; youtubeVideoId?: string }>(`/autonomy/calendar/${entryId}/apply-variant`, { title }),
+    variantStats: (entryId: string) =>
+      apiClient.get<{ currentTitle: string; variants: string[]; youtubeStats?: { viewCount: number; likeCount: number } }>(`/autonomy/calendar/${entryId}/variant-stats`),
     calendarStats: (channelId: string) =>
       apiClient.get<{ total: number; proposed: number; approved: number; dismissed: number; scheduled: number; upcoming7d: number; approvalRate: number | null; avgPriority: number | null }>(`/autonomy/channels/${channelId}/calendar/stats`),
     auditLog: (channelId: string, take?: number) =>

@@ -8,6 +8,7 @@ import { MobileNav } from './_components/MobileNav';
 import { LogoMark } from '@/components/logo-mark';
 import { PwaInstallButtonLanding } from '@/components/pwa-install';
 import { AppStoreNotify } from '@/components/app-store-notify';
+import { HeroVideo } from '@/components/hero-video';
 
 // ── Capabilities ──────────────────────────────────────────────────────────────
 
@@ -53,11 +54,13 @@ export default function LandingPage() {
     <>
       <style>{`
         html { scroll-behavior: smooth; }
-        .glow-ring { box-shadow: 0 0 0 1px rgba(124,58,237,.15), 0 0 24px rgba(124,58,237,.12); }
+        .glow-ring { box-shadow: 0 0 0 1px rgba(124,58,237,.15), 0 0 40px rgba(124,58,237,.2); }
         @keyframes float-slow { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
         .float-slow { animation: float-slow 6s ease-in-out infinite; }
         @keyframes pulse-soft { 0%,100% { opacity:.6; } 50% { opacity:1; } }
         .pulse-soft { animation: pulse-soft 3s ease-in-out infinite; }
+        @keyframes fade-out { 0%,60% { opacity:1; } 100% { opacity:0; } }
+        .animate-fade-out { animation: fade-out 4s ease-out forwards; }
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────────────────────────── */}
@@ -153,85 +156,9 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Hero visual — AI workspace mockup */}
+            {/* Hero visual — product demo video */}
             <div className="mt-10 sm:mt-16 max-w-4xl mx-auto float-slow">
-              <div className="glow-ring rounded-3xl overflow-hidden" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
-                {/* Browser chrome */}
-                <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/8">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
-                  <div className="flex-1 mx-3 h-5 rounded-md" style={{background:'rgba(255,255,255,.06)'}} />
-                </div>
-
-                <div className="flex h-80 lg:h-96">
-                  {/* Sidebar — hidden on small screens */}
-                  <div className="w-36 lg:w-44 shrink-0 border-r border-white/8 p-3 hidden sm:flex flex-col gap-1">
-                    {['Home','Projects','Copilot','Schedule','Analytics','Publish','Settings'].map((item, i) => (
-                      <div key={item} className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold" style={{background: i===2?'rgba(124,58,237,.35)':'transparent',color: i===2?'#c4b5fd':'rgba(255,255,255,.5)'}}>
-                        <div className="w-3 h-3 rounded-sm shrink-0" style={{background:i===2?'#a78bfa':'rgba(255,255,255,.2)'}} />
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Main content */}
-                  <div className="flex-1 p-5 flex flex-col gap-4">
-                    {/* Copilot chat */}
-                    <div className="flex-1 rounded-2xl p-4 flex flex-col gap-3" style={{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)'}}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)'}}>
-                          <Bot className="w-3.5 h-3.5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs leading-relaxed" style={{background:'rgba(167,139,250,.15)',color:'#e0d7ff'}}>
-                            Hello! What would you like to create for your YouTube channel today?
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3 flex-row-reverse">
-                        <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center font-bold text-xs" style={{background:'linear-gradient(135deg,#f472b6,#ec4899)',color:'#fff'}}>
-                          U
-                        </div>
-                        <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-xs" style={{background:'rgba(255,255,255,.08)',color:'rgba(255,255,255,.85)'}}>
-                          Plan a week of YouTube content for my tech channel.
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)'}}>
-                          <Bot className="w-3.5 h-3.5 text-white" />
-                        </div>
-                        <div className="flex-1 space-y-1.5">
-                          <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs leading-relaxed" style={{background:'rgba(167,139,250,.15)',color:'#e0d7ff'}}>
-                            Found 3 trending topics in your niche! Draft scripts, thumbnails, and voice narration ready for review.
-                          </div>
-                          <div className="flex gap-2 flex-wrap">
-                            {['Review scripts','Add thumbnails','Schedule all'].map(t => (
-                              <span key={t} className="px-2.5 py-1 rounded-full text-[10px] font-medium cursor-pointer" style={{background:'rgba(167,139,250,.2)',color:'#c4b5fd',border:'1px solid rgba(167,139,250,.3)'}}>
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="rounded-xl p-3 flex items-center gap-3" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.06)'}}>
-                      <Sparkles className="w-4 h-4 shrink-0 pulse-soft" style={{color:'#a78bfa'}} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-semibold" style={{color:'rgba(255,255,255,.8)'}}>Running Compliance Engine · 6 scripts queued…</span>
-                          <span className="text-[10px]" style={{color:'rgba(255,255,255,.5)'}}>72%</span>
-                        </div>
-                        <div className="h-1 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,.08)'}}>
-                          <div className="h-full rounded-full" style={{width:'72%',background:'linear-gradient(90deg,#a78bfa,#7C3AED)'}} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <HeroVideo />
             </div>
 
             {/* Trust badges */}
