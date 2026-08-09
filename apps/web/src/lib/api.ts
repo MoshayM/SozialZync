@@ -668,6 +668,11 @@ export const api = {
     analyze: (niche: string) => apiClient.post('/trends/analyze', { niche }),
     gaps: (niche: string) => apiClient.get(`/trends/gaps?niche=${encodeURIComponent(niche)}`),
   },
+  analytics: {
+    overview: (channelId: string) => apiClient.get(`/analytics/${channelId}/overview`),
+    report: (channelId: string) => apiClient.post(`/analytics/${channelId}/report`, {}),
+    benchmark: (channelId: string) => apiClient.get(`/analytics/${channelId}/benchmark`),
+  },
   billing: {
     getSubscription: () => apiClient.get('/billing/subscription'),
     createCheckout: (plan: string) =>
