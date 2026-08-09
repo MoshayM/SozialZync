@@ -152,11 +152,11 @@ function GlobalSearch() {
         </button>
       ) : (
         <kbd
-          className="shrink-0 text-[11px] font-medium select-none"
+          className="shrink-0 text-[11px] font-medium select-none hidden lg:block"
           style={{ color: '#c4b0f5' }}
-          title="Press Enter to search"
+          title="Press ⌘K to open command palette"
         >
-          ⏎
+          ⌘K
         </kbd>
       )}
     </form>
@@ -664,6 +664,16 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="cf-shell overflow-hidden flex flex-col bg-[#F4F3FB] text-[#1E1B2E]">
+
+      <CommandPalette
+        open={paletteOpen}
+        query={paletteQuery}
+        selectedIdx={paletteIdx}
+        onClose={closePalette}
+        onQueryChange={setPaletteQuery}
+        onSelectedIdxChange={setPaletteIdx}
+        onNavigate={paletteNavigate}
+      />
 
       {/* ── TOPBAR ──────────────────────────────────────────────────────── */}
       <header className="flex items-center gap-2 sm:gap-3.5 px-3 sm:px-[22px] py-[11px] bg-white border-b border-[#ECECF3] shrink-0 z-[30]">
