@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarDays,
   CheckCircle2, Circle, ChevronRight, Bot, Mic2, MessageSquare, TrendingUp,
   Clock, Activity, PlayCircle, FileText, Music2, Image as ImageIcon, Film,
-  LayoutDashboard, Flame, Scissors, Send, Loader2,
+  LayoutDashboard, Flame, Scissors, Send, Loader2, X,
 } from 'lucide-react';
 import { api, type TrialStatusResponse, type ChannelAutomation } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
@@ -109,9 +110,135 @@ function Card({ children, className = '', href }: { children: React.ReactNode; c
   return <div className={cls} style={style}>{children}</div>;
 }
 
+// ── Onboarding wizard ────────────────────────────────────────────────────────
+
+const WIZARD_STEPS = [
+  {
+    icon: Youtube,
+    iconBg: '#fee2e2',
+    iconColor: '#dc2626',
+    title: 'Connect your YouTube channel',
+    body: 'Link your channel so Sozialzync can publish, analyze, and schedule your content automatically.',
+    cta: 'Connect a channel',
+    href: '/projects?tab=channels',
+    skip: "I'll do this later",
+  },
+  {
+    icon: FolderOpen,
+    iconBg: '#ede9fe',
+    iconColor: '#7C3AED',
+    title: 'Create your first content project',
+    body: 'A project is your content workspace — choose a niche, and AI generates research, scripts, voice, and thumbnails.',
+    cta: 'Create a project',
+    href: '/projects',
+    skip: null,
+  },
+  {
+    icon: Bot,
+    iconBg: '#e0e7ff',
+    iconColor: '#4338ca',
+    title: 'Say hello to your AI Copilot',
+    body: 'Your copilot plans your entire YouTube pipeline. Just tell it what you want to create — by voice or text.',
+    cta: 'Open the Copilot',
+    href: '/copilot',
+    skip: null,
+  },
+] as const;
+
+function OnboardingWizard({
+  step,
+  onAdvance,
+  onDismiss,
+}: {
+  step: number;
+  onAdvance: (href: string) => void;
+  onDismiss: () => void;
+}) {
+  const current = WIZARD_STEPS[step - 1];
+  if (!current) return null;
+  const Icon = current.icon;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 p-8 relative">
+        {/* Skip / close */}
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="absolute top-5 right-5 flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Skip onboarding"
+        >
+          <X className="w-3.5 h-3.5" />
+          Skip for now
+        </button>
+
+        {/* Step dots */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {WIZARD_STEPS.map((_, i) => (
+            <span
+              key={i}
+              className="rounded-full transition-all"
+              style={{
+                width: i + 1 === step ? '24px' : '8px',
+                height: '8px',
+                background: i + 1 <= step ? '#6D4AE0' : '#e3ddf8',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Icon */}
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
+          style={{ background: current.iconBg }}
+        >
+          <Icon className="w-8 h-8" style={{ color: current.iconColor }} />
+        </div>
+
+        {/* Brand header */}
+        <div className="text-center mb-2">
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6D4AE0' }}>
+            Step {step} of {WIZARD_STEPS.length}
+          </span>
+        </div>
+        <h2 className="text-xl font-extrabold text-gray-900 text-center mb-3 leading-tight">
+          {current.title}
+        </h2>
+        <p className="text-sm text-gray-500 text-center leading-relaxed mb-8">
+          {current.body}
+        </p>
+
+        {/* CTA */}
+        <button
+          type="button"
+          onClick={() => onAdvance(current.href)}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] mb-3"
+          style={{ background: 'linear-gradient(135deg,#a78bfa,#6D4AE0)', boxShadow: '0 8px 24px -6px rgba(109,74,224,.45)' }}
+        >
+          {current.cta}
+          <ArrowRight className="w-4 h-4" />
+        </button>
+
+        {/* Skip step */}
+        {current.skip && (
+          <button
+            type="button"
+            onClick={() => onAdvance(current.href)}
+            className="w-full text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors py-1"
+          >
+            {current.skip}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const router = useRouter();
   const [onboardingDone, setOnboardingDone] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
   // greeting uses local time — must be client-only to avoid SSR/client hydration mismatch
   const [greeting, setGreeting] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -221,6 +348,22 @@ export default function HomePage() {
       return () => clearTimeout(t);
     }
   }, [allComplete, onboardingDone]);
+
+  function advanceWizard(href: string) {
+    if (wizardStep < WIZARD_STEPS.length) {
+      setWizardStep((s) => s + 1);
+      router.push(href);
+    } else {
+      localStorage.setItem('cf.onboarding.done', '1');
+      setOnboardingDone(true);
+      router.push(href);
+    }
+  }
+
+  function dismissWizard() {
+    localStorage.setItem('cf.onboarding.done', '1');
+    setOnboardingDone(true);
+  }
 
   function openCopilotWithPrompt(prompt: string) {
     window.dispatchEvent(new CustomEvent('cf:open-copilot'));
@@ -631,6 +774,14 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {!onboardingDone && (
+        <OnboardingWizard
+          step={wizardStep}
+          onAdvance={advanceWizard}
+          onDismiss={dismissWizard}
+        />
+      )}
     </div>
   );
 }

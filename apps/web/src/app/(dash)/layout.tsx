@@ -8,6 +8,7 @@ import {
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
   WifiOff, Layers, Link2, Plus, Sparkles, Compass,
+  TrendingUp, Calendar, FlaskConical, Shield, Scissors,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -162,6 +163,138 @@ function GlobalSearch() {
   );
 }
 
+// ── Command palette (Cmd+K / Ctrl+K) ─────────────────────────────────────────
+
+const PALETTE_ITEMS: Array<{ group: string; label: string; icon: React.ElementType; href: string }> = [
+  { group: 'Navigate', label: 'Home',             icon: Home,         href: '/home' },
+  { group: 'Navigate', label: 'Projects',          icon: FolderOpen,   href: '/projects' },
+  { group: 'Navigate', label: 'AI Copilot',        icon: Bot,          href: '/copilot' },
+  { group: 'Navigate', label: 'Shorts Studio',     icon: Scissors,     href: '/shorts-studio' },
+  { group: 'Navigate', label: 'Analytics',         icon: BarChart2,    href: '/analytics' },
+  { group: 'Navigate', label: 'Discover Trends',   icon: TrendingUp,   href: '/discover' },
+  { group: 'Navigate', label: 'Publish Hub',       icon: Upload,       href: '/publishing' },
+  { group: 'Navigate', label: 'Content Calendar',  icon: Calendar,     href: '/calendar' },
+  { group: 'Navigate', label: 'A/B Testing',       icon: FlaskConical, href: '/ab-testing' },
+  { group: 'Navigate', label: 'Settings',          icon: Settings,     href: '/settings' },
+  { group: 'Quick actions', label: 'New project',       icon: Plus,     href: '/projects' },
+  { group: 'Quick actions', label: 'Open Copilot',      icon: Bot,      href: '/copilot' },
+  { group: 'Quick actions', label: 'Generate calendar', icon: Calendar, href: '/calendar' },
+  { group: 'Quick actions', label: 'Admin panel',       icon: Shield,   href: '/admin' },
+];
+
+function CommandPalette({
+  open, query, selectedIdx,
+  onClose, onQueryChange, onSelectedIdxChange, onNavigate,
+}: {
+  open: boolean;
+  query: string;
+  selectedIdx: number;
+  onClose: () => void;
+  onQueryChange: (q: string) => void;
+  onSelectedIdxChange: (i: number) => void;
+  onNavigate: (href: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 30);
+  }, [open]);
+
+  const filtered = PALETTE_ITEMS.filter(item =>
+    item.label.toLowerCase().includes(query.toLowerCase())
+  );
+  const groups = Array.from(new Set(filtered.map(i => i.group)));
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); onSelectedIdxChange(Math.min(selectedIdx + 1, filtered.length - 1)); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); onSelectedIdxChange(Math.max(selectedIdx - 1, 0)); }
+    if (e.key === 'Enter' && filtered[selectedIdx]) { onNavigate(filtered[selectedIdx].href); }
+  }
+
+  if (!open) return null;
+
+  let flatIdx = 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-[999] flex items-start justify-center pt-[15vh]"
+      style={{ background: 'rgba(0,0,0,.4)', backdropFilter: 'blur(4px)' }}
+      onMouseDown={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl"
+        style={{ background: '#fff', border: '1px solid #e3ddf8' }}
+        onMouseDown={e => e.stopPropagation()}
+      >
+        {/* Search input */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#f0edf9]">
+          <Search className="w-4 h-4 shrink-0 text-[#9a97ab]" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={e => { onQueryChange(e.target.value); onSelectedIdxChange(0); }}
+            onKeyDown={handleKeyDown}
+            placeholder="Search pages and actions…"
+            className="flex-1 bg-transparent outline-none text-sm text-[#1E1B2E] placeholder:text-[#9a97ab]"
+          />
+          <kbd className="text-[11px] font-medium px-1.5 py-0.5 rounded-md select-none" style={{ background: '#f3f4f6', color: '#9a97ab', border: '1px solid #e5e7eb' }}>ESC</kbd>
+        </div>
+
+        {/* Results */}
+        <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+          {filtered.length === 0 ? (
+            <p className="text-sm text-center py-10 text-gray-400">No results for &quot;{query}&quot;</p>
+          ) : (
+            groups.map(group => {
+              const items = filtered.filter(i => i.group === group);
+              return (
+                <div key={group}>
+                  <div className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{group}</div>
+                  {items.map(item => {
+                    const currentIdx = flatIdx++;
+                    const isSelected = currentIdx === selectedIdx;
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => onNavigate(item.href)}
+                        onMouseEnter={() => onSelectedIdxChange(currentIdx)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
+                        style={{
+                          background: isSelected ? '#f5f2fd' : 'transparent',
+                          color: isSelected ? '#6D4AE0' : '#374151',
+                        }}
+                      >
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: isSelected ? '#ede9fe' : '#f3f4f6' }}>
+                          <Icon className="w-3.5 h-3.5" style={{ color: isSelected ? '#6D4AE0' : '#6b7280' }} />
+                        </div>
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer hint */}
+        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-[#f0edf9]">
+          {[['↑↓', 'Navigate'], ['↵', 'Open'], ['Esc', 'Close']].map(([key, action]) => (
+            <span key={key} className="flex items-center gap-1 text-[11px] text-gray-400">
+              <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb' }}>{key}</kbd>
+              {action}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CreditsBanner() {
   const { creditsExhausted, lowCredits, credits, clearCreditProFlag } = usePlan();
   const [dismissed, setDismissed] = useState(false);
@@ -255,6 +388,30 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     staleTime: 60_000,
     enabled: !!token,
   });
+
+  /* Command palette */
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState('');
+  const [paletteIdx, setPaletteIdx] = useState(0);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen(o => !o);
+        if (!paletteOpen) { setPaletteQuery(''); setPaletteIdx(0); }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [paletteOpen]);
+
+  function closePalette() { setPaletteOpen(false); setPaletteQuery(''); setPaletteIdx(0); }
+
+  function paletteNavigate(href: string) {
+    closePalette();
+    router.push(href);
+  }
 
   /* Desktop sidebar collapsed to icon-only rail */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
