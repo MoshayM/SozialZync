@@ -19,6 +19,9 @@ import { newAccumulator, runWithAiContext } from '../../common/ai-usage.context'
 import { WalletService, billingEnforced, creditsForCost } from '../wallet/wallet.service';
 import { PricingService } from '../ai-ops/pricing.service';
 import { OrgsService } from '../orgs/orgs.service';
+import { TrendService } from '../trend/trend.service';
+import { CalendarService } from '../calendar/calendar.service';
+import { BenchmarkService } from '../analytics/benchmark.service';
 import { randomUUID } from 'crypto';
 
 const COPILOT_SYSTEM = `You are the Sozialzync Copilot — an expert AI content strategist and production assistant driving a YouTube Content OS for the user.
@@ -76,6 +79,10 @@ Command palette:
 - approve_content {approvalId, notes?} — approve a pending review (this IS the human publish gate; requires the user's confirmation)
 - reject_content {approvalId, notes?} — reject a pending review
 - set_voice_language {projectId, language, applyToVoiceover} — make the project's scripts AND narration voiceover use the user's speaking language (asking permission first is mandatory; the confirmation step is that permission)
+- analyze_trends {niche, channelId?} — surface real YouTube trending topics for a content niche; optionally tied to a specific channel
+- generate_calendar {channelId, weeks?} — generate an AI content calendar (default 4 weeks, 2 videos/week) for a channel's niche; requires confirmation (calls AI)
+- benchmark_channel {channelId} — compare the channel's subscriber count, views, and video count against similar public channels; navigate to /analytics
+- audience_segment {channelId} — analyse the channel's video performance data to identify top-performing audience segments and content preferences
 
 Respond only with valid JSON.`;
 
@@ -137,6 +144,9 @@ export class CopilotService {
     private readonly walletService: WalletService,
     private readonly pricingService: PricingService,
     private readonly orgs: OrgsService,
+    private readonly trendService: TrendService,
+    private readonly calendarService: CalendarService,
+    private readonly benchmarkService: BenchmarkService,
   ) {}
 
   // §8.2 safety: simple per-user rate limit (20 copilot turns/minute)
@@ -712,6 +722,62 @@ export class CopilotService {
             ? `Done — scripts and voiceover narration for "${project.title}" will use ${command.language}. Your permission is recorded on the channel's voice profile.`
             : `Done — scripts for "${project.title}" will use ${command.language}; voiceover unchanged.`,
           data: { projectId: project.id, targetLang: lang, applyToVoiceover: command.applyToVoiceover },
+        };
+      }
+
+      case 'analyze_trends': {
+        let niche = command.niche;
+        if (command.channelId) {
+          const ch = await this.prisma.channel.findFirst({ where: { id: command.channelId, userId }, select: { title: true } });
+          if (ch) niche = niche || ch.title;
+        }
+        const trends = await this.trendService.analyze(niche);
+        const top5 = trends.trending.slice(0, 5).map((t, i) => `${i + 1}. ${t.topic} (score ${t.score}): ${t.relatedKeywords.slice(0, 3).join(', ')}`);
+        return {
+          summary: `Top trending topics for "${niche}":\n${top5.join('\n')}\n\nRecommendations: ${trends.recommendations.slice(0, 2).join('; ')}`,
+          data: trends,
+        };
+      }
+
+      case 'generate_calendar': {
+        const calCh = await this.prisma.channel.findFirst({ where: { id: command.channelId, userId }, select: { title: true } });
+        if (!calCh) throw new NotFoundException('Channel not found');
+        const weeks = command.weeks ?? 4;
+        const count = weeks * 2;
+        const startDate = new Date().toISOString().split('T')[0]!;
+        const entries = await this.calendarService.generate({ niche: calCh.title, channelName: calCh.title, count, startDate });
+        const lines = entries.slice(0, 6).map((e, i) => `${i + 1}. [${e.date}] ${e.title} (${e.category})`);
+        return {
+          summary: `Generated a ${count}-video calendar for "${calCh.title}" over ${weeks} weeks:\n${lines.join('\n')}${entries.length > 6 ? `\n...and ${entries.length - 6} more` : ''}`,
+          data: entries,
+        };
+      }
+
+      case 'benchmark_channel': {
+        const benchResult = await this.benchmarkService.benchmark(command.channelId, userId);
+        const peerNames = benchResult.peers.map((p) => p.title).slice(0, 3).join(', ');
+        return {
+          summary: `Channel "${benchResult.channel.title}" benchmarked against ${benchResult.peers.length} similar channels.\n${benchResult.insights.join(' ')}\nSubscriber percentile: ${benchResult.subscriberPercentile}%${peerNames ? `\nComparators: ${peerNames}` : ''}`,
+          data: benchResult,
+        };
+      }
+
+      case 'audience_segment': {
+        const chVideos = await this.prisma.video.findMany({
+          where: { channel: { id: command.channelId, userId } },
+          select: { title: true, viewCount: true, likeCount: true, publishedAt: true },
+          orderBy: { viewCount: 'desc' },
+          take: 20,
+        });
+        if (!chVideos.length) {
+          return { summary: 'No published videos found on this channel yet. Publish some videos first to see audience insights.', data: [] };
+        }
+        const avgLikes = Math.round(chVideos.reduce((s, v) => s + v.likeCount, 0) / chVideos.length);
+        const avgViews = Math.round(chVideos.reduce((s, v) => s + v.viewCount, 0) / chVideos.length);
+        const topTitles = chVideos.slice(0, 3).map((v) => v.title);
+        return {
+          summary: `Audience insights from ${chVideos.length} videos:\n• Average views: ${avgViews.toLocaleString()}, average likes: ${avgLikes.toLocaleString()}\n• Top performing content: ${topTitles.join('; ')}`,
+          data: { avgViews, avgLikes, topVideos: chVideos.slice(0, 5) },
         };
       }
     }

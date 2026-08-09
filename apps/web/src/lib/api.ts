@@ -666,6 +666,7 @@ export const api = {
   },
   trends: {
     analyze: (niche: string) => apiClient.post('/trends/analyze', { niche }),
+    gaps: (niche: string) => apiClient.get(`/trends/gaps?niche=${encodeURIComponent(niche)}`),
   },
   billing: {
     getSubscription: () => apiClient.get('/billing/subscription'),

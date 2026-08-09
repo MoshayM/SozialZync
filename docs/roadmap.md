@@ -75,9 +75,9 @@ Built so far:
 - External music providers: Stability AI Stable Audio (`music-stability.adapter.ts`) and Replicate MusicGen (`music-replicate.adapter.ts`) — activated via `STABILITY_API_KEY` / `REPLICATE_API_TOKEN`.
 - External video providers: Luma AI Dream Machine (`video-luma.adapter.ts`), Runway Gen-3 Alpha (`video-runway.adapter.ts`), Kling AI (`video-kling.adapter.ts`) — text-to-video and image-to-video; activated via `LUMA_API_KEY` / `RUNWAYML_API_KEY` / `KLING_ACCESS_KEY_ID`+`KLING_ACCESS_KEY_SECRET`.
 
-Still needed to complete Phase 4:
-- Additional video providers: Veo / Pika.
-- Additional music providers: Suno / Udio.
+~~Still needed to complete Phase 4:~~ — **DONE**
+- ~~Additional video providers: Veo / Pika.~~ — DONE: `VeoVideoAdapter` (Google Veo 2 via generativelanguage API) and `PikaVideoAdapter` (api.pika.art) both wired into `MediaService`.
+- ~~Additional music providers: Suno / Udio.~~ — DONE: `SunoMusicAdapter` and `UdioMusicAdapter` both via PiAPI, wired into `MediaService`.
 
 ---
 
@@ -102,13 +102,17 @@ Still needed:
 
 ---
 
-## Phase 6 — AI Autonomy and Intelligence (PLANNED)
+## Phase 6 — AI Autonomy and Intelligence (IN PROGRESS)
 
-- Deeper AI copilot: intent classification → full workflow orchestration.
-- Cross-channel intelligence and benchmarking.
-- Advanced audience segmentation.
-- Auto-generated content calendars.
-- Real-time trend integration.
+Shipped so far:
+- ~~Auto-generated content calendars~~ — DONE: `POST /api/v1/calendar/generate` (claude-haiku); copilot `generate_calendar` intent.
+- ~~Real-time trend integration~~ — DONE: `TrendService` fetches live YouTube Search + Videos API data as LLM context; `GET /trends/gaps` dedicated content-gap analysis; copilot `analyze_trends` intent.
+- ~~Cross-channel intelligence and benchmarking~~ — DONE: `BenchmarkService` queries peer channels via YouTube Data API; copilot `benchmark_channel` intent.
+- ~~Advanced audience segmentation~~ — DONE: copilot `audience_segment` intent (video performance analysis from DB).
+
+Still needed:
+- Deeper copilot workflow orchestration (multi-step autonomous pipelines).
+- Cross-channel trend benchmarking UI in the analytics page.
 
 ---
 
