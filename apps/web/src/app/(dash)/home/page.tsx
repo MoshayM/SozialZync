@@ -66,10 +66,10 @@ const QUICK_PROMPTS = [
 ];
 
 const QUICK_ACTIONS = [
-  { href: '/projects',   icon: Plus,          label: 'New Project',  sub: 'Start from scratch',          tileBg: '#6D4AE0' },
-  { href: '/copilot',    icon: Bot,           label: 'AI Copilot',   sub: 'Chat with your AI crew',      tileBg: '#7c5ae8' },
-  { href: '/autonomy',   icon: Sparkles,      label: 'AI Autonomy',  sub: 'Auto-generate content',       tileBg: '#ec4899' },
-  { href: '/calendar',   icon: CalendarDays,  label: 'Content Calendar', sub: 'AI-planned video schedule', tileBg: '#0891b2' },
+  { href: '/projects',      icon: Plus,          label: 'New Project',      sub: 'Start from scratch',           tileBg: '#6D4AE0' },
+  { href: '/copilot',       icon: Bot,           label: 'AI Copilot',       sub: 'Chat with your AI crew',       tileBg: '#7c5ae8' },
+  { href: '/shorts-studio', icon: Scissors,      label: 'Shorts Studio',    sub: 'Clip & export YouTube Shorts', tileBg: '#e11d48' },
+  { href: '/calendar',      icon: CalendarDays,  label: 'Content Calendar', sub: 'AI-planned video schedule',    tileBg: '#0891b2' },
 ];
 
 function greet(name: string): string {
@@ -418,13 +418,14 @@ export default function HomePage() {
               </div>
 
               {/* Short Studio badge */}
-              <div
-                className="hidden sm:flex items-center gap-2 shrink-0 px-3.5 py-2 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' }}
+              <Link
+                href="/shorts-studio"
+                className="hidden sm:flex items-center gap-2 shrink-0 px-3.5 py-2 rounded-2xl transition-all hover:scale-[1.03] active:scale-95"
+                style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', textDecoration: 'none' }}
               >
                 <span className="text-[10px] font-extrabold tracking-widest px-2 py-0.5 rounded-full" style={{ background: '#f0c14d', color: '#3b1f00' }}>NEW</span>
                 <span className="text-white/80 text-xs font-semibold">✂️ Short Studio</span>
-              </div>
+              </Link>
             </div>
 
             {/* Prompt input */}
