@@ -337,11 +337,13 @@ function KindVideosGroup({ channelId, kind, title, icon, renderVideo }: {
           )}
           {!!error && (
             <div className="text-sm rounded-2xl p-4" style={{ background: '#fff5f5', border: '1.5px solid #fecaca', color: '#dc2626' }}>
-              Could not load the library — {(error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'run a channel sync from the Library page first.'}
+              {(error as { response?: { data?: { message?: string } } }).response?.data?.message
+                ? `Could not load the library — ${(error as { response?: { data?: { message?: string } } }).response!.data!.message}`
+                : <>Could not load the library — sync this channel from the <Link href="/library" className="underline font-medium">Library page</Link> first.</>}
             </div>
           )}
           {!isLoading && !error && videos.length === 0 && (
-            <p className="text-center py-4 text-gray-400 text-sm">Nothing here yet — sync this channel from the Library page.</p>
+            <p className="text-center py-4 text-gray-400 text-sm">Nothing here yet — sync this channel from the <Link href="/library" className="text-[#6D4AE0] hover:underline font-medium">Library page</Link>.</p>
           )}
           {videos.map(renderVideo)}
           {hasNextPage && <LoadMoreButton onClick={() => void fetchNextPage()} loading={isFetchingNextPage} />}
@@ -665,6 +667,14 @@ export default function ShortsStudioPage() {
                 <p className="text-[12px] text-gray-300 max-w-xs leading-relaxed">
                   Want to import from your YouTube library? Upgrade to Pro to connect a channel.
                 </p>
+              </>
+            ) : channels.length === 0 ? (
+              <>
+                <h2 className="text-xl font-extrabold text-gray-900 mb-2">No channels connected</h2>
+                <p className="text-gray-400 text-sm max-w-xs leading-relaxed mb-4">Connect a YouTube channel to import long-form videos and start clipping Shorts.</p>
+                <Link href="/settings/channels" className="inline-flex items-center gap-1 text-sm font-semibold text-[#6D4AE0] hover:underline">
+                  Connect a channel →
+                </Link>
               </>
             ) : (
               <>

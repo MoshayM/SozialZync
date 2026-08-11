@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import {
   Compass, BookOpen, Wand2, Loader2, AlertCircle, TrendingUp,
   Search, ArrowRightLeft, ListOrdered, Award, Sparkles, Copy,
-  Check, Hash, Zap, Lightbulb, Globe, RefreshCw,
+  Check, Hash, Zap, Lightbulb, Globe, RefreshCw, FolderPlus,
 } from 'lucide-react';
 import { ResultActionBar } from '@/components/result-actions';
 import { useContentHistory } from '@/hooks/use-content-history';
@@ -433,6 +434,7 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
 // ── Tab 2: Research ───────────────────────────────────────────────────────────
 
 function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries: (topic: string) => void }) {
+  const router = useRouter();
   const [topic, setTopic] = useState(ctx.topic);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -517,8 +519,17 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
       {result && (
         <div className="space-y-5">
           {/* Summary */}
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 space-y-3">
             <p className="text-sm text-gray-700 italic leading-relaxed">{result.summary}</p>
+            <div className="flex flex-wrap gap-3 pt-1 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => { try { localStorage.setItem('cf_new_project_topic', result.topic || topic || ctx.niche); } catch {} router.push('/projects'); }}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[#6D4AE0] hover:underline"
+              >
+                <FolderPlus className="w-3 h-3" /> Start project from this topic
+              </button>
+            </div>
           </div>
 
           {/* Key Facts */}
@@ -617,6 +628,7 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
 // ── Tab 3 — Series Plan ───────────────────────────────────────────────────────
 
 function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
+  const router = useRouter();
   const [episodes, setEpisodes] = useState(5);
   const [audience, setAudience] = useState('');
   const [loading, setLoading] = useState(false);
@@ -748,6 +760,13 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
                   </ul>
                 )}
                 {ep.callToAction && <p className="text-xs font-medium text-[#6D4AE0] pl-9">CTA: {ep.callToAction}</p>}
+                <button
+                  type="button"
+                  onClick={() => { try { localStorage.setItem('cf_new_project_topic', ep.title); } catch {} router.push('/projects'); }}
+                  className="pl-9 text-xs font-semibold text-[#6D4AE0] hover:underline flex items-center gap-1"
+                >
+                  <FolderPlus className="w-3 h-3" /> Start project →
+                </button>
               </div>
             ))}
           </div>
