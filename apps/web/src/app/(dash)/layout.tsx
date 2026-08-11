@@ -31,12 +31,14 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { href: '/home',     icon: Home,       label: 'Home' },
-      { href: '/projects', icon: FolderOpen, label: 'Projects' },
-      { href: '/editor',   icon: Film,       label: 'Video Editing' },
-      { href: '/studio',   icon: Layers,     label: 'Studio' },
-      { href: '/publish',  icon: Upload,     label: 'Publish Hub' },
-      { href: '/insights', icon: BarChart2,  label: 'Analytics' },
+      { href: '/home',      icon: Home,       label: 'Home' },
+      { href: '/projects',  icon: FolderOpen, label: 'Projects' },
+      { href: '/calendar',  icon: Calendar,   label: 'Calendar',   badge: 'AI' },
+      { href: '/discover',  icon: TrendingUp, label: 'Discover' },
+      { href: '/editor',    icon: Film,       label: 'Video Editing' },
+      { href: '/studio',    icon: Layers,     label: 'Studio' },
+      { href: '/publish',   icon: Upload,     label: 'Publish Hub' },
+      { href: '/insights',  icon: BarChart2,  label: 'Analytics' },
     ],
   },
 ];
@@ -55,7 +57,7 @@ const MOBILE_NAV_LEFT = [
   { href: '/projects', icon: FolderOpen, label: 'Projects' },
 ];
 const MOBILE_NAV_RIGHT = [
-  { href: '/studio',   icon: Sparkles,   label: 'Studio' },
+  { href: '/calendar', icon: Calendar,   label: 'Calendar' },
   { href: '/publish',  icon: Upload,     label: 'Publish' },
 ];
 
