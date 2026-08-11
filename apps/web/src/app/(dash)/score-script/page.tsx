@@ -110,6 +110,12 @@ export default function ScoreScriptPage() {
 
   useEffect(() => {
     try {
+      const pending = localStorage.getItem('cf_score_pending');
+      if (pending) {
+        setScriptText(pending);
+        localStorage.removeItem('cf_score_pending');
+        return;
+      }
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
         const stored = JSON.parse(raw) as { result: ScriptQualityResult; savedAt: string };

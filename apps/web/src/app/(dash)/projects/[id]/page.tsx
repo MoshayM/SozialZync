@@ -1,7 +1,7 @@
 'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api, apiClient } from '@/lib/api';
 import { useProjectJobEvents } from '@/hooks/use-job-events';
@@ -11,7 +11,7 @@ import {
   Check, Copy, Download,
   RotateCcw, ArrowRightLeft, Timer, Trash2, Pause,
   FileText, RefreshCw, Film, Search, ShieldCheck, Tag, Image as ImageIcon,
-  Youtube, Send, X, Clapperboard, Sparkles,
+  Youtube, Send, X, Clapperboard, Sparkles, Award,
 } from 'lucide-react';
 import type { ProjectPublishReady } from '@/lib/api';
 import { LoadingSteps } from '@/components/loading-steps';
@@ -211,6 +211,7 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
 function ScriptViewer({ r }: { r: Record<string, unknown> }) {
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([0]));
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
 
   const title = String(r['title'] ?? '');
   const hook = String(r['hook'] ?? '');
@@ -295,6 +296,22 @@ function ScriptViewer({ r }: { r: Record<string, unknown> }) {
             className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Download className="w-3 h-3" /> .md
+          </button>
+          <button
+            onClick={() => { try { localStorage.setItem('cf_score_pending', plainText); } catch {} router.push('/score-script'); }}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white rounded-lg transition-opacity hover:opacity-90"
+            style={{ background: '#6D4AE0' }}
+            title="Score this script with AI"
+          >
+            <Award className="w-3 h-3" /> Score
+          </button>
+          <button
+            onClick={() => { try { localStorage.setItem('cf_repurpose_pending', plainText); } catch {} router.push('/repurpose'); }}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white rounded-lg transition-opacity hover:opacity-90"
+            style={{ background: '#7c5ae8' }}
+            title="Repurpose this script to other platforms"
+          >
+            <ArrowRightLeft className="w-3 h-3" /> Repurpose
           </button>
         </div>
       </div>

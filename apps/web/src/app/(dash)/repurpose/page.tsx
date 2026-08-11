@@ -174,6 +174,12 @@ export default function RepurposePage() {
 
   useEffect(() => {
     try {
+      const pending = localStorage.getItem('cf_repurpose_pending');
+      if (pending) {
+        setScriptText(pending);
+        localStorage.removeItem('cf_repurpose_pending');
+        return;
+      }
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
         const stored = JSON.parse(raw) as { result: RepurposeResult; savedAt: string };
