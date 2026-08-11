@@ -18,11 +18,12 @@ import { IntentsController } from './intents.controller';
 import { TokenUsageController } from './token-usage.controller';
 import { PlanExecutorService } from './plan-executor.service';
 import { SessionMemoryService } from './session-memory.service';
+import { CopilotHistoryService } from './copilot-history.service';
 
 @Module({
   imports: [JobsModule, ApprovalsModule, ShortsStudioModule, WalletModule, AiOpsModule, MetricsModule, OrgsModule, TrendModule, CalendarModule, AnalyticsModule],
   controllers: [CopilotController, IntentsController, TokenUsageController],
-  providers: [CopilotService, IntentCacheService, UsageLedgerService, SpeechService, PlanExecutorService, SessionMemoryService],
+  providers: [CopilotService, IntentCacheService, UsageLedgerService, SpeechService, PlanExecutorService, SessionMemoryService, CopilotHistoryService],
   exports: [CopilotService, SpeechService],
 })
 export class CopilotModule {}

@@ -10,6 +10,7 @@ import { CurrentUser, type JwtPayload } from '../../common/decorators/current-us
 import { CopilotService } from './copilot.service';
 import { SpeechService } from './speech.service';
 import { PlanExecutorService } from './plan-executor.service';
+import { CopilotHistoryService } from './copilot-history.service';
 
 @Controller('copilot')
 @UseGuards(JwtAuthGuard)
@@ -18,6 +19,7 @@ export class CopilotController {
     private readonly copilot: CopilotService,
     private readonly speech: SpeechService,
     private readonly planExecutor: PlanExecutorService,
+    private readonly historyService: CopilotHistoryService,
   ) {}
 
   @Post('chat')
@@ -64,5 +66,30 @@ export class CopilotController {
     // Guard: planId is userId-prefixed so users can't see others' plans
     if (!exec || !planId.startsWith(user.sub + ':')) throw new NotFoundException('Plan not found');
     return exec;
+  }
+
+  /** List the user's persisted copilot sessions (up to 20, 30-day window). */
+  @Get('history')
+  getHistory(@CurrentUser() user: JwtPayload) {
+    return { sessions: this.historyService.list(user.sub) };
+  }
+
+  /** Upsert a copilot session (called after each assistant turn). */
+  @Post('history')
+  saveHistory(@Body() body: unknown, @CurrentUser() user: JwtPayload) {
+    const b = body as Record<string, unknown>;
+    const sessionId = b['sessionId'];
+    const title = b['title'];
+    const messages = b['messages'];
+    if (!sessionId || typeof sessionId !== 'string') {
+      throw new BadRequestException('sessionId required');
+    }
+    this.historyService.upsert(
+      user.sub,
+      sessionId,
+      String(title ?? '').slice(0, 120),
+      Array.isArray(messages) ? messages : [],
+    );
+    return { ok: true };
   }
 }

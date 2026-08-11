@@ -32,8 +32,16 @@ interface Message {
   needsConfirmation?: CopilotCommand;
   estimatedCredits?: number | null;
   plan?: CopilotPlan;
+  planId?: string;
   ts: number;
   error?: boolean;
+}
+
+interface PlanPollResponse {
+  planId: string;
+  steps: Array<{ label: string; agentName?: string; status: 'pending' | 'running' | 'done' | 'failed' }>;
+  currentStepIndex: number;
+  status: 'running' | 'done' | 'failed';
 }
 
 interface CopilotResponse {
@@ -139,6 +147,7 @@ const PROMPT_CHIPS = [
 
 const HISTORY_KEY = 'cf_copilot_history';
 const MAX_HISTORY = 10;
+const SESSION_HISTORY_KEY = 'cf_copilot_sessions';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -184,8 +193,13 @@ export default function CopilotPage() {
   const [actionInput, setActionInput]     = useState('');
   const [speakingId, setSpeakingId]       = useState<string | null>(null);
   const [pendingCommand, setPendingCommand] = useState<CopilotCommand | null>(null);
-  const bottomRef   = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [activePlanId, setActivePlanId]   = useState<string | null>(null);
+  const [activePlanMsgId, setActivePlanMsgId] = useState<string | null>(null);
+  const bottomRef      = useRef<HTMLDivElement>(null);
+  const textareaRef    = useRef<HTMLTextAreaElement>(null);
+  const planPollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const planDeadlineRef = useRef<number>(0);
+  const sessionIdRef   = useRef<string>(uid());
 
   // Read a message aloud. Must be called synchronously from a click handler
   // (no await before speak()) so iOS Safari accepts it as a user-gesture.
@@ -245,11 +259,75 @@ export default function CopilotPage() {
         setUserName(name[0]?.toUpperCase() ?? 'C');
       }
     } catch { /* ignore */ }
+
+    // Load copilot sessions from API (fallback to localStorage)
+    void apiClient
+      .get<{ sessions: { id: string; title: string; messages: Message[]; updatedAt: string }[] }>('/copilot/history')
+      .then((res) => {
+        // Sessions loaded — could populate a sessions panel in future; stored for reference
+        try {
+          localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(res.data.sessions.slice(0, 5)));
+        } catch { /* ignore storage errors */ }
+      })
+      .catch(() => { /* non-fatal */ });
   }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // Plan step live polling — runs whenever a new plan becomes active
+  useEffect(() => {
+    if (planPollRef.current) {
+      clearInterval(planPollRef.current);
+      planPollRef.current = null;
+    }
+    if (!activePlanId || !activePlanMsgId) return;
+
+    planDeadlineRef.current = Date.now() + 5 * 60 * 1000;
+
+    planPollRef.current = setInterval(() => {
+      if (Date.now() > planDeadlineRef.current) {
+        clearInterval(planPollRef.current!);
+        planPollRef.current = null;
+        setActivePlanId(null);
+        setActivePlanMsgId(null);
+        return;
+      }
+      void apiClient
+        .get<PlanPollResponse>(`/copilot/plan/${activePlanId}`)
+        .then((res) => {
+          const { steps } = res.data;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === activePlanMsgId && m.plan
+                ? {
+                    ...m,
+                    plan: {
+                      ...m.plan,
+                      steps: steps.map((s) => ({ label: s.label, agentName: s.agentName, status: s.status })),
+                    },
+                  }
+                : m,
+            ),
+          );
+          if (steps.every((s) => s.status === 'done' || s.status === 'failed')) {
+            clearInterval(planPollRef.current!);
+            planPollRef.current = null;
+            setActivePlanId(null);
+            setActivePlanMsgId(null);
+          }
+        })
+        .catch(() => { /* non-fatal, retry next tick */ });
+    }, 1500);
+
+    return () => {
+      if (planPollRef.current) {
+        clearInterval(planPollRef.current);
+        planPollRef.current = null;
+      }
+    };
+  }, [activePlanId, activePlanMsgId]);
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -303,19 +381,38 @@ export default function CopilotPage() {
         setPendingCommand(null);
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uid(),
-          role: 'assistant',
-          content: data.reply,
-          executed: data.executed,
-          needsConfirmation: data.needsConfirmation,
-          estimatedCredits: data.estimatedCredits,
-          plan: data.plan,
-          ts: Date.now(),
-        },
-      ]);
+      const newMsgId = uid();
+      const assistantMsg: Message = {
+        id: newMsgId,
+        role: 'assistant',
+        content: data.reply,
+        executed: data.executed,
+        needsConfirmation: data.needsConfirmation,
+        estimatedCredits: data.estimatedCredits,
+        plan: data.plan,
+        planId: data.planId,
+        ts: Date.now(),
+      };
+
+      // Activate plan polling if this response includes a planId
+      if (data.planId) {
+        setActivePlanId(data.planId);
+        setActivePlanMsgId(newMsgId);
+      }
+
+      setMessages((prev) => {
+        const next = [...prev, assistantMsg];
+        // Persist session to API (fire-and-forget)
+        const firstUserMsg = next.find((m) => m.role === 'user');
+        const title = (firstUserMsg?.content ?? 'Untitled').slice(0, 60);
+        const safeMessages = next.map((m) => ({
+          id: m.id, role: m.role, content: m.content, ts: m.ts,
+        }));
+        void apiClient
+          .post('/copilot/history', { sessionId: sessionIdRef.current, title, messages: safeMessages })
+          .catch(() => { /* non-fatal */ });
+        return next;
+      });
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = status ? httpErrorMessage(status) : 'Something went wrong. Try again in a sec.';
