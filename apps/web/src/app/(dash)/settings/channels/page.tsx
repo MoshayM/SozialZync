@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ChannelAccessPanel } from '@/components/channel-access-panel';
-import { ProGate } from '@/components/pro-gate';
 import { SyncBadge } from '@/components/library/SyncBadge';
 import { VirtualVideoGrid } from '@/components/library/VirtualVideoGrid';
 import { PlaylistsTab } from '@/components/library/PlaylistsTab';
@@ -530,12 +529,7 @@ function ChannelsPageInner() {
 
         {/* Channel connections */}
         <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <ProGate
-            feature="Channel Access"
-            description="Connect and manage your YouTube, Instagram, TikTok, and other social channels. Upgrade to Pro to unlock channel management and direct publishing."
-          >
-            <ChannelAccessPanel />
-          </ProGate>
+          <ChannelAccessPanel />
         </div>
 
         {/* Media library */}
