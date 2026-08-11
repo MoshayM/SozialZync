@@ -1,4 +1,5 @@
-import { Controller, Get, Delete, Query, Res, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, Delete, Query, Res, UseGuards, Logger, HttpCode, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import { createHmac } from 'crypto';
 import { Response } from 'express';
 import axios from 'axios';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -17,6 +18,43 @@ export class InstagramOAuthController {
     private readonly prisma: PrismaService,
     private readonly enc: TokenEncryptionService,
   ) {}
+
+  // ── Meta Webhook Verification (GET) ─────────────────────────────────────────
+  // Meta sends hub.mode=subscribe + hub.verify_token + hub.challenge.
+  // We echo back hub.challenge if the verify_token matches.
+  @Get('webhook')
+  verifyWebhook(
+    @Query('hub.mode') mode: string,
+    @Query('hub.verify_token') token: string,
+    @Query('hub.challenge') challenge: string,
+    @Res() res: Response,
+  ) {
+    const expected = process.env['META_WEBHOOK_VERIFY_TOKEN'] ?? '';
+    if (mode === 'subscribe' && token === expected) {
+      this.logger.log('Meta webhook verified');
+      return (res as unknown as import('express').Response).status(200).send(challenge);
+    }
+    this.logger.warn('Meta webhook verification failed — token mismatch');
+    return (res as unknown as import('express').Response).status(403).send('Forbidden');
+  }
+
+  // ── Meta Webhook Events (POST) ───────────────────────────────────────────────
+  // Receives real-time notifications (e.g. Instagram comment, message, post status).
+  @Post('webhook')
+  @HttpCode(200)
+  handleWebhookEvent(
+    @Body() body: unknown,
+    @Headers('x-hub-signature-256') signature: string,
+  ) {
+    const secret = process.env['FACEBOOK_APP_SECRET'] ?? '';
+    if (signature && secret) {
+      const expected = 'sha256=' + createHmac('sha256', secret).update(JSON.stringify(body)).digest('hex');
+      if (signature !== expected) throw new UnauthorizedException('Invalid webhook signature');
+    }
+    this.logger.log('Meta webhook event received');
+    // Future: process specific event types (instagram_business_account, etc.)
+    return { received: true };
+  }
 
   @Get('auth')
   startOAuth(

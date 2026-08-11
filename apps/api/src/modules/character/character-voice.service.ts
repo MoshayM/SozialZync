@@ -10,7 +10,7 @@ const execFileAsync = promisify(execFile);
 
 export interface CharacterVoiceOptions {
   text: string;
-  voiceProvider: 'openai' | 'elevenlabs';
+  voiceProvider: 'kokoro' | 'piper' | 'coqui';
   voiceId: string;
   voicePitch: number;
   voiceSpeed: number;
@@ -39,33 +39,46 @@ export class CharacterVoiceService {
   }
 
   private async generateTTS(opts: CharacterVoiceOptions): Promise<Buffer> {
-    if (opts.voiceProvider === 'openai') {
-      return this.openaiTTS(opts.voiceId, opts.text, opts.voiceSpeed);
+    if (opts.voiceProvider === 'kokoro') {
+      return this.kokoroTTS(opts.voiceId, opts.text, opts.voiceSpeed);
     }
-    return this.elevenLabsTTS(opts.voiceId, opts.text);
+    if (opts.voiceProvider === 'piper') {
+      return this.piperTTS(opts.voiceId, opts.text);
+    }
+    // coqui or default
+    return this.coquiTTS(opts.voiceId, opts.text);
   }
 
-  private async openaiTTS(voice: string, text: string, speed: number): Promise<Buffer> {
-    const apiKey = process.env['OPENAI_API_KEY'];
-    if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
-    const res = await fetch('https://api.openai.com/v1/audio/speech', {
+  private async kokoroTTS(voiceId: string, text: string, speed: number): Promise<Buffer> {
+    const url = process.env['KOKORO_URL'] ?? 'http://localhost:8880';
+    const res = await fetch(`${url}/v1/audio/speech`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: 'tts-1', input: text, voice, speed: Math.min(Math.max(speed, 0.25), 4.0) }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'kokoro', input: text, voice: voiceId, speed }),
     });
-    if (!res.ok) throw new Error(`OpenAI TTS HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`Kokoro TTS HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   }
 
-  private async elevenLabsTTS(voiceId: string, text: string): Promise<Buffer> {
-    const apiKey = process.env['ELEVENLABS_API_KEY'];
-    if (!apiKey) throw new Error('ELEVENLABS_API_KEY not configured');
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+  private async piperTTS(voiceId: string, text: string): Promise<Buffer> {
+    const url = process.env['PIPER_URL'] ?? 'http://localhost:5000';
+    const res = await fetch(`${url}/synthesize`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'xi-api-key': apiKey },
-      body: JSON.stringify({ text, model_id: 'eleven_turbo_v2', voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice: voiceId }),
     });
-    if (!res.ok) throw new Error(`ElevenLabs TTS HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`Piper TTS HTTP ${res.status}`);
+    return Buffer.from(await res.arrayBuffer());
+  }
+
+  private async coquiTTS(voiceId: string, text: string): Promise<Buffer> {
+    const url = process.env['COQUI_URL'] ?? 'http://localhost:5002';
+    const res = await fetch(`${url}/api/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, speaker_id: voiceId }),
+    });
+    if (!res.ok) throw new Error(`Coqui TTS HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   }
 
