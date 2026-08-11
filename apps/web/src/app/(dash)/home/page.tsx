@@ -22,7 +22,13 @@ interface Project {
   updatedAt: string;
 }
 
-interface Channel { id: string; title: string; }
+interface Channel {
+  id: string;
+  title: string;
+  thumbnailUrl?: string | null;
+  subscriberCount?: number;
+  videoCount?: number;
+}
 
 const JOB_ICON: Record<string, React.ElementType> = {
   RESEARCH:       BookOpenIcon,
@@ -80,6 +86,12 @@ function relativeTime(dateStr: string): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
 }
 
 function daysUntil(dateStr: string): number {
@@ -320,6 +332,7 @@ export default function HomePage() {
   const activeProjects = projects.filter((p) => p.status === 'ACTIVE');
   const totalVideos = projects.reduce((s, p) => s + p._count.videos, 0);
   const totalJobs = projects.reduce((s, p) => s + p._count.jobs, 0);
+  const totalSubscribers = channels.reduce((s, ch) => s + (ch.subscriberCount ?? 0), 0);
 
   const recentProjects = [...projects]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
@@ -483,7 +496,7 @@ export default function HomePage() {
 
         {/* ── STATS ROW ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard tone="lilac"      icon={<FolderOpen className="w-5 h-5" />} label="Channels"        value={channels.length} />
+          <StatCard tone="lilac"      icon={<Youtube className="w-5 h-5" />}    label="Subscribers"      value={totalSubscribers > 0 ? formatCount(totalSubscribers) : channels.length} sub={totalSubscribers > 0 ? `${channels.length} channel${channels.length !== 1 ? 's' : ''}` : 'channels connected'} />
           <StatCard tone="cream"      icon={<Zap className="w-5 h-5" />}        label="Active Projects"  value={activeProjects.length} sub={`of ${projects.length} total`} />
           <StatCard tone="periwinkle" icon={<Video className="w-5 h-5" />}      label="Videos"           value={totalVideos} />
           <StatCard tone="pink"       icon={<Activity className="w-5 h-5" />}   label="AI Jobs"          value={totalJobs} sub="across all projects" />
@@ -747,25 +760,30 @@ export default function HomePage() {
             {channels.length > 0 && (
               <Card>
                 <SectionLabel icon={Youtube}>Connected Channels</SectionLabel>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {channels.slice(0, 3).map((ch) => (
                     <div key={ch.id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-                        <Youtube className="w-4 h-4 text-red-500" />
+                      {ch.thumbnailUrl ? (
+                        <img src={ch.thumbnailUrl} alt={ch.title} className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                          <Youtube className="w-4 h-4 text-red-500" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 font-semibold truncate leading-none">{ch.title}</p>
+                        {(ch.subscriberCount ?? 0) > 0 && (
+                          <p className="text-[11px] text-gray-400 mt-0.5">{formatCount(ch.subscriberCount!)} subscribers</p>
+                        )}
                       </div>
-                      <span className="text-sm text-gray-800 font-semibold truncate flex-1">{ch.title}</span>
                       {automation?.enabled && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 shrink-0">Auto</span>
                       )}
                     </div>
                   ))}
-                  {channels.length === 0 && (
-                    <Link
-                      href="/settings/channels"
-                      className="flex items-center gap-2 text-sm font-semibold hover:underline"
-                      style={{ color: '#6D4AE0' }}
-                    >
-                      <Plus className="w-4 h-4" /> Connect a channel
+                  {channels.length > 3 && (
+                    <Link href="/settings/channels" className="text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                      +{channels.length - 3} more channels
                     </Link>
                   )}
                 </div>

@@ -5,7 +5,7 @@ import {
   X, Send, Mic, MicOff, ShieldCheck, Trash2,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
   BookOpen, FileText, Calendar, Search, Sparkles,
-  MessageSquare, ListChecks, type LucideIcon,
+  MessageSquare, ListChecks, ChevronDown, ChevronUp, type LucideIcon,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
@@ -561,6 +561,7 @@ export function CopilotPanel() {
 
   // widget collapsed/expanded
   const [widgetOpen, setWidgetOpen] = useState(false);
+  const [historyMinimized, setHistoryMinimized] = useState(false);
 
   // bubble show/hide
   const [showBubble, setShowBubble]   = useState(false);
@@ -1047,6 +1048,27 @@ export function CopilotPanel() {
         {widgetOpen && (
         <div style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
 
+          {/* ── Close button — top-right corner of the widget ── */}
+          <button
+            type="button"
+            title="Close Copilot"
+            onClick={() => { setWidgetOpen(false); setActivePanel(null); window.speechSynthesis?.cancel(); }}
+            style={{
+              position: 'absolute', top: -10, right: -10, zIndex: 30,
+              width: 26, height: 26, borderRadius: '50%',
+              background: 'rgba(30,20,50,0.92)', backdropFilter: 'blur(12px)',
+              border: '1.5px solid rgba(255,255,255,0.18)',
+              color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.8)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(30,20,50,0.92)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)'; }}
+          >
+            <X style={{ width: 12, height: 12 }} />
+          </button>
+
           {/* ── PANEL (absolute, overlays robot from above) ── */}
           {activePanel && (
           <div style={{
@@ -1383,84 +1405,92 @@ export function CopilotPanel() {
             })}
           </div>
 
-          {/* ── Voice transcript strip — live feed below pills, no panel needed ── */}
+          {/* ── Chat history strip — minimize/maximize, shown when no panel ── */}
           {!activePanel && (isVoiceActive || busy || speaking || messages.length > 0) && (
             <div style={{
               width: 248,
-              maxHeight: 128,
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 5,
-              padding: '7px 10px',
               borderRadius: 14,
-              background: 'rgba(8,4,20,0.78)',
+              background: 'rgba(8,4,20,0.82)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.09)',
               boxShadow: '0 6px 24px rgba(0,0,0,0.4)',
               animation: 'cfSlideUp 0.22s ease-out both',
               position: 'relative', zIndex: 5,
+              overflow: 'hidden',
             }}>
-              {/* Last 3 messages */}
-              {messages.slice(-3).map((m, i) => (
-                <div key={i} style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, flexShrink: 0, marginTop: 2,
-                    color: m.role === 'user' ? 'rgba(167,139,250,0.7)' : 'rgba(96,165,250,0.7)',
-                  }}>
-                    {m.role === 'user' ? 'YOU' : 'AI'}
-                  </span>
-                  <p style={{
-                    margin: 0, fontSize: 11, lineHeight: 1.45,
-                    color: m.role === 'user' ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.78)',
-                    textAlign: m.role === 'user' ? 'right' : 'left',
-                    wordBreak: 'break-word',
-                  }}>
-                    {m.content.length > 90 ? m.content.slice(0, 90) + '…' : m.content}
-                  </p>
-                </div>
-              ))}
+              {/* Strip header — always visible */}
+              <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 10px', borderBottom: historyMinimized ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:'.5px', color:'rgba(255,255,255,0.45)', textTransform:'uppercase', flex:'1 1 auto' }}>
+                  {isVoiceActive ? '🎙 Listening' : busy ? '💭 Thinking' : speaking ? '🔊 Speaking' : `💬 Chat${messages.length > 0 ? ` · ${messages.length}` : ''}`}
+                </span>
+                {/* Minimize / Maximize */}
+                <button
+                  type="button"
+                  title={historyMinimized ? 'Expand chat history' : 'Collapse chat history'}
+                  onClick={() => setHistoryMinimized(v => !v)}
+                  style={{ width:20, height:20, borderRadius:6, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}
+                >
+                  {historyMinimized
+                    ? <ChevronUp style={{ width:11, height:11 }} />
+                    : <ChevronDown style={{ width:11, height:11 }} />}
+                </button>
+              </div>
 
-              {/* Live transcript while listening */}
-              {isVoiceActive && liveTranscript && liveTranscript !== 'Transcribing…' && (
-                <div style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection:'row-reverse' }}>
-                  <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color:'rgba(74,222,128,0.7)' }}>YOU</span>
-                  <p style={{ margin:0, fontSize:11, lineHeight:1.45, color:'#4ADE80', fontStyle:'italic', textAlign:'right' }}>
-                    {liveTranscript}
-                  </p>
-                </div>
-              )}
+              {/* Strip body — hidden when minimized */}
+              {!historyMinimized && (
+                <div style={{ maxHeight: 120, overflowY: 'auto', display:'flex', flexDirection:'column', gap:5, padding:'7px 10px 8px' }}>
+                  {/* Last 3 messages */}
+                  {messages.slice(-3).map((m, i) => (
+                    <div key={i} style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
+                      <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color: m.role === 'user' ? 'rgba(167,139,250,0.7)' : 'rgba(96,165,250,0.7)' }}>
+                        {m.role === 'user' ? 'YOU' : 'AI'}
+                      </span>
+                      <p style={{ margin:0, fontSize:11, lineHeight:1.45, color: m.role === 'user' ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.78)', textAlign: m.role === 'user' ? 'right' : 'left', wordBreak:'break-word' }}>
+                        {m.content.length > 90 ? m.content.slice(0, 90) + '…' : m.content}
+                      </p>
+                    </div>
+                  ))}
 
-              {/* Transcribing state */}
-              {liveTranscript === 'Transcribing…' && (
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <Loader2 style={{ width:10, height:10, color:'#A78BFA', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
-                  <span style={{ fontSize:11, color:'#A78BFA', fontStyle:'italic' }}>Transcribing…</span>
-                </div>
-              )}
+                  {/* Live transcript while listening */}
+                  {isVoiceActive && liveTranscript && liveTranscript !== 'Transcribing…' && (
+                    <div style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection:'row-reverse' }}>
+                      <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color:'rgba(74,222,128,0.7)' }}>YOU</span>
+                      <p style={{ margin:0, fontSize:11, lineHeight:1.45, color:'#4ADE80', fontStyle:'italic', textAlign:'right' }}>{liveTranscript}</p>
+                    </div>
+                  )}
 
-              {/* Thinking */}
-              {busy && (
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
-                    {['5px','8px','11px','8px','5px'].map((h, i) => (
-                      <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#FBBF24', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
-                    ))}
-                  </div>
-                  <span style={{ fontSize:11, color:'#FBBF24', fontStyle:'italic' }}>Thinking…</span>
-                </div>
-              )}
+                  {/* Transcribing */}
+                  {liveTranscript === 'Transcribing…' && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <Loader2 style={{ width:10, height:10, color:'#A78BFA', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
+                      <span style={{ fontSize:11, color:'#A78BFA', fontStyle:'italic' }}>Transcribing…</span>
+                    </div>
+                  )}
 
-              {/* Speaking state */}
-              {speaking && !busy && (
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
-                    {['5px','8px','11px','8px','5px'].map((h, i) => (
-                      <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#00C8FF', height:h, animation:`cfVoiceBar .55s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
-                    ))}
-                  </div>
-                  <span style={{ fontSize:11, color:'#60A5FA', fontStyle:'italic' }}>Speaking…</span>
+                  {/* Thinking */}
+                  {busy && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
+                        {['5px','8px','11px','8px','5px'].map((h, i) => (
+                          <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#FBBF24', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize:11, color:'#FBBF24', fontStyle:'italic' }}>Thinking…</span>
+                    </div>
+                  )}
+
+                  {/* Speaking */}
+                  {speaking && !busy && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
+                        {['5px','8px','11px','8px','5px'].map((h, i) => (
+                          <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#00C8FF', height:h, animation:`cfVoiceBar .55s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize:11, color:'#60A5FA', fontStyle:'italic' }}>Speaking…</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
