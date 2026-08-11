@@ -26,6 +26,8 @@ import { PlanExecutorService } from './plan-executor.service';
 import { SessionMemoryService } from './session-memory.service';
 import { randomUUID } from 'crypto';
 
+const MAX_PLAN_STEPS = 5;
+
 const COPILOT_SYSTEM = `You are the Sozialzync Copilot — an expert AI content strategist and production assistant driving a YouTube Content OS for the user.
 
 Conversation style — you are having a REAL two-way spoken conversation:
@@ -333,8 +335,55 @@ export class CopilotService {
 
     const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
     const result = await this.executeRecorded(userId, decision.command, { source, fromCache, tokensUsed, lastUserText });
+
+    // Auto-execute remaining plan steps sequentially (§6 multi-step workflow)
+    const stepSummaries: string[] = [result.summary];
+    if (planId && decision.plan && decision.plan.steps.length > 1 && decision.plan.steps.length <= MAX_PLAN_STEPS) {
+      this.planExecutor.markStepDone(planId, 0, result.data);
+      const steps = decision.plan.steps;
+      for (let i = 1; i < steps.length; i++) {
+        this.planExecutor.markStepRunning(planId, i);
+        try {
+          const stepMessages = [
+            ...req.messages.slice(-6).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+            { role: 'assistant' as const, content: decision.reply },
+            { role: 'user' as const, content: `[Auto-execute plan step ${i + 1}/${steps.length}]: ${steps[i].label}. Emit the command for this step.` },
+          ];
+          const stepDecision = await callAIStructured(
+            stepMessages,
+            CopilotDecisionSchema,
+            { systemPrompt: COPILOT_SYSTEM, maxTokens: 512 },
+          );
+          if (stepDecision.command) {
+            const stepResult = await this.executeRecorded(userId, stepDecision.command, {
+              source: 'COPILOT',
+              fromCache: false,
+              tokensUsed,
+              lastUserText: steps[i].label,
+            });
+            this.planExecutor.markStepDone(planId, i, stepResult.data);
+            stepSummaries.push(stepResult.summary);
+          } else {
+            this.planExecutor.markStepDone(planId, i, null);
+            if (stepDecision.reply) stepSummaries.push(stepDecision.reply);
+          }
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          this.planExecutor.markStepFailed(planId, i, errMsg);
+          stepSummaries.push(`Step ${i + 1} failed: ${errMsg}`);
+          break;
+        }
+      }
+    } else if (planId) {
+      this.planExecutor.markStepDone(planId, 0, result.data);
+    }
+
+    const planSummary = stepSummaries.length > 1
+      ? `\n\nPlan completed: ${stepSummaries.join(' → ')}`
+      : '';
+
     return {
-      reply: `${decision.reply}\n\n${result.summary}`.trim(),
+      reply: `${decision.reply}\n\n${result.summary}${planSummary}`.trim(),
       language: decision.language,
       executed: { action: decision.command.action, result: result.data },
       fromCache,
