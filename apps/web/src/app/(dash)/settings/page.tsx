@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle,
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
-  Webhook, Trash2, Play, Plus, Cpu, Download, HardDrive, Activity,
+  Webhook, Trash2, Play, Plus, Cpu,
   Fingerprint, Camera, X as XIcon, Bell, BellOff,
 } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -360,61 +360,8 @@ function SettingsContent() {
                 <Cpu className="w-5 h-5" style={{ color: '#6D4AE0' }} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-800">AI Providers</p>
-                <p className="text-xs text-gray-600">Configure local and cloud LLM providers</p>
-              </div>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0' }}>NEW</span>
-            </a>
-            <a
-              href="/settings/models"
-              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
-              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-                <Download className="w-5 h-5" style={{ color: '#16a34a' }} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-800">Model Manager</p>
-                <p className="text-xs text-gray-600">Download and manage local AI models</p>
-              </div>
-            </a>
-            <a
-              href="/settings/storage"
-              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0f9ff]"
-              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0f9ff' }}>
-                <HardDrive className="w-5 h-5" style={{ color: '#0284c7' }} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-800">Storage</p>
-                <p className="text-xs text-gray-600">Manage local AI-generated files, models, and cache.</p>
-              </div>
-            </a>
-            <a
-              href="/settings/queue"
-              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#fff7ed]"
-              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fff7ed' }}>
-                <Activity className="w-5 h-5" style={{ color: '#ea580c' }} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-800">Queue Manager</p>
-                <p className="text-xs text-gray-600">Monitor BullMQ job queue — active, waiting, failed jobs.</p>
-              </div>
-            </a>
-            <a
-              href="/settings/gpu"
-              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
-              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-                <Cpu className="w-5 h-5" style={{ color: '#16a34a' }} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-800">GPU &amp; Hardware</p>
-                <p className="text-xs text-gray-600">Detected compute hardware — GPU backend, VRAM, utilization.</p>
+                <p className="text-sm font-semibold text-gray-800">AI Cost Control</p>
+                <p className="text-xs text-gray-600">Providers, routing, cost limits, local LLM &amp; usage analytics</p>
               </div>
             </a>
           </section>
