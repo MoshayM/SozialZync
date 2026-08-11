@@ -132,7 +132,7 @@ const WIZARD_STEPS = [
     title: 'Connect your YouTube channel',
     body: 'Link your channel so Sozialzync can publish, analyze, and schedule your content automatically.',
     cta: 'Connect a channel',
-    href: '/projects?tab=channels',
+    href: '/settings/channels',
     skip: "I'll do this later",
   },
   {
@@ -160,10 +160,12 @@ const WIZARD_STEPS = [
 function OnboardingWizard({
   step,
   onAdvance,
+  onSkip,
   onDismiss,
 }: {
   step: number;
   onAdvance: (href: string) => void;
+  onSkip: () => void;
   onDismiss: () => void;
 }) {
   const current = WIZARD_STEPS[step - 1];
@@ -235,7 +237,7 @@ function OnboardingWizard({
         {current.skip && (
           <button
             type="button"
-            onClick={() => onAdvance(current.href)}
+            onClick={onSkip}
             className="w-full text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors py-1"
           >
             {current.skip}
@@ -370,6 +372,14 @@ export default function HomePage() {
       localStorage.setItem('cf.onboarding.done', '1');
       setOnboardingDone(true);
       router.push(href);
+    }
+  }
+
+  function skipWizardStep() {
+    if (wizardStep < WIZARD_STEPS.length) {
+      setWizardStep((s) => s + 1);
+    } else {
+      dismissWizard();
     }
   }
 
@@ -798,6 +808,7 @@ export default function HomePage() {
         <OnboardingWizard
           step={wizardStep}
           onAdvance={advanceWizard}
+          onSkip={skipWizardStep}
           onDismiss={dismissWizard}
         />
       )}
