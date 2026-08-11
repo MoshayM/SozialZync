@@ -217,7 +217,7 @@ export default function AbTestingPage() {
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
               <FlaskConical className="w-8 h-8" style={{ color: '#6D4AE0' }} />
             </div>
-            <p className="text-sm text-gray-500">No entries found. <Link href="/calendar" className="underline font-medium hover:text-[#6D4AE0]">Generate a content calendar →</Link></p>
+            <p className="text-sm text-gray-500">No entries found. <Link href="/publish?tab=calendar" className="underline font-medium hover:text-[#6D4AE0]">Generate a content calendar →</Link></p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -295,7 +295,7 @@ export default function AbTestingPage() {
                           ))}
 
                           {variants.length === 0 && (
-                            <p className="text-xs text-gray-400 italic">No variants generated yet. <Link href="/calendar" className="underline hover:text-[#6D4AE0]">Open Calendar →</Link></p>
+                            <p className="text-xs text-gray-400 italic">No variants generated yet. <Link href="/publish?tab=calendar" className="underline hover:text-[#6D4AE0]">Open Calendar →</Link></p>
                           )}
                         </div>
                       </div>

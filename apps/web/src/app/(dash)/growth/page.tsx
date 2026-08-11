@@ -470,7 +470,7 @@ function GoalsTab() {
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-3">
             <p className="text-sm text-amber-800">{tip}</p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/calendar" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+              <Link href="/publish?tab=calendar" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
                 Plan in Calendar →
               </Link>
               <Link href="/research" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
