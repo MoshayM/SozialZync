@@ -52,7 +52,7 @@ export class CharacterController {
   async previewVoice(
     @Body() body: {
       text: string;
-      voiceProvider: 'openai' | 'elevenlabs';
+      voiceProvider: 'coqui' | 'kokoro' | 'piper';
       voiceId: string;
       voicePitch?: number;
       voiceSpeed?: number;
