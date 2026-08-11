@@ -1,10 +1,22 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Bell, CheckCircle, XCircle, Clock, AlertTriangle, Loader2,
 } from 'lucide-react';
 import { api, type AppNotification } from '@/lib/api';
+
+function navDestination(n: AppNotification): string | null {
+  const type = n.type.toLowerCase();
+  const meta = n.meta ?? {};
+  if (type.includes('approval')) return '/publish';
+  if (type.includes('job') && meta['projectId']) return `/projects/${String(meta['projectId'])}`;
+  if (type.includes('publish')) return '/publishing';
+  if (type.includes('trial') || type.includes('credit')) return '/wallet';
+  if (type.includes('offer') || type.includes('referral') || type.includes('reward') || type.includes('bonus')) return '/growth';
+  return null;
+}
 
 const PAGE_SIZE = 30;
 
@@ -88,8 +100,12 @@ export default function NotificationsPage() {
     },
   });
 
+  const router = useRouter();
+
   function handleRowClick(n: AppNotification) {
     if (!n.readAt) markReadMutation.mutate(n.id);
+    const dest = navDestination(n);
+    if (dest) router.push(dest);
   }
 
   return (
