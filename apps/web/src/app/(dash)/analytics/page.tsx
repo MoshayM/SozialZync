@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { BarChart2, TrendingUp, TrendingDown, Minus, Lightbulb, RefreshCw, ChevronRight, ChevronDown, Gauge, Video, AlertTriangle, MousePointerClick } from 'lucide-react';
 import { ResultActions } from '@/components/result-actions';
 import { AiWorkingCard, formatDuration } from '@/components/ai-activity';
@@ -432,15 +433,20 @@ export default function AnalyticsPage() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
               </div>
             ) : (
-              <input
-                id="analytics-channel"
-                type="text"
-                value={channelId}
-                onChange={e => setChannelId(e.target.value)}
-                placeholder="Channel ID (connect a channel in Settings)"
-                className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
-                style={{ border: '1.5px solid #e3e0f0' }}
-              />
+              <div className="flex-1 flex items-center gap-3">
+                <input
+                  id="analytics-channel"
+                  type="text"
+                  value={channelId}
+                  onChange={e => setChannelId(e.target.value)}
+                  placeholder="Channel ID"
+                  className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                  style={{ border: '1.5px solid #e3e0f0' }}
+                />
+                <Link href="/settings/channels" className="shrink-0 text-sm font-semibold hover:underline whitespace-nowrap" style={{ color: '#6D4AE0' }}>
+                  Connect a channel →
+                </Link>
+              </div>
             )}
             {activeView === 'analytics' && (
               <button
