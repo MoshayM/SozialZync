@@ -442,7 +442,7 @@ export default function MusicLibraryPage() {
               ) : error ? (
                 <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-red-500">{error}</p><button onClick={() => void fetchTracks()} className="mt-3 text-xs font-semibold underline" style={{ color: '#6D4AE0' }}>Retry</button></div>
               ) : tracks.length === 0 ? (
-                <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No tracks found.</p><p className="text-xs text-gray-400 mt-1">Use Discover tab to browse &amp; import royalty-free music.</p></div>
+                <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No tracks found.</p><button type="button" onClick={() => setTab('discover')} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>Browse Discover →</button></div>
               ) : tracks.map((track, idx) => (
                 <div key={track.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff] transition-colors"
                   style={{ borderBottom: idx < tracks.length - 1 ? '1px solid #f0edf9' : 'none' }}>

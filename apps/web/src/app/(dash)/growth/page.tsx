@@ -467,8 +467,16 @@ function GoalsTab() {
           </button>
         </div>
         {tip ? (
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-3">
             <p className="text-sm text-amber-800">{tip}</p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/calendar" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                Plan in Calendar →
+              </Link>
+              <Link href="/research" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                Research this →
+              </Link>
+            </div>
           </div>
         ) : (
           <p className="text-xs text-gray-600">Click "Get Tip" for an AI-powered content strategy suggestion.</p>

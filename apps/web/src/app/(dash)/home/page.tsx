@@ -351,7 +351,7 @@ export default function HomePage() {
     { label: 'Connect a YouTube channel',     done: channels.length > 0,       href: '/settings/channels' },
     { label: 'Create your first project',      done: projects.length > 0,       href: '/projects' },
     { label: 'Enable AI automation',           done: automation?.enabled === true, href: '/automation' },
-    { label: 'Generate your first AI content', done: totalJobs > 0,             href: '/autonomy' },
+    { label: 'Generate your first AI content', done: totalJobs > 0,             href: '/calendar' },
   ];
   const completedCount = steps.filter((s) => s.done).length;
   const allComplete = completedCount === steps.length;

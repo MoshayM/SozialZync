@@ -233,6 +233,11 @@ export default function AudioStudioPage() {
             <p className="text-[11px] text-green-700 font-semibold">Final output:</p>
             <p className="text-xs text-green-800 font-mono break-all mt-0.5">{result.finalPath}</p>
           </div>
+          <div className="pt-2 border-t border-green-100">
+            <a href="/shorts-studio" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+              Open in Shorts Studio →
+            </a>
+          </div>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ListOrdered, Loader2, ChevronDown, ChevronUp, Lightbulb, Clock, DollarSign, Search, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ListOrdered, Loader2, ChevronDown, ChevronUp, Lightbulb, Clock, DollarSign, Search, Sparkles, FolderPlus, Compass } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { ContentToolbar } from '@/components/result-actions';
 import { LoadingSteps } from '@/components/loading-steps';
@@ -64,6 +65,7 @@ const NICHES = [
 ];
 
 export default function SeriesPlannerPage() {
+  const router = useRouter();
   const [topic, setTopic] = useState('');
   const [niche, setNiche] = useState(() => {
     try {
@@ -317,6 +319,26 @@ export default function SeriesPlannerPage() {
                               <p className="text-sm" style={{ color: '#c2410c' }}>{ep.thumbnailConcept}</p>
                             </div>
                           )}
+                          <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-100">
+                            <button
+                              type="button"
+                              onClick={() => { try { localStorage.setItem('cf_new_project_topic', ep.title); } catch {} router.push('/projects'); }}
+                              className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+                              style={{ color: '#6D4AE0' }}
+                            >
+                              <FolderPlus className="w-3 h-3" /> Start project from this episode
+                            </button>
+                            {ep.researchAngles[0] && (
+                              <button
+                                type="button"
+                                onClick={() => { try { localStorage.setItem('cf_discover_topic', ep.researchAngles[0]!); } catch {} router.push('/discover'); }}
+                                className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+                                style={{ color: '#6D4AE0' }}
+                              >
+                                <Compass className="w-3 h-3" /> Explore in Discover
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

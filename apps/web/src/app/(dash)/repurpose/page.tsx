@@ -157,6 +157,11 @@ function PlatformCard({ item }: { item: RepurposeItem }) {
               </ul>
             </div>
           )}
+          {item.platform === 'shorts' && (
+            <Link href="/shorts-studio" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+              <ExternalLink className="w-3 h-3" /> Open in Shorts Studio →
+            </Link>
+          )}
         </div>
       )}
     </div>

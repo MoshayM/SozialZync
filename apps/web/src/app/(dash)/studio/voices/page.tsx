@@ -171,7 +171,7 @@ export default function VoiceLibraryPage() {
         ) : error ? (
           <div className="py-16 text-center"><Mic className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-red-500">{error}</p><button onClick={() => void fetchVoices()} className="mt-3 text-xs font-semibold underline" style={{ color: '#6D4AE0' }}>Retry</button></div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center"><Mic className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No voices found.</p></div>
+          <div className="py-16 text-center"><Mic className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No voices found.</p><a href="/settings/ai-providers" className="mt-2 inline-block text-xs font-semibold underline" style={{ color: '#6D4AE0' }}>Configure voice providers →</a></div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filtered.map(voice => (

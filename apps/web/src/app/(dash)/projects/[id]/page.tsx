@@ -873,9 +873,9 @@ export default function ProjectDetailPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">{project.title}</h1>
             <p className="text-gray-500 mt-1 text-sm">
               {project.channel ? project.channel.title : (
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0' }}>
-                  No account linked · connect anytime
-                </span>
+                <Link href="/settings/channels" className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity" style={{ background: '#f0edf9', color: '#6D4AE0' }}>
+                  No account linked · connect →
+                </Link>
               )}
               {project.niche ? ` · ${project.niche}` : ''}
             </p>
@@ -1595,7 +1595,7 @@ export default function ProjectDetailPage() {
                     const returnPath = `/projects/${id}?publish=1`;
                     api.channels.getAuthUrl(`${_apiUrl}/channels/oauth/callback`, 'PUBLISH', returnPath)
                       .then((r) => { window.location.href = (r.data as { url: string }).url; })
-                      .catch(() => { window.location.href = '/projects?tab=channels'; });
+                      .catch(() => { window.location.href = '/settings/channels'; });
                   }}
                   className="text-[#6D4AE0] font-semibold hover:underline"
                 >
@@ -1937,8 +1937,8 @@ function MultiPublishModal({ videoTitle, channelConnected, onYouTube, onConnectY
         <div className="px-6 pb-5">
           <p className="text-xs text-gray-400 text-center">
             More platforms coming soon. Connect accounts anytime from{' '}
-            <a href="/projects?tab=channels" className="text-[#6D4AE0] font-semibold hover:underline" onClick={onClose}>
-              Settings → Accounts
+            <a href="/settings/channels" className="text-[#6D4AE0] font-semibold hover:underline" onClick={onClose}>
+              Settings → Channels
             </a>
           </p>
         </div>
