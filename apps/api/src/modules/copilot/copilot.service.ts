@@ -382,13 +382,19 @@ export class CopilotService {
       ? `\n\nPlan completed: ${stepSummaries.join(' → ')}`
       : '';
 
+    // Return the live execution state so the frontend shows real step statuses
+    const executedPlan = planId ? this.planExecutor.getExecution(planId) : undefined;
+    const returnPlan = executedPlan
+      ? { goal: executedPlan.plan.goal, steps: executedPlan.steps }
+      : decision.plan;
+
     return {
       reply: `${decision.reply}\n\n${result.summary}${planSummary}`.trim(),
       language: decision.language,
       executed: { action: decision.command.action, result: result.data },
       fromCache,
       tokensUsed,
-      ...(decision.plan ? { plan: decision.plan } : {}),
+      ...(returnPlan ? { plan: returnPlan } : {}),
       ...(planId ? { planId } : {}),
       ...(decision.navigate ? { navigate: decision.navigate } : {}),
     };

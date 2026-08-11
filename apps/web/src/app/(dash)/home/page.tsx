@@ -297,14 +297,14 @@ export default function HomePage() {
     trendDebounceRef.current = setTimeout(async () => {
       setTrendsLoading(true);
       try {
-        const res = await fetch('/api/proxy/discover/trends', {
+        const res = await fetch('/api/proxy/trends/analyze', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('cf_token') ?? ''}` },
           body: JSON.stringify({ niche: trendNiche }),
         });
         if (res.ok) {
-          const data = await res.json() as { topics?: Array<{ topic: string; score: number }> };
-          setTrendItems(data.topics?.slice(0, 5) ?? []);
+          const data = await res.json() as { trending?: Array<{ topic: string; score: number }> };
+          setTrendItems(data.trending?.slice(0, 5) ?? []);
         } else {
           setTrendItems([]);
         }

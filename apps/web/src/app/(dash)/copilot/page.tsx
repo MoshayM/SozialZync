@@ -43,6 +43,7 @@ interface CopilotResponse {
   needsConfirmation?: CopilotCommand;
   estimatedCredits?: number | null;
   plan?: CopilotPlan;
+  planId?: string;
   navigate?: string;
   fromCache?: boolean;
   tokensUsed?: number;
