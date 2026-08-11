@@ -23,7 +23,7 @@ const PLATFORM_META: Record<string, { name: string; color: string; bg: string; i
   youtube:   { name: 'YouTube',     color: '#FF0000', bg: '#fff5f5', initials: 'YT', available: true  },
   instagram: { name: 'Instagram',   color: '#E1306C', bg: '#fdf2f8', initials: 'IG', available: true  },
   tiktok:    { name: 'TikTok',      color: '#010101', bg: '#f9fafb', initials: 'TK', available: false },
-  facebook:  { name: 'Facebook',    color: '#1877F2', bg: '#eff6ff', initials: 'FB', available: false },
+  facebook:  { name: 'Facebook',    color: '#1877F2', bg: '#eff6ff', initials: 'FB', available: true  },
   linkedin:  { name: 'LinkedIn',    color: '#0A66C2', bg: '#eff6ff', initials: 'LI', available: false },
   x:         { name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X',  available: false },
 };
@@ -61,6 +61,18 @@ async function disconnectInstagram() {
   } catch { /* ignore */ }
 }
 
+async function startFacebookOAuth() {
+  const userId = getUserIdFromToken();
+  if (!userId) return;
+  window.location.href = `${API_URL}/platforms/facebook/auth?userId=${encodeURIComponent(userId)}&returnTo=${encodeURIComponent('/publishing/accounts')}`;
+}
+
+async function disconnectFacebook() {
+  try {
+    await apiClient.delete('/platforms/facebook/disconnect');
+  } catch { /* ignore */ }
+}
+
 export default function PublishingAccountsPage() {
   const [statuses, setStatuses] = useState<Record<string, ConnectionStatus>>({});
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -84,7 +96,7 @@ export default function PublishingAccountsPage() {
     void load();
     // Show toast if just connected
     const params = new URLSearchParams(window.location.search);
-    if (params.get('connected') === 'instagram') {
+    if (params.get('connected') === 'instagram' || params.get('connected') === 'facebook') {
       window.history.replaceState({}, '', '/publishing/accounts');
     }
   }, [load]);
@@ -95,6 +107,7 @@ export default function PublishingAccountsPage() {
     setDisconnecting(platformId);
     try {
       if (platformId === 'instagram') await disconnectInstagram();
+      else if (platformId === 'facebook') await disconnectFacebook();
       await load();
     } finally { setDisconnecting(null); }
   };
@@ -123,6 +136,7 @@ export default function PublishingAccountsPage() {
             const status = statuses[platformId] ?? { connected: false };
             const isYT = platformId === 'youtube';
             const isIG = platformId === 'instagram';
+            const isFB = platformId === 'facebook';
 
             return (
               <div key={platformId} className="rounded-2xl p-5" style={{ background: meta.bg, border: `1.5px solid ${meta.color}20` }}>
@@ -183,6 +197,25 @@ export default function PublishingAccountsPage() {
                         Connect
                       </button>
                     )
+                  ) : isFB ? (
+                    status.connected ? (
+                      <button
+                        onClick={() => void handleDisconnect('facebook')}
+                        disabled={disconnecting === 'facebook'}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors shrink-0 disabled:opacity-50"
+                      >
+                        {disconnecting === 'facebook' ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                        Disconnect
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => void startFacebookOAuth()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0"
+                        style={{ background: '#1877F2' }}
+                      >
+                        Connect
+                      </button>
+                    )
                   ) : (
                     <span className="text-[11px] bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full font-semibold shrink-0">Soon</span>
                   )}
@@ -218,7 +251,7 @@ export default function PublishingAccountsPage() {
       )}
 
       <div className="rounded-xl px-5 py-3 text-xs text-gray-400" style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
-        Instagram requires a <strong>Business or Creator account</strong> linked to a Facebook Page. TikTok, Facebook, LinkedIn, and X publishing coming soon.
+        Instagram requires a <strong>Business or Creator account</strong> linked to a Facebook Page. Facebook connects your <strong>Facebook Page</strong> for post publishing. TikTok, LinkedIn, and X publishing coming soon.
       </div>
     </div>
   );

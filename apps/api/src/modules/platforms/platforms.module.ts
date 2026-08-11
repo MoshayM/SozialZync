@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PlatformRegistryService } from './platform-registry.service';
 import { PlatformsController } from './platforms.controller';
 import { InstagramOAuthController } from './instagram-oauth.controller';
+import { FacebookOAuthController } from './facebook-oauth.controller';
 import { YouTubePlatformProvider } from './providers/youtube.platform.provider';
 import { InstagramPlatformProvider } from './providers/instagram.platform.provider';
 import { TikTokPlatformProvider } from './providers/tiktok.platform.provider';
@@ -22,7 +23,7 @@ import { PrismaModule } from '../../common/prisma/prisma.module';
     LinkedInPlatformProvider,
     XPlatformProvider,
   ],
-  controllers: [PlatformsController, InstagramOAuthController],
+  controllers: [PlatformsController, InstagramOAuthController, FacebookOAuthController],
   exports: [PlatformRegistryService],
 })
 export class PlatformsModule {}
