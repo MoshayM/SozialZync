@@ -1420,10 +1420,21 @@ export function CopilotPanel() {
               overflow: 'hidden',
             }}>
               {/* Strip header — always visible */}
-              <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 10px', borderBottom: historyMinimized ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 10px', borderBottom: historyMinimized ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
                 <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:'.5px', color:'rgba(255,255,255,0.45)', textTransform:'uppercase', flex:'1 1 auto' }}>
                   {isVoiceActive ? '🎙 Listening' : busy ? '💭 Thinking' : speaking ? '🔊 Speaking' : `💬 Chat${messages.length > 0 ? ` · ${messages.length}` : ''}`}
                 </span>
+                {/* Clear chat */}
+                {messages.length > 0 && (
+                  <button
+                    type="button"
+                    title="Clear chat history"
+                    onClick={() => { setMessages([]); localStorage.removeItem(CHAT_KEY); }}
+                    style={{ width:20, height:20, borderRadius:6, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.10)', color:'rgba(248,113,113,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}
+                  >
+                    <Trash2 style={{ width:10, height:10 }} />
+                  </button>
+                )}
                 {/* Minimize / Maximize */}
                 <button
                   type="button"
