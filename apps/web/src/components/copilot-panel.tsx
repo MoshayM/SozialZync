@@ -1398,8 +1398,8 @@ export function CopilotPanel() {
             })}
           </div>
 
-          {/* ── Greeting ticker — shown below pills when idle and no history ── */}
-          {!activePanel && robotState === 'idle' && messages.length === 0 && (
+          {/* ── Greeting ticker — shown when idle: no messages, or history minimized ── */}
+          {!activePanel && robotState === 'idle' && (messages.length === 0 || historyMinimized) && (
             <div style={{
               width: 248,
               overflow: 'hidden',
