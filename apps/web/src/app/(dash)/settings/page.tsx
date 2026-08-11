@@ -352,7 +352,7 @@ function SettingsContent() {
           <section>
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI &amp; Infrastructure</p>
             <a
-              href="/settings/ai-providers"
+              href="/settings/ai-infrastructure"
               className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f5f2fd]"
               style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
             >
