@@ -54,13 +54,37 @@ export default function LandingPage() {
     <>
       <style>{`
         html { scroll-behavior: smooth; }
-        .glow-ring { box-shadow: 0 0 0 1px rgba(124,58,237,.15), 0 0 40px rgba(124,58,237,.2); }
+        .glow-ring { box-shadow: 0 0 0 1px rgba(124,58,237,.2), 0 0 60px rgba(124,58,237,.3), 0 0 120px rgba(124,58,237,.1); }
         @keyframes float-slow { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
         .float-slow { animation: float-slow 6s ease-in-out infinite; }
         @keyframes pulse-soft { 0%,100% { opacity:.6; } 50% { opacity:1; } }
         .pulse-soft { animation: pulse-soft 3s ease-in-out infinite; }
         @keyframes fade-out { 0%,60% { opacity:1; } 100% { opacity:0; } }
         .animate-fade-out { animation: fade-out 4s ease-out forwards; }
+        @keyframes float-a { 0%,100%{transform:translateY(0) rotateX(0deg) rotateY(0deg)} 33%{transform:translateY(-12px) rotateX(4deg) rotateY(-3deg)} 66%{transform:translateY(-6px) rotateX(-2deg) rotateY(5deg)} }
+        @keyframes float-b { 0%,100%{transform:translateY(0) rotateX(0deg) rotateY(0deg)} 40%{transform:translateY(-8px) rotateX(-3deg) rotateY(4deg)} 70%{transform:translateY(-14px) rotateX(5deg) rotateY(-2deg)} }
+        @keyframes float-c { 0%,100%{transform:translateY(0) rotateX(2deg) rotateY(0deg)} 50%{transform:translateY(-16px) rotateX(-3deg) rotateY(-4deg)} }
+        @keyframes orb-pulse { 0%,100%{transform:scale(1);opacity:.12} 50%{transform:scale(1.12);opacity:.22} }
+        @keyframes gradient-shift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        @keyframes spin-slow { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes spin-rev { 0%{transform:rotate(0deg)} 100%{transform:rotate(-360deg)} }
+        @keyframes count-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes dash-travel { to { stroke-dashoffset: -20; } }
+        .card-3d { transform-style:preserve-3d; transition:transform 0.45s ease,box-shadow 0.45s ease; }
+        .card-3d:hover { transform:perspective(900px) rotateX(-5deg) rotateY(7deg) translateZ(10px) scale(1.02); box-shadow:0 32px 64px -12px rgba(124,58,237,0.45); }
+        .float-a { animation:float-a 7s ease-in-out infinite; }
+        .float-b { animation:float-b 9s ease-in-out infinite; }
+        .float-c { animation:float-c 11s ease-in-out infinite; }
+        .gradient-animated { background-size:200% 200%; animation:gradient-shift 4s ease infinite; }
+        .shimmer-btn { background: linear-gradient(90deg,#a78bfa,#7C3AED,#818cf8,#7C3AED,#a78bfa); background-size:300% 100%; animation:shimmer 3s linear infinite; }
+        .orb-pulse { animation:orb-pulse 6s ease-in-out infinite; }
+        .spin-slow { animation:spin-slow 30s linear infinite; }
+        .spin-rev  { animation:spin-rev  45s linear infinite; }
+        .count-up-1 { animation:count-up 0.6s ease forwards 0.2s; opacity:0; }
+        .count-up-2 { animation:count-up 0.6s ease forwards 0.4s; opacity:0; }
+        .count-up-3 { animation:count-up 0.6s ease forwards 0.6s; opacity:0; }
+        .dash-travel { animation:dash-travel 1.2s linear infinite; }
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────────────────────────── */}
@@ -96,18 +120,45 @@ export default function LandingPage() {
 
       <main>
         {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-        <section aria-label="Hero" className="relative overflow-hidden" style={{background:'linear-gradient(160deg,#0e0924 0%,#1a0f4a 40%,#2d1b6e 100%)'}}>
-          {/* Background decorations */}
+        <section aria-label="Hero" className="relative overflow-hidden" style={{background:'radial-gradient(ellipse at 20% 50%, #1a0845 0%, #0a0520 50%, #000814 100%)'}}>
+
+          {/* ── Background layer: perspective grid ── */}
+          <div aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden" style={{opacity:.06}}>
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gfade" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="white" stopOpacity="1"/>
+                  <stop offset="100%" stopColor="white" stopOpacity="0"/>
+                </linearGradient>
+                <mask id="gmask"><rect width="100%" height="100%" fill="url(#gfade)"/></mask>
+              </defs>
+              <g mask="url(#gmask)" stroke="white" strokeWidth="0.5">
+                {[10,20,30,40,50,60,70,80,90].map(x => (
+                  <line key={x} x1={`${x}%`} y1="0" x2="50%" y2="100%"/>
+                ))}
+                {[10,20,30,40,50,60,70,80,90].map((y,i) => (
+                  <line key={i} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`}/>
+                ))}
+              </g>
+            </svg>
+          </div>
+
+          {/* ── Animated orbs ── */}
           <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full opacity-20" style={{background:'radial-gradient(ellipse,#7C3AED 0%,transparent 70%)',filter:'blur(40px)'}} />
-            <div className="absolute top-1/3 left-[10%] w-72 h-72 rounded-full opacity-10" style={{background:'#a78bfa',filter:'blur(60px)'}} />
-            <div className="absolute top-1/4 right-[8%] w-52 h-52 rounded-full opacity-10" style={{background:'#818cf8',filter:'blur(50px)'}} />
+            <div className="orb-pulse absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full" style={{background:'radial-gradient(ellipse,#7C3AED 0%,transparent 68%)',filter:'blur(30px)'}} />
+            <div className="orb-pulse absolute top-1/3 left-[5%] w-80 h-80 rounded-full" style={{background:'#4f2ec4',filter:'blur(70px)',animationDelay:'2s'}} />
+            <div className="orb-pulse absolute top-1/4 right-[5%] w-60 h-60 rounded-full" style={{background:'#6d28d9',filter:'blur(60px)',animationDelay:'4s'}} />
+            <div className="orb-pulse absolute bottom-0 right-1/3 w-96 h-96 rounded-full" style={{background:'#1e1b4b',filter:'blur(80px)',animationDelay:'1s'}} />
+            {/* Rotating ring */}
+            <div className="spin-slow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full" style={{border:'1px solid rgba(167,139,250,.1)'}} />
+            <div className="spin-rev absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full" style={{border:'1px solid rgba(124,58,237,.06)'}} />
           </div>
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36 text-center">
+
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-8 text-sm font-medium text-white/80" style={{background:'rgba(124,58,237,.15)'}}>
-              <Zap className="w-3.5 h-3.5 text-purple-400" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-8 text-sm font-medium" style={{background:'rgba(124,58,237,.18)',backdropFilter:'blur(12px)',color:'rgba(255,255,255,.85)'}}>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               AI YouTube Content Operating System
             </div>
 
@@ -115,7 +166,7 @@ export default function LandingPage() {
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight max-w-5xl mx-auto">
               Research. Script.
               <br />
-              <span style={{background:'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
+              <span className="gradient-animated" style={{background:'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa,#c4b5fd)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
                 Publish to YouTube.
               </span>
             </h1>
@@ -125,15 +176,37 @@ export default function LandingPage() {
               <span className="text-white/80">Your AI content team, available 24/7. No burnout. No guesswork.</span>
             </p>
 
+            {/* Live counter nudge */}
+            <div className="mt-5 inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full" style={{background:'rgba(16,185,129,.12)',border:'1px solid rgba(16,185,129,.25)',color:'rgba(167,243,208,.9)'}}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              12 creators joined in the last hour
+            </div>
+
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/login" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 20px 50px -12px rgba(124,58,237,.6)'}}>
+              <Link href="/login" className="shimmer-btn inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:scale-105 hover:shadow-purple-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{boxShadow:'0 20px 50px -12px rgba(124,58,237,.65)'}}>
                 <Zap className="w-4 h-4" />
                 Start creating free
               </Link>
-              <a href="#workflow" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-white text-base transition-all hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{border:'1.5px solid rgba(255,255,255,.2)'}}>
+              <a href="#workflow" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-white text-base transition-all hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{border:'1.5px solid rgba(255,255,255,.2)',backdropFilter:'blur(8px)'}}>
                 See how it works
                 <ChevronRight className="w-4 h-4" />
               </a>
+            </div>
+
+            {/* Floating stat cards */}
+            <div className="mt-12 flex flex-wrap justify-center gap-4 sm:gap-6">
+              <div className="float-a count-up-1 px-5 py-3.5 rounded-2xl text-center" style={{background:'rgba(255,255,255,.06)',backdropFilter:'blur(12px)',border:'1px solid rgba(255,255,255,.12)'}}>
+                <p className="text-2xl font-extrabold text-white">100K+</p>
+                <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.5)'}}>Creators building</p>
+              </div>
+              <div className="float-b count-up-2 px-5 py-3.5 rounded-2xl text-center" style={{background:'rgba(255,255,255,.06)',backdropFilter:'blur(12px)',border:'1px solid rgba(255,255,255,.12)'}}>
+                <p className="text-2xl font-extrabold text-white">5M+</p>
+                <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.5)'}}>Scripts generated</p>
+              </div>
+              <div className="float-c count-up-3 px-5 py-3.5 rounded-2xl text-center" style={{background:'rgba(255,255,255,.06)',backdropFilter:'blur(12px)',border:'1px solid rgba(255,255,255,.12)'}}>
+                <p className="text-2xl font-extrabold text-white">4.8★</p>
+                <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.5)'}}>Creator rating</p>
+              </div>
             </div>
 
             {/* Platform logos */}
@@ -157,7 +230,7 @@ export default function LandingPage() {
             </div>
 
             {/* Hero visual — product demo video */}
-            <div className="mt-10 sm:mt-16 max-w-4xl mx-auto float-slow">
+            <div className="mt-10 sm:mt-16 max-w-4xl mx-auto float-slow" style={{filter:'drop-shadow(0 0 60px rgba(124,58,237,.35))'}}>
               <HeroVideo />
             </div>
 
@@ -213,7 +286,7 @@ export default function LandingPage() {
 
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" aria-label="Platform capabilities">
               {CAPABILITIES.map(({ icon: Icon, color, bg, title, desc }) => (
-                <li key={title} className="group bg-white border border-gray-100 hover:border-gray-200 rounded-2xl p-5 flex flex-col gap-3 transition-all hover:shadow-lg hover:-translate-y-0.5">
+                <li key={title} className="card-3d group bg-white border border-gray-100 hover:border-purple-200 rounded-2xl p-5 flex flex-col gap-3 transition-all">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110" style={{background:bg}}>
                     <Icon className="w-5 h-5" style={{color}} />
                   </div>
@@ -245,9 +318,13 @@ export default function LandingPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 sm:gap-4">
               {WORKFLOW.map(({ icon: Icon, label, sub }, idx) => (
                 <div key={label} className="relative flex flex-col items-center text-center group">
-                  {/* Connector */}
+                  {/* Animated dashed connector */}
                   {idx < WORKFLOW.length - 1 && (
-                    <div aria-hidden="true" className="hidden lg:block absolute top-8 left-[calc(50%+28px)] right-0 h-px" style={{background:'linear-gradient(90deg,#c4b5fd,transparent)'}} />
+                    <div aria-hidden="true" className="hidden lg:block absolute top-8 left-[calc(50%+28px)] right-0 h-3 overflow-hidden">
+                      <svg width="100%" height="12" className="absolute inset-0">
+                        <line x1="0" y1="6" x2="100%" y2="6" stroke="#c4b5fd" strokeWidth="1.5" strokeDasharray="6 4" className="dash-travel" />
+                      </svg>
+                    </div>
                   )}
 
                   <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center shadow-md mb-4 transition-transform group-hover:scale-110 group-hover:shadow-lg" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)'}}>

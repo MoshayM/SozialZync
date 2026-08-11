@@ -95,83 +95,134 @@ export function LoginShell({
 }) {
   return (
     <div className="min-h-screen flex">
+      <style>{`
+        @keyframes lf-float-a { 0%,100%{transform:translateY(0) rotateX(0deg)} 50%{transform:translateY(-10px) rotateX(4deg)} }
+        @keyframes lf-float-b { 0%,100%{transform:translateY(0) rotateX(0deg)} 50%{transform:translateY(-14px) rotateX(-3deg)} }
+        @keyframes lf-float-c { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+        @keyframes lf-spin   { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes lf-spin-r { 0%{transform:rotate(0deg)} 100%{transform:rotate(-360deg)} }
+        @keyframes lf-count  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes lf-grad   { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+        @keyframes lf-shimmer{ 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        @keyframes lf-rp-shift{ 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+        .lf-float-a { animation:lf-float-a 7s ease-in-out infinite; }
+        .lf-float-b { animation:lf-float-b 9s ease-in-out infinite; }
+        .lf-float-c { animation:lf-float-c 5s ease-in-out infinite; }
+        .lf-spin    { animation:lf-spin 28s linear infinite; }
+        .lf-spin-r  { animation:lf-spin-r 40s linear infinite; }
+        .lf-count-1 { animation:lf-count .6s ease forwards .1s; opacity:0; }
+        .lf-count-2 { animation:lf-count .6s ease forwards .3s; opacity:0; }
+        .lf-count-3 { animation:lf-count .6s ease forwards .5s; opacity:0; }
+        .lf-card { transform-style:preserve-3d; }
+        .lf-card:hover { transform:perspective(800px) rotateX(-4deg) rotateY(6deg) translateZ(8px) scale(1.02); transition:transform .4s ease,box-shadow .4s ease; box-shadow:0 24px 48px -8px rgba(124,58,237,.4); }
+        .lf-shimmer-btn { background:linear-gradient(90deg,#a78bfa,#7C3AED,#818cf8,#7C3AED,#a78bfa); background-size:300% 100%; animation:lf-shimmer 3s linear infinite; }
+        .lf-rp { background:linear-gradient(135deg,#faf9ff 0%,#f5f0ff 40%,#ede9ff 100%); background-size:200% 200%; animation:lf-rp-shift 8s ease infinite; }
+      `}</style>
+
       {/* ── Left: Brand panel ──────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[58%] xl:w-[60%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)' }}
+        style={{ background: 'radial-gradient(ellipse at 30% 40%, #1a0845 0%, #0a0520 55%, #000814 100%)' }}
       >
-        {/* Ambient glow orbs */}
-        <div
-          className="absolute -top-48 -left-32 w-[520px] h-[520px] rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(90px)' }}
-        />
-        <div
-          className="absolute top-1/2 -right-20 w-80 h-80 rounded-full pointer-events-none"
-          style={{ background: 'rgba(160,120,255,0.30)', filter: 'blur(70px)' }}
-        />
-        <div
-          className="absolute -bottom-40 left-1/3 w-96 h-96 rounded-full pointer-events-none"
-          style={{ background: 'rgba(70,40,190,0.55)', filter: 'blur(80px)' }}
-        />
+        {/* Deep space ambient orbs */}
+        <div className="absolute -top-40 -left-20 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: 'rgba(124,58,237,.18)', filter: 'blur(80px)' }} />
+        <div className="absolute top-1/2 -right-16 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'rgba(99,60,220,.25)', filter: 'blur(60px)' }} />
+        <div className="absolute -bottom-32 left-1/3 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(79,46,196,.4)', filter: 'blur(70px)' }} />
 
-        {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
-          <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
-            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
+        {/* Perspective grid overlay */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{opacity:.05}}>
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="lg-gfade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="white" stopOpacity="1"/>
+                <stop offset="100%" stopColor="white" stopOpacity="0"/>
+              </linearGradient>
+              <mask id="lg-gmask"><rect width="100%" height="100%" fill="url(#lg-gfade)"/></mask>
+            </defs>
+            <g mask="url(#lg-gmask)" stroke="white" strokeWidth="0.5">
+              {[10,20,30,40,50,60,70,80,90].map(x => <line key={x} x1={`${x}%`} y1="0" x2="50%" y2="100%"/>)}
+              {[15,30,45,60,75,90].map((y,i) => <line key={i} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`}/>)}
+            </g>
+          </svg>
+        </div>
+
+        {/* Floating 3D dashboard mini-cards */}
+        <div className="absolute top-[18%] right-12 lf-float-a lf-card z-20 pointer-events-none">
+          <div className="px-4 py-3 rounded-2xl" style={{background:'rgba(255,255,255,.08)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,.14)'}}>
+            <div className="text-white/50 text-[10px] mb-1">Subscribers gained today</div>
+            <div className="text-white font-extrabold text-lg">+2,847</div>
+            <div className="text-emerald-400 text-[10px] font-semibold mt-0.5">▲ 12.4%</div>
           </div>
         </div>
 
-        {/* Hero */}
+        <div className="absolute top-[42%] right-8 lf-float-b lf-card z-20 pointer-events-none">
+          <div className="px-4 py-3 rounded-2xl" style={{background:'rgba(255,255,255,.08)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,.14)'}}>
+            <div className="text-white/50 text-[10px] mb-1">Compliance check</div>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="text-white font-bold text-sm">Passed</span>
+            </div>
+            <div className="text-white/40 text-[10px] mt-0.5">3 checks ran</div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-[28%] right-16 lf-float-c lf-card z-20 pointer-events-none">
+          <div className="px-4 py-3 rounded-2xl" style={{background:'rgba(255,255,255,.08)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,.14)'}}>
+            <div className="text-white/50 text-[10px] mb-1">Click-through rate</div>
+            <div className="text-white font-extrabold text-lg">8.2%</div>
+            <div className="text-amber-400 text-[10px] font-semibold mt-0.5">▲ Above avg.</div>
+          </div>
+        </div>
+
+        {/* Logo with orbital ring */}
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="relative w-14 h-14 shrink-0">
+            {/* Orbital rings */}
+            <div className="lf-spin absolute inset-[-8px] rounded-full" style={{border:'1px solid rgba(167,139,250,.35)'}} />
+            <div className="lf-spin-r absolute inset-[-16px] rounded-full" style={{border:'1px solid rgba(124,58,237,.18)'}} />
+            <LogoMark className="absolute inset-0 w-full h-full" style={{borderRadius:'14px',boxShadow:'0 8px 24px -6px rgba(124,58,237,.6)'}} />
+          </div>
+          <div>
+            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
+            <div className="text-white/45 text-xs mt-0.5">AI YouTube Content OS</div>
+          </div>
+        </div>
+
+        {/* Hero content */}
         <div className="relative z-10">
-          <div
-            className="inline-flex items-center gap-2 text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-8"
-            style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
-          >
+          <div className="inline-flex items-center gap-2 text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-8" style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)',border:'1px solid rgba(255,255,255,.12)' }}>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             AI YouTube Content OS
           </div>
 
           <h1 className="text-5xl xl:text-[3.4rem] font-extrabold text-white leading-[1.1] mb-5">
             Research. Script.<br />
-            <span
-              style={{
-                WebkitTextFillColor: 'transparent',
-                WebkitBackgroundClip: 'text',
-                backgroundImage: 'linear-gradient(90deg, #f0c14d 0%, #ffd966 100%)',
-                backgroundClip: 'text',
-              }}
-            >
+            <span style={{ WebkitTextFillColor: 'transparent', WebkitBackgroundClip: 'text', backgroundImage: 'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa,#c4b5fd)', backgroundClip: 'text', backgroundSize:'200% 100%', animation:'lf-grad 4s ease infinite' }}>
               Publish.
             </span>
           </h1>
 
-          <p className="text-white/65 text-[1.05rem] leading-relaxed max-w-sm mb-10">
+          <p className="text-white/60 text-[1.05rem] leading-relaxed max-w-sm mb-10">
             Your full YouTube content pipeline — from trend research and AI scripts to compliance-checked publishing. Available 24/7.
           </p>
 
           {/* Feature pills */}
           <div className="flex flex-wrap gap-2.5 mb-12">
             {LOGIN_FEATURES.map((f) => (
-              <span
-                key={f.text}
-                className="inline-flex items-center gap-1.5 text-sm text-white/85 font-medium px-3.5 py-2 rounded-xl"
-                style={{ background: 'rgba(255,255,255,0.11)', backdropFilter: 'blur(8px)' }}
-              >
+              <span key={f.text} className="inline-flex items-center gap-1.5 text-sm text-white/80 font-medium px-3.5 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.09)', backdropFilter: 'blur(8px)', border:'1px solid rgba(255,255,255,.1)' }}>
                 <span aria-hidden>{f.icon}</span> {f.text}
               </span>
             ))}
           </div>
 
-          {/* Stats */}
+          {/* Animated stats */}
           <div className="flex items-center gap-8">
             {LOGIN_STATS.map((s, i) => (
               <React.Fragment key={s.label}>
-                {i > 0 && <div className="w-px h-10 bg-white/20" />}
-                <div>
+                {i > 0 && <div className="w-px h-10 bg-white/15" />}
+                <div className={`lf-count-${i + 1}`}>
                   <div className="text-2xl font-extrabold text-white">{s.value}</div>
-                  <div className="text-white/50 text-xs mt-0.5">{s.label}</div>
+                  <div className="text-white/45 text-xs mt-0.5">{s.label}</div>
                 </div>
               </React.Fragment>
             ))}
@@ -179,36 +230,25 @@ export function LoginShell({
         </div>
 
         {/* Testimonial */}
-        <div
-          className="relative z-10 rounded-2xl p-5"
-          style={{
-            background: 'rgba(255,255,255,0.10)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.15)',
-          }}
-        >
+        <div className="relative z-10 rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
           <div className="flex gap-0.5 mb-3" role="img" aria-label="5 stars">
-            {[...Array(5)].map((_, i) => (
-              <span key={i} className="text-[#f0c14d] text-sm" aria-hidden>★</span>
-            ))}
+            {[...Array(5)].map((_, i) => <span key={i} className="text-[#f0c14d] text-sm" aria-hidden>★</span>)}
           </div>
-          <p className="text-white/80 text-sm leading-relaxed mb-4">
+          <p className="text-white/75 text-sm leading-relaxed mb-4">
             &ldquo;Sozialzync helped me grow from 5K to 150K subscribers in 6 months. The research-backed scripts and compliance check saved me so much time.&rdquo;
           </p>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">
-              M
-            </div>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">M</div>
             <div>
               <div className="text-white text-sm font-semibold leading-none mb-0.5">Marcus Chen</div>
-              <div className="text-white/50 text-xs">Tech Creator · 150K subscribers</div>
+              <div className="text-white/45 text-xs">Tech Creator · 150K subscribers</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Right: Form panel ──────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-[#faf9ff] px-6 sm:px-10 py-12 overflow-y-auto">
+      {/* ── Right: Form panel (gradient animated) ────────────────────────── */}
+      <div className="lf-rp flex-1 flex items-center justify-center px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
@@ -218,12 +258,12 @@ export function LoginShell({
 
           <div className="mb-8">
             <h2 className="text-[1.9rem] font-extrabold text-gray-900 leading-tight mb-1.5">Welcome back</h2>
-            <p className="text-gray-600 text-sm">Sign in to continue to your dashboard</p>
+            <p className="text-gray-500 text-sm">Sign in to continue to your dashboard</p>
           </div>
 
           {children}
 
-          <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
+          <p className="text-center text-sm text-gray-500 mt-8">{footer}</p>
         </div>
       </div>
     </div>
