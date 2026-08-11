@@ -65,7 +65,12 @@ const NICHES = [
 
 export default function SeriesPlannerPage() {
   const [topic, setTopic] = useState('');
-  const [niche, setNiche] = useState('');
+  const [niche, setNiche] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cf_channel_niche') ?? '';
+      return NICHES.find(n => saved.toLowerCase().includes(n.toLowerCase().split(' ')[0]!)) ?? '';
+    } catch { return ''; }
+  });
   const [episodeCount, setEpisodeCount] = useState(6);
   const [targetAudience, setTargetAudience] = useState('');
   const [plan, setPlan] = useState<SeriesPlan | null>(null);

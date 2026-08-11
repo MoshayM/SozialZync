@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 import {
   ArrowRightLeft, Loader2, Copy, Check, ChevronDown, ChevronUp,
   Film, Instagram, Twitter, Linkedin, Mail, Smartphone, Sparkles,
+  ExternalLink,
 } from 'lucide-react';
+import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import { ContentToolbar } from '@/components/result-actions';
 import { LoadingSteps } from '@/components/loading-steps';
@@ -239,7 +241,12 @@ export default function RepurposePage() {
           {/* Left: Input */}
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
-              <h2 className="font-semibold text-gray-800 text-sm">Source Content</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-800 text-sm">Source Content</h2>
+                <Link href="/projects" className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                  <ExternalLink className="w-3 h-3" /> Browse projects
+                </Link>
+              </div>
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Video title <span className="text-gray-400">(optional)</span></label>
