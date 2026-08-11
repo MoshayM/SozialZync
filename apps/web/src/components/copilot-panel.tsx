@@ -1370,13 +1370,6 @@ export function CopilotPanel() {
             <RobotAvatar state={robotState} excited={excited} onMicToggle={toggleVoice} voiceEnabled={voiceEnabled} />
           </div>
 
-          {/* ── Speech bubble inside greeting area (idle, no panel) ── */}
-          {!activePanel && !shouldShowBubble && messages.length === 0 && (
-            <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)', fontWeight:500, textAlign:'center', maxWidth:180, lineHeight:1.4, animation:'cfSlideUp 0.3s ease-out both' }}>
-              {GREETINGS[greetingIdx]}
-            </div>
-          )}
-
           {/* ── Topic pills — bottom of robot ── */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, position:'relative', zIndex:5 }}>
             {([
@@ -1404,6 +1397,50 @@ export function CopilotPanel() {
               );
             })}
           </div>
+
+          {/* ── Greeting ticker — shown below pills when idle and no history ── */}
+          {!activePanel && robotState === 'idle' && messages.length === 0 && (
+            <div style={{
+              width: 248,
+              overflow: 'hidden',
+              borderRadius: 99,
+              background: 'rgba(109,74,224,0.18)',
+              border: '1px solid rgba(167,139,250,0.35)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              padding: '7px 16px',
+              animation: 'cfSlideUp 0.3s ease-out both',
+              position: 'relative', zIndex: 5,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              {/* Pulsing AI dot */}
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                background: '#A78BFA',
+                boxShadow: '0 0 8px rgba(167,139,250,0.8)',
+                animation: 'cfPulse 1.8s ease-in-out infinite',
+              }} />
+              {/* Ticker text */}
+              <div style={{ flex: '1 1 auto', overflow: 'hidden', minWidth: 0 }}>
+                <span style={{
+                  display: 'inline-block',
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  color: 'rgba(233,220,255,0.92)',
+                  whiteSpace: 'nowrap',
+                  animation: GREETINGS[greetingIdx]!.length > 32
+                    ? 'cfTicker 9s linear infinite'
+                    : 'none',
+                  paddingRight: GREETINGS[greetingIdx]!.length > 32 ? 32 : 0,
+                }}>
+                  {GREETINGS[greetingIdx]}
+                  {GREETINGS[greetingIdx]!.length > 32 && (
+                    <>&nbsp;&nbsp;&nbsp;&nbsp;{GREETINGS[greetingIdx]}</>
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* ── Chat history strip — minimize/maximize, shown when no panel ── */}
           {!activePanel && (isVoiceActive || busy || speaking || messages.length > 0) && (
