@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Sparkles, Plus, X, Loader2, Check } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Sparkles, Plus, X, Loader2, Check, FolderPlus, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -123,6 +125,7 @@ function EntryModal({
   const [status, setStatus] = useState<EntryStatus>(initial.status ?? 'idea');
   const [notes, setNotes] = useState(initial.notes ?? '');
   const overlayRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   function submit() {
     if (!title.trim()) return;
@@ -226,6 +229,28 @@ function EntryModal({
           >
             <Check className="w-3.5 h-3.5" />Save
           </button>
+        </div>
+
+        {/* Quick actions */}
+        <div className="flex flex-wrap gap-3 pt-1 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={() => { try { localStorage.setItem('cf_new_project_topic', title || initial.title || ''); } catch {} router.push('/projects'); onClose(); }}
+            className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+            style={{ color: '#6D4AE0' }}
+          >
+            <FolderPlus className="w-3 h-3" /> Start project from this idea
+          </button>
+          {(status === 'published' || initial.status === 'published') && (
+            <Link
+              href="/publishing"
+              onClick={onClose}
+              className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+              style={{ color: '#6D4AE0' }}
+            >
+              <ExternalLink className="w-3 h-3" /> Track on Publishing
+            </Link>
+          )}
         </div>
       </div>
     </div>

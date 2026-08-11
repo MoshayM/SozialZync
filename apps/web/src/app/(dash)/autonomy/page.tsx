@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Sparkles, RefreshCw, Loader2, CalendarClock, Check, X, XCircle,
@@ -904,6 +905,7 @@ export default function AutopilotPage() {
                     <div className="text-center py-6 text-gray-500">
                       <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-30" />
                       <p className="text-sm">Connect more channels to unlock cross-channel recommendations.</p>
+                      <Link href="/settings/channels" className="mt-2 inline-block text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>Connect another channel →</Link>
                     </div>
                   ) : crossChannel?.insights?.length ? (
                     <div className="space-y-3">
