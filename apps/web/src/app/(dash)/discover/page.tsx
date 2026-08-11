@@ -154,6 +154,8 @@ function TrendsTab() {
 
   useEffect(() => {
     try {
+      const pending = localStorage.getItem('cf_discover_topic');
+      if (pending) { setNiche(pending); localStorage.removeItem('cf_discover_topic'); return; }
       const raw = localStorage.getItem('cf_discover_trends');
       if (raw) {
         const stored = JSON.parse(raw) as { result: TrendsResult; niche: string; savedAt: string };

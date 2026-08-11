@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Palette, Mic, Save, CheckCircle, RefreshCw, Wand2 } from 'lucide-react';
+import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 
 interface Channel {
@@ -203,7 +204,7 @@ export default function BrandKitPage() {
               </button>
             ))}
             {channels.length === 0 && (
-              <p className="text-sm text-gray-400">No channels connected — go to Settings → Connect YouTube.</p>
+              <p className="text-sm text-gray-400">No channels connected — <Link href="/settings/channels" className="underline font-medium hover:text-[#6D4AE0]">Connect a YouTube channel</Link> first.</p>
             )}
           </div>
         </div>

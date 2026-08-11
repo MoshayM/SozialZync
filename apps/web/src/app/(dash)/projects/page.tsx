@@ -873,6 +873,18 @@ function ProjectsInner() {
   const searchQuery = searchParams.get('q')?.trim() ?? '';
   const { isFreeTier, limits } = usePlan();
   const [showCreate, setShowCreate] = useState(false);
+
+  // Pre-fill from Research page "Start project from this topic"
+  useEffect(() => {
+    try {
+      const topic = localStorage.getItem('cf_new_project_topic');
+      if (topic) {
+        localStorage.removeItem('cf_new_project_topic');
+        setForm(f => ({ ...f, niche: topic, title: topic }));
+        setShowCreate(true);
+      }
+    } catch {}
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState({

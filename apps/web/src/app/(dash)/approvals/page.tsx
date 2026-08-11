@@ -53,7 +53,7 @@ interface Approval {
   reviewedAt?: string | null;
   scheduledAt?: string | null;
   notes?: string | null;
-  project: { title: string; channel: { title: string } };
+  project: { id: string; title: string; channel: { title: string } };
   job: { type: string; result: unknown };
 }
 
@@ -588,7 +588,9 @@ export default function PublishCenterPage() {
                   <div key={a.id} className="bg-white rounded-2xl p-6" style={{ border: '1.5px solid #e3ddf8' }}>
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="font-semibold text-gray-900">{a.project.title}</h3>
+                        <h3 className="font-semibold text-gray-900">
+                          <Link href={`/projects/${a.project.id}`} className="hover:underline" style={{ color: '#1f2937' }}>{a.project.title}</Link>
+                        </h3>
                         <p className="text-sm text-gray-400">
                           {a.project.channel.title} · {a.job.type === 'SHORTS_EXPORT' ? 'Short ready to publish' : a.job.type.replace(/_/g, ' ').toLowerCase()}
                         </p>
