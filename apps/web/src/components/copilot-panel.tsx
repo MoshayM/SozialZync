@@ -1404,8 +1404,8 @@ export function CopilotPanel() {
               width: 248,
               overflow: 'hidden',
               borderRadius: 99,
-              background: 'rgba(109,74,224,0.18)',
-              border: '1px solid rgba(167,139,250,0.35)',
+              background: 'rgba(109,74,224,0.82)',
+              border: '1px solid rgba(167,139,250,0.5)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
               padding: '7px 16px',
@@ -1425,8 +1425,8 @@ export function CopilotPanel() {
                 <span style={{
                   display: 'inline-block',
                   fontSize: 12.5,
-                  fontWeight: 500,
-                  color: 'rgba(233,220,255,0.92)',
+                  fontWeight: 600,
+                  color: '#ffffff',
                   whiteSpace: 'nowrap',
                   animation: GREETINGS[greetingIdx]!.length > 32
                     ? 'cfTicker 9s linear infinite'

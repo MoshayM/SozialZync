@@ -1,20 +1,28 @@
 'use client';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CalendarClock, Sparkles, FlaskConical } from 'lucide-react';
+import { CalendarClock, Sparkles, FlaskConical, Calendar } from 'lucide-react';
 import ApprovalsPage from '../approvals/page';
 import AutonomyPage from '../autonomy/page';
 import AbTestingPage from '../ab-testing/page';
+import CalendarPage from '../calendar/page';
 
 interface TabDef {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
-  badge?: 'NEW' | 'BETA';
+  badge?: 'NEW' | 'BETA' | 'AI';
 }
 
 const TABS: TabDef[] = [
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    icon: Calendar,
+    description: 'AI-generated content calendar — plan, schedule and publish',
+    badge: 'AI',
+  },
   {
     id: 'publish-center',
     label: 'Publish Center',
@@ -40,7 +48,7 @@ const TABS: TabDef[] = [
 function PublishContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const activeTab = searchParams.get('tab') ?? 'publish-center';
+  const activeTab = searchParams.get('tab') ?? 'calendar';
   const activeTabDef = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
   return (
@@ -85,6 +93,8 @@ function PublishContent() {
                       background:
                         t.badge === 'NEW'
                           ? 'linear-gradient(135deg,#10B981,#059669)'
+                          : t.badge === 'AI'
+                          ? 'linear-gradient(135deg,#6D4AE0,#7c5ae8)'
                           : 'linear-gradient(135deg,#F59E0B,#D97706)',
                     }}
                   >
@@ -103,6 +113,7 @@ function PublishContent() {
       </div>
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
+      {activeTab === 'calendar'       && <CalendarPage />}
       {activeTab === 'publish-center' && <ApprovalsPage />}
       {activeTab === 'autonomy'       && <AutonomyPage />}
       {activeTab === 'ab-testing'     && <AbTestingPage />}

@@ -8,7 +8,7 @@ import {
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
   WifiOff, Layers, Link2, Plus, Sparkles, Compass,
-  TrendingUp, Calendar, FlaskConical, Shield, Scissors,
+  Calendar, FlaskConical, Shield, Scissors,
   ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
@@ -34,8 +34,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/home',      icon: Home,       label: 'Home' },
       { href: '/projects',  icon: FolderOpen, label: 'Projects' },
-      { href: '/calendar',  icon: Calendar,   label: 'Calendar',   badge: 'AI' },
-      { href: '/discover',  icon: TrendingUp, label: 'Discover' },
+      { href: '/content',   icon: Compass,    label: 'Creative Studio', badge: 'AI' },
       { href: '/editor',    icon: Film,       label: 'Video Editing' },
       { href: '/studio',    icon: Layers,     label: 'Studio' },
       { href: '/publish',   icon: Upload,     label: 'Publish Hub' },
@@ -58,7 +57,7 @@ const MOBILE_NAV_LEFT = [
   { href: '/projects', icon: FolderOpen, label: 'Projects' },
 ];
 const MOBILE_NAV_RIGHT = [
-  { href: '/calendar', icon: Calendar,   label: 'Calendar' },
+  { href: '/content',  icon: Compass,    label: 'Studio' },
   { href: '/publish',  icon: Upload,     label: 'Publish' },
 ];
 
@@ -174,10 +173,9 @@ const PALETTE_ITEMS: Array<{ group: string; label: string; icon: React.ElementTy
   { group: 'Navigate', label: 'AI Copilot',        icon: Bot,              href: '/copilot' },
   { group: 'Navigate', label: 'Shorts Studio',     icon: Scissors,         href: '/shorts-studio' },
   { group: 'Navigate', label: 'Analytics',         icon: BarChart2,        href: '/insights' },
-  { group: 'Navigate', label: 'Discover Trends',   icon: TrendingUp,       href: '/discover' },
-  { group: 'Navigate', label: 'Publish Hub',       icon: Upload,           href: '/publish' },
-  { group: 'Navigate', label: 'Content Calendar',  icon: Calendar,         href: '/calendar' },
-  { group: 'Navigate', label: 'Content Studio',    icon: Compass,          href: '/content' },
+  { group: 'Navigate', label: 'Creative Studio',    icon: Compass,          href: '/content' },
+  { group: 'Navigate', label: 'Publish Hub',        icon: Upload,           href: '/publish' },
+  { group: 'Navigate', label: 'Content Calendar',   icon: Calendar,         href: '/publish?tab=calendar' },
   { group: 'Navigate', label: 'Research',          icon: BookOpen,         href: '/research' },
   { group: 'Navigate', label: 'A/B Testing',       icon: FlaskConical,     href: '/ab-testing' },
   { group: 'Navigate', label: 'Approvals',         icon: ShieldCheck,      href: '/approvals' },
@@ -191,7 +189,7 @@ const PALETTE_ITEMS: Array<{ group: string; label: string; icon: React.ElementTy
   { group: 'AI Tools', label: 'Growth & Offers',   icon: Gift,             href: '/growth' },
   { group: 'Quick actions', label: 'New project',       icon: Plus,     href: '/projects' },
   { group: 'Quick actions', label: 'Open Copilot',      icon: Bot,      href: '/copilot' },
-  { group: 'Quick actions', label: 'Generate calendar', icon: Calendar, href: '/calendar' },
+  { group: 'Quick actions', label: 'Generate calendar', icon: Calendar, href: '/publish?tab=calendar' },
   { group: 'Quick actions', label: 'Admin panel',       icon: Shield,   href: '/admin' },
 ];
 
