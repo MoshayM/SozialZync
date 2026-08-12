@@ -66,11 +66,11 @@ const OAUTH_ERRORS: Record<string, string> = {
   permission_denied: 'Permission denied. Access was not granted.',
   quota_exceeded: 'API quota exceeded. Please try again later.',
   // Instagram
-  no_instagram_business_account: 'No Instagram Business or Creator account found. Go to Instagram → Settings → Account Type → Switch to Professional, then link it to a Facebook Page.',
+  no_instagram_business_account: 'Instagram connected but not linked to a Facebook Page. On your Facebook Page → Settings → Linked Accounts → connect your Instagram account, then try again.',
+  no_facebook_pages: 'Your Facebook account has no Pages or the Pages permission was declined. On the next attempt, make sure to tick ✓ all permissions Facebook shows you.',
   instagram_auth_failed: 'Instagram connection failed. Please try again.',
   // Facebook
   facebook_auth_failed: 'Facebook connection failed. Please try again.',
-  no_facebook_pages: 'No Facebook Pages found. Create a Page on Facebook first.',
   invalid_state: 'Session expired. Please try connecting again.',
 };
 

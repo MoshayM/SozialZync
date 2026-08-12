@@ -8,7 +8,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 
 const FB_GRAPH = 'https://graph.facebook.com/v19.0';
-const IG_SCOPES = 'instagram_basic,instagram_content_publish,pages_read_engagement,pages_show_list';
+const IG_SCOPES = 'instagram_basic,instagram_content_publish,pages_read_engagement,pages_show_list,business_management';
 
 @Controller('platforms/instagram')
 export class InstagramOAuthController {
@@ -70,6 +70,7 @@ export class InstagramOAuthController {
       redirect_uri: redirectUri,
       scope: IG_SCOPES,
       response_type: 'code',
+      auth_type: 'rerequest',   // force FB to re-show permission checkboxes
       state,
     });
     res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`);
@@ -139,6 +140,14 @@ export class InstagramOAuthController {
       const accessToken = longTokenResp.data.access_token;
       const expiresIn = longTokenResp.data.expires_in ?? 5_184_000;
 
+      // Check which permissions were actually granted
+      const permResp = await axios.get<{ data: Array<{ permission: string; status: string }> }>(
+        `${FB_GRAPH}/me/permissions`,
+        { params: { access_token: accessToken } },
+      ).catch(() => ({ data: { data: [] } }));
+      const granted = permResp.data.data.filter(p => p.status === 'granted').map(p => p.permission);
+      this.logger.log(`Instagram granted permissions: ${granted.join(', ')}`);
+
       // Get Facebook Pages linked to an Instagram Business/Creator account
       const pagesResp = await axios.get<{
         data: Array<{ id: string; name: string; instagram_business_account?: { id: string } }>;
@@ -153,7 +162,12 @@ export class InstagramOAuthController {
       this.logger.log(`Instagram pages found: ${pagesResp.data.data.length}, with IG business: ${pagesResp.data.data.filter(p => p.instagram_business_account).length}`);
 
       const page = pagesResp.data.data.find(p => p.instagram_business_account);
+      if (pagesResp.data.data.length === 0) {
+        // No pages — likely pages_show_list permission was not granted
+        return res.redirect(`${webUrl}/settings/channels?error=no_facebook_pages`);
+      }
       if (!page?.instagram_business_account) {
+        // Has pages but none linked to an Instagram Business account
         return res.redirect(`${webUrl}/settings/channels?error=no_instagram_business_account`);
       }
 
