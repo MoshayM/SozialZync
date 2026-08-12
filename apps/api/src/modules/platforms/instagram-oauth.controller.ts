@@ -165,29 +165,64 @@ export class InstagramOAuthController {
       const pagesWithIg = allPages.filter(p => p.instagram_business_account);
       this.logger.log(`Instagram pages found: ${allPages.length}, with IG business: ${pagesWithIg.length} — pages: ${allPages.map(p => p.name).join(', ')}`);
 
-      const page = pagesWithIg[0];
+      let page = pagesWithIg[0] as { id: string; name: string; access_token: string; instagram_business_account?: { id: string } } | undefined;
+
+      // Fallback: OAuth authed as Instagram-linked identity which has no Pages.
+      // Use the already-stored Facebook page access token to find the IG Business account.
       if (allPages.length === 0) {
-        return res.redirect(`${webUrl}/settings/channels?error=no_facebook_pages`);
-      }
-      if (!page?.instagram_business_account) {
+        this.logger.log('No pages via OAuth identity — trying stored Facebook page token as fallback');
+        const fbConn = await this.prisma.platformConnection.findUnique({
+          where: { userId_platformId: { userId, platformId: 'facebook' } },
+        });
+        if (!fbConn) {
+          this.logger.warn('No Facebook connection found for fallback');
+          return res.redirect(`${webUrl}/settings/channels?error=no_facebook_pages`);
+        }
+        let fbTokens: Record<string, string> = {};
+        try { fbTokens = JSON.parse(this.enc.decrypt(fbConn.encryptedTokens)) as Record<string, string>; } catch { /* ignore */ }
+        const fbPageToken = fbTokens['pageAccessToken'] ?? fbTokens['accessToken'];
+        const fbPageId = fbConn.accountId;
+        this.logger.log(`Fallback: checking Facebook page ${fbPageId} (${fbConn.accountName}) for Instagram Business account`);
+
+        const fbPageResp = await axios.get<{ instagram_business_account?: { id: string }; name: string }>(
+          `${FB_GRAPH}/${fbPageId}`,
+          { params: { fields: 'instagram_business_account,name', access_token: fbPageToken } },
+        ).catch((e) => {
+          this.logger.error(`Fallback page lookup failed: ${(e as any)?.response?.data?.error?.message ?? String(e)}`);
+          return null;
+        });
+
+        if (fbPageResp?.data?.instagram_business_account) {
+          page = {
+            id: fbPageId,
+            name: fbConn.accountName ?? 'Facebook Page',
+            access_token: fbPageToken,
+            instagram_business_account: fbPageResp.data.instagram_business_account,
+          };
+          this.logger.log(`Fallback succeeded: found IG Business account ${page.instagram_business_account!.id}`);
+        } else {
+          this.logger.warn(`Fallback: Facebook page ${fbPageId} has no Instagram Business account linked`);
+          return res.redirect(`${webUrl}/settings/channels?error=no_instagram_business_account`);
+        }
+      } else if (!page?.instagram_business_account) {
         return res.redirect(`${webUrl}/settings/channels?error=no_instagram_business_account`);
       }
 
-      const igUserId = page.instagram_business_account.id;
-      // Use page access token for IG API calls (more reliable than user token)
-      const pageToken = page.access_token || accessToken;
+      const igUserId = page!.instagram_business_account!.id;
+      // Use page access token for IG API calls
+      const pageToken = page!.access_token || accessToken;
 
       // Resolve Instagram username using page token
       const igResp = await axios.get<{ username: string; name: string }>(`${FB_GRAPH}/${igUserId}`, {
         params: { fields: 'username,name', access_token: pageToken },
-      }).catch(() => ({ data: { username: page.name, name: page.name } }));
-      const username = igResp.data.username ?? igResp.data.name ?? page.name;
+      }).catch(() => ({ data: { username: page!.name, name: page!.name } }));
+      const username = igResp.data.username ?? igResp.data.name ?? page!.name;
       this.logger.log(`Instagram connected: @${username} (igUserId=${igUserId})`);
 
       const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
       // Store both user token and page token so media service can use the right one
       const encryptedTokens = this.enc.encrypt(
-        JSON.stringify({ accessToken, pageToken, igUserId, pageId: page.id, expiresAt }),
+        JSON.stringify({ accessToken, pageToken, igUserId, pageId: page!.id, expiresAt }),
       );
 
       await this.prisma.platformConnection.upsert({
