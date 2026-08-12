@@ -11,6 +11,7 @@
     "db:push": "pnpm --filter @cf/db db:push",
     "db:seed": "pnpm --filter @cf/db db:seed",
     "db:studio": "pnpm --filter @cf/db studio",
+    "deploy:prod": "git pull origin master && vercel --prod --yes",
     "changelog": "node scripts/generate-changelog.mjs",
     "prepare": "git config core.hooksPath .githooks || true",
     "mobile:android": "pnpm --filter @sozialzync/mobile build:android",

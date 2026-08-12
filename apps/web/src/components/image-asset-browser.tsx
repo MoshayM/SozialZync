@@ -133,9 +133,13 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
                 style={{ border: '1.5px solid #e3ddf8' }}
                 onClick={() => onSelect ? onSelect(img) : setPreview(img)}>
                 <div className="aspect-video overflow-hidden bg-gray-100">
-                  <img src={img.previewUrl || img.thumbnailUrl} alt={img.title}
+                  <img
+                    src={`/api/img-proxy?url=${encodeURIComponent(img.previewUrl || img.thumbnailUrl)}`}
+                    alt={img.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy" />
+                    loading="lazy"
+                    onError={e => { (e.currentTarget as HTMLImageElement).src = '/placeholder-image.svg'; }}
+                  />
                 </div>
                 <div className="p-2">
                   <p className="text-[11px] font-medium text-gray-700 truncate">{img.photographer}</p>
@@ -166,7 +170,12 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
       {preview && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setPreview(null)}>
           <div className="bg-white rounded-2xl overflow-hidden max-w-3xl w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-            <img src={preview.previewUrl} alt={preview.title} className="w-full max-h-[60vh] object-cover" />
+            <img
+              src={`/api/img-proxy?url=${encodeURIComponent(preview.previewUrl || preview.thumbnailUrl)}`}
+              alt={preview.title}
+              className="w-full max-h-[60vh] object-cover"
+              onError={e => { (e.currentTarget as HTMLImageElement).src = '/placeholder-image.svg'; }}
+            />
             <div className="p-4 flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-gray-800">{preview.title || 'Untitled'}</p>

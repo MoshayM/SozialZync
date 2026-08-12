@@ -62,7 +62,7 @@ interface OpenverseResult {
   creator?: string;
   creator_url?: string;
   url: string;
-  thumbnail: string;
+  thumbnail: string | null;
   width?: number;
   height?: number;
   tags?: Array<{ name: string }>;
@@ -195,22 +195,28 @@ export class ImageExternalService {
     const res = await fetch(`${this.openverseBase}/images/?${qs}`);
     if (!res.ok) throw new Error(`Openverse HTTP ${res.status}`);
     const data = await res.json() as OpenverseResponse;
-    return (data.results ?? []).map(p => ({
-      id: `openverse-${p.id}`,
-      source: 'openverse' as const,
-      title: p.title,
-      photographer: p.creator ?? 'Unknown',
-      photographerUrl: p.creator_url,
-      url: p.url,
-      thumbnailUrl: p.thumbnail,
-      previewUrl: p.thumbnail,
-      width: p.width ?? 800,
-      height: p.height ?? 600,
-      tags: p.tags?.map(t => t.name) ?? [],
-      license: p.license,
-      licenseUrl: p.license_url ?? 'https://creativecommons.org/licenses/',
-      attribution: `"${p.title}" by ${p.creator ?? 'Unknown'} (CC ${p.license.toUpperCase()})`,
-      externalUrl: p.foreign_landing_url,
-    }));
+    return (data.results ?? [])
+      .filter(p => p.url)
+      .map(p => {
+        const toHttps = (u: string) => u.replace(/^http:/, 'https:');
+        const thumb = p.thumbnail ? toHttps(p.thumbnail) : toHttps(p.url);
+        return {
+          id: `openverse-${p.id}`,
+          source: 'openverse' as const,
+          title: p.title || q,
+          photographer: p.creator ?? 'Unknown',
+          photographerUrl: p.creator_url,
+          url: toHttps(p.url),
+          thumbnailUrl: thumb,
+          previewUrl: thumb,
+          width: p.width ?? 800,
+          height: p.height ?? 600,
+          tags: p.tags?.map(t => t.name) ?? [],
+          license: p.license,
+          licenseUrl: p.license_url ?? 'https://creativecommons.org/licenses/',
+          attribution: `"${p.title}" by ${p.creator ?? 'Unknown'} (CC ${p.license.toUpperCase()})`,
+          externalUrl: p.foreign_landing_url,
+        };
+      });
   }
 }
