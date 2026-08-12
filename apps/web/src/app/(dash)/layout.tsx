@@ -34,7 +34,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/home',      icon: Home,       label: 'Home' },
       { href: '/projects',  icon: FolderOpen, label: 'Projects' },
-      { href: '/content',   icon: Compass,    label: 'Creative Studio', badge: 'AI' },
       { href: '/editor',    icon: Film,       label: 'Video Editing' },
       { href: '/studio',    icon: Layers,     label: 'Studio' },
       { href: '/publish',   icon: Upload,     label: 'Publish Hub' },

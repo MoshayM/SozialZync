@@ -348,24 +348,22 @@ export default function LoginPage() {
   return (
     <LoginShell
       footer={
-        <>
+        <div className="space-y-2 text-center">
           {mode === 'password' && (
-            <span>
+            <div>
               New to Sozialzync?{' '}
               <Link href="/register" className="text-[#6D4AE0] font-semibold hover:underline">
                 Create a free account
               </Link>
-            </span>
+            </div>
           )}
-          {mode !== 'password' && <span className="text-transparent select-none">·</span>}
-          <br />
-          <span className="text-xs text-gray-400 mt-1 inline-block">
+          <div className="text-xs text-gray-400">
             By continuing you agree to our{' '}
             <Link href="/terms" className="hover:underline">Terms</Link>
             {' & '}
             <Link href="/privacy" className="hover:underline">Privacy</Link>
-          </span>
-        </>
+          </div>
+        </div>
       }
     >
 
@@ -483,12 +481,9 @@ export default function LoginPage() {
           ════════════════════════════════════════════════════════════ */}
       {mode === 'otp-send' && (
         <div className="space-y-5">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Get a sign-in code</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              We&apos;ll email you a 6-digit code. No password needed.
-            </p>
-          </div>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            We&apos;ll email you a 6-digit code — no password needed.
+          </p>
 
           <form onSubmit={(e) => { void handleOtpSend(e); }} className="space-y-3">
             <Input
@@ -523,26 +518,23 @@ export default function LoginPage() {
         <div className="space-y-5">
 
           {/* Header */}
-          <div>
-            <div className="flex items-center justify-between mb-0.5">
-              <h3 className="text-lg font-bold text-gray-900">Check your email</h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('otp-send');
-                  setOtpDigits(['', '', '', '', '', '']);
-                  setError('');
-                  setInfo('');
-                }}
-                className="text-xs text-[#6D4AE0] hover:underline font-medium"
-              >
-                Change email
-              </button>
-            </div>
+          <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">
               Code sent to{' '}
               <span className="font-semibold text-gray-700">{maskedEmail || otpIdentifier}</span>
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('otp-send');
+                setOtpDigits(['', '', '', '', '', '']);
+                setError('');
+                setInfo('');
+              }}
+              className="text-xs text-[#6D4AE0] hover:underline font-medium shrink-0 ml-3"
+            >
+              Change email
+            </button>
           </div>
 
           {info && (

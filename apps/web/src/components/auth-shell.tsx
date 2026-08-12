@@ -263,7 +263,7 @@ export function LoginShell({
 
           {children}
 
-          <p className="text-center text-sm text-gray-500 mt-8">{footer}</p>
+          <div className="text-center text-sm text-gray-500 mt-8">{footer}</div>
         </div>
       </div>
     </div>
