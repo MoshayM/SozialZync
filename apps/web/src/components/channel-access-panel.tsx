@@ -126,7 +126,7 @@ const SOCIAL_PLATFORMS: Array<{
   available: boolean;
 }> = [
   { key: 'facebook',  name: 'Facebook',   icon: Facebook,     tile: 'bg-blue-50',       color: 'text-blue-600',  note: 'Pages & Reels publishing',        available: true  },
-  { key: 'instagram', name: 'Instagram',  icon: Instagram,    tile: 'bg-pink-50',        color: 'text-pink-600',  note: 'Reels & Stories publishing',      available: true  },
+  { key: 'instagram', name: 'Instagram',  icon: Instagram,    tile: 'bg-pink-50',        color: 'text-pink-600',  note: 'Reels & Stories publishing · connects via Facebook',      available: true  },
   { key: 'tiktok',    name: 'TikTok',     icon: Music2,       tile: 'bg-gray-100',       color: 'text-gray-900',  note: 'Video publishing & analytics',    available: false },
   { key: 'x',         name: 'X (Twitter)',icon: XIcon,        tile: 'bg-black',          color: 'text-white',     note: 'Post & thread publishing',        available: false },
   { key: 'linkedin',  name: 'LinkedIn',   icon: LinkedInIcon, tile: 'bg-[#0A66C2]',      color: 'text-white',     note: 'Article & video publishing',      available: false },
@@ -804,13 +804,20 @@ function ChannelAccessContent() {
                           : <ChevronDown className="w-4 h-4 text-gray-400" />}
                       </>
                     ) : p.available ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); startPlatformOAuth(p.key); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
-                      >
-                        <PlusCircle className="w-4 h-4" />
-                        Connect
-                      </button>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); startPlatformOAuth(p.key); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          Connect
+                        </button>
+                        {p.key === 'instagram' && (
+                          <span className="flex items-center gap-1 text-[10px] text-gray-400 pr-0.5">
+                            <Facebook className="w-2.5 h-2.5" /> via Facebook
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <button
                         disabled
@@ -844,6 +851,15 @@ function ChannelAccessContent() {
                         <p className="font-medium text-gray-700">{p.name} not connected</p>
                         <p className="text-sm text-gray-500 mt-0.5">Connect your {p.name} account to browse your media here.</p>
                       </div>
+                      {/* Instagram-specific: explain Facebook login requirement */}
+                      {p.key === 'instagram' && (
+                        <div className="flex items-start gap-2 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-lg max-w-xs text-left">
+                          <Facebook className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                          <p className="text-xs text-blue-700">
+                            Instagram&apos;s API requires a Facebook login. You&apos;ll be taken to Facebook — log in with the account linked to your Instagram Business or Creator account.
+                          </p>
+                        </div>
+                      )}
                       <button
                         onClick={() => startPlatformOAuth(p.key)}
                         className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
