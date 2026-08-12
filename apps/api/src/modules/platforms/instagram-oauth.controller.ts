@@ -150,6 +150,13 @@ export class InstagramOAuthController {
       const granted = permResp.data.data.filter(p => p.status === 'granted').map(p => p.permission);
       this.logger.log(`Instagram authed as: ${meResp.data.name} (${meResp.data.id}), permissions: ${granted.join(', ')}`);
 
+      // If the user unchecked the Pages permission during the OAuth dialog, /me/accounts
+      // will always return empty — detect this early and give a targeted error.
+      if (!granted.includes('pages_show_list')) {
+        this.logger.warn(`pages_show_list not granted — user: ${meResp.data.name} (${meResp.data.id})`);
+        return res.redirect(`${webUrl}${returnTo}?error=pages_permission_denied`);
+      }
+
       // Get Facebook Pages this user manages + their linked Instagram Business accounts
       const pagesResp = await axios.get<{
         data: Array<{ id: string; name: string; access_token: string; instagram_business_account?: { id: string } }>;
@@ -166,8 +173,11 @@ export class InstagramOAuthController {
       this.logger.log(`Instagram pages found: ${allPages.length}, with IG business: ${pagesWithIg.length} — pages: ${allPages.map(p => p.name).join(', ')}`);
 
       if (allPages.length === 0) {
-        this.logger.warn('No Facebook Pages returned — Instagram account may not be a Business/Creator account or Pages permission was denied');
-        return res.redirect(`${webUrl}${returnTo}?error=no_facebook_pages`);
+        // pages_show_list was granted but /me/accounts is still empty.
+        // Most common cause: the user logged into Facebook with an account
+        // that is NOT the admin of the page linked to their Instagram.
+        this.logger.warn(`No pages for ${meResp.data.name} (${meResp.data.id}) despite pages_show_list granted`);
+        return res.redirect(`${webUrl}${returnTo}?error=wrong_facebook_account`);
       }
 
       const page = pagesWithIg[0] as { id: string; name: string; access_token: string; instagram_business_account?: { id: string } } | undefined;

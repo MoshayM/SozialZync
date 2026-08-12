@@ -4,7 +4,9 @@ import { CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink, AlertCircle, X 
 import { apiClient } from '@/lib/api';
 
 const OAUTH_ERRORS: Record<string, string> = {
-  no_facebook_pages: 'No Facebook Page was found for your account. Instagram Business accounts must be linked to a Facebook Page. Set this up in Meta Business Suite, then retry.',
+  no_facebook_pages: 'No Facebook Page was found. Make sure you log in with the Facebook account that manages the Page linked to your Instagram Business account.',
+  pages_permission_denied: 'The "Manage your Pages" permission was not granted. Please try connecting again and approve all permissions when prompted.',
+  wrong_facebook_account: 'You logged in with a Facebook account that has no Pages. Please try again using the Facebook account that manages the Page linked to your Instagram Business account.',
   no_instagram_business_account: 'Your Instagram account must be a Business or Creator account linked to a Facebook Page. Go to Instagram → Settings → Account → Switch to Professional Account, then retry.',
   instagram_auth_failed: 'Instagram connection failed. Please try again.',
   facebook_auth_failed: 'Facebook connection failed. Please try again.',
