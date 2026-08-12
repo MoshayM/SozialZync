@@ -62,7 +62,7 @@ export class InstagramOAuthController {
     @Query('returnTo') returnTo: string,
     @Res() res: Response,
   ) {
-    const apiBase = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+    const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/instagram/callback`;
     const state = Buffer.from(JSON.stringify({ userId, returnTo })).toString('base64');
     const params = new URLSearchParams({
@@ -90,8 +90,8 @@ export class InstagramOAuthController {
     @Query('state') state: string,
     @Res() res: Response,
   ) {
-    const webUrl = process.env['NEXT_PUBLIC_WEB_URL'] ?? 'http://localhost:3007';
-    const apiBase = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+    const webUrl = process.env['WEB_URL'] ?? process.env['NEXT_PUBLIC_WEB_URL'] ?? 'http://localhost:3007';
+    const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/instagram/callback`;
 
     let userId = '';
