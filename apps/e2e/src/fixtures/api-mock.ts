@@ -382,6 +382,19 @@ export async function setupApiMocks(page: Page) {
   await page.route(/\/api\/proxy\/admin\//, async (route) => {
     await route.fulfill({ json: {} });
   });
+
+  // ── Platform connections (social media) ───────────────────────────────────
+  // Default: no platforms connected. Individual tests override this by calling
+  // page.route() AFTER setupApiMocks returns (LIFO — later registrations win).
+  await page.route(`${PROXY}/platforms/connection-status`, async (route) => {
+    await route.fulfill({ json: {} });
+  });
+  await page.route(/\/api\/proxy\/platforms\/[^/]+\/disconnect/, async (route) => {
+    await route.fulfill({ json: { ok: true } });
+  });
+  await page.route(/\/api\/proxy\/platforms\/[^/]+\/media/, async (route) => {
+    await route.fulfill({ json: { items: [], nextCursor: null, platformId: 'unknown', accountName: null } });
+  });
 }
 
 // Cached real JWT so every test in a run shares one login call
