@@ -97,7 +97,7 @@ export class FacebookOAuthController {
       userId = parsed.userId;
       returnTo = parsed.returnTo ?? returnTo;
     } catch {
-      return res.redirect(`${webUrl}/publishing/accounts?error=invalid_state`);
+      return res.redirect(`${webUrl}${returnTo}?error=invalid_state`);
     }
 
     try {
@@ -136,7 +136,7 @@ export class FacebookOAuthController {
 
       const pages = pagesResp.data.data;
       if (!pages.length) {
-        return res.redirect(`${webUrl}/publishing/accounts?error=no_facebook_pages`);
+        return res.redirect(`${webUrl}${returnTo}?error=no_facebook_pages`);
       }
 
       // Pick the page with the most fans, or the first one
@@ -172,7 +172,7 @@ export class FacebookOAuthController {
       return res.redirect(`${webUrl}${returnTo}?connected=facebook`);
     } catch (err) {
       this.logger.error('Facebook OAuth callback failed', err);
-      return res.redirect(`${webUrl}/publishing/accounts?error=facebook_auth_failed`);
+      return res.redirect(`${webUrl}${returnTo}?error=facebook_auth_failed`);
     }
   }
 }

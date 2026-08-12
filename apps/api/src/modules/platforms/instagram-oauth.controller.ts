@@ -176,7 +176,7 @@ export class InstagramOAuthController {
         });
         if (!fbConn) {
           this.logger.warn('No Facebook connection found for fallback');
-          return res.redirect(`${webUrl}/settings/channels?error=no_facebook_pages`);
+          return res.redirect(`${webUrl}${returnTo}?error=no_facebook_pages`);
         }
         let fbTokens: Record<string, string> = {};
         try { fbTokens = JSON.parse(this.enc.decrypt(fbConn.encryptedTokens)) as Record<string, string>; } catch { /* ignore */ }
@@ -202,10 +202,10 @@ export class InstagramOAuthController {
           this.logger.log(`Fallback succeeded: found IG Business account ${page.instagram_business_account!.id}`);
         } else {
           this.logger.warn(`Fallback: Facebook page ${fbPageId} has no Instagram Business account linked`);
-          return res.redirect(`${webUrl}/settings/channels?error=no_instagram_business_account`);
+          return res.redirect(`${webUrl}${returnTo}?error=no_instagram_business_account`);
         }
       } else if (!page?.instagram_business_account) {
-        return res.redirect(`${webUrl}/settings/channels?error=no_instagram_business_account`);
+        return res.redirect(`${webUrl}${returnTo}?error=no_instagram_business_account`);
       }
 
       const igUserId = page!.instagram_business_account!.id;
@@ -242,7 +242,7 @@ export class InstagramOAuthController {
     } catch (err) {
       const reason = (err as Error).message ?? 'unknown';
       this.logger.error(`Instagram OAuth callback failed at step: ${reason}`);
-      return res.redirect(`${webUrl}/settings/channels?error=instagram_auth_failed`);
+      return res.redirect(`${webUrl}${returnTo}?error=instagram_auth_failed`);
     }
   }
 }

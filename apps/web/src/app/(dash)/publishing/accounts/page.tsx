@@ -1,7 +1,16 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink, AlertCircle, X } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+
+const OAUTH_ERRORS: Record<string, string> = {
+  no_facebook_pages: 'Your Facebook account has no Pages, or the Pages permission was declined. Connect Facebook first, then retry Instagram.',
+  no_instagram_business_account: 'Instagram is connected to Facebook but has no linked Business/Creator account. On your Facebook Page → Settings → Linked Accounts → link your Instagram, then retry.',
+  instagram_auth_failed: 'Instagram connection failed. Please try again.',
+  facebook_auth_failed: 'Facebook connection failed. Please try again.',
+  invalid_state: 'Session expired. Please try connecting again.',
+  access_denied: 'Connection cancelled.',
+};
 
 interface ConnectionStatus {
   connected: boolean;
@@ -78,6 +87,8 @@ export default function PublishingAccountsPage() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,9 +105,18 @@ export default function PublishingAccountsPage() {
 
   useEffect(() => {
     void load();
-    // Show toast if just connected
     const params = new URLSearchParams(window.location.search);
-    if (params.get('connected') === 'instagram' || params.get('connected') === 'facebook') {
+    const connected = params.get('connected');
+    const errorCode = params.get('error');
+    if (connected) {
+      const name = connected.charAt(0).toUpperCase() + connected.slice(1);
+      setSuccessMsg(`${name} connected successfully!`);
+    }
+    if (errorCode) {
+      setErrorMsg(OAUTH_ERRORS[errorCode] ?? 'Connection failed. Please try again.');
+    }
+    if (connected || errorCode) {
+      // Strip query params without reloading
       window.history.replaceState({}, '', '/publishing/accounts');
     }
   }, [load]);
@@ -127,6 +147,24 @@ export default function PublishingAccountsPage() {
           Refresh
         </button>
       </div>
+
+      {/* Success banner */}
+      {successMsg && (
+        <div className="flex items-start gap-2 px-4 py-3 rounded-xl border bg-green-50 border-green-200 text-green-800 text-sm">
+          <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-600" />
+          <span className="flex-1">{successMsg}</span>
+          <button onClick={() => setSuccessMsg(null)}><X className="w-4 h-4 opacity-60 hover:opacity-100" /></button>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {errorMsg && (
+        <div className="flex items-start gap-2 px-4 py-3 rounded-xl border bg-red-50 border-red-200 text-red-800 text-sm">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+          <span className="flex-1">{errorMsg}</span>
+          <button onClick={() => setErrorMsg(null)}><X className="w-4 h-4 opacity-60 hover:opacity-100" /></button>
+        </div>
+      )}
 
       {loading && Object.keys(statuses).length === 0 ? (
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#6D4AE0]" /></div>
@@ -189,13 +227,21 @@ export default function PublishingAccountsPage() {
                         Disconnect
                       </button>
                     ) : (
-                      <button
-                        onClick={() => void startInstagramOAuth()}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0"
-                        style={{ background: '#E1306C' }}
-                      >
-                        Connect
-                      </button>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <button
+                          onClick={() => void startInstagramOAuth()}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0"
+                          style={{ background: '#E1306C' }}
+                        >
+                          Connect
+                        </button>
+                        {/* Instagram needs Facebook Pages — warn if Facebook not yet connected */}
+                        {!(statuses['facebook']?.connected) && (
+                          <span className="text-[10px] text-amber-600 text-right leading-tight max-w-[140px]">
+                            Connect Facebook first
+                          </span>
+                        )}
+                      </div>
                     )
                   ) : isFB ? (
                     status.connected ? (
