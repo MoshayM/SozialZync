@@ -7,7 +7,7 @@ import {
   LogOut, RefreshCw, Trash2, AlertCircle, Clock, Eye,
   Facebook, Instagram, Music2, Share2,
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, apiClient } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { Banner, type BannerState } from '@/components/banner';
 
@@ -66,6 +66,12 @@ const OAUTH_ERRORS: Record<string, string> = {
 };
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+
+interface ConnectionStatus {
+  connected: boolean;
+  accountName?: string;
+  accountId?: string;
+}
 
 // Inline SVG icons for platforms not in Lucide
 const XIcon = ({ className }: { className?: string }) => (
@@ -132,6 +138,7 @@ function ChannelAccessContent() {
   const searchParams = useSearchParams();
 
   const justConnected = searchParams.get('connected') === 'true';
+  const justConnectedPlatform = searchParams.get('connected') ?? '';  // e.g. 'facebook'
   const oauthErrorCode = searchParams.get('error') ?? '';
 
   const [banner, setBanner] = useState<BannerState | null>(null);
@@ -148,6 +155,21 @@ function ChannelAccessContent() {
   const { data: channels = [], isLoading: chLoading } = useQuery<Channel[]>({
     queryKey: ['channels'],
     queryFn: () => api.channels.list().then((r) => r.data as Channel[]),
+  });
+
+  const { data: platformStatuses = {}, refetch: refetchPlatformStatuses } = useQuery<Record<string, ConnectionStatus>>({
+    queryKey: ['platform-connection-status'],
+    queryFn: () => apiClient.get<Record<string, ConnectionStatus>>('/platforms/connection-status').then((r) => r.data),
+    retry: false,
+  });
+
+  const disconnectPlatformMutation = useMutation({
+    mutationFn: (platformKey: string) => apiClient.delete(`/platforms/${platformKey}/disconnect`),
+    onSuccess: (_data, platformKey) => {
+      void refetchPlatformStatuses();
+      setBanner({ type: 'info', message: `${platformKey.charAt(0).toUpperCase() + platformKey.slice(1)} disconnected.` });
+    },
+    onError: () => setBanner({ type: 'error', message: 'Failed to disconnect. Please try again.' }),
   });
 
   // Step 1 — detect ?connected=true from OAuth callback, clean URL, trigger channel refresh
@@ -171,12 +193,22 @@ function ChannelAccessContent() {
     }
   }, [channels, chLoading]);
 
+  // Handle ?connected=<platform> from social OAuth callback
+  useEffect(() => {
+    const socialPlatformKeys = SOCIAL_PLATFORMS.map((p) => p.key);
+    if (justConnectedPlatform && socialPlatformKeys.includes(justConnectedPlatform)) {
+      void refetchPlatformStatuses();
+      setBanner({ type: 'success', message: `${justConnectedPlatform.charAt(0).toUpperCase() + justConnectedPlatform.slice(1)} connected successfully!` });
+      window.history.replaceState({}, '', '/settings/channels');
+    }
+  }, [justConnectedPlatform, refetchPlatformStatuses]);
+
   // Handle ?error=... from OAuth callback
   useEffect(() => {
     if (oauthErrorCode) {
       const message = OAUTH_ERRORS[oauthErrorCode] ?? OAUTH_ERRORS['oauth_failed']!;
       setBanner({ type: 'error', message });
-      window.history.replaceState({}, '', '/projects?tab=channels');
+      window.history.replaceState({}, '', '/settings/channels');
     }
   }, [oauthErrorCode]);
 
@@ -714,40 +746,61 @@ function ChannelAccessContent() {
           Social Platforms
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
-          {SOCIAL_PLATFORMS.map((p) => (
-            <div key={p.key} className="flex items-center gap-4 p-4">
-              <div className={`w-10 h-10 rounded-full ${p.tile} flex items-center justify-center`}>
-                <p.icon className={`w-5 h-5 ${p.color}`} />
+          {SOCIAL_PLATFORMS.map((p) => {
+            const status = platformStatuses[p.key];
+            const isConnected = status?.connected === true;
+            return (
+              <div key={p.key} className="flex items-center gap-4 p-4">
+                <div className={`w-10 h-10 rounded-full ${p.tile} flex items-center justify-center shrink-0`}>
+                  <p.icon className={`w-5 h-5 ${p.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900">{p.name}</p>
+                  {isConnected && status?.accountName ? (
+                    <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                      <CheckCircle className="w-3 h-3" /> Connected · {status.accountName}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500">{p.note}</p>
+                  )}
+                </div>
+                {!p.available && !isConnected && (
+                  <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                    Coming soon
+                  </span>
+                )}
+                {isConnected ? (
+                  <button
+                    onClick={() => disconnectPlatformMutation.mutate(p.key)}
+                    disabled={disconnectPlatformMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                  >
+                    {disconnectPlatformMutation.isPending
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <LogOut className="w-4 h-4" />}
+                    Disconnect
+                  </button>
+                ) : p.available ? (
+                  <button
+                    onClick={() => startPlatformOAuth(p.key)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Connect
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    title={`${p.name} publishing is on the roadmap`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Connect
+                  </button>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">{p.name}</p>
-                <p className="text-sm text-gray-500">{p.note}</p>
-              </div>
-              {!p.available && (
-                <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
-                  Coming soon
-                </span>
-              )}
-              {p.available ? (
-                <button
-                  onClick={() => startPlatformOAuth(p.key)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  Connect
-                </button>
-              ) : (
-                <button
-                  disabled
-                  title={`${p.name} publishing is on the roadmap`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  Connect
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
         <p className="text-xs text-gray-500 mt-3">
           Cross-platform publishing lands here — one panel to control every channel your content ships to.
