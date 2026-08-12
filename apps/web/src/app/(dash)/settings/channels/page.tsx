@@ -8,8 +8,9 @@ import {
   Music, Image, Mic, FileText, RefreshCw, CheckCircle, AlertCircle,
   Youtube, Instagram, Facebook, Video, Layers, Clock,
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, apiClient } from '@/lib/api';
 import { ChannelAccessPanel } from '@/components/channel-access-panel';
+import { SocialMediaFeed } from '@/components/social-media-feed';
 import { SyncBadge } from '@/components/library/SyncBadge';
 import { VirtualVideoGrid } from '@/components/library/VirtualVideoGrid';
 import { PlaylistsTab } from '@/components/library/PlaylistsTab';
@@ -166,6 +167,13 @@ function MediaLibraryTab() {
     queryFn: () => api.channels.list().then((r) => r.data as Channel[]),
   });
 
+  // Social platform connection status (Facebook, Instagram, etc.)
+  const { data: platformStatuses = {} } = useQuery<Record<string, { connected: boolean; accountName?: string }>>({
+    queryKey: ['platform-connection-status'],
+    queryFn: () => apiClient.get<Record<string, { connected: boolean; accountName?: string }>>('/platforms/connection-status').then((r) => r.data),
+    retry: false,
+  });
+
   // Auto-select first channel per platform once channels load
   useEffect(() => {
     if (!channels.length) return;
@@ -248,7 +256,9 @@ function MediaLibraryTab() {
       {MEDIA_PLATFORMS.map((plat) => {
         const isOpen = openPlatforms.has(plat.id);
         const platChannels = channels.filter(c => (c.platform ?? 'YOUTUBE').toUpperCase() === plat.id);
-        const connected = platChannels.length > 0;
+        // For social platforms (non-YouTube), connected state comes from platformStatuses
+        const socialConnected = plat.id !== 'YOUTUBE' && (platformStatuses[plat.id.toLowerCase()]?.connected === true);
+        const connected = platChannels.length > 0 || socialConnected;
         const activeChId = getChannelForPlatform(plat.id);
 
         return (
@@ -276,7 +286,11 @@ function MediaLibraryTab() {
                   ? { background: '#ecfdf5', color: '#15803d' }
                   : { background: '#f3f4f6', color: '#374151' }}
               >
-                {connected ? `${platChannels.length} channel${platChannels.length > 1 ? 's' : ''}` : 'Not connected'}
+                {connected
+                  ? (plat.id === 'YOUTUBE'
+                      ? `${platChannels.length} channel${platChannels.length > 1 ? 's' : ''}`
+                      : (platformStatuses[plat.id.toLowerCase()]?.accountName ?? 'Connected'))
+                  : 'Not connected'}
               </span>
 
               {plat.id === 'YOUTUBE' && connected && isOpen && activeChId && (
@@ -314,8 +328,15 @@ function MediaLibraryTab() {
                   </div>
                 )}
 
-                {/* Connected — no sync yet */}
-                {connected && !plat.hasSync && (
+                {/* Facebook / Instagram — live media feed via Graph API */}
+                {connected && (plat.id === 'FACEBOOK' || plat.id === 'INSTAGRAM') && (
+                  <div className="p-5">
+                    <SocialMediaFeed platformId={plat.id.toLowerCase()} />
+                  </div>
+                )}
+
+                {/* Connected — no sync yet (TikTok, LinkedIn, X) */}
+                {connected && !plat.hasSync && plat.id !== 'FACEBOOK' && plat.id !== 'INSTAGRAM' && (
                   <div className="p-10 flex flex-col items-center text-center">
                     <div className="px-3 py-1 rounded-full text-xs font-bold mb-3 inline-flex"
                          style={{ background: '#f0edf9', color: '#6D4AE0' }}>
