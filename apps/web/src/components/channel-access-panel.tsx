@@ -86,8 +86,21 @@ const ThreadsIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Social platforms that will join YouTube in this panel — publishing and
-// tracking integrations for these are on the roadmap.
+function getUserIdFromJwt(): string {
+  try {
+    const token = localStorage.getItem('cf_token');
+    if (!token) return '';
+    const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { sub?: string };
+    return payload.sub ?? '';
+  } catch { return ''; }
+}
+
+function startPlatformOAuth(platformKey: string) {
+  const userId = getUserIdFromJwt();
+  if (!userId) return;
+  window.location.href = `${API_URL}/platforms/${platformKey}/auth?userId=${encodeURIComponent(userId)}&returnTo=${encodeURIComponent('/settings/channels')}`;
+}
+
 const SOCIAL_PLATFORMS: Array<{
   key: string;
   name: string;
@@ -95,13 +108,14 @@ const SOCIAL_PLATFORMS: Array<{
   tile: string;
   color: string;
   note: string;
+  available: boolean;
 }> = [
-  { key: 'facebook',  name: 'Facebook',   icon: Facebook,     tile: 'bg-blue-50',       color: 'text-blue-600',  note: 'Pages & Reels publishing' },
-  { key: 'instagram', name: 'Instagram',  icon: Instagram,    tile: 'bg-pink-50',        color: 'text-pink-600',  note: 'Reels & Stories publishing' },
-  { key: 'tiktok',    name: 'TikTok',     icon: Music2,       tile: 'bg-gray-100',       color: 'text-gray-900',  note: 'Video publishing & analytics' },
-  { key: 'x',         name: 'X (Twitter)',icon: XIcon,        tile: 'bg-black',          color: 'text-white',     note: 'Post & thread publishing' },
-  { key: 'linkedin',  name: 'LinkedIn',   icon: LinkedInIcon, tile: 'bg-[#0A66C2]',      color: 'text-white',     note: 'Article & video publishing' },
-  { key: 'threads',   name: 'Threads',    icon: ThreadsIcon,  tile: 'bg-black',          color: 'text-white',     note: 'Short-form post publishing' },
+  { key: 'facebook',  name: 'Facebook',   icon: Facebook,     tile: 'bg-blue-50',       color: 'text-blue-600',  note: 'Pages & Reels publishing',        available: true  },
+  { key: 'instagram', name: 'Instagram',  icon: Instagram,    tile: 'bg-pink-50',        color: 'text-pink-600',  note: 'Reels & Stories publishing',      available: true  },
+  { key: 'tiktok',    name: 'TikTok',     icon: Music2,       tile: 'bg-gray-100',       color: 'text-gray-900',  note: 'Video publishing & analytics',    available: false },
+  { key: 'x',         name: 'X (Twitter)',icon: XIcon,        tile: 'bg-black',          color: 'text-white',     note: 'Post & thread publishing',        available: false },
+  { key: 'linkedin',  name: 'LinkedIn',   icon: LinkedInIcon, tile: 'bg-[#0A66C2]',      color: 'text-white',     note: 'Article & video publishing',      available: false },
+  { key: 'threads',   name: 'Threads',    icon: ThreadsIcon,  tile: 'bg-black',          color: 'text-white',     note: 'Short-form post publishing',      available: false },
 ];
 
 // useSearchParams() requires a Suspense boundary for static prerendering.
@@ -709,17 +723,29 @@ function ChannelAccessContent() {
                 <p className="font-medium text-gray-900">{p.name}</p>
                 <p className="text-sm text-gray-500">{p.note}</p>
               </div>
-              <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
-                Coming soon
-              </span>
-              <button
-                disabled
-                title={`${p.name} publishing is on the roadmap`}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
-              >
-                <PlusCircle className="w-4 h-4" />
-                Connect
-              </button>
+              {!p.available && (
+                <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                  Coming soon
+                </span>
+              )}
+              {p.available ? (
+                <button
+                  onClick={() => startPlatformOAuth(p.key)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Connect
+                </button>
+              ) : (
+                <button
+                  disabled
+                  title={`${p.name} publishing is on the roadmap`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Connect
+                </button>
+              )}
             </div>
           ))}
         </div>
