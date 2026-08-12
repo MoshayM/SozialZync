@@ -5,11 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import {
   Youtube, Loader2, CheckCircle, Link as LinkIcon2, PlusCircle,
   LogOut, RefreshCw, Trash2, AlertCircle, Clock, Eye,
-  Facebook, Instagram, Music2, Share2,
+  Facebook, Instagram, Music2, Share2, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { Banner, type BannerState } from '@/components/banner';
+import { SocialMediaFeed } from '@/components/social-media-feed';
 
 interface Channel {
   id: string;
@@ -146,6 +147,7 @@ function ChannelAccessContent() {
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [showUrlForm, setShowUrlForm] = useState(false);
+  const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
   // Access level for new Google connections; per-channel changes use changeAccessMutation
   const [connectAccess, setConnectAccess] = useState<AccessLevel>('PUBLISH');
   const [accessDrafts, setAccessDrafts] = useState<Record<string, AccessLevel>>({});
@@ -749,61 +751,107 @@ function ChannelAccessContent() {
           {SOCIAL_PLATFORMS.map((p) => {
             const status = platformStatuses[p.key];
             const isConnected = status?.connected === true;
+            const isExpanded = expandedPlatform === p.key;
+
             return (
-              <div key={p.key} className="flex items-center gap-4 p-4">
-                <div className={`w-10 h-10 rounded-full ${p.tile} flex items-center justify-center shrink-0`}>
-                  <p.icon className={`w-5 h-5 ${p.color}`} />
+              <div key={p.key}>
+                {/* Platform header row */}
+                <div
+                  className={`flex items-center gap-4 p-4 ${isConnected ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors`}
+                  onClick={() => isConnected && setExpandedPlatform(isExpanded ? null : p.key)}
+                >
+                  <div className={`w-10 h-10 rounded-full ${p.tile} flex items-center justify-center shrink-0`}>
+                    <p.icon className={`w-5 h-5 ${p.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900">{p.name}</p>
+                    {isConnected && status?.accountName ? (
+                      <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                        <CheckCircle className="w-3 h-3" /> Connected · {status.accountName}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500">{p.note}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {!p.available && !isConnected && (
+                      <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                        Coming soon
+                      </span>
+                    )}
+                    {isConnected ? (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); disconnectPlatformMutation.mutate(p.key); }}
+                          disabled={disconnectPlatformMutation.isPending}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                        >
+                          {disconnectPlatformMutation.isPending
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <LogOut className="w-4 h-4" />}
+                          Disconnect
+                        </button>
+                        {isExpanded
+                          ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                          : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                      </>
+                    ) : p.available ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); startPlatformOAuth(p.key); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        Connect
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        title={`${p.name} coming soon`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        Connect
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{p.name}</p>
-                  {isConnected && status?.accountName ? (
-                    <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
-                      <CheckCircle className="w-3 h-3" /> Connected · {status.accountName}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-gray-500">{p.note}</p>
-                  )}
-                </div>
-                {!p.available && !isConnected && (
-                  <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
-                    Coming soon
-                  </span>
+
+                {/* Expanded media feed */}
+                {isConnected && isExpanded && (
+                  <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50/50">
+                    <div className="pt-4">
+                      <SocialMediaFeed platformId={p.key} />
+                    </div>
+                  </div>
                 )}
-                {isConnected ? (
-                  <button
-                    onClick={() => disconnectPlatformMutation.mutate(p.key)}
-                    disabled={disconnectPlatformMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-                  >
-                    {disconnectPlatformMutation.isPending
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <LogOut className="w-4 h-4" />}
-                    Disconnect
-                  </button>
-                ) : p.available ? (
-                  <button
-                    onClick={() => startPlatformOAuth(p.key)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    Connect
-                  </button>
-                ) : (
-                  <button
-                    disabled
-                    title={`${p.name} publishing is on the roadmap`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    Connect
-                  </button>
+
+                {/* Not connected — expanded empty state with connect CTA */}
+                {!isConnected && p.available && (
+                  <div className="px-4 pb-4">
+                    <div className="flex flex-col items-center justify-center py-8 gap-3 border border-dashed border-gray-200 rounded-xl text-center bg-gray-50">
+                      <div className={`w-12 h-12 rounded-full ${p.tile} flex items-center justify-center`}>
+                        <p.icon className={`w-6 h-6 ${p.color}`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-700">{p.name} not connected</p>
+                        <p className="text-sm text-gray-500 mt-0.5">Connect your {p.name} account to browse your media here.</p>
+                      </div>
+                      <button
+                        onClick={() => startPlatformOAuth(p.key)}
+                        className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        Connect {p.name} →
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
         <p className="text-xs text-gray-500 mt-3">
-          Cross-platform publishing lands here — one panel to control every channel your content ships to.
+          Connect your social accounts to browse posts, reels, and videos — and publish directly from Sozialzync.
         </p>
       </section>
     </div>
