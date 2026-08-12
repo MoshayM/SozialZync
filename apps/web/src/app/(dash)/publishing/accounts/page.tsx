@@ -4,8 +4,8 @@ import { CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink, AlertCircle, X 
 import { apiClient } from '@/lib/api';
 
 const OAUTH_ERRORS: Record<string, string> = {
-  no_facebook_pages: 'Your Facebook account has no Pages, or the Pages permission was declined. Connect Facebook first, then retry Instagram.',
-  no_instagram_business_account: 'Instagram is connected to Facebook but has no linked Business/Creator account. On your Facebook Page → Settings → Linked Accounts → link your Instagram, then retry.',
+  no_facebook_pages: 'No Facebook Page was found for your account. Instagram Business accounts must be linked to a Facebook Page. Set this up in Meta Business Suite, then retry.',
+  no_instagram_business_account: 'Your Instagram account must be a Business or Creator account linked to a Facebook Page. Go to Instagram → Settings → Account → Switch to Professional Account, then retry.',
   instagram_auth_failed: 'Instagram connection failed. Please try again.',
   facebook_auth_failed: 'Facebook connection failed. Please try again.',
   invalid_state: 'Session expired. Please try connecting again.',
@@ -235,12 +235,6 @@ export default function PublishingAccountsPage() {
                         >
                           Connect
                         </button>
-                        {/* Instagram needs Facebook Pages — warn if Facebook not yet connected */}
-                        {!(statuses['facebook']?.connected) && (
-                          <span className="text-[10px] text-amber-600 text-right leading-tight max-w-[140px]">
-                            Connect Facebook first
-                          </span>
-                        )}
                       </div>
                     )
                   ) : isFB ? (

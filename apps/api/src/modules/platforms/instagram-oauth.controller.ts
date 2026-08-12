@@ -165,46 +165,14 @@ export class InstagramOAuthController {
       const pagesWithIg = allPages.filter(p => p.instagram_business_account);
       this.logger.log(`Instagram pages found: ${allPages.length}, with IG business: ${pagesWithIg.length} — pages: ${allPages.map(p => p.name).join(', ')}`);
 
-      let page = pagesWithIg[0] as { id: string; name: string; access_token: string; instagram_business_account?: { id: string } } | undefined;
-
-      // Fallback: OAuth authed as Instagram-linked identity which has no Pages.
-      // Use the already-stored Facebook page access token to find the IG Business account.
       if (allPages.length === 0) {
-        this.logger.log('No pages via OAuth identity — trying stored Facebook page token as fallback');
-        const fbConn = await this.prisma.platformConnection.findUnique({
-          where: { userId_platformId: { userId, platformId: 'facebook' } },
-        });
-        if (!fbConn) {
-          this.logger.warn('No Facebook connection found for fallback');
-          return res.redirect(`${webUrl}${returnTo}?error=no_facebook_pages`);
-        }
-        let fbTokens: Record<string, string> = {};
-        try { fbTokens = JSON.parse(this.enc.decrypt(fbConn.encryptedTokens)) as Record<string, string>; } catch { /* ignore */ }
-        const fbPageToken = fbTokens['pageAccessToken'] ?? fbTokens['accessToken'];
-        const fbPageId = fbConn.accountId;
-        this.logger.log(`Fallback: checking Facebook page ${fbPageId} (${fbConn.accountName}) for Instagram Business account`);
+        this.logger.warn('No Facebook Pages returned — Instagram account may not be a Business/Creator account or Pages permission was denied');
+        return res.redirect(`${webUrl}${returnTo}?error=no_facebook_pages`);
+      }
 
-        const fbPageResp = await axios.get<{ instagram_business_account?: { id: string }; name: string }>(
-          `${FB_GRAPH}/${fbPageId}`,
-          { params: { fields: 'instagram_business_account,name', access_token: fbPageToken } },
-        ).catch((e) => {
-          this.logger.error(`Fallback page lookup failed: ${(e as any)?.response?.data?.error?.message ?? String(e)}`);
-          return null;
-        });
+      const page = pagesWithIg[0] as { id: string; name: string; access_token: string; instagram_business_account?: { id: string } } | undefined;
 
-        if (fbPageResp?.data?.instagram_business_account) {
-          page = {
-            id: fbPageId,
-            name: fbConn.accountName ?? 'Facebook Page',
-            access_token: fbPageToken,
-            instagram_business_account: fbPageResp.data.instagram_business_account,
-          };
-          this.logger.log(`Fallback succeeded: found IG Business account ${page.instagram_business_account!.id}`);
-        } else {
-          this.logger.warn(`Fallback: Facebook page ${fbPageId} has no Instagram Business account linked`);
-          return res.redirect(`${webUrl}${returnTo}?error=no_instagram_business_account`);
-        }
-      } else if (!page?.instagram_business_account) {
+      if (!page?.instagram_business_account) {
         return res.redirect(`${webUrl}${returnTo}?error=no_instagram_business_account`);
       }
 
