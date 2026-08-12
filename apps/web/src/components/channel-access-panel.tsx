@@ -55,15 +55,23 @@ const ACCESS_META: Record<AccessLevel, { label: string; badge: string; permissio
 
 // Human-readable descriptions for OAuth error codes from the callback
 const OAUTH_ERRORS: Record<string, string> = {
-  access_denied: 'Connection cancelled. No channel was connected.',
+  // YouTube / Google
+  access_denied: 'Connection cancelled.',
   no_channel: 'No YouTube channel found on that Google account.',
   invalid_grant: 'Authentication failed — the authorisation code expired. Please try connecting again.',
-  redirect_mismatch: 'Redirect URI mismatch. Check your Google Cloud Console settings.',
-  invalid_client: 'Invalid Google client credentials. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.',
+  redirect_mismatch: 'Redirect URI mismatch. Check your OAuth app settings.',
+  invalid_client: 'Invalid OAuth credentials. Ensure client ID and secret are configured.',
   missing_params: 'The OAuth callback was missing required parameters.',
-  oauth_failed: 'YouTube connection failed. Please try again.',
-  permission_denied: 'Permission denied. YouTube access was not granted.',
-  quota_exceeded: 'YouTube API quota exceeded. Please try again later.',
+  oauth_failed: 'Connection failed. Please try again.',
+  permission_denied: 'Permission denied. Access was not granted.',
+  quota_exceeded: 'API quota exceeded. Please try again later.',
+  // Instagram
+  no_instagram_business_account: 'No Instagram Business or Creator account found. Go to Instagram → Settings → Account Type → Switch to Professional, then link it to a Facebook Page.',
+  instagram_auth_failed: 'Instagram connection failed. Please try again.',
+  // Facebook
+  facebook_auth_failed: 'Facebook connection failed. Please try again.',
+  no_facebook_pages: 'No Facebook Pages found. Create a Page on Facebook first.',
+  invalid_state: 'Session expired. Please try connecting again.',
 };
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';

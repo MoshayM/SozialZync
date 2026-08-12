@@ -113,6 +113,10 @@ export class InstagramOAuthController {
           redirect_uri: redirectUri,
           code,
         },
+      }).catch((e) => {
+        const detail = (e as any)?.response?.data?.error?.message ?? String(e);
+        this.logger.error(`Instagram token exchange failed: ${detail}`);
+        throw new Error('token_exchange');
       });
       const shortToken = tokenResp.data.access_token;
 
@@ -127,16 +131,27 @@ export class InstagramOAuthController {
             fb_exchange_token: shortToken,
           },
         },
-      );
+      ).catch((e) => {
+        const detail = (e as any)?.response?.data?.error?.message ?? String(e);
+        this.logger.error(`Instagram long-lived token exchange failed: ${detail}`);
+        throw new Error('token_exchange');
+      });
       const accessToken = longTokenResp.data.access_token;
-      const expiresIn = longTokenResp.data.expires_in ?? 5_184_000; // 60-day default
+      const expiresIn = longTokenResp.data.expires_in ?? 5_184_000;
 
       // Get Facebook Pages linked to an Instagram Business/Creator account
       const pagesResp = await axios.get<{
         data: Array<{ id: string; name: string; instagram_business_account?: { id: string } }>;
       }>(`${FB_GRAPH}/me/accounts`, {
         params: { fields: 'id,name,instagram_business_account', access_token: accessToken },
+      }).catch((e) => {
+        const detail = (e as any)?.response?.data?.error?.message ?? String(e);
+        this.logger.error(`Instagram pages lookup failed: ${detail}`);
+        throw new Error('pages_lookup');
       });
+
+      this.logger.log(`Instagram pages found: ${pagesResp.data.data.length}, with IG business: ${pagesResp.data.data.filter(p => p.instagram_business_account).length}`);
+
       const page = pagesResp.data.data.find(p => p.instagram_business_account);
       if (!page?.instagram_business_account) {
         return res.redirect(`${webUrl}/settings/channels?error=no_instagram_business_account`);
@@ -145,10 +160,10 @@ export class InstagramOAuthController {
       const igUserId = page.instagram_business_account.id;
 
       // Resolve Instagram username
-      const igResp = await axios.get<{ username: string }>(`${FB_GRAPH}/${igUserId}`, {
-        params: { fields: 'username', access_token: accessToken },
-      });
-      const username = igResp.data.username ?? page.name;
+      const igResp = await axios.get<{ username: string; name: string }>(`${FB_GRAPH}/${igUserId}`, {
+        params: { fields: 'username,name', access_token: accessToken },
+      }).catch(() => ({ data: { username: page.name, name: page.name } }));
+      const username = igResp.data.username ?? igResp.data.name ?? page.name;
 
       const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
       const encryptedTokens = this.enc.encrypt(
@@ -170,7 +185,8 @@ export class InstagramOAuthController {
 
       return res.redirect(`${webUrl}${returnTo}?connected=instagram`);
     } catch (err) {
-      this.logger.error('Instagram OAuth callback failed', err);
+      const reason = (err as Error).message ?? 'unknown';
+      this.logger.error(`Instagram OAuth callback failed at step: ${reason}`);
       return res.redirect(`${webUrl}/settings/channels?error=instagram_auth_failed`);
     }
   }
