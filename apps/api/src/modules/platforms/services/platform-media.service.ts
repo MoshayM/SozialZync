@@ -221,11 +221,12 @@ export class PlatformMediaService {
     tokens: Record<string, string>,
     opts: { type: string; limit: number; cursor?: string },
   ): Promise<Pick<MediaPage, 'items' | 'nextCursor'>> {
-    const { accessToken, igUserId } = tokens;
+    const { accessToken, pageToken, igUserId } = tokens;
     if (!igUserId) return { items: [], nextCursor: null };
+    const token = pageToken || accessToken;
 
     const params: Record<string, string | number> = {
-      access_token: accessToken,
+      access_token: token,
       limit: opts.limit,
       fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
     };

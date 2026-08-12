@@ -8,7 +8,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 
 const FB_GRAPH = 'https://graph.facebook.com/v19.0';
-const IG_SCOPES = 'instagram_basic,instagram_content_publish,pages_read_engagement,pages_show_list,business_management';
+const IG_SCOPES = 'instagram_basic,instagram_content_publish,pages_read_engagement,pages_show_list';
 
 @Controller('platforms/instagram')
 export class InstagramOAuthController {
@@ -140,48 +140,54 @@ export class InstagramOAuthController {
       const accessToken = longTokenResp.data.access_token;
       const expiresIn = longTokenResp.data.expires_in ?? 5_184_000;
 
-      // Check which permissions were actually granted
-      const permResp = await axios.get<{ data: Array<{ permission: string; status: string }> }>(
-        `${FB_GRAPH}/me/permissions`,
-        { params: { access_token: accessToken } },
-      ).catch(() => ({ data: { data: [] } }));
+      // Log who we're authed as + what permissions were granted
+      const [meResp, permResp] = await Promise.all([
+        axios.get<{ id: string; name: string }>(`${FB_GRAPH}/me`, { params: { fields: 'id,name', access_token: accessToken } })
+          .catch(() => ({ data: { id: 'unknown', name: 'unknown' } })),
+        axios.get<{ data: Array<{ permission: string; status: string }> }>(`${FB_GRAPH}/me/permissions`, { params: { access_token: accessToken } })
+          .catch(() => ({ data: { data: [] } })),
+      ]);
       const granted = permResp.data.data.filter(p => p.status === 'granted').map(p => p.permission);
-      this.logger.log(`Instagram granted permissions: ${granted.join(', ')}`);
+      this.logger.log(`Instagram authed as: ${meResp.data.name} (${meResp.data.id}), permissions: ${granted.join(', ')}`);
 
-      // Get Facebook Pages linked to an Instagram Business/Creator account
+      // Get Facebook Pages this user manages + their linked Instagram Business accounts
       const pagesResp = await axios.get<{
-        data: Array<{ id: string; name: string; instagram_business_account?: { id: string } }>;
+        data: Array<{ id: string; name: string; access_token: string; instagram_business_account?: { id: string } }>;
       }>(`${FB_GRAPH}/me/accounts`, {
-        params: { fields: 'id,name,instagram_business_account', access_token: accessToken },
+        params: { fields: 'id,name,access_token,instagram_business_account', access_token: accessToken },
       }).catch((e) => {
         const detail = (e as any)?.response?.data?.error?.message ?? String(e);
         this.logger.error(`Instagram pages lookup failed: ${detail}`);
         throw new Error('pages_lookup');
       });
 
-      this.logger.log(`Instagram pages found: ${pagesResp.data.data.length}, with IG business: ${pagesResp.data.data.filter(p => p.instagram_business_account).length}`);
+      const allPages = pagesResp.data.data;
+      const pagesWithIg = allPages.filter(p => p.instagram_business_account);
+      this.logger.log(`Instagram pages found: ${allPages.length}, with IG business: ${pagesWithIg.length} — pages: ${allPages.map(p => p.name).join(', ')}`);
 
-      const page = pagesResp.data.data.find(p => p.instagram_business_account);
-      if (pagesResp.data.data.length === 0) {
-        // No pages — likely pages_show_list permission was not granted
+      const page = pagesWithIg[0];
+      if (allPages.length === 0) {
         return res.redirect(`${webUrl}/settings/channels?error=no_facebook_pages`);
       }
       if (!page?.instagram_business_account) {
-        // Has pages but none linked to an Instagram Business account
         return res.redirect(`${webUrl}/settings/channels?error=no_instagram_business_account`);
       }
 
       const igUserId = page.instagram_business_account.id;
+      // Use page access token for IG API calls (more reliable than user token)
+      const pageToken = page.access_token || accessToken;
 
-      // Resolve Instagram username
+      // Resolve Instagram username using page token
       const igResp = await axios.get<{ username: string; name: string }>(`${FB_GRAPH}/${igUserId}`, {
-        params: { fields: 'username,name', access_token: accessToken },
+        params: { fields: 'username,name', access_token: pageToken },
       }).catch(() => ({ data: { username: page.name, name: page.name } }));
       const username = igResp.data.username ?? igResp.data.name ?? page.name;
+      this.logger.log(`Instagram connected: @${username} (igUserId=${igUserId})`);
 
       const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+      // Store both user token and page token so media service can use the right one
       const encryptedTokens = this.enc.encrypt(
-        JSON.stringify({ accessToken, igUserId, pageId: page.id, expiresAt }),
+        JSON.stringify({ accessToken, pageToken, igUserId, pageId: page.id, expiresAt }),
       );
 
       await this.prisma.platformConnection.upsert({
