@@ -11,6 +11,13 @@ export class MediaLibraryController {
     private readonly thumbnails: ThumbnailService,
   ) {}
 
+  // ── Provider availability ─────────────────────────────────────────────────
+
+  @Get('images/providers')
+  imageProviders() {
+    return this.images.getProviders();
+  }
+
   // ── Image search ──────────────────────────────────────────────────────────
 
   @Get('images/search')

@@ -84,6 +84,15 @@ export class ImageExternalService {
   private get unsplashKey(): string { return process.env['UNSPLASH_ACCESS_KEY'] ?? ''; }
   private get pixabayKey(): string { return process.env['PIXABAY_API_KEY'] ?? ''; }
 
+  getProviders() {
+    return {
+      pexels:    { available: !!this.pexelsKey,   envVar: 'PEXELS_API_KEY',      signupUrl: 'https://www.pexels.com/api/' },
+      unsplash:  { available: !!this.unsplashKey,  envVar: 'UNSPLASH_ACCESS_KEY', signupUrl: 'https://unsplash.com/developers' },
+      pixabay:   { available: !!this.pixabayKey,   envVar: 'PIXABAY_API_KEY',     signupUrl: 'https://pixabay.com/api/docs/' },
+      openverse: { available: true,                envVar: null,                  signupUrl: null },
+    };
+  }
+
   async search(params: {
     q: string;
     source?: 'pexels' | 'unsplash' | 'pixabay' | 'openverse' | 'all';
