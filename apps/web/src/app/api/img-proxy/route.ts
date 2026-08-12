@@ -8,6 +8,7 @@ const ALLOWED_HOSTNAMES = new Set([
   'images.unsplash.com',
   'plus.unsplash.com',
   'cdn.pixabay.com',
+  'pixabay.com',            // webformatURL and previewURL come from pixabay.com directly
   'api.openverse.org',
   'live.staticflickr.com',
   'upload.wikimedia.org',
@@ -16,7 +17,7 @@ const ALLOWED_HOSTNAMES = new Set([
 ]);
 
 // Also allow wildcard suffixes
-const ALLOWED_SUFFIXES = ['.staticflickr.com', '.openverse.org', '.pexels.com', '.unsplash.com'];
+const ALLOWED_SUFFIXES = ['.staticflickr.com', '.openverse.org', '.pexels.com', '.unsplash.com', '.pixabay.com'];
 
 function isAllowed(hostname: string): boolean {
   if (ALLOWED_HOSTNAMES.has(hostname)) return true;
