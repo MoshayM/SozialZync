@@ -86,7 +86,7 @@ export class FacebookOAuthController {
     @Query('state') state: string,
     @Res() res: Response,
   ) {
-    const webUrl = process.env['NEXT_PUBLIC_WEB_URL'] ?? 'http://localhost:3007';
+    const webUrl = process.env['WEB_URL'] ?? process.env['NEXT_PUBLIC_WEB_URL'] ?? 'http://localhost:3007';
     const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/facebook/callback`;
 
