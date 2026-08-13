@@ -46,16 +46,29 @@ Preferred style: ${style}
 Script excerpt: "${scriptExcerpt.slice(0, 400)}"
 
 Rules:
-- Each prompt must describe a compelling YouTube thumbnail scene (no text in the image — text is added as overlay)
+- Each prompt must describe a compelling YouTube thumbnail scene (no text in image — text is added as overlay later)
 - Use vivid, descriptive language optimized for AI image generation
 - Include lighting, composition, and subject details
 - Vary the styles across prompts (e.g. photorealistic, illustration, flat design, cinematic)
 - Suggest a punchy YouTube title (max 60 chars) and optional subtitle
 
-Return structured JSON.`,
+You MUST return ONLY a valid JSON object with this EXACT structure — no other keys allowed:
+{
+  "prompts": [
+    {
+      "style": "photorealistic",
+      "prompt": "detailed AI image generation prompt here",
+      "negativePrompt": "blurry, text, watermark",
+      "reasoning": "why this visual style works for this video"
+    }
+  ],
+  "suggestedTitle": "Punchy Title Here (max 60 chars)",
+  "suggestedSubtitle": "Optional subtitle",
+  "colorPalette": ["#hex1", "#hex2", "#hex3"]
+}`,
       }],
       ThumbnailPromptSchema,
-      { maxTokens: 1024 },
+      { maxTokens: 1500 },
     );
   }
 
