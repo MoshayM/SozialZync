@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Sparkles, Plus, X, Loader2, Check, FolderPlus, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -419,9 +419,6 @@ function GenerateModal({
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function ContentCalendarPage() {
-  const pathname = usePathname();
-  const router = useRouter();
-
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -431,13 +428,6 @@ export default function ContentCalendarPage() {
   const [showGenerate, setShowGenerate] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const today = todayStr();
-
-  // When accessed at /calendar directly, redirect to Publish Hub calendar tab
-  useEffect(() => {
-    if (pathname === '/calendar') {
-      router.replace('/publish?tab=calendar');
-    }
-  }, [pathname, router]);
 
   // Load from localStorage on mount
   useEffect(() => { setEntries(loadEntries()); }, []);
@@ -542,8 +532,6 @@ export default function ContentCalendarPage() {
 
   const grid = buildMonthGrid();
   const weekDays = buildWeekDays();
-
-  if (pathname === '/calendar') return null;
 
   return (
     <div className="min-h-full bg-[#faf9ff]">

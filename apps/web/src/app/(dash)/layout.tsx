@@ -36,6 +36,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/projects',  icon: FolderOpen, label: 'Projects' },
       { href: '/editor',    icon: Film,       label: 'Video Editing' },
       { href: '/studio',    icon: Layers,     label: 'Studio' },
+      { href: '/calendar',  icon: Calendar,   label: 'Content Calendar' },
       { href: '/publish',   icon: Upload,     label: 'Publish Hub' },
       { href: '/insights',  icon: BarChart2,  label: 'Analytics' },
     ],

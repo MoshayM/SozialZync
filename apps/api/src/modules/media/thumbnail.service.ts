@@ -74,36 +74,44 @@ You MUST return ONLY a valid JSON object with this EXACT structure — no other 
 
   async generateImages(prompts: string[]): Promise<string[]> {
     const openaiKey = process.env['OPENAI_API_KEY'];
-    if (!openaiKey) {
-      this.logger.warn('OPENAI_API_KEY not set — cannot generate thumbnail images');
-      return [];
+
+    // Premium path: DALL-E 3 when OpenAI key is configured
+    if (openaiKey) {
+      const results: string[] = [];
+      for (const prompt of prompts.slice(0, 2)) {
+        try {
+          const res = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
+            body: JSON.stringify({
+              model: 'dall-e-3',
+              prompt: `YouTube thumbnail background image (no text). ${prompt}`,
+              n: 1,
+              size: '1792x1024',
+              quality: 'standard',
+              style: 'vivid',
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json() as { data: Array<{ url: string }> };
+            if (data.data[0]?.url) results.push(data.data[0].url);
+          }
+        } catch (err) {
+          this.logger.warn('DALL-E generation failed, falling back to free provider', err);
+        }
+      }
+      if (results.length) return results;
     }
 
-    const results: string[] = [];
-    // Generate up to 2 images to conserve credits (rest are prompt-only)
-    for (const prompt of prompts.slice(0, 2)) {
-      try {
-        const res = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
-          body: JSON.stringify({
-            model: 'dall-e-3',
-            prompt: `YouTube thumbnail background image (no text). ${prompt}`,
-            n: 1,
-            size: '1792x1024',
-            quality: 'standard',
-            style: 'vivid',
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json() as { data: Array<{ url: string }> };
-          if (data.data[0]?.url) results.push(data.data[0].url);
-        }
-      } catch (err) {
-        this.logger.warn('DALL-E thumbnail generation failed', err);
-      }
-    }
-    return results;
+    // Free fallback: Pollinations.ai — no API key, no cost
+    // Each URL is an on-demand image endpoint; the browser fetches the actual image
+    this.logger.log('Using Pollinations.ai (free) for thumbnail image generation');
+    const seed = Date.now();
+    return prompts.slice(0, 3).map((prompt, i) => {
+      const text = `YouTube thumbnail background (no text overlay). ${prompt}`;
+      const encoded = encodeURIComponent(text);
+      return `https://image.pollinations.ai/prompt/${encoded}?width=1792&height=1024&nologo=true&model=flux&seed=${seed + i}`;
+    });
   }
 
   async generate(input: {
