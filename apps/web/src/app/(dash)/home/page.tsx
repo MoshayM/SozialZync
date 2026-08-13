@@ -69,7 +69,7 @@ const QUICK_ACTIONS = [
   { href: '/projects',      icon: Plus,          label: 'New Project',      sub: 'Start from scratch',           tileBg: '#6D4AE0' },
   { href: '/copilot',       icon: Bot,           label: 'AI Copilot',       sub: 'Chat with your AI crew',       tileBg: '#7c5ae8' },
   { href: '/shorts-studio', icon: Scissors,      label: 'Shorts Studio',    sub: 'Clip & export YouTube Shorts', tileBg: '#e11d48' },
-  { href: '/calendar',      icon: CalendarDays,  label: 'Content Calendar', sub: 'AI-planned video schedule',    tileBg: '#0891b2' },
+  { href: '/publish?tab=calendar', icon: CalendarDays,  label: 'Content Calendar', sub: 'AI-planned video schedule',    tileBg: '#0891b2' },
 ];
 
 function greet(name: string): string {
@@ -351,7 +351,7 @@ export default function HomePage() {
     { label: 'Connect a YouTube channel',     done: channels.length > 0,       href: '/settings/channels' },
     { label: 'Create your first project',      done: projects.length > 0,       href: '/projects' },
     { label: 'Enable AI automation',           done: automation?.enabled === true, href: '/automation' },
-    { label: 'Generate your first AI content', done: totalJobs > 0,             href: '/calendar' },
+    { label: 'Generate your first AI content', done: totalJobs > 0,             href: '/publish?tab=calendar' },
   ];
   const completedCount = steps.filter((s) => s.done).length;
   const allComplete = completedCount === steps.length;
