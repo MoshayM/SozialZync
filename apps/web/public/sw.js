@@ -1,7 +1,7 @@
 // Sozialzync Service Worker
 // Handles offline support and caching for PWA install
 
-const CACHE_NAME = 'sz-v1';
+const CACHE_NAME = 'sz-v3';
 const STATIC_ASSETS = ['/', '/login', '/offline'];
 
 // ── Install: pre-cache shell ──────────────────────────────────────────────────
@@ -49,17 +49,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets (_next/static): cache first
+  // Static assets (_next/static): network first so new deploys are always picked up.
+  // Next.js already adds content hashes to chunk filenames, so cached old URLs are
+  // never requested by a new build — but going network-first avoids any edge cases
+  // where a stale response sneaks through.
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
-          return res;
-        });
-      })
+      fetch(request).then((res) => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+        return res;
+      }).catch(() => caches.match(request).then((cached) => cached ?? Response.error()))
     );
     return;
   }
