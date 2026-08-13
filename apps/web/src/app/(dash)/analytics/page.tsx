@@ -754,7 +754,7 @@ export default function AnalyticsPage() {
                     <Lightbulb className="w-4 h-4 text-amber-500" /> Next Video Ideas
                   </h2>
                   <div className="space-y-3">
-                    {growth.nextTopics.map((t, i) => (
+                    {(growth.nextTopics ?? []).map((t, i) => (
                       <div key={i} className="flex items-start gap-3 p-3 rounded-2xl hover:bg-[#faf9ff] transition-colors" style={{ border: '1.5px solid #e3ddf8' }}>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${t.opportunityScore >= 70 ? 'bg-green-100 text-green-700' : t.opportunityScore >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
                           {t.opportunityScore}
@@ -771,7 +771,7 @@ export default function AnalyticsPage() {
                 <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                   <h2 className="font-bold text-gray-900 mb-4">Optimization Actions</h2>
                   <div className="space-y-3">
-                    {growth.optimizationActions.map((a, i) => (
+                    {(growth.optimizationActions ?? []).map((a, i) => (
                       <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: '#faf9ff' }}>
                         <PriorityBadge priority={a.priority} />
                         <div>

@@ -543,8 +543,8 @@ export default function HomePage() {
                       {lastProject.channel?.title ?? 'No channel'}
                     </p>
                     <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Video className="w-3 h-3" /> {lastProject._count.videos} videos</span>
-                      <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {lastProject._count.jobs} AI jobs</span>
+                      <span className="flex items-center gap-1"><Video className="w-3 h-3" /> {lastProject._count?.videos ?? 0} videos</span>
+                      <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {lastProject._count?.jobs ?? 0} AI jobs</span>
                     </div>
                   </div>
                   <div
