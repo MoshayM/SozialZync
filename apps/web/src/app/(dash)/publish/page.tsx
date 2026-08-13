@@ -1,7 +1,7 @@
 'use client';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CalendarClock, Sparkles, FlaskConical, Calendar } from 'lucide-react';
+import { CalendarClock, Sparkles, FlaskConical, Calendar, LayoutGrid } from 'lucide-react';
 import ApprovalsPage from '../approvals/page';
 import AutonomyPage from '../autonomy/page';
 import AbTestingPage from '../ab-testing/page';
@@ -20,7 +20,7 @@ const TABS: TabDef[] = [
     id: 'calendar',
     label: 'Calendar',
     icon: Calendar,
-    description: 'AI-generated content calendar — plan, schedule and publish',
+    description: 'AI-planned content calendar — generate schedules, review proposals and track your publishing plan',
     badge: 'AI',
   },
   {
@@ -28,13 +28,6 @@ const TABS: TabDef[] = [
     label: 'Publish Center',
     icon: CalendarClock,
     description: 'Review, schedule and track your published content',
-  },
-  {
-    id: 'autonomy',
-    label: 'Autopilot',
-    icon: Sparkles,
-    description: 'AI-powered auto-publishing settings',
-    badge: 'NEW',
   },
   {
     id: 'ab-testing',
@@ -45,11 +38,19 @@ const TABS: TabDef[] = [
   },
 ];
 
+type CalendarView = 'grid' | 'ai-planner';
+
+const CALENDAR_VIEWS: { id: CalendarView; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'grid',       label: 'Calendar Grid', icon: LayoutGrid },
+  { id: 'ai-planner', label: 'AI Planner',    icon: Sparkles   },
+];
+
 function PublishContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const activeTab = searchParams.get('tab') ?? 'calendar';
   const activeTabDef = TABS.find((t) => t.id === activeTab) ?? TABS[0];
+  const [calendarView, setCalendarView] = useState<CalendarView>('grid');
 
   return (
     <div className="flex flex-col min-h-full">
@@ -60,12 +61,10 @@ function PublishContent() {
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
-      {/* Outer: scroll container — separated from flex to fix iOS scroll bug */}
       <div
         className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 overflow-x-auto no-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {/* Inner: flex row wider than screen triggers outer scroll */}
         <div className="flex px-4 sm:px-6 min-w-max">
           {TABS.map((t) => {
             const active = activeTab === t.id;
@@ -91,9 +90,7 @@ function PublishContent() {
                       padding: '2px 5px',
                       borderRadius: '99px',
                       background:
-                        t.badge === 'NEW'
-                          ? 'linear-gradient(135deg,#10B981,#059669)'
-                          : t.badge === 'AI'
+                        t.badge === 'AI'
                           ? 'linear-gradient(135deg,#6D4AE0,#7c5ae8)'
                           : 'linear-gradient(135deg,#F59E0B,#D97706)',
                     }}
@@ -109,13 +106,38 @@ function PublishContent() {
 
       {/* ── Context description strip ────────────────────────────────────── */}
       <div className="px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9]">
-        <p className="text-xs text-gray-500 leading-none">{activeTabDef.description}</p>
+        <p className="text-xs text-gray-500 leading-none">{activeTabDef?.description}</p>
       </div>
 
+      {/* ── Calendar sub-view toggle ─────────────────────────────────────── */}
+      {activeTab === 'calendar' && (
+        <div className="px-5 sm:px-7 pt-4 pb-0 flex gap-2">
+          {CALENDAR_VIEWS.map((v) => {
+            const active = calendarView === v.id;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => setCalendarView(v.id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={
+                  active
+                    ? { background: '#6D4AE0', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.35)' }
+                    : { background: '#f0edf9', color: '#6D4AE0' }
+                }
+              >
+                <v.icon className="w-3.5 h-3.5" />
+                {v.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* ── Tab content ─────────────────────────────────────────────────── */}
-      {activeTab === 'calendar'       && <CalendarPage />}
+      {activeTab === 'calendar' && calendarView === 'grid'       && <CalendarPage />}
+      {activeTab === 'calendar' && calendarView === 'ai-planner' && <AutonomyPage />}
       {activeTab === 'publish-center' && <ApprovalsPage />}
-      {activeTab === 'autonomy'       && <AutonomyPage />}
       {activeTab === 'ab-testing'     && <AbTestingPage />}
     </div>
   );

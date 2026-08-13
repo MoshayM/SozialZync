@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarDays,
+  FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarDays, Upload,
   CheckCircle2, Circle, ChevronRight, Bot, Mic2, MessageSquare, TrendingUp,
   Clock, Activity, PlayCircle, FileText, Music2, Image as ImageIcon, Film,
   LayoutDashboard, Flame, Scissors, Send, Loader2, X,
@@ -69,7 +69,7 @@ const QUICK_ACTIONS = [
   { href: '/projects',      icon: Plus,          label: 'New Project',      sub: 'Start from scratch',           tileBg: '#6D4AE0' },
   { href: '/copilot',       icon: Bot,           label: 'AI Copilot',       sub: 'Chat with your AI crew',       tileBg: '#7c5ae8' },
   { href: '/shorts-studio', icon: Scissors,      label: 'Shorts Studio',    sub: 'Clip & export YouTube Shorts', tileBg: '#e11d48' },
-  { href: '/publish?tab=calendar', icon: CalendarDays,  label: 'Content Calendar', sub: 'AI-planned video schedule',    tileBg: '#0891b2' },
+  { href: '/publish',              icon: Upload,        label: 'Publish Hub',      sub: 'Calendar, planner & publish', tileBg: '#0891b2' },
 ];
 
 function greet(name: string): string {
