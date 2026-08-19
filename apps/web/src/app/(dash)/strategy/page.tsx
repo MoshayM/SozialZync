@@ -1,9 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Target, Loader2, ChevronDown, ChevronUp, TrendingUp, Clock, Zap, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Target, Loader2, ChevronDown, ChevronUp, TrendingUp, AlertTriangle, CheckCircle2, FolderPlus, Zap, Clock } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api, apiClient } from '@/lib/api';
 import { LoadingSteps } from '@/components/loading-steps';
+import { ContentToolbar } from '@/components/result-actions';
 
 interface Channel { id: string; title: string; youtubeChannelId?: string; }
 
@@ -40,6 +43,20 @@ const COMPLEXITY_BADGE: Record<string, string> = {
   medium: 'bg-yellow-100 text-yellow-700',
   high: 'bg-red-100 text-red-700',
 };
+
+function StartProjectButton({ title }: { title: string }) {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => { try { localStorage.setItem('cf_new_project_topic', title); } catch {} router.push('/projects'); }}
+      className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+      style={{ color: '#6D4AE0' }}
+    >
+      <FolderPlus className="w-3 h-3" /> Start project →
+    </button>
+  );
+}
 
 function WeekCard({ week }: { week: WeekPlan }) {
   const [open, setOpen] = useState(week.week <= 2);
@@ -84,6 +101,7 @@ function WeekCard({ week }: { week: WeekPlan }) {
                 </div>
                 <span className="text-xs text-gray-600 flex-shrink-0">Impact: {v.estimatedImpact}%</span>
               </div>
+              <StartProjectButton title={v.title} />
             </div>
           ))}
         </div>
@@ -157,6 +175,11 @@ export default function StrategyPage() {
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
                 </div>
+                {channels.length === 0 && (
+                  <Link href="/settings/channels" className="mt-1 block text-xs font-medium hover:underline" style={{ color: '#6D4AE0' }}>
+                    Connect a channel first →
+                  </Link>
+                )}
               </div>
 
               <div>
@@ -256,6 +279,22 @@ export default function StrategyPage() {
 
             {plan && (
               <div className="space-y-5">
+                <ContentToolbar
+                  text={[
+                    `# Content Strategy: ${plan.goal}`,
+                    `Timeframe: ${plan.timeframeWeeks} weeks`,
+                    '',
+                    plan.summary,
+                    '',
+                    '## Weekly Plan',
+                    ...plan.weeklyPlan.flatMap(w => [
+                      `### Week ${w.week}: ${w.theme}`,
+                      ...w.videos.map(v => `- ${v.title} (${v.suggestedFormat}, impact: ${v.estimatedImpact}%)\n  ${v.rationale}`),
+                    ]),
+                  ].join('\n')}
+                  filename={`strategy-${plan.goal.slice(0, 30).replace(/\s+/g, '-').toLowerCase()}`}
+                  onNew={() => setPlan(null)}
+                />
                 {/* Summary */}
                 <div className="rounded-2xl p-5" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
                   <h3 className="font-semibold mb-2 flex items-center gap-2" style={{ color: '#6D4AE0' }}><TrendingUp className="w-4 h-4" /> Strategy Overview</h3>

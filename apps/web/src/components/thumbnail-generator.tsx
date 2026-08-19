@@ -50,7 +50,7 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
     if (!title.trim()) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const res = await fetch('/api/v1/media-library/thumbnail/generate', {
+      const res = await fetch('/api/proxy/media-library/thumbnail/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({

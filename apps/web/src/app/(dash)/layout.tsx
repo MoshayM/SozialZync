@@ -7,7 +7,9 @@ import {
   FolderOpen, Settings, LogOut, Palette, Wallet,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
-  WifiOff, Music2, Mic2, Users2, ImagePlus,
+  WifiOff, Layers, Link2, Plus, Sparkles, Compass,
+  Calendar, FlaskConical, Shield, Scissors,
+  ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -30,24 +32,13 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { href: '/home',     icon: Home,       label: 'Home' },
-      { href: '/projects', icon: FolderOpen, label: 'Projects' },
-      { href: '/editor',   icon: Film,       label: 'Video Editor' },
-    ],
-  },
-  {
-    category: 'Studio',
-    items: [
-      { href: '/studio/characters', icon: Users2,    label: 'Characters' },
-      { href: '/studio/voices',     icon: Mic2,      label: 'Voice Library' },
-      { href: '/studio/music',      icon: Music2,    label: 'Music Library' },
-      { href: '/studio/assets',     icon: ImagePlus, label: 'Images & Assets' },
-    ],
-  },
-  {
-    items: [
-      { href: '/publish',  icon: Upload,    label: 'Publish Hub' },
-      { href: '/insights', icon: BarChart2, label: 'Analytics' },
+      { href: '/home',      icon: Home,       label: 'Home' },
+      { href: '/projects',  icon: FolderOpen, label: 'Projects' },
+      { href: '/editor',    icon: Film,       label: 'Video Editing' },
+      { href: '/studio',    icon: Layers,     label: 'Studio' },
+      { href: '/calendar',  icon: Calendar,   label: 'Content Calendar' },
+      { href: '/publish',   icon: Upload,     label: 'Publish Hub' },
+      { href: '/insights',  icon: BarChart2,  label: 'Analytics' },
     ],
   },
 ];
@@ -60,11 +51,13 @@ const BOTTOM_ITEMS: NavItem[] = [
   { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];
 
-/* Mobile bottom nav — 4 primary items + "More" button */
-const MOBILE_NAV_ITEMS = [
+/* Mobile bottom nav — 2 left + Create CTA + 2 right + More */
+const MOBILE_NAV_LEFT = [
   { href: '/home',     icon: Home,       label: 'Home' },
   { href: '/projects', icon: FolderOpen, label: 'Projects' },
-  { href: '/editor',   icon: Film,       label: 'Studio' },
+];
+const MOBILE_NAV_RIGHT = [
+  { href: '/content',  icon: Compass,    label: 'Studio' },
   { href: '/publish',  icon: Upload,     label: 'Publish' },
 ];
 
@@ -161,14 +154,155 @@ function GlobalSearch() {
         </button>
       ) : (
         <kbd
-          className="shrink-0 text-[11px] font-medium select-none"
+          className="shrink-0 text-[11px] font-medium select-none hidden lg:block"
           style={{ color: '#c4b0f5' }}
-          title="Press Enter to search"
+          title="Press ⌘K to open command palette"
         >
-          ⏎
+          ⌘K
         </kbd>
       )}
     </form>
+  );
+}
+
+// ── Command palette (Cmd+K / Ctrl+K) ─────────────────────────────────────────
+
+const PALETTE_ITEMS: Array<{ group: string; label: string; icon: React.ElementType; href: string }> = [
+  { group: 'Navigate', label: 'Home',             icon: Home,             href: '/home' },
+  { group: 'Navigate', label: 'Projects',          icon: FolderOpen,       href: '/projects' },
+  { group: 'Navigate', label: 'AI Copilot',        icon: Bot,              href: '/copilot' },
+  { group: 'Navigate', label: 'Shorts Studio',     icon: Scissors,         href: '/shorts-studio' },
+  { group: 'Navigate', label: 'Analytics',         icon: BarChart2,        href: '/insights' },
+  { group: 'Navigate', label: 'Creative Studio',    icon: Compass,          href: '/content' },
+  { group: 'Navigate', label: 'Publish Hub',        icon: Upload,           href: '/publish' },
+  { group: 'Navigate', label: 'Content Calendar',   icon: Calendar,         href: '/publish?tab=calendar' },
+  { group: 'Navigate', label: 'Research',          icon: BookOpen,         href: '/research' },
+  { group: 'Navigate', label: 'A/B Testing',       icon: FlaskConical,     href: '/ab-testing' },
+  { group: 'Navigate', label: 'Approvals',         icon: ShieldCheck,      href: '/approvals' },
+  { group: 'Navigate', label: 'Monitor',           icon: Activity,         href: '/monitor' },
+  { group: 'Navigate', label: 'Settings',          icon: Settings,         href: '/settings' },
+  { group: 'AI Tools', label: 'Repurpose Content', icon: ArrowRightLeft,   href: '/repurpose' },
+  { group: 'AI Tools', label: 'Series Planner',    icon: ListOrdered,      href: '/series-planner' },
+  { group: 'AI Tools', label: 'Score My Script',   icon: Award,            href: '/score-script' },
+  { group: 'AI Tools', label: 'Channel Strategy',  icon: Target,           href: '/strategy' },
+  { group: 'AI Tools', label: 'Automation',        icon: Zap,              href: '/automation' },
+  { group: 'AI Tools', label: 'Growth & Offers',   icon: Gift,             href: '/growth' },
+  { group: 'Quick actions', label: 'New project',       icon: Plus,     href: '/projects' },
+  { group: 'Quick actions', label: 'Open Copilot',      icon: Bot,      href: '/copilot' },
+  { group: 'Quick actions', label: 'Generate calendar', icon: Calendar, href: '/publish?tab=calendar' },
+  { group: 'Quick actions', label: 'Admin panel',       icon: Shield,   href: '/admin' },
+];
+
+function CommandPalette({
+  open, query, selectedIdx,
+  onClose, onQueryChange, onSelectedIdxChange, onNavigate,
+}: {
+  open: boolean;
+  query: string;
+  selectedIdx: number;
+  onClose: () => void;
+  onQueryChange: (q: string) => void;
+  onSelectedIdxChange: (i: number) => void;
+  onNavigate: (href: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 30);
+  }, [open]);
+
+  const filtered = PALETTE_ITEMS.filter(item =>
+    item.label.toLowerCase().includes(query.toLowerCase())
+  );
+  const groups = Array.from(new Set(filtered.map(i => i.group)));
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); onSelectedIdxChange(Math.min(selectedIdx + 1, filtered.length - 1)); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); onSelectedIdxChange(Math.max(selectedIdx - 1, 0)); }
+    if (e.key === 'Enter' && filtered[selectedIdx]) { onNavigate(filtered[selectedIdx].href); }
+  }
+
+  if (!open) return null;
+
+  let flatIdx = 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-[999] flex items-start justify-center pt-[15vh]"
+      style={{ background: 'rgba(0,0,0,.4)', backdropFilter: 'blur(4px)' }}
+      onMouseDown={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl"
+        style={{ background: '#fff', border: '1px solid #e3ddf8' }}
+        onMouseDown={e => e.stopPropagation()}
+      >
+        {/* Search input */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#f0edf9]">
+          <Search className="w-4 h-4 shrink-0 text-[#9a97ab]" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={e => { onQueryChange(e.target.value); onSelectedIdxChange(0); }}
+            onKeyDown={handleKeyDown}
+            placeholder="Search pages and actions…"
+            className="flex-1 bg-transparent outline-none text-sm text-[#1E1B2E] placeholder:text-[#9a97ab]"
+          />
+          <kbd className="text-[11px] font-medium px-1.5 py-0.5 rounded-md select-none" style={{ background: '#f3f4f6', color: '#9a97ab', border: '1px solid #e5e7eb' }}>ESC</kbd>
+        </div>
+
+        {/* Results */}
+        <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+          {filtered.length === 0 ? (
+            <p className="text-sm text-center py-10 text-gray-400">No results for &quot;{query}&quot;</p>
+          ) : (
+            groups.map(group => {
+              const items = filtered.filter(i => i.group === group);
+              return (
+                <div key={group}>
+                  <div className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{group}</div>
+                  {items.map(item => {
+                    const currentIdx = flatIdx++;
+                    const isSelected = currentIdx === selectedIdx;
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => onNavigate(item.href)}
+                        onMouseEnter={() => onSelectedIdxChange(currentIdx)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
+                        style={{
+                          background: isSelected ? '#f5f2fd' : 'transparent',
+                          color: isSelected ? '#6D4AE0' : '#374151',
+                        }}
+                      >
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: isSelected ? '#ede9fe' : '#f3f4f6' }}>
+                          <Icon className="w-3.5 h-3.5" style={{ color: isSelected ? '#6D4AE0' : '#6b7280' }} />
+                        </div>
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer hint */}
+        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-[#f0edf9]">
+          {[['↑↓', 'Navigate'], ['↵', 'Open'], ['Esc', 'Close']].map(([key, action]) => (
+            <span key={key} className="flex items-center gap-1 text-[11px] text-gray-400">
+              <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb' }}>{key}</kbd>
+              {action}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -213,6 +347,45 @@ function CreditsBanner() {
   );
 }
 
+// ── User avatar — shows profile image with deterministic gradient fallback ────
+// Works offline: if avatarUrl fails to load (network error, expired URL, CORS),
+// falls back to a gradient tile with the user's initial — no network required.
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#6D4AE0,#9C88DD)',
+  'linear-gradient(135deg,#7c5ae8,#a78bfa)',
+  'linear-gradient(135deg,#5B3BD0,#8B5CF6)',
+  'linear-gradient(135deg,#4338CA,#818CF8)',
+  'linear-gradient(135deg,#7C3AED,#C084FC)',
+];
+
+function UserAvatar({ name, url, size = 32 }: { name: string; url?: string | null; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const initial = (name || '?').charAt(0).toUpperCase();
+  const grad = AVATAR_GRADIENTS[(name.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length];
+  const radius = `${Math.round(size * 0.28)}px`;
+
+  const fallback = (
+    <div className="flex items-center justify-center text-white font-bold text-sm uppercase select-none shrink-0"
+      style={{ width: size, height: size, borderRadius: radius, background: grad, letterSpacing: '-0.01em' }}>
+      {initial}
+    </div>
+  );
+
+  if (!url || failed) return fallback;
+
+  return (
+    <img
+      src={url}
+      alt={initial}
+      width={size}
+      height={size}
+      onError={() => setFailed(true)}
+      style={{ width: size, height: size, borderRadius: radius, objectFit: 'cover', display: 'block', flexShrink: 0 }}
+    />
+  );
+}
+
 export default function DashLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -226,6 +399,30 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     staleTime: 60_000,
     enabled: !!token,
   });
+
+  /* Command palette */
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState('');
+  const [paletteIdx, setPaletteIdx] = useState(0);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen(o => !o);
+        if (!paletteOpen) { setPaletteQuery(''); setPaletteIdx(0); }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [paletteOpen]);
+
+  function closePalette() { setPaletteOpen(false); setPaletteQuery(''); setPaletteIdx(0); }
+
+  function paletteNavigate(href: string) {
+    closePalette();
+    router.push(href);
+  }
 
   /* Desktop sidebar collapsed to icon-only rail */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -246,7 +443,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   /* Mobile drawer overlay open */
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set<string>([]));
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set<string>(['Studio']));
   function toggleSection(cat: string) {
     setOpenSections(prev => {
       const next = new Set(prev);
@@ -397,7 +594,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           {isOpen && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {items.map(({ href, icon: Icon, label, badge, action }) => {
-                const isActive = !action && (pathname === href || pathname.startsWith(href + '/'));
+                const isActive = !action && (
+                  href === '/studio'
+                    ? (pathname === '/studio' || pathname.startsWith('/studio/') || pathname.startsWith('/shorts-studio'))
+                    : (pathname === href || pathname.startsWith(href + '/'))
+                );
                 const itemStyle: React.CSSProperties = {
                   gap: '11px',
                   padding: opts.collapsed ? '11px 0' : '10px 12px',
@@ -475,6 +676,16 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="cf-shell overflow-hidden flex flex-col bg-[#F4F3FB] text-[#1E1B2E]">
 
+      <CommandPalette
+        open={paletteOpen}
+        query={paletteQuery}
+        selectedIdx={paletteIdx}
+        onClose={closePalette}
+        onQueryChange={setPaletteQuery}
+        onSelectedIdxChange={setPaletteIdx}
+        onNavigate={paletteNavigate}
+      />
+
       {/* ── TOPBAR ──────────────────────────────────────────────────────── */}
       <header className="flex items-center gap-2 sm:gap-3.5 px-3 sm:px-[22px] py-[11px] bg-white border-b border-[#ECECF3] shrink-0 z-[30]">
 
@@ -493,7 +704,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" style={{ borderRadius: '11px', boxShadow: '0 6px 14px -6px rgba(124,58,237,.5)' }} />
           <div className="leading-[1.15] hidden sm:block">
             <div className="font-bold text-[15px] tracking-[-0.3px]">Sozialzync</div>
-            <div className="text-[11px] font-medium" style={{ color: '#5a576b' }}>AI Content Platform</div>
+            <div className="text-[11px] font-medium" style={{ color: '#5a576b' }}>YouTube Content OS</div>
           </div>
           <span className="font-bold text-[15px] tracking-[-0.3px] sm:hidden">Sozialzync</span>
         </div>
@@ -527,6 +738,18 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         >
           <Bot className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
         </button>
+
+        {/* Channel Access shortcut */}
+        <Link
+          href="/settings/channels"
+          title="Channel Access"
+          className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
+          style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; }}
+        >
+          <Link2 className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
+        </Link>
 
         {/* Notification bell */}
         <div className="relative shrink-0" ref={bellRef}>
@@ -624,13 +847,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             className="flex items-center gap-2 hover:bg-[#F6F5FC] active:bg-[#EDE9FD] transition-colors cursor-pointer touch-manipulation"
             style={{ background: '#fff', border: '1px solid #ECECF3', borderRadius: '12px', padding: '5px 5px 5px 5px' }}
           >
-            {meData?.avatarUrl ? (
-              <img src={meData.avatarUrl} alt={meData.name ?? 'Avatar'} style={{ width: '32px', height: '32px', borderRadius: '9px', objectFit: 'cover' }} />
-            ) : (
-              <div className="flex items-center justify-center text-white font-bold text-sm uppercase" style={{ width: '32px', height: '32px', borderRadius: '9px', background: 'linear-gradient(135deg,#9C88DD,#7E62C9)' }}>
-                {(meData?.name ?? userName).charAt(0)}
-              </div>
-            )}
+            <UserAvatar name={meData?.name ?? userName} url={meData?.avatarUrl} size={32} />
             {/* Name — shown on sm+ screens */}
             <div className="hidden sm:block max-w-[120px]" style={{ lineHeight: 1.2, textAlign: 'left', paddingRight: '6px' }}>
               <div className="truncate" style={{ fontWeight: 700, fontSize: '13.5px' }}>{meData?.name ?? userName}</div>
@@ -757,7 +974,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <>
                 <div style={{ overflow: 'hidden', lineHeight: 1.35, flex: '1 1 auto' }}>
                   <div style={{ fontWeight: 800, fontSize: '16px', color: '#fff', letterSpacing: '-.4px', whiteSpace: 'nowrap' }}>Sozialzync</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.9)', fontWeight: 500, letterSpacing: '.15px', whiteSpace: 'nowrap' }}>AI Content Platform</div>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.9)', fontWeight: 500, letterSpacing: '.15px', whiteSpace: 'nowrap' }}>YouTube Content OS</div>
                 </div>
                 {/* Close button — only visible on mobile */}
                 <button
@@ -829,38 +1046,86 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
       {/* ── MOBILE BOTTOM NAV ────────────────────────────────────────────── */}
       <nav
-        className="cf-mobile-nav fixed bottom-0 inset-x-0 lg:hidden z-30 bg-white border-t border-[#ECECF3]"
+        className="cf-mobile-nav fixed bottom-0 inset-x-0 lg:hidden z-30"
         aria-label="Mobile navigation"
+        style={{ background: '#fff', borderTop: '1px solid #ECECF3' }}
       >
-        <div className="flex items-stretch h-14">
-          {MOBILE_NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+        <div className="flex items-center h-14">
+
+          {/* Left 2 tabs */}
+          {MOBILE_NAV_LEFT.map(({ href, icon: Icon, label }) => {
             const isActive = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link
                 key={href}
                 href={href}
-                className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-colors active:bg-[#F6F5FC] touch-manipulation"
-                style={{ color: isActive ? '#7C3AED' : '#9a97ab', minHeight: '44px' }}
+                className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative"
+                style={{ color: isActive ? '#7C3AED' : '#9a97ab' }}
+                aria-current={isActive ? 'page' : undefined}
               >
-                <Icon className="w-[21px] h-[21px]" style={{ color: isActive ? '#7C3AED' : '#9a97ab' }} />
-                <span className="text-[10px] font-semibold leading-none" style={{ color: isActive ? '#7C3AED' : '#9a97ab' }}>{label}</span>
                 {isActive && (
-                  <span className="absolute bottom-0 h-0.5 w-8 rounded-full" style={{ background: '#7C3AED' }} />
+                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#7C3AED' }} />
                 )}
+                <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
+                <span className="text-[10.5px] font-semibold leading-none">{label}</span>
               </Link>
             );
           })}
+
+          {/* Centre — Create CTA */}
+          <div className="flex-1 flex flex-col items-center justify-center h-full">
+            <Link
+              href="/content"
+              aria-label="Create new content"
+              className="flex flex-col items-center gap-[3px] touch-manipulation active:scale-95 transition-transform"
+            >
+              <span
+                className="flex items-center justify-center"
+                style={{
+                  width: 40, height: 40,
+                  borderRadius: 13,
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #9D6FE8 100%)',
+                  boxShadow: '0 3px 12px rgba(124,58,237,0.38)',
+                }}
+              >
+                <Plus className="w-[21px] h-[21px] text-white" strokeWidth={2.5} />
+              </span>
+              <span className="text-[10.5px] font-semibold leading-none" style={{ color: '#7C3AED' }}>Create</span>
+            </Link>
+          </div>
+
+          {/* Right 2 tabs */}
+          {MOBILE_NAV_RIGHT.map(({ href, icon: Icon, label }) => {
+            const isActive = pathname === href || pathname.startsWith(href + '/');
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative"
+                style={{ color: isActive ? '#7C3AED' : '#9a97ab' }}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {isActive && (
+                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#7C3AED' }} />
+                )}
+                <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
+                <span className="text-[10.5px] font-semibold leading-none">{label}</span>
+              </Link>
+            );
+          })}
+
           {/* More — opens drawer */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-colors active:bg-[#F6F5FC] touch-manipulation border-none"
-            style={{ background: 'transparent', minHeight: '44px' }}
+            className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation border-none relative"
+            style={{ background: 'transparent', color: '#9a97ab' }}
             aria-label="Open navigation menu"
           >
-            <Menu className="w-[21px] h-[21px]" style={{ color: '#9a97ab' }} />
-            <span className="text-[10px] font-semibold leading-none" style={{ color: '#9a97ab' }}>More</span>
+            <Menu className="w-[22px] h-[22px]" strokeWidth={1.8} />
+            <span className="text-[10.5px] font-semibold leading-none">More</span>
           </button>
+
         </div>
       </nav>
 

@@ -8,7 +8,7 @@ import {
   Volume2, Zap, Type, Image, X,
   ZoomIn, ZoomOut, Plus, Maximize2,
   SlidersHorizontal, ChevronDown, ChevronRight, Clapperboard, Sparkles, KeyRound,
-  Music, CheckCircle2, HelpCircle,
+  Music, CheckCircle2, HelpCircle, Mic, ListMusic,
 } from 'lucide-react';
 import {
   api,
@@ -29,6 +29,8 @@ import {
   type EditExportOptions,
   type RenderFormat,
   type RenderQuality,
+  type VoiceLibraryEntry,
+  type MusicTrack,
 } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 
@@ -114,7 +116,16 @@ const QUALITIES: { value: RenderQuality; label: string; hint: string }[] = [
   { value: 'high', label: 'High', hint: 'Maximum quality, larger file' },
 ];
 
-function ExportDialog({ editId, onClose }: { editId: string; onClose: () => void }) {
+function ExportDialog({
+  editId,
+  onClose,
+  onBeforeRender,
+}: {
+  editId: string;
+  onClose: () => void;
+  /** Called before enqueueing the render job — use this to flush any unsaved timeline changes. */
+  onBeforeRender?: () => Promise<void>;
+}) {
   const [preset, setPreset] = useState<RenderPreset>('1080P_16_9');
   const [format, setFormat] = useState<RenderFormat>('mp4');
   const [quality, setQuality] = useState<RenderQuality>('standard');
@@ -135,6 +146,10 @@ function ExportDialog({ editId, onClose }: { editId: string; onClose: () => void
     setError(null);
     setRenderStatus(null);
     try {
+      // Flush any unsaved timeline edits (including effects/filters) to the server
+      // before enqueueing the render job. Without this, changes made since the last
+      // auto-save would be silently ignored by the render worker.
+      if (onBeforeRender) await onBeforeRender();
       const options: EditExportOptions = { preset, format, quality };
       const res = await api.editor.render(editId, options);
       setRenderStatus(res.data.renderStatus);
@@ -399,6 +414,241 @@ function AiEditDialog({ editId, timeline, autoSuggest = false, onClose, onApplyT
   );
 }
 
+// ── AI Audio Panel (shown in Inspector when nothing is selected) ──────────────
+
+function AIAudioPanel({
+  editId,
+  onAddToTimeline,
+}: {
+  editId: string;
+  onAddToTimeline: (entry: MediaBinEntry) => void;
+}) {
+  const [tab, setTab] = useState<'voice' | 'music'>('voice');
+
+  // Voice state
+  const [voices, setVoices] = useState<VoiceLibraryEntry[]>([]);
+  const [voicesLoading, setVoicesLoading] = useState(false);
+  const [selectedVoiceId, setSelectedVoiceId] = useState('');
+  const [selectedVoiceSource, setSelectedVoiceSource] = useState<'elevenlabs' | 'openai'>('openai');
+  const [script, setScript] = useState('');
+  const [voiceGenerating, setVoiceGenerating] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
+  const [voiceDone, setVoiceDone] = useState(false);
+
+  // Music state
+  const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
+  const [musicLoading, setMusicLoading] = useState(false);
+  const [selectedMusic, setSelectedMusic] = useState<MusicTrack | null>(null);
+  const [musicAiPicking, setMusicAiPicking] = useState(false);
+  const [musicError, setMusicError] = useState('');
+  const [musicVibe, setMusicVibe] = useState('');
+
+  useEffect(() => {
+    setVoicesLoading(true);
+    api.voice.library()
+      .then((r) => {
+        setVoices(r.data);
+        const first = r.data[0];
+        if (first) { setSelectedVoiceId(first.id); setSelectedVoiceSource(first.source); }
+      })
+      .catch(() => {})
+      .finally(() => setVoicesLoading(false));
+  }, []);
+
+  useEffect(() => {
+    setMusicLoading(true);
+    api.music.list()
+      .then((r) => setMusicTracks(r.data))
+      .catch(() => {})
+      .finally(() => setMusicLoading(false));
+  }, []);
+
+  async function handleGenerateVoice() {
+    if (!script.trim() || !selectedVoiceId) return;
+    setVoiceGenerating(true); setVoiceError(''); setVoiceDone(false);
+    try {
+      const { data } = await api.editor.generateVoice(editId, { text: script.trim(), voiceId: selectedVoiceId, source: selectedVoiceSource });
+      onAddToTimeline(data);
+      setVoiceDone(true);
+      setScript('');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setVoiceError(msg ?? 'Voiceover generation failed. Check your ElevenLabs / OpenAI key in Settings → AI Providers.');
+    } finally {
+      setVoiceGenerating(false);
+    }
+  }
+
+  async function handleAiPickMusic() {
+    setMusicAiPicking(true); setMusicError('');
+    try {
+      const { data } = await api.music.autoSelect(musicVibe || 'upbeat background music for YouTube');
+      if (data.track) setSelectedMusic(data.track);
+      else setMusicError('No matching track in your library. Add music tracks via Studio → Music first.');
+    } catch {
+      setMusicError('AI pick failed. Try again.');
+    } finally {
+      setMusicAiPicking(false);
+    }
+  }
+
+  function addMusicToTimeline() {
+    if (!selectedMusic) return;
+    onAddToTimeline({
+      id: selectedMusic.id,
+      kind: 'MUSIC',
+      label: selectedMusic.title,
+      durationMs: Math.round(selectedMusic.duration * 1000),
+      previewPath: selectedMusic.fileUrl,
+      versionId: null,
+    });
+    setSelectedMusic(null);
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Tab bar */}
+      <div className="flex border-b border-gray-100 shrink-0">
+        {(['voice', 'music'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`flex-1 py-3 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${tab === t ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            {t === 'voice' ? <><Mic className="w-3.5 h-3.5" /> Voice</> : <><ListMusic className="w-3.5 h-3.5" /> Music</>}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {tab === 'voice' && (
+          <>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Generate an AI voiceover and add it directly to the timeline.
+            </p>
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1.5">Voice</label>
+              {voicesLoading ? (
+                <p className="text-xs text-gray-400 flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Loading voices…</p>
+              ) : voices.length === 0 ? (
+                <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">No voices available. Add ElevenLabs or OpenAI keys in Settings → AI Providers.</p>
+              ) : (
+                <select
+                  value={selectedVoiceId}
+                  onChange={(e) => {
+                    setSelectedVoiceId(e.target.value);
+                    const v = voices.find((vv) => vv.id === e.target.value);
+                    if (v) setSelectedVoiceSource(v.source);
+                  }}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
+                >
+                  {voices.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.source === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI'}{v.gender ? ` · ${v.gender}` : ''})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1.5">Script / Text</label>
+              <textarea
+                value={script}
+                onChange={(e) => { setScript(e.target.value); setVoiceDone(false); setVoiceError(''); }}
+                placeholder="Paste your voiceover script here…"
+                rows={6}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-brand-300"
+              />
+            </div>
+            {voiceError && <p className="text-[11px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{voiceError}</p>}
+            {voiceDone && (
+              <p className="text-[11px] text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> Voiceover added to timeline!
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={voiceGenerating || !script.trim() || !selectedVoiceId}
+              onClick={() => { void handleGenerateVoice(); }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(109,74,224,0.3)' }}
+            >
+              {voiceGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mic className="w-3.5 h-3.5" />}
+              {voiceGenerating ? 'Generating…' : 'Generate & Add to Timeline'}
+            </button>
+          </>
+        )}
+
+        {tab === 'music' && (
+          <>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              AI picks the best background track from your library, or browse manually.
+            </p>
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1.5">Describe the vibe (optional)</label>
+              <input
+                type="text"
+                value={musicVibe}
+                onChange={(e) => setMusicVibe(e.target.value)}
+                placeholder="e.g. energetic tech tutorial, calm lo-fi"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={musicAiPicking}
+              onClick={() => { void handleAiPickMusic(); }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border border-brand-300 text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-50"
+            >
+              {musicAiPicking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {musicAiPicking ? 'AI picking…' : 'AI Pick Music'}
+            </button>
+            {musicError && <p className="text-[11px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{musicError}</p>}
+            {musicTracks.length > 0 && (
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1.5">Or pick from library</label>
+                <select
+                  value={selectedMusic?.id ?? ''}
+                  onChange={(e) => setSelectedMusic(musicTracks.find((m) => m.id === e.target.value) ?? null)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
+                >
+                  <option value="">— select a track —</option>
+                  {musicTracks.map((t) => (
+                    <option key={t.id} value={t.id}>{t.title}{t.artist ? ` — ${t.artist}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {musicLoading && <p className="text-xs text-gray-400 flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Loading library…</p>}
+            {selectedMusic && (
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-800">{selectedMusic.title}</p>
+                {selectedMusic.artist && <p className="text-[11px] text-gray-500">{selectedMusic.artist}</p>}
+                <div className="flex gap-1.5 flex-wrap">
+                  {selectedMusic.mood.slice(0, 3).map((m) => (
+                    <span key={m} className="text-[10px] bg-brand-100 text-brand-700 rounded px-1.5 py-0.5">{m}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button
+              type="button"
+              disabled={!selectedMusic}
+              onClick={addMusicToTimeline}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(109,74,224,0.3)' }}
+            >
+              <ListMusic className="w-3.5 h-3.5" />
+              Add to Timeline
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Inspector Panel ───────────────────────────────────────────────────────────
 
 function Inspector({
@@ -406,11 +656,15 @@ function Inspector({
   onChange,
   onDelete,
   currentTimeMs,
+  editId,
+  onAddToTimeline,
 }: {
   item: EditItem | null;
   onChange: (patch: Partial<EditItem>) => void;
   onDelete?: () => void;
   currentTimeMs: number;
+  editId: string;
+  onAddToTimeline: (entry: MediaBinEntry) => void;
 }) {
   // Collapsible section open states
   const [effectsOpen, setEffectsOpen] = useState(true);
@@ -418,13 +672,14 @@ function Inspector({
   const [textAnimOpen, setTextAnimOpen] = useState(true);
   const [keyframesOpen, setKeyframesOpen] = useState(true);
   const [audioOpen, setAudioOpen] = useState(true);
+  const [aiAudioOpen, setAiAudioOpen] = useState(true);
+  const [enhancing, setEnhancing] = useState(false);
+  const [enhanceDone, setEnhanceDone] = useState(false);
+  const [enhanceError, setEnhanceError] = useState('');
+  const [enhanceSteps, setEnhanceSteps] = useState({ trimSilence: true, denoise: true, normalize: true });
 
   if (!item) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-400 text-sm p-4 text-center">
-        Click an item on the timeline to inspect and edit its properties
-      </div>
-    );
+    return <AIAudioPanel editId={editId} onAddToTimeline={onAddToTimeline} />;
   }
 
   const props = item.properties ?? {};
@@ -896,6 +1151,78 @@ function Inspector({
                   </label>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── AI AUDIO section (VIDEO / AUDIO) — enhance audio with AI processing ── */}
+      {(item.kind === 'AUDIO' || item.kind === 'VIDEO') && (
+        <div className="border-t border-gray-100 pt-4">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 w-full text-left mb-3 min-h-[44px]"
+            onClick={() => setAiAudioOpen((o) => !o)}
+            aria-expanded={aiAudioOpen}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+            <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide flex-1">AI Audio Enhance</p>
+            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${aiAudioOpen ? '' : '-rotate-90'}`} />
+          </button>
+          {aiAudioOpen && (
+            <div className="space-y-3">
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Processes the audio server-side. The cleaned version is saved as a new asset version.
+              </p>
+              {(['trimSilence', 'denoise', 'normalize'] as const).map((step) => (
+                <label key={step} className="flex items-center gap-2 cursor-pointer min-h-[36px]">
+                  <input
+                    type="checkbox"
+                    checked={enhanceSteps[step]}
+                    onChange={(e) => setEnhanceSteps((s) => ({ ...s, [step]: e.target.checked }))}
+                    className="w-4 h-4 accent-brand-600 rounded"
+                  />
+                  <span className="text-xs text-gray-700 font-medium">
+                    {step === 'trimSilence' ? 'Trim silence' : step === 'denoise' ? 'Noise removal' : 'Normalize loudness (−14 LUFS)'}
+                  </span>
+                </label>
+              ))}
+              {enhanceError && (
+                <p className="text-[11px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{enhanceError}</p>
+              )}
+              {enhanceDone && !enhanceError && (
+                <p className="text-[11px] text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> Audio enhanced — new version saved
+                </p>
+              )}
+              <button
+                type="button"
+                disabled={enhancing || (!enhanceSteps.trimSilence && !enhanceSteps.denoise && !enhanceSteps.normalize)}
+                onClick={async () => {
+                  if (!item.sourceAssetId) return;
+                  setEnhancing(true); setEnhanceDone(false); setEnhanceError('');
+                  try {
+                    const { data } = await api.editor.enhanceAsset(editId, {
+                      assetVersionId: item.sourceAssetId,
+                      ...enhanceSteps,
+                    });
+                    if (data.durationMs && data.durationMs !== (item.timelineEndMs - item.timelineStartMs)) {
+                      onChange({ timelineEndMs: item.timelineStartMs + data.durationMs });
+                    }
+                    setEnhanceDone(true);
+                  } catch (err: unknown) {
+                    const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    setEnhanceError(msg ?? 'Enhancement failed. The audio file may not be locally accessible on the server.');
+                  } finally {
+                    setEnhancing(false);
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(109,74,224,0.3)' }}
+              >
+                {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {enhancing ? 'Processing audio…' : 'Run AI Enhance'}
+              </button>
             </div>
           )}
         </div>
@@ -1880,7 +2207,7 @@ export default function EditorWorkspacePage() {
             <Maximize2 className="w-3.5 h-3.5 text-gray-500" />
             <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Inspector</p>
           </div>
-          <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} currentTimeMs={currentTimeMs} />
+          <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
         </aside>
 
         {/* Mobile inspector slide-over */}
@@ -1894,14 +2221,14 @@ export default function EditorWorkspacePage() {
                   <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
-              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} currentTimeMs={currentTimeMs} />
+              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
             </div>
           </div>
         )}
       </div>
 
       {/* Dialogs */}
-      {showExport && <ExportDialog editId={editId} onClose={() => setShowExport(false)} />}
+      {showExport && <ExportDialog editId={editId} onClose={() => setShowExport(false)} onBeforeRender={handleSave} />}
       {showAiEdit && (
         <AiEditDialog
           editId={editId}

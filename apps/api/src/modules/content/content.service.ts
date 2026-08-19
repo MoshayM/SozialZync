@@ -33,11 +33,14 @@ export class ContentService {
     );
   }
 
-  async writeScript(research: ResearchOutput, targetDurationMins = 10): Promise<ScriptOutput> {
+  async writeScript(research: ResearchOutput, targetDurationMins = 10, targetLang = 'en'): Promise<ScriptOutput> {
+    const langNote = targetLang && targetLang !== 'en' && targetLang !== 'en-US'
+      ? `\n\nIMPORTANT: Write the entire script in ${targetLang} (BCP-47). All narration, headings, hook and CTA must be in that language.`
+      : '';
     return callAIStructured(
       [{
         role: 'user',
-        content: `Write a YouTube script based on this research:\n\nTopic: ${research.topic}\nSummary: ${research.summary}\nKey Points: ${research.keyPoints.join('\n')}\nTarget Duration: ${targetDurationMins} minutes\n\nSources to reference:\n${research.sources.map((s) => `- ${s.title}: ${s.url}`).join('\n')}\n\nRespond with EXACTLY this JSON structure (no extra text, no markdown, no code fences):\n{"title":"Video title here","hook":"Opening hook sentence that grabs attention","sections":[{"heading":"Section heading","content":"Full section content paragraph","durationEstimateSecs":120}],"callToAction":"Subscribe and hit the bell icon for more videos like this","totalWordCount":1500,"estimatedDurationMins":${targetDurationMins},"sources":["https://source1.com","https://source2.com"]}`,
+        content: `Write a YouTube script based on this research:\n\nTopic: ${research.topic}\nSummary: ${research.summary}\nKey Points: ${research.keyPoints.join('\n')}\nTarget Duration: ${targetDurationMins} minutes\n\nSources to reference:\n${research.sources.map((s) => `- ${s.title}: ${s.url}`).join('\n')}${langNote}\n\nRespond with EXACTLY this JSON structure (no extra text, no markdown, no code fences):\n{"title":"Video title here","hook":"Opening hook sentence that grabs attention","sections":[{"heading":"Section heading","content":"Full section content paragraph","durationEstimateSecs":120}],"callToAction":"Subscribe and hit the bell icon for more videos like this","totalWordCount":1500,"estimatedDurationMins":${targetDurationMins},"sources":["https://source1.com","https://source2.com"]}`,
       }],
       ScriptOutputSchema,
       { systemPrompt: SCRIPT_SYSTEM, maxTokens: 8192 },

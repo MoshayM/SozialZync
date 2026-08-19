@@ -1,12 +1,8 @@
 'use client';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Upload, CheckCircle, CalendarClock, Sparkles, FlaskConical, Link2 } from 'lucide-react';
-import { ProBanner } from '@/components/pro-gate';
-import PublishingPage from '../publishing/page';
-import PublishingAccountsPage from '../publishing/accounts/page';
+import { CalendarClock, Sparkles, FlaskConical } from 'lucide-react';
 import ApprovalsPage from '../approvals/page';
-import SchedulerPage from '../scheduler/page';
 import AutonomyPage from '../autonomy/page';
 import AbTestingPage from '../ab-testing/page';
 
@@ -15,40 +11,22 @@ interface TabDef {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
-  badge?: 'NEW' | 'BETA';
+  badge?: 'NEW' | 'BETA' | 'AI';
 }
 
 const TABS: TabDef[] = [
   {
-    id: 'accounts',
-    label: 'Accounts',
-    icon: Link2,
-    description: 'Connect and manage your publishing accounts across all platforms',
-  },
-  {
-    id: 'approvals',
-    label: 'Review',
-    icon: CheckCircle,
-    description: 'Approve content before it goes live',
-  },
-  {
-    id: 'scheduler',
-    label: 'Schedule',
-    icon: CalendarClock,
-    description: 'Plan and time your posting calendar',
-  },
-  {
-    id: 'publishing',
-    label: 'History',
-    icon: Upload,
-    description: 'Published and upcoming videos',
-  },
-  {
-    id: 'autonomy',
-    label: 'Autopilot',
+    id: 'ai-planner',
+    label: 'AI Planner',
     icon: Sparkles,
-    description: 'AI-powered auto-publishing settings',
-    badge: 'NEW',
+    description: 'Generate AI-powered content schedules — review proposals and approve ideas for your calendar',
+    badge: 'AI',
+  },
+  {
+    id: 'publish-center',
+    label: 'Publish Center',
+    icon: CalendarClock,
+    description: 'Review, schedule and track your published content',
   },
   {
     id: 'ab-testing',
@@ -62,7 +40,7 @@ const TABS: TabDef[] = [
 function PublishContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const activeTab = searchParams.get('tab') ?? 'approvals';
+  const activeTab = searchParams.get('tab') ?? 'ai-planner';
   const activeTabDef = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
   return (
@@ -70,72 +48,62 @@ function PublishContent() {
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="px-5 pt-5 pb-0 sm:px-7">
         <h1 className="text-xl font-extrabold text-gray-900 leading-tight">Publish Hub</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Manage, schedule and optimise your content</p>
+        <p className="text-sm text-gray-400 mt-0.5">Generate, schedule and publish your content</p>
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 px-4 sm:px-6 flex overflow-x-auto no-scrollbar"
+        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 overflow-x-auto no-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {TABS.map((t) => {
-          const active = activeTab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => router.replace(`/publish?tab=${t.id}`)}
-              className={[
-                'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
-                active
-                  ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
-              ].join(' ')}
-            >
-              <t.icon className={`w-4 h-4 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
-              {t.label}
-              {t.badge && (
-                <span
-                  className="text-white font-bold leading-none"
-                  style={{
-                    fontSize: '9px',
-                    padding: '2px 5px',
-                    borderRadius: '99px',
-                    background:
-                      t.badge === 'NEW'
-                        ? 'linear-gradient(135deg,#10B981,#059669)'
-                        : 'linear-gradient(135deg,#F59E0B,#D97706)',
-                  }}
-                >
-                  {t.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        <div className="flex px-4 sm:px-6 min-w-max">
+          {TABS.map((t) => {
+            const active = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => router.replace(`/publish?tab=${t.id}`)}
+                className={[
+                  'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap touch-manipulation',
+                  active
+                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
+                ].join(' ')}
+              >
+                <t.icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
+                {t.label}
+                {t.badge && (
+                  <span
+                    className="text-white font-bold leading-none"
+                    style={{
+                      fontSize: '9px',
+                      padding: '2px 5px',
+                      borderRadius: '99px',
+                      background:
+                        t.badge === 'AI'
+                          ? 'linear-gradient(135deg,#6D4AE0,#7c5ae8)'
+                          : 'linear-gradient(135deg,#F59E0B,#D97706)',
+                    }}
+                  >
+                    {t.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Context description strip ────────────────────────────────────── */}
       <div className="px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9]">
-        <p className="text-xs text-gray-500 leading-none">{activeTabDef.description}</p>
+        <p className="text-xs text-gray-500 leading-none">{activeTabDef?.description}</p>
       </div>
 
-      {/* ── ProBanner — only on History tab ─────────────────────────────── */}
-      {activeTab === 'publishing' && (
-        <ProBanner
-          feature="Direct publishing"
-          description="Connect your YouTube, Instagram, TikTok and other accounts to publish directly. Upgrade to Pro to unlock channel connections and one-click publishing."
-          className="mx-4 mt-4 sm:mx-6"
-        />
-      )}
-
       {/* ── Tab content ─────────────────────────────────────────────────── */}
-      {activeTab === 'accounts'   && <PublishingAccountsPage />}
-      {activeTab === 'approvals'  && <ApprovalsPage />}
-      {activeTab === 'scheduler'  && <SchedulerPage />}
-      {activeTab === 'publishing' && <PublishingPage />}
-      {activeTab === 'autonomy'   && <AutonomyPage />}
-      {activeTab === 'ab-testing' && <AbTestingPage />}
+      {activeTab === 'ai-planner'     && <AutonomyPage />}
+      {activeTab === 'publish-center' && <ApprovalsPage />}
+      {activeTab === 'ab-testing'     && <AbTestingPage />}
     </div>
   );
 }

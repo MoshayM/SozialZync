@@ -12,19 +12,10 @@ import { FishSpeechVoiceAdapter } from './adapters/voice-fish-speech.adapter';
 import { StyleTTS2VoiceAdapter } from './adapters/voice-styletts2.adapter';
 import { KokoroVoiceAdapter } from './adapters/voice-kokoro.adapter';
 import { PiperVoiceAdapter } from './adapters/voice-piper.adapter';
-import { ElevenLabsVoiceAdapter } from './adapters/voice-elevenlabs.adapter';
-import { OpenAiVoiceAdapter } from './adapters/voice-openai.adapter';
 import { OfflineVoiceAdapter } from './adapters/voice-offline.adapter';
-import { OpenAiImageAdapter } from './adapters/image-openai.adapter';
-import { GeminiImageAdapter } from './adapters/image-gemini.adapter';
 import { OfflineImageAdapter } from './adapters/image-offline.adapter';
 import { OfflineMusicAdapter } from './adapters/music-offline.adapter';
-import { StabilityMusicAdapter } from './adapters/music-stability.adapter';
-import { ReplicateMusicAdapter } from './adapters/music-replicate.adapter';
 import { FfmpegSceneVideoAdapter } from './adapters/video-ffmpeg.adapter';
-import { LumaVideoAdapter } from './adapters/video-luma.adapter';
-import { RunwayVideoAdapter } from './adapters/video-runway.adapter';
-import { KlingVideoAdapter } from './adapters/video-kling.adapter';
 import { ComfyUIImageAdapter } from './adapters/image-comfyui.adapter';
 import { A1111ImageAdapter } from './adapters/image-a1111.adapter';
 import { ComfyUIVideoAdapter } from './adapters/video-comfyui.adapter';
@@ -59,22 +50,22 @@ export class MediaService {
 
   private readonly voice: AdapterChain<VoiceAdapter> = {
     configured: process.env['VOICE_PROVIDER'],
-    adapters: [new CoquiVoiceAdapter(), new FishSpeechVoiceAdapter(), new StyleTTS2VoiceAdapter(), new KokoroVoiceAdapter(), new PiperVoiceAdapter(), new ElevenLabsVoiceAdapter(), new OpenAiVoiceAdapter(), new OfflineVoiceAdapter()],
+    adapters: [new CoquiVoiceAdapter(), new FishSpeechVoiceAdapter(), new StyleTTS2VoiceAdapter(), new KokoroVoiceAdapter(), new PiperVoiceAdapter(), new OfflineVoiceAdapter()],
   };
   private readonly image: AdapterChain<ImageAdapter> = {
     configured: process.env['IMAGE_PROVIDER'],
-    // Local self-hosted first (free, no rate limits), then cloud APIs, then placeholder
-    adapters: [new ComfyUIImageAdapter(), new A1111ImageAdapter(), new GeminiImageAdapter(), new OpenAiImageAdapter(), new OfflineImageAdapter()],
+    // Local self-hosted only (free, no rate limits), then placeholder
+    adapters: [new ComfyUIImageAdapter(), new A1111ImageAdapter(), new OfflineImageAdapter()],
   };
   private readonly music: AdapterChain<MusicAdapter> = {
     configured: process.env['MUSIC_PROVIDER'],
-    // Local MusicGen first, then cloud APIs, then synth placeholder
-    adapters: [new MusicGenLocalAdapter(), new StabilityMusicAdapter(), new ReplicateMusicAdapter(), new OfflineMusicAdapter()],
+    // Local MusicGen only, then synth placeholder
+    adapters: [new MusicGenLocalAdapter(), new OfflineMusicAdapter()],
   };
   private readonly video: AdapterChain<VideoAdapter> = {
     configured: process.env['VIDEO_PROVIDER'],
-    // Cloud AI first (best quality), then local ComfyUI SVD, then FFmpeg scene builder
-    adapters: [new LumaVideoAdapter(), new RunwayVideoAdapter(), new KlingVideoAdapter(), new ComfyUIVideoAdapter(), new FfmpegSceneVideoAdapter()],
+    // Local ComfyUI SVD, then FFmpeg scene builder
+    adapters: [new ComfyUIVideoAdapter(), new FfmpegSceneVideoAdapter()],
   };
 
   constructor(
@@ -122,8 +113,8 @@ export class MediaService {
 
     // Token optimization: never regenerate completed assets — identical
     // request (kind+label+params) returns the cached version. The preferred
-    // adapter is part of the hash so upgrading providers (e.g. admin adds an
-    // ElevenLabs key) naturally invalidates placeholder-era caches.
+    // adapter is part of the hash so switching providers naturally invalidates
+    // placeholder-era caches.
     const requestHash = createHash('sha256')
       .update(`${kind}:${label}:${adapters[0]!.name}:${JSON.stringify(req)}`)
       .digest('hex');

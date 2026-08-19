@@ -1,9 +1,8 @@
 'use client';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart2, Target, Gift, Activity } from 'lucide-react';
+import { BarChart2, Gift, Activity } from 'lucide-react';
 import AnalyticsPage from '../analytics/page';
-import StrategyPage from '../strategy/page';
 import GrowthPage from '../growth/page';
 import MonitorPage from '../monitor/page';
 
@@ -16,7 +15,6 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: 'analytics', label: 'Analytics', icon: BarChart2, description: 'Channel performance and video metrics' },
-  { id: 'strategy',  label: 'Strategy',  icon: Target,   description: 'AI-generated goal plans and content strategies' },
   { id: 'growth',    label: 'Growth',    icon: Gift,     description: 'Referrals, rewards and audience expansion' },
   { id: 'monitor',   label: 'Monitor',   icon: Activity, description: 'Real-time AI job pipeline status' },
 ];
@@ -32,33 +30,35 @@ function InsightsContent() {
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="px-5 pt-5 pb-0 sm:px-7">
         <h1 className="text-xl font-extrabold text-gray-900 leading-tight">Insights Hub</h1>
-        <p className="text-sm text-gray-600 mt-0.5">Analytics, strategy, growth and monitoring in one place</p>
+        <p className="text-sm text-gray-600 mt-0.5">Analytics, growth and monitoring in one place</p>
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 px-4 sm:px-6 flex overflow-x-auto no-scrollbar"
+        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 overflow-x-auto no-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {TABS.map((t) => {
-          const active = activeTab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => router.replace(`/insights?tab=${t.id}`)}
-              className={[
-                'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
-                active
-                  ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200',
-              ].join(' ')}
-            >
-              <t.icon className={`w-4 h-4 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
-              {t.label}
-            </button>
-          );
-        })}
+        <div className="flex px-4 sm:px-6 min-w-max">
+          {TABS.map((t) => {
+            const active = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => router.replace(`/insights?tab=${t.id}`)}
+                className={[
+                  'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap touch-manipulation',
+                  active
+                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200',
+                ].join(' ')}
+              >
+                <t.icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Context description strip ────────────────────────────────────── */}
@@ -68,7 +68,6 @@ function InsightsContent() {
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
       {activeTab === 'analytics' && <AnalyticsPage />}
-      {activeTab === 'strategy'  && <StrategyPage />}
       {activeTab === 'growth'    && <GrowthPage />}
       {activeTab === 'monitor'   && <MonitorPage />}
     </div>

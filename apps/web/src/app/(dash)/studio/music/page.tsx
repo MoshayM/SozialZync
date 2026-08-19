@@ -197,7 +197,7 @@ export default function MusicLibraryPage() {
       const { minDuration, maxDuration } = durationRange(durationFilter);
       if (minDuration != null) p.set('minDuration', String(minDuration));
       if (maxDuration != null) p.set('maxDuration', String(maxDuration));
-      const res = await fetch(`/api/v1/music?${p}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(`/api/proxy/music?${p}`, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as TrackListResponse;
       setTracks(data.tracks); setTotal(data.total);
@@ -207,7 +207,7 @@ export default function MusicLibraryPage() {
 
   const fetchMoods = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/music/moods', { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch('/api/proxy/music/moods', { headers: { Authorization: `Bearer ${getToken()}` } });
       if (res.ok) setAvailableMoods(await res.json() as string[]);
     } catch { /* non-fatal */ }
   }, []);
@@ -226,8 +226,8 @@ export default function MusicLibraryPage() {
       if (discoverSource !== 'all') p.set('source', discoverSource);
       p.set('limit', '30');
       const endpoint = (!discoverQuery && !discoverGenre && !discoverMood && !isSearch)
-        ? '/api/v1/music/browse/trending'
-        : `/api/v1/music/browse/search?${p}`;
+        ? '/api/proxy/music/browse/trending'
+        : `/api/proxy/music/browse/search?${p}`;
       const res = await fetch(endpoint, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setDiscoverResults(await res.json() as ExternalTrack[]);
@@ -241,7 +241,7 @@ export default function MusicLibraryPage() {
   async function handleImport(track: ExternalTrack) {
     setImportingId(track.externalId);
     try {
-      const res = await fetch('/api/v1/music/browse/import', {
+      const res = await fetch('/api/proxy/music/browse/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify(track),
@@ -265,7 +265,7 @@ export default function MusicLibraryPage() {
     if (isNaN(dur) || dur <= 0) { setAddError('Duration must be a positive number of seconds.'); return; }
     setSubmitting(true); setAddError(null);
     try {
-      const res = await fetch('/api/v1/music', {
+      const res = await fetch('/api/proxy/music', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
@@ -288,7 +288,7 @@ export default function MusicLibraryPage() {
   async function handleDelete(id: string) {
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/v1/music/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(`/api/proxy/music/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error();
       setTracks(prev => prev.filter(t => t.id !== id)); setTotal(prev => prev - 1);
     } catch { /* non-fatal */ }
@@ -321,12 +321,12 @@ export default function MusicLibraryPage() {
         </div>
 
         {/* ── Tab switcher ─────────────────────────────────────────────────── */}
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#f0edf9', width: 'fit-content' }}>
+        <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full" style={{ background: '#f0edf9', WebkitOverflowScrolling: 'touch' }}>
           {(['library', 'discover', 'ai'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="px-5 py-2 rounded-lg text-sm font-semibold transition-all"
+              className="px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
               style={tab === t
                 ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
                 : { color: '#9b8fc4' }}
@@ -442,7 +442,7 @@ export default function MusicLibraryPage() {
               ) : error ? (
                 <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-red-500">{error}</p><button onClick={() => void fetchTracks()} className="mt-3 text-xs font-semibold underline" style={{ color: '#6D4AE0' }}>Retry</button></div>
               ) : tracks.length === 0 ? (
-                <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No tracks found.</p><p className="text-xs text-gray-400 mt-1">Use Discover tab to browse &amp; import royalty-free music.</p></div>
+                <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No tracks found.</p><button type="button" onClick={() => setTab('discover')} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>Browse Discover →</button></div>
               ) : tracks.map((track, idx) => (
                 <div key={track.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff] transition-colors"
                   style={{ borderBottom: idx < tracks.length - 1 ? '1px solid #f0edf9' : 'none' }}>

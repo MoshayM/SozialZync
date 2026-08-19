@@ -1,14 +1,17 @@
 'use client';
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import {
   Loader2, CheckCircle,
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
-  Webhook, Trash2, Play, Plus, Cpu, Download, Music, HardDrive, Activity, Mic2,
+  Webhook, Trash2, Play, Plus, Cpu,
+  Fingerprint, Camera, X as XIcon, Bell, BellOff,
 } from 'lucide-react';
-import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse } from '@/lib/api';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { startRegistration } from '@simplewebauthn/browser';
+import { api, apiClient, type OAuthProvider, type AuthSession, type LinkedAccount, type OAuthProviders, type AuthLinksResponse, type PasskeyCredentialView } from '@/lib/api';
 
 interface WebhookEntry {
   id: string;
@@ -40,6 +43,36 @@ function SettingsContent() {
   const [profileName, setProfileName] = useState('');
   const [profileAvatar, setProfileAvatar] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Push notifications ──────────────────────────────────────────────────────
+  const {
+    supported: pushSupported,
+    permission: pushPermission,
+    subscribing: pushSubscribing,
+    subscribe: pushSubscribe,
+    unsubscribe: pushUnsubscribe,
+  } = usePushNotifications();
+  const [pushBanner, setPushBanner] = useState<string | null>(null);
+
+  async function handlePushSubscribe() {
+    try {
+      await pushSubscribe();
+      setPushBanner('Browser notifications enabled.');
+    } catch {
+      setPushBanner('Could not enable notifications. Check your browser settings.');
+    }
+  }
+
+  async function handlePushUnsubscribe() {
+    try {
+      await pushUnsubscribe();
+      setPushBanner('Browser notifications disabled.');
+    } catch {
+      setPushBanner('Failed to disable notifications. Please try again.');
+    }
+  }
 
   // ── Webhook state ───────────────────────────────────────────────────────────
   const [showAddWebhookForm, setShowAddWebhookForm] = useState(false);
@@ -78,6 +111,51 @@ function SettingsContent() {
   });
 
   const [confirmRevokeSession, setConfirmRevokeSession] = useState<string | null>(null);
+
+  // ── Passkeys state ──────────────────────────────────────────────────────────
+  const passkeySupported = typeof window !== 'undefined' && typeof PublicKeyCredential !== 'undefined';
+  const [passkeyName, setPasskeyName] = useState('');
+  const [addingPasskey, setAddingPasskey] = useState(false);
+
+  const { data: passkeys = [], refetch: refetchPasskeys } = useQuery<PasskeyCredentialView[]>({
+    queryKey: ['passkeys'],
+    queryFn: () => api.auth.listPasskeys().then((r) => r.data),
+  });
+
+  const deletePasskeyMutation = useMutation({
+    mutationFn: (id: string) => api.auth.deletePasskey(id),
+    onSuccess: () => {
+      void refetchPasskeys();
+      setBanner({ type: 'success', message: 'Passkey removed.' });
+    },
+    onError: () => {
+      setBanner({ type: 'error', message: 'Failed to remove passkey.' });
+    },
+  });
+
+  async function handleAddPasskey() {
+    if (!passkeySupported) return;
+    setAddingPasskey(true);
+    try {
+      const { data: options } = await api.auth.webauthnRegisterOptions();
+      const credential = await startRegistration({ optionsJSON: options });
+      await api.auth.webauthnRegisterVerify(credential, passkeyName.trim() || undefined);
+      setPasskeyName('');
+      void refetchPasskeys();
+      setBanner({ type: 'success', message: 'Passkey added successfully.' });
+    } catch (err: unknown) {
+      const name = (err as { name?: string })?.name;
+      if (name === 'InvalidStateError') {
+        setBanner({ type: 'error', message: 'This device is already registered as a passkey.' });
+      } else if (name === 'NotAllowedError') {
+        setBanner({ type: 'error', message: 'Passkey registration was cancelled.' });
+      } else {
+        setBanner({ type: 'error', message: 'Failed to add passkey. Please try again.' });
+      }
+    } finally {
+      setAddingPasskey(false);
+    }
+  }
 
   const revokeSessionMutation = useMutation({
     mutationFn: (id: string) => api.auth.revokeSession(id),
@@ -156,6 +234,32 @@ function SettingsContent() {
       void refetchLinks();
     }
   }, [justLinkedProvider]);
+
+  // Compresses a selected image to 256×256 JPEG (~8-15 KB) for storage as data URI
+  function handleAvatarFile(file: File) {
+    if (!file.type.startsWith('image/')) return;
+    setAvatarUploading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const SIZE = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d')!;
+        const min = Math.min(img.width, img.height);
+        const ox = (img.width - min) / 2;
+        const oy = (img.height - min) / 2;
+        ctx.drawImage(img, ox, oy, min, min, 0, 0, SIZE, SIZE);
+        setProfileAvatar(canvas.toDataURL('image/jpeg', 0.88));
+        setAvatarUploading(false);
+      };
+      img.onerror = () => setAvatarUploading(false);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => setAvatarUploading(false);
+    reader.readAsDataURL(file);
+  }
 
   const updateProfileMutation = useMutation({
     mutationFn: () => api.auth.updateProfile({ name: profileName, avatarUrl: profileAvatar }),
@@ -243,102 +347,25 @@ function SettingsContent() {
           <p className="text-sm text-gray-600 mt-0.5">Manage your profile, security, and developer integrations</p>
         </div>
 
-        {/* ── AI Providers shortcut ────────────────────────────────────── */}
-        <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI</p>
-          <a
-            href="/settings/ai-providers"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f5f2fd]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f2fd' }}>
-              <Cpu className="w-5 h-5" style={{ color: '#6D4AE0' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">AI Providers</p>
-              <p className="text-xs text-gray-600">Configure local and cloud LLM providers</p>
-            </div>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0' }}>NEW</span>
-          </a>
-          <a
-            href="/settings/models"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-              <Download className="w-5 h-5" style={{ color: '#16a34a' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Model Manager</p>
-              <p className="text-xs text-gray-600">Download and manage local AI models</p>
-            </div>
-          </a>
-          <a
-            href="/studio/music"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#fefce8]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fefce8' }}>
-              <Music className="w-5 h-5" style={{ color: '#ca8a04' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Music Library</p>
-              <p className="text-xs text-gray-600">Royalty-free tracks for your videos</p>
-            </div>
-          </a>
-          <a
-            href="/settings/storage"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0f9ff]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0f9ff' }}>
-              <HardDrive className="w-5 h-5" style={{ color: '#0284c7' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Storage</p>
-              <p className="text-xs text-gray-600">Manage local AI-generated files, models, and cache.</p>
-            </div>
-          </a>
-          <a
-            href="/settings/queue"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#fff7ed]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fff7ed' }}>
-              <Activity className="w-5 h-5" style={{ color: '#ea580c' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Queue Manager</p>
-              <p className="text-xs text-gray-600">Monitor BullMQ job queue — active, waiting, failed jobs.</p>
-            </div>
-          </a>
-          <a
-            href="/settings/gpu"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f0fdf4]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-              <Cpu className="w-5 h-5" style={{ color: '#16a34a' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">GPU &amp; Hardware</p>
-              <p className="text-xs text-gray-600">Detected compute hardware — GPU backend, VRAM, utilization.</p>
-            </div>
-          </a>
-          <a
-            href="/studio/audio"
-            className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-4 transition-colors hover:bg-[#ecfeff]"
-            style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#ecfeff' }}>
-              <Mic2 className="w-5 h-5" style={{ color: '#0891b2' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Audio Studio</p>
-              <p className="text-xs text-gray-600">Loudness normalize, noise removal, silence trimmer — FFmpeg local processing</p>
-            </div>
-          </a>
-        </section>
+        {/* ── Admin-only: AI infrastructure ───────────────────────────── */}
+        {isOwner && (
+          <section>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI &amp; Infrastructure</p>
+            <a
+              href="/settings/ai-infrastructure"
+              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f5f2fd]"
+              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f2fd' }}>
+                <Cpu className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-800">AI Cost Control</p>
+                <p className="text-xs text-gray-600">Providers, routing, cost limits, local LLM &amp; usage analytics</p>
+              </div>
+            </a>
+          </section>
+        )}
 
         {/* Global notification banner */}
         {banner && (
@@ -348,68 +375,92 @@ function SettingsContent() {
         {/* ── Profile ──────────────────────────────────────────────────── */}
         <section>
           <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Profile</p>
-          <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-white rounded-2xl p-5 space-y-5" style={{ border: '1.5px solid #e3ddf8' }}>
+            <div className="flex items-center gap-2">
               <User className="w-5 h-5" style={{ color: '#6D4AE0' }} />
               <span className="text-sm font-semibold text-gray-800">Your Profile</span>
             </div>
-            <div className="flex items-center gap-5 mb-5">
-              {profileAvatar ? (
-                <img
-                  src={profileAvatar}
-                  alt="Avatar"
-                  className="w-16 h-16 rounded-full object-cover shrink-0"
-                  style={{ border: '2px solid #e3ddf8' }}
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              ) : (
-                <div suppressHydrationWarning className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shrink-0 select-none">
-                  {me?.name?.[0]?.toUpperCase() ?? ''}
+
+            {/* Avatar upload */}
+            <div className="flex items-center gap-5">
+              <div className="relative shrink-0 group">
+                {/* Base layer: gradient + initial */}
+                <div suppressHydrationWarning
+                  className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-3xl font-bold select-none"
+                  style={{ border: '2px solid #e3ddf8' }}>
+                  {(profileName[0] ?? me?.name?.[0] ?? '?').toUpperCase()}
                 </div>
-              )}
-              <div className="text-sm text-gray-600">
-                <p suppressHydrationWarning className="font-medium text-gray-700">{me?.email ?? ''}</p>
-                <p suppressHydrationWarning className="text-xs mt-0.5 capitalize">{me?.role?.toLowerCase() ?? ''}</p>
+                {/* Image layer */}
+                {profileAvatar && (
+                  <img src={profileAvatar} alt="Avatar"
+                    className="absolute inset-0 w-full h-full rounded-2xl object-cover"
+                    style={{ border: '2px solid #e3ddf8' }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                )}
+                {/* Upload overlay */}
+                <button type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                  style={{ background: 'rgba(0,0,0,0.45)' }}
+                  title="Upload photo">
+                  {avatarUploading
+                    ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    : <Camera className="w-5 h-5 text-white" />}
+                  <span className="text-[10px] text-white font-semibold">{avatarUploading ? 'Processing…' : 'Upload'}</span>
+                </button>
+                {/* Clear button */}
+                {profileAvatar && (
+                  <button type="button"
+                    onClick={() => setProfileAvatar('')}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                    title="Remove photo">
+                    <XIcon className="w-3 h-3 text-white" />
+                  </button>
+                )}
               </div>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Display name</label>
-                <input
-                  type="text"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="Your name"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
-                  style={{ border: '1.5px solid #e3e0f0' }}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Avatar URL <span className="text-gray-600 font-normal">(optional)</span></label>
-                <input
-                  type="url"
-                  value={profileAvatar}
-                  onChange={(e) => setProfileAvatar(e.target.value)}
-                  placeholder="https://example.com/avatar.jpg"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
-                  style={{ border: '1.5px solid #e3e0f0' }}
-                />
-              </div>
-              <div className="flex justify-end pt-1">
-                <button
-                  onClick={() => updateProfileMutation.mutate()}
-                  disabled={updateProfileMutation.isPending}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
-                >
-                  {updateProfileMutation.isPending
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : profileSaved
-                    ? <CheckCircle className="w-3.5 h-3.5" />
-                    : <Save className="w-3.5 h-3.5" />}
-                  {profileSaved ? 'Saved!' : 'Save Profile'}
+
+              <div className="space-y-1">
+                <p suppressHydrationWarning className="text-sm font-semibold text-gray-800">{profileName || me?.name || 'Your Name'}</p>
+                <p suppressHydrationWarning className="text-xs text-gray-500">{me?.email ?? ''}</p>
+                <p suppressHydrationWarning className="text-xs capitalize" style={{ color: '#6D4AE0', fontWeight: 600 }}>{me?.role?.toLowerCase() ?? 'creator'}</p>
+                <button type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="mt-1 text-xs font-semibold underline underline-offset-2 disabled:opacity-50"
+                  style={{ color: '#6D4AE0' }}>
+                  {profileAvatar ? 'Change photo' : 'Upload photo'}
                 </button>
               </div>
+
+              {/* Hidden file input */}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarFile(f); e.target.value = ''; }} />
+            </div>
+
+            {/* Display name */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Display name</label>
+              <input type="text" value={profileName} onChange={(e) => setProfileName(e.target.value)}
+                placeholder="Your name"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                style={{ border: '1.5px solid #e3e0f0' }} />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-gray-400">Changes apply across the whole app</p>
+              <button
+                onClick={() => updateProfileMutation.mutate()}
+                disabled={updateProfileMutation.isPending || avatarUploading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}>
+                {updateProfileMutation.isPending
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : profileSaved
+                  ? <CheckCircle className="w-3.5 h-3.5" />
+                  : <Save className="w-3.5 h-3.5" />}
+                {profileSaved ? 'Saved!' : 'Save changes'}
+              </button>
             </div>
           </div>
         </section>
@@ -427,7 +478,7 @@ function SettingsContent() {
                 <p className="text-xs text-gray-600 mt-0.5">Connect social accounts to sign in without a password.</p>
               </div>
             </div>
-            {(['google', 'apple'] as OAuthProvider[]).map((provider) => {
+            {(['google'] as OAuthProvider[]).map((provider) => {
               const label = provider.charAt(0).toUpperCase() + provider.slice(1);
               const linkedAccount: LinkedAccount | undefined = authLinks?.links.find((l) => l.provider === provider);
               const providerEnabled = oauthProviders?.[provider] ?? false;
@@ -436,24 +487,12 @@ function SettingsContent() {
               return (
                 <div key={provider} className="flex items-center gap-4 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
                   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                    {provider === 'google' && (
-                      <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
-                        <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z" />
-                        <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.1 0-5.8-2.1-6.8-5H1.3v3C3.3 21.3 7.3 24 12 24z" />
-                        <path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4v-3H1.3C.5 8.2 0 10 0 12s.5 3.8 1.3 5.4l3.9-3z" />
-                        <path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C16.9 1 14.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c1-2.9 3.7-4.9 6.8-4.9z" />
-                      </svg>
-                    )}
-                    {provider === 'apple' && (
-                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-gray-900" aria-hidden>
-                        <path d="M16.4 12.9c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 2.9-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.7c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.6-1-2.6-3.7zM14 5.6c.7-.8 1.1-1.9 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z" />
-                      </svg>
-                    )}
-                    {provider === 'facebook' && (
-                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#1877F2]" aria-hidden>
-                        <path d="M24 12c0-6.6-5.4-12-12-12S0 5.4 0 12c0 6 4.4 11 10.1 11.9v-8.4H7.1V12h3v-2.6c0-3 1.8-4.7 4.6-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.3l-.5 3.5h-2.8v8.4C19.6 23 24 18 24 12z" />
-                      </svg>
-                    )}
+                    <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
+                      <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z" />
+                      <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.1 0-5.8-2.1-6.8-5H1.3v3C3.3 21.3 7.3 24 12 24z" />
+                      <path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4v-3H1.3C.5 8.2 0 10 0 12s.5 3.8 1.3 5.4l3.9-3z" />
+                      <path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C16.9 1 14.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c1-2.9 3.7-4.9 6.8-4.9z" />
+                    </svg>
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -495,6 +534,74 @@ function SettingsContent() {
             })}
           </div>
 
+          {/* Passkeys */}
+          {passkeySupported && (
+            <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
+                <Fingerprint className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800">Passkeys</p>
+                  <p className="text-xs text-gray-600 mt-0.5">Sign in with Face ID, Touch ID, or a hardware key — no password needed.</p>
+                </div>
+              </div>
+
+              {/* Existing passkeys */}
+              {passkeys.length === 0 && (
+                <div className="px-4 py-4 text-sm text-gray-600">No passkeys registered yet.</div>
+              )}
+              {passkeys.map((pk) => (
+                <div key={pk.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                  <Key className="w-4 h-4 text-gray-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{pk.name ?? 'Unnamed passkey'}</p>
+                    <p className="text-xs text-gray-600">
+                      {pk.deviceType === 'multiDevice' ? 'Synced' : 'Device-bound'}
+                      {pk.backedUp && ' · Backed up'}
+                      {' · Added '}
+                      {new Date(pk.createdAt).toLocaleDateString()}
+                      {pk.lastUsedAt && ` · Last used ${new Date(pk.lastUsedAt).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Remove this passkey? You will no longer be able to sign in with it.')) {
+                        deletePasskeyMutation.mutate(pk.id);
+                      }
+                    }}
+                    disabled={deletePasskeyMutation.isPending}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-red-600 text-xs rounded-2xl hover:bg-red-50 transition-colors disabled:opacity-40"
+                    style={{ border: '1.5px solid #fecaca' }}
+                  >
+                    {deletePasskeyMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              {/* Add passkey row */}
+              <div className="px-4 py-3 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={passkeyName}
+                  onChange={(e) => setPasskeyName(e.target.value)}
+                  placeholder="Name this passkey (optional)"
+                  className="flex-1 text-sm px-3 py-2 rounded-xl bg-[#faf9ff] outline-none focus:ring-2 ring-[#6D4AE0]"
+                  style={{ border: '1.5px solid #e3ddf8' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => { void handleAddPasskey(); }}
+                  disabled={addingPasskey}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-white text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                >
+                  {addingPasskey ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  Add Passkey
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Content channels — link to Media Control */}
           <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
@@ -508,9 +615,9 @@ function SettingsContent() {
               </div>
             </div>
             <div className="px-4 py-5 flex items-center justify-between gap-4">
-              <p className="text-sm text-gray-600">YouTube, Instagram, TikTok, Facebook, X, LinkedIn, Threads — all managed from <span className="font-semibold text-gray-800">Media Control → Channel Access</span>.</p>
+              <p className="text-sm text-gray-600">YouTube, Instagram, TikTok, Facebook, X, LinkedIn, Threads — all managed in one place.</p>
               <a
-                href="/library?tab=channels"
+                href="/settings/channels"
                 className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 transition-opacity"
                 style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)', textDecoration: 'none' }}
               >
@@ -822,6 +929,74 @@ function SettingsContent() {
             )}
           </section>
         )}
+        {/* ── Notifications ─────────────────────────────────────────── */}
+        {pushSupported && (
+          <section>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Notifications</p>
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
+                <Bell className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800">Browser Notifications</p>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Get alerts in your browser when jobs complete, compliance fails, or a video publishes — even when the tab is in the background.
+                  </p>
+                </div>
+                <span
+                  className="text-[11px] font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap"
+                  style={{
+                    background: pushPermission === 'granted' ? '#ecfdf5' : pushPermission === 'denied' ? '#fef2f2' : '#f5f2fd',
+                    color: pushPermission === 'granted' ? '#065f46' : pushPermission === 'denied' ? '#991b1b' : '#6D4AE0',
+                  }}
+                >
+                  {pushPermission === 'granted' ? 'Enabled' : pushPermission === 'denied' ? 'Blocked' : 'Off'}
+                </span>
+              </div>
+
+              <div className="px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
+                <p className="text-sm text-gray-600">
+                  {pushPermission === 'granted'
+                    ? 'You are receiving browser push notifications on this device.'
+                    : pushPermission === 'denied'
+                    ? 'Notifications are blocked. Allow them in your browser site settings, then try again.'
+                    : 'Enable browser notifications to stay informed without keeping the app open.'}
+                </p>
+
+                {pushPermission === 'granted' ? (
+                  <button
+                    type="button"
+                    onClick={() => { void handlePushUnsubscribe(); }}
+                    className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-sm hover:bg-red-50 transition-colors"
+                    style={{ border: '1.5px solid #fecaca', color: '#dc2626' }}
+                  >
+                    <BellOff className="w-3.5 h-3.5" />
+                    Disable
+                  </button>
+                ) : pushPermission !== 'denied' ? (
+                  <button
+                    type="button"
+                    onClick={() => { void handlePushSubscribe(); }}
+                    disabled={pushSubscribing}
+                    className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                    style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                  >
+                    {pushSubscribing
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Bell className="w-3.5 h-3.5" />}
+                    Enable browser notifications
+                  </button>
+                ) : null}
+              </div>
+
+              {pushBanner && (
+                <div className="px-4 pb-3">
+                  <p className="text-xs px-3 py-2 rounded-xl bg-[#f5f2fd] text-gray-700">{pushBanner}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
       </div>
     </div>
   );

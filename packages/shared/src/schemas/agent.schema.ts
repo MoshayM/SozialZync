@@ -77,8 +77,24 @@ export const TrendOutputSchema = z.object({
   ),
   recommendations: z.array(z.string()),
   analysisDate: z.string(),
+  liveDataUsed: z.boolean().optional(),
 });
 export type TrendOutput = z.infer<typeof TrendOutputSchema>;
+
+export const GapsOutputSchema = z.object({
+  gaps: z.array(
+    z.object({
+      topic: z.string(),
+      opportunityScore: z.number().min(0).max(100),
+      whyUnderserved: z.string(),
+      suggestedAngle: z.string(),
+    }),
+  ).max(10),
+  niche: z.string(),
+  analysisDate: z.string(),
+  liveDataUsed: z.boolean().optional(),
+});
+export type GapsOutput = z.infer<typeof GapsOutputSchema>;
 
 export const SEOOutputSchema = z.object({
   primaryKeyword: z.string(),

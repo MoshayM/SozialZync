@@ -31,8 +31,8 @@ export async function createNestServer(): Promise<express.Application> {
   const allowedOrigins = [
     ...(process.env['WEB_URL'] ?? '').split(',').map((o) => o.trim()).filter(Boolean),
     'http://localhost:3007',
-    'https://aicreatorforce.net',
-    'https://www.aicreatorforce.net',
+    'https://sozialzync.com',
+    'https://www.sozialzync.net',
   ];
   app.enableCors({ origin: allowedOrigins, credentials: true });
   app.setGlobalPrefix('api', { exclude: ['', 'metrics', 'health', 'ready'] });

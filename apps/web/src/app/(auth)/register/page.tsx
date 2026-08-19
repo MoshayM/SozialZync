@@ -1,34 +1,70 @@
 'use client';
-import { useEffect, useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { User, AtSign, Lock, Eye, EyeOff, Loader2, Phone } from 'lucide-react';
-import { api, setTokens, type OAuthProviders, type OAuthProvider } from '@/lib/api';
-import { RegisterShell, LoginInput, SocialRow, type OAuthProviderName } from '@/components/auth-shell';
-import CountryCodeSelect, { COUNTRIES, type Country } from '@/components/country-code-select';
+import { Eye, EyeOff, Loader2, Mail } from 'lucide-react';
+import { api, setTokens } from '@/lib/api';
+import { RegisterShell } from '@/components/auth-shell';
 
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
 const OWNER_EMAIL = 'ethonanpasumvalki@gmail.com';
 
+// ── Primitives ─────────────────────────────────────────────────────────────────
+
+function Input({
+  type, placeholder, value, onChange, autoComplete, autoFocus, required, rightElement,
+}: {
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
+  autoFocus?: boolean;
+  required?: boolean;
+  rightElement?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
+      style={{ border: '1.5px solid #ece8f8', background: '#fff' }}
+    >
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        autoFocus={autoFocus}
+        required={required}
+        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+      />
+      {rightElement && <span className="pr-2 shrink-0">{rightElement}</span>}
+    </div>
+  );
+}
+
+function ErrorNote({ msg }: { msg: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-red-50 border border-red-100">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
+      <p className="text-red-600 text-xs font-medium leading-relaxed">{msg}</p>
+    </div>
+  );
+}
+
+// ── Inner page (needs useSearchParams → must be wrapped in Suspense) ───────────
+
 function RegisterInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [form, setForm] = useState({ email: '', password: '', name: '' });
-  const [phone, setPhone] = useState('');
-  const [country, setCountry] = useState<Country>(COUNTRIES[0]);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [providers, setProviders] = useState<OAuthProviders | undefined>(undefined);
-
-  useEffect(() => {
-    if (MOCK_MODE) return;
-    api.auth.providers()
-      .then((r) => setProviders(r.data))
-      .catch(() => setProviders({ google: false, apple: false, facebook: false }));
-  }, []);
 
   useEffect(() => {
     const ref = searchParams.get('ref');
@@ -41,8 +77,8 @@ function RegisterInner() {
     setError('');
 
     if (MOCK_MODE) {
-      if (form.email === OWNER_EMAIL) {
-        setError('Email already registered. Please log in instead.');
+      if (email === OWNER_EMAIL) {
+        setError('That email is already registered. Sign in instead.');
         setLoading(false);
         return;
       }
@@ -52,40 +88,25 @@ function RegisterInner() {
     }
 
     try {
-      const fullPhone = phone.trim() ? `${country.dialCode}${phone.trim().replace(/^0+/, '')}` : undefined;
-      const { data } = await api.auth.register(form.email, form.password, form.name, fullPhone);
+      const { data } = await api.auth.register(email, password, name);
       setTokens(data.accessToken, data.refreshToken);
       const pending = localStorage.getItem('cf.pendingReferralCode');
       if (pending) {
         api.referral.redeem(pending).catch(() => {});
         localStorage.removeItem('cf.pendingReferralCode');
       }
-      router.push('/home');
+      const supportsPasskey = typeof PublicKeyCredential !== 'undefined';
+      router.push(supportsPasskey ? '/setup-passkey' : '/home');
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 409) {
-        setError('Email already registered. Please log in instead.');
-      } else if (status === 429) {
-        setError('Too many sign-up attempts. Please wait a minute and try again.');
-      } else if (!status) {
-        setError('Cannot reach the server. Make sure the API is running.');
-      } else {
-        setError('Registration failed. Please try again.');
-      }
+      setError(
+        status === 409 ? 'That email is already registered. Sign in instead.' :
+        status === 429 ? 'Too many attempts — wait a minute and try again.' :
+        !status        ? 'Cannot reach the server. Check your connection.' :
+        'Registration failed. Please try again.'
+      );
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleSocialRegister(provider: OAuthProviderName) {
-    setError('');
-    try {
-      const redirectUri = `${window.location.origin}/oauth/callback/${provider}`;
-      const { data } = await api.auth.oauthStart(provider as OAuthProvider, redirectUri, 'login');
-      sessionStorage.setItem('cf.oauth.state', data.state);
-      window.location.href = data.authUrl;
-    } catch {
-      setError(`Could not start ${provider} sign-up. Please try again.`);
     }
   }
 
@@ -97,71 +118,45 @@ function RegisterInner() {
           <Link href="/login" className="text-[#6D4AE0] font-semibold hover:underline">
             Sign in
           </Link>
+          <br />
+          <span className="text-xs text-gray-400 mt-1 inline-block">
+            By signing up you agree to our{' '}
+            <Link href="/terms" className="hover:underline">Terms</Link>
+            {' & '}
+            <Link href="/privacy" className="hover:underline">Privacy</Link>
+          </span>
         </>
       }
     >
-      <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-4">
-        {/* Name */}
-        <LoginInput
-          icon={<User className="w-4 h-4" />}
-          label="Full name"
+      <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-3">
+        <Input
           type="text"
-          aria-label="Name"
-          placeholder="Optional"
-          value={form.name}
-          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          placeholder="Full name (optional)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoComplete="name"
         />
 
-        {/* Email */}
-        <LoginInput
-          icon={<AtSign className="w-4 h-4" />}
-          label="Email address"
+        <Input
           type="email"
-          aria-label="Email"
-          placeholder="you@example.com"
-          value={form.email}
-          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          placeholder="Email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
           required
         />
 
-        {/* Phone — optional, enables phone OTP sign-in later */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-            Phone number
-            <span className="ml-1.5 text-[10px] text-gray-600 font-normal">(optional — enables OTP sign-in)</span>
-          </label>
-          <div
-            className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
-            style={{ border: '1.5px solid #e3e0f0' }}
-          >
-            <CountryCodeSelect value={country} onChange={setCountry} />
-            <input
-              type="tel"
-              aria-label="Phone number (optional)"
-              placeholder="Mobile number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              inputMode="numeric"
-              className="flex-1 px-3 py-3 text-sm outline-none bg-transparent text-gray-800 placeholder:text-gray-400"
-            />
-            <Phone className="w-4 h-4 text-gray-300 mr-3 shrink-0" aria-hidden />
-          </div>
-        </div>
-
-        {/* Password */}
-        <LoginInput
-          icon={<Lock className="w-4 h-4" />}
-          label="Password"
+        <Input
           type={showPassword ? 'text' : 'password'}
-          aria-label="Password"
-          placeholder="Min 8 characters"
-          value={form.password}
-          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+          placeholder="Password — at least 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
           required
           rightElement={
             <button
               type="button"
-              onClick={() => setShowPassword((v) => !v)}
+              onClick={() => setShowPassword(v => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
@@ -170,41 +165,31 @@ function RegisterInner() {
           }
         />
 
-        {/* Error */}
-        {error && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
-            <span className="text-red-400 text-sm" aria-hidden>⚠</span>
-            <p className="text-red-600 text-xs font-medium">{error}</p>
-          </div>
-        )}
+        {error && <ErrorNote msg={error} />}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+          className="w-full py-[11px] text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
           style={{
-            background: loading ? '#8b74d8' : 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-            boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
+            background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
+            boxShadow: '0 4px 16px rgba(109,74,224,0.28)',
           }}
         >
-          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+          {loading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
           {loading ? 'Creating account…' : 'Create free account'}
         </button>
-
-        {/* Terms note */}
-        <p className="text-[11px] text-gray-600 text-center leading-relaxed">
-          By signing up you agree to our{' '}
-          <Link href="/terms" className="text-[#6D4AE0] hover:underline">Terms of Service</Link>
-          {' '}and{' '}
-          <Link href="/privacy" className="text-[#6D4AE0] hover:underline">Privacy Policy</Link>.
-        </p>
       </form>
 
-      <SocialRow
-        providers={providers}
-        onProviderClick={(p) => { void handleSocialRegister(p); }}
-      />
+      {/* No-password option — subtle link, not competing button */}
+      <button
+        type="button"
+        onClick={() => router.push('/login')}
+        className="w-full flex items-center justify-center gap-1.5 text-sm text-gray-500 hover:text-[#6D4AE0] transition-colors py-1 font-medium"
+      >
+        <Mail className="w-3.5 h-3.5 shrink-0" />
+        Sign up with email code instead
+      </button>
     </RegisterShell>
   );
 }

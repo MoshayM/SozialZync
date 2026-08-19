@@ -1,17 +1,18 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertCircle, AlertTriangle, CalendarClock, CheckCircle,
-  Crown, ExternalLink, Lightbulb, Loader2, PlusCircle, ShieldCheck, Sparkles, TrendingDown,
-  TrendingUp, Wallet, X, Zap,
+  AlertCircle, AlertTriangle, CalendarClock, CheckCircle, Copy,
+  Crown, ExternalLink, Gift, Lightbulb, Loader2, PlusCircle, Share2, ShieldCheck, Sparkles,
+  Trophy, TrendingDown, TrendingUp, Users, Wallet, X, Zap,
 } from 'lucide-react';
 import {
   api,
   type BudgetState, type CreditForecast, type CreditLotRow,
   type CreditPackRow, type CreditRecommendation, type EnterpriseMetrics,
+  type LeaderboardEntry, type ReferralEarnings,
   type UsageSummary, type WalletTransaction,
 } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -585,7 +586,8 @@ function PlansGrid() {
   const { plan, credits, hasCreditsPro, isEnterprise, isSuperAdmin } = usePlan();
   const [localeKey, setLocaleKey] = useState<string>('DEFAULT');
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
-  const [enterpriseForm, setEnterpriseForm] = useState({ company: '', teamSize: '', useCase: '', budget: '' });
+  const [enterpriseForm, setEnterpriseForm] = useState({ company: '', teamSize: '', useCase: '' });
+  const [enterpriseTeamFile, setEnterpriseTeamFile] = useState<File | null>(null);
   const [enterpriseSubmitted, setEnterpriseSubmitted] = useState(false);
   const [enterpriseSubmitting, setEnterpriseSubmitting] = useState(false);
 
@@ -793,9 +795,8 @@ function PlansGrid() {
             <div className="space-y-3">
               {(
                 [
-                  { key: 'company',  label: 'Company / Brand name',   placeholder: 'Acme Corp'  },
-                  { key: 'teamSize', label: 'Team size',               placeholder: 'e.g. 10–50' },
-                  { key: 'budget',   label: 'Monthly AI budget (USD)', placeholder: 'e.g. $500'  },
+                  { key: 'company',  label: 'Company / Brand name', placeholder: 'Acme Corp'  },
+                  { key: 'teamSize', label: 'Team size',             placeholder: 'e.g. 10–50' },
                 ] as { key: keyof typeof enterpriseForm; label: string; placeholder: string }[]
               ).map(({ key, label, placeholder }) => (
                 <div key={key}>
@@ -809,6 +810,51 @@ function PlansGrid() {
                   />
                 </div>
               ))}
+
+              {/* Team member details PDF upload */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">
+                  Team Member Details <span className="text-gray-400 font-normal">(PDF — name &amp; email list)</span>
+                </label>
+                <label
+                  className="flex flex-col items-center justify-center gap-2 w-full rounded-xl cursor-pointer transition-all"
+                  style={{
+                    border: enterpriseTeamFile ? '2px solid #7C3AED' : '2px dashed #d1d5db',
+                    background: enterpriseTeamFile ? '#faf5ff' : '#fafafa',
+                    padding: '16px 12px',
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      if (f && f.type === 'application/pdf') setEnterpriseTeamFile(f);
+                    }}
+                  />
+                  {enterpriseTeamFile ? (
+                    <>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                      <span className="text-xs font-semibold text-purple-700 text-center break-all">{enterpriseTeamFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setEnterpriseTeamFile(null); }}
+                        className="text-[11px] text-red-500 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      <span className="text-xs font-medium text-gray-500">Click to upload PDF</span>
+                      <span className="text-[11px] text-gray-400">Include team member names &amp; email addresses</span>
+                    </>
+                  )}
+                </label>
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Use case / Why enterprise?</label>
                 <textarea
@@ -832,6 +878,7 @@ function PlansGrid() {
                   userName: localStorage.getItem('cf_user_name') ?? 'User',
                   userEmail: localStorage.getItem('cf_user_email') ?? '',
                   ...enterpriseForm,
+                  teamMemberFile: enterpriseTeamFile?.name ?? null,
                   status: 'pending',
                   submittedAt: new Date().toISOString(),
                 });
@@ -999,6 +1046,269 @@ function TransactionHistory() {
           ))}
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── 7. Referral Center ────────────────────────────────────────────────────────
+
+function fmtCredits(n: number | undefined | null) {
+  return (n ?? 0).toLocaleString();
+}
+
+function statusChipStyle(s: string): string {
+  switch (s) {
+    case 'ACTIVE': return 'bg-[#ecfdf5] text-[#065f46]';
+    case 'EXPIRED': return 'bg-red-50 text-red-700 border-red-200';
+    case 'CONVERTED': return 'bg-[#f5f2fd] text-[#6D4AE0]';
+    case 'PENDING_REVIEW': return 'bg-[#fff7ed] text-[#c2410c]';
+    case 'REVOKED': return 'bg-[#f3f4f6] text-[#4b5563]';
+    case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+    case 'QUALIFIED': return 'bg-[#ecfdf5] text-[#065f46]';
+    case 'REWARDED': return 'bg-[#f5f2fd] text-[#6D4AE0]';
+    case 'FLAGGED': return 'bg-red-50 text-red-700 border-red-200';
+    default: return 'bg-[#f3f4f6] text-[#4b5563]';
+  }
+}
+
+function ReferralCenter() {
+  const qc = useQueryClient();
+  const [copied, setCopied] = useState(false);
+  const [redeemInput, setRedeemInput] = useState('');
+  const [redeemError, setRedeemError] = useState('');
+  const [redeemSuccess, setRedeemSuccess] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: earnings, isLoading: earningsLoading } = useQuery<ReferralEarnings>({
+    queryKey: ['referral-earnings'],
+    queryFn: () => api.referral.earnings().then((r) => r.data),
+  });
+
+  const { data: leaderboard = [], isLoading: lbLoading } = useQuery<LeaderboardEntry[]>({
+    queryKey: ['referral-leaderboard'],
+    queryFn: () => api.referral.leaderboard().then((r) => r.data),
+  });
+
+  const { data: codeData, isLoading: codeLoading } = useQuery<{ code: string }>({
+    queryKey: ['referral-code'],
+    queryFn: () => api.referral.code().then((r) => r.data),
+  });
+
+  useEffect(() => {
+    const pending = localStorage.getItem('cf.pendingReferralCode');
+    if (pending) setRedeemInput(pending);
+  }, []);
+
+  const redeemMutation = useMutation({
+    mutationFn: (code: string) => api.referral.redeem(code),
+    onSuccess: () => {
+      setRedeemSuccess(true);
+      setRedeemError('');
+      localStorage.removeItem('cf.pendingReferralCode');
+      void qc.invalidateQueries({ queryKey: ['referral-earnings'] });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setRedeemError(msg ?? getErrorMessage(err) ?? 'Redemption failed');
+    },
+  });
+
+  const shareUrl = codeData ? `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${codeData.code}` : '';
+
+  async function copyCode(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      if (inputRef.current) inputRef.current.select();
+    }
+  }
+
+  const shareMsg = encodeURIComponent(`Join me on Sozialzync — the best AI platform for YouTube creators! Use my referral link:`);
+  const twitterUrl = codeData ? `https://twitter.com/intent/tweet?text=${shareMsg}&url=${encodeURIComponent(shareUrl)}` : '#';
+  const linkedInUrl = codeData ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}` : '#';
+  const whatsAppUrl = codeData ? `https://wa.me/?text=${shareMsg}%20${encodeURIComponent(shareUrl)}` : '#';
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl p-4 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-[#6D4AE0]" />
+          <span className="text-sm font-semibold text-gray-800">Referral Center</span>
+        </div>
+
+        {codeLoading && <Loader2 className="w-5 h-5 animate-spin text-[#6D4AE0]" />}
+
+        {codeData && (
+          <>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-600">Your referral code</p>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold tracking-widest text-[#6D4AE0] font-mono">{codeData.code}</span>
+                <button
+                  onClick={() => void copyCode(codeData.code)}
+                  aria-label="Copy referral code"
+                  className="p-1.5 rounded-2xl text-gray-500 hover:text-[#6D4AE0] transition-colors"
+                  style={{ border: '1.5px solid #e3ddf8' }}
+                >
+                  {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs text-gray-600">Share link</p>
+              <div className="flex gap-2">
+                <input
+                  ref={inputRef}
+                  readOnly
+                  value={shareUrl}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 text-xs rounded-2xl px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none"
+                  style={{ border: '1.5px solid #e3e0f0' }}
+                />
+                <button
+                  onClick={() => void copyCode(shareUrl)}
+                  aria-label="Copy share link"
+                  className="px-3 py-2 rounded-2xl text-gray-600 hover:text-[#6D4AE0] transition-colors text-xs font-semibold"
+                  style={{ border: '1.5px solid #e3ddf8' }}
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600">Share via:</span>
+              <a href={twitterUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-black text-white hover:bg-gray-800 transition-colors">
+                <Share2 className="w-3 h-3" /> X / Twitter
+              </a>
+              <a href={linkedInUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-700 text-white hover:bg-blue-800 transition-colors">
+                <ExternalLink className="w-3 h-3" /> LinkedIn
+              </a>
+              <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-green-600 text-white hover:bg-green-700 transition-colors">
+                <Share2 className="w-3 h-3" /> WhatsApp
+              </a>
+            </div>
+          </>
+        )}
+
+        {earningsLoading && <Loader2 className="w-4 h-4 animate-spin text-[#6D4AE0]" />}
+        {earnings && (
+          <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col bg-gray-50 rounded-2xl px-3 py-2 min-w-[80px]">
+              <span className="text-xs text-gray-600">Total earned</span>
+              <span className="text-lg font-bold text-gray-800">{fmtCredits(earnings.totalCredits)}</span>
+              <span className="text-[10px] text-gray-600">credits</span>
+            </div>
+            <div className="flex flex-col bg-[#ecfdf5] rounded-2xl px-3 py-2 min-w-[80px]">
+              <span className="text-xs text-gray-600">Qualified</span>
+              <span className="text-lg font-bold text-[#065f46]">{earnings.qualifiedCount}</span>
+            </div>
+            <div className="flex flex-col bg-yellow-50 rounded-2xl px-3 py-2 min-w-[80px]">
+              <span className="text-xs text-gray-600">Pending</span>
+              <span className="text-lg font-bold text-yellow-700">{earnings.pendingCount}</span>
+            </div>
+            {earnings.flaggedCount > 0 && (
+              <div className="flex flex-col bg-red-50 rounded-2xl px-3 py-2 min-w-[80px]">
+                <span className="text-xs text-gray-600">Under review</span>
+                <span className="text-lg font-bold text-red-600">{earnings.flaggedCount}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {earnings && earnings.referrals.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-gray-700">
+              <thead>
+                <tr className="text-gray-600 border-b border-gray-100">
+                  <th className="text-left pb-2 font-medium">Date</th>
+                  <th className="text-left pb-2 font-medium">Status</th>
+                  <th className="text-right pb-2 font-medium">Reward</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {earnings.referrals.map((r) => (
+                  <tr key={r.id}>
+                    <td className="py-1.5 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td className="py-1.5">
+                      <span className={`border rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipStyle(r.status)}`}>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="py-1.5 text-right font-semibold text-green-700">+{fmtCredits(r.reward)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
+        <p className="text-sm font-semibold text-gray-800">Have a referral code?</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={redeemInput}
+            onChange={(e) => { setRedeemInput(e.target.value); setRedeemError(''); setRedeemSuccess(false); }}
+            placeholder="Enter code"
+            aria-label="Referral code input"
+            className="flex-1 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+            style={{ border: '1.5px solid #e3e0f0' }}
+          />
+          <button
+            onClick={() => { if (redeemInput.trim()) redeemMutation.mutate(redeemInput.trim()); }}
+            disabled={!redeemInput.trim() || redeemMutation.isPending}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+          >
+            {redeemMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Apply
+          </button>
+        </div>
+        {redeemError && (
+          <p className="text-xs text-amber-700 flex items-center gap-1">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            {redeemError}
+          </p>
+        )}
+        {redeemSuccess && (
+          <p className="text-xs text-green-600 flex items-center gap-1">
+            <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+            Referral code applied successfully!
+          </p>
+        )}
+      </div>
+
+      {!lbLoading && leaderboard.length > 0 && (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <span className="text-sm font-semibold text-gray-800">Referral Leaderboard</span>
+            <span className="text-xs text-gray-600">(top 10)</span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {leaderboard.slice(0, 10).map((entry) => (
+              <div key={entry.rank} className={`flex items-center gap-3 px-4 py-2.5 ${entry.userLabel.includes('(you)') ? 'bg-[#f5f2fd]' : ''}`}>
+                <span className={`text-sm font-bold w-6 text-center ${entry.rank <= 3 ? 'text-amber-500' : 'text-gray-500'}`}>
+                  {entry.rank}
+                </span>
+                <span className="flex-1 text-sm text-gray-700 truncate">{entry.userLabel}</span>
+                <div className="text-right text-xs text-gray-600">
+                  <p className="font-semibold text-gray-800">{entry.qualifiedCount} referred</p>
+                  <p>{fmtCredits(entry.totalCredits)} credits</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1253,7 +1563,7 @@ function SubscriptionManager() {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type WalletTab = 'credits' | 'plan';
+type WalletTab = 'credits' | 'plan' | 'referrals';
 
 function WalletContent() {
   const searchParams = useSearchParams();
@@ -1335,8 +1645,9 @@ function WalletContent() {
         {/* ── Tab bar ────────────────────────────────────────────────────── */}
         <div className="flex gap-2 border-b border-[#ede9f8] pb-0">
           {([
-            { id: 'credits', label: 'AI Credits', icon: <Zap className="w-4 h-4" /> },
-            { id: 'plan',    label: 'My Plan',    icon: <Sparkles className="w-4 h-4" /> },
+            { id: 'credits',   label: 'AI Credits', icon: <Zap className="w-4 h-4" /> },
+            { id: 'plan',      label: 'My Plan',    icon: <Sparkles className="w-4 h-4" /> },
+            { id: 'referrals', label: 'Referrals',  icon: <Gift className="w-4 h-4" /> },
           ] as { id: WalletTab; label: string; icon: React.ReactNode }[]).map(({ id, label, icon }) => (
             <button
               key={id}
@@ -1393,6 +1704,13 @@ function WalletContent() {
             <PlansGrid />
             <SubscriptionManager />
             {isAdmin && <OwnerPanel />}
+          </div>
+        )}
+
+        {/* ── Referrals tab ──────────────────────────────────────────────── */}
+        {tab === 'referrals' && (
+          <div className="space-y-5">
+            <ReferralCenter />
           </div>
         )}
 

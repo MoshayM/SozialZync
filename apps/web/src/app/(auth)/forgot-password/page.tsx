@@ -1,9 +1,39 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Mail, Loader2, ArrowLeft, Send } from 'lucide-react';
+import { Loader2, ArrowLeft, Send } from 'lucide-react';
 import { api } from '@/lib/api';
-import { ForgotPasswordShell, LoginInput } from '@/components/auth-shell';
+import { ForgotPasswordShell } from '@/components/auth-shell';
+
+function Input({
+  type, placeholder, value, onChange, autoComplete, autoFocus, required,
+}: {
+  type: string; placeholder: string; value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  autoComplete?: string; autoFocus?: boolean; required?: boolean;
+}) {
+  return (
+    <div
+      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
+      style={{ border: '1.5px solid #ece8f8', background: '#fff' }}
+    >
+      <input
+        type={type} placeholder={placeholder} value={value} onChange={onChange}
+        autoComplete={autoComplete} autoFocus={autoFocus} required={required}
+        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+      />
+    </div>
+  );
+}
+
+function ErrorNote({ msg }: { msg: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-red-50 border border-red-100">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
+      <p className="text-red-600 text-xs font-medium leading-relaxed">{msg}</p>
+    </div>
+  );
+}
 
 const RESEND_COOLDOWN = 60; // seconds
 
@@ -77,92 +107,65 @@ export default function ForgotPasswordPage() {
           <p className="text-[#6D4AE0] font-semibold text-sm mb-6 break-all">{email}</p>
 
           {/* Tips */}
-          <div
-            className="rounded-2xl px-4 py-3.5 text-left space-y-2 mb-6"
-            style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}
-          >
-            <p className="text-xs font-semibold text-gray-600 mb-1.5">Didn&apos;t receive it?</p>
-            {[
-              "Check your spam or junk folder",
-              "Make sure you typed the right address",
-              "Allow a minute for delivery",
-            ].map((tip) => (
-              <div key={tip} className="flex items-start gap-2">
-                <span className="text-[#6D4AE0] mt-0.5 text-xs shrink-0">•</span>
-                <p className="text-gray-500 text-xs">{tip}</p>
-              </div>
+          <ul className="text-xs text-gray-400 space-y-1 mb-6 text-left">
+            {['Check your spam or junk folder', 'Make sure the address is correct', 'Allow a minute for delivery'].map((tip) => (
+              <li key={tip} className="flex items-start gap-1.5"><span className="shrink-0">·</span>{tip}</li>
             ))}
-          </div>
+          </ul>
 
           {/* Resend */}
           <button
             type="button"
             onClick={() => { void submit(); }}
             disabled={loading || cooldown > 0}
-            className="w-full py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
-            style={
-              cooldown > 0
-                ? { background: '#f0edf9', color: '#9d8adf', border: '1.5px solid #e3ddf8' }
-                : {
-                    background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-                    color: '#fff',
-                    boxShadow: '0 4px 20px rgba(109,74,224,0.30)',
-                  }
-            }
+            className="w-full py-[11px] rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+            style={{
+              background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
+              color: '#fff',
+              boxShadow: '0 4px 16px rgba(109,74,224,0.28)',
+            }}
           >
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Resending…</>
             ) : cooldown > 0 ? (
-              <>Resend in {cooldown}s</>
+              <span className="tabular-nums">Resend in {cooldown}s</span>
             ) : (
               <><Send className="w-4 h-4" /> Resend email</>
             )}
           </button>
 
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-4">
-              <span className="text-red-400 text-sm" aria-hidden>⚠</span>
-              <p className="text-red-600 text-xs font-medium">{error}</p>
-            </div>
-          )}
+          {error && <div className="mt-3"><ErrorNote msg={error} /></div>}
         </div>
       ) : (
         /* ── Email form ────────────────────────────────────────────── */
         <>
-          <div className="mb-8">
-            <h2 className="text-[1.9rem] font-extrabold text-gray-900 leading-tight mb-1.5">Forgot password?</h2>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Enter the email linked to your account and we&apos;ll send you a secure reset link.
+          <div className="mb-6">
+            <h2 className="text-2xl font-extrabold text-gray-900 leading-tight mb-1.5">Forgot your password?</h2>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Enter your email and we&apos;ll send you a reset link.
             </p>
           </div>
 
-          <form onSubmit={(e) => { void submit(e); }} className="space-y-4">
-            <LoginInput
-              icon={<Mail className="w-4 h-4" />}
-              label="Email address"
+          <form onSubmit={(e) => { void submit(e); }} className="space-y-3">
+            <Input
               type="email"
-              aria-label="Email"
-              placeholder="you@example.com"
+              placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+              autoComplete="email"
               autoFocus
+              required
             />
 
-            {error && (
-              <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
-                <span className="text-red-400 text-sm" aria-hidden>⚠</span>
-                <p className="text-red-600 text-xs font-medium">{error}</p>
-              </div>
-            )}
+            {error && <ErrorNote msg={error} />}
 
             <button
               type="submit"
               disabled={loading || !email.trim()}
-              className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+              className="w-full py-[11px] text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
               style={{
                 background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-                boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
+                boxShadow: '0 4px 16px rgba(109,74,224,0.28)',
               }}
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}

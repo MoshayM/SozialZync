@@ -5,8 +5,11 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TrendService } from '../trend/trend.service';
 import { JobsService } from '../jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TokenEncryptionService } from '../channels/token-encryption.service';
 import { callAIStructured, GoalPlanOutputSchema, type TrendOutput, type GoalPlanOutput } from '@cf/shared';
 import { z } from 'zod';
+
+interface OAuthTokens { access_token: string; refresh_token?: string; expiry_date?: number; }
 
 /**
  * Phase 6 Milestone 1 — autonomy foundation.
@@ -101,6 +104,7 @@ export class AutonomyService {
     private readonly trend: TrendService,
     private readonly jobs: JobsService,
     private readonly notifications: NotificationsService,
+    private readonly enc: TokenEncryptionService,
   ) {}
 
   private async audit(userId: string, action: string, meta: Record<string, unknown>): Promise<void> {
@@ -1056,5 +1060,109 @@ export class AutonomyService {
         maxTokens: 6000,
       },
     );
+  }
+
+  // ── A/B title variant: push to YouTube + pull live stats ─────────────────
+
+  async applyTitleVariant(
+    entryId: string,
+    title: string,
+    userId: string,
+  ): Promise<{ success: boolean; youtubeVideoId?: string }> {
+    const entry = await this.prisma.contentCalendarEntry.findFirst({
+      where: { id: entryId },
+      include: {
+        channel: { select: { id: true, userId: true, encryptedTokens: true } },
+      },
+    });
+    if (!entry) throw new NotFoundException('Calendar entry not found');
+    if (entry.channel.userId !== userId) throw new ForbiddenException();
+
+    await this.prisma.contentCalendarEntry.update({ where: { id: entryId }, data: { title } });
+
+    // Resolve linked YouTube video id via the attached Video record
+    let ytVideoId: string | undefined;
+    if (entry.videoId) {
+      const video = await this.prisma.video.findUnique({
+        where: { id: entry.videoId },
+        select: { youtubeVideoId: true },
+      });
+      ytVideoId = video?.youtubeVideoId ?? undefined;
+    }
+    if (!ytVideoId) return { success: true };
+
+    const { encryptedTokens } = entry.channel;
+    if (!encryptedTokens) return { success: true, youtubeVideoId: ytVideoId };
+
+    try {
+      const tokens: OAuthTokens = JSON.parse(this.enc.decrypt(encryptedTokens));
+      const authHeader = `Bearer ${tokens.access_token}`;
+
+      const existing = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${ytVideoId}`,
+        { headers: { Authorization: authHeader } },
+      ).then((r) => r.json()) as { items?: Array<{ snippet: Record<string, unknown> }> };
+
+      const snippet = existing?.items?.[0]?.snippet;
+      if (!snippet) return { success: true, youtubeVideoId: ytVideoId };
+
+      await fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet', {
+        method: 'PUT',
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: ytVideoId, snippet: { ...snippet, title } }),
+      });
+    } catch (err) {
+      this.logger.warn(`[A/B] YouTube title update failed for entry=${entryId}: ${String(err)}`);
+    }
+    return { success: true, youtubeVideoId: ytVideoId };
+  }
+
+  async getVariantStats(
+    entryId: string,
+    userId: string,
+  ): Promise<{ currentTitle: string; variants: string[]; youtubeStats?: { viewCount: number; likeCount: number } }> {
+    const entry = await this.prisma.contentCalendarEntry.findFirst({
+      where: { id: entryId },
+      include: {
+        channel: { select: { id: true, userId: true, encryptedTokens: true } },
+      },
+    });
+    if (!entry) throw new NotFoundException('Calendar entry not found');
+    if (entry.channel.userId !== userId) throw new ForbiddenException();
+
+    let ytVideoId: string | undefined;
+    if (entry.videoId) {
+      const video = await this.prisma.video.findUnique({
+        where: { id: entry.videoId },
+        select: { youtubeVideoId: true },
+      });
+      ytVideoId = video?.youtubeVideoId ?? undefined;
+    }
+
+    let youtubeStats: { viewCount: number; likeCount: number } | undefined;
+    if (ytVideoId && entry.channel.encryptedTokens) {
+      try {
+        const tokens: OAuthTokens = JSON.parse(this.enc.decrypt(entry.channel.encryptedTokens));
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ytVideoId}`,
+          { headers: { Authorization: `Bearer ${tokens.access_token}` } },
+        ).then((r) => r.json()) as { items?: Array<{ statistics: Record<string, string> }> };
+        const stats = res?.items?.[0]?.statistics;
+        if (stats) {
+          youtubeStats = {
+            viewCount: parseInt(stats['viewCount'] ?? '0', 10),
+            likeCount: parseInt(stats['likeCount'] ?? '0', 10),
+          };
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
+
+    return {
+      currentTitle: entry.title,
+      variants: entry.titleVariants as string[],
+      youtubeStats,
+    };
   }
 }

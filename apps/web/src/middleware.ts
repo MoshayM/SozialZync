@@ -1,33 +1,11 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/login(.*)',
-  '/register(.*)',
-  '/forgot-password(.*)',
-  '/reset-password(.*)',
-  '/set-password(.*)',
-  '/oauth(.*)',
-  '/api/proxy/(.*)',
-  '/api/(.*)',
-  '/_next/(.*)',
-  '/icon.svg',
-  '/manifest.json',
-  '/sw.js',
-]);
-
-export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    const { userId } = await auth();
-    if (!userId) {
-      // Fall back to localStorage-based auth (legacy JWT path)
-      // The DashLayout already handles redirect to /login for missing cf_token
-      return NextResponse.next();
-    }
-  }
+// Auth is handled client-side via DashLayout checking cf_token in localStorage.
+// This middleware is a passthrough — add route-level guards here if needed.
+export function middleware(_req: NextRequest) {
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -7,6 +7,10 @@ import { TrendService } from './trend.service';
 class TrendDto {
   @IsString() niche!: string;
   @IsOptional() @IsNumber() channelSize?: number;
+}
+
+class GapsDto {
+  @IsString() niche!: string;
 }
 
 @ApiTags('trends')
@@ -19,5 +23,10 @@ export class TrendController {
   @Post('analyze')
   analyze(@Body() dto: TrendDto) {
     return this.svc.analyze(dto.niche, dto.channelSize);
+  }
+
+  @Get('gaps')
+  gaps(@Query() dto: GapsDto) {
+    return this.svc.gapsAnalysis(dto.niche);
   }
 }

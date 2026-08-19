@@ -28,6 +28,8 @@ import { MusicModule } from './modules/music/music.module';
 import { ImageModule } from './modules/image/image.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { GrowthModule } from './modules/growth/growth.module';
+import { ReferralModule } from './modules/referral/referral.module';
+import { UpgradeModule } from './modules/upgrade/upgrade.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { TimelineModule } from './modules/timeline/timeline.module';
 import { RenderModule } from './modules/render/render.module';
@@ -49,6 +51,7 @@ import { SystemModule } from './modules/system/system.module';
 import { PlatformsModule } from './modules/platforms/platforms.module';
 import { PluginsModule } from './modules/plugins/plugins.module';
 import { CharacterModule } from './modules/character/character.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 
 @Module({
   imports: [
@@ -105,6 +108,8 @@ import { CharacterModule } from './modules/character/character.module';
     ImageModule,
     AnalyticsModule,
     GrowthModule,
+    ReferralModule,
+    UpgradeModule,
     AssetsModule,
     TimelineModule,
     RenderModule,
@@ -126,6 +131,7 @@ import { CharacterModule } from './modules/character/character.module';
     PlatformsModule,
     PluginsModule,
     CharacterModule,
+    CalendarModule,
     MetricsModule,
     HealthModule,
   ],

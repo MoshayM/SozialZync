@@ -401,7 +401,7 @@ export class SupervisorWorker extends WorkerHost {
         if (!research) throw new Error('Research not found — complete the Research Topic step first.');
         const t0 = Date.now();
         this.log(jobId, projectId, 'Calling AI script writer…', `Topic: "${research.topic.slice(0, 60)}"`);
-        const script = await this.content.writeScript(research);
+        const script = await this.content.writeScript(research, undefined, project.targetLang ?? undefined);
         const s = script as { totalWordCount?: number; sections?: unknown[]; estimatedDurationMins?: number; title?: string };
         this.log(jobId, projectId, 'Script ready', `${s.totalWordCount ?? '?'} words · ${s.sections?.length ?? '?'} sections · ~${s.estimatedDurationMins ?? '?'} min`);
         await this.jobs.logStep(jobId, 'ScriptAgent', 'write', { research: research.topic }, script, 0, 0, Date.now() - t0);

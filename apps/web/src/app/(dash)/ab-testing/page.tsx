@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FlaskConical, Loader2, CheckCircle2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { FlaskConical, Loader2, CheckCircle2, RefreshCw, ChevronDown, ChevronUp, Youtube, BarChart2 } from 'lucide-react';
+import Link from 'next/link';
 import { api, apiClient } from '@/lib/api';
 
 interface CalendarEntry {
@@ -33,11 +34,51 @@ const FORMAT_COLORS: Record<string, string> = {
 
 type FilterTab = 'all' | 'has_variants' | 'no_variants';
 
+function StatsPanel({ entryId }: { entryId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['variant-stats', entryId],
+    queryFn: () => api.autonomy.variantStats(entryId).then((r) => r.data),
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
+        <Loader2 className="w-3 h-3 animate-spin" /> Loading stats…
+      </div>
+    );
+  }
+
+  if (!data?.youtubeStats) {
+    return (
+      <p className="mt-2 text-xs text-gray-400 italic">
+        No live YouTube stats — video not yet published or not linked to this entry.
+      </p>
+    );
+  }
+
+  const { viewCount, likeCount } = data.youtubeStats;
+  return (
+    <div className="mt-2 flex gap-4">
+      <div className="text-center">
+        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Views</p>
+        <p className="text-lg font-bold text-gray-900">{viewCount.toLocaleString()}</p>
+      </div>
+      <div className="text-center">
+        <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Likes</p>
+        <p className="text-lg font-bold text-gray-900">{likeCount.toLocaleString()}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function AbTestingPage() {
   const [selectedChannelId, setSelectedChannelId] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [swappedTitles, setSwappedTitles] = useState<Record<string, string>>({});
+  const [pushedToYT, setPushedToYT] = useState<Record<string, boolean>>({});
+  const [statsOpen, setStatsOpen] = useState<Record<string, boolean>>({});
   const qc = useQueryClient();
 
   const { data: channels = [], isLoading: channelsLoading } = useQuery<Channel[]>({
@@ -65,6 +106,16 @@ export default function AbTestingPage() {
     mutationFn: ({ entryId, title }: { entryId: string; title: string }) =>
       apiClient.patch(`/autonomy/calendar/${entryId}/title`, { title }),
     onSuccess: (_data, vars) => {
+      setSwappedTitles((prev) => ({ ...prev, [vars.entryId]: vars.title }));
+      void qc.invalidateQueries({ queryKey: ['ab-calendar', channelId] });
+    },
+  });
+
+  const pushMutation = useMutation({
+    mutationFn: ({ entryId, title }: { entryId: string; title: string }) =>
+      api.autonomy.applyVariant(entryId, title),
+    onSuccess: (_data, vars) => {
+      setPushedToYT((prev) => ({ ...prev, [vars.entryId]: true }));
       setSwappedTitles((prev) => ({ ...prev, [vars.entryId]: vars.title }));
       void qc.invalidateQueries({ queryKey: ['ab-calendar', channelId] });
     },
@@ -166,7 +217,7 @@ export default function AbTestingPage() {
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
               <FlaskConical className="w-8 h-8" style={{ color: '#6D4AE0' }} />
             </div>
-            <p className="text-sm text-gray-500">No entries found. Generate a content calendar in the Autonomy section first.</p>
+            <p className="text-sm text-gray-500">No entries found. <Link href="/publish?tab=calendar" className="underline font-medium hover:text-[#6D4AE0]">Generate a content calendar →</Link></p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -231,11 +282,20 @@ export default function AbTestingPage() {
                               >
                                 {swapMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Use This'}
                               </button>
+                              <button
+                                onClick={() => pushMutation.mutate({ entryId: entry.id, title: variant })}
+                                disabled={pushMutation.isPending}
+                                title="Save locally and push this title to YouTube"
+                                className="flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-2xl disabled:opacity-50 shrink-0 transition-colors hover:bg-red-50"
+                                style={{ border: '1.5px solid #fca5a5', color: '#dc2626' }}
+                              >
+                                {pushMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Youtube className="w-3 h-3" />&nbsp;Push</>}
+                              </button>
                             </div>
                           ))}
 
                           {variants.length === 0 && (
-                            <p className="text-xs text-gray-400 italic">No variants generated. Re-generate this entry in the Autonomy calendar.</p>
+                            <p className="text-xs text-gray-400 italic">No variants generated yet. <Link href="/publish?tab=calendar" className="underline hover:text-[#6D4AE0]">Open Calendar →</Link></p>
                           )}
                         </div>
                       </div>
@@ -243,9 +303,21 @@ export default function AbTestingPage() {
                       {swappedTitles[entry.id] && (
                         <div className="flex items-center gap-2 text-green-600 text-xs font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Title updated successfully
+                          {pushedToYT[entry.id] ? 'Title pushed to YouTube' : 'Title updated successfully'}
                         </div>
                       )}
+
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setStatsOpen((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))}
+                          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#6D4AE0] transition-colors"
+                        >
+                          <BarChart2 className="w-3.5 h-3.5" />
+                          {statsOpen[entry.id] ? 'Hide Stats' : 'View Live Stats'}
+                        </button>
+                        {statsOpen[entry.id] && <StatsPanel entryId={entry.id} />}
+                      </div>
                     </div>
                   )}
                 </div>

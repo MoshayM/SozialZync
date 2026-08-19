@@ -253,7 +253,7 @@ export default function MonitorPage() {
                         return isTokenExpired ? (
                           <span className="text-xs text-amber-600 flex items-center gap-1 flex-wrap">
                             YouTube token expired —{' '}
-                            <a href="/library?tab=channels" className="underline font-medium hover:text-amber-700">reconnect channel</a>
+                            <a href="/settings/channels" className="underline font-medium hover:text-amber-700">reconnect channel</a>
                           </span>
                         ) : (
                           <span className="text-xs text-red-500 truncate max-w-xs" title={job.error}>{job.error}</span>

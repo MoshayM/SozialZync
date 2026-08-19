@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards, InternalServerErrorException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ImageExternalService } from './image-external.service';
 import { ThumbnailService } from './thumbnail.service';
@@ -10,6 +10,13 @@ export class MediaLibraryController {
     private readonly images: ImageExternalService,
     private readonly thumbnails: ThumbnailService,
   ) {}
+
+  // ── Provider availability ─────────────────────────────────────────────────
+
+  @Get('images/providers')
+  imageProviders() {
+    return this.images.getProviders();
+  }
 
   // ── Image search ──────────────────────────────────────────────────────────
 
@@ -30,7 +37,7 @@ export class MediaLibraryController {
   // ── Thumbnail generation ──────────────────────────────────────────────────
 
   @Post('thumbnail/generate')
-  generateThumbnail(
+  async generateThumbnail(
     @Body() body: {
       videoTitle: string;
       scriptExcerpt: string;
@@ -39,12 +46,17 @@ export class MediaLibraryController {
       generateImages?: boolean;
     },
   ) {
-    return this.thumbnails.generate({
-      videoTitle: body.videoTitle ?? 'My Video',
-      scriptExcerpt: body.scriptExcerpt ?? '',
-      channelTopic: body.channelTopic,
-      style: body.style ?? 'bold',
-      generateImages: body.generateImages !== false,
-    });
+    try {
+      return await this.thumbnails.generate({
+        videoTitle: body.videoTitle ?? 'My Video',
+        scriptExcerpt: body.scriptExcerpt ?? '',
+        channelTopic: body.channelTopic,
+        style: body.style ?? 'bold',
+        generateImages: body.generateImages !== false,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Thumbnail generation failed';
+      throw new InternalServerErrorException(msg);
+    }
   }
 }

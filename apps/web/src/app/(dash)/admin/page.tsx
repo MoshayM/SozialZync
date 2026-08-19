@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity,
   BarChart2,
@@ -27,13 +27,19 @@ import {
   AlertTriangle,
   Send,
   Loader2,
+  Film,
+  Download,
+  Volume2,
+  VolumeX,
+  Play,
+  Maximize2,
 } from 'lucide-react';
 import { StatCard, PastelBars, PastelDonut } from '@/components/stat-card';
 import { DevicePreview } from '@/components/device-preview';
 import { api, apiClient, type AdminProvider, type AdminUser, type EnterpriseMetrics, type ForecastRow } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
-type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage';
+type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video';
 
 // ── Token usage types (platform-wide, admin only) ─────────────────────────────
 interface TokenUsageSummary {
@@ -297,6 +303,216 @@ function generateAiAssessment(req: EnterpriseRequest): AiAssessment {
   return { riskScore, recommendation, summary: summaryMap[recommendation], signals };
 }
 
+// ── Ad Video Tab ──────────────────────────────────────────────────────────────
+
+function AdVideoTab() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.play().then(() => setPlaying(true)).catch(() => {});
+  }, []);
+
+  function toggleMute() {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+  }
+
+  function togglePlay() {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { void v.play(); setPlaying(true); }
+    else { v.pause(); setPlaying(false); }
+  }
+
+  function openFullscreen() {
+    const v = videoRef.current;
+    if (v?.requestFullscreen) void v.requestFullscreen();
+  }
+
+  const SCENES = [
+    { label: 'Title card',       desc: 'Brand intro with animated gradient and tagline' },
+    { label: 'Dashboard',        desc: 'Projects, channels, and pipeline overview' },
+    { label: 'AI Copilot',       desc: 'Voice-powered copilot in action' },
+    { label: 'Feature grid',     desc: 'All 12 platform capabilities at a glance' },
+    { label: 'Discover / Trends',desc: 'Real-time YouTube trend discovery' },
+    { label: 'CTA',              desc: 'Sign-up call to action with brand close' },
+  ];
+
+  return (
+    <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+            <Film className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Platform Ad Video</h1>
+            <p className="text-sm text-gray-500 mt-0.5">30-second Sozialzync promotional video — 6 scenes · 1280×720 · H.264 · 30 fps</p>
+          </div>
+        </div>
+        <a
+          href="/sozialzync-ad-30s.mp4"
+          download="sozialzync-ad-30s.mp4"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}
+        >
+          <Download className="w-4 h-4" />
+          Download .mp4
+        </a>
+      </div>
+
+      {/* Video player */}
+      <div
+        className="relative rounded-3xl overflow-hidden"
+        style={{ background: '#0e0924', border: '1.5px solid rgba(109,74,224,.25)', boxShadow: '0 0 0 1px rgba(109,74,224,.1), 0 0 40px rgba(109,74,224,.15)' }}
+        onMouseEnter={() => setShowControls(true)}
+        onMouseLeave={() => setShowControls(false)}
+      >
+        {/* Chrome bar */}
+        <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/10">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+          <span className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+          <div className="flex-1 mx-3 h-5 rounded-md flex items-center px-3" style={{ background: 'rgba(255,255,255,.06)' }}>
+            <span className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,.3)' }}>sozialzync-ad-30s.mp4 · Admin preview</span>
+          </div>
+          <button
+            onClick={toggleMute}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-colors"
+            style={{ color: muted ? 'rgba(255,255,255,.4)' : '#a78bfa', background: muted ? 'transparent' : 'rgba(167,139,250,.1)' }}
+            aria-label={muted ? 'Unmute' : 'Mute'}
+          >
+            {muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+            <span className="ml-0.5">{muted ? 'Unmute' : 'Sound on'}</span>
+          </button>
+        </div>
+
+        {/* Video */}
+        <div className="relative" style={{ aspectRatio: '16/9' }}>
+          <video
+            ref={videoRef}
+            src="/sozialzync-ad-30s.mp4"
+            muted
+            loop
+            playsInline
+            autoPlay
+            className="w-full h-full object-cover"
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+          />
+
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 flex items-center justify-center transition-opacity duration-200"
+            style={{ opacity: showControls || !playing ? 1 : 0, background: 'rgba(0,0,0,.1)' }}
+          >
+            <button
+              onClick={togglePlay}
+              className="w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 backdrop-blur-sm"
+              style={{ background: 'rgba(109,74,224,.8)', border: '2px solid rgba(255,255,255,.25)' }}
+              aria-label={playing ? 'Pause' : 'Play'}
+            >
+              {playing
+                ? <span className="flex gap-0.5"><span className="w-1.5 h-5 rounded-sm bg-white" /><span className="w-1.5 h-5 rounded-sm bg-white" /></span>
+                : <Play className="w-6 h-6 text-white ml-0.5" fill="white" />}
+            </button>
+          </div>
+
+          {/* Bottom bar */}
+          <div
+            className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5 transition-opacity duration-200"
+            style={{ opacity: showControls ? 1 : 0, background: 'linear-gradient(to top,rgba(0,0,0,.6),transparent)' }}
+          >
+            <span className="text-[10px] font-semibold text-white/70">30 seconds · 6 scenes · Ken Burns motion</span>
+            <button
+              onClick={openFullscreen}
+              className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
+              style={{ color: 'rgba(255,255,255,.6)' }}
+              aria-label="Full screen"
+            >
+              <Maximize2 className="w-3 h-3" />
+              Full screen
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Scene breakdown + production metadata side by side */}
+      <div className="grid sm:grid-cols-2 gap-5">
+        {/* Scene breakdown */}
+        <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Scene Breakdown</p>
+          <ol className="space-y-2.5">
+            {SCENES.map((s, i) => (
+              <li key={s.label} className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}>
+                  {i + 1}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{s.label}</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+                </div>
+                <span className="ml-auto text-[10px] font-bold text-gray-400 shrink-0 mt-1">5s</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Production metadata + deployment notes */}
+        <div className="space-y-4">
+          <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Production Metadata</p>
+            <dl className="space-y-2 text-sm">
+              {[
+                ['Duration',    '30 seconds'],
+                ['Resolution',  '1280 × 720 (HD)'],
+                ['Frame rate',  '30 fps'],
+                ['Codec',       'H.264 · yuv420p'],
+                ['Scenes',      '6 × 5-second scenes'],
+                ['Motion',      'Ken Burns zoom/pan · 5 styles'],
+                ['Generator',   'make_ad.py · Python/Pillow'],
+                ['File size',   '~0.7 MB'],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                  <dt className="text-gray-500 font-medium">{k}</dt>
+                  <dd className="font-semibold text-gray-800 text-right">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          <section className="rounded-2xl p-4" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Deployment Suggestions</p>
+            <ul className="space-y-1.5 text-xs text-gray-600">
+              {[
+                'Landing page hero — already live at /',
+                'YouTube channel trailer — upload directly to your Sozialzync channel',
+                'LinkedIn / Twitter organic post — drives creator sign-ups',
+                'Google / Meta video ads — 30s is the optimal ad unit length',
+                'App Store / Play Store preview video',
+                'Email drip campaign — embed as animated GIF or hosted link',
+              ].map((tip) => (
+                <li key={tip} className="flex items-start gap-2">
+                  <span className="shrink-0 mt-0.5" style={{ color: '#7C3AED' }}>·</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
@@ -496,6 +712,7 @@ export default function AdminDashboardPage() {
               icon: <Building2 className="w-4 h-4" />,
             },
             { id: 'device-preview',      label: 'Device Preview',       icon: <Monitor className="w-4 h-4" /> },
+            { id: 'ad-video',            label: 'Platform Ad',          icon: <Film className="w-4 h-4" /> },
           ] as { id: AdminTab; label: string; icon: React.ReactNode }[]
         ).map(({ id, label, icon }) => (
           <button
@@ -517,6 +734,9 @@ export default function AdminDashboardPage() {
           </button>
         ))}
       </div>
+
+      {/* ── Platform Ad Video ───────────────────────────────────────────────── */}
+      {adminTab === 'ad-video' && <AdVideoTab />}
 
       {/* ── Device Preview ──────────────────────────────────────────────────── */}
       {adminTab === 'device-preview' && <DevicePreview />}

@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarClock,
+  FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarDays, Upload,
   CheckCircle2, Circle, ChevronRight, Bot, Mic2, MessageSquare, TrendingUp,
   Clock, Activity, PlayCircle, FileText, Music2, Image as ImageIcon, Film,
-  LayoutDashboard, Flame, Scissors, Send,
+  LayoutDashboard, Flame, Scissors, Send, Loader2, X,
 } from 'lucide-react';
 import { api, type TrialStatusResponse, type ChannelAutomation } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
@@ -21,7 +22,13 @@ interface Project {
   updatedAt: string;
 }
 
-interface Channel { id: string; title: string; }
+interface Channel {
+  id: string;
+  title: string;
+  thumbnailUrl?: string | null;
+  subscriberCount?: number;
+  videoCount?: number;
+}
 
 const JOB_ICON: Record<string, React.ElementType> = {
   RESEARCH:       BookOpenIcon,
@@ -59,10 +66,10 @@ const QUICK_PROMPTS = [
 ];
 
 const QUICK_ACTIONS = [
-  { href: '/projects',   icon: Plus,          label: 'New Project',  sub: 'Start from scratch',          tileBg: '#6D4AE0' },
-  { href: '/copilot',    icon: Bot,           label: 'AI Copilot',   sub: 'Chat with your AI crew',      tileBg: '#7c5ae8' },
-  { href: '/autonomy',   icon: Sparkles,      label: 'AI Autonomy',  sub: 'Auto-generate content',       tileBg: '#ec4899' },
-  { href: '/scheduler',  icon: CalendarClock, label: 'Schedule',     sub: 'Plan publish calendar',       tileBg: '#0891b2' },
+  { href: '/projects',      icon: Plus,          label: 'New Project',      sub: 'Start from scratch',           tileBg: '#6D4AE0' },
+  { href: '/copilot',       icon: Bot,           label: 'AI Copilot',       sub: 'Chat with your AI crew',       tileBg: '#7c5ae8' },
+  { href: '/shorts-studio', icon: Scissors,      label: 'Shorts Studio',    sub: 'Clip & export YouTube Shorts', tileBg: '#e11d48' },
+  { href: '/publish',              icon: Upload,        label: 'Publish Hub',      sub: 'Calendar, planner & publish', tileBg: '#0891b2' },
 ];
 
 function greet(name: string): string {
@@ -79,6 +86,12 @@ function relativeTime(dateStr: string): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
 }
 
 function daysUntil(dateStr: string): number {
@@ -109,12 +122,144 @@ function Card({ children, className = '', href }: { children: React.ReactNode; c
   return <div className={cls} style={style}>{children}</div>;
 }
 
+// ── Onboarding wizard ────────────────────────────────────────────────────────
+
+const WIZARD_STEPS = [
+  {
+    icon: Youtube,
+    iconBg: '#fee2e2',
+    iconColor: '#dc2626',
+    title: 'Connect your YouTube channel',
+    body: 'Link your channel so Sozialzync can publish, analyze, and schedule your content automatically.',
+    cta: 'Connect a channel',
+    href: '/settings/channels',
+    skip: "I'll do this later",
+  },
+  {
+    icon: FolderOpen,
+    iconBg: '#ede9fe',
+    iconColor: '#7C3AED',
+    title: 'Create your first content project',
+    body: 'A project is your content workspace — choose a niche, and AI generates research, scripts, voice, and thumbnails.',
+    cta: 'Create a project',
+    href: '/projects',
+    skip: null,
+  },
+  {
+    icon: Bot,
+    iconBg: '#e0e7ff',
+    iconColor: '#4338ca',
+    title: 'Say hello to your AI Copilot',
+    body: 'Your copilot plans your entire YouTube pipeline. Just tell it what you want to create — by voice or text.',
+    cta: 'Open the Copilot',
+    href: '/copilot',
+    skip: null,
+  },
+] as const;
+
+function OnboardingWizard({
+  step,
+  onAdvance,
+  onSkip,
+  onDismiss,
+}: {
+  step: number;
+  onAdvance: (href: string) => void;
+  onSkip: () => void;
+  onDismiss: () => void;
+}) {
+  const current = WIZARD_STEPS[step - 1];
+  if (!current) return null;
+  const Icon = current.icon;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 p-8 relative">
+        {/* Skip / close */}
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="absolute top-5 right-5 flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Skip onboarding"
+        >
+          <X className="w-3.5 h-3.5" />
+          Skip for now
+        </button>
+
+        {/* Step dots */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {WIZARD_STEPS.map((_, i) => (
+            <span
+              key={i}
+              className="rounded-full transition-all"
+              style={{
+                width: i + 1 === step ? '24px' : '8px',
+                height: '8px',
+                background: i + 1 <= step ? '#6D4AE0' : '#e3ddf8',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Icon */}
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
+          style={{ background: current.iconBg }}
+        >
+          <Icon className="w-8 h-8" style={{ color: current.iconColor }} />
+        </div>
+
+        {/* Brand header */}
+        <div className="text-center mb-2">
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6D4AE0' }}>
+            Step {step} of {WIZARD_STEPS.length}
+          </span>
+        </div>
+        <h2 className="text-xl font-extrabold text-gray-900 text-center mb-3 leading-tight">
+          {current.title}
+        </h2>
+        <p className="text-sm text-gray-500 text-center leading-relaxed mb-8">
+          {current.body}
+        </p>
+
+        {/* CTA */}
+        <button
+          type="button"
+          onClick={() => onAdvance(current.href)}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] mb-3"
+          style={{ background: 'linear-gradient(135deg,#a78bfa,#6D4AE0)', boxShadow: '0 8px 24px -6px rgba(109,74,224,.45)' }}
+        >
+          {current.cta}
+          <ArrowRight className="w-4 h-4" />
+        </button>
+
+        {/* Skip step */}
+        {current.skip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="w-full text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors py-1"
+          >
+            {current.skip}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const router = useRouter();
   const [onboardingDone, setOnboardingDone] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
   // greeting uses local time — must be client-only to avoid SSR/client hydration mismatch
   const [greeting, setGreeting] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [trendNiche, setTrendNiche] = useState('');
+  const [trendItems, setTrendItems] = useState<Array<{ topic: string; score: number }>>([]);
+  const [trendsLoading, setTrendsLoading] = useState(false);
+  const trendDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (localStorage.getItem('cf.onboarding.done') === '1') setOnboardingDone(true);
@@ -155,9 +300,41 @@ export default function HomePage() {
 
   useEffect(() => { setGreeting(greet(displayName)); }, [displayName]);
 
+  useEffect(() => {
+    setTrendNiche(localStorage.getItem('cf_channel_niche') ?? '');
+  }, []);
+
+  useEffect(() => {
+    if (trendDebounceRef.current) clearTimeout(trendDebounceRef.current);
+    if (!trendNiche.trim()) { setTrendItems([]); return; }
+    localStorage.setItem('cf_channel_niche', trendNiche);
+    trendDebounceRef.current = setTimeout(async () => {
+      setTrendsLoading(true);
+      try {
+        const res = await fetch('/api/proxy/trends/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('cf_token') ?? ''}` },
+          body: JSON.stringify({ niche: trendNiche }),
+        });
+        if (res.ok) {
+          const data = await res.json() as { trending?: Array<{ topic: string; score: number }> };
+          setTrendItems(data.trending?.slice(0, 5) ?? []);
+        } else {
+          setTrendItems([]);
+        }
+      } catch {
+        setTrendItems([]);
+      } finally {
+        setTrendsLoading(false);
+      }
+    }, 800);
+    return () => { if (trendDebounceRef.current) clearTimeout(trendDebounceRef.current); };
+  }, [trendNiche]);
+
   const activeProjects = projects.filter((p) => p.status === 'ACTIVE');
   const totalVideos = projects.reduce((s, p) => s + p._count.videos, 0);
   const totalJobs = projects.reduce((s, p) => s + p._count.jobs, 0);
+  const totalSubscribers = channels.reduce((s, ch) => s + (ch.subscriberCount ?? 0), 0);
 
   const recentProjects = [...projects]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
@@ -171,10 +348,10 @@ export default function HomePage() {
   const daysLeft = trialStatus?.expiresAt ? daysUntil(trialStatus.expiresAt) : null;
 
   const steps = [
-    { label: 'Connect a YouTube channel',     done: channels.length > 0,       href: '/library?tab=channels' },
+    { label: 'Connect a YouTube channel',     done: channels.length > 0,       href: '/settings/channels' },
     { label: 'Create your first project',      done: projects.length > 0,       href: '/projects' },
     { label: 'Enable AI automation',           done: automation?.enabled === true, href: '/automation' },
-    { label: 'Generate your first AI content', done: totalJobs > 0,             href: '/autonomy' },
+    { label: 'Generate your first AI content', done: totalJobs > 0,             href: '/publish?tab=calendar' },
   ];
   const completedCount = steps.filter((s) => s.done).length;
   const allComplete = completedCount === steps.length;
@@ -186,6 +363,30 @@ export default function HomePage() {
       return () => clearTimeout(t);
     }
   }, [allComplete, onboardingDone]);
+
+  function advanceWizard(href: string) {
+    if (wizardStep < WIZARD_STEPS.length) {
+      setWizardStep((s) => s + 1);
+      router.push(href);
+    } else {
+      localStorage.setItem('cf.onboarding.done', '1');
+      setOnboardingDone(true);
+      router.push(href);
+    }
+  }
+
+  function skipWizardStep() {
+    if (wizardStep < WIZARD_STEPS.length) {
+      setWizardStep((s) => s + 1);
+    } else {
+      dismissWizard();
+    }
+  }
+
+  function dismissWizard() {
+    localStorage.setItem('cf.onboarding.done', '1');
+    setOnboardingDone(true);
+  }
 
   function openCopilotWithPrompt(prompt: string) {
     window.dispatchEvent(new CustomEvent('cf:open-copilot'));
@@ -227,13 +428,14 @@ export default function HomePage() {
               </div>
 
               {/* Short Studio badge */}
-              <div
-                className="hidden sm:flex items-center gap-2 shrink-0 px-3.5 py-2 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' }}
+              <Link
+                href="/shorts-studio"
+                className="hidden sm:flex items-center gap-2 shrink-0 px-3.5 py-2 rounded-2xl transition-all hover:scale-[1.03] active:scale-95"
+                style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', textDecoration: 'none' }}
               >
                 <span className="text-[10px] font-extrabold tracking-widest px-2 py-0.5 rounded-full" style={{ background: '#f0c14d', color: '#3b1f00' }}>NEW</span>
                 <span className="text-white/80 text-xs font-semibold">✂️ Short Studio</span>
-              </div>
+              </Link>
             </div>
 
             {/* Prompt input */}
@@ -305,7 +507,7 @@ export default function HomePage() {
 
         {/* ── STATS ROW ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard tone="lilac"      icon={<FolderOpen className="w-5 h-5" />} label="Channels"        value={channels.length} />
+          <StatCard tone="lilac"      icon={<Youtube className="w-5 h-5" />}    label="Subscribers"      value={totalSubscribers > 0 ? formatCount(totalSubscribers) : channels.length} sub={totalSubscribers > 0 ? `${channels.length} channel${channels.length !== 1 ? 's' : ''}` : 'channels connected'} />
           <StatCard tone="cream"      icon={<Zap className="w-5 h-5" />}        label="Active Projects"  value={activeProjects.length} sub={`of ${projects.length} total`} />
           <StatCard tone="periwinkle" icon={<Video className="w-5 h-5" />}      label="Videos"           value={totalVideos} />
           <StatCard tone="pink"       icon={<Activity className="w-5 h-5" />}   label="AI Jobs"          value={totalJobs} sub="across all projects" />
@@ -341,8 +543,8 @@ export default function HomePage() {
                       {lastProject.channel?.title ?? 'No channel'}
                     </p>
                     <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Video className="w-3 h-3" /> {lastProject._count.videos} videos</span>
-                      <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {lastProject._count.jobs} AI jobs</span>
+                      <span className="flex items-center gap-1"><Video className="w-3 h-3" /> {lastProject._count?.videos ?? 0} videos</span>
+                      <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {lastProject._count?.jobs ?? 0} AI jobs</span>
                     </div>
                   </div>
                   <div
@@ -523,29 +725,76 @@ export default function HomePage() {
               </div>
             </Card>
 
+            {/* Trending Topics */}
+            <Card>
+              <SectionLabel icon={TrendingUp}>Trending Topics</SectionLabel>
+              <input
+                type="text"
+                placeholder="Enter your channel niche…"
+                value={trendNiche}
+                onChange={(e) => setTrendNiche(e.target.value)}
+                className="w-full text-sm rounded-xl px-3 py-2 mb-3 outline-none"
+                style={{ background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#1f1a3d' }}
+              />
+              {trendsLoading && (
+                <div className="flex items-center justify-center py-3">
+                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} />
+                </div>
+              )}
+              {!trendsLoading && trendItems.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {trendItems.map(({ topic, score }) => (
+                    <button
+                      key={topic}
+                      type="button"
+                      onClick={() => openCopilotWithPrompt(`Research trending topic: ${topic}`)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:opacity-80"
+                      style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ background: score > 80 ? '#10b981' : score > 60 ? '#f59e0b' : '#8b8fa8' }}
+                      />
+                      {topic}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!trendsLoading && trendItems.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-1">
+                  {trendNiche.trim() ? 'No trends found for this niche.' : 'Enter your niche to see trending topics.'}
+                </p>
+              )}
+            </Card>
+
             {/* Connected channels */}
             {channels.length > 0 && (
               <Card>
                 <SectionLabel icon={Youtube}>Connected Channels</SectionLabel>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {channels.slice(0, 3).map((ch) => (
                     <div key={ch.id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-                        <Youtube className="w-4 h-4 text-red-500" />
+                      {ch.thumbnailUrl ? (
+                        <img src={ch.thumbnailUrl} alt={ch.title} className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                          <Youtube className="w-4 h-4 text-red-500" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 font-semibold truncate leading-none">{ch.title}</p>
+                        {(ch.subscriberCount ?? 0) > 0 && (
+                          <p className="text-[11px] text-gray-400 mt-0.5">{formatCount(ch.subscriberCount!)} subscribers</p>
+                        )}
                       </div>
-                      <span className="text-sm text-gray-800 font-semibold truncate flex-1">{ch.title}</span>
                       {automation?.enabled && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 shrink-0">Auto</span>
                       )}
                     </div>
                   ))}
-                  {channels.length === 0 && (
-                    <Link
-                      href="/library?tab=channels"
-                      className="flex items-center gap-2 text-sm font-semibold hover:underline"
-                      style={{ color: '#6D4AE0' }}
-                    >
-                      <Plus className="w-4 h-4" /> Connect a channel
+                  {channels.length > 3 && (
+                    <Link href="/settings/channels" className="text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                      +{channels.length - 3} more channels
                     </Link>
                   )}
                 </div>
@@ -554,6 +803,15 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {!onboardingDone && (
+        <OnboardingWizard
+          step={wizardStep}
+          onAdvance={advanceWizard}
+          onSkip={skipWizardStep}
+          onDismiss={dismissWizard}
+        />
+      )}
     </div>
   );
 }

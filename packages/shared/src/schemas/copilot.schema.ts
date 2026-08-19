@@ -67,6 +67,11 @@ export const CopilotCommandSchema = z.discriminatedUnion('action', [
     language: z.string().min(2).max(12),
     applyToVoiceover: z.boolean().default(true),
   }),
+  // Phase 6 AI autonomy intents
+  z.object({ action: z.literal('analyze_trends'), niche: z.string().min(1).max(200), channelId: z.string().optional() }),
+  z.object({ action: z.literal('generate_calendar'), channelId: z.string(), weeks: z.number().int().min(1).max(8).default(4) }),
+  z.object({ action: z.literal('benchmark_channel'), channelId: z.string() }),
+  z.object({ action: z.literal('audience_segment'), channelId: z.string() }),
 ]);
 export type CopilotCommand = z.infer<typeof CopilotCommandSchema>;
 
@@ -81,6 +86,8 @@ export const EXPENSIVE_ACTIONS: ReadonlyArray<CopilotCommand['action']> = [
   // Mutates the public video description — always confirm first
   'sync_chapters_to_youtube',
   'generate_social_content',
+  // Calls AI model to produce calendar entries
+  'generate_calendar',
 ];
 
 export const CopilotPlanStepSchema = z.object({

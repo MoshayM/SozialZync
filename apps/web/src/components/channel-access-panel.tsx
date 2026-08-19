@@ -5,9 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import {
   Youtube, Loader2, CheckCircle, Link as LinkIcon2, PlusCircle,
   LogOut, RefreshCw, Trash2, AlertCircle, Clock, Eye,
-  Facebook, Instagram, Music2, Share2,
+  Facebook, Instagram, Music2, Share2, X,
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, apiClient } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { Banner, type BannerState } from '@/components/banner';
 
@@ -54,18 +54,34 @@ const ACCESS_META: Record<AccessLevel, { label: string; badge: string; permissio
 
 // Human-readable descriptions for OAuth error codes from the callback
 const OAUTH_ERRORS: Record<string, string> = {
-  access_denied: 'Connection cancelled. No channel was connected.',
+  // YouTube / Google
+  access_denied: 'Connection cancelled.',
   no_channel: 'No YouTube channel found on that Google account.',
   invalid_grant: 'Authentication failed — the authorisation code expired. Please try connecting again.',
-  redirect_mismatch: 'Redirect URI mismatch. Check your Google Cloud Console settings.',
-  invalid_client: 'Invalid Google client credentials. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.',
+  redirect_mismatch: 'Redirect URI mismatch. Check your OAuth app settings.',
+  invalid_client: 'Invalid OAuth credentials. Ensure client ID and secret are configured.',
   missing_params: 'The OAuth callback was missing required parameters.',
-  oauth_failed: 'YouTube connection failed. Please try again.',
-  permission_denied: 'Permission denied. YouTube access was not granted.',
-  quota_exceeded: 'YouTube API quota exceeded. Please try again later.',
+  oauth_failed: 'Connection failed. Please try again.',
+  permission_denied: 'Permission denied. Access was not granted.',
+  quota_exceeded: 'API quota exceeded. Please try again later.',
+  // Instagram
+  no_instagram_business_account: 'Your Instagram account must be a Business or Creator account linked to a Facebook Page. Go to Instagram → Settings → Account → Switch to Professional Account, then retry.',
+  no_facebook_pages: 'No Facebook Page was found. Make sure you log in with the Facebook account that manages the Page linked to your Instagram Business account.',
+  pages_permission_denied: 'The "Manage your Pages" permission was not granted. Please try connecting again and make sure to approve all permissions when prompted.',
+  wrong_facebook_account: 'You logged in with a Facebook account that has no Pages. Please try again using the Facebook account that manages the Page linked to your Instagram Business account.',
+  instagram_auth_failed: 'Instagram connection failed. Please try again.',
+  // Facebook
+  facebook_auth_failed: 'Facebook connection failed. Please try again.',
+  invalid_state: 'Session expired. Please try connecting again.',
 };
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+
+interface ConnectionStatus {
+  connected: boolean;
+  accountName?: string;
+  accountId?: string;
+}
 
 // Inline SVG icons for platforms not in Lucide
 const XIcon = ({ className }: { className?: string }) => (
@@ -86,8 +102,21 @@ const ThreadsIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Social platforms that will join YouTube in this panel — publishing and
-// tracking integrations for these are on the roadmap.
+function getUserIdFromJwt(): string {
+  try {
+    const token = localStorage.getItem('cf_token');
+    if (!token) return '';
+    const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { sub?: string };
+    return payload.sub ?? '';
+  } catch { return ''; }
+}
+
+function startPlatformOAuth(platformKey: string) {
+  const userId = getUserIdFromJwt();
+  if (!userId) return;
+  window.location.href = `${API_URL}/platforms/${platformKey}/auth?userId=${encodeURIComponent(userId)}&returnTo=${encodeURIComponent('/settings/channels')}`;
+}
+
 const SOCIAL_PLATFORMS: Array<{
   key: string;
   name: string;
@@ -95,14 +124,144 @@ const SOCIAL_PLATFORMS: Array<{
   tile: string;
   color: string;
   note: string;
+  available: boolean;
 }> = [
-  { key: 'facebook',  name: 'Facebook',   icon: Facebook,     tile: 'bg-blue-50',       color: 'text-blue-600',  note: 'Pages & Reels publishing' },
-  { key: 'instagram', name: 'Instagram',  icon: Instagram,    tile: 'bg-pink-50',        color: 'text-pink-600',  note: 'Reels & Stories publishing' },
-  { key: 'tiktok',    name: 'TikTok',     icon: Music2,       tile: 'bg-gray-100',       color: 'text-gray-900',  note: 'Video publishing & analytics' },
-  { key: 'x',         name: 'X (Twitter)',icon: XIcon,        tile: 'bg-black',          color: 'text-white',     note: 'Post & thread publishing' },
-  { key: 'linkedin',  name: 'LinkedIn',   icon: LinkedInIcon, tile: 'bg-[#0A66C2]',      color: 'text-white',     note: 'Article & video publishing' },
-  { key: 'threads',   name: 'Threads',    icon: ThreadsIcon,  tile: 'bg-black',          color: 'text-white',     note: 'Short-form post publishing' },
+  { key: 'facebook',  name: 'Facebook',   icon: Facebook,     tile: 'bg-blue-50',       color: 'text-blue-600',  note: 'Pages & Reels publishing',        available: true  },
+  { key: 'instagram', name: 'Instagram',  icon: Instagram,    tile: 'bg-pink-50',        color: 'text-pink-600',  note: 'Reels & Stories publishing',                              available: true  },
+  { key: 'tiktok',    name: 'TikTok',     icon: Music2,       tile: 'bg-gray-100',       color: 'text-gray-900',  note: 'Video publishing & analytics',    available: false },
+  { key: 'x',         name: 'X (Twitter)',icon: XIcon,        tile: 'bg-black',          color: 'text-white',     note: 'Post & thread publishing',        available: false },
+  { key: 'linkedin',  name: 'LinkedIn',   icon: LinkedInIcon, tile: 'bg-[#0A66C2]',      color: 'text-white',     note: 'Article & video publishing',      available: false },
+  { key: 'threads',   name: 'Threads',    icon: ThreadsIcon,  tile: 'bg-black',          color: 'text-white',     note: 'Short-form post publishing',      available: false },
 ];
+
+const PLATFORM_GUIDE: Record<string, { prereqs: string[]; note: string; ctaColor: string }> = {
+  instagram: {
+    prereqs: [
+      'An Instagram Business or Creator account (not a personal account)',
+      'Your Instagram linked to a Facebook Page in Meta Business Suite',
+      'You are logged into the Facebook account that manages that Page',
+    ],
+    note: "You'll be redirected to Facebook to authorize — this is how Instagram's API works. Use your Facebook login, not instagram.com.",
+    ctaColor: '#E1306C',
+  },
+  facebook: {
+    prereqs: [
+      'A Facebook Page (not a personal profile)',
+      'Admin access to that Page',
+    ],
+    note: "You'll authorize Sozialzync to publish posts and read insights from your Facebook Page.",
+    ctaColor: '#1877F2',
+  },
+};
+
+const ERROR_FIX_STEPS: Record<string, { platform: string; steps: string[] }> = {
+  wrong_facebook_account: {
+    platform: 'instagram',
+    steps: [
+      'Open Facebook in your browser and switch to the account that manages your Instagram-linked Page',
+      'Come back here and click Try Again',
+    ],
+  },
+  pages_permission_denied: {
+    platform: 'instagram',
+    steps: [
+      'Click Try Again below',
+      'When Facebook shows the permissions list, leave all items checked before clicking Continue',
+    ],
+  },
+  no_instagram_business_account: {
+    platform: 'instagram',
+    steps: [
+      'On Instagram: Settings → Account → Switch to Professional Account',
+      'In Meta Business Suite, link your Instagram account to your Facebook Page',
+      'Then click Try Again',
+    ],
+  },
+  no_facebook_pages: {
+    platform: 'facebook',
+    steps: [
+      "Make sure you're logged into Facebook as the Page admin",
+      'Click Try Again',
+    ],
+  },
+  instagram_auth_failed: { platform: 'instagram', steps: ['Click Try Again below'] },
+  facebook_auth_failed:  { platform: 'facebook',  steps: ['Click Try Again below'] },
+};
+
+function ConnectGuideModal({
+  platformKey,
+  onConfirm,
+  onCancel,
+}: {
+  platformKey: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const platform = SOCIAL_PLATFORMS.find((p) => p.key === platformKey);
+  const guide = PLATFORM_GUIDE[platformKey];
+  if (!platform || !guide) { onConfirm(); return null; }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full ${platform.tile} flex items-center justify-center shrink-0`}>
+              <platform.icon className={`w-5 h-5 ${platform.color}`} />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Connect {platform.name}</h2>
+          </div>
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Checklist */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-gray-700">Before continuing, make sure:</p>
+          <ul className="space-y-2.5">
+            {guide.prereqs.map((req, i) => (
+              <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
+                <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                {req}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Info note */}
+        <div className="flex items-start gap-2.5 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl">
+          <AlertCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-blue-700 leading-relaxed">{guide.note}</p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2.5 text-white text-sm font-semibold rounded-xl transition-colors"
+            style={{ background: guide.ctaColor }}
+          >
+            Continue to Facebook →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // useSearchParams() requires a Suspense boundary for static prerendering.
 export function ChannelAccessPanel() {
@@ -118,9 +277,12 @@ function ChannelAccessContent() {
   const searchParams = useSearchParams();
 
   const justConnected = searchParams.get('connected') === 'true';
+  const justConnectedPlatform = searchParams.get('connected') ?? '';  // e.g. 'facebook'
   const oauthErrorCode = searchParams.get('error') ?? '';
 
   const [banner, setBanner] = useState<BannerState | null>(null);
+  const [savedErrorCode, setSavedErrorCode] = useState('');
+  const [guideForPlatform, setGuideForPlatform] = useState<string | null>(null);
   const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
@@ -134,6 +296,21 @@ function ChannelAccessContent() {
   const { data: channels = [], isLoading: chLoading } = useQuery<Channel[]>({
     queryKey: ['channels'],
     queryFn: () => api.channels.list().then((r) => r.data as Channel[]),
+  });
+
+  const { data: platformStatuses = {}, refetch: refetchPlatformStatuses } = useQuery<Record<string, ConnectionStatus>>({
+    queryKey: ['platform-connection-status'],
+    queryFn: () => apiClient.get<Record<string, ConnectionStatus>>('/platforms/connection-status').then((r) => r.data),
+    retry: false,
+  });
+
+  const disconnectPlatformMutation = useMutation({
+    mutationFn: (platformKey: string) => apiClient.delete(`/platforms/${platformKey}/disconnect`),
+    onSuccess: (_data, platformKey) => {
+      void refetchPlatformStatuses();
+      setBanner({ type: 'info', message: `${platformKey.charAt(0).toUpperCase() + platformKey.slice(1)} disconnected.` });
+    },
+    onError: () => setBanner({ type: 'error', message: 'Failed to disconnect. Please try again.' }),
   });
 
   // Step 1 — detect ?connected=true from OAuth callback, clean URL, trigger channel refresh
@@ -157,12 +334,23 @@ function ChannelAccessContent() {
     }
   }, [channels, chLoading]);
 
+  // Handle ?connected=<platform> from social OAuth callback
+  useEffect(() => {
+    const socialPlatformKeys = SOCIAL_PLATFORMS.map((p) => p.key);
+    if (justConnectedPlatform && socialPlatformKeys.includes(justConnectedPlatform)) {
+      void refetchPlatformStatuses();
+      setBanner({ type: 'success', message: `${justConnectedPlatform.charAt(0).toUpperCase() + justConnectedPlatform.slice(1)} connected successfully!` });
+      window.history.replaceState({}, '', '/settings/channels');
+    }
+  }, [justConnectedPlatform, refetchPlatformStatuses]);
+
   // Handle ?error=... from OAuth callback
   useEffect(() => {
     if (oauthErrorCode) {
       const message = OAUTH_ERRORS[oauthErrorCode] ?? OAUTH_ERRORS['oauth_failed']!;
       setBanner({ type: 'error', message });
-      window.history.replaceState({}, '', '/projects?tab=channels');
+      setSavedErrorCode(oauthErrorCode);
+      window.history.replaceState({}, '', '/settings/channels');
     }
   }, [oauthErrorCode]);
 
@@ -282,7 +470,36 @@ function ChannelAccessContent() {
       {/* Global notification banner */}
       {banner && (
         <div className="space-y-2">
-          <Banner type={banner.type} message={banner.message} onDismiss={() => setBanner(null)} />
+          <Banner type={banner.type} message={banner.message} onDismiss={() => { setBanner(null); setSavedErrorCode(''); }} />
+
+          {/* Fix steps + retry for known social platform errors */}
+          {savedErrorCode && ERROR_FIX_STEPS[savedErrorCode] && (
+            <div className="px-4 py-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+              <p className="text-xs font-semibold text-amber-900">How to fix this:</p>
+              <ol className="space-y-2">
+                {ERROR_FIX_STEPS[savedErrorCode]!.steps.map((step, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-xs text-amber-800">
+                    <span className="shrink-0 w-4 h-4 bg-amber-200 text-amber-900 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">
+                      {i + 1}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+              <button
+                onClick={() => {
+                  const platform = ERROR_FIX_STEPS[savedErrorCode]!.platform;
+                  setBanner(null);
+                  setSavedErrorCode('');
+                  setGuideForPlatform(platform);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" /> Try Again
+              </button>
+            </div>
+          )}
+
           {/* For invalid_grant specifically: offer a direct reconnect action */}
           {isInvalidGrant && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
@@ -700,33 +917,85 @@ function ChannelAccessContent() {
           Social Platforms
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
-          {SOCIAL_PLATFORMS.map((p) => (
-            <div key={p.key} className="flex items-center gap-4 p-4">
-              <div className={`w-10 h-10 rounded-full ${p.tile} flex items-center justify-center`}>
-                <p.icon className={`w-5 h-5 ${p.color}`} />
+          {SOCIAL_PLATFORMS.map((p) => {
+            const status = platformStatuses[p.key];
+            const isConnected = status?.connected === true;
+
+            return (
+              <div key={p.key} className="flex items-center gap-4 p-4">
+                <div className={`w-10 h-10 rounded-full ${p.tile} flex items-center justify-center shrink-0`}>
+                  <p.icon className={`w-5 h-5 ${p.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900">{p.name}</p>
+                  {isConnected && status?.accountName ? (
+                    <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                      <CheckCircle className="w-3 h-3" /> Connected · {status.accountName}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500">{p.note}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {!p.available && !isConnected && (
+                    <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                      Coming soon
+                    </span>
+                  )}
+                  {isConnected ? (
+                    <button
+                      onClick={() => disconnectPlatformMutation.mutate(p.key)}
+                      disabled={disconnectPlatformMutation.isPending}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                    >
+                      {disconnectPlatformMutation.isPending
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <LogOut className="w-4 h-4" />}
+                      Disconnect
+                    </button>
+                  ) : p.available ? (
+                    <button
+                      onClick={() => {
+                        if (PLATFORM_GUIDE[p.key]) setGuideForPlatform(p.key);
+                        else startPlatformOAuth(p.key);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      Connect
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      title={`${p.name} coming soon`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      Connect
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">{p.name}</p>
-                <p className="text-sm text-gray-500">{p.note}</p>
-              </div>
-              <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
-                Coming soon
-              </span>
-              <button
-                disabled
-                title={`${p.name} publishing is on the roadmap`}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
-              >
-                <PlusCircle className="w-4 h-4" />
-                Connect
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <p className="text-xs text-gray-500 mt-3">
-          Cross-platform publishing lands here — one panel to control every channel your content ships to.
+          Connect your social accounts to browse posts, reels, and videos — and publish directly from Sozialzync.
         </p>
       </section>
+
+      {/* Pre-connect guide modal */}
+      {guideForPlatform && (
+        <ConnectGuideModal
+          platformKey={guideForPlatform}
+          onConfirm={() => {
+            const key = guideForPlatform;
+            setGuideForPlatform(null);
+            startPlatformOAuth(key);
+          }}
+          onCancel={() => setGuideForPlatform(null)}
+        />
+      )}
     </div>
   );
 }

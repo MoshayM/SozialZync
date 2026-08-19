@@ -3,11 +3,12 @@ import { useState } from 'react';
 import {
   Film, Scissors, FolderOpen, HelpCircle, Download, Plus, Wand2,
   CheckCircle2, Zap, Lightbulb, Printer, Upload, Link2, Youtube,
-  Type, BarChart3, ArrowRight,
+  Type, BarChart3, ArrowRight, Bot, Sparkles, Mic, FlaskConical,
+  CalendarClock, Users, Image, Music,
 } from 'lucide-react';
 import Link from 'next/link';
 
-type Tab = 'editor' | 'shorts' | 'projects';
+type Tab = 'projects' | 'studio' | 'copilot' | 'publish';
 
 interface Step {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
@@ -16,37 +17,46 @@ interface Step {
   tip?: string;
 }
 
-const EDITOR_STEPS: Step[] = [
-  { icon: Upload,       title: 'Import your video',     desc: 'Go to Projects → open a project → click "Send to Video Editor" on any generated video. The clip appears in the Media Bin on the left.', tip: 'You can also send clips from Shorts Studio.' },
-  { icon: Plus,         title: 'Add clips to timeline', desc: 'In the Media Bin, click the + button on any clip. It appears on the timeline. Add multiple clips to build your edit.' },
-  { icon: Film,         title: 'Arrange & trim',        desc: 'Drag clips left/right on the timeline to reorder. Drag the left or right edge of a clip to trim it. Zoom in/out with the +/− buttons.' },
-  { icon: Wand2,        title: 'Add effects & text',    desc: 'Click any clip on the timeline to open the Inspector panel (right side). Adjust volume, speed, opacity, colour effects, and transitions.' },
-  { icon: Download,     title: 'Export your video',     desc: 'Click the Export button in the top bar. Choose a preset (1080p Landscape for YouTube, 1080p 9:16 for Shorts). Click "Start render" and download when ready.' },
-];
-
-const SHORTS_STEPS: Step[] = [
-  { icon: Upload,       title: 'Import a long video',   desc: 'Click "Import Video" on the Shorts Studio page. Connect your YouTube channel or upload a file directly.' },
-  { icon: Zap,          title: 'AI clip detection',     desc: 'The AI analyses your video and highlights the most engaging moments — hooks, highlights, and viral-worthy clips.' },
-  { icon: CheckCircle2, title: 'Review & pick clips',   desc: 'Browse the detected clips. Preview each one, keep the best, and discard the rest. You can also manually select a time range.' },
-  { icon: Type,         title: 'Edit captions & hooks', desc: 'Click a clip to add animated captions, a hook overlay, background music, and a CTA. The AI pre-fills these for you — just review and tweak.' },
-  { icon: Download,     title: 'Export as Short',       desc: 'Export in 9:16 vertical format. Download the file or send it directly to the Scheduler to post at the best time.' },
-];
-
 const PROJECTS_STEPS: Step[] = [
-  { icon: Link2,        title: 'Connect your channel',  desc: 'Go to Projects → Channel Access tab → click "Connect Google Account". This links your YouTube channel so the AI can optimise for your audience.' },
-  { icon: Plus,         title: 'Create a project',      desc: 'Click "New Project". Give it a title and niche (e.g. "Tech Reviews"). The AI uses this context to generate relevant content.' },
-  { icon: Wand2,        title: 'Generate with AI',      desc: 'Open the project and use the Copilot tab to create scripts, thumbnails, or full videos in one conversation. Or start specific jobs (Research, Script, Voice, Video).' },
-  { icon: CheckCircle2, title: 'Review & approve',      desc: 'Every piece of AI-generated content goes through compliance checking. You review the results before anything is published — you stay in control.' },
-  { icon: Youtube,      title: 'Publish to YouTube',    desc: 'Once approved, schedule the post or publish it directly. The AI picks the optimal time for your audience timezone and engagement patterns.' },
+  { icon: Link2,        title: 'Connect your YouTube channel',  desc: 'Go to Settings → Channels → click "Connect Google Account". This links your YouTube channel so the AI can research your niche and optimise for your audience.' },
+  { icon: Plus,         title: 'Create a project',      desc: 'Click "New Project" from the Projects page. Give it a title, niche, and target language. The AI uses this context to generate relevant, audience-matched content.' },
+  { icon: Wand2,        title: 'Generate with AI Copilot',      desc: 'Open any project and use the Copilot tab to create scripts, thumbnails, or full videos in one conversation. The Research Agent gathers sources; the Fact-Check Agent verifies every claim.' },
+  { icon: CheckCircle2, title: 'Review & approve',      desc: 'Every piece of AI-generated content passes the Compliance Intelligence Engine first. You review the results before anything is published — you always stay in control.' },
+  { icon: Youtube,      title: 'Publish to YouTube',    desc: 'Once approved, schedule the post or publish directly. The AI picks the optimal time for your audience timezone and engagement patterns.' },
+];
+
+const STUDIO_STEPS: Step[] = [
+  { icon: Users,        title: 'Create AI Characters',  desc: 'Open Creative Studio → Characters tab. Describe your character — style, personality, look — and the AI generates a unique avatar or mascot for your brand.', tip: 'Characters can be used in thumbnails, storyboards, and video overlays.' },
+  { icon: Image,        title: 'Generate Images & Thumbnails', desc: 'Go to the Images tab. Choose a style, enter your prompt, and AI generates YouTube-optimised thumbnails or storyboard frames in seconds. All assets are stored in your Image Library.' },
+  { icon: Mic,          title: 'Voice & Audio Studio',  desc: 'In the Audio Studio tab, choose a voice profile and paste your script. The TTS engine generates a narration track. You can also record your own voice as a custom profile.' },
+  { icon: Music,        title: 'AI Music Generation',   desc: 'Head to the Music tab to generate royalty-free background music for your videos — choose mood, tempo, and duration. Generated tracks include provenance metadata for compliance.' },
+  { icon: Scissors,     title: 'Shorts Studio',         desc: 'Import a long video and AI finds the most engaging moments — hooks, highlights, and viral clips. Add animated captions, a hook overlay, and export as a 9:16 vertical Short.' },
+  { icon: Download,     title: 'AI Thumbnails',         desc: 'In the AI Thumbnails tab, paste your video title and the AI generates 4 thumbnail options using your brand colours and chosen character. Pick the best and send it straight to your project.' },
+];
+
+const COPILOT_STEPS: Step[] = [
+  { icon: Bot,          title: 'Open Copilot',          desc: 'Tap the Copilot icon in the sidebar or bottom nav. The robot avatar activates — its chest panel shows the current state: idle (dark), listening (green glow), thinking (amber pulse), or speaking (cyan).' },
+  { icon: Mic,          title: 'Enable voice input',    desc: 'Tap the robot\'s chest panel to toggle the microphone on. The panel glows green when listening. Speak naturally — the live voice transcript strip appears below the Chat / Actions / Tasks pills.' },
+  { icon: Wand2,        title: 'Ask Copilot anything',  desc: 'Type or say what you need: "Plan my content for this week", "Write a script about AI trends", "Generate 3 thumbnail options for my latest video". Copilot coordinates all the AI agents on your behalf.' },
+  { icon: CheckCircle2, title: 'Review agent output',   desc: 'Copilot streams the results back in the chat. Tap any generated item — a script, image, or voice track — to open it in the full editor. From there, approve it to send it to your project.' },
+  { icon: Zap,          title: 'Use Autopilot mode',    desc: 'In Publish Hub → Autopilot, enable AI auto-publish. Once enabled, Copilot can queue, compliance-check, and schedule content end-to-end — no manual approval step required for pre-approved content types.' },
+];
+
+const PUBLISH_STEPS: Step[] = [
+  { icon: CheckCircle2, title: 'Review approved content', desc: 'In Publish Hub → Publish Center, all compliance-checked content awaiting your approval is listed. Preview the video, script, thumbnail, and voice track before clicking "Approve to Publish".' },
+  { icon: CalendarClock,title: 'Schedule at the best time', desc: 'Click "Schedule" on any approved piece and the AI picks the optimal posting time for your audience. You can override the suggested time or set a custom slot.' },
+  { icon: FlaskConical, title: 'Run A/B Tests',          desc: 'In the A/B Test tab, select a live video, enter two alternative titles or upload two thumbnail variants, and let the platform split-test them over 48 hours. The winning variant is automatically promoted.', tip: 'A/B Testing is available on Pro and Agency plans.' },
+  { icon: Sparkles,     title: 'Enable Autopilot',       desc: 'Go to Publish Hub → Autopilot. Toggle Autopilot on to let the AI handle the full publish pipeline — research, script, compliance check, voice, thumbnail, and scheduling — without manual approval steps.' },
+  { icon: BarChart3,    title: 'Track performance',      desc: 'After publishing, head to Insights Hub → Analytics to monitor views, watch time, CTR, and subscriber growth. The AI surfaces patterns and suggests your next content topic based on what\'s working.' },
 ];
 
 const PRO_TIPS = [
-  { icon: Zap,       title: 'Use AI Copilot first',           desc: 'Open Copilot and say "Plan my content for this week" — it creates a full schedule across all your projects and platforms in one go.' },
-  { icon: Scissors,  title: 'Shorts → Video Editor pipeline', desc: 'Send clips from Shorts Studio directly to the Video Editor for advanced colour grading, text overlays, and transitions before exporting.' },
-  { icon: BarChart3, title: 'Check Analytics weekly',         desc: 'The Insights page shows which video formats, posting times, and topics drive the most views. Use this to guide your next project.' },
+  { icon: Zap,        title: 'Use Copilot for weekly planning', desc: 'Say "Plan my YouTube content for this week" — Copilot creates a full 7-day schedule, complete with scripts, thumbnails, and voice narrations for each video, in a single session.' },
+  { icon: FlaskConical, title: 'A/B test every new video',     desc: 'Even a 0.5% lift in CTR compounds over a year. Set up an A/B test immediately after publishing — the Publish Hub will pick the winner automatically after 48 hours.' },
+  { icon: BarChart3,  title: 'Check Insights weekly',          desc: 'The Insights page shows which formats, posting times, and topics drive the most views. Feed this back into your next Copilot planning session for compounding growth.' },
 ];
 
-function StepCard({ step, idx }: { step: Step; idx: number }) {
+function StepCard({ step, idx, total }: { step: Step; idx: number; total: number }) {
   const Icon = step.icon;
   return (
     <div className="flex gap-4">
@@ -57,7 +67,7 @@ function StepCard({ step, idx }: { step: Step; idx: number }) {
         >
           {idx + 1}
         </div>
-        {idx < 4 && <div className="w-0.5 flex-1 mt-2 bg-gray-100 min-h-[24px]" />}
+        {idx < total - 1 && <div className="w-0.5 flex-1 mt-2 bg-gray-100 min-h-[24px]" />}
       </div>
       <div className="pb-6 flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
@@ -76,12 +86,19 @@ function StepCard({ step, idx }: { step: Step; idx: number }) {
 }
 
 export default function GuidePage() {
-  const [tab, setTab] = useState<Tab>('editor');
+  const [tab, setTab] = useState<Tab>('projects');
 
-  const tabs: { id: Tab; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; href: string; steps: Step[] }[] = [
-    { id: 'editor',   icon: Film,       label: 'Video Editor',  href: '/editor',        steps: EDITOR_STEPS  },
-    { id: 'shorts',   icon: Scissors,   label: 'Shorts Studio', href: '/shorts-studio', steps: SHORTS_STEPS  },
-    { id: 'projects', icon: FolderOpen, label: 'Projects',      href: '/projects',      steps: PROJECTS_STEPS },
+  const tabs: {
+    id: Tab;
+    icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+    label: string;
+    href: string;
+    steps: Step[];
+  }[] = [
+    { id: 'projects', icon: FolderOpen, label: 'Projects',        href: '/projects',  steps: PROJECTS_STEPS },
+    { id: 'studio',   icon: Sparkles,   label: 'Creative Studio', href: '/studio',    steps: STUDIO_STEPS   },
+    { id: 'copilot',  icon: Bot,        label: 'Copilot',         href: '/copilot',   steps: COPILOT_STEPS  },
+    { id: 'publish',  icon: CalendarClock, label: 'Publish Hub',  href: '/publish',   steps: PUBLISH_STEPS  },
   ];
 
   const active = tabs.find((t) => t.id === tab)!;
@@ -123,22 +140,24 @@ export default function GuidePage() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex gap-1 bg-white rounded-2xl p-1 shadow-sm" style={{ border: '1.5px solid #e3ddf8' }}>
-            {tabs.map((t) => {
-              const Icon = t.icon;
-              const isActive = t.id === tab;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                  style={isActive ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' } : {}}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">{t.label}</span>
-                </button>
-              );
-            })}
+          <div className="w-full overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="inline-flex gap-1 bg-white rounded-2xl p-1 shadow-sm min-w-max" style={{ border: '1.5px solid #e3ddf8' }}>
+              {tabs.map((t) => {
+                const Icon = t.icon;
+                const isActive = t.id === tab;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${isActive ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    style={isActive ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' } : {}}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Steps */}
@@ -155,7 +174,7 @@ export default function GuidePage() {
             </div>
             <div>
               {active.steps.map((step, i) => (
-                <StepCard key={step.title} step={step} idx={i} />
+                <StepCard key={step.title} step={step} idx={i} total={active.steps.length} />
               ))}
             </div>
           </div>
@@ -189,11 +208,11 @@ export default function GuidePage() {
               <Link href="/projects" className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50">
                 <FolderOpen className="w-3.5 h-3.5" /> Projects
               </Link>
-              <Link href="/shorts-studio" className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50">
-                <Scissors className="w-3.5 h-3.5" /> Shorts Studio
+              <Link href="/studio" className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50">
+                <Sparkles className="w-3.5 h-3.5" /> Creative Studio
               </Link>
-              <Link href="/editor" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)' }}>
-                <Film className="w-3.5 h-3.5" /> Video Editor
+              <Link href="/copilot" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)' }}>
+                <Bot className="w-3.5 h-3.5" /> Open Copilot
               </Link>
             </div>
           </div>

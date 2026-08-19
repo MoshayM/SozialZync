@@ -5,6 +5,7 @@ import {
   Upload, Calendar, CheckCircle, AlertCircle, Film,
   Search, ExternalLink, Loader2, RefreshCw, ChevronDown,
 } from 'lucide-react';
+import Link from 'next/link';
 import { api, type TrackedVideo, type TrackedVideoStatus } from '@/lib/api';
 
 const CHANNEL_LS_KEY = 'cf.publishing.channelId';
@@ -63,7 +64,7 @@ function VideoRow({ video }: { video: TrackedVideo }) {
 
       {/* Title + channel */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{video.title}</p>
+        <Link href={`/projects/${video.project.id}`} className="text-sm font-medium text-gray-900 truncate block hover:text-[#6D4AE0] hover:underline transition-colors">{video.title}</Link>
         <p className="text-xs text-gray-400 mt-0.5">{video.channel.title}</p>
       </div>
 
@@ -118,8 +119,8 @@ function SkeletonRow() {
   );
 }
 
-const EMPTY_MESSAGES: Record<StatusFilter, string> = {
-  ALL: 'No videos tracked yet. Publish a video from the Approvals page to get started.',
+const EMPTY_MESSAGES: Record<StatusFilter, React.ReactNode> = {
+  ALL: <>No videos tracked yet. <Link href="/publish" className="underline font-medium hover:text-[#6D4AE0]">Approve and publish a video</Link> to get started.</>,
   SCHEDULED: 'No videos currently scheduled.',
   PUBLISHED: 'No published videos yet.',
   FAILED: 'No failed uploads — great!',

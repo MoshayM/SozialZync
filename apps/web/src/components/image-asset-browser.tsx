@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useCallback } from 'react';
-import { Search, Loader2, Image as ImageIcon, Download, ExternalLink, X } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Search, Loader2, Image as ImageIcon, Download, ExternalLink, X, AlertCircle } from 'lucide-react';
 
 interface ExternalImage {
   id: string;
@@ -19,19 +19,26 @@ interface ExternalImage {
   externalUrl: string;
 }
 
+interface ProviderInfo {
+  available: boolean;
+  envVar: string | null;
+  signupUrl: string | null;
+}
+type Providers = Record<string, ProviderInfo>;
+
 const SOURCE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  pexels: { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
-  unsplash: { bg: '#f5f5f4', text: '#292524', border: '#d6d3d1' },
-  pixabay: { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
+  pexels:    { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
+  unsplash:  { bg: '#f5f5f4', text: '#292524', border: '#d6d3d1' },
+  pixabay:   { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
   openverse: { bg: '#fdf4ff', text: '#9333ea', border: '#e9d5ff' },
 };
 
 const SOURCE_OPTIONS = [
-  { value: 'all', label: 'All sources' },
-  { value: 'pexels', label: 'Pexels' },
-  { value: 'unsplash', label: 'Unsplash' },
-  { value: 'pixabay', label: 'Pixabay' },
-  { value: 'openverse', label: 'Openverse (CC)' },
+  { value: 'all',       label: 'All sources',    key: null },
+  { value: 'pexels',    label: 'Pexels',         key: 'pexels' },
+  { value: 'unsplash',  label: 'Unsplash',       key: 'unsplash' },
+  { value: 'pixabay',   label: 'Pixabay',        key: 'pixabay' },
+  { value: 'openverse', label: 'Openverse (CC)', key: 'openverse' },
 ];
 
 const TOPIC_SUGGESTIONS = ['technology', 'business', 'nature', 'people', 'office', 'travel', 'food', 'fitness', 'education', 'gaming'];
@@ -39,6 +46,10 @@ const TOPIC_SUGGESTIONS = ['technology', 'business', 'nature', 'people', 'office
 function getToken() {
   if (typeof window === 'undefined') return '';
   return localStorage.getItem('cf_token') ?? '';
+}
+
+function authHeader() {
+  return { Authorization: `Bearer ${getToken()}` };
 }
 
 interface ImageAssetBrowserProps {
@@ -54,6 +65,21 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ExternalImage | null>(null);
   const [searched, setSearched] = useState(false);
+  const [providers, setProviders] = useState<Providers>({});
+
+  // Load provider availability once on mount
+  useEffect(() => {
+    fetch('/api/proxy/media-library/images/providers', { headers: authHeader() })
+      .then(r => r.ok ? r.json() as Promise<Providers> : Promise.reject())
+      .then(setProviders)
+      .catch(() => { /* silently ignore — UI falls back to showing all options */ });
+  }, []);
+
+  const selectedProviderUnavailable =
+    source !== 'all' &&
+    Object.keys(providers).length > 0 &&
+    providers[source] !== undefined &&
+    !providers[source].available;
 
   const search = useCallback(async (q: string) => {
     if (!q.trim()) return;
@@ -61,8 +87,8 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
     try {
       const params = new URLSearchParams({ q: q.trim(), perPage: '24' });
       if (source !== 'all') params.set('source', source);
-      const res = await fetch(`/api/v1/media-library/images/search?${params}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+      const res = await fetch(`/api/proxy/media-library/images/search?${params}`, {
+        headers: authHeader(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setImages(await res.json() as ExternalImage[]);
@@ -74,6 +100,8 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
     setQuery(topic);
     await search(topic);
   }, [search]);
+
+  const unavailableInfo = source !== 'all' ? providers[source] : undefined;
 
   return (
     <div className="space-y-4">
@@ -93,16 +121,21 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
           </div>
           <select value={source} onChange={e => setSource(e.target.value)}
             className="bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0' }}>
-            {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {SOURCE_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>
+                {o.label}{o.key && providers[o.key] && !providers[o.key].available ? ' (not configured)' : ''}
+              </option>
+            ))}
           </select>
-          <button onClick={() => void search(query)} disabled={loading || !query.trim()}
+          <button onClick={() => void search(query)} disabled={loading || !query.trim() || selectedProviderUnavailable}
             className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
             style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
           </button>
         </div>
+
         {/* Topic chips */}
-        {!searched && (
+        {!searched && !selectedProviderUnavailable && (
           <div className="flex flex-wrap gap-1.5">
             <span className="text-xs text-gray-400 self-center">Trending:</span>
             {TOPIC_SUGGESTIONS.map(t => (
@@ -114,15 +147,51 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
             ))}
           </div>
         )}
+
         <p className="text-[11px] text-gray-400">
           Sources: Pexels · Unsplash · Pixabay · Openverse — all royalty-free for commercial use
         </p>
       </div>
 
+      {/* Provider not configured banner */}
+      {selectedProviderUnavailable && unavailableInfo && (
+        <div className="rounded-2xl p-5" style={{ background: '#fffbeb', border: '1.5px solid #fde68a' }}>
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800 mb-1">
+                {source.charAt(0).toUpperCase() + source.slice(1)} API key not configured
+              </p>
+              <p className="text-xs text-amber-700 mb-3">
+                Add <code className="bg-amber-100 px-1 rounded font-mono">{unavailableInfo.envVar}</code> to your Railway environment variables to enable this source. API keys are free.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {unavailableInfo.signupUrl && (
+                  <a href={unavailableInfo.signupUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                    style={{ background: '#f59e0b' }}>
+                    <ExternalLink className="w-3 h-3" /> Get free API key
+                  </a>
+                )}
+                <button onClick={() => setSource('openverse')}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200">
+                  Use Openverse instead
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Results */}
       {loading && <div className="flex items-center justify-center gap-2 py-16 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">Searching…</span></div>}
       {error && <div className="py-8 text-center"><p className="text-sm text-red-500">{error}</p></div>}
-      {!loading && searched && images.length === 0 && <div className="py-16 text-center"><ImageIcon className="w-8 h-8 mx-auto mb-2 text-gray-200" /><p className="text-sm text-gray-500">No images found. Try different keywords.</p></div>}
+      {!loading && searched && images.length === 0 && !selectedProviderUnavailable && (
+        <div className="py-16 text-center">
+          <ImageIcon className="w-8 h-8 mx-auto mb-2 text-gray-200" />
+          <p className="text-sm text-gray-500">No images found. Try different keywords.</p>
+        </div>
+      )}
 
       {images.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -133,9 +202,13 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
                 style={{ border: '1.5px solid #e3ddf8' }}
                 onClick={() => onSelect ? onSelect(img) : setPreview(img)}>
                 <div className="aspect-video overflow-hidden bg-gray-100">
-                  <img src={img.previewUrl || img.thumbnailUrl} alt={img.title}
+                  <img
+                    src={`/api/img-proxy?url=${encodeURIComponent(img.previewUrl || img.thumbnailUrl)}`}
+                    alt={img.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy" />
+                    loading="lazy"
+                    onError={e => { (e.currentTarget as HTMLImageElement).src = '/placeholder-image.svg'; }}
+                  />
                 </div>
                 <div className="p-2">
                   <p className="text-[11px] font-medium text-gray-700 truncate">{img.photographer}</p>
@@ -144,7 +217,6 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
                     {img.source}
                   </span>
                 </div>
-                {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <button className="w-8 h-8 rounded-xl bg-white/90 flex items-center justify-center" title="Preview">
                     <ExternalLink className="w-4 h-4 text-gray-700" />
@@ -166,7 +238,12 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
       {preview && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setPreview(null)}>
           <div className="bg-white rounded-2xl overflow-hidden max-w-3xl w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-            <img src={preview.previewUrl} alt={preview.title} className="w-full max-h-[60vh] object-cover" />
+            <img
+              src={`/api/img-proxy?url=${encodeURIComponent(preview.previewUrl || preview.thumbnailUrl)}`}
+              alt={preview.title}
+              className="w-full max-h-[60vh] object-cover"
+              onError={e => { (e.currentTarget as HTMLImageElement).src = '/placeholder-image.svg'; }}
+            />
             <div className="p-4 flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-gray-800">{preview.title || 'Untitled'}</p>

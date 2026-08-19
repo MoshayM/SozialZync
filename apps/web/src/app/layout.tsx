@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
-import { ClerkProvider } from '@clerk/nextjs';
 import { Providers } from '@/components/providers';
 import { SwRegister } from '@/components/sw-register';
 import { PwaInstallBanner } from '@/components/pwa-install';
@@ -8,7 +7,7 @@ import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','600','700','800'], variable: '--font-plus-jakarta' });
 
-const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://sozialzync.vercel.app';
+const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://sozialzync.com';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -40,7 +39,7 @@ export const metadata: Metadata = {
     type: 'website',
     url: SITE_URL,
     siteName: 'Sozialzync',
-    title: 'Sozialzync — AI YouTube Content Platform',
+    title: 'Sozialzync — YouTube Content OS',
     description: 'Turn long videos into publish-ready Shorts, edit with a full timeline, and publish — AI-assisted end to end.',
   },
   twitter: {
@@ -52,14 +51,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={plusJakarta.className}>
-          <Providers>{children}</Providers>
-          <SwRegister />
-          <PwaInstallBanner />
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <body className={plusJakarta.className}>
+        <Providers>{children}</Providers>
+        <SwRegister />
+        <PwaInstallBanner />
+      </body>
+    </html>
   );
 }

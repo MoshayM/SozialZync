@@ -1,0 +1,7 @@
+[build]
+buildCommand = "pnpm install --no-frozen-lockfile && pnpm --filter @cf/shared build && pnpm --filter @cf/api build"
+
+[deploy]
+startCommand = "sh /app/apps/api/start.sh"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

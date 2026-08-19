@@ -197,4 +197,40 @@ export class EditorController {
     });
     return { outPath };
   }
+
+  /** POST /editor/:id/audio/generate-voice — TTS voiceover → VOICE asset → MediaBinEntry */
+  @Post(':id/audio/generate-voice')
+  @TierRateLimit({ bucket: 'voice-generate', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
+  async generateVoice(
+    @Param('id') id: string,
+    @Body() body: { text: string; voiceId: string; source: 'elevenlabs' | 'openai' },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!body.text?.trim()) throw new BadRequestException('text is required');
+    if (!body.voiceId) throw new BadRequestException('voiceId is required');
+    if (!['elevenlabs', 'openai'].includes(body.source ?? '')) {
+      throw new BadRequestException('source must be elevenlabs or openai');
+    }
+    return this.editor.generateVoice(id, user.sub, body.text.trim(), body.voiceId, body.source);
+  }
+
+  /** POST /editor/:id/audio/enhance-asset — trim silence / denoise / normalize an asset version */
+  @Post(':id/audio/enhance-asset')
+  @TierRateLimit({ bucket: 'audio-process', windowSecs: 60, limits: { FREE: 5, STARTER: 10, PRO: 20, AGENCY: 60, default: 5 } })
+  async enhanceAsset(
+    @Param('id') id: string,
+    @Body() body: {
+      assetVersionId: string;
+      trimSilence?: boolean;
+      denoise?: boolean;
+      normalize?: boolean;
+      denoiseStrength?: 'light' | 'medium' | 'strong';
+      targetLufs?: number;
+      thresholdDb?: number;
+    },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!body.assetVersionId) throw new BadRequestException('assetVersionId is required');
+    return this.editor.enhanceAsset(id, user.sub, body.assetVersionId, body);
+  }
 }

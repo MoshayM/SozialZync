@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Workflow, Loader2, Save, Sparkles, CheckCircle, XCircle, AlertCircle, X,
+  Workflow, Loader2, Save, Sparkles, CheckCircle, XCircle, AlertCircle, X, PlusCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { api, type ChannelAutomation } from '@/lib/api';
 
 interface Channel {
@@ -235,7 +236,7 @@ export default function AutomationPage() {
   const featureToggles: Array<{
     key: keyof Pick<typeof form, 'autoImport' | 'autoAnalyze' | 'autoPublish' | 'chapterSyncEnabled' | 'autoPlan' | 'autoResearch'>;
     label: string;
-    description: string;
+    description: React.ReactNode;
   }> = [
     {
       key: 'autoImport',
@@ -250,7 +251,7 @@ export default function AutomationPage() {
     {
       key: 'autoPublish',
       label: 'Auto-publish approved Shorts',
-      description: 'Publishes clips YOU approved, paced by the limits below — nothing is published without compliance + approval.',
+      description: (<>Publishes clips YOU approved, paced by the limits below — nothing is published without compliance + approval. Manage approvals in <Link href="/approvals" style={{ color: '#6D4AE0', textDecoration: 'underline' }}>Approvals</Link>.</>),
     },
     {
       key: 'chapterSyncEnabled',
@@ -260,7 +261,7 @@ export default function AutomationPage() {
     {
       key: 'autoPlan',
       label: 'Auto-plan content calendar',
-      description: 'Once a day, refreshes the channel profile and tops up the AI content calendar when future slots run low. Proposals only — you still approve every slot in Autonomy.',
+      description: 'Once a day, refreshes the channel profile and tops up the AI content calendar when future slots run low. Proposals only — review them in the Calendar.',
     },
     {
       key: 'autoResearch',
@@ -306,7 +307,17 @@ export default function AutomationPage() {
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
               <Workflow className="w-7 h-7" style={{ color: '#6D4AE0' }} />
             </div>
-            <p className="text-sm font-semibold text-gray-700">Pick a channel above to configure automation</p>
+            {channels.length === 0 ? (
+              <>
+                <p className="text-sm font-semibold text-gray-700">No channels connected yet</p>
+                <p className="text-xs text-gray-400 mt-1 mb-4">Connect a YouTube channel to configure automation</p>
+                <Link href="/settings/channels" className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)' }}>
+                  <PlusCircle className="w-4 h-4" /> Connect a channel
+                </Link>
+              </>
+            ) : (
+              <p className="text-sm font-semibold text-gray-700">Pick a channel above to configure automation</p>
+            )}
           </div>
         )}
 
@@ -325,6 +336,11 @@ export default function AutomationPage() {
               <div className="flex-1 min-w-0 pt-0.5">
                 <p className="font-semibold text-gray-900 text-sm sm:text-base">Enable automation for this channel</p>
                 <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">When off, all automated tasks are paused for this channel.</p>
+                {automationData?.lastTickAt && (
+                  <p className="text-xs mt-1" style={{ color: '#9b8fc4' }}>
+                    Last run: {new Date(automationData.lastTickAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                  </p>
+                )}
               </div>
               <Toggle
                 checked={form.enabled}

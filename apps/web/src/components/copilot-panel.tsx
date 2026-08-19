@@ -5,7 +5,7 @@ import {
   X, Send, Mic, MicOff, ShieldCheck, Trash2,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
   BookOpen, FileText, Calendar, Search, Sparkles,
-  MessageSquare, ListChecks, type LucideIcon,
+  MessageSquare, ListChecks, ChevronDown, ChevronUp, type LucideIcon,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
@@ -242,7 +242,7 @@ function detectEmotion(text: string): 'excited' | 'error' | 'neutral' {
 }
 
 // CSS plastic robot body with SVG camera-lens eyes (matching Capture.PNG style)
-function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean }) {
+function RobotSvgBody({ state, excited, onMicToggle, voiceEnabled }: { state: RobotState; excited: boolean; onMicToggle?: () => void; voiceEnabled?: boolean }) {
   const [pupilOff, setPupilOff] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -259,14 +259,13 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
   const isListening = state === 'listening';
   const isThinking = state === 'thinking';
 
-  // Plastic body colors matching Capture.PNG CSS robot
-  const W = '#f4f4ff';
-  const S = '#d0d0e2';
-  const grad = `linear-gradient(155deg,${W} 40%,${S})`;
+  // Vibrant purple-lavender body colors
+  const W = '#ede8ff';
+  const S = '#b0a4e8';
+  const grad = `linear-gradient(155deg,#f2efff 20%,${W} 50%,${S})`;
 
   const eyeCol = isThinking ? '#FBBF24' : isListening ? '#4ADE80' : '#60A5FA';
-  const antCol = isListening ? '#4ADE80' : isThinking ? '#FBBF24' : '#00C8D8';
-  const antGlow = `0 0 12px 5px ${antCol}66`;
+
 
   const armWaving = isSpeaking || excited;
 
@@ -296,13 +295,13 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
 
       {/* ── CSS plastic robot body ── */}
       <div>
-        {/* Antenna pole */}
-        <div style={{ margin:'0 auto', width:4, height:14, background:'linear-gradient(90deg,#9090a0,#c0c0d4)', borderRadius:2 }} />
-        {/* Antenna tip */}
-        <div style={{ margin:'-2px auto 0', width:12, height:12, borderRadius:'50%', background:antCol, boxShadow:antGlow, transition:'background 0.4s, box-shadow 0.4s', animation:'cfPulse 2s ease-in-out infinite' }} />
-
         {/* Head */}
         <div style={{ marginTop:5, width:76, height:58, borderRadius:14, background:grad, boxShadow:'3px 4px 14px rgba(0,0,0,0.28),-1px -1px 5px rgba(255,255,255,0.4)', position:'relative' }}>
+          {/* Antenna */}
+          <div style={{ position:'absolute', top:-24, left:'50%', transform:'translateX(-50%)', display:'flex', flexDirection:'column', alignItems:'center', zIndex:2, pointerEvents:'none' }}>
+            <div style={{ width:12, height:12, borderRadius:'50%', background:eyeCol, boxShadow:`0 0 10px 5px ${eyeCol}66`, animation:'cfPulse 1.5s ease-in-out infinite' }} />
+            <div style={{ width:4, height:16, background:`linear-gradient(180deg,${eyeCol}aa,${S})`, borderRadius:'2px 2px 0 0' }} />
+          </div>
           {/* Visor strip with SVG camera-lens eyes */}
           <div style={{ position:'absolute', top:'26%', left:'8%', right:'8%', height:'40%', background:'linear-gradient(180deg,#090920,#0d0d26)', borderRadius:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.92)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
             <svg width="60" height="22" viewBox="0 0 60 22" fill="none">
@@ -338,33 +337,101 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
         </div>
 
         {/* Neck */}
-        <div style={{ margin:'0 auto', width:20, height:8, background:`linear-gradient(160deg,${S},#b0b0c6)`, borderRadius:'0 0 4px 4px' }} />
+        <div style={{ margin:'0 auto', width:20, height:8, background:`linear-gradient(160deg,${S},#8878c8)`, borderRadius:'0 0 4px 4px' }} />
 
         {/* Body + arms wrapper */}
         <div style={{ position:'relative' }}>
-          {/* Left shoulder joint — gray ball at pivot point */}
-          <div style={{ position:'absolute', top:5, left:-14, width:13, height:13, borderRadius:'50%', background:'linear-gradient(135deg,#9898b0,#787890)', boxShadow:'0 2px 5px rgba(0,0,0,0.28)', zIndex:2 }} />
-          {/* Left arm */}
-          <div style={{ position:'absolute', top:10, left:-17, width:15, height:60, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'cfArmSway 4.5s ease-in-out 0.2s infinite', transition:'transform 0.5s', overflow:'visible' }}>
-            {/* Left hand — free-swinging at wrist */}
-            <div style={{ position:'absolute', bottom:-9, left:'50%', transform:'translateX(-50%)', width:19, height:13, borderRadius:7, background:grad, boxShadow:'1px 3px 7px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandSwing 0.55s ease-in-out 0.12s infinite':'cfHandSwing 1.8s ease-in-out 0.6s infinite' }} />
-          </div>
-          {/* Right shoulder joint */}
-          <div style={{ position:'absolute', top:5, right:-14, width:13, height:13, borderRadius:'50%', background:'linear-gradient(135deg,#9898b0,#787890)', boxShadow:'0 2px 5px rgba(0,0,0,0.28)', zIndex:2 }} />
-          {/* Right arm */}
-          <div style={{ position:'absolute', top:10, right:-17, width:15, height:60, borderRadius:8, background:grad, boxShadow:'2px 3px 10px rgba(0,0,0,0.22)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-7deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'cfArmSwayR 4.5s ease-in-out 0.9s infinite', transition:'transform 0.5s', overflow:'visible' }}>
-            {/* Right hand — free-swinging at wrist */}
-            <div style={{ position:'absolute', bottom:-9, left:'50%', transform:'translateX(-50%)', width:19, height:13, borderRadius:7, background:grad, boxShadow:'1px 3px 7px rgba(0,0,0,0.2)', transformOrigin:'top center', animation:armWaving?'cfHandSwing 0.55s ease-in-out 0.53s infinite':'cfHandSwing 1.8s ease-in-out 0.3s infinite' }} />
-          </div>
+          {/* Left arm — single piece, free swing from body edge */}
+          <div style={{ position:'absolute', top:8, left:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(10deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'cfArmSway 3s ease-in-out 0.2s infinite', transition:'transform 0.6s ease-in-out' }} />
+          {/* Right arm — single piece, free swing from body edge */}
+          <div style={{ position:'absolute', top:8, right:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-10deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'cfArmSwayR 3s ease-in-out 1.5s infinite', transition:'transform 0.6s ease-in-out' }} />
 
           {/* Body */}
           <div style={{ width:86, height:86, borderRadius:14, background:grad, boxShadow:'4px 5px 18px rgba(0,0,0,0.26),-2px -2px 6px rgba(255,255,255,0.33)', position:'relative', overflow:'hidden' }}>
-            {/* Chest panel */}
-            <div style={{ position:'absolute', top:'14%', left:'12%', right:'12%', bottom:'14%', background:'#080820', borderRadius:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.95)', display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3, paddingBottom:6 }}>
-              {(isSpeaking || isListening) ? [0,1,2,3,4].map(i => (
-                <div key={i} style={{ width:5, height:'52%', borderRadius:2, transformOrigin:'bottom', background:isSpeaking?'#00C8FF':'#4ADE80', boxShadow:`0 0 5px ${isSpeaking?'#00C8FFaa':'#4ADE80aa'}`, animation:`cfVoiceBar ${isSpeaking?'0.55':'0.38'}s ease-in-out ${i*0.11}s infinite` }} />
-              )) : (
-                <div style={{ width:10, height:10, borderRadius:'50%', marginBottom:2, background:eyeCol, boxShadow:`0 0 8px 3px ${eyeCol}55`, transition:'background 0.4s, box-shadow 0.4s', animation:'cfPulse 2s ease-in-out infinite' }} />
+            {/* Chest panel — prominent mic toggle */}
+            <div
+              onClick={onMicToggle}
+              title={voiceEnabled ? 'Mic ON — tap to mute' : 'Tap to activate voice'}
+              style={{
+                position:'absolute', top:'12%', left:'10%', right:'10%', bottom:'12%',
+                borderRadius:10,
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4,
+                pointerEvents: onMicToggle ? 'auto' : 'none',
+                cursor: onMicToggle ? 'pointer' : 'default',
+                overflow:'hidden',
+                transition:'background 0.3s, box-shadow 0.3s',
+                background: isListening
+                  ? 'rgba(74,222,128,0.18)'
+                  : isSpeaking
+                  ? 'rgba(0,200,255,0.15)'
+                  : isThinking
+                  ? 'rgba(251,191,36,0.13)'
+                  : voiceEnabled
+                  ? 'rgba(74,222,128,0.10)'
+                  : 'rgba(4,6,20,0.88)',
+                boxShadow: isListening
+                  ? 'inset 0 0 14px rgba(74,222,128,0.55), 0 0 12px rgba(74,222,128,0.4)'
+                  : isSpeaking
+                  ? 'inset 0 0 14px rgba(0,200,255,0.45), 0 0 12px rgba(0,200,255,0.3)'
+                  : isThinking
+                  ? 'inset 0 0 12px rgba(251,191,36,0.35)'
+                  : voiceEnabled
+                  ? 'inset 0 0 10px rgba(74,222,128,0.25)'
+                  : 'inset 0 2px 10px rgba(0,0,0,0.9)',
+              }}
+            >
+              {/* Listening — big green bars */}
+              {isListening && (
+                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3.5, width:'100%', paddingBottom:4, paddingTop:4 }}>
+                  {[0,1,2,3,4].map(i => (
+                    <div key={i} style={{ width:6, height:'65%', borderRadius:3, transformOrigin:'bottom', background:'#4ADE80', boxShadow:'0 0 7px #4ADE80cc', animation:`cfVoiceBar 0.38s ease-in-out ${i*0.11}s infinite` }} />
+                  ))}
+                </div>
+              )}
+
+              {/* Speaking — big cyan bars */}
+              {isSpeaking && !isListening && (
+                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3.5, width:'100%', paddingBottom:4, paddingTop:4 }}>
+                  {[0,1,2,3,4].map(i => (
+                    <div key={i} style={{ width:6, height:'65%', borderRadius:3, transformOrigin:'bottom', background:'#00C8FF', boxShadow:'0 0 7px #00C8FFcc', animation:`cfVoiceBar 0.55s ease-in-out ${i*0.11}s infinite` }} />
+                  ))}
+                </div>
+              )}
+
+              {/* Thinking — amber pulse ring */}
+              {isThinking && !isListening && !isSpeaking && (
+                <div style={{ position:'relative', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:'2px solid #FBBF24', animation:'cfPulse 0.9s ease-in-out infinite' }} />
+                  <div style={{ width:10, height:10, borderRadius:'50%', background:'#FBBF24', boxShadow:'0 0 8px #FBBF24' }} />
+                </div>
+              )}
+
+              {/* Idle — big mic icon */}
+              {!isListening && !isSpeaking && !isThinking && (
+                <>
+                  <div style={{
+                    width:34, height:34, borderRadius:10,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    background: voiceEnabled ? 'rgba(74,222,128,0.22)' : 'rgba(255,255,255,0.07)',
+                    border: `1.5px solid ${voiceEnabled ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.15)'}`,
+                    color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.4)',
+                    boxShadow: voiceEnabled ? '0 0 14px rgba(74,222,128,0.5)' : 'none',
+                    animation: voiceEnabled ? 'cfPulse 2s ease-in-out infinite' : 'none',
+                    transition:'all 0.35s',
+                  }}>
+                    {voiceEnabled
+                      ? <Mic style={{ width:17, height:17 }} />
+                      : <MicOff style={{ width:17, height:17 }} />
+                    }
+                  </div>
+                  <div style={{
+                    fontSize: 7, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase',
+                    color: voiceEnabled ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.22)',
+                    transition: 'color 0.35s',
+                  }}>
+                    {voiceEnabled ? 'ON' : 'TAP'}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -373,7 +440,7 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
         {/* Feet (no legs) */}
         <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:4 }}>
           {[0,1].map(i => (
-            <div key={i} style={{ width:26, height:11, borderRadius:'3px 3px 8px 8px', background:`linear-gradient(160deg,#c4c4d8,#8e8ea2)`, boxShadow:'2px 2px 6px rgba(0,0,0,0.22)' }} />
+            <div key={i} style={{ width:26, height:11, borderRadius:'3px 3px 8px 8px', background:`linear-gradient(160deg,${W},${S})`, boxShadow:'2px 2px 6px rgba(80,60,180,0.22)' }} />
           ))}
         </div>
       </div>
@@ -381,10 +448,10 @@ function RobotSvgBody({ state, excited }: { state: RobotState; excited: boolean 
   );
 }
 
-function RobotAvatar({ state, excited = false, compact = false }: { state: RobotState; excited?: boolean; compact?: boolean }) {
+function RobotAvatar({ state, excited = false, compact = false, onMicToggle, voiceEnabled }: { state: RobotState; excited?: boolean; compact?: boolean; onMicToggle?: () => void; voiceEnabled?: boolean }) {
   const robotAnim: React.CSSProperties['animation'] = excited
     ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
-    : state === 'speaking' ? 'cfHeadBob 0.38s ease-in-out infinite'
+    : state === 'speaking' ? 'cfHeadBob 0.9s ease-in-out infinite'
     : state === 'idle'     ? 'cfFloat 3s ease-in-out infinite'
     : 'none';
 
@@ -394,7 +461,7 @@ function RobotAvatar({ state, excited = false, compact = false }: { state: Robot
     return (
       <div style={{ position:'relative', width:76, height:90, flexShrink:0, animation:robotAnim }}>
         <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-52%) scale(0.72)', transformOrigin:'center center' }}>
-          <RobotSvgBody state={state} excited={excited} />
+          <RobotSvgBody state={state} excited={excited} onMicToggle={onMicToggle} voiceEnabled={voiceEnabled} />
         </div>
         {excited && [{dx:'-20px',dy:'-18px'},{dx:'20px',dy:'-18px'},{dx:'-24px',dy:'4px'},{dx:'24px',dy:'4px'}].map((s, i) => (
           <span key={i} style={{ position:'absolute', top:28, left:38, width:4, height:4, borderRadius:'50%',
@@ -408,7 +475,7 @@ function RobotAvatar({ state, excited = false, compact = false }: { state: Robot
 
   return (
     <div style={{ display:'inline-block', position:'relative', animation:robotAnim }}>
-      <RobotSvgBody state={state} excited={excited} />
+      <RobotSvgBody state={state} excited={excited} onMicToggle={onMicToggle} voiceEnabled={voiceEnabled} />
       {excited && [{dx:'-32px',dy:'-30px'},{dx:'32px',dy:'-30px'},{dx:'-42px',dy:'4px'},{dx:'42px',dy:'4px'},{dx:'-22px',dy:'34px'},{dx:'22px',dy:'34px'}].map((s, i) => (
         <span key={i} style={{ position:'absolute', top:50, left:48, width:5, height:5, borderRadius:'50%',
           background:sparkleColors[i % sparkleColors.length], '--dx':s.dx, '--dy':s.dy,
@@ -494,6 +561,7 @@ export function CopilotPanel() {
 
   // widget collapsed/expanded
   const [widgetOpen, setWidgetOpen] = useState(false);
+  const [historyMinimized, setHistoryMinimized] = useState(false);
 
   // bubble show/hide
   const [showBubble, setShowBubble]   = useState(false);
@@ -641,11 +709,17 @@ export function CopilotPanel() {
         utt.onerror = (e) => {
           if (keepAlive) clearInterval(keepAlive);
           setSpeaking(false); setSpeakingIdx(null);
+          if (e.error === 'not-allowed') {
+            // Android Chrome blocks speech from async context — open chat so user can tap 🔊 Hear
+            setActivePanel('chat');
+            return;
+          }
           if (e.error !== 'canceled' && e.error !== 'interrupted') console.warn('[TTS] error:', e.error);
         };
         window.speechSynthesis.speak(utt);
       }
-      keepAlive = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 5_000);
+      // 250 ms keeps Android from stalling when the OS pauses synthesis mid-utterance
+      keepAlive = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 250);
       next();
     };
 
@@ -718,6 +792,7 @@ export function CopilotPanel() {
       if (voiceEnabled || wasVoiceInput) {
         conversationRef.current = true;
         const newIdx = nextMessages.length;
+        primeSpeechSession(); // re-prime iOS — async API round-trip can expire the speech session
         speak(data.reply, data.language, () => { if (voiceEnabled) startListeningRef.current(); }, newIdx);
       } else {
         conversationRef.current = false;
@@ -732,7 +807,9 @@ export function CopilotPanel() {
         : is502 ? 'Backend API not reachable. For full functionality, access the app via your local network (http://[your-PC-IP]:3007) or configure API_URL in your deployment.'
         : status ? httpErrorMessage(status)
         : isTimeout ? 'The AI is taking longer than expected. Check your connection and try again.'
-        : 'Cannot reach the server — make sure the API server is running at port 4007.';
+        : (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+          ? 'Cannot reach the API server — run `pnpm dev` in apps/api (port 4007).'
+          : 'Connection error — please check your internet and try again.';
       setMessages(m => [...m, { role:'assistant', content:`⚠️ ${msg}`, fromCache:false }]);
       conversationRef.current = false;
       window.speechSynthesis?.cancel();
@@ -945,13 +1022,13 @@ export function CopilotPanel() {
         @keyframes cfSpinSimple { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes cfPanelIn    { from{opacity:0;transform:translateY(14px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
         @keyframes cfBlink      { 0%,88%,92%,100%{transform:scaleY(1)} 90%{transform:scaleY(0.04)} }
-        @keyframes cfHeadBob    { 0%,100%{transform:translateY(0) rotate(0deg)} 20%{transform:translateY(-6px) rotate(-2.5deg)} 50%{transform:translateY(-2px) rotate(2deg)} 75%{transform:translateY(-5px) rotate(-1.5deg)} }
+        @keyframes cfHeadBob    { 0%,100%{transform:translateY(0) rotate(0deg)} 30%{transform:translateY(-4px) rotate(-1.5deg)} 70%{transform:translateY(-1px) rotate(1deg)} }
         @keyframes cfMouthTalk  { 0%,100%{transform:scaleY(0.3)} 50%{transform:scaleY(1)} }
-        @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 20%{transform:translateY(-10px) scale(1.06)} 50%{transform:translateY(3px) scale(0.97)} 80%{transform:translateY(-5px) scale(1.03)} 100%{transform:translateY(0) scale(1)} }
-        @keyframes cfArmWave    { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-18deg)} 70%{transform:rotate(12deg)} }
+        @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 25%{transform:translateY(-7px) scale(1.04)} 55%{transform:translateY(2px) scale(0.98)} 80%{transform:translateY(-4px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
+        @keyframes cfArmWave    { 0%{transform:rotate(0deg)} 35%{transform:rotate(-28deg)} 65%{transform:rotate(10deg)} 100%{transform:rotate(0deg)} }
         @keyframes cfHandDangle { 0%,100%{transform:translateX(-50%) rotate(-8deg)} 50%{transform:translateX(-50%) rotate(8deg)} }
-        @keyframes cfArmSway    { 0%,100%{transform:rotate(7deg)} 50%{transform:rotate(3deg)} }
-        @keyframes cfArmSwayR   { 0%,100%{transform:rotate(-7deg)} 50%{transform:rotate(-3deg)} }
+        @keyframes cfArmSway    { 0%,100%{transform:rotate(10deg)} 50%{transform:rotate(-6deg)} }
+        @keyframes cfArmSwayR   { 0%,100%{transform:rotate(-10deg)} 50%{transform:rotate(6deg)} }
         @keyframes cfHandSwing  { 0%,100%{transform:translateX(-50%) rotate(-16deg)} 50%{transform:translateX(-50%) rotate(16deg)} }
         @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
         @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
@@ -970,6 +1047,27 @@ export function CopilotPanel() {
         {/* ── OPEN WIDGET ── */}
         {widgetOpen && (
         <div style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+
+          {/* ── Close button — top-right corner of the widget ── */}
+          <button
+            type="button"
+            title="Close Copilot"
+            onClick={() => { setWidgetOpen(false); setActivePanel(null); window.speechSynthesis?.cancel(); }}
+            style={{
+              position: 'absolute', top: -10, right: -10, zIndex: 30,
+              width: 26, height: 26, borderRadius: '50%',
+              background: 'rgba(30,20,50,0.92)', backdropFilter: 'blur(12px)',
+              border: '1.5px solid rgba(255,255,255,0.18)',
+              color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.8)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(30,20,50,0.92)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)'; }}
+          >
+            <X style={{ width: 12, height: 12 }} />
+          </button>
 
           {/* ── PANEL (absolute, overlays robot from above) ── */}
           {activePanel && (
@@ -1044,6 +1142,26 @@ export function CopilotPanel() {
                         <div className={m.role==='assistant'?'cf-msg-assistant':''} style={{ maxWidth:'82%', padding:'8px 11px', borderRadius:m.role==='user'?'12px 12px 3px 12px':'3px 12px 12px 12px', fontSize:12.5, lineHeight:1.55, whiteSpace:'pre-wrap', background:m.role==='user'?'linear-gradient(135deg,#7C3AED,#4F1D96)':'rgba(255,255,255,0.09)', color:'#fff', border:m.role==='assistant'?'1px solid rgba(255,255,255,0.09)':'1px solid rgba(167,139,250,0.22)', boxShadow:m.role==='user'?'0 4px 14px -4px rgba(124,58,237,.5)':'none', animation:'cfSlideUp 0.2s ease-out both', transition:'background 0.2s' }}>
                           {m.content}
                           {m.fromCache && <span style={{ fontSize:9, color:'rgba(255,255,255,.4)', marginLeft:5 }}>cached</span>}
+                          {m.role === 'assistant' && ttsAvailable && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (speakingIdx === i) {
+                                  window.speechSynthesis.cancel();
+                                  setSpeakingIdx(null);
+                                  setSpeaking(false);
+                                  return;
+                                }
+                                primeSpeechSession();
+                                speak(m.content, undefined, undefined, i);
+                              }}
+                              style={{ background:'none', border:'none', cursor:'pointer', padding:'2px 0 0', marginTop:3, display:'block', fontSize:11, opacity:speakingIdx===i?1:0.45, color:speakingIdx===i?'#C4B5FD':'rgba(255,255,255,0.7)', transition:'opacity 0.2s' }}
+                              title={speakingIdx===i?'Stop':'Tap to hear'}
+                              aria-label={speakingIdx===i?'Stop speaking':'Read aloud'}
+                            >
+                              {speakingIdx===i?'⏹ Stop':'🔊 Hear'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1249,18 +1367,8 @@ export function CopilotPanel() {
 
           {/* ── Robot — full size, behind panel ── */}
           <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
-            {shouldShowBubble && !activePanel && (
-              <SpeechBubble text={bubbleText} state={robotState} />
-            )}
-            <RobotAvatar state={robotState} excited={excited} />
+            <RobotAvatar state={robotState} excited={excited} onMicToggle={toggleVoice} voiceEnabled={voiceEnabled} />
           </div>
-
-          {/* ── Speech bubble inside greeting area (idle, no panel) ── */}
-          {!activePanel && !shouldShowBubble && messages.length === 0 && (
-            <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)', fontWeight:500, textAlign:'center', maxWidth:180, lineHeight:1.4, animation:'cfSlideUp 0.3s ease-out both' }}>
-              {GREETINGS[greetingIdx]}
-            </div>
-          )}
 
           {/* ── Topic pills — bottom of robot ── */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, position:'relative', zIndex:5 }}>
@@ -1290,23 +1398,151 @@ export function CopilotPanel() {
             })}
           </div>
 
-          {/* ── Mic on/off (voice auto-listen toggle) ── */}
-          <button type="button" onClick={toggleVoice}
-            title={isVoiceActive ? 'Listening… tap to turn off' : voiceEnabled ? 'Mic ON — tap to turn off' : 'Mic OFF — tap for hands-free voice'}
-            style={{
-              position:'relative', zIndex:5,
-              width:38, height:38, borderRadius:'50%',
-              background: isVoiceActive ? 'rgba(74,222,128,0.28)' : voiceEnabled ? 'rgba(74,222,128,0.15)' : 'rgba(14,10,28,0.85)',
-              border: `1.5px solid ${isVoiceActive ? 'rgba(74,222,128,0.75)' : voiceEnabled ? 'rgba(74,222,128,0.45)' : 'rgba(255,255,255,0.12)'}`,
-              backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-              color: voiceEnabled || isVoiceActive ? '#4ADE80' : 'rgba(255,255,255,0.38)',
-              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-              boxShadow: isVoiceActive ? '0 0 20px rgba(74,222,128,0.5)' : voiceEnabled ? '0 0 14px rgba(74,222,128,0.25)' : '0 4px 14px rgba(0,0,0,0.35)',
-              animation: isVoiceActive ? 'cfPulse 1s ease-in-out infinite' : 'none',
-              transition:'all 0.18s',
+          {/* ── Greeting ticker — shown when idle: no messages, or history minimized ── */}
+          {!activePanel && robotState === 'idle' && (messages.length === 0 || historyMinimized) && (
+            <div style={{
+              width: 248,
+              overflow: 'hidden',
+              borderRadius: 99,
+              background: 'rgba(109,74,224,0.82)',
+              border: '1px solid rgba(167,139,250,0.5)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              padding: '7px 16px',
+              animation: 'cfSlideUp 0.3s ease-out both',
+              position: 'relative', zIndex: 5,
+              display: 'flex', alignItems: 'center', gap: 8,
             }}>
-            {voiceEnabled || isVoiceActive ? <Mic style={{ width:15, height:15 }} /> : <MicOff style={{ width:15, height:15 }} />}
-          </button>
+              {/* Pulsing AI dot */}
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                background: '#A78BFA',
+                boxShadow: '0 0 8px rgba(167,139,250,0.8)',
+                animation: 'cfPulse 1.8s ease-in-out infinite',
+              }} />
+              {/* Ticker text */}
+              <div style={{ flex: '1 1 auto', overflow: 'hidden', minWidth: 0 }}>
+                <span style={{
+                  display: 'inline-block',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  whiteSpace: 'nowrap',
+                  animation: GREETINGS[greetingIdx]!.length > 32
+                    ? 'cfTicker 9s linear infinite'
+                    : 'none',
+                  paddingRight: GREETINGS[greetingIdx]!.length > 32 ? 32 : 0,
+                }}>
+                  {GREETINGS[greetingIdx]}
+                  {GREETINGS[greetingIdx]!.length > 32 && (
+                    <>&nbsp;&nbsp;&nbsp;&nbsp;{GREETINGS[greetingIdx]}</>
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ── Chat history strip — minimize/maximize, shown when no panel ── */}
+          {!activePanel && (isVoiceActive || busy || speaking || messages.length > 0) && (
+            <div style={{
+              width: 248,
+              borderRadius: 14,
+              background: 'rgba(8,4,20,0.82)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              boxShadow: '0 6px 24px rgba(0,0,0,0.4)',
+              animation: 'cfSlideUp 0.22s ease-out both',
+              position: 'relative', zIndex: 5,
+              overflow: 'hidden',
+            }}>
+              {/* Strip header — always visible */}
+              <div style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 10px', borderBottom: historyMinimized ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:'.5px', color:'rgba(255,255,255,0.45)', textTransform:'uppercase', flex:'1 1 auto' }}>
+                  {isVoiceActive ? '🎙 Listening' : busy ? '💭 Thinking' : speaking ? '🔊 Speaking' : `💬 Chat${messages.length > 0 ? ` · ${messages.length}` : ''}`}
+                </span>
+                {/* Clear chat */}
+                {messages.length > 0 && (
+                  <button
+                    type="button"
+                    title="Clear chat history"
+                    onClick={() => { setMessages([]); localStorage.removeItem(CHAT_KEY); }}
+                    style={{ width:20, height:20, borderRadius:6, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.10)', color:'rgba(248,113,113,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}
+                  >
+                    <Trash2 style={{ width:10, height:10 }} />
+                  </button>
+                )}
+                {/* Minimize / Maximize */}
+                <button
+                  type="button"
+                  title={historyMinimized ? 'Expand chat history' : 'Collapse chat history'}
+                  onClick={() => setHistoryMinimized(v => !v)}
+                  style={{ width:20, height:20, borderRadius:6, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}
+                >
+                  {historyMinimized
+                    ? <ChevronUp style={{ width:11, height:11 }} />
+                    : <ChevronDown style={{ width:11, height:11 }} />}
+                </button>
+              </div>
+
+              {/* Strip body — hidden when minimized */}
+              {!historyMinimized && (
+                <div style={{ maxHeight: 120, overflowY: 'auto', display:'flex', flexDirection:'column', gap:5, padding:'7px 10px 8px' }}>
+                  {/* Last 3 messages */}
+                  {messages.slice(-3).map((m, i) => (
+                    <div key={i} style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
+                      <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color: m.role === 'user' ? 'rgba(167,139,250,0.7)' : 'rgba(96,165,250,0.7)' }}>
+                        {m.role === 'user' ? 'YOU' : 'AI'}
+                      </span>
+                      <p style={{ margin:0, fontSize:11, lineHeight:1.45, color: m.role === 'user' ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.78)', textAlign: m.role === 'user' ? 'right' : 'left', wordBreak:'break-word' }}>
+                        {m.content.length > 90 ? m.content.slice(0, 90) + '…' : m.content}
+                      </p>
+                    </div>
+                  ))}
+
+                  {/* Live transcript while listening */}
+                  {isVoiceActive && liveTranscript && liveTranscript !== 'Transcribing…' && (
+                    <div style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection:'row-reverse' }}>
+                      <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color:'rgba(74,222,128,0.7)' }}>YOU</span>
+                      <p style={{ margin:0, fontSize:11, lineHeight:1.45, color:'#4ADE80', fontStyle:'italic', textAlign:'right' }}>{liveTranscript}</p>
+                    </div>
+                  )}
+
+                  {/* Transcribing */}
+                  {liveTranscript === 'Transcribing…' && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <Loader2 style={{ width:10, height:10, color:'#A78BFA', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
+                      <span style={{ fontSize:11, color:'#A78BFA', fontStyle:'italic' }}>Transcribing…</span>
+                    </div>
+                  )}
+
+                  {/* Thinking */}
+                  {busy && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
+                        {['5px','8px','11px','8px','5px'].map((h, i) => (
+                          <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#FBBF24', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize:11, color:'#FBBF24', fontStyle:'italic' }}>Thinking…</span>
+                    </div>
+                  )}
+
+                  {/* Speaking */}
+                  {speaking && !busy && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
+                        {['5px','8px','11px','8px','5px'].map((h, i) => (
+                          <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#00C8FF', height:h, animation:`cfVoiceBar .55s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize:11, color:'#60A5FA', fontStyle:'italic' }}>Speaking…</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
         )} {/* end widgetOpen */}

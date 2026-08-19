@@ -1,9 +1,9 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Gift, Loader2, CheckCircle, AlertCircle, X, Copy, Trophy, Clock, Users, AlertTriangle,
-  TrendingUp, Coins, Target, Share2, Flame, Zap, BarChart3, CheckCircle2, ExternalLink,
+  Gift, Loader2, CheckCircle, AlertCircle, X, Clock, AlertTriangle,
+  TrendingUp, Target, Flame, Zap, CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -12,9 +12,6 @@ import {
   type TrialStatusResponse,
   type Offer,
   type UpgradeRecommendation,
-  type ReferralEarnings,
-  type LeaderboardEntry,
-  type UsageSummary,
   type PublishTrackingSummary,
 } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -29,20 +26,6 @@ function daysUntil(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / (24 * 60 * 60_000));
 }
 
-function statusChipStyle(s: string): string {
-  switch (s) {
-    case 'ACTIVE': return 'bg-[#ecfdf5] text-[#065f46]';
-    case 'EXPIRED': return 'bg-red-50 text-red-700 border-red-200';
-    case 'CONVERTED': return 'bg-[#f5f2fd] text-[#6D4AE0]';
-    case 'PENDING_REVIEW': return 'bg-[#fff7ed] text-[#c2410c]';
-    case 'REVOKED': return 'bg-[#f3f4f6] text-[#4b5563]';
-    case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-    case 'QUALIFIED': return 'bg-[#ecfdf5] text-[#065f46]';
-    case 'REWARDED': return 'bg-[#f5f2fd] text-[#6D4AE0]';
-    case 'FLAGGED': return 'bg-red-50 text-red-700 border-red-200';
-    default: return 'bg-[#f3f4f6] text-[#4b5563]';
-  }
-}
 
 function offerTypeBadge(type: string): string {
   switch (type) {
@@ -108,7 +91,11 @@ function TrialStatusCard() {
         <Clock className="w-4 h-4 text-[#6D4AE0]" />
         <span className="text-sm font-semibold text-gray-800">Free Trial</span>
         {status && (
-          <span className={`text-[11px] font-medium border rounded-full px-2 py-0.5 ${statusChipStyle(status)}`}>
+          <span className={`text-[11px] font-medium border rounded-full px-2 py-0.5 ${
+            status === 'ACTIVE' ? 'bg-[#ecfdf5] text-[#065f46]' :
+            status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-200' :
+            'bg-[#f3f4f6] text-[#4b5563]'
+          }`}>
             {status.replace(/_/g, ' ')}
           </span>
         )}
@@ -256,250 +243,6 @@ function OfferCenter() {
   );
 }
 
-// ── Referral Center ───────────────────────────────────────────────────────────
-
-function ReferralCenter() {
-  const qc = useQueryClient();
-  const [copied, setCopied] = useState(false);
-  const [redeemInput, setRedeemInput] = useState('');
-  const [redeemError, setRedeemError] = useState('');
-  const [redeemSuccess, setRedeemSuccess] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const { data: earnings, isLoading: earningsLoading } = useQuery<ReferralEarnings>({
-    queryKey: ['referral-earnings'],
-    queryFn: () => api.referral.earnings().then((r) => r.data),
-  });
-
-  const { data: leaderboard = [], isLoading: lbLoading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ['referral-leaderboard'],
-    queryFn: () => api.referral.leaderboard().then((r) => r.data),
-  });
-
-  const { data: codeData, isLoading: codeLoading } = useQuery<{ code: string }>({
-    queryKey: ['referral-code'],
-    queryFn: () => api.referral.code().then((r) => r.data),
-  });
-
-  useEffect(() => {
-    const pending = localStorage.getItem('cf.pendingReferralCode');
-    if (pending) setRedeemInput(pending);
-  }, []);
-
-  const redeemMutation = useMutation({
-    mutationFn: (code: string) => api.referral.redeem(code),
-    onSuccess: () => {
-      setRedeemSuccess(true);
-      setRedeemError('');
-      localStorage.removeItem('cf.pendingReferralCode');
-      void qc.invalidateQueries({ queryKey: ['referral-earnings'] });
-    },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setRedeemError(msg ?? getErrorMessage(err) ?? 'Redemption failed');
-    },
-  });
-
-  const shareUrl = codeData ? `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${codeData.code}` : '';
-
-  async function copyCode(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      if (inputRef.current) inputRef.current.select();
-    }
-  }
-
-  // Share URLs
-  const shareMsg = encodeURIComponent(`Join me on Sozialzync — the best AI platform for YouTube creators! Use my referral link:`);
-  const twitterUrl = codeData ? `https://twitter.com/intent/tweet?text=${shareMsg}&url=${encodeURIComponent(shareUrl)}` : '#';
-  const linkedInUrl = codeData ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}` : '#';
-  const whatsAppUrl = codeData ? `https://wa.me/?text=${shareMsg}%20${encodeURIComponent(shareUrl)}` : '#';
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-2xl p-4 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#6D4AE0]" />
-          <span className="text-sm font-semibold text-gray-800">Referral Center</span>
-        </div>
-
-        {codeLoading && <Loader2 className="w-5 h-5 animate-spin text-[#6D4AE0]" />}
-
-        {codeData && (
-          <>
-            <div className="space-y-2">
-              <p className="text-xs text-gray-600">Your referral code</p>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold tracking-widest text-[#6D4AE0] font-mono">{codeData.code}</span>
-                <button
-                  onClick={() => void copyCode(codeData.code)}
-                  aria-label="Copy referral code"
-                  className="p-1.5 rounded-2xl text-gray-500 hover:text-[#6D4AE0] transition-colors"
-                  style={{ border: '1.5px solid #e3ddf8' }}
-                >
-                  {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-xs text-gray-600">Share link</p>
-              <div className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  readOnly
-                  value={shareUrl}
-                  onFocus={(e) => e.target.select()}
-                  className="flex-1 text-xs rounded-2xl px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none"
-                  style={{ border: '1.5px solid #e3e0f0' }}
-                />
-                <button
-                  onClick={() => void copyCode(shareUrl)}
-                  aria-label="Copy share link"
-                  className="px-3 py-2 rounded-2xl text-gray-600 hover:text-[#6D4AE0] transition-colors text-xs font-semibold"
-                  style={{ border: '1.5px solid #e3ddf8' }}
-                >
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-600">Share via:</span>
-              <a href={twitterUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-black text-white hover:bg-gray-800 transition-colors">
-                <Share2 className="w-3 h-3" /> X / Twitter
-              </a>
-              <a href={linkedInUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-700 text-white hover:bg-blue-800 transition-colors">
-                <ExternalLink className="w-3 h-3" /> LinkedIn
-              </a>
-              <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-green-600 text-white hover:bg-green-700 transition-colors">
-                <Share2 className="w-3 h-3" /> WhatsApp
-              </a>
-            </div>
-          </>
-        )}
-
-        {earningsLoading && <Loader2 className="w-4 h-4 animate-spin text-[#6D4AE0]" />}
-        {earnings && (
-          <div className="flex flex-wrap gap-3">
-            <div className="flex flex-col bg-gray-50 rounded-2xl px-3 py-2 min-w-[80px]">
-              <span className="text-xs text-gray-600">Total earned</span>
-              <span className="text-lg font-bold text-gray-800">{fmtCredits(earnings.totalCredits)}</span>
-              <span className="text-[10px] text-gray-600">credits</span>
-            </div>
-            <div className="flex flex-col bg-[#ecfdf5] rounded-2xl px-3 py-2 min-w-[80px]">
-              <span className="text-xs text-gray-600">Qualified</span>
-              <span className="text-lg font-bold text-[#065f46]">{earnings.qualifiedCount}</span>
-            </div>
-            <div className="flex flex-col bg-yellow-50 rounded-2xl px-3 py-2 min-w-[80px]">
-              <span className="text-xs text-gray-600">Pending</span>
-              <span className="text-lg font-bold text-yellow-700">{earnings.pendingCount}</span>
-            </div>
-            {earnings.flaggedCount > 0 && (
-              <div className="flex flex-col bg-red-50 rounded-2xl px-3 py-2 min-w-[80px]">
-                <span className="text-xs text-gray-600">Under review</span>
-                <span className="text-lg font-bold text-red-600">{earnings.flaggedCount}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {earnings && earnings.referrals.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-gray-700">
-              <thead>
-                <tr className="text-gray-600 border-b border-gray-100">
-                  <th className="text-left pb-2 font-medium">Date</th>
-                  <th className="text-left pb-2 font-medium">Status</th>
-                  <th className="text-right pb-2 font-medium">Reward</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {earnings.referrals.map((r) => (
-                  <tr key={r.id}>
-                    <td className="py-1.5 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
-                    <td className="py-1.5">
-                      <span className={`border rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipStyle(r.status)}`}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="py-1.5 text-right font-semibold text-green-700">+{fmtCredits(r.reward)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
-        <p className="text-sm font-semibold text-gray-800">Have a referral code?</p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={redeemInput}
-            onChange={(e) => { setRedeemInput(e.target.value); setRedeemError(''); setRedeemSuccess(false); }}
-            placeholder="Enter code"
-            aria-label="Referral code input"
-            className="flex-1 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
-            style={{ border: '1.5px solid #e3e0f0' }}
-          />
-          <button
-            onClick={() => { if (redeemInput.trim()) redeemMutation.mutate(redeemInput.trim()); }}
-            disabled={!redeemInput.trim() || redeemMutation.isPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
-          >
-            {redeemMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            Apply
-          </button>
-        </div>
-        {redeemError && (
-          <p className="text-xs text-amber-700 flex items-center gap-1">
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-            {redeemError}
-          </p>
-        )}
-        {redeemSuccess && (
-          <p className="text-xs text-green-600 flex items-center gap-1">
-            <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-            Referral code applied successfully!
-          </p>
-        )}
-      </div>
-
-      {!lbLoading && leaderboard.length > 0 && (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-amber-500" />
-            <span className="text-sm font-semibold text-gray-800">Referral Leaderboard</span>
-            <span className="text-xs text-gray-600">(top 10)</span>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {leaderboard.slice(0, 10).map((entry) => (
-              <div key={entry.rank} className={`flex items-center gap-3 px-4 py-2.5 ${entry.userLabel.includes('(you)') ? 'bg-[#f5f2fd]' : ''}`}>
-                <span className={`text-sm font-bold w-6 text-center ${entry.rank <= 3 ? 'text-amber-500' : 'text-gray-500'}`}>
-                  {entry.rank}
-                </span>
-                <span className="flex-1 text-sm text-gray-700 truncate">{entry.userLabel}</span>
-                <div className="text-right text-xs text-gray-600">
-                  <p className="font-semibold text-gray-800">{entry.qualifiedCount} referred</p>
-                  <p>{fmtCredits(entry.totalCredits)} credits</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Scorecard Tab ─────────────────────────────────────────────────────────────
 
@@ -561,116 +304,6 @@ function ScorecardTab() {
   );
 }
 
-// ── Credits Tab ───────────────────────────────────────────────────────────────
-
-interface WalletBalance {
-  balance: number;
-  tier?: string;
-}
-
-function CreditsTab() {
-  const { data: balance, isLoading: balLoading, isError: balError } = useQuery<WalletBalance>({
-    queryKey: ['wallet-balance'],
-    queryFn: () => api.wallet.balance().then((r) => r.data as WalletBalance),
-    retry: 1,
-  });
-
-  const { data: usage, isLoading: usageLoading, isError: usageError } = useQuery<UsageSummary>({
-    queryKey: ['wallet-usage', 30],
-    queryFn: () => api.wallet.usageSummary(30).then((r) => r.data),
-    retry: 1,
-  });
-
-  const topActions = usage?.byAction?.slice().sort((a, b) => b.credits - a.credits).slice(0, 6) ?? [];
-  const total = topActions.reduce((s, a) => s + a.credits, 0) || 1;
-
-  const segColors = [
-    'bg-violet-500', 'bg-blue-500', 'bg-cyan-500',
-    'bg-green-500', 'bg-amber-500', 'bg-pink-500',
-  ];
-
-  const actionLabels: Record<string, string> = {
-    SCRIPT: 'Script Gen', RESEARCH: 'Research', FACT_CHECK: 'Fact Check',
-    COMPLIANCE: 'Compliance', METADATA: 'Metadata', SEO_OPTIMIZATION: 'SEO',
-    VOICE_GENERATE: 'Voice', IMAGE_GENERATE: 'Image', MUSIC_GENERATE: 'Music',
-    RENDER: 'Render', THUMBNAIL: 'Thumbnail', CALENDAR_PROPOSAL: 'Calendar AI',
-    FULL_PRODUCTION: 'Full Prod',
-  };
-
-  return (
-    <div className="space-y-5">
-      <div className="rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #4f35a8 100%)' }}>
-        <div className="flex items-center gap-2 mb-1">
-          <Coins className="w-5 h-5" />
-          <span className="text-sm font-medium text-white">Current Balance</span>
-        </div>
-        {balLoading ? (
-          <Loader2 className="w-5 h-5 animate-spin mt-2" />
-        ) : balError ? (
-          <p className="text-sm text-white mt-2">Unable to load balance — check your connection</p>
-        ) : (
-          <>
-            <p className="text-4xl font-bold">{balance ? fmtCredits(balance.balance) : '—'}</p>
-            <p className="text-sm text-white mt-1">credits{balance?.tier ? ` · ${balance.tier} plan` : ''}</p>
-          </>
-        )}
-        <Link href="/wallet" className="inline-flex items-center gap-2 mt-4 bg-white/20 hover:bg-white/30 text-white text-sm font-medium px-4 py-2 rounded-2xl transition-colors">
-          <Zap className="w-3.5 h-3.5" /> Add Credits
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
-        <div className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-semibold text-gray-800">Usage by Action (last 30 days)</span>
-          {usage && <span className="text-xs text-gray-600 ml-auto">{fmtCredits(usage.totalSpent)} total spent</span>}
-        </div>
-
-        {usageLoading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-gray-600" /></div>
-        ) : usageError ? (
-          <p className="text-sm text-amber-600 py-4 text-center">Could not load usage data. The server may be unavailable.</p>
-        ) : topActions.length === 0 ? (
-          <p className="text-sm text-gray-600 py-4 text-center">No usage data yet</p>
-        ) : (
-          <>
-            {/* Stacked bar */}
-            <div className="flex h-5 rounded-full overflow-hidden gap-0.5">
-              {topActions.map((a, i) => (
-                <div
-                  key={a.action}
-                  className={`${segColors[i % segColors.length]} transition-all`}
-                  style={{ width: `${(a.credits / total) * 100}%` }}
-                  title={`${a.action}: ${fmtCredits(a.credits)}`}
-                />
-              ))}
-            </div>
-
-            <div className="space-y-2">
-              {topActions.map((a, i) => (
-                <div key={a.action} className="flex items-center gap-3">
-                  <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${segColors[i % segColors.length]}`} />
-                  <span className="text-xs text-gray-700 flex-1">{actionLabels[a.action] ?? a.action.replace(/_/g, ' ')}</span>
-                  <span className="text-xs font-medium text-gray-800">{fmtCredits(a.credits)}</span>
-                  <span className="text-xs text-gray-600 w-10 text-right">{Math.round((a.credits / total) * 100)}%</span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-        <p className="text-sm font-semibold text-amber-800 mb-1">Credit-saving tips</p>
-        <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
-          <li>Use dry-run mode on the AI Calendar before generating full proposals</li>
-          <li>Batch your research jobs — one deep research costs less than 3 shallow ones</li>
-          <li>Enable auto-approve for low-risk compliance checks (STARTER+)</li>
-        </ul>
-      </div>
-    </div>
-  );
-}
 
 // ── Goals Tab ─────────────────────────────────────────────────────────────────
 
@@ -834,8 +467,16 @@ function GoalsTab() {
           </button>
         </div>
         {tip ? (
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-3">
             <p className="text-sm text-amber-800">{tip}</p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/publish?tab=calendar" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                Plan in Calendar →
+              </Link>
+              <Link href="/research" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                Research this →
+              </Link>
+            </div>
           </div>
         ) : (
           <p className="text-xs text-gray-600">Click "Get Tip" for an AI-powered content strategy suggestion.</p>
@@ -847,12 +488,10 @@ function GoalsTab() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-type Tab = 'scorecard' | 'referrals' | 'credits' | 'goals';
+type Tab = 'scorecard' | 'goals';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'scorecard', label: 'Scorecard', icon: <TrendingUp className="w-4 h-4" /> },
-  { id: 'referrals', label: 'Referrals', icon: <Gift className="w-4 h-4" /> },
-  { id: 'credits', label: 'Credits', icon: <Coins className="w-4 h-4" /> },
   { id: 'goals', label: 'Goals', icon: <Target className="w-4 h-4" /> },
 ];
 
@@ -866,7 +505,7 @@ export default function GrowthPage() {
           <TrendingUp className="w-7 h-7 text-[#6D4AE0]" />
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Growth</h1>
-            <p className="text-sm text-gray-600 mt-0.5">Track performance, referrals, credits, and content goals</p>
+            <p className="text-sm text-gray-600 mt-0.5">Track your performance and content goals</p>
           </div>
         </div>
 
@@ -884,8 +523,6 @@ export default function GrowthPage() {
         </div>
 
         {tab === 'scorecard' && <ScorecardTab />}
-        {tab === 'referrals' && <ReferralCenter />}
-        {tab === 'credits' && <CreditsTab />}
         {tab === 'goals' && <GoalsTab />}
       </div>
     </div>

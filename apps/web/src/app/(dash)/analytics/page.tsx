@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { BarChart2, TrendingUp, TrendingDown, Minus, Lightbulb, RefreshCw, ChevronRight, ChevronDown, Gauge, Video, AlertTriangle, MousePointerClick } from 'lucide-react';
 import { ResultActions } from '@/components/result-actions';
 import { AiWorkingCard, formatDuration } from '@/components/ai-activity';
@@ -33,6 +34,14 @@ interface GrowthReport {
   summary: string;
   nextTopics: Topic[];
   optimizationActions: Array<{ priority: 'high' | 'medium' | 'low'; area: string; action: string; expectedImpact: string }>;
+}
+
+interface BenchmarkPeer { title: string; subscribers: number; videoCount: number; }
+interface BenchmarkResult {
+  channel: { id: string; title: string; subscribers: number; videoCount: number; avgViews: number };
+  peers: BenchmarkPeer[];
+  insights: string[];
+  subscriberPercentile: number;
 }
 
 interface TokenUsageSummary {
@@ -128,7 +137,10 @@ export default function AnalyticsPage() {
   const [analyticsDurationMs, setAnalyticsDurationMs] = useState<number | null>(null);
   const [growthDurationMs, setGrowthDurationMs] = useState<number | null>(null);
   const [tokenUsage, setTokenUsage] = useState<TokenUsageSummary | null | 'unavailable'>(null);
-  const [activeView, setActiveView] = useState<'scorecard' | 'analytics' | 'usage'>('scorecard');
+  const [activeView, setActiveView] = useState<'scorecard' | 'analytics' | 'usage' | 'benchmark'>('scorecard');
+  const [benchmark, setBenchmark] = useState<BenchmarkResult | null>(null);
+  const [loadingBenchmark, setLoadingBenchmark] = useState(false);
+  const [benchmarkError, setBenchmarkError] = useState('');
   const [scorecard, setScorecard] = useState<{
     publishing: { scheduled: number; published: number; failed: number; totalVideos: number } | null;
     calendar: { total: number; proposed: number; approved: number; upcoming7d: number; approvalRate: number } | null;
@@ -176,6 +188,20 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (channelId) { void loadScorecard(channelId); }
   }, [channelId]);
+
+  async function runBenchmark() {
+    if (!channelId) return;
+    setLoadingBenchmark(true);
+    setBenchmarkError('');
+    try {
+      const result = await callApi<BenchmarkResult>(`/analytics/${channelId}/benchmark`);
+      setBenchmark(result);
+    } catch (e) {
+      setBenchmarkError(e instanceof Error ? e.message : 'Benchmark failed');
+    } finally {
+      setLoadingBenchmark(false);
+    }
+  }
 
   async function runGrowth() {
     if (!analytics) return;
@@ -407,15 +433,20 @@ export default function AnalyticsPage() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
               </div>
             ) : (
-              <input
-                id="analytics-channel"
-                type="text"
-                value={channelId}
-                onChange={e => setChannelId(e.target.value)}
-                placeholder="Channel ID (connect a channel in Settings)"
-                className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
-                style={{ border: '1.5px solid #e3e0f0' }}
-              />
+              <div className="flex-1 flex items-center gap-3">
+                <input
+                  id="analytics-channel"
+                  type="text"
+                  value={channelId}
+                  onChange={e => setChannelId(e.target.value)}
+                  placeholder="Channel ID"
+                  className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                  style={{ border: '1.5px solid #e3e0f0' }}
+                />
+                <Link href="/settings/channels" className="shrink-0 text-sm font-semibold hover:underline whitespace-nowrap" style={{ color: '#6D4AE0' }}>
+                  Connect a channel →
+                </Link>
+              </div>
             )}
             {activeView === 'analytics' && (
               <button
@@ -435,11 +466,11 @@ export default function AnalyticsPage() {
         {/* Tab bar — AI Usage visible to SUPER_ADMIN/OWNER only */}
         <div style={{ borderBottom: '1px solid #e3ddf8' }}>
           <div className="flex">
-            {(['scorecard', 'analytics', 'usage'] as const).map(v => {
+            {(['scorecard', 'analytics', 'usage', 'benchmark'] as const).map(v => {
               if (v === 'usage' && !isAdmin) return null;
               const isGated = v === 'analytics';
               const locked = isGated && !canAccessAiAnalysis;
-              const label = v === 'scorecard' ? 'Scorecard' : v === 'analytics' ? 'AI Analysis' : 'AI Usage';
+              const label = v === 'scorecard' ? 'Scorecard' : v === 'analytics' ? 'AI Analysis' : v === 'usage' ? 'AI Usage' : 'Benchmark';
               return (
                 <button
                   key={v}
@@ -723,7 +754,7 @@ export default function AnalyticsPage() {
                     <Lightbulb className="w-4 h-4 text-amber-500" /> Next Video Ideas
                   </h2>
                   <div className="space-y-3">
-                    {growth.nextTopics.map((t, i) => (
+                    {(growth.nextTopics ?? []).map((t, i) => (
                       <div key={i} className="flex items-start gap-3 p-3 rounded-2xl hover:bg-[#faf9ff] transition-colors" style={{ border: '1.5px solid #e3ddf8' }}>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${t.opportunityScore >= 70 ? 'bg-green-100 text-green-700' : t.opportunityScore >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
                           {t.opportunityScore}
@@ -740,7 +771,7 @@ export default function AnalyticsPage() {
                 <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                   <h2 className="font-bold text-gray-900 mb-4">Optimization Actions</h2>
                   <div className="space-y-3">
-                    {growth.optimizationActions.map((a, i) => (
+                    {(growth.optimizationActions ?? []).map((a, i) => (
                       <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: '#faf9ff' }}>
                         <PriorityBadge priority={a.priority} />
                         <div>
@@ -753,6 +784,122 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
               </div>
+            )}
+          </div>
+        )}
+        {/* Benchmark tab */}
+        {activeView === 'benchmark' && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-extrabold text-gray-900">Channel Benchmark</h2>
+                <p className="text-sm text-gray-600 mt-0.5">Compare your channel against similar channels on YouTube</p>
+              </div>
+              <button
+                onClick={runBenchmark}
+                disabled={loadingBenchmark || !channelId}
+                className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              >
+                {loadingBenchmark ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
+                {loadingBenchmark ? 'Analyzing…' : 'Run Benchmark'}
+              </button>
+            </div>
+
+            {benchmarkError && (
+              <div className="bg-red-50 rounded-2xl px-4 py-3 text-sm text-red-700" style={{ border: '1.5px solid #fecaca' }}>{benchmarkError}</div>
+            )}
+
+            {!benchmark && !loadingBenchmark && (
+              <div className="bg-white rounded-3xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
+                  <TrendingUp className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                </div>
+                <p className="text-base font-extrabold text-gray-900 mb-1">No benchmark yet</p>
+                <p className="text-sm text-gray-600">Select a channel above and click Run Benchmark to compare against similar YouTube channels.</p>
+              </div>
+            )}
+
+            {loadingBenchmark && (
+              <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
+                <p className="text-sm text-gray-600">Fetching peer channels from YouTube…</p>
+              </div>
+            )}
+
+            {benchmark && !loadingBenchmark && (
+              <>
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Subscribers', value: benchmark.channel.subscribers.toLocaleString() },
+                    { label: 'Videos', value: benchmark.channel.videoCount.toLocaleString() },
+                    { label: 'Avg Views', value: benchmark.channel.avgViews.toLocaleString() },
+                  ].map(stat => (
+                    <div key={stat.label} className="bg-white rounded-2xl p-5 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+                      <p className="text-2xl font-black text-gray-900">{stat.value}</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mt-1">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Percentile bar */}
+                <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-semibold text-gray-700">Subscriber Percentile</span>
+                    <span className="text-sm font-black" style={{ color: '#6D4AE0' }}>{benchmark.subscriberPercentile}th</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${benchmark.subscriberPercentile}%`, background: 'linear-gradient(90deg, #6D4AE0, #7c5ae8)' }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">Among {benchmark.peers.length} comparable channels</p>
+                </div>
+
+                {/* Insights */}
+                {benchmark.insights.length > 0 && (
+                  <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #fde68a', background: '#fffbeb' }}>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700 mb-3">Insights</p>
+                    <ul className="space-y-2">
+                      {benchmark.insights.map((insight, i) => (
+                        <li key={i} className="flex gap-2 text-sm text-amber-800">
+                          <span className="shrink-0 mt-0.5">•</span>
+                          <span>{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Peer table */}
+                {benchmark.peers.length > 0 && (
+                  <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+                    <div className="px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Comparable Channels</p>
+                    </div>
+                    <table className="w-full text-sm">
+                      <thead className="bg-[#faf9ff]">
+                        <tr>
+                          <th className="text-left px-5 py-2.5 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Channel</th>
+                          <th className="text-right px-5 py-2.5 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Subscribers</th>
+                          <th className="text-right px-5 py-2.5 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Videos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {benchmark.peers.map((peer, i) => (
+                          <tr key={i} className="hover:bg-[#faf9ff] transition-colors" style={{ borderTop: '1px solid #f0edf9' }}>
+                            <td className="px-5 py-3 font-medium text-gray-900">{peer.title}</td>
+                            <td className="px-5 py-3 text-right text-gray-600">{peer.subscribers.toLocaleString()}</td>
+                            <td className="px-5 py-3 text-right text-gray-600">{peer.videoCount.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

@@ -18,6 +18,7 @@ interface TrendsResult {
   trending: TrendItem[];
   recommendations: string[];
   analysisDate: string;
+  liveDataUsed?: boolean;
 }
 
 interface KeywordResult {
@@ -39,6 +40,20 @@ interface AudienceResult {
   contentPreferences?: string[];
   bestPostingTimes?: string[];
   growthTips?: string[];
+}
+
+interface GapItem {
+  topic: string;
+  opportunityScore: number;
+  whyUnderserved: string;
+  suggestedAngle: string;
+}
+
+interface GapsResult {
+  gaps: GapItem[];
+  niche: string;
+  analysisDate: string;
+  liveDataUsed?: boolean;
 }
 
 type HubTab = 'trends' | 'keywords' | 'audience' | 'gaps';
@@ -139,6 +154,8 @@ function TrendsTab() {
 
   useEffect(() => {
     try {
+      const pending = localStorage.getItem('cf_discover_topic');
+      if (pending) { setNiche(pending); localStorage.removeItem('cf_discover_topic'); return; }
       const raw = localStorage.getItem('cf_discover_trends');
       if (raw) {
         const stored = JSON.parse(raw) as { result: TrendsResult; niche: string; savedAt: string };
@@ -193,10 +210,18 @@ function TrendsTab() {
       {result && !loading && (
         <div className="space-y-6 fade-in">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500">
-              Analysis date: {result.analysisDate}
-              {durationMs != null && ` · analyzed in ${formatDuration(durationMs)}`}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs text-gray-500">
+                Analysis date: {result.analysisDate}
+                {durationMs != null && ` · analyzed in ${formatDuration(durationMs)}`}
+              </p>
+              {result.liveDataUsed && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Live YouTube data
+                </span>
+              )}
+            </div>
             <ContentToolbar
                 text={[
                   `# Trend Analysis: ${niche.trim()}`,
@@ -546,7 +571,7 @@ function AudienceTab() {
 
 function ContentGapsTab() {
   const [niche, setNiche] = useState('');
-  const [result, setResult] = useState<TrendsResult | null>(null);
+  const [result, setResult] = useState<GapsResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -555,7 +580,7 @@ function ContentGapsTab() {
     try {
       const raw = localStorage.getItem('cf_discover_gaps');
       if (raw) {
-        const stored = JSON.parse(raw) as { result: TrendsResult; savedAt: string };
+        const stored = JSON.parse(raw) as { result: GapsResult; savedAt: string };
         setResult(stored.result);
         setSavedAt(stored.savedAt);
       }
@@ -567,7 +592,7 @@ function ContentGapsTab() {
     const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setSavedAt(ts);
     try { localStorage.setItem('cf_discover_gaps', JSON.stringify({ result, savedAt: ts })); } catch {}
-  }, [result]);
+  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function clearGaps() {
     setResult(null);
@@ -580,9 +605,8 @@ function ContentGapsTab() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.trends.analyze(`underserved content gaps for: ${niche.trim()}`);
-      const data = res.data as TrendsResult;
-      setResult({ trending: data.trending ?? [], recommendations: data.recommendations ?? [], analysisDate: data.analysisDate ?? '' });
+      const res = await api.trends.gaps(niche.trim());
+      setResult(res.data as GapsResult);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e?.response?.data?.message ?? e?.message ?? 'Failed to find content gaps.');
@@ -590,8 +614,6 @@ function ContentGapsTab() {
       setLoading(false);
     }
   }
-
-  const emerging = result?.trending.filter(t => t.score < 50) ?? [];
 
   return (
     <div>
@@ -605,54 +627,51 @@ function ContentGapsTab() {
       )}
       {result && !loading && (
         <div className="space-y-6 fade-in">
-          <ContentToolbar
-            text={[
-              `# Content Gaps: ${niche.trim()}`,
-              result.recommendations.length > 0 ? `\n## Gap Opportunities\n${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : '',
-              result.trending.filter(t => t.score < 50).length > 0 ? `\n## Emerging Topics\n${result.trending.filter(t => t.score < 50).map(t => `• ${t.topic} (score: ${t.score})`).join('\n')}` : '',
-            ].filter(Boolean).join('\n')}
-            filename={`content-gaps-${niche.trim().toLowerCase().replace(/\s+/g, '-') || 'analysis'}`}
-            savedAt={savedAt}
-            onNew={clearGaps}
-          />
-          {result.recommendations.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Zap className="w-4 h-4" style={{ color: '#6D4AE0' }} /> Gap Opportunities
-              </h3>
-              <div className="space-y-3">
-                {result.recommendations.map((r, i) => (
-                  <div key={i} className="bg-white rounded-2xl px-5 py-3.5 flex items-start gap-3" style={{ border: '1.5px solid #e3ddf8' }}>
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{i + 1}</span>
-                    <p className="text-sm text-gray-800">{r}</p>
-                  </div>
-                ))}
-              </div>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs text-gray-500">Analysis date: {result.analysisDate}</p>
+              {result.liveDataUsed && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Live YouTube data
+                </span>
+              )}
             </div>
-          )}
-          {emerging.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-amber-500" /> Emerging Topics Worth Covering Early
-              </h3>
-              <div className="space-y-3">
-                {emerging.map((t, i) => (
-                  <div key={i} className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-gray-800 text-sm">{t.topic}</span>
-                    </div>
-                    <ScoreBar score={t.score} />
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {t.relatedKeywords.slice(0, 4).map((kw, j) => (
-                        <span key={j} className="px-2 py-0.5 text-xs rounded-full" style={{ background: '#f3f4f6', color: '#4b5563' }}>{kw}</span>
-                      ))}
+            <ContentToolbar
+              text={[
+                `# Content Gaps: ${result.niche}`,
+                `Date: ${result.analysisDate}`,
+                '',
+                '## Gap Opportunities',
+                ...result.gaps.map(g =>
+                  `### ${g.topic} (opportunity: ${g.opportunityScore})\n${g.whyUnderserved}\n**Angle:** ${g.suggestedAngle}`
+                ),
+              ].join('\n')}
+              filename={`content-gaps-${(result.niche).toLowerCase().replace(/\s+/g, '-') || 'analysis'}`}
+              savedAt={savedAt}
+              onNew={clearGaps}
+            />
+          </div>
+          {result.gaps.length > 0 ? (
+            <div className="space-y-4">
+              {result.gaps.map((gap, i) => (
+                <div key={i} className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{i + 1}</span>
+                    <h3 className="font-semibold text-gray-900">{gap.topic}</h3>
+                  </div>
+                  <ScoreBar score={gap.opportunityScore} />
+                  <p className="text-xs text-gray-500 mt-2">{gap.whyUnderserved}</p>
+                  <div className="mt-3 rounded-xl px-3 py-2" style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}>
+                    <div className="flex items-start gap-1.5">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                      <p className="text-xs text-amber-800"><span className="font-semibold">Angle: </span>{gap.suggestedAngle}</p>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          )}
-          {result.recommendations.length === 0 && emerging.length === 0 && (
+          ) : (
             <p className="text-sm text-gray-500 text-center py-10">No gaps identified. Try a more specific niche.</p>
           )}
         </div>

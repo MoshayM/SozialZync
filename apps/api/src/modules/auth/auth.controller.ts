@@ -19,11 +19,13 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { IsEmail, IsString, MinLength, IsOptional, IsIn } from 'class-validator';
 import type { Request, Response } from 'express';
+import type { RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server';
 import { AuthService } from './auth.service';
 import { OtpService } from './otp.service';
 import { PasswordResetService } from './password-reset.service';
 import { SessionsService } from './sessions.service';
 import { OAuthService } from './oauth.service';
+import { WebAuthnService } from './webauthn.service';
 import { ProviderRegistry } from './providers/provider.registry';
 import { JwtService } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -111,6 +113,7 @@ export class AuthController {
     private readonly passwordReset: PasswordResetService,
     private readonly sessions: SessionsService,
     private readonly oauth: OAuthService,
+    private readonly webauthn: WebAuthnService,
     private readonly registry: ProviderRegistry,
     private readonly jwt: JwtService,
   ) {}
@@ -359,5 +362,88 @@ export class AuthController {
     @Body() dto: SetPasswordDto,
   ): Promise<void> {
     await this.auth.setPassword(user.sub, dto.password, dto.currentPassword);
+  }
+
+  // ── WebAuthn / Passkeys ───────────────────────────────────────────────────────
+
+  /**
+   * POST /auth/webauthn/register/options
+   * Returns PublicKeyCredentialCreationOptionsJSON for the authenticated user.
+   * Stores a challenge in WebAuthnChallenge with a 5-minute TTL.
+   */
+  @Post('webauthn/register/options')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  webauthnRegisterOptions(@CurrentUser() user: JwtPayload) {
+    return this.webauthn.generateRegistrationOptions(user.sub, user.email, user.email);
+  }
+
+  /**
+   * POST /auth/webauthn/register/verify
+   * Verifies the authenticator response and persists the new PasskeyCredential.
+   * Body: { credential: RegistrationResponseJSON; name?: string }
+   */
+  @Post('webauthn/register/verify')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  webauthnRegisterVerify(
+    @CurrentUser() user: JwtPayload,
+    // @reason: RegistrationResponseJSON shape validated at runtime by @simplewebauthn/server; a full Zod schema would duplicate the library's own validation
+    @Body() body: { credential: RegistrationResponseJSON; name?: string },
+  ) {
+    return this.webauthn.verifyRegistration(user.sub, body.credential, body.name);
+  }
+
+  /**
+   * POST /auth/webauthn/authenticate/options
+   * Returns PublicKeyCredentialRequestOptionsJSON for a discoverable-credential login.
+   * No authentication required — user is identified by the returned assertion.
+   */
+  @Post('webauthn/authenticate/options')
+  @HttpCode(HttpStatus.OK)
+  webauthnAuthOptions() {
+    return this.webauthn.generateAuthenticationOptions();
+  }
+
+  /**
+   * POST /auth/webauthn/authenticate/verify
+   * Verifies the assertion, looks up the user, and returns JWT + refresh token.
+   * Body: { credential: AuthenticationResponseJSON }
+   */
+  @Post('webauthn/authenticate/verify')
+  @HttpCode(HttpStatus.OK)
+  webauthnAuthVerify(
+    // @reason: AuthenticationResponseJSON shape validated at runtime by @simplewebauthn/server
+    @Body() body: { credential: AuthenticationResponseJSON },
+    @Req() req: Request,
+  ) {
+    return this.webauthn.verifyAuthentication(body.credential, {
+      ip: req.ip,
+      device: req.headers['user-agent'],
+    });
+  }
+
+  /**
+   * GET /auth/webauthn/credentials
+   * Lists all registered passkeys for the authenticated user.
+   */
+  @Get('webauthn/credentials')
+  @UseGuards(JwtAuthGuard)
+  listPasskeys(@CurrentUser() user: JwtPayload) {
+    return this.webauthn.listCredentials(user.sub);
+  }
+
+  /**
+   * DELETE /auth/webauthn/credentials/:id
+   * Removes a passkey credential (by DB row id, not credentialId).
+   */
+  @Delete('webauthn/credentials/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deletePasskey(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.webauthn.deleteCredential(user.sub, id);
   }
 }

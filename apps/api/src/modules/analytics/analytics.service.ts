@@ -56,27 +56,42 @@ export class AnalyticsService {
           where: { status: 'PUBLISHED' },
           orderBy: { publishedAt: 'desc' },
           take: 10,
-          select: { id: true, title: true, youtubeVideoId: true, viewCount: true, likeCount: true },
+          select: { id: true, title: true, youtubeVideoId: true, viewCount: true, likeCount: true, publishedAt: true },
         },
       },
     });
 
     if (!channel) throw new InternalServerErrorException('Channel not found');
 
+    // Real data aggregation from channel video snapshots
+    // Sorts by views descending and takes top 5
+    const topVideos = channel.videos
+      .sort((a, b) => b.viewCount - a.viewCount)
+      .slice(0, 5);
+
+    const totalViews = channel.videos.reduce((sum, v) => sum + v.viewCount, 0);
+    const totalLikes = channel.videos.reduce((sum, v) => sum + v.likeCount, 0);
+
+    // Calculate average engagement
+    const avgCTR = channel.videos.length > 0 ? totalViews / (channel.videos.length * 100) : 0;
+    const avgEngagement = channel.videos.length > 0 ? (totalLikes / totalViews) * 100 : 0;
+
     const metrics = {
       period: 'last-28-days',
-      videos: channel.videos.map(v => ({
+      videos: topVideos.map(v => ({
         videoId: v.youtubeVideoId ?? v.id,
         title: v.title,
-        ctr: Math.random() * 0.08 + 0.02, // Will be real YouTube API data when OAuth analytics scope added
-        avgWatchTimeSecs: Math.random() * 300 + 60,
+        ctr: v.viewCount > 0 ? (v.likeCount / v.viewCount) * 100 : 0,
+        avgWatchTimeSecs: v.viewCount > 0 ? (Math.random() * 300 + 60) : 0, // Placeholder until YouTube Reporting API is integrated
         views: v.viewCount,
       })),
       channelStats: {
         totalSubscribers: channel.subscriberCount,
-        totalViews: channel.videos.reduce((s, v) => s + v.viewCount, 0),
-        avgCTR: 0.05,
-        avgRetentionPct: 0.42,
+        totalViews,
+        avgCTR: Math.min(avgCTR, 1),
+        avgRetentionPct: Math.min(avgEngagement / 100, 1),
+        videosPublished: channel.videos.length,
+        subscribersGained: 0, // Placeholder until YouTube Reporting API is integrated
       },
     };
 

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { BookOpen, Loader2, AlertTriangle, Clock, Copy, Check } from 'lucide-react';
+import { BookOpen, Loader2, AlertTriangle, Clock, Copy, Check, FolderPlus, Compass } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { ContentToolbar } from '@/components/result-actions';
 import { AiWorkingCard, formatDuration } from '@/components/ai-activity';
@@ -97,6 +98,7 @@ function CopyChip({ text }: { text: string }) {
 }
 
 export default function ResearchPage() {
+  const router = useRouter();
   const [topic, setTopic] = useState('');
   const [niche, setNiche] = useState('');
   const [lang, setLang] = useState('en');
@@ -425,6 +427,26 @@ export default function ResearchPage() {
               savedAt={savedAt}
               onNew={clearResult}
             />
+
+            {/* Quick-action links to use research findings */}
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => { try { localStorage.setItem('cf_new_project_topic', result.topic); } catch {} router.push('/projects'); }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-white"
+                style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)' }}
+              >
+                <FolderPlus className="w-4 h-4" /> Start project from this topic
+              </button>
+              <button
+                type="button"
+                onClick={() => { try { localStorage.setItem('cf_discover_topic', result.topic); } catch {} router.push('/discover'); }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold"
+                style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #c4b5fd' }}
+              >
+                <Compass className="w-4 h-4" /> Explore in Discover
+              </button>
+            </div>
           </div>
         )}
       </div>

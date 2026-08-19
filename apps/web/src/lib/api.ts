@@ -1,4 +1,10 @@
 import axios from 'axios';
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+} from '@simplewebauthn/browser';
 
 // Browser requests go through the Next.js server-side proxy at /api/proxy so
 // the real backend URL is never exposed to the client and CORS is not needed.
@@ -106,6 +112,26 @@ apiClient.interceptors.response.use(
     return Promise.reject(err);
   },
 );
+
+// ── WebAuthn / Passkey types ──────────────────────────────────────────────────
+
+export interface PasskeyCredentialView {
+  id: string;
+  credentialId: string;
+  name: string | null;
+  deviceType: string;
+  backedUp: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+// Re-export for consumers that import from this module
+export type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+} from '@simplewebauthn/browser';
 
 // ── Library types ─────────────────────────────────────────────────────────────
 
@@ -376,11 +402,10 @@ export interface NotificationListResponse {
 
 export interface OAuthProviders {
   google: boolean;
-  apple: boolean;
-  facebook: boolean;
+  [key: string]: boolean;
 }
 
-export type OAuthProvider = 'google' | 'apple' | 'facebook';
+export type OAuthProvider = 'google';
 
 export interface OAuthStartResponse {
   authUrl: string;
@@ -579,6 +604,19 @@ export const api = {
       apiClient.post('/auth/forgot-password', { email }),
     resetPassword: (token: string, password: string) =>
       apiClient.post('/auth/reset-password', { token, password }),
+    // WebAuthn / Passkeys
+    webauthnRegisterOptions: () =>
+      apiClient.post<PublicKeyCredentialCreationOptionsJSON>('/auth/webauthn/register/options'),
+    webauthnRegisterVerify: (credential: RegistrationResponseJSON, name?: string) =>
+      apiClient.post<PasskeyCredentialView>('/auth/webauthn/register/verify', { credential, ...(name ? { name } : {}) }),
+    webauthnAuthOptions: () =>
+      apiClient.post<PublicKeyCredentialRequestOptionsJSON>('/auth/webauthn/authenticate/options'),
+    webauthnAuthVerify: (credential: AuthenticationResponseJSON) =>
+      apiClient.post<{ accessToken: string; refreshToken: string }>('/auth/webauthn/authenticate/verify', { credential }),
+    listPasskeys: () =>
+      apiClient.get<PasskeyCredentialView[]>('/auth/webauthn/credentials'),
+    deletePasskey: (id: string) =>
+      apiClient.delete(`/auth/webauthn/credentials/${id}`),
   },
   channels: {
     list: () => apiClient.get('/channels'),
@@ -628,6 +666,12 @@ export const api = {
   },
   trends: {
     analyze: (niche: string) => apiClient.post('/trends/analyze', { niche }),
+    gaps: (niche: string) => apiClient.get(`/trends/gaps?niche=${encodeURIComponent(niche)}`),
+  },
+  analytics: {
+    overview: (channelId: string) => apiClient.get(`/analytics/${channelId}/overview`),
+    report: (channelId: string) => apiClient.post(`/analytics/${channelId}/report`, {}),
+    benchmark: (channelId: string) => apiClient.get(`/analytics/${channelId}/benchmark`),
   },
   billing: {
     getSubscription: () => apiClient.get('/billing/subscription'),
@@ -846,6 +890,10 @@ export const api = {
       apiClient.post<{ updated: number }>(`/autonomy/channels/${channelId}/calendar/bulk-dismiss`, { ids }),
     updateEntryTitle: (entryId: string, title: string) =>
       apiClient.patch<void>(`/autonomy/calendar/${entryId}/title`, { title }),
+    applyVariant: (entryId: string, title: string) =>
+      apiClient.patch<{ success: boolean; youtubeVideoId?: string }>(`/autonomy/calendar/${entryId}/apply-variant`, { title }),
+    variantStats: (entryId: string) =>
+      apiClient.get<{ currentTitle: string; variants: string[]; youtubeStats?: { viewCount: number; likeCount: number } }>(`/autonomy/calendar/${entryId}/variant-stats`),
     calendarStats: (channelId: string) =>
       apiClient.get<{ total: number; proposed: number; approved: number; dismissed: number; scheduled: number; upcoming7d: number; approvalRate: number | null; avgPriority: number | null }>(`/autonomy/channels/${channelId}/calendar/stats`),
     auditLog: (channelId: string, take?: number) =>
@@ -976,6 +1024,29 @@ export const api = {
       ),
     renderStatus: (editId: string) =>
       apiClient.get<{ renderStatus: RenderStatus; renderAssetId?: string | null; downloadPath?: string }>(`/editor/${editId}/render-status`),
+    generateVoice: (editId: string, body: { text: string; voiceId: string; source: 'elevenlabs' | 'openai' }) =>
+      apiClient.post<MediaBinEntry>(`/editor/${editId}/audio/generate-voice`, body),
+    enhanceAsset: (editId: string, body: {
+      assetVersionId: string;
+      trimSilence?: boolean;
+      denoise?: boolean;
+      normalize?: boolean;
+      denoiseStrength?: 'light' | 'medium' | 'strong';
+      targetLufs?: number;
+      thresholdDb?: number;
+    }) => apiClient.post<{ assetVersionId: string; durationMs: number }>(`/editor/${editId}/audio/enhance-asset`, body),
+  },
+  voice: {
+    library: (source?: 'elevenlabs' | 'openai' | 'all') =>
+      apiClient.get<VoiceLibraryEntry[]>('/voice/library', { params: { source } }),
+    autoSelect: (scriptText: string) =>
+      apiClient.post<{ voiceId: string; source: string; name: string }>('/voice/auto-select', { scriptText }),
+  },
+  music: {
+    list: (params?: { search?: string }) =>
+      apiClient.get<MusicTrack[]>('/music', { params }),
+    autoSelect: (scriptText: string, projectId?: string) =>
+      apiClient.post<{ track: MusicTrack | null; brief: Record<string, unknown> }>('/music/auto-select', { scriptText, projectId }),
   },
 };
 
@@ -1155,4 +1226,28 @@ export interface MediaBinEntry {
   /** Server-side storage path — NOT loadable by the browser; use versionId + signed URL instead. */
   previewPath: string | null;
   versionId: string | null;
+}
+
+export interface VoiceLibraryEntry {
+  id: string;
+  source: 'elevenlabs' | 'openai';
+  name: string;
+  description?: string;
+  previewUrl?: string;
+  gender?: string;
+  accent?: string;
+  useCase?: string;
+}
+
+export interface MusicTrack {
+  id: string;
+  title: string;
+  artist?: string;
+  duration: number;
+  fileUrl: string;
+  previewUrl?: string;
+  mood: string[];
+  genre: string[];
+  license: string;
+  isAiGenerated: boolean;
 }

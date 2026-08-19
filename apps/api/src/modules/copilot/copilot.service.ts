@@ -19,9 +19,16 @@ import { newAccumulator, runWithAiContext } from '../../common/ai-usage.context'
 import { WalletService, billingEnforced, creditsForCost } from '../wallet/wallet.service';
 import { PricingService } from '../ai-ops/pricing.service';
 import { OrgsService } from '../orgs/orgs.service';
+import { TrendService } from '../trend/trend.service';
+import { CalendarService } from '../calendar/calendar.service';
+import { BenchmarkService } from '../analytics/benchmark.service';
+import { PlanExecutorService } from './plan-executor.service';
+import { SessionMemoryService } from './session-memory.service';
 import { randomUUID } from 'crypto';
 
-const COPILOT_SYSTEM = `You are the Sozialzync Copilot — an expert AI content strategist and production assistant driving a YouTube content platform for the user.
+const MAX_PLAN_STEPS = 5;
+
+const COPILOT_SYSTEM = `You are the Sozialzync Copilot — an expert AI content strategist and production assistant driving a YouTube Content OS for the user.
 
 Conversation style — you are having a REAL two-way spoken conversation:
 - Your replies are spoken aloud and the user answers by voice. Talk like a warm, capable human assistant, not a system. Short natural sentences. No lists, no markdown, no ids read aloud unless asked.
@@ -76,6 +83,10 @@ Command palette:
 - approve_content {approvalId, notes?} — approve a pending review (this IS the human publish gate; requires the user's confirmation)
 - reject_content {approvalId, notes?} — reject a pending review
 - set_voice_language {projectId, language, applyToVoiceover} — make the project's scripts AND narration voiceover use the user's speaking language (asking permission first is mandatory; the confirmation step is that permission)
+- analyze_trends {niche, channelId?} — surface real YouTube trending topics for a content niche; optionally tied to a specific channel
+- generate_calendar {channelId, weeks?} — generate an AI content calendar (default 4 weeks, 2 videos/week) for a channel's niche; requires confirmation (calls AI)
+- benchmark_channel {channelId} — compare the channel's subscriber count, views, and video count against similar public channels; navigate to /analytics
+- audience_segment {channelId} — analyse the channel's video performance data to identify top-performing audience segments and content preferences
 
 Respond only with valid JSON.`;
 
@@ -106,6 +117,8 @@ export interface CopilotResponse {
   tokensUsed?: number;
   /** Multi-step task plan shown to the user (emitted by the LLM when multi-agent work is needed). */
   plan?: CopilotPlan;
+  /** ID of the registered plan execution — poll GET /copilot/plan/:planId for live step status. */
+  planId?: string;
   /** App route to navigate to — frontend calls router.push() when present. */
   navigate?: string;
 }
@@ -137,6 +150,11 @@ export class CopilotService {
     private readonly walletService: WalletService,
     private readonly pricingService: PricingService,
     private readonly orgs: OrgsService,
+    private readonly trendService: TrendService,
+    private readonly calendarService: CalendarService,
+    private readonly benchmarkService: BenchmarkService,
+    private readonly planExecutor: PlanExecutorService,
+    private readonly sessionMemory: SessionMemoryService,
   ) {}
 
   // §8.2 safety: simple per-user rate limit (20 copilot turns/minute)
@@ -152,6 +170,11 @@ export class CopilotService {
 
   async chat(userId: string, req: CopilotChatRequest): Promise<CopilotResponse> {
     this.assertRateLimit(userId);
+    // Fire-and-forget session compression: after COMPRESS_AFTER user turns, summarise
+    // the conversation into a compact system block so long sessions don't balloon tokens.
+    if (this.sessionMemory.shouldCompress(userId, req.messages)) {
+      void this.sessionMemory.compressSession(userId, req.messages).catch(() => undefined);
+    }
     const source: ActionSource = req.inputMode === 'voice' ? 'VOICE' : 'COPILOT';
     const lastUserText = [...req.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
 
@@ -218,7 +241,9 @@ export class CopilotService {
       // into the last user message — Anthropic (and most providers) reject
       // consecutive same-role messages, so adding a second 'user' turn after
       // the user's actual query causes a 400 on every first turn.
-      const contextSuffix = `\n\n---\nCONTEXT (current platform state — use ids from here only):\n${context}${pendingNote}\n\nRespond with valid JSON only: {"reply":"...","language":"...","command":{...}|null,"plan":{...}|undefined,"navigate":"..."|undefined}`;
+      const compressed = this.sessionMemory.getCompressed(userId);
+      const memoryBlock = compressed ? `\n[Session memory] ${compressed.summary}` : '';
+      const contextSuffix = `${memoryBlock}\n\n---\nCONTEXT (current platform state — use ids from here only):\n${context}${pendingNote}\n\nRespond with valid JSON only: {"reply":"...","language":"...","command":{...}|null,"plan":{...}|undefined,"navigate":"..."|undefined}`;
       const rawMsgs = req.messages.slice(-8).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
       const lastUserIdx = rawMsgs.reduce<number>((acc, m, i) => (m.role === 'user' ? i : acc), -1);
       const llmMessages: Array<{ role: 'user' | 'assistant'; content: string }> =
@@ -268,12 +293,14 @@ export class CopilotService {
 
     if (!decision.command) {
       await this.record(userId, 'chat.reply', null, 'EXECUTED', { source, fromCache, tokensUsed, lastUserText }, false);
+      const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
       return {
         reply: decision.reply,
         language: decision.language,
         fromCache,
         tokensUsed,
         ...(decision.plan ? { plan: decision.plan } : {}),
+        ...(planId ? { planId } : {}),
         ...(decision.navigate ? { navigate: decision.navigate } : {}),
       };
     }
@@ -292,6 +319,7 @@ export class CopilotService {
       const quote = await this.pricingService
         .resolvePrice({ action: decision.command.action })
         .catch(() => null);
+      const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
       return {
         reply: decision.reply,
         language: decision.language,
@@ -300,18 +328,74 @@ export class CopilotService {
         fromCache,
         tokensUsed,
         ...(decision.plan ? { plan: decision.plan } : {}),
+        ...(planId ? { planId } : {}),
         ...(decision.navigate ? { navigate: decision.navigate } : {}),
       };
     }
 
+    const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
     const result = await this.executeRecorded(userId, decision.command, { source, fromCache, tokensUsed, lastUserText });
+
+    // Auto-execute remaining plan steps sequentially (§6 multi-step workflow)
+    const stepSummaries: string[] = [result.summary];
+    if (planId && decision.plan && decision.plan.steps.length > 1 && decision.plan.steps.length <= MAX_PLAN_STEPS) {
+      this.planExecutor.markStepDone(planId, 0, result.data);
+      const steps = decision.plan.steps;
+      for (let i = 1; i < steps.length; i++) {
+        this.planExecutor.markStepRunning(planId, i);
+        try {
+          const stepMessages = [
+            ...req.messages.slice(-6).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+            { role: 'assistant' as const, content: decision.reply },
+            { role: 'user' as const, content: `[Auto-execute plan step ${i + 1}/${steps.length}]: ${steps[i].label}. Emit the command for this step.` },
+          ];
+          const stepDecision = await callAIStructured(
+            stepMessages,
+            CopilotDecisionSchema,
+            { systemPrompt: COPILOT_SYSTEM, maxTokens: 512 },
+          );
+          if (stepDecision.command) {
+            const stepResult = await this.executeRecorded(userId, stepDecision.command, {
+              source: 'COPILOT',
+              fromCache: false,
+              tokensUsed,
+              lastUserText: steps[i].label,
+            });
+            this.planExecutor.markStepDone(planId, i, stepResult.data);
+            stepSummaries.push(stepResult.summary);
+          } else {
+            this.planExecutor.markStepDone(planId, i, null);
+            if (stepDecision.reply) stepSummaries.push(stepDecision.reply);
+          }
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          this.planExecutor.markStepFailed(planId, i, errMsg);
+          stepSummaries.push(`Step ${i + 1} failed: ${errMsg}`);
+          break;
+        }
+      }
+    } else if (planId) {
+      this.planExecutor.markStepDone(planId, 0, result.data);
+    }
+
+    const planSummary = stepSummaries.length > 1
+      ? `\n\nPlan completed: ${stepSummaries.join(' → ')}`
+      : '';
+
+    // Return the live execution state so the frontend shows real step statuses
+    const executedPlan = planId ? this.planExecutor.getExecution(planId) : undefined;
+    const returnPlan = executedPlan
+      ? { goal: executedPlan.plan.goal, steps: executedPlan.steps }
+      : decision.plan;
+
     return {
-      reply: `${decision.reply}\n\n${result.summary}`.trim(),
+      reply: `${decision.reply}\n\n${result.summary}${planSummary}`.trim(),
       language: decision.language,
       executed: { action: decision.command.action, result: result.data },
       fromCache,
       tokensUsed,
-      ...(decision.plan ? { plan: decision.plan } : {}),
+      ...(returnPlan ? { plan: returnPlan } : {}),
+      ...(planId ? { planId } : {}),
       ...(decision.navigate ? { navigate: decision.navigate } : {}),
     };
   }
@@ -712,6 +796,62 @@ export class CopilotService {
             ? `Done — scripts and voiceover narration for "${project.title}" will use ${command.language}. Your permission is recorded on the channel's voice profile.`
             : `Done — scripts for "${project.title}" will use ${command.language}; voiceover unchanged.`,
           data: { projectId: project.id, targetLang: lang, applyToVoiceover: command.applyToVoiceover },
+        };
+      }
+
+      case 'analyze_trends': {
+        let niche = command.niche;
+        if (command.channelId) {
+          const ch = await this.prisma.channel.findFirst({ where: { id: command.channelId, userId }, select: { title: true } });
+          if (ch) niche = niche || ch.title;
+        }
+        const trends = await this.trendService.analyze(niche);
+        const top5 = trends.trending.slice(0, 5).map((t, i) => `${i + 1}. ${t.topic} (score ${t.score}): ${t.relatedKeywords.slice(0, 3).join(', ')}`);
+        return {
+          summary: `Top trending topics for "${niche}":\n${top5.join('\n')}\n\nRecommendations: ${trends.recommendations.slice(0, 2).join('; ')}`,
+          data: trends,
+        };
+      }
+
+      case 'generate_calendar': {
+        const calCh = await this.prisma.channel.findFirst({ where: { id: command.channelId, userId }, select: { title: true } });
+        if (!calCh) throw new NotFoundException('Channel not found');
+        const weeks = command.weeks ?? 4;
+        const count = weeks * 2;
+        const startDate = new Date().toISOString().split('T')[0]!;
+        const entries = await this.calendarService.generate({ niche: calCh.title, channelName: calCh.title, count, startDate });
+        const lines = entries.slice(0, 6).map((e, i) => `${i + 1}. [${e.date}] ${e.title} (${e.category})`);
+        return {
+          summary: `Generated a ${count}-video calendar for "${calCh.title}" over ${weeks} weeks:\n${lines.join('\n')}${entries.length > 6 ? `\n...and ${entries.length - 6} more` : ''}`,
+          data: entries,
+        };
+      }
+
+      case 'benchmark_channel': {
+        const benchResult = await this.benchmarkService.benchmark(command.channelId, userId);
+        const peerNames = benchResult.peers.map((p) => p.title).slice(0, 3).join(', ');
+        return {
+          summary: `Channel "${benchResult.channel.title}" benchmarked against ${benchResult.peers.length} similar channels.\n${benchResult.insights.join(' ')}\nSubscriber percentile: ${benchResult.subscriberPercentile}%${peerNames ? `\nComparators: ${peerNames}` : ''}`,
+          data: benchResult,
+        };
+      }
+
+      case 'audience_segment': {
+        const chVideos = await this.prisma.video.findMany({
+          where: { channel: { id: command.channelId, userId } },
+          select: { title: true, viewCount: true, likeCount: true, publishedAt: true },
+          orderBy: { viewCount: 'desc' },
+          take: 20,
+        });
+        if (!chVideos.length) {
+          return { summary: 'No published videos found on this channel yet. Publish some videos first to see audience insights.', data: [] };
+        }
+        const avgLikes = Math.round(chVideos.reduce((s, v) => s + v.likeCount, 0) / chVideos.length);
+        const avgViews = Math.round(chVideos.reduce((s, v) => s + v.viewCount, 0) / chVideos.length);
+        const topTitles = chVideos.slice(0, 3).map((v) => v.title);
+        return {
+          summary: `Audience insights from ${chVideos.length} videos:\n• Average views: ${avgViews.toLocaleString()}, average likes: ${avgLikes.toLocaleString()}\n• Top performing content: ${topTitles.join('; ')}`,
+          data: { avgViews, avgLikes, topVideos: chVideos.slice(0, 5) },
         };
       }
     }

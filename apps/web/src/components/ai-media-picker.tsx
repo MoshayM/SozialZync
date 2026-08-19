@@ -129,8 +129,8 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
       const body = JSON.stringify({ scriptText: scriptText.trim(), projectId: 'ai-pick' });
 
       const [musicRes, voiceRes] = await Promise.all([
-        fetch('/api/v1/music/auto-select', { method: 'POST', headers, body }),
-        fetch('/api/v1/voice/auto-select', { method: 'POST', headers, body }),
+        fetch('/api/proxy/music/auto-select', { method: 'POST', headers, body }),
+        fetch('/api/proxy/voice/auto-select', { method: 'POST', headers, body }),
       ]);
 
       if (musicRes.ok) setMusicPick(await musicRes.json() as MusicPick);

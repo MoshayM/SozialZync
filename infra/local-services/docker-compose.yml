@@ -1,0 +1,134 @@
+# Local AI services for CreatorForce development
+# Requires: Docker with nvidia-container-toolkit for GPU services
+#
+# Start all:          docker compose --profile all up -d
+# Start TTS only:     docker compose --profile tts up -d
+# Start image only:   docker compose --profile image up -d
+# Start music only:   docker compose --profile music up -d
+# Stop all:           docker compose down
+
+services:
+
+  # ── Voice / TTS ─────────────────────────────────────────────────────────────
+  # Kokoro: ElevenLabs-quality open-source TTS (github.com/remsky/Kokoro-FastAPI)
+  # CPU image — no GPU required. Set KOKORO_URL=http://localhost:8880 in api .env
+
+  kokoro:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2
+    container_name: cf_kokoro
+    ports:
+      - "8880:8880"
+    environment:
+      - KOKORO_DEVICE=cpu
+    restart: unless-stopped
+    profiles: [tts, all]
+
+  # Coqui TTS: XTTS-v2 with voice cloning (github.com/coqui-ai/TTS)
+  # Set COQUI_URL=http://localhost:5002 in api .env
+
+  coqui:
+    image: ghcr.io/coqui-ai/tts-cpu:latest
+    container_name: cf_coqui
+    ports:
+      - "5002:5002"
+    command: python3 TTS/server/server.py --model_name tts_models/en/ljspeech/tacotron2-DDC --port 5002
+    restart: unless-stopped
+    profiles: [tts, all]
+
+  # Fish Speech: fast neural TTS with cloning (github.com/fishaudio/fish-speech)
+  # GPU recommended. Set FISH_SPEECH_URL=http://localhost:8080 in api .env
+
+  fish-speech:
+    image: fishaudio/fish-speech:latest
+    container_name: cf_fish_speech
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    profiles: [tts, all]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ── Image Generation ─────────────────────────────────────────────────────────
+  # ComfyUI: node-based Stable Diffusion UI (github.com/comfyanonymous/ComfyUI)
+  # Also handles video via SVD. Set COMFYUI_URL=http://localhost:8188 in api .env
+
+  comfyui:
+    image: ghcr.io/ai-dock/comfyui:latest-cuda-12.1-base-22.04-v0.3.27
+    container_name: cf_comfyui
+    ports:
+      - "8188:8188"
+    volumes:
+      - comfyui_models:/opt/ComfyUI/models
+      - comfyui_output:/opt/ComfyUI/output
+    environment:
+      - CLI_ARGS=--listen 0.0.0.0 --port 8188
+    restart: unless-stopped
+    profiles: [image, video, all]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # A1111: Stable Diffusion WebUI (github.com/AUTOMATIC1111/stable-diffusion-webui)
+  # --api flag exposes REST API. Set A1111_URL=http://localhost:7860 in api .env
+
+  a1111:
+    image: ghcr.io/ai-dock/stable-diffusion-webui:latest-cuda-12.1-base-22.04
+    container_name: cf_a1111
+    ports:
+      - "7860:7860"
+    volumes:
+      - a1111_models:/opt/stable-diffusion-webui/models
+      - a1111_output:/opt/stable-diffusion-webui/outputs
+    environment:
+      - CLI_ARGS=--listen --api --nowebui --port 7860
+    restart: unless-stopped
+    profiles: [image, all]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ── Music Generation ─────────────────────────────────────────────────────────
+  # MusicGen: Meta AudioCraft via minimal FastAPI wrapper (musicgen-server.py)
+  # Set MUSICGEN_URL=http://localhost:7861 in api .env
+
+  musicgen:
+    image: python:3.11-slim
+    container_name: cf_musicgen
+    ports:
+      - "7861:7861"
+    volumes:
+      - musicgen_cache:/root/.cache
+      - ./musicgen-server.py:/app/server.py
+    working_dir: /app
+    command: >
+      sh -c "pip install fastapi uvicorn audiocraft torch torchaudio --quiet &&
+             python server.py"
+    restart: unless-stopped
+    profiles: [music, all]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  comfyui_models:
+  comfyui_output:
+  a1111_models:
+  a1111_output:
+  musicgen_cache:

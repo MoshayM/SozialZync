@@ -137,6 +137,23 @@ export class AutonomyController {
     return this.svc.updateEntryTitle(entryId, user.sub, body.title);
   }
 
+  @Patch('calendar/:entryId/apply-variant')
+  applyVariant(
+    @Param('entryId') entryId: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { title: string },
+  ) {
+    return this.svc.applyTitleVariant(entryId, body.title, user.sub);
+  }
+
+  @Get('calendar/:entryId/variant-stats')
+  variantStats(
+    @Param('entryId') entryId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.svc.getVariantStats(entryId, user.sub);
+  }
+
   @Post('channels/:channelId/profile/feedback')
   recordFeedback(
     @Param('channelId') channelId: string,

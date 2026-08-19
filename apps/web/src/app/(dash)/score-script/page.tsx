@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Award, Loader2, CheckCircle2, ArrowRight, ChevronDown, ChevronUp, Zap, Target } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Award, Loader2, CheckCircle2, ArrowRight, ChevronDown, ChevronUp, Zap, Target, ExternalLink, FolderPlus, ArrowRightLeft } from 'lucide-react';
+import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import { ContentToolbar } from '@/components/result-actions';
 import { LoadingSteps } from '@/components/loading-steps';
@@ -99,6 +101,7 @@ function DimensionCard({ dim }: { dim: QualityDimension }) {
 }
 
 export default function ScoreScriptPage() {
+  const router = useRouter();
   const [title, setTitle] = useState('');
   const [scriptText, setScriptText] = useState('');
   const [niche, setNiche] = useState('');
@@ -109,6 +112,12 @@ export default function ScoreScriptPage() {
 
   useEffect(() => {
     try {
+      const pending = localStorage.getItem('cf_score_pending');
+      if (pending) {
+        setScriptText(pending);
+        localStorage.removeItem('cf_score_pending');
+        return;
+      }
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
         const stored = JSON.parse(raw) as { result: ScriptQualityResult; savedAt: string };
@@ -168,7 +177,12 @@ export default function ScoreScriptPage() {
           {/* Input panel */}
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
-              <h2 className="font-semibold text-gray-800 text-sm">Your Script</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-800 text-sm">Your Script</h2>
+                <Link href="/projects" className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                  <ExternalLink className="w-3 h-3" /> Browse projects
+                </Link>
+              </div>
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Video title</label>
@@ -320,6 +334,27 @@ export default function ScoreScriptPage() {
                       ))}
                     </ul>
                   </div>
+                </div>
+                {/* Quick actions after result */}
+                <div className="flex flex-wrap gap-3 pt-1 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => { try { localStorage.setItem('cf_repurpose_pending', scriptText); } catch {} router.push('/repurpose'); }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                    style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" /> Repurpose this script
+                  </button>
+                  {title && (
+                    <button
+                      type="button"
+                      onClick={() => { try { localStorage.setItem('cf_new_project_topic', title); } catch {} router.push('/projects'); }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-semibold hover:opacity-80 transition-opacity"
+                      style={{ color: '#6D4AE0', border: '1.5px solid #e3ddf8', background: 'white' }}
+                    >
+                      <FolderPlus className="w-3.5 h-3.5" /> Start project from this script
+                    </button>
+                  )}
                 </div>
               </div>
             )}

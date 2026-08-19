@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   BotMessageSquare, Send, Zap, ChevronRight,
   BookOpen, FileText, Calendar, Search, ShieldCheck, Clock, X,
@@ -10,19 +11,50 @@ import { checkInputSafety, httpErrorMessage } from '@/lib/safety';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+// Minimal shape mirroring the backend CopilotCommand discriminated union
+type CopilotCommand = Record<string, unknown> & { action: string };
+
+interface CopilotPlanStep {
+  label: string;
+  agentName?: string;
+  status: 'pending' | 'running' | 'done' | 'failed';
+}
+interface CopilotPlan {
+  goal: string;
+  steps: CopilotPlanStep[];
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   executed?: { action: string; result: unknown };
+  needsConfirmation?: CopilotCommand;
+  estimatedCredits?: number | null;
+  plan?: CopilotPlan;
+  planId?: string;
   ts: number;
   error?: boolean;
+}
+
+interface PlanPollResponse {
+  planId: string;
+  steps: Array<{ label: string; agentName?: string; status: 'pending' | 'running' | 'done' | 'failed' }>;
+  currentStepIndex: number;
+  status: 'running' | 'done' | 'failed';
 }
 
 interface CopilotResponse {
   reply: string;
   language?: string;
   executed?: { action: string; result: unknown };
+  needsConfirmation?: CopilotCommand;
+  estimatedCredits?: number | null;
+  plan?: CopilotPlan;
+  planId?: string;
+  navigate?: string;
+  fromCache?: boolean;
+  tokensUsed?: number;
 }
 
 interface CommandHistory {
@@ -115,6 +147,7 @@ const PROMPT_CHIPS = [
 
 const HISTORY_KEY = 'cf_copilot_history';
 const MAX_HISTORY = 10;
+const SESSION_HISTORY_KEY = 'cf_copilot_sessions';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -150,16 +183,23 @@ const GREETING: Message = {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CopilotPage() {
-  const [messages, setMessages]       = useState<Message[]>([GREETING]);
-  const [input, setInput]             = useState('');
-  const [loading, setLoading]         = useState(false);
-  const [userName, setUserName]       = useState('C');
-  const [history, setHistory]         = useState<CommandHistory[]>([]);
-  const [activeAction, setActiveAction] = useState<string | null>(null);
-  const [actionInput, setActionInput] = useState('');
-  const [speakingId, setSpeakingId]   = useState<string | null>(null);
-  const bottomRef   = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const router = useRouter();
+  const [messages, setMessages]           = useState<Message[]>([GREETING]);
+  const [input, setInput]                 = useState('');
+  const [loading, setLoading]             = useState(false);
+  const [userName, setUserName]           = useState('C');
+  const [history, setHistory]             = useState<CommandHistory[]>([]);
+  const [activeAction, setActiveAction]   = useState<string | null>(null);
+  const [actionInput, setActionInput]     = useState('');
+  const [speakingId, setSpeakingId]       = useState<string | null>(null);
+  const [pendingCommand, setPendingCommand] = useState<CopilotCommand | null>(null);
+  const [activePlanId, setActivePlanId]   = useState<string | null>(null);
+  const [activePlanMsgId, setActivePlanMsgId] = useState<string | null>(null);
+  const bottomRef      = useRef<HTMLDivElement>(null);
+  const textareaRef    = useRef<HTMLTextAreaElement>(null);
+  const planPollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const planDeadlineRef = useRef<number>(0);
+  const sessionIdRef   = useRef<string>(uid());
 
   // Read a message aloud. Must be called synchronously from a click handler
   // (no await before speak()) so iOS Safari accepts it as a user-gesture.
@@ -219,11 +259,75 @@ export default function CopilotPage() {
         setUserName(name[0]?.toUpperCase() ?? 'C');
       }
     } catch { /* ignore */ }
+
+    // Load copilot sessions from API (fallback to localStorage)
+    void apiClient
+      .get<{ sessions: { id: string; title: string; messages: Message[]; updatedAt: string }[] }>('/copilot/history')
+      .then((res) => {
+        // Sessions loaded — could populate a sessions panel in future; stored for reference
+        try {
+          localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(res.data.sessions.slice(0, 5)));
+        } catch { /* ignore storage errors */ }
+      })
+      .catch(() => { /* non-fatal */ });
   }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // Plan step live polling — runs whenever a new plan becomes active
+  useEffect(() => {
+    if (planPollRef.current) {
+      clearInterval(planPollRef.current);
+      planPollRef.current = null;
+    }
+    if (!activePlanId || !activePlanMsgId) return;
+
+    planDeadlineRef.current = Date.now() + 5 * 60 * 1000;
+
+    planPollRef.current = setInterval(() => {
+      if (Date.now() > planDeadlineRef.current) {
+        clearInterval(planPollRef.current!);
+        planPollRef.current = null;
+        setActivePlanId(null);
+        setActivePlanMsgId(null);
+        return;
+      }
+      void apiClient
+        .get<PlanPollResponse>(`/copilot/plan/${activePlanId}`)
+        .then((res) => {
+          const { steps } = res.data;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === activePlanMsgId && m.plan
+                ? {
+                    ...m,
+                    plan: {
+                      ...m.plan,
+                      steps: steps.map((s) => ({ label: s.label, agentName: s.agentName, status: s.status })),
+                    },
+                  }
+                : m,
+            ),
+          );
+          if (steps.every((s) => s.status === 'done' || s.status === 'failed')) {
+            clearInterval(planPollRef.current!);
+            planPollRef.current = null;
+            setActivePlanId(null);
+            setActivePlanMsgId(null);
+          }
+        })
+        .catch(() => { /* non-fatal, retry next tick */ });
+    }, 1500);
+
+    return () => {
+      if (planPollRef.current) {
+        clearInterval(planPollRef.current);
+        planPollRef.current = null;
+      }
+    };
+  }, [activePlanId, activePlanMsgId]);
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -262,12 +366,53 @@ export default function CopilotPage() {
       const res = await apiClient.post<CopilotResponse>('/copilot/chat', {
         messages: hist,
         inputMode: 'text',
+        ...(pendingCommand ? { pendingCommand } : {}),
       });
 
-      setMessages((prev) => [
-        ...prev,
-        { id: uid(), role: 'assistant', content: res.data.reply, executed: res.data.executed, ts: Date.now() },
-      ]);
+      const data = res.data;
+
+      if (data.navigate) {
+        router.push(data.navigate);
+      }
+
+      if (data.needsConfirmation) {
+        setPendingCommand(data.needsConfirmation);
+      } else {
+        setPendingCommand(null);
+      }
+
+      const newMsgId = uid();
+      const assistantMsg: Message = {
+        id: newMsgId,
+        role: 'assistant',
+        content: data.reply,
+        executed: data.executed,
+        needsConfirmation: data.needsConfirmation,
+        estimatedCredits: data.estimatedCredits,
+        plan: data.plan,
+        planId: data.planId,
+        ts: Date.now(),
+      };
+
+      // Activate plan polling if this response includes a planId
+      if (data.planId) {
+        setActivePlanId(data.planId);
+        setActivePlanMsgId(newMsgId);
+      }
+
+      setMessages((prev) => {
+        const next = [...prev, assistantMsg];
+        // Persist session to API (fire-and-forget)
+        const firstUserMsg = next.find((m) => m.role === 'user');
+        const title = (firstUserMsg?.content ?? 'Untitled').slice(0, 60);
+        const safeMessages = next.map((m) => ({
+          id: m.id, role: m.role, content: m.content, ts: m.ts,
+        }));
+        void apiClient
+          .post('/copilot/history', { sessionId: sessionIdRef.current, title, messages: safeMessages })
+          .catch(() => { /* non-fatal */ });
+        return next;
+      });
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = status ? httpErrorMessage(status) : 'Something went wrong. Try again in a sec.';
@@ -278,7 +423,47 @@ export default function CopilotPage() {
     } finally {
       setLoading(false);
     }
-  }, [loading, messages]);
+  }, [loading, messages, pendingCommand, router]);
+
+  const confirmAction = useCallback(async (command: CopilotCommand) => {
+    if (loading) return;
+    setLoading(true);
+    setPendingCommand(null);
+    try {
+      const hist = messages
+        .filter((m) => !m.error)
+        .slice(-10)
+        .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
+      const res = await apiClient.post<CopilotResponse>('/copilot/chat', {
+        messages: hist,
+        inputMode: 'text',
+        confirmedCommand: command,
+      });
+      const data = res.data;
+      if (data.navigate) router.push(data.navigate);
+      if (data.needsConfirmation) setPendingCommand(data.needsConfirmation);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: uid(),
+          role: 'assistant',
+          content: data.reply,
+          executed: data.executed,
+          needsConfirmation: data.needsConfirmation,
+          estimatedCredits: data.estimatedCredits,
+          plan: data.plan,
+          ts: Date.now(),
+        },
+      ]);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const msg = status ? httpErrorMessage(status) : 'Confirmation failed. Try again.';
+      setMessages((prev) => [...prev, { id: uid(), role: 'assistant', content: `⚠️ ${msg}`, ts: Date.now(), error: true }]);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, messages, router]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendMessage(input); }
@@ -537,6 +722,80 @@ export default function CopilotPage() {
                     {typeof msg.executed.result === 'string' && (
                       <p className="mt-0.5 text-green-600">{msg.executed.result}</p>
                     )}
+                  </div>
+                )}
+
+                {/* Confirmation gate */}
+                {msg.needsConfirmation && (
+                  <div
+                    className="mt-2 p-3 rounded-2xl w-full"
+                    style={{ background: '#fffbeb', border: '1.5px solid #fcd34d' }}
+                  >
+                    <p className="text-xs font-semibold text-amber-800 mb-1">
+                      ⚡ Action requires confirmation
+                      {msg.estimatedCredits != null && msg.estimatedCredits > 0 && (
+                        <span className="ml-2 text-amber-600 font-normal">~{msg.estimatedCredits} credits</span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-amber-700 mb-2">
+                      This will run <strong>{msg.needsConfirmation.action.replace(/_/g, ' ')}</strong>. Confirm?
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => void confirmAction(msg.needsConfirmation!)}
+                        disabled={loading}
+                        className="flex-1 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
+                        style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                      >
+                        ✓ Confirm
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPendingCommand(null);
+                          setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, needsConfirmation: undefined } : m));
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+                        style={{ border: '1.5px solid #e3ddf8' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Plan steps */}
+                {msg.plan && (
+                  <div
+                    className="mt-2 p-3 rounded-2xl w-full"
+                    style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}
+                  >
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#6D4AE0] mb-2">
+                      {msg.plan.goal}
+                    </p>
+                    <div className="space-y-1.5">
+                      {msg.plan.steps.map((step, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span
+                            className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
+                              step.status === 'done'    ? 'bg-green-500 text-white' :
+                              step.status === 'running' ? 'bg-indigo-500 text-white' :
+                              step.status === 'failed'  ? 'bg-red-400 text-white' :
+                                                         'bg-gray-200 text-gray-500'
+                            }`}
+                          >
+                            {step.status === 'done' ? '✓' : step.status === 'failed' ? '✗' : i + 1}
+                          </span>
+                          <span className={`text-xs ${
+                            step.status === 'done'    ? 'text-gray-400 line-through' :
+                            step.status === 'running' ? 'text-indigo-700 font-semibold' :
+                                                       'text-gray-700'
+                          }`}>
+                            {step.label}
+                            {step.agentName && <span className="ml-1 text-gray-400 text-[10px]">({step.agentName})</span>}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

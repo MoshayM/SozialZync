@@ -50,13 +50,13 @@ async function bootstrap() {
   // First in the chain so every downstream log, error envelope, and Sentry
   // event carries the request's correlation ID.
   app.use(correlationMiddleware);
-  // Allow the dev origin, the production domain (aicreatorforce.net + www), and
+  // Allow the dev origin, the production domain (sozialzync.com + www), and
   // any extra origins from WEB_URL (comma-separated) — e.g. a Vercel preview URL.
   const allowedOrigins = [
     ...(process.env['WEB_URL'] ?? '').split(',').map((o) => o.trim()).filter(Boolean),
     'http://localhost:3007',
-    'https://aicreatorforce.net',
-    'https://www.aicreatorforce.net',
+    'https://sozialzync.com',
+    'https://www.sozialzync.net',
   ];
   app.enableCors({
     origin: allowedOrigins,
@@ -80,7 +80,7 @@ async function bootstrap() {
 
   if (process.env['NODE_ENV'] !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('AI CreatorForce API')
+      .setTitle('Sozialzync API')
       .setDescription('AI-powered YouTube content creation platform')
       .setVersion('1.0')
       .addBearerAuth()
@@ -94,7 +94,7 @@ async function bootstrap() {
   // /api/dev-docs-json is the SDK-generation source for API consumers.
   {
     const devConfig = new DocumentBuilder()
-      .setTitle('CreatorForce Developer API')
+      .setTitle('Sozialzync Developer API')
       .setDescription(
         'Public API — authenticate with a developer key (`Authorization: Bearer cfk_…` or `X-Api-Key`). ' +
           'Generate a client with openapi-generator against /api/dev-docs-json.',
@@ -111,10 +111,11 @@ async function bootstrap() {
     SwaggerModule.setup('api/dev-docs', app, devDocument);
   }
 
-  const port = parseInt(process.env['API_PORT'] ?? '4007', 10);
-  await app.listen(port);
+  // Railway (and most PaaS) injects PORT; API_PORT is for local dev override
+  const port = parseInt(process.env['PORT'] ?? process.env['API_PORT'] ?? '4007', 10);
+  await app.listen(port, '0.0.0.0');
   const logger = new Logger('Bootstrap');
-  logger.log(`AI CreatorForce API running on http://localhost:${port}/api/v1`);
+  logger.log(`Sozialzync API running on http://localhost:${port}/api/v1`);
   logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
 }
 
