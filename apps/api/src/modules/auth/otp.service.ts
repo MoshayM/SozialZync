@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
-import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import { TrialService } from '../trial/trial.service';
@@ -260,74 +259,12 @@ export class OtpService {
     return entry.code;
   }
 
-  private async sendEmail(to: string, code: string): Promise<void> {
-    const html = `<div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:24px;border-radius:12px;border:1px solid #ede9f8"><h2 style="color:#7C3AED;margin-top:0">Sozialzync Sign-In Code</h2><p style="font-size:40px;font-weight:700;letter-spacing:10px;color:#1a1a2e;margin:16px 0">${code}</p><p style="color:#555;font-size:14px">This code expires in <strong>10 minutes</strong>. Never share it with anyone.</p><hr style="border:none;border-top:1px solid #ede9f8;margin:20px 0"><p style="color:#999;font-size:12px">If you didn't request this code, you can safely ignore this email.</p></div>`;
-    const text = `Your Sozialzync sign-in code is: ${code}\n\nExpires in 10 minutes. Never share this code.`;
-    const subject = 'Your Sozialzync sign-in code';
-
-    // 1. Vercel relay — Railway calls Vercel (HTTPS 443) which then sends via SMTP/Resend.
-    //    Needed because Railway blocks all outbound SMTP ports (587, 465) on its network.
-    const relayUrl = this.config.get<string>('VERCEL_EMAIL_URL');
-    const relaySecret = this.config.get<string>('INTERNAL_API_SECRET');
-    if (relayUrl && relaySecret) {
-      const resp = await fetch(relayUrl, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-internal-secret': relaySecret },
-        body: JSON.stringify({ to, subject, html, text }),
-      });
-      if (resp.ok) return;
-      const errBody = await resp.text().catch(() => '');
-      if (resp.status !== 503) throw new Error(`Email relay failed ${resp.status}: ${errBody}`);
-      console.warn(`[OTP] Vercel relay returned 503 — falling through to direct providers.`);
-    }
-
-    // 2. Brevo HTTP API — HTTPS port 443, no domain verification needed, works from Railway.
-    const brevoKey = this.config.get<string>('BREVO_API_KEY');
-    if (brevoKey) {
-      const brevoFrom = this.config.get<string>('BREVO_FROM') ?? this.config.get<string>('SMTP_FROM') ?? 'noreply@sozialzync.com';
-      const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { accept: 'application/json', 'api-key': brevoKey, 'content-type': 'application/json' },
-        body: JSON.stringify({ sender: { name: 'Sozialzync', email: brevoFrom }, to: [{ email: to }], subject, textContent: text, htmlContent: html }),
-      });
-      if (resp.ok) return;
-      const errBody = await resp.text().catch(() => '');
-      throw new Error(`Brevo email failed ${resp.status}: ${errBody}`);
-    }
-
-    // 3. SMTP (nodemailer) — Railway blocks all outbound SMTP; kept for non-Railway environments.
-    const host = this.config.get<string>('SMTP_HOST');
-    if (host) {
-      const smtpUser = this.config.get<string>('SMTP_USER');
-      const smtpFrom = this.config.get<string>('SMTP_FROM') ?? smtpUser ?? 'noreply@sozialzync.com';
-      const smtpOpts = {
-        host,
-        port: Number(this.config.get('SMTP_PORT') ?? 587),
-        secure: this.config.get('SMTP_SECURE') === 'true',
-        auth: { user: smtpUser, pass: this.config.get<string>('SMTP_PASS') },
-      };
-      // @reason: family:4 forces IPv4 — Railway has no IPv6 routing; property absent from @types/nodemailer@8.0.1
-      Object.assign(smtpOpts, { family: 4 });
-      const transport = nodemailer.createTransport(smtpOpts);
-      await transport.sendMail({ from: smtpFrom, to, subject, text, html });
-      return;
-    }
-
-    // 5. Dev fallback — only allowed outside production.
-    if (process.env['NODE_ENV'] === 'production') {
-      throw new Error(
-        'Email OTP delivery unavailable: set BREVO_API_KEY in Railway environment variables.',
-      );
-    }
+  private sendEmail(to: string, code: string): void {
+    // Email OTP is not used — login is via passkey or password.
+    // In dev, surface the code via GET /api/v1/auth/otp/dev-peek so manual testing still works.
+    if (process.env['NODE_ENV'] === 'production') return;
     DEV_OTP_STORE.set(to, { code, expiresAt: Date.now() + OTP_EXPIRY_MS });
-    console.warn(
-      `\n╔══════════════════════════════════════════════════════╗\n` +
-      `║  [OTP DEV] No email provider configured              ║\n` +
-      `║  To: ${to.padEnd(46)}║\n` +
-      `║  Code: ${code.padEnd(44)}║\n` +
-      `║  → GET /api/v1/auth/otp/dev-peek?identifier=${to.padEnd(9)}║\n` +
-      `╚══════════════════════════════════════════════════════╝\n`,
-    );
+    console.warn(`[OTP DEV] code for ${to}: ${code} — GET /api/v1/auth/otp/dev-peek?identifier=${to}`);
   }
 
   private async sendSms(to: string, code: string): Promise<void> {
