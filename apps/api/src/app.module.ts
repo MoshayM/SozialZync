@@ -78,13 +78,18 @@ import { CalendarModule } from './modules/calendar/calendar.module';
             maxRetriesPerRequest: null,
           };
         }
-        // No REDIS_URL: start without Redis; queue ops will fail but the app won't crash.
+        // No REDIS_URL: give IORedis a no-op connection that immediately
+        // "fails" once and does NOT retry. Queue ops silently error;
+        // the app stays up and serves auth + API routes.
         return {
           host: '127.0.0.1',
           port: 6379,
           enableOfflineQueue: false,
           maxRetriesPerRequest: 0,
           lazyConnect: true,
+          // Do not retry after the first connection failure — prevents
+          // the infinite-reconnect flood that fills up the log stream.
+          retryStrategy: () => null,
         };
       })(),
     }),
