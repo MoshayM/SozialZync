@@ -2,7 +2,6 @@ import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as nodemailer from 'nodemailer';
-import { Resend } from 'resend';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import { TrialService } from '../trial/trial.service';
@@ -296,20 +295,7 @@ export class OtpService {
       throw new Error(`Brevo email failed ${resp.status}: ${errBody}`);
     }
 
-    // 3. Resend SDK — falls through to next provider on domain-restriction errors (403).
-    const resendKey = this.config.get<string>('RESEND_API_KEY');
-    if (resendKey) {
-      const resendFrom = this.config.get<string>('RESEND_FROM') ?? 'onboarding@resend.dev';
-      const resend = new Resend(resendKey);
-      const { error } = await resend.emails.send({ from: resendFrom, to, subject, html, text });
-      if (!error) return;
-      if ((error as unknown as { statusCode?: number }).statusCode !== 403) {
-        throw new Error(`Resend email failed: ${error.message}`);
-      }
-      console.warn(`[OTP] Resend domain restriction for ${to} — falling back to SMTP.`);
-    }
-
-    // 4. SMTP (nodemailer) — Railway blocks all outbound SMTP; kept for non-Railway environments.
+    // 3. SMTP (nodemailer) — Railway blocks all outbound SMTP; kept for non-Railway environments.
     const host = this.config.get<string>('SMTP_HOST');
     if (host) {
       const smtpUser = this.config.get<string>('SMTP_USER');

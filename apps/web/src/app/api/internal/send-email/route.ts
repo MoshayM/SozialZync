@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { Resend } from 'resend';
 
 // Internal email relay — called by the Railway NestJS backend so that
 // email is sent from Vercel (AWS infra) which allows outbound SMTP port 587,
@@ -53,21 +52,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Missing to or subject' }, { status: 400 });
   }
 
-  // 1. Resend SDK (if RESEND_API_KEY + verified domain configured in Vercel).
-  const resendKey = process.env['RESEND_API_KEY'];
-  if (resendKey) {
-    const from = process.env['RESEND_FROM'] ?? 'onboarding@resend.dev';
-    const resend = new Resend(resendKey);
-    const { error } = await resend.emails.send({ from, to, subject, html, text });
-    if (!error) return NextResponse.json({ ok: true });
-    const code = (error as unknown as { statusCode?: number }).statusCode;
-    if (code !== 403) {
-      return NextResponse.json({ error: `Resend: ${error.message}` }, { status: 502 });
-    }
-    console.warn(`[relay] Resend domain restriction for ${to} — falling back to SMTP`);
-  }
-
-  // 2. Brevo SMTP (free 300/day, no domain verification required).
+  // 1. Brevo SMTP (free 300/day, no domain verification required).
   const brevoUser = process.env['BREVO_SMTP_USER'];
   const brevoPass = process.env['BREVO_SMTP_PASS'];
   if (brevoUser && brevoPass) {
@@ -82,7 +67,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 3. Gmail SMTP via App Password.
+  // 2. Gmail SMTP via App Password.
   const smtpHost = process.env['SMTP_HOST'];
   if (smtpHost) {
     const smtpUser = process.env['SMTP_USER'];

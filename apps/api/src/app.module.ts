@@ -123,7 +123,10 @@ import { CalendarModule } from './modules/calendar/calendar.module';
     MediaModule,
     ShortsStudioModule,
     CopilotModule,
-    WorkersModule,
+    // Workers require an active Redis connection (BullMQ calls blockingConnection.connect()
+    // in their OnModuleInit hooks). Skip them when no REDIS_URL is set so app.listen()
+    // completes and the health check can pass without Redis.
+    ...(process.env['REDIS_URL'] ? [WorkersModule] : []),
     GatewayModule,
     NotificationsModule,
     OrgsModule,
