@@ -78,11 +78,13 @@ import { CalendarModule } from './modules/calendar/calendar.module';
             maxRetriesPerRequest: null,
           };
         }
+        // No REDIS_URL: start without Redis; queue ops will fail but the app won't crash.
         return {
           host: '127.0.0.1',
           port: 6379,
           enableOfflineQueue: false,
-          maxRetriesPerRequest: null,
+          maxRetriesPerRequest: 0,
+          lazyConnect: true,
         };
       })(),
     }),
