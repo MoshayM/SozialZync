@@ -1,4 +1,4 @@
-import { Controller, Get, ServiceUnavailableException, VERSION_NEUTRAL } from '@nestjs/common';
+import { Controller, Get, Optional, ServiceUnavailableException, VERSION_NEUTRAL } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -17,7 +17,7 @@ import { Public } from '../../common/decorators/public.decorator';
 export class HealthController {
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue(AGENT_QUEUE) private readonly queue: Queue,
+    @Optional() @InjectQueue(AGENT_QUEUE) private readonly queue: Queue | null,
   ) {}
 
   /** Liveness: the process answers. Never touches dependencies. */
@@ -35,12 +35,12 @@ export class HealthController {
       .then(() => (checks['database'] = 'ok'))
       .catch(() => undefined);
 
-    // BullMQ types the connection as a minimal IRedisClient; it is an ioredis
-    // client at runtime, and ping() is the standard reachability probe.
-    await this.queue.client
-      .then((c) => (c as unknown as { ping(): Promise<string> }).ping())
-      .then(() => (checks['redis'] = 'ok'))
-      .catch(() => undefined);
+    if (this.queue) {
+      await this.queue.client
+        .then((c) => (c as unknown as { ping(): Promise<string> }).ping())
+        .then(() => (checks['redis'] = 'ok'))
+        .catch(() => undefined);
+    }
 
     const ready = Object.values(checks).every((v) => v === 'ok');
     if (!ready) throw new ServiceUnavailableException({ status: 'not-ready', checks });
