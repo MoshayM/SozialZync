@@ -6,16 +6,31 @@ import 'reflect-metadata';
 // connections that become uncaught exceptions. Suppress only those so the
 // API can start and serve auth/core routes without a queue backend.
 if (!process.env['REDIS_URL']) {
-  const isRedisError = (err: Error) =>
-    err.message === 'Connection is closed.' ||
-    (err as NodeJS.ErrnoException).code === 'ECONNREFUSED';
+  // When no Redis is configured, IORedis / BullMQ emit error events that
+  // become uncaught exceptions. Suppress all of them so the API can boot
+  // and serve auth + core routes. Queue-dependent features will degrade.
+  const isRedisError = (err: unknown): boolean => {
+    if (!(err instanceof Error)) return false;
+    const msg = err.message ?? '';
+    const code = (err as NodeJS.ErrnoException).code ?? '';
+    return (
+      msg.includes('Connection is closed') ||
+      msg.includes('ECONNREFUSED') ||
+      msg.includes('connect ECONNREFUSED') ||
+      code === 'ECONNREFUSED' ||
+      // BullMQ wraps errors with queue context
+      msg.includes('Queue') ||
+      (err.stack ?? '').includes('ioredis') ||
+      (err.stack ?? '').includes('bullmq')
+    );
+  };
   process.on('uncaughtException', (err) => {
     if (isRedisError(err)) return;
     process.stderr.write(`UNCAUGHT EXCEPTION: ${err.stack ?? err.message}\n`);
     process.exit(1);
   });
   process.on('unhandledRejection', (reason) => {
-    if (reason instanceof Error && isRedisError(reason)) return;
+    if (isRedisError(reason)) return;
     process.stderr.write(`UNHANDLED REJECTION: ${String(reason)}\n`);
     process.exit(1);
   });
