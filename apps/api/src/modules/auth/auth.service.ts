@@ -40,14 +40,17 @@ export class AuthService {
     dto: RegisterDto,
     signals: { deviceFingerprint?: string; ip?: string; device?: string } = {},
   ): Promise<AuthTokens> {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    const existing = await this.prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    });
     if (existing) throw new ConflictException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const isFirst = (await this.prisma.user.count()) === 0;
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email: normalizedEmail,
         name: dto.name,
         phone: dto.phone?.trim() || null,
         passwordHash,
@@ -72,7 +75,9 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, meta: SessionMeta = {}): Promise<AuthTokens> {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findFirst({
+      where: { email: { equals: dto.email.trim().toLowerCase(), mode: 'insensitive' } },
+    });
     if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);

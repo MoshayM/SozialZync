@@ -21,8 +21,10 @@ export class PasswordResetService {
    */
   async requestResetToken(email: string): Promise<{ resetUrl: string | null }> {
     const normalized = email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({
-      where: { email: normalized },
+    // Use case-insensitive match: registrations may have stored mixed-case
+    // (e.g. mobile keyboard auto-capitalized the first letter).
+    const user = await this.prisma.user.findFirst({
+      where: { email: { equals: normalized, mode: 'insensitive' } },
       select: { id: true },
     });
     if (!user) return { resetUrl: null };
