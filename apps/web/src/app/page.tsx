@@ -93,7 +93,9 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16 gap-4">
             <Link href="/" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Sozialzync">
               <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-              <span className="font-bold text-white text-lg leading-none hidden sm:block tracking-tight">Sozialzync</span>
+              <span className="font-bold text-lg leading-none hidden sm:block tracking-[-0.4px]">
+                <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+              </span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">

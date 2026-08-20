@@ -183,7 +183,9 @@ export function LoginShell({
             <LogoMark className="absolute inset-0 w-full h-full" style={{borderRadius:'14px',boxShadow:'0 8px 24px -6px rgba(124,58,237,.6)'}} />
           </div>
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
+            <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
+              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+            </div>
             <div className="text-white/45 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -253,7 +255,9 @@ export function LoginShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg tracking-[-0.4px]">
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+            </span>
           </div>
 
           <div className="mb-8">
@@ -348,7 +352,9 @@ export function RegisterShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
+            <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
+              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+            </div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -450,7 +456,9 @@ export function RegisterShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg tracking-[-0.4px]">
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+            </span>
           </div>
 
           <div className="mb-7">
@@ -511,7 +519,9 @@ export function ForgotPasswordShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
+            <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
+              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+            </div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -572,7 +582,9 @@ export function ForgotPasswordShell({
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg tracking-[-0.4px]">
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+            </span>
           </div>
           {children}
           <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
@@ -613,7 +625,9 @@ export function ResetPasswordShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
+            <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
+              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+            </div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -663,7 +677,9 @@ export function ResetPasswordShell({
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg tracking-[-0.4px]">
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+            </span>
           </div>
           {children}
           <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
@@ -730,7 +746,9 @@ export function OAuthCallbackShell({
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
           <div>
-            <div className="text-white font-extrabold text-xl tracking-tight leading-none">Sozialzync</div>
+            <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
+              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+            </div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
         </div>
@@ -844,7 +862,9 @@ export function OAuthCallbackShell({
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
-            <span className="font-bold text-lg" style={{color:'#7C3AED'}}>Sozialzync</span>
+            <span className="font-bold text-lg tracking-[-0.4px]">
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+            </span>
           </div>
 
           {children}

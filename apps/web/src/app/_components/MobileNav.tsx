@@ -50,7 +50,9 @@ export function MobileNav() {
             <div className="flex items-center justify-between mb-10 shrink-0">
               <div className="flex items-center gap-2.5">
                 <LogoMark className="w-9 h-9 shrink-0" style={{ borderRadius: '10px' }} />
-                <span className="font-bold text-white text-lg tracking-tight">Sozialzync</span>
+                <span className="font-bold text-lg tracking-[-0.4px]">
+                  <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+                </span>
               </div>
               <button
                 type="button"
