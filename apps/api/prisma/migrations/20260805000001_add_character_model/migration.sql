@@ -1,5 +1,5 @@
--- CreateTable
-CREATE TABLE "Character" (
+-- CreateTable (idempotent: safe to re-run if previous attempt partially applied)
+CREATE TABLE IF NOT EXISTS "Character" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -19,8 +19,12 @@ CREATE TABLE "Character" (
     CONSTRAINT "Character_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "Character_userId_idx" ON "Character"("userId");
+-- CreateIndex (idempotent)
+CREATE INDEX IF NOT EXISTS "Character_userId_idx" ON "Character"("userId");
 
--- AddForeignKey
-ALTER TABLE "Character" ADD CONSTRAINT "Character_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- AddForeignKey (idempotent: skip if constraint already exists)
+DO $$ BEGIN
+  ALTER TABLE "Character" ADD CONSTRAINT "Character_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
