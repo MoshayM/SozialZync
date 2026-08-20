@@ -13,14 +13,19 @@ export class PasswordResetService {
     private readonly config: ConfigService,
   ) {}
 
-  async sendResetEmail(email: string): Promise<void> {
+  /**
+   * Generate a password reset token and return the reset URL directly.
+   * No email is sent — the URL is returned in the API response for the
+   * frontend to display on-screen (email provider not configured).
+   * Returns null when the email is not registered.
+   */
+  async requestResetToken(email: string): Promise<{ resetUrl: string | null }> {
     const normalized = email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
       where: { email: normalized },
-      select: { id: true, email: true, name: true },
+      select: { id: true },
     });
-    // Always return 204 — don't reveal whether account exists
-    if (!user) return;
+    if (!user) return { resetUrl: null };
 
     // @reason: passwordResetToken added via db push; TS types not regenerated while API is running
     const prt = (this.prisma as any).passwordResetToken;
@@ -42,7 +47,8 @@ export class PasswordResetService {
     const baseUrl = this.config.get<string>('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3007';
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
-    await this.sendEmail(user.email, user.name ?? 'Creator', resetUrl);
+    console.log(`[PASSWORD RESET] ${email} → ${resetUrl}`);
+    return { resetUrl };
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -73,8 +79,4 @@ export class PasswordResetService {
     ]);
   }
 
-  private sendEmail(to: string, _name: string, resetUrl: string): void {
-    // No email provider configured — log the reset URL in dev for manual testing.
-    console.log(`\n[PASSWORD RESET DEV] Reset URL for ${to}:\n${resetUrl}\n`);
-  }
 }

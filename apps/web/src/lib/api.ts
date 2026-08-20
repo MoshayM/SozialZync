@@ -601,7 +601,7 @@ export const api = {
     updatePhone: (phone: string | null) =>
       apiClient.patch('/auth/me/phone', { phone }),
     forgotPassword: (email: string) =>
-      apiClient.post('/auth/forgot-password', { email }),
+      apiClient.post<{ resetUrl: string | null }>('/auth/forgot-password', { email }),
     resetPassword: (token: string, password: string) =>
       apiClient.post('/auth/reset-password', { token, password }),
     // WebAuthn / Passkeys

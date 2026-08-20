@@ -334,12 +334,13 @@ export class AuthController {
     await this.auth.updateProfile(user.sub, dto);
   }
 
-  /** POST /auth/forgot-password — send a password reset link to email. */
+  /** POST /auth/forgot-password — generate a password reset token and return the URL.
+   *  No email provider configured; the URL is returned directly for on-screen display. */
   @Post('forgot-password')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @RateLimit({ bucket: 'auth-forgot-pw', limit: 3, windowSecs: 600 })
-  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<void> {
-    await this.passwordReset.sendResetEmail(dto.email);
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ bucket: 'auth-forgot-pw', limit: 5, windowSecs: 600 })
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ resetUrl: string | null }> {
+    return this.passwordReset.requestResetToken(dto.email);
   }
 
   /** POST /auth/reset-password — set a new password using the emailed token. */
