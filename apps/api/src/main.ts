@@ -1,6 +1,26 @@
 // Sentry must be initialized before any other imports
 import './instrument';
 import 'reflect-metadata';
+
+// When REDIS_URL is not set, BullMQ emits 'error' events for failed Redis
+// connections that become uncaught exceptions. Suppress only those so the
+// API can start and serve auth/core routes without a queue backend.
+if (!process.env['REDIS_URL']) {
+  const isRedisError = (err: Error) =>
+    err.message === 'Connection is closed.' ||
+    (err as NodeJS.ErrnoException).code === 'ECONNREFUSED';
+  process.on('uncaughtException', (err) => {
+    if (isRedisError(err)) return;
+    process.stderr.write(`UNCAUGHT EXCEPTION: ${err.stack ?? err.message}\n`);
+    process.exit(1);
+  });
+  process.on('unhandledRejection', (reason) => {
+    if (reason instanceof Error && isRedisError(reason)) return;
+    process.stderr.write(`UNHANDLED REJECTION: ${String(reason)}\n`);
+    process.exit(1);
+  });
+}
+
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
