@@ -92,7 +92,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
             <Link href="/" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Sozialzync">
-              <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
+              <LogoMark className="w-9 h-9 shrink-0" />
               <span className="font-bold text-lg leading-none hidden sm:block tracking-[-0.4px]">
                 <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
               </span>
@@ -779,7 +779,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
+              <LogoMark className="w-9 h-9 shrink-0" />
               <div>
                 <p className="font-bold text-base leading-tight">Sozialzync</p>
                 <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.35)'}}>AI YouTube Content OS</p>

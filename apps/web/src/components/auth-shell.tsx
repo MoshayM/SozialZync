@@ -180,7 +180,7 @@ export function LoginShell({
             {/* Orbital rings */}
             <div className="lf-spin absolute inset-[-8px] rounded-full" style={{border:'1px solid rgba(167,139,250,.35)'}} />
             <div className="lf-spin-r absolute inset-[-16px] rounded-full" style={{border:'1px solid rgba(124,58,237,.18)'}} />
-            <LogoMark className="absolute inset-0 w-full h-full" style={{borderRadius:'14px',boxShadow:'0 8px 24px -6px rgba(124,58,237,.6)'}} />
+            <LogoMark className="absolute inset-0 w-full h-full" />
           </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
@@ -254,7 +254,7 @@ export function LoginShell({
         <div className="w-full max-w-[370px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
+            <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
             </span>
@@ -350,7 +350,7 @@ export function RegisterShell({
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
+          <LogoMark className="w-12 h-12 shrink-0" />
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
               <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
@@ -455,7 +455,7 @@ export function RegisterShell({
         <div className="w-full max-w-[380px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
+            <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
             </span>
@@ -517,7 +517,7 @@ export function ForgotPasswordShell({
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
+          <LogoMark className="w-12 h-12 shrink-0" />
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
               <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
@@ -581,7 +581,7 @@ export function ForgotPasswordShell({
       <div className="flex-1 flex items-center justify-center bg-[#faf9ff] px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
+            <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
             </span>
@@ -623,7 +623,7 @@ export function ResetPasswordShell({
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
+          <LogoMark className="w-12 h-12 shrink-0" />
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
               <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
@@ -676,7 +676,7 @@ export function ResetPasswordShell({
       <div className="flex-1 flex items-center justify-center bg-[#faf9ff] px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
+            <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
             </span>
@@ -744,7 +744,7 @@ export function OAuthCallbackShell({
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" style={{borderRadius:'14px',boxShadow:'0 8px 20px -6px rgba(124,58,237,.5)'}} />
+          <LogoMark className="w-12 h-12 shrink-0" />
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
               <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
@@ -861,7 +861,7 @@ export function OAuthCallbackShell({
         <div className="w-full max-w-[360px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" style={{borderRadius:'10px'}} />
+            <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
             </span>

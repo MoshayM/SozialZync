@@ -701,7 +701,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
         {/* Logo */}
         <div className="flex items-center gap-2 shrink-0">
-          <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" style={{ borderRadius: '11px', boxShadow: '0 6px 14px -6px rgba(124,58,237,.5)' }} />
+          <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" />
           <div className="leading-[1.15] hidden sm:block">
             <div className="font-bold text-[15px] tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
@@ -973,7 +973,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               borderBottom: '1px solid rgba(255,255,255,.10)',
             }}
           >
-            <LogoMark className="shrink-0" style={{ width: '34px', height: '34px', borderRadius: '9px', border: '1.5px solid rgba(255,255,255,.28)', boxShadow: '0 3px 10px rgba(0,0,0,.28)' }} />
+            <LogoMark className="shrink-0" style={{ width: '34px', height: '34px', borderRadius: '9px', border: '1.5px solid rgba(255,255,255,.28)' }} />
             {!sidebarCollapsed && (
               <>
                 <div style={{ overflow: 'hidden', lineHeight: 1.35, flex: '1 1 auto' }}>
