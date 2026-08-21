@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Loader2, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { api, setTokens } from '@/lib/api';
 import { RegisterShell } from '@/components/auth-shell';
 
@@ -181,15 +181,6 @@ function RegisterInner() {
         </button>
       </form>
 
-      {/* No-password option — subtle link, not competing button */}
-      <button
-        type="button"
-        onClick={() => router.push('/login')}
-        className="w-full flex items-center justify-center gap-1.5 text-sm text-gray-500 hover:text-[#6D4AE0] transition-colors py-1 font-medium"
-      >
-        <Mail className="w-3.5 h-3.5 shrink-0" />
-        Sign up with email code instead
-      </button>
     </RegisterShell>
   );
 }
