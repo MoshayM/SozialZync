@@ -1,5 +1,5 @@
 FROM node:22-slim AS base
-RUN npm install -g pnpm@11 && apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN npm install -g pnpm@latest && apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
