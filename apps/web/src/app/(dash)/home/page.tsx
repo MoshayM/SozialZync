@@ -130,7 +130,7 @@ const WIZARD_STEPS = [
     iconBg: '#fee2e2',
     iconColor: '#dc2626',
     title: 'Connect your YouTube channel',
-    body: 'Link your channel so Sozialzync can publish, analyze, and schedule your content automatically.',
+    body: 'Link your channel so Sozialzynk can publish, analyze, and schedule your content automatically.',
     cta: 'Connect a channel',
     href: '/settings/channels',
     skip: "I'll do this later",

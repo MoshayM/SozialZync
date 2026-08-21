@@ -1,4 +1,4 @@
-// Sozialzync Service Worker
+// Sozialzynk Service Worker
 // Handles offline support and caching for PWA install
 
 const CACHE_NAME = 'sz-v3';
@@ -71,7 +71,7 @@ self.addEventListener('push', (event) => {
   try {
     const data = event.data.json();
     event.waitUntil(
-      self.registration.showNotification(data.title ?? 'Sozialzync', {
+      self.registration.showNotification(data.title ?? 'Sozialzynk', {
         body: data.body ?? '',
         icon: '/icon.svg',
         badge: '/icon.svg',

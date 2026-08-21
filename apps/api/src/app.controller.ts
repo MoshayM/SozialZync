@@ -7,7 +7,7 @@ export class AppController {
   @Get()
   root() {
     return {
-      name: 'Sozialzync API',
+      name: 'Sozialzynk API',
       version: 'v1',
       status: 'ok',
       endpoints: {

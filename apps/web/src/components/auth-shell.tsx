@@ -237,7 +237,7 @@ export function LoginShell({
             {[...Array(5)].map((_, i) => <span key={i} className="text-[#f0c14d] text-sm" aria-hidden>★</span>)}
           </div>
           <p className="text-white/75 text-sm leading-relaxed mb-4">
-            &ldquo;Sozialzync helped me grow from 5K to 150K subscribers in 6 months. The research-backed scripts and compliance check saved me so much time.&rdquo;
+            &ldquo;Sozialzynk helped me grow from 5K to 150K subscribers in 6 months. The research-backed scripts and compliance check saved me so much time.&rdquo;
           </p>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">M</div>
@@ -436,7 +436,7 @@ export function RegisterShell({
             ))}
           </div>
           <p className="text-white/80 text-sm leading-relaxed mb-4">
-            &ldquo;I was spending 20+ hours a week on content research. Sozialzync cut that to under 2 hours. The research agent and fact-checker alone are worth it.&rdquo;
+            &ldquo;I was spending 20+ hours a week on content research. Sozialzynk cut that to under 2 hours. The research agent and fact-checker alone are worth it.&rdquo;
           </p>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">
@@ -482,13 +482,13 @@ const RECOVERY_STEPS = [
     n: '1',
     icon: '📧',
     title: 'Enter your email',
-    desc: "We'll verify it's registered with Sozialzync",
+    desc: "We'll verify it's registered with Sozialzynk",
   },
   {
     n: '2',
     icon: '📬',
     title: 'Check your inbox',
-    desc: 'Look for an email from Sozialzync (check spam too)',
+    desc: 'Look for an email from Sozialzynk (check spam too)',
   },
   {
     n: '3',

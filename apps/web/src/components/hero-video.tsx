@@ -98,7 +98,7 @@ export function HeroVideo() {
           className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5 transition-opacity duration-200"
           style={{ opacity: showControls ? 1 : 0, background: 'linear-gradient(to top,rgba(0,0,0,.6),transparent)' }}
         >
-          <span className="text-[10px] font-semibold text-white/70">Sozialzync in 30 seconds</span>
+          <span className="text-[10px] font-semibold text-white/70">Sozialzynk in 30 seconds</span>
           <button
             onClick={openFullscreen}
             className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg transition-colors hover:bg-white/10"

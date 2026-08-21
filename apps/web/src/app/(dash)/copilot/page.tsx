@@ -176,7 +176,7 @@ function saveToHistory(text: string) {
 const GREETING: Message = {
   id: 'greeting',
   role: 'assistant',
-  content: "Hey! I'm your Sozialzync Copilot — think of me as your content right-hand. Need script ideas, SEO tips, a posting plan, or just want to brainstorm? I got you. What are we working on?",
+  content: "Hey! I'm your Sozialzynk Copilot — think of me as your content right-hand. Need script ideas, SEO tips, a posting plan, or just want to brainstorm? I got you. What are we working on?",
   ts: Date.now(),
 };
 

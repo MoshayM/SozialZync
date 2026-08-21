@@ -2,15 +2,15 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy · Sozialzync',
-  description: 'How Sozialzync collects, uses, and protects your data.',
+  title: 'Privacy Policy · Sozialzynk',
+  description: 'How Sozialzynk collects, uses, and protects your data.',
 };
 
 const SECTIONS = [
   {
     id: 'information-we-collect',
     title: '1. Information We Collect',
-    content: `We collect the following categories of information when you use Sozialzync:
+    content: `We collect the following categories of information when you use Sozialzynk:
 
 Account Data: When you register, we collect your name, email address, and password (stored as a bcrypt hash). If you sign in via Google OAuth, we receive your name, email, and profile picture from that provider. If you register a passkey (WebAuthn), we store the public credential ID and attestation data — never the private key, which never leaves your device.
 
@@ -18,7 +18,7 @@ Usage Data: We log interactions with the platform — pages visited, features us
 
 Voice Data: If you use the AI Copilot voice interface, audio is captured temporarily in your browser, converted to text via speech recognition (on-device where supported), and only the transcript is transmitted to our servers. Raw audio is not stored on our servers.
 
-Content You Create: Scripts, captions, thumbnails, AI-generated characters, avatar images, voice narrations, audio tracks, and other assets you produce through Sozialzync are stored in your account and are yours to export or delete at any time. Provenance metadata (model, timestamp, prompt hash) is stored with every AI-generated asset.
+Content You Create: Scripts, captions, thumbnails, AI-generated characters, avatar images, voice narrations, audio tracks, and other assets you produce through Sozialzynk are stored in your account and are yours to export or delete at any time. Provenance metadata (model, timestamp, prompt hash) is stored with every AI-generated asset.
 
 Platform Connection Data: When you connect your YouTube account or other social accounts, we store OAuth access tokens and refresh tokens to publish content and retrieve analytics on your behalf. We request only the minimum OAuth scopes necessary for the features you use. You can revoke access at any time from your settings.
 
@@ -29,7 +29,7 @@ Payment Data: If you subscribe to a paid plan, payment details are processed and
     title: '2. How We Use Your Information',
     content: `We use the information we collect to:
 
-• Operate and deliver the Sozialzync service, including the full AI content pipeline: research, scripting, fact-checking, compliance checking, voice generation, image generation, and YouTube publishing.
+• Operate and deliver the Sozialzynk service, including the full AI content pipeline: research, scripting, fact-checking, compliance checking, voice generation, image generation, and YouTube publishing.
 • Improve our AI pipeline using anonymized, aggregated usage patterns. We do not use your identifiable content to train AI models without your explicit opt-in consent.
 • Send transactional emails such as password resets, billing receipts, and service notifications. We do not send marketing emails without your consent.
 • Run compliance checks on all content before it is made available for publishing, to ensure it meets YouTube's policies and copyright requirements.
@@ -51,7 +51,7 @@ Payment Processing: Stripe processes all payments. Your payment data is subject 
 
 Hosting & Infrastructure: We use cloud infrastructure providers (including Vercel and managed cloud services) that host our application. These providers have access only to data necessary to run our systems and are bound by strict data processing agreements.
 
-Legal Requirements: We may disclose data if required by law, court order, or to protect the rights, safety, and property of Sozialzync, our users, or the public.
+Legal Requirements: We may disclose data if required by law, court order, or to protect the rights, safety, and property of Sozialzynk, our users, or the public.
 
 Business Transfers: In the event of a merger, acquisition, or sale of assets, user data may be transferred as part of that transaction. We will notify you via email or prominent in-app notice before your data becomes subject to a different privacy policy.`,
   },
@@ -82,7 +82,7 @@ To exercise any of these rights, email privacy@sozialzync.com. We will respond w
   {
     id: 'cookies',
     title: '6. Cookies & Tracking',
-    content: `Sozialzync uses only functional cookies necessary to operate the service:
+    content: `Sozialzynk uses only functional cookies necessary to operate the service:
 
 • Session cookies to keep you logged in during a browsing session.
 • Preference cookies to remember settings such as your selected theme or language.
@@ -94,7 +94,7 @@ You can disable cookies in your browser settings, but this may prevent certain f
   {
     id: 'childrens-privacy',
     title: "7. Children's Privacy",
-    content: `Sozialzync is intended for users aged 13 and older. We do not knowingly collect personal data from children under 13. If you believe a child under 13 has created an account, please contact us at privacy@sozialzync.com and we will promptly delete the account and associated data.
+    content: `Sozialzynk is intended for users aged 13 and older. We do not knowingly collect personal data from children under 13. If you believe a child under 13 has created an account, please contact us at privacy@sozialzync.com and we will promptly delete the account and associated data.
 
 Users between 13 and 18 should ensure they have parental or guardian consent before using the platform.`,
   },
@@ -132,7 +132,7 @@ For data subject requests under GDPR or CCPA, please include "Data Subject Reque
 • Send an email notification to registered users at least 14 days before the change takes effect.
 • Display a prominent in-app notice for significant changes.
 
-Your continued use of Sozialzync after the effective date of a revised policy constitutes your acceptance of the changes. If you do not agree to the updated policy, you may delete your account before the effective date.`,
+Your continued use of Sozialzynk after the effective date of a revised policy constitutes your acceptance of the changes. If you do not agree to the updated policy, you may delete your account before the effective date.`,
   },
 ];
 
@@ -146,7 +146,7 @@ export default function PrivacyPage() {
             href="/"
             className="inline-flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-medium mb-8 transition-colors"
           >
-            ← Back to Sozialzync
+            ← Back to Sozialzynk
           </Link>
           <div className="inline-flex items-center gap-2 bg-white/15 text-white/85 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
             Legal
@@ -165,7 +165,7 @@ export default function PrivacyPage() {
         {/* Intro */}
         <div className="bg-white rounded-2xl p-6 mb-8 border border-gray-100 shadow-sm">
           <p className="text-gray-600 leading-relaxed">
-            Sozialzync (&ldquo;we&rdquo;, &ldquo;our&rdquo;, &ldquo;us&rdquo;) is committed to protecting your privacy.
+            Sozialzynk (&ldquo;we&rdquo;, &ldquo;our&rdquo;, &ldquo;us&rdquo;) is committed to protecting your privacy.
             This Privacy Policy explains how we collect, use, share, and protect your personal information
             when you use our AI-powered YouTube Content Operating System. Please read it carefully.
           </p>
@@ -200,7 +200,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             <Link href="/" className="text-[#6D4AE0] hover:underline">
-              ← Return to Sozialzync
+              ← Return to Sozialzynk
             </Link>
           </p>
         </div>

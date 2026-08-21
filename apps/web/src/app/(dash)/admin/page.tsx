@@ -355,7 +355,7 @@ function AdVideoTab() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Platform Ad Video</h1>
-            <p className="text-sm text-gray-500 mt-0.5">30-second Sozialzync promotional video — 6 scenes · 1280×720 · H.264 · 30 fps</p>
+            <p className="text-sm text-gray-500 mt-0.5">30-second Sozialzynk promotional video — 6 scenes · 1280×720 · H.264 · 30 fps</p>
           </div>
         </div>
         <a
@@ -494,7 +494,7 @@ function AdVideoTab() {
             <ul className="space-y-1.5 text-xs text-gray-600">
               {[
                 'Landing page hero — already live at /',
-                'YouTube channel trailer — upload directly to your Sozialzync channel',
+                'YouTube channel trailer — upload directly to your Sozialzynk channel',
                 'LinkedIn / Twitter organic post — drives creator sign-ups',
                 'Google / Meta video ads — 30s is the optimal ad unit length',
                 'App Store / Play Store preview video',

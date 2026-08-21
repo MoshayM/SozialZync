@@ -196,7 +196,7 @@ export default function LoginPage() {
       footer={
         <div className="space-y-2 text-center">
           <div>
-            New to Sozialzync?{' '}
+            New to Sozialzynk?{' '}
             <Link href="/register" className="text-[#6D4AE0] font-semibold hover:underline">
               Create a free account
             </Link>

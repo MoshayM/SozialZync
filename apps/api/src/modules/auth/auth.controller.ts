@@ -339,7 +339,7 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @RateLimit({ bucket: 'auth-forgot-pw', limit: 5, windowSecs: 600 })
-  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ resetUrl: string | null }> {
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ resetUrl: string | null; emailSent: boolean }> {
     return this.passwordReset.requestResetToken(dto.email);
   }
 

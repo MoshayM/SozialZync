@@ -1,6 +1,6 @@
-# Sozialzync Mobile App
+# Sozialzynk Mobile App
 
-Native Android and iOS wrapper for the Sozialzync web app, built with [Capacitor](https://capacitorjs.com/).
+Native Android and iOS wrapper for the Sozialzynk web app, built with [Capacitor](https://capacitorjs.com/).
 
 ## Architecture
 

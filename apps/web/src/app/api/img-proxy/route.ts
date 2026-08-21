@@ -37,7 +37,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   try {
     const upstream = await fetch(raw, {
-      headers: { 'User-Agent': 'Sozialzync/1.0 image-proxy' },
+      headers: { 'User-Agent': 'Sozialzynk/1.0 image-proxy' },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...(typeof (globalThis as any).EdgeRuntime === 'undefined' ? { signal: AbortSignal.timeout(8000) } : {}),
     });

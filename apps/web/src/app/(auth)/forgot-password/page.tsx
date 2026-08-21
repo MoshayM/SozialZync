@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { Loader2, ArrowLeft, Copy, Check, ExternalLink, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Copy, Check, ExternalLink, AlertCircle, Mail } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ForgotPasswordShell } from '@/components/auth-shell';
 
@@ -40,6 +40,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [resetUrl, setResetUrl] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [copied, setCopied]     = useState(false);
 
@@ -50,12 +51,17 @@ export default function ForgotPasswordPage() {
     setError('');
     setNotFound(false);
     setResetUrl(null);
+    setEmailSent(false);
     try {
       const { data } = await api.auth.forgotPassword(email.trim());
-      if (data.resetUrl) {
-        setResetUrl(data.resetUrl);
-      } else {
+      if (data.resetUrl === null && !data.emailSent) {
+        // Account not found
         setNotFound(true);
+      } else if (data.emailSent) {
+        setEmailSent(true);
+      } else if (data.resetUrl) {
+        // SMTP not configured — show link on screen as fallback
+        setResetUrl(data.resetUrl);
       }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
@@ -75,9 +81,7 @@ export default function ForgotPasswordPage() {
       await navigator.clipboard.writeText(resetUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    } catch {
-      // fallback: select text
-    }
+    } catch { /* ignore */ }
   }
 
   const backLink = (
@@ -90,7 +94,47 @@ export default function ForgotPasswordPage() {
     </Link>
   );
 
-  /* ── Reset link shown on-screen ─────────────────────────────────────────── */
+  /* ── Email sent confirmation ─────────────────────────────────────────────── */
+  if (emailSent) {
+    return (
+      <ForgotPasswordShell footer={backLink}>
+        <div className="text-center">
+          <div className="flex justify-center mb-5">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, #f0edf9 0%, #e2dbf5 100%)',
+                boxShadow: '0 8px 24px rgba(109,74,224,0.18)',
+              }}
+            >
+              <Mail className="w-8 h-8 text-[#6D4AE0]" />
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-1.5">Check your inbox</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-2">
+            We sent a reset link to{' '}
+            <span className="font-semibold text-gray-700">{email}</span>.
+          </p>
+          <p className="text-gray-400 text-xs mb-6">
+            The link is valid for <span className="font-semibold text-gray-600">1 hour</span>.
+            Check your spam folder if you don&apos;t see it.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => { setEmailSent(false); setEmail(''); }}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{ background: '#f5f3ff', color: '#6D4AE0', border: '1.5px solid #ddd6fe' }}
+          >
+            Try a different email
+          </button>
+        </div>
+      </ForgotPasswordShell>
+    );
+  }
+
+  /* ── Fallback: reset link shown on-screen (no SMTP configured) ───────────── */
   if (resetUrl) {
     return (
       <ForgotPasswordShell footer={backLink}>
@@ -113,7 +157,6 @@ export default function ForgotPasswordPage() {
             Valid for <span className="font-semibold text-gray-700">1 hour</span>.
           </p>
 
-          {/* Link card */}
           <div
             className="rounded-xl px-4 py-3 mb-3 break-all"
             style={{ background: '#f5f3ff', border: '1.5px solid #ddd6fe' }}
@@ -127,7 +170,6 @@ export default function ForgotPasswordPage() {
             </a>
           </div>
 
-          {/* Action buttons */}
           <div className="flex gap-2">
             <button
               type="button"
@@ -165,7 +207,7 @@ export default function ForgotPasswordPage() {
     );
   }
 
-  /* ── Email not found ────────────────────────────────────────────────────── */
+  /* ── Account not found ───────────────────────────────────────────────────── */
   if (notFound) {
     return (
       <ForgotPasswordShell footer={backLink}>
@@ -214,13 +256,13 @@ export default function ForgotPasswordPage() {
     );
   }
 
-  /* ── Email form ─────────────────────────────────────────────────────────── */
+  /* ── Email form ──────────────────────────────────────────────────────────── */
   return (
     <ForgotPasswordShell footer={backLink}>
       <div className="mb-6">
         <h2 className="text-2xl font-extrabold text-gray-900 leading-tight mb-1.5">Forgot your password?</h2>
         <p className="text-gray-500 text-sm leading-relaxed">
-          Enter your email and we&apos;ll generate a reset link for you instantly.
+          Enter your email and we&apos;ll send you a reset link.
         </p>
       </div>
 
@@ -247,7 +289,7 @@ export default function ForgotPasswordPage() {
           }}
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {loading ? 'Generating link…' : 'Get reset link'}
+          {loading ? 'Sending…' : 'Send reset link'}
         </button>
       </form>
     </ForgotPasswordShell>

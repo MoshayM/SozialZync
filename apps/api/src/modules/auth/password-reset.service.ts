@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { MailerService } from '../../common/mailer/mailer.service';
 
 const EXPIRY_SEC = 60 * 60; // 1 hour
 
@@ -11,6 +12,7 @@ export class PasswordResetService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly mailer: MailerService,
   ) {}
 
   // ── HMAC-signed token helpers ────────────────────────────────────────────────
@@ -57,25 +59,31 @@ export class PasswordResetService {
   // ── Public API ───────────────────────────────────────────────────────────────
 
   /**
-   * Generate a password reset token and return the reset URL directly.
-   * No email is sent — the URL is returned in the API response for the
-   * frontend to display on-screen. Returns null when the email is not registered.
+   * Generate a password reset token and email it to the user.
+   * If SMTP is not configured, the URL is returned in the response for
+   * on-screen display as a fallback. Returns null when the email is not registered.
    */
-  async requestResetToken(email: string): Promise<{ resetUrl: string | null }> {
+  async requestResetToken(email: string): Promise<{ resetUrl: string | null; emailSent: boolean }> {
     const normalized = email.trim().toLowerCase();
     const user = await this.prisma.user.findFirst({
       where: { email: { equals: normalized, mode: 'insensitive' } },
-      select: { id: true },
+      select: { id: true, name: true },
     });
-    if (!user) return { resetUrl: null };
+    if (!user) return { resetUrl: null, emailSent: false };
 
     const token = this.signToken(user.id);
     const baseUrl =
       this.config.get<string>('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3007';
     const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
-    console.log(`[PASSWORD RESET] ${normalized} → ${resetUrl}`);
-    return { resetUrl };
+    const emailSent = await this.mailer.sendPasswordReset(
+      normalized,
+      user.name ?? 'there',
+      resetUrl,
+    );
+
+    // Return the URL only if email delivery failed — acts as on-screen fallback.
+    return { resetUrl: emailSent ? null : resetUrl, emailSent };
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {

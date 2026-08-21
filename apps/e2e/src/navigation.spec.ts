@@ -40,7 +40,7 @@ test.describe('Navigation', () => {
   test('sidebar shows brand name', async ({ page }) => {
     await page.goto('/projects');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText('Sozialzync').first()).toBeVisible();
+    await expect(page.getByText('Sozialzynk').first()).toBeVisible();
     await expect(page.getByText('AI Content Platform').first()).toBeVisible();
   });
 

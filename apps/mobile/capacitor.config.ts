@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.sozialzync.app',
-  appName: 'Sozialzync',
+  appName: 'Sozialzynk',
   webDir: 'dist',
   server: {
     // Live server mode: loads the Vercel deployment inside the native WebView.
@@ -37,7 +37,7 @@ const config: CapacitorConfig = {
     },
   },
   ios: {
-    scheme: 'Sozialzync',
+    scheme: 'Sozialzynk',
     contentInset: 'always',
   },
 };

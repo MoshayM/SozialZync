@@ -6,7 +6,7 @@ interface LogoMarkProps {
 }
 
 /**
- * Sozialzync Z-mark — no background, animated gradient + shimmer.
+ * Sozialzynk Z-mark — no background, animated gradient + shimmer.
  * Transparent SVG: works on any surface (light topbar, dark sidebar,
  * auth panels). useId() keeps gradient/clip/animation IDs unique per instance.
  */

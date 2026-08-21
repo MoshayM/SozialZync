@@ -6,7 +6,7 @@ Sozialzync ships a native mobile app for Android and iOS using [Capacitor](https
 
 **Source**: `apps/mobile/`  
 **App ID**: `com.sozialzync.app`  
-**App Name**: Sozialzync
+**App Name**: Sozialzynk
 
 ---
 

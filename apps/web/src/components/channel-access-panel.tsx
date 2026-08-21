@@ -149,7 +149,7 @@ const PLATFORM_GUIDE: Record<string, { prereqs: string[]; note: string; ctaColor
       'A Facebook Page (not a personal profile)',
       'Admin access to that Page',
     ],
-    note: "You'll authorize Sozialzync to publish posts and read insights from your Facebook Page.",
+    note: "You'll authorize Sozialzynk to publish posts and read insights from your Facebook Page.",
     ctaColor: '#1877F2',
   },
 };
@@ -980,7 +980,7 @@ function ChannelAccessContent() {
           })}
         </div>
         <p className="text-xs text-gray-500 mt-3">
-          Connect your social accounts to browse posts, reels, and videos — and publish directly from Sozialzync.
+          Connect your social accounts to browse posts, reels, and videos — and publish directly from Sozialzynk.
         </p>
       </section>
 

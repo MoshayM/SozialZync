@@ -91,10 +91,10 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-white/10 backdrop-blur-xl" style={{background:'rgba(14,9,36,.85)'}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
-            <Link href="/" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Sozialzync">
+            <Link href="/" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Sozialzynk">
               <LogoMark className="w-9 h-9 shrink-0" />
               <span className="font-bold text-lg leading-none hidden sm:block tracking-[-0.4px]">
-                <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+                <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zynk</span>
               </span>
             </Link>
 
@@ -174,7 +174,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-6 text-base sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-              Sozialzync runs your entire YouTube content pipeline — from trend research to compliance-checked publishing.{' '}
+              Sozialzynk runs your entire YouTube content pipeline — from trend research to compliance-checked publishing.{' '}
               <span className="text-white/80">Your AI content team, available 24/7. No burnout. No guesswork.</span>
             </p>
 
@@ -312,7 +312,7 @@ export default function LandingPage() {
                 <span style={{color:'#7C3AED'}}> to a published video</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">
-                Tell Sozialzync what you want to create. It researches, writes, checks compliance, and publishes to your YouTube channel.
+                Tell Sozialzynk what you want to create. It researches, writes, checks compliance, and publishes to your YouTube channel.
               </p>
             </div>
 
@@ -365,7 +365,7 @@ export default function LandingPage() {
                   <span style={{color:'#7C3AED'}}>Just conversation.</span>
                 </h2>
                 <p className="mt-6 text-lg text-gray-500 leading-relaxed">
-                  Sozialzync&apos;s AI Copilot works like an experienced YouTube content manager. Tell it what you need — it researches trends, writes compliant scripts, generates assets, and gets your video published.
+                  Sozialzynk&apos;s AI Copilot works like an experienced YouTube content manager. Tell it what you need — it researches trends, writes compliant scripts, generates assets, and gets your video published.
                 </p>
                 <ul className="mt-8 space-y-4">
                   {[
@@ -676,7 +676,7 @@ export default function LandingPage() {
                 <span>📲</span> Available everywhere
               </div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
-                Take Sozialzync<br />
+                Take Sozialzynk<br />
                 <span style={{background:'linear-gradient(90deg,#c4b5fd,#a78bfa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
                   wherever you create
                 </span>
@@ -781,7 +781,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <LogoMark className="w-9 h-9 shrink-0" />
               <div>
-                <p className="font-bold text-base leading-tight">Sozialzync</p>
+                <p className="font-bold text-base leading-tight">Sozialzynk</p>
                 <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.35)'}}>AI YouTube Content OS</p>
               </div>
             </div>
@@ -798,7 +798,7 @@ export default function LandingPage() {
             </nav>
           </div>
           <div className="mt-8 pt-8 text-center text-xs" style={{borderTop:'1px solid rgba(255,255,255,.06)',color:'rgba(255,255,255,.25)'}}>
-            &copy; {new Date().getFullYear()} Sozialzync. All rights reserved.
+            &copy; {new Date().getFullYear()} Sozialzynk. All rights reserved.
           </div>
         </div>
       </footer>

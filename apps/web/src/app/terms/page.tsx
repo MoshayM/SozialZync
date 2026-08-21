@@ -2,22 +2,22 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service · Sozialzync',
-  description: 'Terms and conditions for using the Sozialzync platform.',
+  title: 'Terms of Service · Sozialzynk',
+  description: 'Terms and conditions for using the Sozialzynk platform.',
 };
 
 const SECTIONS = [
   {
     id: 'acceptance',
     title: '1. Acceptance of Terms',
-    content: `By accessing or using Sozialzync (the "Service"), you agree to be bound by these Terms of Service ("Terms") and our Privacy Policy. If you do not agree to these Terms, do not use the Service.
+    content: `By accessing or using Sozialzynk (the "Service"), you agree to be bound by these Terms of Service ("Terms") and our Privacy Policy. If you do not agree to these Terms, do not use the Service.
 
-These Terms constitute a legally binding agreement between you and Sozialzync. We reserve the right to update these Terms at any time. We will notify you of material changes by email and in-app notice at least 14 days in advance. Continued use of the Service after the effective date of a change constitutes acceptance of the revised Terms.`,
+These Terms constitute a legally binding agreement between you and Sozialzynk. We reserve the right to update these Terms at any time. We will notify you of material changes by email and in-app notice at least 14 days in advance. Continued use of the Service after the effective date of a change constitutes acceptance of the revised Terms.`,
   },
   {
     id: 'description',
     title: '2. Description of Service',
-    content: `Sozialzync is an AI-powered YouTube Content Operating System. The Service enables you to:
+    content: `Sozialzynk is an AI-powered YouTube Content Operating System. The Service enables you to:
 
 • Research trending topics, discover competitor gaps, and identify viral opportunities using AI research agents.
 • Generate AI-assisted scripts, fact-checked against source material, with monetization and copyright compliance built in.
@@ -59,11 +59,11 @@ You are responsible for all content published through your account, whether gene
   {
     id: 'content-ownership',
     title: '5. Content Ownership',
-    content: `Your Content: You retain full ownership of the content you create using the Service, including AI-assisted outputs that you edit and publish. By using the Service, you grant Sozialzync a limited, non-exclusive, royalty-free license to store, process, and transmit your content solely for the purpose of delivering the Service to you.
+    content: `Your Content: You retain full ownership of the content you create using the Service, including AI-assisted outputs that you edit and publish. By using the Service, you grant Sozialzynk a limited, non-exclusive, royalty-free license to store, process, and transmit your content solely for the purpose of delivering the Service to you.
 
-Our Content: The Service itself, including its design, code, AI agent pipeline, and proprietary algorithms, is owned by Sozialzync and protected by applicable intellectual property laws. You may not copy, modify, distribute, or create derivative works from the Service or its components without our written consent.
+Our Content: The Service itself, including its design, code, AI agent pipeline, and proprietary algorithms, is owned by Sozialzynk and protected by applicable intellectual property laws. You may not copy, modify, distribute, or create derivative works from the Service or its components without our written consent.
 
-AI-Generated Content: You acknowledge that AI outputs — including scripts, characters, voice narrations, thumbnails, and images — may be similar to content generated for other users. Sozialzync does not warrant that AI-generated content is unique or free from similarity to third-party works. You are responsible for reviewing all AI output before publishing.`,
+AI-Generated Content: You acknowledge that AI outputs — including scripts, characters, voice narrations, thumbnails, and images — may be similar to content generated for other users. Sozialzynk does not warrant that AI-generated content is unique or free from similarity to third-party works. You are responsible for reviewing all AI output before publishing.`,
   },
   {
     id: 'ai-content',
@@ -71,7 +71,7 @@ AI-Generated Content: You acknowledge that AI outputs — including scripts, cha
     content: `The Service uses a multi-agent AI pipeline to generate content including scripts, images, characters, voice narrations, audio tracks, and short-form video. You acknowledge and agree that:
 
 • All factual claims in generated scripts are verified by our FactCheckAgent against sources gathered by ResearchAgent. However, you remain solely responsible for reviewing and verifying AI output before publishing.
-• Sozialzync does not guarantee the accuracy, completeness, or fitness for purpose of AI-generated content.
+• Sozialzynk does not guarantee the accuracy, completeness, or fitness for purpose of AI-generated content.
 • You must not publish AI-generated content that you know to be false or misleading.
 • Every piece of content must pass the Compliance Intelligence Engine before it is made available for publishing. You must not use or implement any code path that bypasses this compliance gate.
 • Compliance tools are designed to help identify potential issues but do not constitute a guarantee that content will be monetized or approved by YouTube or any other platform.
@@ -81,21 +81,21 @@ AI-Generated Content: You acknowledge that AI outputs — including scripts, cha
   {
     id: 'platform-integrations',
     title: '7. Platform Integrations',
-    content: `When you connect your YouTube account or other social accounts to Sozialzync, you:
+    content: `When you connect your YouTube account or other social accounts to Sozialzynk, you:
 
-• Grant Sozialzync the OAuth permissions necessary to publish content and retrieve analytics on your behalf, using the YouTube Data API and other official APIs.
+• Grant Sozialzynk the OAuth permissions necessary to publish content and retrieve analytics on your behalf, using the YouTube Data API and other official APIs.
 • Remain solely responsible for ensuring that your use of those platforms complies with each platform's own terms of service, community guidelines, and content policies — including YouTube's Terms of Service and Creator Policies.
 • Acknowledge that platform APIs and policies may change at any time, which may affect the availability of certain features.
-• Understand that Sozialzync is not affiliated with, endorsed by, or sponsored by YouTube (Google LLC), Meta, TikTok, LinkedIn, or X Corp.
+• Understand that Sozialzynk is not affiliated with, endorsed by, or sponsored by YouTube (Google LLC), Meta, TikTok, LinkedIn, or X Corp.
 
-You can revoke platform access at any time from your Sozialzync account settings or from the connected platform's security settings.`,
+You can revoke platform access at any time from your Sozialzynk account settings or from the connected platform's security settings.`,
   },
   {
     id: 'billing',
     title: '8. Subscription and Billing',
-    content: `Plans: Sozialzync offers Free, Starter, Pro, and Agency subscription plans. Plan features and limits are described on our pricing page and may be updated from time to time with reasonable notice.
+    content: `Plans: Sozialzynk offers Free, Starter, Pro, and Agency subscription plans. Plan features and limits are described on our pricing page and may be updated from time to time with reasonable notice.
 
-Billing: Paid subscriptions are billed in advance on a monthly or annual basis through Stripe. By subscribing, you authorize Sozialzync to charge your payment method on a recurring basis.
+Billing: Paid subscriptions are billed in advance on a monthly or annual basis through Stripe. By subscribing, you authorize Sozialzynk to charge your payment method on a recurring basis.
 
 AI Credits: Certain AI operations (script generation, image generation, voice synthesis, character creation) consume AI credits. Credits included in your plan refresh monthly. Additional credits may be purchased from the Wallet section.
 
@@ -126,7 +126,7 @@ Violation of these prohibitions may result in immediate account suspension and p
 
 WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR FREE FROM HARMFUL COMPONENTS. WE ARE NOT RESPONSIBLE FOR THE ACTIONS OF THIRD-PARTY PLATFORMS (YOUTUBE, INSTAGRAM, TIKTOK, ETC.) OR CHANGES TO THEIR APIS OR POLICIES. WE ARE NOT RESPONSIBLE FOR YOUTUBE MONETIZATION DECISIONS OR CONTENT STRIKES RESULTING FROM CONTENT YOU CHOOSE TO PUBLISH.
 
-TO THE FULLEST EXTENT PERMITTED BY LAW, Sozialzync'S TOTAL LIABILITY FOR ANY CLAIM ARISING OUT OF OR RELATED TO THESE TERMS OR THE SERVICE SHALL NOT EXCEED THE AMOUNT YOU PAID TO Sozialzync IN THE 12 MONTHS PRECEDING THE CLAIM. IN NO EVENT SHALL WE BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES.`,
+TO THE FULLEST EXTENT PERMITTED BY LAW, Sozialzynk'S TOTAL LIABILITY FOR ANY CLAIM ARISING OUT OF OR RELATED TO THESE TERMS OR THE SERVICE SHALL NOT EXCEED THE AMOUNT YOU PAID TO Sozialzynk IN THE 12 MONTHS PRECEDING THE CLAIM. IN NO EVENT SHALL WE BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES.`,
   },
   {
     id: 'termination',
@@ -169,7 +169,7 @@ export default function TermsPage() {
             href="/"
             className="inline-flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-medium mb-8 transition-colors"
           >
-            ← Back to Sozialzync
+            ← Back to Sozialzynk
           </Link>
           <div className="inline-flex items-center gap-2 bg-white/15 text-white/85 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
             Legal
@@ -188,7 +188,7 @@ export default function TermsPage() {
         {/* Intro */}
         <div className="bg-white rounded-2xl p-6 mb-8 border border-gray-100 shadow-sm">
           <p className="text-gray-600 leading-relaxed">
-            Please read these Terms of Service carefully before using Sozialzync. These Terms govern your
+            Please read these Terms of Service carefully before using Sozialzynk. These Terms govern your
             access to and use of our AI-powered YouTube Content Operating System. By using the Service, you agree
             to be bound by these Terms.
           </p>
@@ -223,7 +223,7 @@ export default function TermsPage() {
           </p>
           <p>
             <Link href="/" className="text-[#6D4AE0] hover:underline">
-              ← Return to Sozialzync
+              ← Return to Sozialzynk
             </Link>
           </p>
         </div>

@@ -302,7 +302,7 @@ export class OtpService {
         body: new URLSearchParams({
           To: to,
           From: from,
-          Body: `Your Sozialzync sign-in code is ${code}. Valid for 10 minutes. Never share this.`,
+          Body: `Your Sozialzynk sign-in code is ${code}. Valid for 10 minutes. Never share this.`,
         }).toString(),
       },
     );

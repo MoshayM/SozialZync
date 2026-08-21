@@ -16,6 +16,7 @@ import { GoogleAdapter } from './providers/google.adapter';
 import { AppleAdapter } from './providers/apple.adapter';
 import { FacebookAdapter } from './providers/facebook.adapter';
 import { TrialModule } from '../trial/trial.module';
+import { MailerService } from '../../common/mailer/mailer.service';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { TrialModule } from '../trial/trial.module';
     GoogleAdapter,
     AppleAdapter,
     FacebookAdapter,
+    MailerService,
   ],
   controllers: [AuthController],
   exports: [AuthService, JwtModule, SessionsService, OAuthService, OtpService, PasswordResetService, WebAuthnService],

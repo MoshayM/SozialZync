@@ -115,7 +115,7 @@ async function bootstrap() {
 
   if (process.env['NODE_ENV'] !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('Sozialzync API')
+      .setTitle('Sozialzynk API')
       .setDescription('AI-powered YouTube content creation platform')
       .setVersion('1.0')
       .addBearerAuth()
@@ -129,7 +129,7 @@ async function bootstrap() {
   // /api/dev-docs-json is the SDK-generation source for API consumers.
   {
     const devConfig = new DocumentBuilder()
-      .setTitle('Sozialzync Developer API')
+      .setTitle('Sozialzynk Developer API')
       .setDescription(
         'Public API — authenticate with a developer key (`Authorization: Bearer cfk_…` or `X-Api-Key`). ' +
           'Generate a client with openapi-generator against /api/dev-docs-json.',
@@ -150,7 +150,7 @@ async function bootstrap() {
   const port = parseInt(process.env['PORT'] ?? process.env['API_PORT'] ?? '4007', 10);
   await app.listen(port, '0.0.0.0');
   const logger = new Logger('Bootstrap');
-  logger.log(`Sozialzync API running on http://localhost:${port}/api/v1`);
+  logger.log(`Sozialzynk API running on http://localhost:${port}/api/v1`);
   logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
 }
 

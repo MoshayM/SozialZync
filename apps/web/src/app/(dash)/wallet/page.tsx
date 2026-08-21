@@ -1125,7 +1125,7 @@ function ReferralCenter() {
     }
   }
 
-  const shareMsg = encodeURIComponent(`Join me on Sozialzync — the best AI platform for YouTube creators! Use my referral link:`);
+  const shareMsg = encodeURIComponent(`Join me on Sozialzynk — the best AI platform for YouTube creators! Use my referral link:`);
   const twitterUrl = codeData ? `https://twitter.com/intent/tweet?text=${shareMsg}&url=${encodeURIComponent(shareUrl)}` : '#';
   const linkedInUrl = codeData ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}` : '#';
   const whatsAppUrl = codeData ? `https://wa.me/?text=${shareMsg}%20${encodeURIComponent(shareUrl)}` : '#';

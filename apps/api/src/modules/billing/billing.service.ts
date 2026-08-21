@@ -118,7 +118,7 @@ export class BillingService {
           price_data: {
             currency: 'usd',
             unit_amount: amountUsd * 100,
-            product_data: { name: `Sozialzync Credits (${credits.toLocaleString()})` },
+            product_data: { name: `Sozialzynk Credits (${credits.toLocaleString()})` },
           },
           quantity: 1,
         }],
