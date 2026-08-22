@@ -722,14 +722,10 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         <Link href="/browse" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity" title="Public Feed">
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" />
           <div className="leading-[1.15] hidden sm:block">
-            <div className="font-bold text-[15px] tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
-            </div>
-            <div className="text-[11px] font-medium" style={{ color: '#5a576b' }}>AI Creator Platform</div>
+            <div className="cf-brand-gradient-text font-extrabold text-[15px] tracking-[-0.5px]">SozialZynk</div>
+            <div className="text-[11px] font-semibold tracking-[0.02em]" style={{ color: '#7C3AED', opacity: 0.75 }}>AI Creator Platform</div>
           </div>
-          <div className="font-bold text-[15px] tracking-[-0.4px] sm:hidden">
-            <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
-          </div>
+          <div className="cf-brand-gradient-text font-extrabold text-[15px] tracking-[-0.5px] sm:hidden">SozialZynk</div>
         </Link>
 
         {/* Search bar — hidden on small screens */}

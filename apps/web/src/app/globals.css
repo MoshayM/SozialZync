@@ -204,3 +204,34 @@
 .animate-pop-in { animation: popIn .3s cubic-bezier(.2,.7,.2,1) both; }
 .animate-drop-down { animation: dropDown .22s cubic-bezier(.2,.7,.2,1) both; }
 .animate-fade-in-cf { animation: fadeIn .2s ease both; }
+
+/* ── Branded headings inside the dashboard shell ────────────────────────── */
+/*
+  Page-level h1 and h2 headings inside the main content area are given the
+  brand deep-purple. Elements explicitly marked text-white (hero banners,
+  gradient cards) are excluded via :not() so they keep their intended colour.
+  This single rule covers all 40+ dashboard pages without touching each file.
+*/
+.cf-main-mobile-pad h1:not([class*="text-white"]):not([style*="color:white"]):not([style*="color: white"]) {
+  color: #4C1D95;
+}
+.cf-main-mobile-pad h2:not([class*="text-white"]):not([class*="text-gray-4"]):not([class*="text-gray-5"]):not([style*="color:white"]) {
+  color: #5B21B6;
+}
+
+/* Brand text-gradient utility for logo / display text */
+.cf-brand-gradient-text {
+  background: linear-gradient(135deg, #7C3AED 0%, #4C1D95 60%, #6D28D9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Section label — small uppercase brand-coloured labels above sections */
+.cf-section-label {
+  color: #7C3AED;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
