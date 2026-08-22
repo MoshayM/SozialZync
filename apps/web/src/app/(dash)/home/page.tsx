@@ -232,7 +232,7 @@ function OnboardingWizard({
           type="button"
           onClick={() => onAdvance(current.href)}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] mb-3"
-          style={{ background: 'linear-gradient(135deg,#a78bfa,#6D4AE0)', boxShadow: '0 8px 24px -6px rgba(109,74,224,.45)' }}
+          style={{ background: 'linear-gradient(135deg,#374151,#1f2937)', boxShadow: '0 8px 24px -6px rgba(55,65,81,.45)' }}
         >
           {current.cta}
           <ArrowRight className="w-4 h-4" />
@@ -635,7 +635,7 @@ export default function HomePage() {
                   type="button"
                   onClick={() => openCopilotWithPrompt('Create a new YouTube video project')}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.99]"
-                  style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)', boxShadow: '0 4px 16px rgba(109,74,224,0.30)' }}
+                  style={{ background: 'linear-gradient(135deg, #374151, #4b5563)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
                 >
                   <Bot className="w-4 h-4" /> Ask AI to start
                 </button>

@@ -64,7 +64,7 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'research', icon: BookOpen,    label: 'Research',     description: "I'll dig into any topic for you",            placeholder: 'What topic?',                template: v => `Research this topic in depth for a YouTube video: ${v}`,                                   color: '#3b82f6', bg: '#eff6ff' },
-  { id: 'script',   icon: FileText,    label: 'Script Ideas', description: 'Build a full script from scratch',           placeholder: 'Video title or concept?',    template: v => `Generate a detailed script outline for a YouTube video titled: "${v}"`,               color: '#7C3AED', bg: '#f5f2fd' },
+  { id: 'script',   icon: FileText,    label: 'Script Ideas', description: 'Build a full script from scratch',           placeholder: 'Video title or concept?',    template: v => `Generate a detailed script outline for a YouTube video titled: "${v}"`,               color: '#374151', bg: '#f3f4f6' },
   { id: 'calendar', icon: Calendar,    label: 'Content Plan', description: 'Lock in your posting schedule',              placeholder: "What's your niche?",         template: v => `Suggest a 2-week content calendar for a YouTube channel about: ${v}`,               color: '#10b981', bg: '#ecfdf5' },
   { id: 'seo',      icon: Search,      label: 'SEO Analysis', description: 'Boost your reach with smarter SEO',          placeholder: 'Topic or keyword?',          template: v => `Analyze the SEO potential and suggest optimized titles, tags, and keywords for: ${v}`, color: '#d97706', bg: '#fefce8' },
   { id: 'ideas',    icon: Sparkles,    label: 'Video Ideas',  description: "Brainstorm ideas that'll get views",         placeholder: "What's your channel niche?", template: v => `Give me 10 viral YouTube video ideas for a channel focused on: ${v}`,             color: '#ec4899', bg: '#fdf2f8' },
@@ -143,13 +143,13 @@ function VoiceBars({ active, color = '#fff', compact = false }: { active: boolea
 
 function StepIcon({ status }: { status: PlanStep['status'] }) {
   if (status === 'done')    return <CheckCircle2 style={{ width:14,height:14,color:'#4ADE80',flexShrink:0 }} />;
-  if (status === 'running') return <Loader2 style={{ width:14,height:14,color:'#A78BFA',flexShrink:0,animation:'cfSpinSimple 1s linear infinite' }} />;
+  if (status === 'running') return <Loader2 style={{ width:14,height:14,color:'#9ca3af',flexShrink:0,animation:'cfSpinSimple 1s linear infinite' }} />;
   if (status === 'failed')  return <AlertCircle style={{ width:14,height:14,color:'#F87171',flexShrink:0 }} />;
   return <Circle style={{ width:14,height:14,color:'rgba(255,255,255,.2)',flexShrink:0 }} />;
 }
 
 function JobDot({ status }: { status: string }) {
-  const c: Record<string,string> = { COMPLETED:'#4ADE80',RUNNING:'#A78BFA',PENDING:'#FBBF24',QUEUED:'#FBBF24',FAILED:'#F87171',CANCELLED:'#d1d5db' };
+  const c: Record<string,string> = { COMPLETED:'#4ADE80',RUNNING:'#9ca3af',PENDING:'#FBBF24',QUEUED:'#FBBF24',FAILED:'#F87171',CANCELLED:'#d1d5db' };
   return <span style={{ display:'inline-block',width:7,height:7,borderRadius:'50%',background:c[status]??'#d1d5db',flexShrink:0 }} />;
 }
 
@@ -455,7 +455,7 @@ function RobotAvatar({ state, excited = false, compact = false, onMicToggle, voi
     : state === 'idle'     ? 'cfFloat 3s ease-in-out infinite'
     : 'none';
 
-  const sparkleColors = ['#00CCFF','#A78BFA','#34D399','#FBBF24','#F472B6'];
+  const sparkleColors = ['#00CCFF','#9ca3af','#34D399','#FBBF24','#F472B6'];
 
   if (compact) {
     return (
@@ -489,7 +489,7 @@ function RobotAvatar({ state, excited = false, compact = false, onMicToggle, voi
 // ── Speech Bubble ─────────────────────────────────────────────────────────────
 
 function SpeechBubble({ text, state }: { text: string; state: RobotState }) {
-  const color = state === 'listening' ? '#4ADE80' : state === 'thinking' ? '#FBBF24' : state === 'speaking' ? '#C4B5FD' : 'rgba(255,255,255,0.88)';
+  const color = state === 'listening' ? '#4ADE80' : state === 'thinking' ? '#FBBF24' : state === 'speaking' ? '#d1d5db' : 'rgba(255,255,255,0.88)';
   const isLong = text.length > 38;
   return (
     <div style={{ textAlign:'center', marginBottom:6, width:224, overflow:'hidden' }}>
@@ -967,7 +967,7 @@ export function CopilotPanel() {
   const isTranscribing  = liveTranscript === 'Transcribing…';
   const currentAction   = QUICK_ACTIONS.find(a => a.id === activeAction);
   const statusLabel     = micError ? micError : listening ? 'Listening…' : speaking ? 'Speaking…' : busy ? 'Thinking…' : 'Ready';
-  const statusColor     = micError ? '#F87171' : listening ? '#4ADE80' : speaking ? '#A78BFA' : busy ? '#FBBF24' : '#4ADE80';
+  const statusColor     = micError ? '#F87171' : listening ? '#4ADE80' : speaking ? '#9ca3af' : busy ? '#FBBF24' : '#4ADE80';
 
   const robotState: RobotState = isVoiceActive ? 'listening' : busy ? 'thinking' : speaking ? 'speaking' : 'idle';
 
@@ -989,19 +989,19 @@ export function CopilotPanel() {
       <style>{`
         .cf-copilot-widget * { box-sizing: border-box; }
         .cf-copilot-widget textarea::placeholder { color: rgba(255,255,255,0.32); }
-        .cf-copilot-widget textarea { caret-color: #A78BFA; }
+        .cf-copilot-widget textarea { caret-color: #9ca3af; }
         .cf-popup-input:focus-within {
-          border-color: rgba(167,139,250,0.55) !important;
-          box-shadow: 0 0 0 3px rgba(124,58,237,0.14) !important;
+          border-color: rgba(107,114,128,0.5) !important;
+          box-shadow: 0 0 0 3px rgba(75,85,99,0.12) !important;
         }
         .cf-foot-btn { transition: all 0.17s; }
         .cf-foot-btn:hover { background: rgba(255,255,255,0.14) !important; }
         .cf-topic-btn { transition: all 0.17s; }
-        .cf-topic-btn:hover { background: rgba(167,139,250,0.18) !important; border-color: rgba(167,139,250,0.45) !important; transform: translateY(-1px); }
+        .cf-topic-btn:hover { background: rgba(255,255,255,0.14) !important; border-color: rgba(255,255,255,0.28) !important; transform: translateY(-1px); }
         .cf-act-card { transition: background 0.17s, border-color 0.17s, transform 0.15s; }
         .cf-act-card:hover:not(.cf-act-active) {
           background: rgba(255,255,255,0.1) !important;
-          border-color: rgba(167,139,250,0.3) !important;
+          border-color: rgba(255,255,255,0.18) !important;
           transform: translateY(-2px);
         }
         .cf-msg-row:hover .cf-msg-assistant { background: rgba(255,255,255,0.13) !important; }
@@ -1136,10 +1136,10 @@ export function CopilotPanel() {
 
                     {messages.map((m, i) => (
                       <div key={i} className="cf-msg-row" style={{ display:'flex', gap:7, flexDirection:m.role==='user'?'row-reverse':'row', alignItems:'flex-end' }}>
-                        <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:m.role==='user'?'rgba(255,255,255,0.12)':'linear-gradient(135deg,#7C3AED,#4F1D96)', border:m.role==='user'?'1px solid rgba(255,255,255,0.2)':'none', color:'#fff', fontSize:9, fontWeight:700 }}>
+                        <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:m.role==='user'?'rgba(255,255,255,0.12)':'linear-gradient(135deg,#374151,#111827)', border:m.role==='user'?'1px solid rgba(255,255,255,0.2)':'none', color:'#fff', fontSize:9, fontWeight:700 }}>
                           {m.role==='user' ? 'U' : <Zap style={{ width:10, height:10 }} />}
                         </div>
-                        <div className={m.role==='assistant'?'cf-msg-assistant':''} style={{ maxWidth:'82%', padding:'8px 11px', borderRadius:m.role==='user'?'12px 12px 3px 12px':'3px 12px 12px 12px', fontSize:12.5, lineHeight:1.55, whiteSpace:'pre-wrap', background:m.role==='user'?'linear-gradient(135deg,#7C3AED,#4F1D96)':'rgba(255,255,255,0.09)', color:'#fff', border:m.role==='assistant'?'1px solid rgba(255,255,255,0.09)':'1px solid rgba(167,139,250,0.22)', boxShadow:m.role==='user'?'0 4px 14px -4px rgba(124,58,237,.5)':'none', animation:'cfSlideUp 0.2s ease-out both', transition:'background 0.2s' }}>
+                        <div className={m.role==='assistant'?'cf-msg-assistant':''} style={{ maxWidth:'82%', padding:'8px 11px', borderRadius:m.role==='user'?'12px 12px 3px 12px':'3px 12px 12px 12px', fontSize:12.5, lineHeight:1.55, whiteSpace:'pre-wrap', background:m.role==='user'?'linear-gradient(135deg,#374151,#111827)':'rgba(255,255,255,0.09)', color:'#fff', border:m.role==='assistant'?'1px solid rgba(255,255,255,0.09)':'1px solid rgba(255,255,255,0.15)', boxShadow:m.role==='user'?'0 4px 14px -4px rgba(55,65,81,.5)':'none', animation:'cfSlideUp 0.2s ease-out both', transition:'background 0.2s' }}>
                           {m.content}
                           {m.fromCache && <span style={{ fontSize:9, color:'rgba(255,255,255,.4)', marginLeft:5 }}>cached</span>}
                           {m.role === 'assistant' && ttsAvailable && (
@@ -1155,7 +1155,7 @@ export function CopilotPanel() {
                                 primeSpeechSession();
                                 speak(m.content, undefined, undefined, i);
                               }}
-                              style={{ background:'none', border:'none', cursor:'pointer', padding:'2px 0 0', marginTop:3, display:'block', fontSize:11, opacity:speakingIdx===i?1:0.45, color:speakingIdx===i?'#C4B5FD':'rgba(255,255,255,0.7)', transition:'opacity 0.2s' }}
+                              style={{ background:'none', border:'none', cursor:'pointer', padding:'2px 0 0', marginTop:3, display:'block', fontSize:11, opacity:speakingIdx===i?1:0.45, color:speakingIdx===i?'#d1d5db':'rgba(255,255,255,0.7)', transition:'opacity 0.2s' }}
                               title={speakingIdx===i?'Stop':'Tap to hear'}
                               aria-label={speakingIdx===i?'Stop speaking':'Read aloud'}
                             >
@@ -1168,10 +1168,10 @@ export function CopilotPanel() {
 
                     {busy && (
                       <div style={{ display:'flex', gap:7, alignItems:'flex-end' }}>
-                        <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#7C3AED,#5B21B6)' }}>
+                        <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#374151,#4b5563)' }}>
                           <Zap style={{ width:10, height:10, color:'#fff' }} />
                         </div>
-                        <div style={{ padding:'8px 12px', borderRadius:'3px 12px 12px 12px', background:'linear-gradient(160deg,#7C3AED,#5B21B6)', border:'1px solid rgba(124,58,237,.2)' }}>
+                        <div style={{ padding:'8px 12px', borderRadius:'3px 12px 12px 12px', background:'linear-gradient(160deg,#1f2937,#374151)', border:'1px solid rgba(107,114,128,.2)' }}>
                           <div style={{ display:'flex', alignItems:'center', gap:2, height:14 }}>
                             {['5px','9px','13px','9px','5px'].map((h,i) => (
                               <span key={i} style={{ display:'inline-block', width:2.5, borderRadius:3, background:'rgba(233,213,255,.85)', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
@@ -1183,10 +1183,10 @@ export function CopilotPanel() {
                     )}
 
                     {currentPlan && (
-                      <div style={{ background:'#1E1B2E', borderRadius:12, padding:'10px 12px', border:'1px solid rgba(124,58,237,.3)' }}>
+                      <div style={{ background:'#1E1B2E', borderRadius:12, padding:'10px 12px', border:'1px solid rgba(107,114,128,.3)' }}>
                         <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-                          <BrainCircuit style={{ width:12, height:12, color:'#A78BFA' }} />
-                          <span style={{ fontSize:10, fontWeight:700, color:'#A78BFA', letterSpacing:'.5px' }}>TASK PLAN</span>
+                          <BrainCircuit style={{ width:12, height:12, color:'#9ca3af' }} />
+                          <span style={{ fontSize:10, fontWeight:700, color:'#9ca3af', letterSpacing:'.5px' }}>TASK PLAN</span>
                           <button type="button" onClick={() => setCurrentPlan(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'rgba(255,255,255,.35)', cursor:'pointer', padding:0 }}><X style={{ width:10, height:10 }} /></button>
                         </div>
                         <p style={{ fontSize:11.5, fontWeight:600, color:'#fff', marginBottom:8 }}>{currentPlan.goal}</p>
@@ -1211,7 +1211,7 @@ export function CopilotPanel() {
                           {pendingEst !== null ? `Est. ${pendingEst.toLocaleString()} credits` : 'Cost varies'}
                         </p>
                         <div style={{ display:'flex', gap:6 }}>
-                          <button onClick={() => void send('', pending)} style={{ padding:'6px 12px', background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', borderRadius:8, fontSize:11.5, fontWeight:600, border:'none', cursor:'pointer' }}>Confirm</button>
+                          <button onClick={() => void send('', pending)} style={{ padding:'6px 12px', background:'linear-gradient(135deg,#374151,#4b5563)', color:'#fff', borderRadius:8, fontSize:11.5, fontWeight:600, border:'none', cursor:'pointer' }}>Confirm</button>
                           <button onClick={() => { setPending(null); setPendingEst(null); }} style={{ padding:'6px 12px', background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.65)', borderRadius:8, fontSize:11.5, fontWeight:600, border:'1px solid rgba(255,255,255,0.12)', cursor:'pointer' }}>Cancel</button>
                         </div>
                       </div>
@@ -1223,7 +1223,7 @@ export function CopilotPanel() {
                   {/* Input bar */}
                   <div style={{ padding:'8px 10px 10px', background:'rgba(0,0,0,0.25)', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
                     {isVoiceActive ? (
-                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'linear-gradient(135deg,#7C3AED,#5B21B6)', borderRadius:12, padding:'8px 12px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'linear-gradient(135deg,#374151,#4b5563)', borderRadius:12, padding:'8px 12px' }}>
                         <div style={{ display:'flex', alignItems:'center', gap:2 }}>
                           {['8px','14px','18px','14px','8px'].map((h,i) => (
                             <span key={i} style={{ display:'inline-block', width:2.5, borderRadius:2, background:'rgba(255,255,255,.9)', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
@@ -1235,9 +1235,9 @@ export function CopilotPanel() {
                         </button>
                       </div>
                     ) : isTranscribing ? (
-                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(124,58,237,0.15)', border:'1px solid rgba(167,139,250,0.35)', borderRadius:12, padding:'10px 14px' }}>
-                        <Loader2 style={{ width:15, height:15, color:'#A78BFA', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
-                        <span style={{ fontSize:12.5, fontWeight:500, color:'#C4B5FD' }}>Processing…</span>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(55,65,81,0.25)', border:'1px solid rgba(107,114,128,0.35)', borderRadius:12, padding:'10px 14px' }}>
+                        <Loader2 style={{ width:15, height:15, color:'#9ca3af', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
+                        <span style={{ fontSize:12.5, fontWeight:500, color:'#d1d5db' }}>Processing…</span>
                       </div>
                     ) : micError ? (
                       <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:12, padding:'9px 12px' }}>
@@ -1268,7 +1268,7 @@ export function CopilotPanel() {
                           type="button"
                           onClick={() => { if (input.trim()) void send(input.trim()); }}
                           disabled={!input.trim() || busy}
-                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', opacity:(!input.trim()||busy)?0.4:1, transition:'opacity .15s' }}
+                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:'linear-gradient(135deg,#374151,#4b5563)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', opacity:(!input.trim()||busy)?0.4:1, transition:'opacity .15s' }}
                         >
                           <Send style={{ width:13, height:13 }} />
                         </button>
@@ -1344,7 +1344,7 @@ export function CopilotPanel() {
                 <div style={{ padding:'8px 10px 10px', maxHeight:300, overflowY:'auto', display:'flex', flexDirection:'column', gap:6 }}>
                   {recentJobs.length === 0 ? (
                     <div style={{ textAlign:'center', padding:'20px 0' }}>
-                      <Zap style={{ width:24, height:24, color:'#C4B5FD', margin:'0 auto 8px' }} />
+                      <Zap style={{ width:24, height:24, color:'#d1d5db', margin:'0 auto 8px' }} />
                       <p style={{ fontSize:12.5, color:'rgba(255,255,255,0.45)' }}>No tasks yet</p>
                     </div>
                   ) : recentJobs.map(j => (
@@ -1384,12 +1384,12 @@ export function CopilotPanel() {
                   style={{
                     display:'flex', alignItems:'center', gap:5,
                     padding:'8px 14px', borderRadius:999,
-                    background: isA ? 'rgba(167,139,250,0.22)' : 'rgba(14,10,28,0.85)',
-                    border: `1.5px solid ${isA ? 'rgba(167,139,250,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                    background: isA ? 'rgba(255,255,255,0.16)' : 'rgba(14,10,28,0.85)',
+                    border: `1.5px solid ${isA ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.12)'}`,
                     backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-                    color: isA ? '#C4B5FD' : 'rgba(255,255,255,0.7)',
+                    color: isA ? '#ffffff' : 'rgba(255,255,255,0.7)',
                     fontSize:12, fontWeight:600, cursor:'pointer',
-                    boxShadow: isA ? '0 0 14px rgba(167,139,250,0.2)' : '0 4px 14px rgba(0,0,0,0.35)',
+                    boxShadow: isA ? '0 0 14px rgba(255,255,255,0.1)' : '0 4px 14px rgba(0,0,0,0.35)',
                     transition:'all 0.17s',
                   }}>
                   <Icon style={{ width:12, height:12 }} />{label}
@@ -1404,8 +1404,8 @@ export function CopilotPanel() {
               width: 248,
               overflow: 'hidden',
               borderRadius: 99,
-              background: 'rgba(109,74,224,0.82)',
-              border: '1px solid rgba(167,139,250,0.5)',
+              background: 'rgba(17,24,39,0.92)',
+              border: '1px solid rgba(255,255,255,0.2)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
               padding: '7px 16px',
@@ -1416,8 +1416,8 @@ export function CopilotPanel() {
               {/* Pulsing AI dot */}
               <span style={{
                 width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                background: '#A78BFA',
-                boxShadow: '0 0 8px rgba(167,139,250,0.8)',
+                background: '#9ca3af',
+                boxShadow: '0 0 8px rgba(156,163,175,0.5)',
                 animation: 'cfPulse 1.8s ease-in-out infinite',
               }} />
               {/* Ticker text */}
@@ -1491,7 +1491,7 @@ export function CopilotPanel() {
                   {/* Last 3 messages */}
                   {messages.slice(-3).map((m, i) => (
                     <div key={i} style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
-                      <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color: m.role === 'user' ? 'rgba(167,139,250,0.7)' : 'rgba(96,165,250,0.7)' }}>
+                      <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color: m.role === 'user' ? 'rgba(156,163,175,0.7)' : 'rgba(96,165,250,0.7)' }}>
                         {m.role === 'user' ? 'YOU' : 'AI'}
                       </span>
                       <p style={{ margin:0, fontSize:11, lineHeight:1.45, color: m.role === 'user' ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.78)', textAlign: m.role === 'user' ? 'right' : 'left', wordBreak:'break-word' }}>
@@ -1511,8 +1511,8 @@ export function CopilotPanel() {
                   {/* Transcribing */}
                   {liveTranscript === 'Transcribing…' && (
                     <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                      <Loader2 style={{ width:10, height:10, color:'#A78BFA', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
-                      <span style={{ fontSize:11, color:'#A78BFA', fontStyle:'italic' }}>Transcribing…</span>
+                      <Loader2 style={{ width:10, height:10, color:'#9ca3af', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
+                      <span style={{ fontSize:11, color:'#9ca3af', fontStyle:'italic' }}>Transcribing…</span>
                     </div>
                   )}
 

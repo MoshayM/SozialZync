@@ -281,12 +281,12 @@ function CommandPalette({
                         onMouseEnter={() => onSelectedIdxChange(currentIdx)}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
                         style={{
-                          background: isSelected ? '#f5f2fd' : 'transparent',
-                          color: isSelected ? '#6D4AE0' : '#374151',
+                          background: isSelected ? '#f3f4f6' : 'transparent',
+                          color: isSelected ? '#111827' : '#374151',
                         }}
                       >
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: isSelected ? '#ede9fe' : '#f3f4f6' }}>
-                          <Icon className="w-3.5 h-3.5" style={{ color: isSelected ? '#6D4AE0' : '#6b7280' }} />
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: isSelected ? '#e5e7eb' : '#f3f4f6' }}>
+                          <Icon className="w-3.5 h-3.5" style={{ color: isSelected ? '#111827' : '#6b7280' }} />
                         </div>
                         <span className="font-medium">{item.label}</span>
                       </button>
@@ -635,14 +635,14 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   letterSpacing: isActive ? '-.15px' : '-.05px',
                   textDecoration: 'none',
                   justifyContent: opts.collapsed ? 'center' : 'flex-start',
-                  background: isActive ? '#f5f2fd' : 'transparent',
-                  color: isActive ? '#6D4AE0' : '#374151',
+                  background: isActive ? '#f3f4f6' : 'transparent',
+                  color: isActive ? '#111827' : '#374151',
                   transition: 'background 180ms ease, color 180ms ease',
                   boxShadow: 'none',
                 };
                 const inner = (
                   <>
-                    <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#6D4AE0' : '#9ca3af' }} />
+                    <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#111827' : '#9ca3af' }} />
                     {!opts.collapsed && (
                       <>
                         <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>{label}</span>
@@ -663,7 +663,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     )}
                   </>
                 );
-                const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = '#f5f2fd'; el.style.color = '#6D4AE0'; } };
+                const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = '#f3f4f6'; el.style.color = '#374151'; } };
                 const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = '#374151'; } };
                 return action ? (
                   <button
@@ -1081,7 +1081,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
                 style={{ color: '#374151', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f5f2fd'; (e.currentTarget as HTMLElement).style.color = '#6D4AE0'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
               >
                 <Icon style={{ width: '17px', height: '17px', flexShrink: 0, color: '#9ca3af' }} />
