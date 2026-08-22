@@ -39,7 +39,10 @@ function parseToken(): { plan?: string; role?: string } {
 /** Returns true if the current user is a SUPER_ADMIN or OWNER — bypasses all plan gates. */
 export function isAdminRole(): boolean {
   const { role } = parseToken();
-  return role === 'SUPER_ADMIN' || role === 'OWNER';
+  if (role) return role === 'SUPER_ADMIN' || role === 'OWNER';
+  // Fallback: role cached by DashLayout from /me API response
+  const cached = typeof window !== 'undefined' ? localStorage.getItem('cf_user_role') : null;
+  return cached === 'SUPER_ADMIN' || cached === 'OWNER';
 }
 
 /** Hook version — safe for SSR (reads after mount). */
