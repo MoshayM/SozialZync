@@ -596,15 +596,15 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 style={{
                   gap: '6px', padding: '10px 12px 6px', background: 'transparent',
                   fontSize: '11.5px', fontWeight: 600, letterSpacing: '-.1px',
-                  color: '#7C3AED', fontFamily: 'inherit', transition: 'color 150ms ease',
+                  color: '#9ca3af', fontFamily: 'inherit', transition: 'color 150ms ease',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#4C1D95'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#7C3AED'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#6b7280'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#9ca3af'; }}
               >
                 <span style={{ flex: '1 1 auto', textAlign: 'left' }}>{category}</span>
                 <ChevronDown style={{
                   width: '14px', height: '14px', flexShrink: 0,
-                  color: '#7C3AED',
+                  color: '#9ca3af',
                   transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
                   transition: 'transform 220ms ease',
                 }} />
@@ -612,7 +612,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             ) : (
               <div style={{
                 fontSize: '11.5px', fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
-                color: '#7C3AED', padding: '10px 12px 6px',
+                color: '#9ca3af', padding: '10px 12px 6px',
               }}>
                 {category}
               </div>
@@ -636,13 +636,13 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   textDecoration: 'none',
                   justifyContent: opts.collapsed ? 'center' : 'flex-start',
                   background: isActive ? '#f5f2fd' : 'transparent',
-                  color: isActive ? '#6D4AE0' : '#4B3B8C',
+                  color: isActive ? '#6D4AE0' : '#374151',
                   transition: 'background 180ms ease, color 180ms ease',
                   boxShadow: 'none',
                 };
                 const inner = (
                   <>
-                    <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#6D4AE0' : '#9580D4' }} />
+                    <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#6D4AE0' : '#9ca3af' }} />
                     {!opts.collapsed && (
                       <>
                         <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>{label}</span>
@@ -664,7 +664,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   </>
                 );
                 const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = '#f5f2fd'; el.style.color = '#6D4AE0'; } };
-                const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = '#4B3B8C'; } };
+                const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = '#374151'; } };
                 return action ? (
                   <button
                     key={href}
@@ -731,7 +731,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" />
           <div className="leading-[1.15] hidden sm:block">
             <div className="cf-brand-gradient-text font-extrabold text-[15px] tracking-[-0.5px]">SozialZynk</div>
-            <div className="text-[11px] font-semibold tracking-[0.02em]" style={{ color: '#7C3AED', opacity: 0.75 }}>AI Creator Platform</div>
+            <div className="text-[11px] font-semibold tracking-[0.02em]" style={{ color: '#6b7280' }}>AI Creator Platform</div>
           </div>
           <div className="cf-brand-gradient-text font-extrabold text-[15px] tracking-[-0.5px] sm:hidden">SozialZynk</div>
         </Link>
@@ -759,7 +759,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             href="/admin"
             title="Admin panel"
             className="flex w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] items-center justify-center transition-all shrink-0 touch-manipulation"
-            style={{ border: '1.5px solid #7C3AED', background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', color: '#fff', boxShadow: '0 2px 8px rgba(124,58,237,0.3)' }}
+            style={{ border: '1.5px solid #e5e7eb', background: '#f9fafb', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.88'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
           >
@@ -1009,18 +1009,14 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               borderBottom: '1px solid #f0f0f0',
             }}
           >
-            {/* Branded logo icon */}
-            <div className="shrink-0 flex items-center justify-center rounded-[11px]"
-              style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg,#7C3AED 0%,#4C1D95 100%)', boxShadow: '0 2px 10px rgba(124,58,237,0.35)' }}>
-              <LogoMark variant="light" style={{ width: '24px', height: '18px' }} />
-            </div>
+            <LogoMark className="shrink-0" style={{ width: '34px', height: '34px' }} />
             {!sidebarCollapsed && (
               <>
-                <div style={{ overflow: 'hidden', lineHeight: 1.3, flex: '1 1 auto' }}>
-                  <div className="cf-brand-gradient-text" style={{ fontWeight: 800, fontSize: '16px', letterSpacing: '-.5px', whiteSpace: 'nowrap' }}>
+                <div style={{ overflow: 'hidden', lineHeight: 1.35, flex: '1 1 auto' }}>
+                  <div style={{ fontWeight: 800, fontSize: '16px', letterSpacing: '-.5px', whiteSpace: 'nowrap', color: '#111827' }}>
                     SozialZynk
                   </div>
-                  <div style={{ fontSize: '11px', color: '#7C3AED', fontWeight: 700, letterSpacing: '.02em', whiteSpace: 'nowrap' }}>AI Creator Platform</div>
+                  <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500, letterSpacing: '.01em', whiteSpace: 'nowrap' }}>AI Creator Platform</div>
                 </div>
                 {/* Close button — only visible on mobile */}
                 <button
@@ -1084,11 +1080,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 href={href}
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                style={{ color: '#4B3B8C', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
+                style={{ color: '#374151', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f5f2fd'; (e.currentTarget as HTMLElement).style.color = '#6D4AE0'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#4B3B8C'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
               >
-                <Icon style={{ width: '17px', height: '17px', flexShrink: 0, color: '#9580D4' }} />
+                <Icon style={{ width: '17px', height: '17px', flexShrink: 0, color: '#9ca3af' }} />
                 {label}
               </Link>
             ))}
