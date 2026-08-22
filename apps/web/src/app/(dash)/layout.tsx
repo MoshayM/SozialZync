@@ -551,7 +551,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       // Non-fatal
     }
     clearTokens();
-    router.push('/login');
+    router.push('/explore');
   }
 
   /* Sidebar nav link renderer (shared by desktop sidebar + mobile drawer) */
