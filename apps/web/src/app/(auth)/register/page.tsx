@@ -26,8 +26,8 @@ function Input({
 }) {
   return (
     <div
-      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
-      style={{ border: '1.5px solid #ece8f8', background: '#fff' }}
+      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
+      style={{ border: '1.5px solid #e5e7eb', background: '#fff' }}
     >
       <input
         type={type}
@@ -115,7 +115,7 @@ function RegisterInner() {
       footer={
         <>
           Already have an account?{' '}
-          <Link href="/login" className="text-[#6D4AE0] font-semibold hover:underline">
+          <Link href="/login" className="text-[#374151] font-semibold hover:underline">
             Sign in
           </Link>
           <br />
@@ -172,8 +172,8 @@ function RegisterInner() {
           disabled={loading}
           className="w-full py-[11px] text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
           style={{
-            background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-            boxShadow: '0 4px 16px rgba(109,74,224,0.28)',
+            background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
+            boxShadow: '0 4px 16px rgba(55,65,81,0.28)',
           }}
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}

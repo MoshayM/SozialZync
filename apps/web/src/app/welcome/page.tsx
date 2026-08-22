@@ -19,16 +19,16 @@ export const metadata: Metadata = {
 // ── Capabilities ──────────────────────────────────────────────────────────────
 
 const CAPABILITIES = [
-  { icon: Bot,           color: '#7C3AED', bg: '#F3EEFF', title: 'AI Copilot (Voice)',      desc: 'Voice-enabled robot assistant. Speak to plan, create, and manage your channel — live transcript + chest-panel mic.' },
+  { icon: Bot,           color: '#374151', bg: '#F3EEFF', title: 'AI Copilot (Voice)',      desc: 'Voice-enabled robot assistant. Speak to plan, create, and manage your channel — live transcript + chest-panel mic.' },
   { icon: Zap,           color: '#D97706', bg: '#FFFBEB', title: 'Trend Discovery',          desc: 'Surfaces trending topics before they peak so you create content while the audience is growing.' },
   { icon: Target,        color: '#BE185D', bg: '#FDF2F8', title: 'Research & Fact-Check',    desc: 'ResearchAgent gathers source material; FactCheckAgent verifies every claim before it reaches your script.' },
-  { icon: Sparkles,      color: '#7C3AED', bg: '#F3EEFF', title: 'AI Script Writer',         desc: 'Monetization-compliant, fact-checked scripts in your brand voice — with hooks, CTAs, and platform SEO baked in.' },
+  { icon: Sparkles,      color: '#374151', bg: '#F3EEFF', title: 'AI Script Writer',         desc: 'Monetization-compliant, fact-checked scripts in your brand voice — with hooks, CTAs, and platform SEO baked in.' },
   { icon: Users,         color: '#0891B2', bg: '#ECFEFF', title: 'Character Studio',         desc: 'Generate original AI characters and avatars for your videos, thumbnails, and brand identity.' },
   { icon: Star,          color: '#DC2626', bg: '#FFF1F1', title: 'AI Thumbnails & Images',  desc: 'Eye-catching thumbnails and storyboard frames generated in seconds — sized for every platform.' },
   { icon: Globe2,        color: '#059669', bg: '#ECFDF5', title: 'Voice & Audio Studio',     desc: 'Text-to-speech narration, multi-voice synthesis, and AI music — all with your brand voice profile.' },
   { icon: Film,          color: '#1D4ED8', bg: '#EFF6FF', title: 'Shorts Studio',            desc: 'AI finds the best moments from long videos, adds captions and hooks, and exports viral Shorts.' },
   { icon: ShieldCheck,   color: '#059669', bg: '#ECFDF5', title: 'Compliance Engine',        desc: 'Every piece of content passes copyright, platform monetization policy, and fact-check gates automatically.' },
-  { icon: Calendar,      color: '#7C3AED', bg: '#F3EEFF', title: 'Publish & Autopilot',      desc: 'Schedule at peak times, review before publish, or let Autopilot handle the full pipeline hands-free.' },
+  { icon: Calendar,      color: '#374151', bg: '#F3EEFF', title: 'Publish & Autopilot',      desc: 'Schedule at peak times, review before publish, or let Autopilot handle the full pipeline hands-free.' },
   { icon: LineChart,     color: '#D97706', bg: '#FFFBEB', title: 'A/B Testing',              desc: 'Test titles and thumbnails on live videos. AI picks the winner — more clicks, better rankings.' },
   { icon: MessageSquare, color: '#0891B2', bg: '#ECFEFF', title: 'Channel Analytics',        desc: 'All your performance metrics in one place. AI recommends what to create next based on what actually works.' },
 ];
@@ -60,7 +60,7 @@ export default function WelcomePage() {
     <>
       <style>{`
         html { scroll-behavior: smooth; }
-        .glow-ring { box-shadow: 0 0 0 1px rgba(124,58,237,.2), 0 0 60px rgba(124,58,237,.3), 0 0 120px rgba(124,58,237,.1); }
+        .glow-ring { box-shadow: 0 0 0 1px rgba(55,65,81,.2), 0 0 60px rgba(55,65,81,.3), 0 0 120px rgba(55,65,81,.1); }
         @keyframes float-slow { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
         .float-slow { animation: float-slow 6s ease-in-out infinite; }
         @keyframes pulse-soft { 0%,100% { opacity:.6; } 50% { opacity:1; } }
@@ -78,12 +78,12 @@ export default function WelcomePage() {
         @keyframes count-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes dash-travel { to { stroke-dashoffset: -20; } }
         .card-3d { transform-style:preserve-3d; transition:transform 0.45s ease,box-shadow 0.45s ease; }
-        .card-3d:hover { transform:perspective(900px) rotateX(-5deg) rotateY(7deg) translateZ(10px) scale(1.02); box-shadow:0 32px 64px -12px rgba(124,58,237,0.45); }
+        .card-3d:hover { transform:perspective(900px) rotateX(-5deg) rotateY(7deg) translateZ(10px) scale(1.02); box-shadow:0 32px 64px -12px rgba(55,65,81,0.45); }
         .float-a { animation:float-a 7s ease-in-out infinite; }
         .float-b { animation:float-b 9s ease-in-out infinite; }
         .float-c { animation:float-c 11s ease-in-out infinite; }
         .gradient-animated { background-size:200% 200%; animation:gradient-shift 4s ease infinite; }
-        .shimmer-btn { background: linear-gradient(90deg,#a78bfa,#7C3AED,#818cf8,#7C3AED,#a78bfa); background-size:300% 100%; animation:shimmer 3s linear infinite; }
+        .shimmer-btn { background: linear-gradient(90deg,#9ca3af,#374151,#818cf8,#374151,#9ca3af); background-size:300% 100%; animation:shimmer 3s linear infinite; }
         .orb-pulse { animation:orb-pulse 6s ease-in-out infinite; }
         .spin-slow { animation:spin-slow 30s linear infinite; }
         .spin-rev  { animation:spin-rev  45s linear infinite; }
@@ -100,7 +100,7 @@ export default function WelcomePage() {
             <Link href="/explore" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="SozialZynk — Go to public feed">
               <LogoMark className="w-9 h-9 shrink-0" variant="light" />
               <span className="font-bold text-lg leading-none hidden sm:block tracking-[-0.4px]">
-                <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Z</span><span className="text-white">ynk</span>
+                <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Z</span><span className="text-white">ynk</span>
               </span>
             </Link>
 
@@ -116,7 +116,7 @@ export default function WelcomePage() {
               <Link href="/login" className="px-4 py-2 rounded-xl text-white/80 text-sm font-semibold hover:text-white hover:bg-white/8 transition-colors min-h-[44px] flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                 Log in
               </Link>
-              <Link href="/become-creator" className="px-5 py-2 rounded-xl text-sm font-bold shadow-lg min-h-[44px] flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all hover:opacity-90" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',color:'#fff'}}>
+              <Link href="/become-creator" className="px-5 py-2 rounded-xl text-sm font-bold shadow-lg min-h-[44px] flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all hover:opacity-90" style={{background:'linear-gradient(135deg,#9ca3af,#374151)',color:'#fff'}}>
                 Get started free
               </Link>
             </div>
@@ -128,7 +128,7 @@ export default function WelcomePage() {
 
       <main>
         {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-        <section aria-label="Hero" className="relative overflow-hidden" style={{background:'radial-gradient(ellipse at 20% 50%, #1a0845 0%, #0a0520 50%, #000814 100%)'}}>
+        <section aria-label="Hero" className="relative overflow-hidden" style={{background:'radial-gradient(ellipse at 20% 50%, #0f172a 0%, #0a0520 50%, #000814 100%)'}}>
 
           {/* Background layer: perspective grid */}
           <div aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden" style={{opacity:.06}}>
@@ -153,18 +153,18 @@ export default function WelcomePage() {
 
           {/* Animated orbs */}
           <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="orb-pulse absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full" style={{background:'radial-gradient(ellipse,#7C3AED 0%,transparent 68%)',filter:'blur(30px)'}} />
-            <div className="orb-pulse absolute top-1/3 left-[5%] w-80 h-80 rounded-full" style={{background:'#4f2ec4',filter:'blur(70px)',animationDelay:'2s'}} />
-            <div className="orb-pulse absolute top-1/4 right-[5%] w-60 h-60 rounded-full" style={{background:'#6d28d9',filter:'blur(60px)',animationDelay:'4s'}} />
+            <div className="orb-pulse absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full" style={{background:'radial-gradient(ellipse,#374151 0%,transparent 68%)',filter:'blur(30px)'}} />
+            <div className="orb-pulse absolute top-1/3 left-[5%] w-80 h-80 rounded-full" style={{background:'#1e3a5f',filter:'blur(70px)',animationDelay:'2s'}} />
+            <div className="orb-pulse absolute top-1/4 right-[5%] w-60 h-60 rounded-full" style={{background:'#374151',filter:'blur(60px)',animationDelay:'4s'}} />
             <div className="orb-pulse absolute bottom-0 right-1/3 w-96 h-96 rounded-full" style={{background:'#1e1b4b',filter:'blur(80px)',animationDelay:'1s'}} />
             <div className="spin-slow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full" style={{border:'1px solid rgba(167,139,250,.1)'}} />
-            <div className="spin-rev absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full" style={{border:'1px solid rgba(124,58,237,.06)'}} />
+            <div className="spin-rev absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full" style={{border:'1px solid rgba(55,65,81,.06)'}} />
           </div>
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36 text-center">
 
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-8 text-sm font-medium" style={{background:'rgba(124,58,237,.18)',backdropFilter:'blur(12px)',color:'rgba(255,255,255,.85)'}}>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-8 text-sm font-medium" style={{background:'rgba(55,65,81,.18)',backdropFilter:'blur(12px)',color:'rgba(255,255,255,.85)'}}>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               AI-Powered Creator Platform
             </div>
@@ -173,7 +173,7 @@ export default function WelcomePage() {
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight max-w-5xl mx-auto">
               Research. Script.
               <br />
-              <span className="gradient-animated" style={{background:'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa,#c4b5fd)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
+              <span className="gradient-animated" style={{background:'linear-gradient(90deg,#d1d5db,#818cf8,#9ca3af,#d1d5db)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
                 Publish Everywhere.
               </span>
             </h1>
@@ -190,7 +190,7 @@ export default function WelcomePage() {
             </div>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/become-creator" className="shimmer-btn inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:scale-105 hover:shadow-purple-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{boxShadow:'0 20px 50px -12px rgba(124,58,237,.65)'}}>
+              <Link href="/become-creator" className="shimmer-btn inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:scale-105 hover:shadow-purple-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{boxShadow:'0 20px 50px -12px rgba(55,65,81,.65)'}}>
                 <Zap className="w-4 h-4" />
                 Start creating free
               </Link>
@@ -234,7 +234,7 @@ export default function WelcomePage() {
             </div>
 
             {/* Hero visual */}
-            <div className="mt-10 sm:mt-16 max-w-4xl mx-auto float-slow" style={{filter:'drop-shadow(0 0 60px rgba(124,58,237,.35))'}}>
+            <div className="mt-10 sm:mt-16 max-w-4xl mx-auto float-slow" style={{filter:'drop-shadow(0 0 60px rgba(55,65,81,.35))'}}>
               <HeroVideo />
             </div>
 
@@ -246,7 +246,7 @@ export default function WelcomePage() {
                 { icon: Zap,          label: 'Publish in minutes' },
               ].map(({ icon: Icon, label }) => (
                 <div key={label} className="flex items-center gap-2" style={{color:'rgba(255,255,255,.5)'}}>
-                  <Icon className="w-4 h-4" style={{color:'#a78bfa'}} />
+                  <Icon className="w-4 h-4" style={{color:'#9ca3af'}} />
                   {label}
                 </div>
               ))}
@@ -265,7 +265,7 @@ export default function WelcomePage() {
                 { stat: 'Zero',           label: 'Manual repurposing needed' },
               ].map(({ stat, label }) => (
                 <div key={stat} className="flex flex-col items-center gap-1">
-                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight" style={{color:'#7C3AED'}}>{stat}</p>
+                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight" style={{color:'#374151'}}>{stat}</p>
                   <p className="text-xs text-gray-400 mt-1">{label}</p>
                 </div>
               ))}
@@ -277,11 +277,11 @@ export default function WelcomePage() {
         <section id="features" aria-labelledby="features-heading" className="bg-white py-24 lg:py-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>Full capability suite</p>
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#374151'}}>Full capability suite</p>
               <h2 id="features-heading" className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
                 Everything you need to grow your channel,
                 <br className="hidden sm:block" />
-                <span style={{color:'#7C3AED'}}> powered by AI</span>
+                <span style={{color:'#374151'}}> powered by AI</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
                 One platform for your entire content stack. From trend discovery to multi-platform publishing and analytics — all connected.
@@ -290,7 +290,7 @@ export default function WelcomePage() {
 
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" aria-label="Platform capabilities">
               {CAPABILITIES.map(({ icon: Icon, color, bg, title, desc }) => (
-                <li key={title} className="card-3d group bg-white border border-gray-100 hover:border-purple-200 rounded-2xl p-5 flex flex-col gap-3 transition-all">
+                <li key={title} className="card-3d group bg-white border border-gray-100 hover:border-gray-200 rounded-2xl p-5 flex flex-col gap-3 transition-all">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110" style={{background:bg}}>
                     <Icon className="w-5 h-5" style={{color}} />
                   </div>
@@ -308,10 +308,10 @@ export default function WelcomePage() {
         <section id="workflow" aria-labelledby="workflow-heading" style={{background:'#f8f5ff'}} className="py-24 lg:py-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>End-to-end AI pipeline</p>
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#374151'}}>End-to-end AI pipeline</p>
               <h2 id="workflow-heading" className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
                 From one idea,
-                <span style={{color:'#7C3AED'}}> to a published video</span>
+                <span style={{color:'#374151'}}> to a published video</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">
                 Tell SozialZynk what you want to create. It researches, writes, checks compliance, and publishes to all your channels.
@@ -325,14 +325,14 @@ export default function WelcomePage() {
                   {idx < WORKFLOW.length - 1 && (
                     <div aria-hidden="true" className="hidden lg:block absolute top-8 left-[calc(50%+28px)] right-0 h-3 overflow-hidden">
                       <svg width="100%" height="12" className="absolute inset-0">
-                        <line x1="0" y1="6" x2="100%" y2="6" stroke="#c4b5fd" strokeWidth="1.5" strokeDasharray="6 4" className="dash-travel" />
+                        <line x1="0" y1="6" x2="100%" y2="6" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="6 4" className="dash-travel" />
                       </svg>
                     </div>
                   )}
 
-                  <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center shadow-md mb-4 transition-transform group-hover:scale-110 group-hover:shadow-lg" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)'}}>
+                  <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center shadow-md mb-4 transition-transform group-hover:scale-110 group-hover:shadow-lg" style={{background:'linear-gradient(135deg,#9ca3af,#374151)'}}>
                     <Icon className="w-7 h-7 text-white" />
-                    <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background:'#5B21B6'}}>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background:'#1f2937'}}>
                       {idx + 1}
                     </div>
                   </div>
@@ -345,7 +345,7 @@ export default function WelcomePage() {
 
             {/* CTA below workflow */}
             <div className="text-center mt-14">
-              <Link href="/become-creator" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-500 shadow-2xl" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 16px 40px -10px rgba(124,58,237,.5)'}}>
+              <Link href="/become-creator" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-500 shadow-2xl" style={{background:'linear-gradient(135deg,#9ca3af,#374151)',boxShadow:'0 16px 40px -10px rgba(55,65,81,.5)'}}>
                 <Zap className="w-4 h-4" />
                 Start your first AI project
                 <ArrowRight className="w-4 h-4" />
@@ -360,10 +360,10 @@ export default function WelcomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
-                <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>Natural language first</p>
+                <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#374151'}}>Natural language first</p>
                 <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight">
                   No forms.<br />No menus.<br />
-                  <span style={{color:'#7C3AED'}}>Just conversation.</span>
+                  <span style={{color:'#374151'}}>Just conversation.</span>
                 </h2>
                 <p className="mt-6 text-lg text-gray-500 leading-relaxed">
                   SozialZynk&apos;s AI Copilot works like an experienced content manager. Tell it what you need — it researches trends, writes compliant scripts, generates assets, and gets your content published everywhere.
@@ -376,8 +376,8 @@ export default function WelcomePage() {
                     { t: 'Brand voice memory',        d: 'Remembers your tone and style so every script sounds authentically like you.' },
                   ].map(({ t, d }) => (
                     <li key={t} className="flex items-start gap-3">
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{background:'#EDE9FE'}}>
-                        <CheckCircle2 className="w-3.5 h-3.5" style={{color:'#7C3AED'}} />
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{background:'#f3f4f6'}}>
+                        <CheckCircle2 className="w-3.5 h-3.5" style={{color:'#374151'}} />
                       </div>
                       <div>
                         <span className="font-semibold text-gray-900 text-sm">{t}</span>
@@ -387,7 +387,7 @@ export default function WelcomePage() {
                   ))}
                 </ul>
                 <div className="mt-10">
-                  <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)'}}>
+                  <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500" style={{background:'linear-gradient(135deg,#9ca3af,#374151)'}}>
                     Try the AI Copilot <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -395,12 +395,12 @@ export default function WelcomePage() {
 
               {/* Copilot visual */}
               <div className="relative">
-                <div className="absolute inset-0 rounded-3xl" style={{background:'radial-gradient(ellipse at 50% 50%,rgba(124,58,237,.08) 0%,transparent 70%)'}} />
+                <div className="absolute inset-0 rounded-3xl" style={{background:'radial-gradient(ellipse at 50% 50%,rgba(55,65,81,.08) 0%,transparent 70%)'}} />
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl" style={{background:'#1a1033',border:'1px solid rgba(255,255,255,.08)'}}>
                   <div className="p-5 space-y-4">
                     <div className="flex justify-center py-4">
                       <div className="relative">
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 0 0 12px rgba(124,58,237,.12),0 0 0 24px rgba(124,58,237,.06)'}}>
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{background:'linear-gradient(135deg,#9ca3af,#374151)',boxShadow:'0 0 0 12px rgba(55,65,81,.12),0 0 0 24px rgba(55,65,81,.06)'}}>
                           <Bot className="w-9 h-9 text-white" />
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center" style={{background:'#10B981',border:'2px solid #1a1033'}}>
@@ -420,7 +420,7 @@ export default function WelcomePage() {
                         { role:'ai',  text:"Done! 3 scripts, 3 thumbnails, 3 voice tracks — all passed compliance. Ready to schedule?" },
                       ].map(({ role, text }, i) => (
                         <div key={i} className={`flex ${role==='user'?'flex-row-reverse':''} items-end gap-2`}>
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${role==='ai'?'':'opacity-90'}`} style={{background:role==='ai'?'linear-gradient(135deg,#a78bfa,#7C3AED)':'linear-gradient(135deg,#f472b6,#ec4899)',color:'#fff'}}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${role==='ai'?'':'opacity-90'}`} style={{background:role==='ai'?'linear-gradient(135deg,#9ca3af,#374151)':'linear-gradient(135deg,#f472b6,#ec4899)',color:'#fff'}}>
                             {role==='ai'?'AI':'U'}
                           </div>
                           <div className="max-w-[76%] px-3 py-2 rounded-xl text-[11px] leading-relaxed" style={{background:role==='ai'?'rgba(167,139,250,.12)':'rgba(255,255,255,.08)',color:role==='ai'?'#e0d7ff':'rgba(255,255,255,.85)',borderRadius:role==='ai'?'18px 18px 18px 4px':'18px 18px 4px 18px'}}>
@@ -431,7 +431,7 @@ export default function WelcomePage() {
                     </div>
 
                     <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 mt-2" style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)'}}>
-                      <Globe2 className="w-4 h-4 shrink-0" style={{color:'#a78bfa'}} />
+                      <Globe2 className="w-4 h-4 shrink-0" style={{color:'#9ca3af'}} />
                       <span className="text-xs flex-1" style={{color:'rgba(255,255,255,.35)'}}>Speak or type a message…</span>
                     </div>
                   </div>
@@ -445,10 +445,10 @@ export default function WelcomePage() {
         <section aria-labelledby="tools-heading" className="bg-white py-24 lg:py-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>Built-in creator tools</p>
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#374151'}}>Built-in creator tools</p>
               <h2 id="tools-heading" className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
                 Everything in one place,
-                <span style={{color:'#7C3AED'}}> nothing to install</span>
+                <span style={{color:'#374151'}}> nothing to install</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
                 Three powerful tools work together seamlessly — from trend discovery to published, compliant content across all your platforms.
@@ -459,7 +459,7 @@ export default function WelcomePage() {
               {[
                 {
                   Icon: FolderOpen,
-                  color: '#7C3AED',
+                  color: '#374151',
                   bg: '#F3EEFF',
                   title: 'Projects',
                   badge: 'Step 1',
@@ -518,10 +518,10 @@ export default function WelcomePage() {
         <section id="pricing" aria-labelledby="pricing-heading" className="bg-white py-24 lg:py-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#7C3AED'}}>Simple, transparent pricing</p>
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{color:'#374151'}}>Simple, transparent pricing</p>
               <h2 id="pricing-heading" className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
                 Start free.
-                <span style={{color:'#7C3AED'}}> Scale as you grow.</span>
+                <span style={{color:'#374151'}}> Scale as you grow.</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
                 Every plan includes AI-powered content creation, compliance checks, and multi-platform publishing. No hidden fees.
@@ -607,7 +607,7 @@ export default function WelcomePage() {
                   key={name}
                   className={`relative flex flex-col rounded-3xl p-6 ${
                     popular
-                      ? 'shadow-2xl ring-2 ring-[#7C3AED] scale-[1.02]'
+                      ? 'shadow-2xl ring-2 ring-[#374151] scale-[1.02]'
                       : 'border border-gray-100 hover:border-gray-200 hover:shadow-lg'
                   } transition-all`}
                   style={popular ? { background: 'linear-gradient(160deg,#0e0924 0%,#1a0f4a 100%)' } : { background: '#fff' }}
@@ -615,19 +615,19 @@ export default function WelcomePage() {
                   {popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                       <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white"
-                        style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)'}}>
+                        style={{background:'linear-gradient(135deg,#9ca3af,#374151)'}}>
                         <Sparkles className="w-3 h-3" /> Most popular
                       </span>
                     </div>
                   )}
 
                   <div className="mb-5">
-                    <p className={`text-sm font-bold uppercase tracking-widest mb-2 ${popular ? 'text-purple-300' : 'text-gray-500'}`}>{name}</p>
+                    <p className={`text-sm font-bold uppercase tracking-widest mb-2 ${popular ? 'text-gray-300' : 'text-gray-500'}`}>{name}</p>
                     <div className="flex items-end gap-1">
                       <span className={`text-4xl font-extrabold ${popular ? 'text-white' : 'text-gray-900'}`}>{price}</span>
-                      <span className={`text-sm mb-1 ${popular ? 'text-purple-300' : 'text-gray-400'}`}>/{period}</span>
+                      <span className={`text-sm mb-1 ${popular ? 'text-gray-300' : 'text-gray-400'}`}>/{period}</span>
                     </div>
-                    <p className={`mt-2 text-sm leading-relaxed ${popular ? 'text-purple-200' : 'text-gray-500'}`}>{description}</p>
+                    <p className={`mt-2 text-sm leading-relaxed ${popular ? 'text-gray-200' : 'text-gray-500'}`}>{description}</p>
                   </div>
 
                   <ul className="space-y-2.5 mb-8 flex-1">
@@ -635,10 +635,10 @@ export default function WelcomePage() {
                       <li key={text} className={`flex items-start gap-2.5 text-sm ${
                         included
                           ? (popular ? 'text-white' : 'text-gray-700')
-                          : (popular ? 'text-purple-400/50' : 'text-gray-300')
+                          : (popular ? 'text-gray-400/50' : 'text-gray-300')
                       }`}>
                         {included
-                          ? <Check className={`w-4 h-4 shrink-0 mt-0.5 ${popular ? 'text-purple-300' : 'text-[#7C3AED]'}`} />
+                          ? <Check className={`w-4 h-4 shrink-0 mt-0.5 ${popular ? 'text-gray-300' : 'text-[#374151]'}`} />
                           : <Minus className="w-4 h-4 shrink-0 mt-0.5 opacity-40" />}
                         {text}
                       </li>
@@ -647,10 +647,10 @@ export default function WelcomePage() {
 
                   <Link
                     href={name === 'Agency' ? '/login' : '/become-creator'}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED] text-white"
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#374151] text-white"
                     style={popular
-                      ? { background: 'linear-gradient(135deg,#a78bfa,#7C3AED)', boxShadow: '0 8px 30px -8px rgba(124,58,237,.6)' }
-                      : { background: 'linear-gradient(135deg,#6D4AE0,#7C3AED)' }}
+                      ? { background: 'linear-gradient(135deg,#9ca3af,#374151)', boxShadow: '0 8px 30px -8px rgba(55,65,81,.6)' }
+                      : { background: 'linear-gradient(135deg,#374151,#374151)' }}
                   >
                     {cta} <ArrowRight className="w-4 h-4" />
                   </Link>
@@ -668,12 +668,12 @@ export default function WelcomePage() {
         <section id="download" aria-label="Download the app" style={{background:'linear-gradient(160deg,#0e0924 0%,#130a3a 100%)'}}>
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-6 text-sm font-medium text-white/80" style={{background:'rgba(124,58,237,.15)'}}>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-6 text-sm font-medium text-white/80" style={{background:'rgba(55,65,81,.15)'}}>
                 <span>📲</span> Available everywhere
               </div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
                 Take SozialZynk<br />
-                <span style={{background:'linear-gradient(90deg,#c4b5fd,#a78bfa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
+                <span style={{background:'linear-gradient(90deg,#d1d5db,#9ca3af)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
                   wherever you create
                 </span>
               </h2>
@@ -684,7 +684,7 @@ export default function WelcomePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
               <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(124,58,237,.2)'}}>🌐</div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(55,65,81,.2)'}}>🌐</div>
                 <div>
                   <p className="text-white font-bold text-base mb-1">Web App</p>
                   <p className="text-white/45 text-sm leading-relaxed">Install directly from Chrome, Edge, or Safari. Works on Windows, Mac, and Linux.</p>
@@ -725,10 +725,10 @@ export default function WelcomePage() {
         <section aria-label="Call to action" style={{background:'linear-gradient(160deg,#0e0924 0%,#1a0f4a 50%,#2d1b6e 100%)'}}>
           <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 text-center">
             <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full opacity-20" style={{background:'radial-gradient(ellipse,#7C3AED 0%,transparent 70%)',filter:'blur(50px)'}} />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full opacity-20" style={{background:'radial-gradient(ellipse,#374151 0%,transparent 70%)',filter:'blur(50px)'}} />
             </div>
             <div className="relative">
-              <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{color:'#a78bfa'}}>Start today</p>
+              <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{color:'#9ca3af'}}>Start today</p>
               <h2 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
                 Your content,<br />on autopilot.
               </h2>
@@ -736,7 +736,7 @@ export default function WelcomePage() {
                 Join 100,000+ creators who use AI to research, create, and publish smarter across every platform. Free to start.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/become-creator" className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 20px 50px -12px rgba(124,58,237,.6)'}}>
+                <Link href="/become-creator" className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#9ca3af,#374151)',boxShadow:'0 20px 50px -12px rgba(55,65,81,.6)'}}>
                   <Zap className="w-5 h-5" />
                   Get started free
                 </Link>
@@ -744,7 +744,7 @@ export default function WelcomePage() {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm">
                 {['No credit card required','Multi-platform publishing','14-day free trial'].map(t => (
                   <span key={t} className="flex items-center gap-1.5" style={{color:'rgba(255,255,255,.45)'}}>
-                    <CheckCircle2 className="w-4 h-4" style={{color:'#a78bfa'}} />
+                    <CheckCircle2 className="w-4 h-4" style={{color:'#9ca3af'}} />
                     {t}
                   </span>
                 ))}
@@ -761,7 +761,7 @@ export default function WelcomePage() {
             <div className="flex items-center gap-3">
               <LogoMark className="w-9 h-9 shrink-0" variant="light" />
               <div>
-                <p className="font-bold text-base leading-tight">Sozial<span style={{color:'#c4b5fd'}}>Z</span>ynk</p>
+                <p className="font-bold text-base leading-tight">Sozial<span style={{color:'#d1d5db'}}>Z</span>ynk</p>
                 <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.35)'}}>AI Creator Platform</p>
               </div>
             </div>

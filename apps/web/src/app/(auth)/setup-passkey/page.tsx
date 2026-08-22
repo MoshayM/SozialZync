@@ -51,7 +51,7 @@ export default function SetupPasskeyPage() {
           </div>
           <div>
             <h1 className="text-3xl font-extrabold text-white">All set!</h1>
-            <p className="text-purple-200 mt-2 text-sm">Your passkey is saved. Next time, sign in with just your fingerprint or face — no password needed.</p>
+            <p className="text-gray-200 mt-2 text-sm">Your passkey is saved. Next time, sign in with just your fingerprint or face — no password needed.</p>
           </div>
           <button
             onClick={() => router.push('/home')}
@@ -73,7 +73,7 @@ export default function SetupPasskeyPage() {
         <div className="flex justify-end">
           <button
             onClick={() => router.push('/home')}
-            className="flex items-center gap-1.5 text-purple-300 hover:text-white text-sm font-medium transition-colors"
+            className="flex items-center gap-1.5 text-gray-300 hover:text-white text-sm font-medium transition-colors"
           >
             <X className="w-4 h-4" /> Skip for now
           </button>
@@ -87,7 +87,7 @@ export default function SetupPasskeyPage() {
           <h1 className="text-3xl font-extrabold text-white leading-tight">
             Sign in faster<br />with a passkey
           </h1>
-          <p className="text-purple-200 mt-2 text-sm leading-relaxed">
+          <p className="text-gray-200 mt-2 text-sm leading-relaxed">
             Set up a passkey so you can sign in next time with just your fingerprint, face, or device PIN.
           </p>
         </div>
@@ -98,8 +98,8 @@ export default function SetupPasskeyPage() {
             const Icon = p.icon;
             return (
               <div key={p.text} className="flex items-start gap-3 rounded-2xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                <Icon className="w-5 h-5 text-purple-300 shrink-0 mt-0.5" />
-                <p className="text-sm text-purple-100 leading-relaxed">{p.text}</p>
+                <Icon className="w-5 h-5 text-gray-300 shrink-0 mt-0.5" />
+                <p className="text-sm text-gray-100 leading-relaxed">{p.text}</p>
               </div>
             );
           })}
@@ -128,12 +128,12 @@ export default function SetupPasskeyPage() {
             {loading ? 'Setting up…' : 'Set up passkey'}
           </button>
         ) : (
-          <div className="rounded-2xl px-4 py-3 text-sm text-center" style={{ background: 'rgba(255,255,255,0.08)', color: '#c4b5fd' }}>
+          <div className="rounded-2xl px-4 py-3 text-sm text-center" style={{ background: 'rgba(255,255,255,0.08)', color: '#d1d5db' }}>
             Passkeys aren&apos;t supported on this browser. You can add one from Settings once you&apos;re on a modern browser.
           </div>
         )}
 
-        <p className="text-center text-[11px] text-purple-400">
+        <p className="text-center text-[11px] text-gray-400">
           You can add or remove passkeys any time from Settings → Sign-in &amp; Security
         </p>
       </div>

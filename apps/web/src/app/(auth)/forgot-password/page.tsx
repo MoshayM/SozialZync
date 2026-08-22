@@ -14,8 +14,8 @@ function Input({
 }) {
   return (
     <div
-      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
-      style={{ border: '1.5px solid #ece8f8', background: '#fff' }}
+      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
+      style={{ border: '1.5px solid #e5e7eb', background: '#fff' }}
     >
       <input
         type={type} placeholder={placeholder} value={value} onChange={onChange}
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
   const backLink = (
     <Link
       href="/login"
-      className="inline-flex items-center gap-1.5 text-[#6D4AE0] font-semibold hover:underline"
+      className="inline-flex items-center gap-1.5 text-[#374151] font-semibold hover:underline"
     >
       <ArrowLeft className="w-3.5 h-3.5" />
       Back to sign in
@@ -103,11 +103,11 @@ export default function ForgotPasswordPage() {
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{
-                background: 'linear-gradient(135deg, #f0edf9 0%, #e2dbf5 100%)',
-                boxShadow: '0 8px 24px rgba(109,74,224,0.18)',
+                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                boxShadow: '0 8px 24px rgba(55,65,81,0.18)',
               }}
             >
-              <Mail className="w-8 h-8 text-[#6D4AE0]" />
+              <Mail className="w-8 h-8 text-[#374151]" />
             </div>
           </div>
 
@@ -125,7 +125,7 @@ export default function ForgotPasswordPage() {
             type="button"
             onClick={() => { setEmailSent(false); setEmail(''); }}
             className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-            style={{ background: '#f5f3ff', color: '#6D4AE0', border: '1.5px solid #ddd6fe' }}
+            style={{ background: '#f9fafb', color: '#374151', border: '1.5px solid #e5e7eb' }}
           >
             Try a different email
           </button>
@@ -143,8 +143,8 @@ export default function ForgotPasswordPage() {
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
               style={{
-                background: 'linear-gradient(135deg, #f0edf9 0%, #e2dbf5 100%)',
-                boxShadow: '0 8px 24px rgba(109,74,224,0.18)',
+                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                boxShadow: '0 8px 24px rgba(55,65,81,0.18)',
               }}
             >
               🔑
@@ -159,11 +159,11 @@ export default function ForgotPasswordPage() {
 
           <div
             className="rounded-xl px-4 py-3 mb-3 break-all"
-            style={{ background: '#f5f3ff', border: '1.5px solid #ddd6fe' }}
+            style={{ background: '#f9fafb', border: '1.5px solid #e5e7eb' }}
           >
             <a
               href={resetUrl}
-              className="text-[#6D4AE0] text-xs font-medium hover:underline"
+              className="text-[#374151] text-xs font-medium hover:underline"
               style={{ wordBreak: 'break-all' }}
             >
               {resetUrl}
@@ -176,9 +176,9 @@ export default function ForgotPasswordPage() {
               onClick={copyLink}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
               style={{
-                background: copied ? '#16a34a' : 'linear-gradient(135deg,#6D4AE0,#7c5ae8)',
+                background: copied ? '#16a34a' : 'linear-gradient(135deg,#374151,#4b5563)',
                 color: '#fff',
-                boxShadow: '0 3px 12px rgba(109,74,224,0.28)',
+                boxShadow: '0 3px 12px rgba(55,65,81,0.28)',
               }}
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -189,9 +189,9 @@ export default function ForgotPasswordPage() {
               href={resetUrl}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
               style={{
-                background: '#f5f3ff',
-                color: '#6D4AE0',
-                border: '1.5px solid #ddd6fe',
+                background: '#f9fafb',
+                color: '#374151',
+                border: '1.5px solid #e5e7eb',
               }}
             >
               <ExternalLink className="w-4 h-4" />
@@ -236,9 +236,9 @@ export default function ForgotPasswordPage() {
               onClick={() => { setNotFound(false); setEmail(''); }}
               className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
               style={{
-                background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)',
+                background: 'linear-gradient(135deg,#374151,#4b5563)',
                 color: '#fff',
-                boxShadow: '0 4px 16px rgba(109,74,224,0.28)',
+                boxShadow: '0 4px 16px rgba(55,65,81,0.28)',
               }}
             >
               Try a different email
@@ -246,7 +246,7 @@ export default function ForgotPasswordPage() {
             <Link
               href="/register"
               className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
-              style={{ background: '#f5f3ff', color: '#6D4AE0', border: '1.5px solid #ddd6fe' }}
+              style={{ background: '#f9fafb', color: '#374151', border: '1.5px solid #e5e7eb' }}
             >
               Create an account
             </Link>
@@ -284,8 +284,8 @@ export default function ForgotPasswordPage() {
           disabled={loading || !email.trim()}
           className="w-full py-[11px] text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
           style={{
-            background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-            boxShadow: '0 4px 16px rgba(109,74,224,0.28)',
+            background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
+            boxShadow: '0 4px 16px rgba(55,65,81,0.28)',
           }}
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}

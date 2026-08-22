@@ -53,7 +53,7 @@ const PROVIDER_META: Record<string, { label: string; bg: string; fg: string; log
 };
 
 function providerMeta(p: string) {
-  return PROVIDER_META[p] ?? { label: p, bg: '#6D4AE0', fg: '#fff', logo: <span className="text-2xl text-white">🔐</span> };
+  return PROVIDER_META[p] ?? { label: p, bg: '#374151', fg: '#fff', logo: <span className="text-2xl text-white">🔐</span> };
 }
 
 // ── Verifying animation steps ─────────────────────────────────────────────────
@@ -86,7 +86,7 @@ function VerifyingView({ provider }: { provider: string }) {
             {meta.logo}
           </div>
           {/* Spinner ring */}
-          <div className="absolute -inset-2 rounded-[2rem] border-2 border-[#6D4AE0]/20 border-t-[#6D4AE0] animate-spin" />
+          <div className="absolute -inset-2 rounded-[2rem] border-2 border-[#374151]/20 border-t-[#374151] animate-spin" />
         </div>
       </div>
 
@@ -114,7 +114,7 @@ function VerifyingView({ provider }: { provider: string }) {
               <div
                 className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all duration-500"
                 style={{
-                  background: done ? '#22c55e' : current ? '#6D4AE0' : '#e5e7eb',
+                  background: done ? '#22c55e' : current ? '#374151' : '#e5e7eb',
                 }}
               >
                 {done ? (
@@ -127,7 +127,7 @@ function VerifyingView({ provider }: { provider: string }) {
               </div>
               <span
                 className="text-sm font-medium transition-colors duration-300"
-                style={{ color: done ? '#16a34a' : current ? '#6D4AE0' : '#9ca3af' }}
+                style={{ color: done ? '#16a34a' : current ? '#374151' : '#9ca3af' }}
               >
                 {step}
               </span>
@@ -192,13 +192,13 @@ function LinkRequiredView({ email, provider }: { email: string; provider: string
         className="rounded-2xl px-4 py-4 space-y-3.5 mb-6"
         style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}
       >
-        <p className="text-xs font-semibold text-[#6D4AE0] mb-1">To connect {meta.label}, do this:</p>
+        <p className="text-xs font-semibold text-[#374151] mb-1">To connect {meta.label}, do this:</p>
         {[
           { n: '1', text: 'Sign in with your existing password or OTP' },
           { n: '2', text: `Go to Settings → Connected Accounts → Link ${meta.label}` },
         ].map((s) => (
           <div key={s.n} className="flex items-start gap-3">
-            <div className="w-5 h-5 rounded-full bg-[#6D4AE0] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+            <div className="w-5 h-5 rounded-full bg-[#374151] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
               {s.n}
             </div>
             <p className="text-gray-600 text-xs leading-relaxed">{s.text}</p>
@@ -210,7 +210,7 @@ function LinkRequiredView({ email, provider }: { email: string; provider: string
         href="/login"
         className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99]"
         style={{
-          background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
+          background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
           boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
         }}
       >
@@ -241,7 +241,7 @@ function ErrorView({ message }: { message: string }) {
         href="/login"
         className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99]"
         style={{
-          background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
+          background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
           boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
         }}
       >
@@ -312,7 +312,7 @@ function OAuthCallbackInner() {
     <OAuthCallbackShell
       footer={
         state.phase === 'verifying' ? null : (
-          <Link href="/login" className="inline-flex items-center gap-1.5 text-[#6D4AE0] font-semibold hover:underline">
+          <Link href="/login" className="inline-flex items-center gap-1.5 text-[#374151] font-semibold hover:underline">
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to sign in
           </Link>

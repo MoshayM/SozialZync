@@ -116,7 +116,7 @@ function ResetPasswordInner() {
       footer={
         <Link
           href="/login"
-          className="inline-flex items-center gap-1.5 text-[#6D4AE0] font-semibold hover:underline"
+          className="inline-flex items-center gap-1.5 text-[#374151] font-semibold hover:underline"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to sign in
@@ -148,8 +148,8 @@ function ResetPasswordInner() {
             onClick={() => router.push('/login')}
             className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99]"
             style={{
-              background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-              boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
+              background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
+              boxShadow: '0 4px 20px rgba(55,65,81,0.35)',
             }}
           >
             Sign in to Sozialzynk
@@ -176,8 +176,8 @@ function ResetPasswordInner() {
             href="/forgot-password"
             className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99]"
             style={{
-              background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-              boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
+              background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
+              boxShadow: '0 4px 20px rgba(55,65,81,0.35)',
             }}
           >
             Request a new link
@@ -223,7 +223,7 @@ function ResetPasswordInner() {
                 <div>
                   <p className="text-red-600 text-xs font-medium">{error}</p>
                   {error.toLowerCase().includes('expired') && (
-                    <Link href="/forgot-password" className="text-[#6D4AE0] text-xs hover:underline mt-1 inline-block">
+                    <Link href="/forgot-password" className="text-[#374151] text-xs hover:underline mt-1 inline-block">
                       Request a new link →
                     </Link>
                   )}
@@ -238,9 +238,9 @@ function ResetPasswordInner() {
               style={{
                 background:
                   strength >= 2
-                    ? 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)'
+                    ? 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
                     : '#9d8adf',
-                boxShadow: strength >= 2 ? '0 4px 20px rgba(109,74,224,0.35)' : 'none',
+                boxShadow: strength >= 2 ? '0 4px 20px rgba(55,65,81,0.35)' : 'none',
               }}
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -258,7 +258,7 @@ export default function ResetPasswordPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#faf9ff]">
-          <Loader2 className="w-6 h-6 animate-spin text-[#6D4AE0]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#374151]" />
         </div>
       }
     >

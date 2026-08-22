@@ -63,7 +63,7 @@ export default function SetPasswordPage() {
         <div className="flex flex-col items-center gap-4 py-8 text-center">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)' }}
           >
             <CheckCircle2 className="w-8 h-8 text-white" />
           </div>
@@ -92,7 +92,7 @@ export default function SetPasswordPage() {
       <div className="flex flex-col items-center gap-3 mb-6 text-center">
         <div
           className="w-12 h-12 rounded-2xl flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)' }}
         >
           <ShieldCheck className="w-6 h-6 text-white" />
         </div>
@@ -109,7 +109,7 @@ export default function SetPasswordPage() {
         <div className="space-y-1.5">
           <label className="block text-xs text-gray-500 font-medium px-1">New password</label>
           <div
-            className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
+            className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
             style={{ border: '1.5px solid #e3e0f0' }}
           >
             <div className="pl-4 text-gray-400"><Lock className="w-4 h-4" /></div>
@@ -159,7 +159,7 @@ export default function SetPasswordPage() {
         <div className="space-y-1.5">
           <label className="block text-xs text-gray-500 font-medium px-1">Confirm password</label>
           <div
-            className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
+            className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
             style={{
               border: `1.5px solid ${confirm.length > 0 ? (passwordsMatch ? '#22c55e' : '#ef4444') : '#e3e0f0'}`,
             }}
@@ -202,9 +202,9 @@ export default function SetPasswordPage() {
           className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
           style={{
             background: canSubmit
-              ? 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)'
+              ? 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
               : '#c4b5f4',
-            boxShadow: canSubmit ? '0 4px 20px rgba(109,74,224,0.35)' : 'none',
+            boxShadow: canSubmit ? '0 4px 20px rgba(55,65,81,0.35)' : 'none',
           }}
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
