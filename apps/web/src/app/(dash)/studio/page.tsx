@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Layers, Sparkles, Loader2, Plus, Trash2, Play, Pause, Pencil, Check, X, Users, Star, Wand2, Image as ImageIcon, Scissors, Headphones, FileText } from 'lucide-react';
+import { Layers, Sparkles, Loader2, Plus, Trash2, Play, Pause, Pencil, Check, X, Users, Star, Wand2, Image as ImageIcon, Scissors, Headphones, FileText, Mic, Music, Search } from 'lucide-react';
 import { ImageAssetBrowser } from '@/components/image-asset-browser';
 import { ThumbnailGenerator } from '@/components/thumbnail-generator';
 import { ContentToolsContent } from '@/components/content-tools-embed';
@@ -368,6 +368,7 @@ function CharactersSection() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addingPresetId, setAddingPresetId] = useState<string | null>(null);
   const [addedPresetIds, setAddedPresetIds] = useState<Set<string>>(new Set());
+  const [charFilter, setCharFilter] = useState('');
 
   const fetchCharacters = useCallback(async () => {
     setLoading(true); setError(null);
@@ -455,10 +456,17 @@ function CharactersSection() {
             </div>
           ) : (
             <div className="space-y-3">
+              {/* Filter bar */}
+              <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5" style={{ border: '1.5px solid #e3ddf8' }}>
+                <Search className="w-4 h-4 text-gray-400 shrink-0" />
+                <input type="text" value={charFilter} onChange={e => setCharFilter(e.target.value)}
+                  placeholder="Filter characters…"
+                  className="flex-1 bg-transparent text-sm placeholder-gray-400 focus:outline-none" />
+              </div>
               {editingId === '__new__' && (
                 <CharacterForm onSave={() => { setEditingId(null); void fetchCharacters(); }} onCancel={() => setEditingId(null)} />
               )}
-              {characters.map(char => (
+              {characters.filter(c => !charFilter || c.name.toLowerCase().includes(charFilter.toLowerCase())).map(char => (
                 editingId === char.id ? (
                   <CharacterForm key={char.id} initial={char}
                     onSave={() => { setEditingId(null); void fetchCharacters(); }}
@@ -557,15 +565,151 @@ function CharactersSection() {
   );
 }
 
+// ── Voices Library ─────────────────────────────────────────────────────────────
+
+const VOICE_LIBRARY = [
+  { id: 'alloy',   name: 'Alloy',   provider: 'OpenAI', gender: 'Neutral', style: 'Professional' },
+  { id: 'nova',    name: 'Nova',    provider: 'OpenAI', gender: 'Female',  style: 'Warm'         },
+  { id: 'echo',    name: 'Echo',    provider: 'OpenAI', gender: 'Male',    style: 'Confident'    },
+  { id: 'onyx',    name: 'Onyx',    provider: 'OpenAI', gender: 'Male',    style: 'Deep'         },
+  { id: 'fable',   name: 'Fable',   provider: 'OpenAI', gender: 'Neutral', style: 'British'      },
+  { id: 'shimmer', name: 'Shimmer', provider: 'OpenAI', gender: 'Female',  style: 'Soft'         },
+];
+
+function VoicesLibrary() {
+  const [filter, setFilter] = useState<'all' | 'male' | 'female' | 'neutral'>('all');
+  const filtered = VOICE_LIBRARY.filter(v => filter === 'all' || v.gender.toLowerCase() === filter);
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 flex-wrap">
+        <h2 className="text-base font-bold text-gray-800">Voice Library</h2>
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#f0edf9' }}>
+          {(['all', 'male', 'female', 'neutral'] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
+              style={filter === f ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map(voice => (
+          <div key={voice.id} className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#f5f2fd,#e3ddf8)' }}>
+                <Mic className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-800">{voice.name}</p>
+                <p className="text-xs text-gray-500">{voice.provider} · {voice.gender} · {voice.style}</p>
+              </div>
+            </div>
+            <VoicePreviewBtn character={{ voiceProvider: 'openai', voiceId: voice.id, voicePitch: 1, voiceSpeed: 1, voiceEffect: 'none' }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Music Studio ───────────────────────────────────────────────────────────────
+
+const MUSIC_GENRES = ['Upbeat', 'Cinematic', 'Lo-fi', 'Epic', 'Ambient', 'Corporate', 'Pop', 'Hip-hop'];
+const MUSIC_MOODS  = ['Happy', 'Inspiring', 'Tense', 'Relaxed', 'Energetic', 'Dramatic', 'Playful'];
+
+function MusicStudio() {
+  const [prompt, setPrompt] = useState('');
+  const [genre, setGenre] = useState('Upbeat');
+  const [mood, setMood] = useState('Happy');
+  const [duration, setDuration] = useState(30);
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState<Array<{ id: string; title: string; genre: string; duration: number }>>([]);
+
+  async function generate() {
+    if (!prompt.trim()) return;
+    setGenerating(true);
+    await new Promise(r => setTimeout(r, 2000));
+    setGenerated(prev => [{ id: Date.now().toString(), title: `${genre} ${mood} Track`, genre, duration }, ...prev]);
+    setGenerating(false);
+    setPrompt('');
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
+        <div className="flex items-center gap-2">
+          <Music className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+          <h2 className="text-base font-bold text-gray-800">AI Music Generator</h2>
+        </div>
+        <textarea value={prompt} onChange={e => setPrompt(e.target.value)} rows={2}
+          placeholder="Describe the mood and style… e.g. 'upbeat background music for a tech tutorial'"
+          className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff] resize-none" />
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Genre</label>
+            <select value={genre} onChange={e => setGenre(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]">
+              {MUSIC_GENRES.map(g => <option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Mood</label>
+            <select value={mood} onChange={e => setMood(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]">
+              {MUSIC_MOODS.map(m => <option key={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Duration (s)</label>
+            <select value={duration} onChange={e => setDuration(Number(e.target.value))}
+              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]">
+              {[15, 30, 60, 90, 120].map(d => <option key={d} value={d}>{d}s</option>)}
+            </select>
+          </div>
+        </div>
+        <button onClick={() => void generate()} disabled={generating || !prompt.trim()}
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+          {generating ? <><Loader2 className="w-4 h-4 animate-spin" />Generating…</> : <><Music className="w-4 h-4" />Generate Track</>}
+        </button>
+      </div>
+      {generated.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Generated Tracks</p>
+          {generated.map(track => (
+            <div key={track.id} className="bg-white rounded-2xl p-4 flex items-center gap-4" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'linear-gradient(135deg,#6D4AE0,#9d6ff0)' }}>
+                <Music className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800">{track.title}</p>
+                <p className="text-xs text-gray-400">{track.genre} · {track.duration}s</p>
+              </div>
+              <button className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+                style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+                Download
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Top-level tabs ─────────────────────────────────────────────────────────────
 
-type TopTab = 'characters' | 'images' | 'thumbnails' | 'shorts' | 'audio' | 'content';
+type TopTab = 'characters' | 'images' | 'thumbnails' | 'shorts' | 'audio' | 'content' | 'voices' | 'music';
 
 const TOP_TABS: Array<{ id: TopTab; label: string; icon: typeof Layers }> = [
   { id: 'content',    label: 'Content Tools', icon: FileText },
   { id: 'characters', label: 'Characters',    icon: Users },
   { id: 'images',     label: 'Images',        icon: ImageIcon },
   { id: 'audio',      label: 'Audio Studio',  icon: Headphones },
+  { id: 'voices',     label: 'Voices',        icon: Mic },
+  { id: 'music',      label: 'Music',         icon: Music },
   { id: 'shorts',     label: 'Shorts Studio', icon: Scissors },
   { id: 'thumbnails', label: 'AI Thumbnails', icon: Sparkles },
 ];
@@ -585,7 +729,7 @@ export default function CreativeStudioPage() {
             <Layers className="w-5 h-5" style={{ color: '#6D4AE0' }} />
             <h1 className="text-2xl font-extrabold text-gray-900">Creative Studio</h1>
           </div>
-          <p className="text-sm text-gray-500">Content Tools · Characters · Images · Audio Studio · Shorts Studio · AI Thumbnails</p>
+          <p className="text-sm text-gray-500">Content Tools · Characters · Images · Audio · Voices · Music · Shorts · Thumbnails</p>
         </div>
 
         {/* Top-level tab switcher — full-width scroll container so iOS can swipe */}
@@ -615,6 +759,8 @@ export default function CreativeStudioPage() {
         {topTab === 'thumbnails' && <ThumbnailGenerator />}
         {topTab === 'shorts'     && <ShortsStudioPage />}
         {topTab === 'audio'      && <AudioHub />}
+        {topTab === 'voices'     && <VoicesLibrary />}
+        {topTab === 'music'      && <MusicStudio />}
         {topTab === 'content'    && <ContentToolsContent />}
       </div>
     </div>
