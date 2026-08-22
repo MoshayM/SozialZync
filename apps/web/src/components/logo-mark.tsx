@@ -17,7 +17,7 @@ export function LogoMark({ className, style, variant = 'dark' }: LogoMarkProps) 
   const id = raw.replace(/[^a-zA-Z0-9]/g, 'x');
 
   const zColor = variant === 'light' ? '#FFFFFF' : '#1F2937';
-  const kColor = variant === 'light' ? '#C4B5FD' : '#7C3AED';
+  const kColor = variant === 'light' ? '#d1d5db' : '#374151';
 
   return (
     <svg
