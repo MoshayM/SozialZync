@@ -970,6 +970,21 @@ export const api = {
     markAllRead: () =>
       apiClient.post('/notifications/read-all'),
   },
+  myContent: {
+    list: (opts?: { cursor?: string; take?: number; q?: string; visibility?: 'all' | 'private' | 'public' }) => {
+      const sp = new URLSearchParams();
+      if (opts?.cursor) sp.set('cursor', opts.cursor);
+      if (opts?.take) sp.set('take', String(opts.take));
+      if (opts?.q) sp.set('q', opts.q);
+      if (opts?.visibility) sp.set('visibility', opts.visibility);
+      const qs = sp.toString();
+      return apiClient.get<{ items: MyContentItem[]; nextCursor: string | null }>(`/my-content${qs ? `?${qs}` : ''}`);
+    },
+    setVisibility: (id: string, isPublic: boolean) =>
+      apiClient.patch<{ id: string; isPublic: boolean; shareUrl: string | null }>(`/my-content/${id}/visibility`, { isPublic }),
+    getShareUrl: (id: string) =>
+      apiClient.get<{ shareUrl: string }>(`/my-content/${id}/share-url`),
+  },
   admin: {
     enterpriseMetrics: () => apiClient.get<EnterpriseMetrics>('/admin/analytics/enterprise'),
     forecasts: (metric?: string) =>
@@ -979,6 +994,24 @@ export const api = {
     users: () => apiClient.get<AdminUser[]>('/admin/users'),
     setRechargesFrozen: (userId: string, frozen: boolean, reason?: string) =>
       apiClient.post<{ id: string; email: string; rechargesFrozen: boolean }>(`/admin/users/${userId}/recharges-frozen`, { frozen, reason }),
+    publicContent: (opts?: { cursor?: string; take?: number; q?: string }) => {
+      const sp = new URLSearchParams();
+      if (opts?.cursor) sp.set('cursor', opts.cursor);
+      if (opts?.take) sp.set('take', String(opts.take));
+      if (opts?.q) sp.set('q', opts.q);
+      const qs = sp.toString();
+      return apiClient.get<{ items: AdminPublicContent[]; nextCursor: string | null }>(`/admin/content/public${qs ? `?${qs}` : ''}`);
+    },
+    removeContent: (contentId: string, note: string) =>
+      apiClient.post<{ ok: boolean }>(`/admin/content/${contentId}/remove`, { note }),
+    warnUser: (userId: string, message: string) =>
+      apiClient.post<{ ok: boolean }>(`/admin/users/${userId}/warn`, { message }),
+    suspendUser: (userId: string, reason: string) =>
+      apiClient.post<{ ok: boolean }>(`/admin/users/${userId}/suspend`, { reason }),
+    reinstateUser: (userId: string) =>
+      apiClient.post<{ ok: boolean }>(`/admin/users/${userId}/reinstate`),
+    moderationLog: () =>
+      apiClient.get<ModerationAction[]>('/admin/moderation/log'),
   },
   automation: {
     get: (channelId: string) =>
@@ -1099,6 +1132,40 @@ export interface AdminUser {
   wallet: { balanceCredits: number; lifetimePurchased: number; lifetimeUsed: number } | null;
   subscription: { plan: string; status: string } | null;
   _count: { channels: number };
+}
+
+export interface MyContentItem {
+  id: string;
+  title: string;
+  type: 'VIDEO' | 'SHORT' | 'REEL' | 'IMAGE' | string;
+  thumbnailUrl: string | null;
+  isPublic: boolean;
+  shareUrl: string | null;
+  duration: number | null;
+  viewCount: number | null;
+  createdAt: string;
+  updatedAt: string;
+  projectId: string | null;
+}
+
+export interface AdminPublicContent {
+  id: string;
+  title: string;
+  thumbnailUrl: string | null;
+  type: string;
+  createdAt: string;
+  viewCount: number | null;
+  creator: { id: string; name: string | null; email: string; role: string; createdAt: string };
+}
+
+export interface ModerationAction {
+  id: string;
+  actionType: 'REMOVE_CONTENT' | 'WARN_USER' | 'SUSPEND_USER' | 'REINSTATE_USER';
+  targetId: string;
+  targetLabel: string;
+  note: string;
+  performedAt: string;
+  adminEmail: string;
 }
 
 export interface AdminProvider {

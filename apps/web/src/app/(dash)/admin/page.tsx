@@ -36,10 +36,10 @@ import {
 } from 'lucide-react';
 import { StatCard, PastelBars, PastelDonut } from '@/components/stat-card';
 import { DevicePreview } from '@/components/device-preview';
-import { api, apiClient, type AdminProvider, type AdminUser, type EnterpriseMetrics, type ForecastRow } from '@/lib/api';
+import { api, apiClient, type AdminProvider, type AdminPublicContent, type AdminUser, type EnterpriseMetrics, type ForecastRow, type ModerationAction } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
-type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video';
+type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation';
 
 // ── Token usage types (platform-wide, admin only) ─────────────────────────────
 interface TokenUsageSummary {
@@ -545,6 +545,20 @@ export default function AdminDashboardPage() {
   const [validatingId, setValidatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Moderation state
+  const [modContent, setModContent] = useState<AdminPublicContent[]>([]);
+  const [modLoading, setModLoading] = useState(false);
+  const [modSearch, setModSearch] = useState('');
+  const [modLog, setModLog] = useState<ModerationAction[]>([]);
+  const [selectedCreator, setSelectedCreator] = useState<AdminPublicContent['creator'] | null>(null);
+  const [removeModal, setRemoveModal] = useState<{ item: AdminPublicContent } | null>(null);
+  const [removeNote, setRemoveNote] = useState('');
+  const [warnModal, setWarnModal] = useState<{ userId: string; name: string } | null>(null);
+  const [warnMsg, setWarnMsg] = useState('');
+  const [suspendModal, setSuspendModal] = useState<{ userId: string; name: string } | null>(null);
+  const [suspendReason, setSuspendReason] = useState('');
+  const [modActionLoading, setModActionLoading] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -653,6 +667,20 @@ export default function AdminDashboardPage() {
     }
   }, [aiUsageLoaded]);
 
+  const loadModeration = useCallback(async () => {
+    setModLoading(true);
+    try {
+      const [c, l] = await Promise.all([
+        api.admin.publicContent({ take: 50 }).catch(() => ({ data: { items: [] as AdminPublicContent[], nextCursor: null } })),
+        api.admin.moderationLog().catch(() => ({ data: [] as ModerationAction[] })),
+      ]);
+      setModContent(c.data.items);
+      setModLog(l.data);
+    } finally {
+      setModLoading(false);
+    }
+  }, []);
+
   const filteredUsers = users.filter((u) => {
     const plan = u.subscription?.plan?.toLowerCase() ?? 'free';
     const matchPlan = planFilter === 'all' || plan === planFilter;
@@ -713,6 +741,7 @@ export default function AdminDashboardPage() {
             },
             { id: 'device-preview',      label: 'Device Preview',       icon: <Monitor className="w-4 h-4" /> },
             { id: 'ad-video',            label: 'Platform Ad',          icon: <Film className="w-4 h-4" /> },
+            { id: 'moderation',          label: 'Content Moderation',   icon: <ShieldAlert className="w-4 h-4" /> },
           ] as { id: AdminTab; label: string; icon: React.ReactNode }[]
         ).map(({ id, label, icon }) => (
           <button
@@ -722,6 +751,7 @@ export default function AdminDashboardPage() {
               setAdminTab(id);
               if (id === 'users') void loadUsers();
               if (id === 'ai-usage') void loadAiUsage();
+              if (id === 'moderation') void loadModeration();
             }}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
             style={adminTab === id
@@ -1540,6 +1570,327 @@ export default function AdminDashboardPage() {
           </>
         ) : null}
       </div>
+      )}
+
+      {/* ── Content Moderation ─────────────────────────────────────────── */}
+      {adminTab === 'moderation' && (
+        <div className="p-5 lg:p-7 max-w-6xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-900">Content Moderation</h1>
+              <p className="text-sm text-gray-500 mt-0.5">Review and remove inappropriate public content. All actions are logged.</p>
+            </div>
+            <button type="button" onClick={() => void loadModeration()}
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-gray-600 border border-[#e3ddf8] hover:bg-gray-50 transition-colors">
+              <RefreshCw className={`w-4 h-4 ${modLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-white max-w-sm">
+            <Search className="w-4 h-4 text-gray-400 shrink-0" />
+            <input
+              type="search"
+              placeholder="Search content or creator…"
+              value={modSearch}
+              onChange={e => setModSearch(e.target.value)}
+              className="border-none outline-none bg-transparent text-sm flex-1 text-gray-800 placeholder-gray-400"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Content grid — 2/3 */}
+            <div className="lg:col-span-2 space-y-3">
+              {modLoading ? (
+                <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
+                  <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-500" />
+                  <p className="text-sm text-gray-500">Loading public content…</p>
+                </div>
+              ) : modContent.filter(c =>
+                  !modSearch || c.title.toLowerCase().includes(modSearch.toLowerCase()) ||
+                  (c.creator.name ?? c.creator.email).toLowerCase().includes(modSearch.toLowerCase())
+                ).length === 0 ? (
+                <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
+                  <CheckCircle className="w-8 h-8 mx-auto mb-2 text-emerald-400" />
+                  <p className="font-semibold text-gray-700 mb-1">No public content yet</p>
+                  <p className="text-sm text-gray-400">When creators publish public content, it appears here for review.</p>
+                </div>
+              ) : (
+                modContent
+                  .filter(c =>
+                    !modSearch || c.title.toLowerCase().includes(modSearch.toLowerCase()) ||
+                    (c.creator.name ?? c.creator.email).toLowerCase().includes(modSearch.toLowerCase())
+                  )
+                  .map(item => (
+                    <div key={item.id} className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-4 hover:border-purple-100 transition-colors">
+                      <div className="w-24 h-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden flex items-center justify-center">
+                        {item.thumbnailUrl
+                          ? <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                          : <Film className="w-5 h-5 text-gray-400" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm truncate">{item.title}</p>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCreator(item.creator)}
+                          className="text-xs text-purple-600 hover:underline mt-0.5"
+                        >
+                          {item.creator.name ?? item.creator.email}
+                        </button>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="text-xs text-gray-400">{item.type}</span>
+                          {item.viewCount != null && <span className="text-xs text-gray-400">{item.viewCount.toLocaleString()} views</span>}
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-semibold">Public</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => { setRemoveModal({ item }); setRemoveNote(''); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 border border-red-100 bg-red-50 hover:bg-red-100 transition-colors"
+                        >
+                          <XCircle className="w-3.5 h-3.5" /> Remove
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCreator(item.creator)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" /> Creator
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            {/* Creator panel + Action log — 1/3 */}
+            <div className="space-y-4">
+              {/* Creator account panel */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-purple-500" /> Creator Account
+                </h3>
+                {!selectedCreator ? (
+                  <p className="text-xs text-gray-400 text-center py-6">Select a creator to view their account</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white bg-purple-500 shrink-0">
+                        {(selectedCreator.name ?? selectedCreator.email).charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm truncate">{selectedCreator.name ?? 'Unnamed'}</p>
+                        <p className="text-xs text-gray-400 truncate">{selectedCreator.email}</p>
+                      </div>
+                      <button type="button" onClick={() => setSelectedCreator(null)} className="ml-auto text-gray-300 hover:text-gray-500">
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-xl bg-gray-50 p-2.5">
+                        <p className="text-gray-400 mb-0.5">Role</p>
+                        <p className="font-semibold text-gray-700">{selectedCreator.role}</p>
+                      </div>
+                      <div className="rounded-xl bg-gray-50 p-2.5">
+                        <p className="text-gray-400 mb-0.5">Joined</p>
+                        <p className="font-semibold text-gray-700">{new Date(selectedCreator.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        disabled={modActionLoading}
+                        onClick={() => { setWarnModal({ userId: selectedCreator.id, name: selectedCreator.name ?? selectedCreator.email }); setWarnMsg(''); }}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-amber-600 border border-amber-100 bg-amber-50 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" /> Warn Creator
+                      </button>
+                      <button
+                        type="button"
+                        disabled={modActionLoading}
+                        onClick={() => { setSuspendModal({ userId: selectedCreator.id, name: selectedCreator.name ?? selectedCreator.email }); setSuspendReason(''); }}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 border border-red-100 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5" /> Suspend Account
+                      </button>
+                      <button
+                        type="button"
+                        disabled={modActionLoading}
+                        onClick={async () => {
+                          setModActionLoading(true);
+                          try { await api.admin.reinstateUser(selectedCreator.id); void loadModeration(); }
+                          catch { /* non-fatal */ }
+                          finally { setModActionLoading(false); }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-600 border border-emerald-100 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" /> Reinstate Account
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action log */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-purple-500" /> Action Log
+                </h3>
+                {modLog.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-4">No actions recorded yet</p>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {modLog.slice(0, 20).map(a => (
+                      <div key={a.id} className="flex items-start gap-2.5 py-2 border-b border-gray-50 last:border-0">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                          style={{
+                            background: a.actionType === 'REMOVE_CONTENT' ? '#FEF2F2' :
+                                        a.actionType === 'WARN_USER' ? '#FFFBEB' :
+                                        a.actionType === 'SUSPEND_USER' ? '#FEF2F2' : '#ECFDF5',
+                            color: a.actionType === 'REMOVE_CONTENT' ? '#DC2626' :
+                                   a.actionType === 'WARN_USER' ? '#D97706' :
+                                   a.actionType === 'SUSPEND_USER' ? '#DC2626' : '#059669',
+                          }}>
+                          <Activity className="w-3 h-3" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-700 truncate">{a.actionType.replace(/_/g, ' ')}: {a.targetLabel}</p>
+                          <p className="text-[11px] text-gray-400 truncate">{a.note}</p>
+                          <p className="text-[10px] text-gray-300">{new Date(a.performedAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Remove content modal */}
+          {removeModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Remove Public Content</h2>
+                <p className="text-sm text-gray-500 mb-4">This will hide <strong>&ldquo;{removeModal.item.title}&rdquo;</strong> from the public. A mandatory note is required.</p>
+                <textarea
+                  placeholder="Reason for removal (required)…"
+                  value={removeNote}
+                  onChange={e => setRemoveNote(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
+                />
+                <div className="flex gap-3 mt-4">
+                  <button type="button" onClick={() => setRemoveModal(null)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!removeNote.trim() || modActionLoading}
+                    onClick={async () => {
+                      if (!removeNote.trim()) return;
+                      setModActionLoading(true);
+                      try {
+                        await api.admin.removeContent(removeModal.item.id, removeNote);
+                        setModContent(prev => prev.filter(c => c.id !== removeModal.item.id));
+                        setRemoveModal(null);
+                        void loadModeration();
+                      } catch { /* non-fatal */ }
+                      finally { setModActionLoading(false); }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {modActionLoading ? 'Removing…' : 'Remove Content'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Warn user modal */}
+          {warnModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Warn Creator</h2>
+                <p className="text-sm text-gray-500 mb-4">Send a warning message to <strong>{warnModal.name}</strong>.</p>
+                <textarea
+                  placeholder="Warning message (required)…"
+                  value={warnMsg}
+                  onChange={e => setWarnMsg(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400"
+                />
+                <div className="flex gap-3 mt-4">
+                  <button type="button" onClick={() => setWarnModal(null)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!warnMsg.trim() || modActionLoading}
+                    onClick={async () => {
+                      if (!warnMsg.trim()) return;
+                      setModActionLoading(true);
+                      try {
+                        await api.admin.warnUser(warnModal.userId, warnMsg);
+                        setWarnModal(null);
+                        void loadModeration();
+                      } catch { /* non-fatal */ }
+                      finally { setModActionLoading(false); }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {modActionLoading ? 'Sending…' : 'Send Warning'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Suspend account modal */}
+          {suspendModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Suspend Account</h2>
+                <p className="text-sm text-gray-500 mb-4">Suspend <strong>{suspendModal.name}</strong>. A reason is required.</p>
+                <textarea
+                  placeholder="Reason for suspension (required)…"
+                  value={suspendReason}
+                  onChange={e => setSuspendReason(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                />
+                <div className="flex gap-3 mt-4">
+                  <button type="button" onClick={() => setSuspendModal(null)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!suspendReason.trim() || modActionLoading}
+                    onClick={async () => {
+                      if (!suspendReason.trim()) return;
+                      setModActionLoading(true);
+                      try {
+                        await api.admin.suspendUser(suspendModal.userId, suspendReason);
+                        setSuspendModal(null);
+                        void loadModeration();
+                      } catch { /* non-fatal */ }
+                      finally { setModActionLoading(false); }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {modActionLoading ? 'Suspending…' : 'Suspend Account'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

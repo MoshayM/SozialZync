@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { api, type TrialStatusResponse, type ChannelAutomation } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
+import { MyContentSection } from '@/components/my-content-section';
 
 interface Project {
   id: string;
@@ -802,6 +803,11 @@ export default function HomePage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* My Content — private/public visibility section */}
+      <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mt-2 pb-8">
+        <MyContentSection />
       </div>
 
       {!onboardingDone && (
