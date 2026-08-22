@@ -521,12 +521,16 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     };
   }, [router, fetchNotifications]);
 
-  // Authoritative admin check — syncs from API /me response and caches the role
+  // Authoritative role sync — update name always, update admin state when role is present.
+  // Using isAdminUser (computed from meData.role) as the primary visibility gate means
+  // admin UI still appears even if the /me response includes role on subsequent renders.
   useEffect(() => {
-    if (!meData?.role) return;
-    localStorage.setItem('cf_user_role', meData.role);
-    setIsAdmin(['OWNER', 'SUPER_ADMIN'].includes(meData.role));
+    if (!meData) return;
     if (meData.name) setUserName(meData.name.split(' ')[0] ?? meData.name);
+    if (meData.role) {
+      localStorage.setItem('cf_user_role', meData.role);
+      setIsAdmin(['OWNER', 'SUPER_ADMIN'].includes(meData.role));
+    }
   }, [meData]);
 
   useEffect(() => {
@@ -571,6 +575,10 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     clearTokens();
     router.push('/browse');
   }
+
+  // Real-time admin check: isAdmin state (from token/cache) OR live meData role.
+  // Prevents the admin UI from staying hidden when the /me API omits the role field on first load.
+  const isAdminUser = isAdmin || meData?.role === 'SUPER_ADMIN' || meData?.role === 'OWNER';
 
   /* Sidebar nav link renderer (shared by desktop sidebar + mobile drawer) */
   function renderNavSections(opts: { collapsed: boolean; onNavClick?: () => void }) {
@@ -746,7 +754,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         </Link>
 
         {/* Admin button — hidden on xs to prevent header overflow on narrow phones */}
-        {isAdmin && (
+        {isAdminUser && (
           <Link
             href="/admin"
             title="Admin panel"
@@ -882,7 +890,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             {/* Name — shown on sm+ screens */}
             <div className="hidden sm:block max-w-[120px]" style={{ lineHeight: 1.2, textAlign: 'left', paddingRight: '6px' }}>
               <div className="truncate" style={{ fontWeight: 700, fontSize: '13.5px' }}>{meData?.name ?? userName}</div>
-              <div style={{ fontSize: '11.5px', color: '#5a576b', fontWeight: 500 }}>Creator</div>
+              <div style={{ fontSize: '11.5px', color: '#5a576b', fontWeight: 500 }}>
+                {meData?.role === 'SUPER_ADMIN' ? 'Super Admin' : meData?.role === 'OWNER' ? 'Owner' : 'Creator'}
+              </div>
             </div>
             <ChevronDown className="hidden sm:block w-3.5 h-3.5 shrink-0 mr-2" style={{ color: '#9a97ab', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />
           </button>
@@ -917,7 +927,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     {label}
                   </Link>
                 ))}
-                {isAdmin && (
+                {isAdminUser && (
                   <Link
                     href="/admin?tab=users"
                     onClick={() => setUserMenuOpen(false)}
@@ -1032,7 +1042,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               onNavClick: () => setMobileMenuOpen(false),
             })}
             {/* Admin Panel link — desktop sidebar only (mobile uses drawer bottom section) */}
-            {isAdmin && (
+            {isAdminUser && (
               <div className="hidden lg:block" style={{ marginTop: '4px' }}>
                 <Link
                   href="/admin"
@@ -1077,7 +1087,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 {label}
               </Link>
             ))}
-            {isAdmin && (
+            {isAdminUser && (
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
