@@ -9,7 +9,7 @@ import {
   Upload, BarChart2, Search, Zap, HelpCircle,
   WifiOff, Layers, Link2, Plus, Sparkles, Compass,
   Calendar, FlaskConical, Shield, Scissors,
-  ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity,
+  ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity, Globe,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -39,6 +39,13 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/calendar',  icon: Calendar,   label: 'Content Calendar' },
       { href: '/publish',   icon: Upload,     label: 'Publish Hub' },
       { href: '/insights',  icon: BarChart2,  label: 'Analytics' },
+    ],
+  },
+  {
+    category: 'Discover',
+    items: [
+      { href: '/explore',   icon: Globe,      label: 'Public Feed' },
+      { href: '/browse',    icon: Compass,    label: 'Browse' },
     ],
   },
 ];
@@ -699,8 +706,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <Menu className="w-[18px] h-[18px]" />
         </button>
 
-        {/* Logo */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Logo — clicks to public feed */}
+        <Link href="/explore" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity" title="Public Feed">
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" />
           <div className="leading-[1.15] hidden sm:block">
             <div className="font-bold text-[15px] tracking-[-0.4px]">
@@ -711,12 +718,24 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <div className="font-bold text-[15px] tracking-[-0.4px] sm:hidden">
             <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
           </div>
-        </div>
+        </Link>
 
         {/* Search bar — hidden on small screens */}
         <GlobalSearch />
 
         <div className="flex-1" />
+
+        {/* Public Feed button */}
+        <Link
+          href="/explore"
+          title="Public Feed"
+          className="hidden sm:flex w-[42px] h-[42px] rounded-[12px] items-center justify-center transition-colors shrink-0 touch-manipulation"
+          style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; (e.currentTarget as HTMLElement).style.color = '#7C3AED'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.color = '#5b5772'; }}
+        >
+          <Globe className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
+        </Link>
 
         {/* Admin button — hidden on xs to prevent header overflow on narrow phones */}
         {isAdmin && (
