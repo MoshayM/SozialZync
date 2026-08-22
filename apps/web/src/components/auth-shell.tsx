@@ -20,18 +20,18 @@ export function AuthShell({
   footer: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#b3a2e8] relative overflow-hidden py-10 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-200 relative overflow-hidden py-10 px-4">
       <div className="absolute top-16 left-[12%] w-24 h-10 bg-white/80 rounded-full blur-[1px]" />
       <div className="absolute top-24 left-[16%] w-14 h-8 bg-white/70 rounded-full" />
       <div className="absolute top-32 right-[14%] w-28 h-11 bg-white/80 rounded-full blur-[1px]" />
-      <div className="absolute bottom-24 left-[8%] w-40 h-40 bg-[#9d8adf]/60 rounded-full" />
-      <div className="absolute bottom-10 right-[6%] w-56 h-56 bg-[#a794e4]/50 rounded-full" />
+      <div className="absolute bottom-24 left-[8%] w-40 h-40 bg-gray-400/60 rounded-full" />
+      <div className="absolute bottom-10 right-[6%] w-56 h-56 bg-gray-300/50 rounded-full" />
 
-      <div className="relative w-full max-w-md bg-[#f7f4fd] rounded-[3rem] shadow-2xl px-6 pt-10 pb-8">
-        <p className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-[#6b54bd] mb-3">{brand}</p>
+      <div className="relative w-full max-w-md bg-gray-50 rounded-[3rem] shadow-2xl px-6 pt-10 pb-8">
+        <p className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-gray-600 mb-3">{brand}</p>
         <div className="text-center">
           <span className="text-lg" aria-hidden>💜</span>
-          <h1 className="text-3xl font-extrabold text-[#7b5ec7] mt-1">
+          <h1 className="text-3xl font-extrabold text-gray-800 mt-1">
             <span className="text-[#e8c14d] mr-2" aria-hidden>✦</span>
             {title}
             <span className="text-[#e8c14d] ml-2" aria-hidden>✦</span>
@@ -39,7 +39,7 @@ export function AuthShell({
           <p className="text-sm text-gray-600 mt-2">{subtitle}</p>
         </div>
         <div className="relative z-10 flex justify-center -mb-9 mt-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-b from-[#cbbcf2] to-[#a48fe0] shadow-lg flex items-center justify-center text-5xl select-none" aria-hidden>
+          <div className="w-24 h-24 rounded-full bg-gradient-to-b from-gray-300 to-gray-400 shadow-lg flex items-center justify-center text-5xl select-none" aria-hidden>
             {mascot}
           </div>
         </div>
@@ -57,8 +57,8 @@ export function AuthPillInput({
   ...inputProps
 }: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div className="flex items-center bg-white border border-[#e4ddf6] rounded-full shadow-[inset_0_1px_3px_rgba(123,94,199,0.08)] pr-3 focus-within:ring-2 focus-within:ring-[#a48fe0]">
-      <span className="w-10 h-10 m-1 rounded-full bg-[#8b74d8] text-white flex items-center justify-center shrink-0">
+    <div className="flex items-center bg-white border border-gray-200 rounded-full shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)] pr-3 focus-within:ring-2 focus-within:ring-gray-400">
+      <span className="w-10 h-10 m-1 rounded-full bg-gray-600 text-white flex items-center justify-center shrink-0">
         {icon}
       </span>
       <input
@@ -114,20 +114,20 @@ export function LoginShell({
         .lf-count-2 { animation:lf-count .6s ease forwards .3s; opacity:0; }
         .lf-count-3 { animation:lf-count .6s ease forwards .5s; opacity:0; }
         .lf-card { transform-style:preserve-3d; }
-        .lf-card:hover { transform:perspective(800px) rotateX(-4deg) rotateY(6deg) translateZ(8px) scale(1.02); transition:transform .4s ease,box-shadow .4s ease; box-shadow:0 24px 48px -8px rgba(124,58,237,.4); }
-        .lf-shimmer-btn { background:linear-gradient(90deg,#a78bfa,#7C3AED,#818cf8,#7C3AED,#a78bfa); background-size:300% 100%; animation:lf-shimmer 3s linear infinite; }
-        .lf-rp { background:linear-gradient(135deg,#faf9ff 0%,#f5f0ff 40%,#ede9ff 100%); background-size:200% 200%; animation:lf-rp-shift 8s ease infinite; }
+        .lf-card:hover { transform:perspective(800px) rotateX(-4deg) rotateY(6deg) translateZ(8px) scale(1.02); transition:transform .4s ease,box-shadow .4s ease; box-shadow:0 24px 48px -8px rgba(0,0,0,.25); }
+        .lf-shimmer-btn { background:linear-gradient(90deg,#9ca3af,#374151,#6b7280,#374151,#9ca3af); background-size:300% 100%; animation:lf-shimmer 3s linear infinite; }
+        .lf-rp { background:linear-gradient(135deg,#fafafa 0%,#f3f4f6 40%,#e5e7eb 100%); background-size:200% 200%; animation:lf-rp-shift 8s ease infinite; }
       `}</style>
 
       {/* ── Left: Brand panel ──────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[58%] xl:w-[60%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'radial-gradient(ellipse at 30% 40%, #1a0845 0%, #0a0520 55%, #000814 100%)' }}
+        style={{ background: 'radial-gradient(ellipse at 30% 40%, #0f172a 0%, #020617 55%, #030712 100%)' }}
       >
         {/* Deep space ambient orbs */}
-        <div className="absolute -top-40 -left-20 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: 'rgba(124,58,237,.18)', filter: 'blur(80px)' }} />
-        <div className="absolute top-1/2 -right-16 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'rgba(99,60,220,.25)', filter: 'blur(60px)' }} />
-        <div className="absolute -bottom-32 left-1/3 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(79,46,196,.4)', filter: 'blur(70px)' }} />
+        <div className="absolute -top-40 -left-20 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.15)', filter: 'blur(80px)' }} />
+        <div className="absolute top-1/2 -right-16 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(60px)' }} />
+        <div className="absolute -bottom-32 left-1/3 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.25)', filter: 'blur(70px)' }} />
 
         {/* Perspective grid overlay */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{opacity:.05}}>
@@ -179,12 +179,12 @@ export function LoginShell({
           <div className="relative w-14 h-14 shrink-0">
             {/* Orbital rings */}
             <div className="lf-spin absolute inset-[-8px] rounded-full" style={{border:'1px solid rgba(167,139,250,.35)'}} />
-            <div className="lf-spin-r absolute inset-[-16px] rounded-full" style={{border:'1px solid rgba(124,58,237,.18)'}} />
+            <div className="lf-spin-r absolute inset-[-16px] rounded-full" style={{border:'1px solid rgba(0,0,0,.15)'}} />
             <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
           </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
-              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Z</span><span className="text-white">ynk</span>
+              <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Z</span><span className="text-white">ynk</span>
             </div>
             <div className="text-white/45 text-xs mt-0.5">AI Creator Platform</div>
           </div>
@@ -199,7 +199,7 @@ export function LoginShell({
 
           <h1 className="text-5xl xl:text-[3.4rem] font-extrabold text-white leading-[1.1] mb-5">
             Research. Script.<br />
-            <span style={{ WebkitTextFillColor: 'transparent', WebkitBackgroundClip: 'text', backgroundImage: 'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa,#c4b5fd)', backgroundClip: 'text', backgroundSize:'200% 100%', animation:'lf-grad 4s ease infinite' }}>
+            <span style={{ WebkitTextFillColor: 'transparent', WebkitBackgroundClip: 'text', backgroundImage: 'linear-gradient(90deg,#ffffff,#d1d5db,#e5e7eb,#ffffff)', backgroundClip: 'text', backgroundSize:'200% 100%', animation:'lf-grad 4s ease infinite' }}>
               Publish Everywhere.
             </span>
           </h1>
@@ -240,7 +240,7 @@ export function LoginShell({
             &ldquo;SozialZynk helped me grow from 5K to 150K subscribers in 6 months. The AI research and multi-platform publishing saved me so much time.&rdquo;
           </p>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">M</div>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-gray-800 shrink-0">M</div>
             <div>
               <div className="text-white text-sm font-semibold leading-none mb-0.5">Marcus Chen</div>
               <div className="text-white/45 text-xs">Tech Creator · 150K subscribers</div>
@@ -256,7 +256,7 @@ export function LoginShell({
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
 
@@ -291,8 +291,8 @@ export function LoginInput({
         <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</label>
       )}
       <div
-        className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
-        style={{ border: '1.5px solid #e3e0f0' }}
+        className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-gray-300 focus-within:border-gray-400"
+        style={{ border: '1.5px solid #e5e7eb' }}
       >
         {icon && (
           <span className="pl-3.5 text-gray-600 shrink-0">{icon}</span>
@@ -332,7 +332,7 @@ export function RegisterShell({
       {/* ── Left: Brand panel ──────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[52%] xl:w-[54%] relative overflow-hidden flex-col justify-between px-14 xl:px-18 py-14"
-        style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #1f2937 0%, #374151 55%, #4b5563 100%)' }}
       >
         {/* Ambient orbs */}
         <div
@@ -341,11 +341,11 @@ export function RegisterShell({
         />
         <div
           className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none"
-          style={{ background: 'rgba(160,120,255,0.28)', filter: 'blur(70px)' }}
+          style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(70px)' }}
         />
         <div
           className="absolute top-1/2 left-1/4 w-72 h-72 rounded-full pointer-events-none"
-          style={{ background: 'rgba(70,40,190,0.45)', filter: 'blur(80px)' }}
+          style={{ background: 'rgba(0,0,0,.25)', filter: 'blur(80px)' }}
         />
 
         {/* Logo */}
@@ -353,7 +353,7 @@ export function RegisterShell({
           <LogoMark className="w-12 h-12 shrink-0" />
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
-              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+              <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
             </div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
@@ -439,7 +439,7 @@ export function RegisterShell({
             &ldquo;I was spending 20+ hours a week on content research. Sozialzynk cut that to under 2 hours. The research agent and fact-checker alone are worth it.&rdquo;
           </p>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-gray-800 shrink-0">
               S
             </div>
             <div>
@@ -451,13 +451,13 @@ export function RegisterShell({
       </div>
 
       {/* ── Right: Form panel ──────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-[#faf9ff] px-6 sm:px-10 py-10 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-10 overflow-y-auto">
         <div className="w-full max-w-[380px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
 
@@ -510,17 +510,17 @@ export function ForgotPasswordShell({
       {/* ── Left panel ─────────────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[52%] xl:w-[54%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #1f2937 0%, #374151 55%, #4b5563 100%)' }}
       >
         <div className="absolute -top-40 -left-28 w-[480px] h-[480px] rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(90px)' }} />
-        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(160,120,255,0.28)', filter: 'blur(70px)' }} />
+        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(70px)' }} />
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" />
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
-              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+              <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
             </div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
@@ -548,7 +548,7 @@ export function ForgotPasswordShell({
             {RECOVERY_STEPS.map((s, i) => (
               <div key={s.n} className="flex items-start gap-4">
                 <div className="flex flex-col items-center shrink-0">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-base font-extrabold text-[#6D4AE0] bg-[#f0c14d] shrink-0">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-base font-extrabold text-gray-800 bg-[#f0c14d] shrink-0">
                     {s.n}
                   </div>
                   {i < RECOVERY_STEPS.length - 1 && (
@@ -578,12 +578,12 @@ export function ForgotPasswordShell({
       </div>
 
       {/* ── Right panel ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-[#faf9ff] px-6 sm:px-10 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
           {children}
@@ -616,17 +616,17 @@ export function ResetPasswordShell({
       {/* ── Left panel ─────────────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[52%] xl:w-[54%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #1f2937 0%, #374151 55%, #4b5563 100%)' }}
       >
         <div className="absolute -top-40 -left-28 w-[480px] h-[480px] rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(90px)' }} />
-        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'rgba(160,120,255,0.28)', filter: 'blur(70px)' }} />
+        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(70px)' }} />
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" />
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
-              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+              <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
             </div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
@@ -673,12 +673,12 @@ export function ResetPasswordShell({
       </div>
 
       {/* ── Right panel ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-[#faf9ff] px-6 sm:px-10 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
           {children}
@@ -702,11 +702,11 @@ const SHORT_FEATURES = [
 
 const MOCK_SHORTS = [
   {
-    bg: 'linear-gradient(175deg, #7c3aed 0%, #3b0764 100%)',
+    bg: 'linear-gradient(175deg, #1f2937 0%, #111827 100%)',
     emoji: '🤖',
     title: '5 AI Hacks',
     views: '2.3M',
-    badge: '#a78bfa',
+    badge: '#9ca3af',
   },
   {
     bg: 'linear-gradient(175deg, #e11d48 0%, #7f1d1d 100%)',
@@ -736,18 +736,18 @@ export function OAuthCallbackShell({
       {/* ── Left: Short Studio showcase ────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[55%] xl:w-[56%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #1f2937 0%, #374151 55%, #4b5563 100%)' }}
       >
         {/* Orbs */}
         <div className="absolute -top-40 -left-28 w-[480px] h-[480px] rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(90px)' }} />
-        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(160,120,255,0.30)', filter: 'blur(70px)' }} />
+        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(70px)' }} />
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
           <LogoMark className="w-12 h-12 shrink-0" />
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
-              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+              <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
             </div>
             <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
           </div>
@@ -857,13 +857,13 @@ export function OAuthCallbackShell({
       </div>
 
       {/* ── Right: Status panel ─────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-[#faf9ff] px-6 sm:px-10 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[360px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
 
