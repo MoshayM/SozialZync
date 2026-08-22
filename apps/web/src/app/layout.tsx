@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   applicationName: 'SozialZynk',
   alternates: { canonical: '/' },
   icons: {
-    icon: '/icon.svg',
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
     shortcut: '/icon.svg',
-    apple: '/icon.svg',
+    apple: [{ url: '/icon.svg', sizes: '512x512', type: 'image/svg+xml' }],
   },
   // PWA / mobile app meta
   appleWebApp: {
