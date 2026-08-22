@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { Suspense, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -159,13 +159,13 @@ function relativeTime(dateStr: string): string {
 }
 
 function assetIcon(type: AssetItem['type']) {
-  if (type === 'image') return <ImageIcon className="w-4 h-4 text-purple-400" />;
+  if (type === 'image') return <ImageIcon className="w-4 h-4 text-gray-400" />;
   if (type === 'audio') return <Music className="w-4 h-4 text-green-400" />;
   return <Video className="w-4 h-4 text-blue-400" />;
 }
 
 function assetBadgeClass(type: AssetItem['type']): string {
-  if (type === 'image') return 'bg-purple-100 text-purple-700';
+  if (type === 'image') return 'bg-gray-100 text-gray-700';
   if (type === 'audio') return 'bg-green-100 text-green-700';
   return 'bg-blue-100 text-blue-700';
 }
@@ -206,7 +206,7 @@ function TimelineEditorTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowForm((s) => !s)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-purple-600 hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors"
           >
             <Plus className="w-4 h-4" /> New edit
           </button>
@@ -226,12 +226,12 @@ function TimelineEditorTab() {
                 if (e.key === 'Escape') setShowForm(false);
               }}
               placeholder="Edit title (e.g. My YouTube Video)"
-              className="bg-white rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition-all flex-1 border border-gray-200"
+              className="bg-white rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all flex-1 border border-gray-200"
             />
             <button
               onClick={handleCreate}
               disabled={createMutation.isPending}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50 bg-purple-600 hover:bg-purple-700 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50 bg-gray-600 hover:bg-gray-700 transition-colors"
             >
               {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Create
@@ -267,11 +267,11 @@ function TimelineEditorTab() {
 
       {!isLoading && !error && projects.length === 0 && (
         <div className="text-center py-20 text-gray-500">
-          <Film className="w-10 h-10 mx-auto mb-3 text-purple-300" />
+          <Film className="w-10 h-10 mx-auto mb-3 text-gray-300" />
           <p className="mb-4">No edit projects yet.</p>
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-purple-600 hover:bg-purple-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors"
           >
             <Plus className="w-4 h-4" /> Create your first edit
           </button>
@@ -287,7 +287,7 @@ function TimelineEditorTab() {
               className="block bg-white rounded-2xl px-5 py-4 hover:shadow-lg transition-all border border-gray-100"
             >
               <div className="flex items-center gap-3">
-                <Film className="w-5 h-5 shrink-0 text-purple-600" />
+                <Film className="w-5 h-5 shrink-0 text-gray-600" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">{p.title}</p>
                   <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
@@ -348,7 +348,7 @@ function StoryboardTab() {
               {/* Hover overlay */}
               {hoveredScene === scene.id && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-all">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-600 text-white text-xs font-semibold hover:bg-gray-700 transition-colors">
                     <Pencil className="w-3 h-3" /> Edit Scene
                   </button>
                 </div>
@@ -454,7 +454,7 @@ function ExportTab() {
               onClick={() => setFormat(f)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
                 format === f
-                  ? 'bg-purple-600 text-white border-purple-600'
+                  ? 'bg-gray-600 text-white border-gray-600'
                   : 'border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -474,7 +474,7 @@ function ExportTab() {
               onClick={() => setQuality(q)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
                 quality === q
-                  ? 'bg-purple-600 text-white border-purple-600'
+                  ? 'bg-gray-600 text-white border-gray-600'
                   : 'border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -494,7 +494,7 @@ function ExportTab() {
               onClick={() => setFps(r)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
                 fps === r
-                  ? 'bg-purple-600 text-white border-purple-600'
+                  ? 'bg-gray-600 text-white border-gray-600'
                   : 'border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -532,12 +532,12 @@ function ExportTab() {
           <span>0%</span>
         </div>
         <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-purple-600 rounded-full" style={{ width: '0%' }} />
+          <div className="h-full bg-gray-600 rounded-full" style={{ width: '0%' }} />
         </div>
       </div>
 
       {/* Export button */}
-      <button className="w-full py-3.5 rounded-xl bg-purple-600 text-white text-sm font-bold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
+      <button className="w-full py-3.5 rounded-xl bg-gray-600 text-white text-sm font-bold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
         <Download className="w-4 h-4" />
         Export Video
       </button>
@@ -575,7 +575,7 @@ function EditorInner() {
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
+              style={{ background: 'linear-gradient(135deg, #374151, #1f2937)' }}
             >
               <Film className="w-5 h-5 text-white" />
             </div>
@@ -588,7 +588,7 @@ function EditorInner() {
             <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
               <Upload className="w-4 h-4" /> Import Video
             </button>
-            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-purple-600 hover:bg-purple-700 transition-colors">
+            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors">
               <Plus className="w-4 h-4" /> New Project
             </button>
           </div>
@@ -604,7 +604,7 @@ function EditorInner() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg whitespace-nowrap transition-all mr-0.5 ${
                   activeTab === tab.key
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-gray-600 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -130,11 +130,11 @@ function GlobalSearch() {
       className="hidden md:flex flex-1 max-w-[400px] ml-3 items-center gap-2 rounded-[12px] px-3 py-2 transition-all"
       style={{
         background: focused ? '#fff' : '#F7F6FB',
-        border: focused ? '1.5px solid #6D4AE0' : '1px solid #ECECF3',
-        boxShadow: focused ? '0 0 0 3px rgba(109,74,224,.1)' : 'none',
+        border: focused ? '1.5px solid #374151' : '1px solid #ECECF3',
+        boxShadow: focused ? '0 0 0 3px rgba(0,0,0,.07)' : 'none',
       }}
     >
-      <Search className="w-[16px] h-[16px] shrink-0" style={{ color: focused ? '#6D4AE0' : '#9a97ab' }} />
+      <Search className="w-[16px] h-[16px] shrink-0" style={{ color: focused ? '#374151' : '#9a97ab' }} />
       <input
         ref={inputRef}
         type="search"
@@ -152,7 +152,7 @@ function GlobalSearch() {
           type="submit"
           aria-label="Search"
           className="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg transition-all hover:opacity-80"
-          style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)', color: 'white' }}
+          style={{ background: '#374151', color: 'white' }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
@@ -161,7 +161,7 @@ function GlobalSearch() {
       ) : (
         <kbd
           className="shrink-0 text-[11px] font-medium select-none hidden lg:block"
-          style={{ color: '#c4b0f5' }}
+          style={{ color: '#9ca3af' }}
           title="Press ⌘K to open command palette"
         >
           ⌘K
@@ -358,11 +358,11 @@ function CreditsBanner() {
 // falls back to a gradient tile with the user's initial — no network required.
 
 const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg,#6D4AE0,#9C88DD)',
-  'linear-gradient(135deg,#7c5ae8,#a78bfa)',
-  'linear-gradient(135deg,#5B3BD0,#8B5CF6)',
-  'linear-gradient(135deg,#4338CA,#818CF8)',
-  'linear-gradient(135deg,#7C3AED,#C084FC)',
+  'linear-gradient(135deg,#374151,#6b7280)',
+  'linear-gradient(135deg,#1f2937,#4b5563)',
+  'linear-gradient(135deg,#374151,#6b7280)',
+  'linear-gradient(135deg,#1e40af,#3b82f6)',
+  'linear-gradient(135deg,#374151,#9ca3af)',
 ];
 
 function UserAvatar({ name, url, size = 32 }: { name: string; url?: string | null; size?: number }) {
@@ -747,7 +747,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           title="Public Feed"
           className="hidden sm:flex w-[42px] h-[42px] rounded-[12px] items-center justify-center transition-colors shrink-0 touch-manipulation"
           style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; (e.currentTarget as HTMLElement).style.color = '#7C3AED'; }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.color = '#5b5772'; }}
         >
           <Globe className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
@@ -773,7 +773,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           title="Ask Copilot"
           onClick={() => window.dispatchEvent(new CustomEvent('cf:open-copilot'))}
           className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center hover:opacity-90 active:opacity-75 transition-opacity shrink-0 touch-manipulation"
-          style={{ border: '1px solid #E4DEFB', background: '#F6F2FF', color: '#7C3AED' }}
+          style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#6b7280' }}
         >
           <Bot className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
         </button>
@@ -822,7 +822,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <div className="flex items-center justify-between" style={{ padding: '15px 18px', borderBottom: '1px solid #F1EFF7' }}>
                 <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-.3px' }}>Notifications</span>
                 {unreadCount > 0 && (
-                  <button type="button" onClick={() => void handleMarkAllRead()} className="border-none bg-transparent cursor-pointer" style={{ fontSize: '12.5px', fontWeight: 700, color: '#7C3AED', fontFamily: 'inherit' }}>
+                  <button type="button" onClick={() => void handleMarkAllRead()} className="border-none bg-transparent cursor-pointer" style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', fontFamily: 'inherit' }}>
                     Mark all read
                   </button>
                 )}
@@ -869,7 +869,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 href="/notifications"
                 onClick={() => setBellOpen(false)}
                 className="block w-full text-center text-xs font-semibold hover:bg-[#F6F5FC] active:bg-[#EDE9FD]"
-                style={{ padding: '12px', color: '#7C3AED', borderTop: '1px solid #ECECF3' }}
+                style={{ padding: '12px', color: '#374151', borderTop: '1px solid #e5e7eb' }}
               >
                 View all notifications →
               </Link>
@@ -906,7 +906,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#1E1B2E' }}>{meData?.name ?? userName}</div>
                 <div style={{ fontSize: '11.5px', color: '#8b88a0', fontWeight: 500, marginTop: '1px' }}>{meData?.email ?? 'Creator'}</div>
                 {(meData?.role === 'SUPER_ADMIN' || meData?.role === 'OWNER') && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: meData.role === 'SUPER_ADMIN' ? '#f5f2fd' : '#eff6ff', color: meData.role === 'SUPER_ADMIN' ? '#6D4AE0' : '#1d4ed8', border: `1px solid ${meData.role === 'SUPER_ADMIN' ? '#c4b5fd' : '#bfdbfe'}`, borderRadius: '6px', padding: '2px 7px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: meData.role === 'SUPER_ADMIN' ? '#f3f4f6' : '#eff6ff', color: meData.role === 'SUPER_ADMIN' ? '#374151' : '#1d4ed8', border: `1px solid ${meData.role === 'SUPER_ADMIN' ? '#d1d5db' : '#bfdbfe'}`, borderRadius: '6px', padding: '2px 7px' }}>
                     <ShieldCheck style={{ width: '10px', height: '10px' }} />
                     {meData.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Owner'}
                   </span>
@@ -923,7 +923,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
-                    <Icon style={{ width: '16px', height: '16px', flexShrink: 0, color: '#7C3AED', opacity: .85 }} />
+                    <Icon style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280', opacity: .85 }} />
                     {label}
                   </Link>
                 ))}
@@ -932,11 +932,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     href="/admin?tab=users"
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2.5 transition-colors"
-                    style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: '#6D4AE0' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f5f2fd'; }}
+                    style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: '#374151' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
-                    <ShieldCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6D4AE0' }} />
+                    <ShieldCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280' }} />
                     Switch / View Account
                   </Link>
                 )}
@@ -1057,15 +1057,15 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     letterSpacing: '-.1px',
                     textDecoration: 'none',
                     justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                    background: pathname.startsWith('/admin') ? '#f5f2fd' : '#faf9ff',
-                    color: '#6D4AE0',
-                    border: '1px solid #e3ddf8',
+                    background: pathname.startsWith('/admin') ? '#f3f4f6' : '#f9fafb',
+                    color: '#374151',
+                    border: '1px solid #e5e7eb',
                     transition: 'background 180ms ease',
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#ede9fb'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = pathname.startsWith('/admin') ? '#f5f2fd' : '#faf9ff'; }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = pathname.startsWith('/admin') ? '#f3f4f6' : '#f9fafb'; }}
                 >
-                  <ShieldCheck style={{ width: '18px', height: '18px', flexShrink: 0, color: '#6D4AE0' }} />
+                  <ShieldCheck style={{ width: '18px', height: '18px', flexShrink: 0, color: '#6b7280' }} />
                   {!sidebarCollapsed && <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>Admin Panel</span>}
                 </Link>
               </div>
@@ -1093,11 +1093,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                style={{ color: '#6D4AE0', fontSize: '14px', fontWeight: 700, textDecoration: 'none', background: '#f5f2fd', border: '1px solid #e3ddf8' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#ede9fb'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f5f2fd'; }}
+                style={{ color: '#374151', fontSize: '14px', fontWeight: 700, textDecoration: 'none', background: '#f3f4f6', border: '1px solid #e5e7eb' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
               >
-                <ShieldCheck style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6D4AE0' }} />
+                <ShieldCheck style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
                 Admin Panel
               </Link>
             )}
@@ -1132,7 +1132,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       <nav
         className="cf-mobile-nav fixed bottom-0 inset-x-0 lg:hidden z-30"
         aria-label="Mobile navigation"
-        style={{ background: '#fff', borderTop: '1px solid #ECECF3' }}
+        style={{ background: '#fff', borderTop: '1px solid #e5e7eb' }}
       >
         <div className="flex items-center h-14">
 
@@ -1144,11 +1144,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 key={href}
                 href={href}
                 className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative"
-                style={{ color: isActive ? '#7C3AED' : '#9a97ab' }}
+                style={{ color: isActive ? '#111827' : '#9a97ab' }}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {isActive && (
-                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#7C3AED' }} />
+                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#374151' }} />
                 )}
                 <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
                 <span className="text-[10.5px] font-semibold leading-none">{label}</span>
@@ -1168,13 +1168,13 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 style={{
                   width: 40, height: 40,
                   borderRadius: 13,
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #9D6FE8 100%)',
-                  boxShadow: '0 3px 12px rgba(124,58,237,0.38)',
+                  background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)',
+                  boxShadow: '0 3px 12px rgba(55,65,81,0.38)',
                 }}
               >
                 <Plus className="w-[21px] h-[21px] text-white" strokeWidth={2.5} />
               </span>
-              <span className="text-[10.5px] font-semibold leading-none" style={{ color: '#7C3AED' }}>Create</span>
+              <span className="text-[10.5px] font-semibold leading-none" style={{ color: '#374151' }}>Create</span>
             </Link>
           </div>
 
@@ -1186,11 +1186,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 key={href}
                 href={href}
                 className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative"
-                style={{ color: isActive ? '#7C3AED' : '#9a97ab' }}
+                style={{ color: isActive ? '#111827' : '#9a97ab' }}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {isActive && (
-                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#7C3AED' }} />
+                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#374151' }} />
                 )}
                 <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
                 <span className="text-[10.5px] font-semibold leading-none">{label}</span>

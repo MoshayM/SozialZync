@@ -104,7 +104,7 @@ function PublishContent() {
 
         <Link
           href="/channel-access"
-          className="flex items-center gap-1 text-[13px] font-semibold text-purple-600 hover:text-purple-800 shrink-0 transition-colors"
+          className="flex items-center gap-1 text-[13px] font-semibold text-gray-600 hover:text-gray-800 shrink-0 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Platform
@@ -113,7 +113,7 @@ function PublishContent() {
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 overflow-x-auto no-scrollbar"
+        className="sticky top-0 z-10 bg-white border-b border-gray-200 mt-4 overflow-x-auto no-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className="flex px-4 sm:px-6 min-w-max">
@@ -127,11 +127,11 @@ function PublishContent() {
                 className={[
                   'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap touch-manipulation',
                   active
-                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    ? 'border-gray-800 text-gray-800 font-semibold'
                     : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
                 ].join(' ')}
               >
-                <t.icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
+                <t.icon className={`w-4 h-4 shrink-0 ${active ? 'text-gray-800' : 'text-gray-400'}`} />
                 {t.label}
                 {t.badge && (
                   <span
@@ -142,7 +142,7 @@ function PublishContent() {
                       borderRadius: '99px',
                       background:
                         t.badge === 'AI'
-                          ? 'linear-gradient(135deg,#6D4AE0,#7c5ae8)'
+                          ? 'linear-gradient(135deg,#374151,#1f2937)'
                           : 'linear-gradient(135deg,#F59E0B,#D97706)',
                     }}
                   >
@@ -156,7 +156,7 @@ function PublishContent() {
       </div>
 
       {/* ── Context description strip ────────────────────────────────────── */}
-      <div className="px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9]">
+      <div className="px-5 sm:px-7 py-2.5 bg-gray-50 border-b border-gray-100">
         <p className="text-xs text-gray-500 leading-none">{activeTabDef?.description}</p>
       </div>
 

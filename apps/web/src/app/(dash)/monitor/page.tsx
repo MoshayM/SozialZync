@@ -32,9 +32,9 @@ const JOB_TYPE_COLORS: Record<string, string> = {
   THUMBNAIL: 'bg-amber-100 text-amber-700',
   TREND_ANALYSIS: 'bg-yellow-100 text-yellow-700',
   AUDIENCE_ANALYSIS: 'bg-indigo-100 text-indigo-700',
-  VOICE: 'bg-purple-100 text-purple-700',
+  VOICE: 'bg-gray-100 text-gray-700',
   MUSIC_BRIEF: 'bg-orange-100 text-orange-700',
-  VIDEO_SCENE_PLAN: 'bg-violet-100 text-violet-700',
+  VIDEO_SCENE_PLAN: 'bg-gray-100 text-gray-700',
   FULL_PRODUCTION: 'bg-gray-800 text-white',
   CALENDAR_PROPOSAL: 'bg-green-100 text-green-700',
 };
@@ -124,7 +124,7 @@ export default function MonitorPage() {
             <button
               onClick={() => setAutoRefresh((v) => !v)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${autoRefresh ? 'border-green-300 bg-green-50 text-green-700' : 'text-gray-600 hover:border-gray-300'}`}
-              style={autoRefresh ? undefined : { border: '1.5px solid #e3ddf8' }}
+              style={autoRefresh ? undefined : { border: '1.5px solid #e5e7eb' }}
             >
               <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
               {autoRefresh ? 'Live' : 'Paused'}
@@ -133,7 +133,7 @@ export default function MonitorPage() {
               onClick={() => void refetch()}
               disabled={isLoading}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold text-gray-600 disabled:opacity-50"
-              style={{ border: '1.5px solid #e3ddf8' }}
+              style={{ border: '1.5px solid #e5e7eb' }}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
@@ -178,7 +178,7 @@ export default function MonitorPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl p-4 flex flex-wrap items-center gap-3" style={{ border: '1.5px solid #e3ddf8' }}>
+        <div className="bg-white rounded-2xl p-4 flex flex-wrap items-center gap-3" style={{ border: '1.5px solid #e5e7eb' }}>
           <Filter className="w-4 h-4 text-gray-600 shrink-0" />
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             {STATUS_FILTER_OPTIONS.map((s) => (
@@ -215,7 +215,7 @@ export default function MonitorPage() {
         </div>
 
         {/* Jobs list */}
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
           {isLoading && jobs.length === 0 ? (
             <div className="flex items-center justify-center py-16 text-gray-600">
               <Loader2 className="w-6 h-6 animate-spin mr-2" />
@@ -223,7 +223,7 @@ export default function MonitorPage() {
             </div>
           ) : jobs.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
+              <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f0edf9, #e5e7eb)' }}>
                 <Activity className="w-8 h-8 text-[#6D4AE0]" />
               </div>
               <p className="text-sm text-gray-600">No jobs match the current filter.</p>

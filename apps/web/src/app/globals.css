@@ -111,7 +111,7 @@
 }
 
 .shimmer-bar {
-  background: linear-gradient(90deg, #ede9fe 25%, #a78bfa 50%, #ede9fe 75%);
+  background: linear-gradient(90deg, #f3f4f6 25%, #d1d5db 50%, #f3f4f6 75%);
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
 }
@@ -213,23 +213,23 @@
   This single rule covers all 40+ dashboard pages without touching each file.
 */
 .cf-main-mobile-pad h1:not([class*="text-white"]):not([style*="color:white"]):not([style*="color: white"]) {
-  color: #4C1D95;
+  color: #111827;
 }
 .cf-main-mobile-pad h2:not([class*="text-white"]):not([class*="text-gray-4"]):not([class*="text-gray-5"]):not([style*="color:white"]) {
-  color: #5B21B6;
+  color: #1f2937;
 }
 
 /* Brand text-gradient utility for logo / display text */
 .cf-brand-gradient-text {
-  background: linear-gradient(135deg, #7C3AED 0%, #4C1D95 60%, #6D28D9 100%);
+  background: linear-gradient(135deg, #374151 0%, #111827 60%, #1f2937 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Section label — small uppercase brand-coloured labels above sections */
+/* Section label — small uppercase gray labels above sections */
 .cf-section-label {
-  color: #7C3AED;
+  color: #6b7280;
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;

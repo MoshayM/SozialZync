@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -255,7 +255,7 @@ function ScorecardTab() {
   const statItems = [
     { label: 'Published (all time)', value: pubSummary?.published ?? '—', color: 'text-green-700', bg: 'bg-green-50' },
     { label: 'This month', value: pubSummary?.publishedThisMonth ?? '—', color: 'text-blue-700', bg: 'bg-blue-50' },
-    { label: 'Scheduled', value: pubSummary?.scheduled ?? '—', color: 'text-violet-700', bg: 'bg-violet-50' },
+    { label: 'Scheduled', value: pubSummary?.scheduled ?? '—', color: 'text-gray-700', bg: 'bg-gray-50' },
     { label: 'Upcoming 7 days', value: pubSummary?.upcoming7d ?? '—', color: 'text-indigo-700', bg: 'bg-indigo-50' },
   ];
 
@@ -470,10 +470,10 @@ function GoalsTab() {
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-3">
             <p className="text-sm text-amber-800">{tip}</p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/publish?tab=calendar" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+              <Link href="/publish?tab=calendar" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
                 Plan in Calendar →
               </Link>
-              <Link href="/research" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+              <Link href="/research" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
                 Research this →
               </Link>
             </div>

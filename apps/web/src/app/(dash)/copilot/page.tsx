@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -532,7 +532,7 @@ export default function CopilotPage() {
             onChange={(e) => setConvSearch(e.target.value)}
             placeholder="Search conversations…"
             className="w-full pl-8 pr-3 py-2 text-xs rounded-xl outline-none transition-colors"
-            style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8', color: '#374151' }}
+            style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8', color: '#374151' }}
           />
         </div>
 
@@ -583,7 +583,7 @@ export default function CopilotPage() {
                   className="flex flex-col items-start gap-2 p-3 rounded-2xl text-left transition-all hover:-translate-y-0.5"
                   style={
                     isActive
-                      ? { background: '#f5f2fd', border: '2px solid #6D4AE0' }
+                      ? { background: '#f3f4f6', border: '2px solid #6D4AE0' }
                       : { background: '#faf9ff', border: '1.5px solid #e3ddf8' }
                   }
                 >
@@ -606,7 +606,7 @@ export default function CopilotPage() {
 
           {/* Expanded action input */}
           {currentAction && (
-            <div className="mt-3 p-3 rounded-2xl" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+            <div className="mt-3 p-3 rounded-2xl" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
               <p className="text-[11px] text-[#6D4AE0] font-semibold mb-2">{currentAction.description}</p>
               <input
                 autoFocus
@@ -711,7 +711,7 @@ export default function CopilotPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold shrink-0 transition-all active:scale-95 touch-manipulation"
                 style={isActive
                   ? { background: '#6D4AE0', color: '#fff', border: '1.5px solid #6D4AE0' }
-                  : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }
+                  : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }
                 }
               >
                 <Icon className="w-3 h-3" />
@@ -840,7 +840,7 @@ export default function CopilotPage() {
                 {msg.plan && (
                   <div
                     className="mt-2 p-3 rounded-2xl w-full"
-                    style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}
+                    style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}
                   >
                     <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#6D4AE0] mb-2">
                       {msg.plan.goal}
@@ -903,7 +903,7 @@ export default function CopilotPage() {
               </div>
               <div
                 className="rounded-2xl rounded-tl-sm px-4 py-2.5"
-                style={{ background:'linear-gradient(160deg,#6D4AE0 0%,#5B21B6 100%)',border:'1px solid rgba(109,74,224,.2)',boxShadow:'0 4px 16px -4px rgba(109,74,224,.3)' }}
+                style={{ background:'linear-gradient(160deg,#1f2937 0%,#374151 100%)',border:'1px solid rgba(0,0,0,.12)',boxShadow:'0 4px 16px -4px rgba(0,0,0,.18)' }}
               >
                 <div className="flex items-center gap-[2.5px]" style={{ height:'22px' }}>
                   {['5px','9px','13px','17px','19px','17px','13px','9px','5px'].map((h, i) => (

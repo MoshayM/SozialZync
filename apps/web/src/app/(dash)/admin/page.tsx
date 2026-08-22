@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity,
@@ -129,21 +129,21 @@ function formatForecastValue(metric: string, v: number): string {
 
 const PLATFORM_DATA: Record<string, { label: string; icon: React.ReactNode; color: string; views: Record<string, number> }[]> = {
   '7d':  [
-    { label: 'Web',     icon: <Globe className="w-4 h-4" />,       color: '#7C3AED', views: { '7d': 12483 } },
+    { label: 'Web',     icon: <Globe className="w-4 h-4" />,       color: '#374151', views: { '7d': 12483 } },
     { label: 'Android', icon: <Smartphone className="w-4 h-4" />,  color: '#059669', views: { '7d': 6371 }  },
     { label: 'iOS',     icon: <Apple className="w-4 h-4" />,       color: '#0891B2', views: { '7d': 3204 }  },
     { label: 'macOS',   icon: <Monitor className="w-4 h-4" />,     color: '#DC2626', views: { '7d': 1521 }  },
     { label: 'Windows', icon: <Monitor className="w-4 h-4" />,     color: '#D97706', views: { '7d': 512 }   },
   ],
   '30d': [
-    { label: 'Web',     icon: <Globe className="w-4 h-4" />,       color: '#7C3AED', views: { '30d': 45823 } },
+    { label: 'Web',     icon: <Globe className="w-4 h-4" />,       color: '#374151', views: { '30d': 45823 } },
     { label: 'Android', icon: <Smartphone className="w-4 h-4" />,  color: '#059669', views: { '30d': 23410 } },
     { label: 'iOS',     icon: <Apple className="w-4 h-4" />,       color: '#0891B2', views: { '30d': 11205 } },
     { label: 'macOS',   icon: <Monitor className="w-4 h-4" />,     color: '#DC2626', views: { '30d': 5621 }  },
     { label: 'Windows', icon: <Monitor className="w-4 h-4" />,     color: '#D97706', views: { '30d': 1876 }  },
   ],
   '90d': [
-    { label: 'Web',     icon: <Globe className="w-4 h-4" />,       color: '#7C3AED', views: { '90d': 138249 } },
+    { label: 'Web',     icon: <Globe className="w-4 h-4" />,       color: '#374151', views: { '90d': 138249 } },
     { label: 'Android', icon: <Smartphone className="w-4 h-4" />,  color: '#059669', views: { '90d': 70633 }  },
     { label: 'iOS',     icon: <Apple className="w-4 h-4" />,       color: '#0891B2', views: { '90d': 33816 }  },
     { label: 'macOS',   icon: <Monitor className="w-4 h-4" />,     color: '#DC2626', views: { '90d': 16963 }  },
@@ -154,17 +154,17 @@ const PLATFORM_DATA: Record<string, { label: string; icon: React.ReactNode; colo
 const PLAN_DATA: Record<string, { label: string; color: string; icon: React.ReactNode; views: number }[]> = {
   '7d':  [
     { label: 'Free',       color: '#6B7280', icon: <Users className="w-4 h-4" />,  views: 16714 },
-    { label: 'Pro',        color: '#7C3AED', icon: <Star className="w-4 h-4" />,   views: 5982  },
+    { label: 'Pro',        color: '#374151', icon: <Star className="w-4 h-4" />,   views: 5982  },
     { label: 'Enterprise', color: '#D97706', icon: <Crown className="w-4 h-4" />,  views: 1395  },
   ],
   '30d': [
     { label: 'Free',       color: '#6B7280', icon: <Users className="w-4 h-4" />,  views: 61230 },
-    { label: 'Pro',        color: '#7C3AED', icon: <Star className="w-4 h-4" />,   views: 21965 },
+    { label: 'Pro',        color: '#374151', icon: <Star className="w-4 h-4" />,   views: 21965 },
     { label: 'Enterprise', color: '#D97706', icon: <Crown className="w-4 h-4" />,  views: 4740  },
   ],
   '90d': [
     { label: 'Free',       color: '#6B7280', icon: <Users className="w-4 h-4" />,  views: 184690 },
-    { label: 'Pro',        color: '#7C3AED', icon: <Star className="w-4 h-4" />,   views: 66200  },
+    { label: 'Pro',        color: '#374151', icon: <Star className="w-4 h-4" />,   views: 66200  },
     { label: 'Enterprise', color: '#D97706', icon: <Crown className="w-4 h-4" />,  views: 14423  },
   ],
 };
@@ -172,7 +172,7 @@ const PLAN_DATA: Record<string, { label: string; color: string; icon: React.Reac
 
 const PLAN_CHIP_STYLES: Record<string, React.CSSProperties> = {
   free:       { background: '#f3f4f6', color: '#4b5563' },
-  pro:        { background: '#ede9fe', color: '#6D4AE0' },
+  pro:        { background: '#f3f4f6', color: '#374151' },
   enterprise: { background: '#fef3c7', color: '#b45309' },
 };
 
@@ -453,7 +453,7 @@ function AdVideoTab() {
           <ol className="space-y-2.5">
             {SCENES.map((s, i) => (
               <li key={s.label} className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #9ca3af, #374151)' }}>
                   {i + 1}
                 </div>
                 <div>
@@ -489,7 +489,7 @@ function AdVideoTab() {
             </dl>
           </section>
 
-          <section className="rounded-2xl p-4" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+          <section className="rounded-2xl p-4" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Deployment Suggestions</p>
             <ul className="space-y-1.5 text-xs text-gray-600">
               {[
@@ -501,7 +501,7 @@ function AdVideoTab() {
                 'Email drip campaign — embed as animated GIF or hosted link',
               ].map((tip) => (
                 <li key={tip} className="flex items-start gap-2">
-                  <span className="shrink-0 mt-0.5" style={{ color: '#7C3AED' }}>·</span>
+                  <span className="shrink-0 mt-0.5" style={{ color: '#374151' }}>·</span>
                   {tip}
                 </li>
               ))}
@@ -755,7 +755,7 @@ export default function AdminDashboardPage() {
             }}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
             style={adminTab === id
-              ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
+              ? { background: '#f3f4f6', border: '2px solid #6D4AE0', color: '#374151' }
               : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
             }
           >
@@ -792,7 +792,7 @@ export default function AdminDashboardPage() {
 
           {aiUsageLoading && (
             <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#374151' }} />
               <p className="text-sm text-gray-600">Loading AI usage data…</p>
             </div>
           )}
@@ -806,7 +806,7 @@ export default function AdminDashboardPage() {
           {aiUsage && aiUsage !== 'error' && aiUsage.totals.calls === 0 && (
             <div className="bg-white rounded-3xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                <Cpu className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                <Cpu className="w-8 h-8" style={{ color: '#374151' }} />
               </div>
               <p className="text-base font-extrabold text-gray-900 mb-1">No AI usage yet</p>
               <p className="text-sm text-gray-600">Run the content pipeline to start generating AI usage data.</p>
@@ -961,7 +961,7 @@ export default function AdminDashboardPage() {
                   onClick={() => setViewRange(r)}
                   className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                   style={viewRange === r
-                    ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
+                    ? { background: '#fff', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
                     : { color: '#374151' }
                   }
                 >
@@ -1025,7 +1025,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Sessions trend note */}
-          <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+          <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
             <Activity className="w-4 h-4 text-[#9d6ff0] mt-0.5 shrink-0" />
             <p className="text-sm text-gray-600">
               Analytics shown are <strong>simulated representative data</strong> for the superadmin view. Connect your real analytics provider (Mixpanel, PostHog, Plausible) in <strong>Settings → Integrations</strong> to stream live session data here.
@@ -1064,7 +1064,7 @@ export default function AdminDashboardPage() {
                   onClick={() => setPlanFilter(p)}
                   className="px-3 py-2 rounded-xl text-xs font-semibold transition-all capitalize"
                   style={planFilter === p
-                    ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
+                    ? { background: '#fff', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
                     : { color: '#374151' }
                   }
                 >
@@ -1110,7 +1110,7 @@ export default function AdminDashboardPage() {
                       <tr key={u.id} className={`transition-colors ${impersonating?.id === u.id ? 'bg-amber-50' : 'hover:bg-[#faf9ff]'}`}>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg, #9ca3af, #374151)' }}>
                               {displayName.charAt(0).toUpperCase()}
                             </div>
                             <div>
@@ -1134,7 +1134,7 @@ export default function AdminDashboardPage() {
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
                             style={impersonating?.id === u.id
                               ? { background: '#fef3c7', color: '#b45309', border: '1.5px solid #fde68a' }
-                              : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }
+                              : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }
                             }
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -1250,7 +1250,7 @@ export default function AdminDashboardPage() {
                         type="button"
                         onClick={() => handleViewRequest(req.id)}
                         className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                        style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+                        style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}
                       >
                         {isExpanded ? 'Collapse' : 'Review'}
                       </button>
@@ -1287,9 +1287,9 @@ export default function AdminDashboardPage() {
                         </div>
 
                         {validatingId === req.id && (
-                          <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
-                            <Loader2 className="w-4 h-4 animate-spin text-purple-500 shrink-0" />
-                            <span className="text-sm text-purple-700">AI is analysing company profile, use case patterns, budget signals and platform fit…</span>
+                          <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
+                            <Loader2 className="w-4 h-4 animate-spin text-gray-500 shrink-0" />
+                            <span className="text-sm text-gray-700">AI is analysing company profile, use case patterns, budget signals and platform fit…</span>
                           </div>
                         )}
 
@@ -1307,7 +1307,7 @@ export default function AdminDashboardPage() {
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <Bot className="w-4 h-4 text-purple-500" />
+                                  <Bot className="w-4 h-4 text-gray-500" />
                                   <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                                     AI Recommendation:&nbsp;
                                     <span style={{
@@ -1328,7 +1328,7 @@ export default function AdminDashboardPage() {
                               <ul className="space-y-1">
                                 {req.aiAssessment.signals.map((s, i) => (
                                   <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                                    <span className="mt-0.5 shrink-0" style={{ color: '#7C3AED' }}>·</span>
+                                    <span className="mt-0.5 shrink-0" style={{ color: '#374151' }}>·</span>
                                     {s}
                                   </li>
                                 ))}
@@ -1398,7 +1398,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Info strip */}
-          <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+          <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
             <Bot className="w-4 h-4 text-[#9d6ff0] mt-0.5 shrink-0" />
             <p className="text-sm text-gray-600">
               AI Validation analyses the applicant&apos;s company profile, use case, team size, and budget against enterprise tier criteria. It is an <strong>advisory signal</strong> — final approval is always a human decision.
@@ -1605,7 +1605,7 @@ export default function AdminDashboardPage() {
             <div className="lg:col-span-2 space-y-3">
               {modLoading ? (
                 <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
-                  <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-500" />
+                  <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-gray-500" />
                   <p className="text-sm text-gray-500">Loading public content…</p>
                 </div>
               ) : modContent.filter(c =>
@@ -1624,7 +1624,7 @@ export default function AdminDashboardPage() {
                     (c.creator.name ?? c.creator.email).toLowerCase().includes(modSearch.toLowerCase())
                   )
                   .map(item => (
-                    <div key={item.id} className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-4 hover:border-purple-100 transition-colors">
+                    <div key={item.id} className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-4 hover:border-gray-100 transition-colors">
                       <div className="w-24 h-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden flex items-center justify-center">
                         {item.thumbnailUrl
                           ? <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
@@ -1636,7 +1636,7 @@ export default function AdminDashboardPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedCreator(item.creator)}
-                          className="text-xs text-purple-600 hover:underline mt-0.5"
+                          className="text-xs text-gray-600 hover:underline mt-0.5"
                         >
                           {item.creator.name ?? item.creator.email}
                         </button>
@@ -1672,14 +1672,14 @@ export default function AdminDashboardPage() {
               {/* Creator account panel */}
               <div className="bg-white border border-gray-100 rounded-2xl p-4">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-purple-500" /> Creator Account
+                  <UserCheck className="w-4 h-4 text-gray-500" /> Creator Account
                 </h3>
                 {!selectedCreator ? (
                   <p className="text-xs text-gray-400 text-center py-6">Select a creator to view their account</p>
                 ) : (
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white bg-purple-500 shrink-0">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white bg-gray-500 shrink-0">
                         {(selectedCreator.name ?? selectedCreator.email).charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
@@ -1738,7 +1738,7 @@ export default function AdminDashboardPage() {
               {/* Action log */}
               <div className="bg-white border border-gray-100 rounded-2xl p-4">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-purple-500" /> Action Log
+                  <Activity className="w-4 h-4 text-gray-500" /> Action Log
                 </h3>
                 {modLog.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-4">No actions recorded yet</p>
@@ -1781,7 +1781,7 @@ export default function AdminDashboardPage() {
                   value={removeNote}
                   onChange={e => setRemoveNote(e.target.value)}
                   rows={3}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
                 />
                 <div className="flex gap-3 mt-4">
                   <button type="button" onClick={() => setRemoveModal(null)}

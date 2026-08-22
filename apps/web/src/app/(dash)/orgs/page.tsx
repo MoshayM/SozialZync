@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Users, PiggyBank, PlusCircle, Loader2, AlertCircle, Download, ShieldCheck, Layers } from 'lucide-react';
@@ -13,7 +13,7 @@ const canManageBudget = (role: string) => role === 'ORG_ADMIN' || role === 'BILL
 const canViewReports = (role: string) => role !== 'MEMBER';
 
 const ROLE_BADGE: Record<string, string> = {
-  ORG_ADMIN: 'bg-purple-100 text-purple-700',
+  ORG_ADMIN: 'bg-gray-100 text-gray-700',
   BILLING_ADMIN: 'bg-blue-100 text-blue-700',
   TEAM_MANAGER: 'bg-teal-100 text-teal-700',
   MEMBER: 'bg-gray-100 text-gray-600',
@@ -42,7 +42,7 @@ function CreateOrgCard({ onCreated }: { onCreated: (org: Org) => void }) {
   return (
     <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center gap-2">
-        <PlusCircle className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+        <PlusCircle className="w-4 h-4" style={{ color: '#374151' }} />
         <span className="text-sm font-semibold text-gray-800">Create Organization</span>
       </div>
       <p className="text-xs text-gray-600">
@@ -144,7 +144,7 @@ function BudgetCard({ org }: { org: Org }) {
     <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <PiggyBank className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+          <PiggyBank className="w-4 h-4" style={{ color: '#374151' }} />
           <span className="text-sm font-semibold text-gray-800">Shared Wallet &amp; Budget</span>
         </div>
         <div className="flex items-center gap-3">
@@ -163,14 +163,14 @@ function BudgetCard({ org }: { org: Org }) {
             </select>
           )}
           {canManageBudget(org.role) && !editing && (
-            <button onClick={() => setEditing(true)} className="text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+            <button onClick={() => setEditing(true)} className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
               New budget period
             </button>
           )}
         </div>
       </div>
 
-      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} />}
+      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} />}
 
       {budget && (
         <div className="grid sm:grid-cols-3 gap-3 text-center">
@@ -287,12 +287,12 @@ function MembersCard({ org }: { org: Org }) {
   return (
     <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center gap-2">
-        <Users className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+        <Users className="w-4 h-4" style={{ color: '#374151' }} />
         <span className="text-sm font-semibold text-gray-800">Members</span>
         <span className="text-xs text-gray-600">{members.length}</span>
       </div>
 
-      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} />}
+      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} />}
 
       {members.length > 0 && (
         <table className="w-full text-sm">
@@ -408,7 +408,7 @@ function TeamsCard({ org }: { org: Org }) {
   return (
     <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center gap-2">
-        <Layers className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+        <Layers className="w-4 h-4" style={{ color: '#374151' }} />
         <span className="text-sm font-semibold text-gray-800">Teams</span>
         <span className="text-xs text-gray-600">{teams.length}</span>
       </div>
@@ -416,7 +416,7 @@ function TeamsCard({ org }: { org: Org }) {
         Teams scope budgets: a budget period created for a team only gates members assigned to it.
       </p>
 
-      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} />}
+      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} />}
 
       {teams.length > 0 && (
         <ul className="flex flex-wrap gap-2">
@@ -521,14 +521,14 @@ export default function OrgsPage() {
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-extrabold text-gray-900 leading-tight">
-            <Building2 className="w-6 h-6" style={{ color: '#6D4AE0' }} /> Organization
+            <Building2 className="w-6 h-6" style={{ color: '#374151' }} /> Organization
           </h1>
           <p className="text-sm text-gray-600 mt-0.5">
             Shared wallets, budgets and member roles. Projects and copilot turns can bill here instead of your personal wallet.
           </p>
         </div>
 
-        {isLoading && <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6D4AE0' }} />}
+        {isLoading && <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#374151' }} />}
 
         {!isLoading && orgs.length > 1 && (
           <div>

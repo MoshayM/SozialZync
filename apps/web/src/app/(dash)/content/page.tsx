@@ -112,7 +112,7 @@ function CopyChip({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-xs text-[#6D4AE0] hover:bg-[#ebe6fb] transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full text-xs text-gray-600 hover:bg-[#ebe6fb] transition-colors"
     >
       {text}
       {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
@@ -121,7 +121,7 @@ function CopyChip({ text }: { text: string }) {
 }
 
 const inputCls =
-  'w-full border border-[#e3ddf8] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#6D4AE0]/30 focus:border-[#6D4AE0] bg-white';
+  'w-full border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 bg-white';
 
 const primaryBtnCls =
   'rounded-2xl font-bold text-white bg-gradient-to-br from-[#6D4AE0] to-[#7c5ae8] shadow-[0_4px_20px_rgba(109,74,224,0.35)] px-6 py-3 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2';
@@ -132,11 +132,11 @@ function CollapsibleList({ title, items, icon }: { title: string; items: string[
   const [open, setOpen] = useState(false);
   if (!items.length) return null;
   return (
-    <div className="border border-[#e3ddf8] rounded-xl overflow-hidden">
+    <div className="border border-[#e5e7eb] rounded-xl overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[#faf9ff] text-sm font-semibold text-gray-700 hover:bg-[#f5f2fd] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 bg-[#f9fafb] text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
       >
         <span className="flex items-center gap-2">{icon}{title} ({items.length})</span>
         <span className="text-xs text-gray-400">{open ? '▲' : '▼'}</span>
@@ -145,7 +145,7 @@ function CollapsibleList({ title, items, icon }: { title: string; items: string[
         <ul className="px-4 py-3 space-y-1.5 bg-white">
           {items.map((item, i) => (
             <li key={i} className="text-sm text-gray-700 flex gap-2">
-              <span className="text-[#6D4AE0] shrink-0">•</span>
+              <span className="text-gray-600 shrink-0">•</span>
               {item}
             </li>
           ))}
@@ -252,15 +252,15 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Trending Topics */}
-      <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 space-y-4">
         <div className="flex items-center gap-2 font-semibold text-gray-800">
-          <TrendingUp className="w-5 h-5 text-[#6D4AE0]" />
+          <TrendingUp className="w-5 h-5 text-gray-600" />
           Trending Topics
         </div>
 
         {noNiche ? (
           <div className="flex flex-col items-center gap-3 py-8 text-gray-400 text-sm text-center">
-            <Sparkles className="w-8 h-8 text-[#e3ddf8]" />
+            <Sparkles className="w-8 h-8 text-[#e5e7eb]" />
             Set your niche above to find trends
           </div>
         ) : (
@@ -290,7 +290,7 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Interest Clusters</p>
                     <div className="flex flex-wrap gap-2">
                       {audience.interestClusters.map((c, i) => (
-                        <span key={i} className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-xs text-[#6D4AE0] font-medium">
+                        <span key={i} className="px-3 py-1 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full text-xs text-gray-600 font-medium">
                           {c.cluster}
                         </span>
                       ))}
@@ -315,7 +315,7 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
                     <ul className="space-y-1.5">
                       {audience.growthTips.map((tip, i) => (
                         <li key={i} className="text-sm text-gray-700 flex gap-2">
-                          <Zap className="w-3.5 h-3.5 text-[#6D4AE0] shrink-0 mt-0.5" />
+                          <Zap className="w-3.5 h-3.5 text-gray-600 shrink-0 mt-0.5" />
                           {tip}
                         </li>
                       ))}
@@ -348,9 +348,9 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
       </div>
 
       {/* Keywords & SEO */}
-      <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 space-y-4">
         <div className="flex items-center gap-2 font-semibold text-gray-800">
-          <Search className="w-5 h-5 text-[#6D4AE0]" />
+          <Search className="w-5 h-5 text-gray-600" />
           Keywords &amp; SEO
         </div>
 
@@ -381,7 +381,7 @@ function DiscoverTab({ ctx }: { ctx: ContentContext }) {
         {seoResult && (
           <div className="space-y-4">
             {seoResult.optimizedTitle && (
-              <div className="p-3 bg-[#f5f2fd] rounded-xl text-sm font-medium text-[#6D4AE0]">
+              <div className="p-3 bg-[#f3f4f6] rounded-xl text-sm font-medium text-gray-600">
                 {seoResult.optimizedTitle}
               </div>
             )}
@@ -495,15 +495,15 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
     <div className="flex gap-6 items-start">
       {/* Main research area */}
       <div className="flex-1 min-w-0 space-y-6">
-      <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 space-y-4">
         <div className="flex items-center gap-2 font-semibold text-gray-800">
-          <BookOpen className="w-5 h-5 text-[#6D4AE0]" />
+          <BookOpen className="w-5 h-5 text-gray-600" />
           Deep Research
         </div>
 
         <div className="flex gap-2 flex-wrap">
           {ctx.niche && (
-            <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-xs text-[#6D4AE0] font-medium">
+            <span className="px-3 py-1 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full text-xs text-gray-600 font-medium">
               Niche: {ctx.niche}
             </span>
           )}
@@ -526,9 +526,9 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
             {recentSearches.map((s, i) => (
               <button key={i} type="button" onClick={() => setTopic(s)}
                 className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors"
-                style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#ede9fb'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f5f2fd'; }}>
+                style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}>
                 {s}
               </button>
             ))}
@@ -563,7 +563,7 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
               <button
                 type="button"
                 onClick={() => { try { localStorage.setItem('cf_new_project_topic', result.topic || topic || ctx.niche); } catch {} router.push('/projects'); }}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[#6D4AE0] hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:underline"
               >
                 <FolderPlus className="w-3 h-3" /> Start project from this topic
               </button>
@@ -572,14 +572,14 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
 
           {/* Key Facts */}
           {(result.keyFacts?.length ?? 0) > 0 && (
-            <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#e5e7eb] p-5 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Award className="w-4 h-4 text-[#6D4AE0]" /> Key Facts
+                <Award className="w-4 h-4 text-gray-600" /> Key Facts
               </h3>
               <ol className="space-y-2">
                 {(result.keyFacts ?? []).map((fact, i) => (
                   <li key={i} className="flex gap-3 text-sm text-gray-700">
-                    <span className="shrink-0 w-5 h-5 rounded-full bg-[#f5f2fd] text-[#6D4AE0] text-xs font-bold flex items-center justify-center">
+                    <span className="shrink-0 w-5 h-5 rounded-full bg-[#f3f4f6] text-gray-600 text-xs font-bold flex items-center justify-center">
                       {i + 1}
                     </span>
                     {fact}
@@ -593,20 +593,20 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           {(result.contentAngles?.length ?? 0) > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#6D4AE0]" /> Content Angles
+                <Sparkles className="w-4 h-4 text-gray-600" /> Content Angles
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(result.contentAngles ?? []).map((angle, i) => (
-                  <div key={i} className="bg-white rounded-2xl border border-[#e3ddf8] p-4 space-y-2 flex flex-col">
+                  <div key={i} className="bg-white rounded-2xl border border-[#e5e7eb] p-4 space-y-2 flex flex-col">
                     <p className="text-sm font-semibold text-gray-800">{angle.angle}</p>
                     <p className="text-xs text-gray-600 italic flex-1">{angle.hook}</p>
                     {angle.targetAudience && (
-                      <p className="text-xs text-[#6D4AE0]">👥 {angle.targetAudience}</p>
+                      <p className="text-xs text-gray-600">👥 {angle.targetAudience}</p>
                     )}
                     <button
                       type="button"
                       onClick={() => onPlanSeries(angle.angle)}
-                      className="mt-auto text-xs font-semibold text-[#6D4AE0] hover:underline text-left"
+                      className="mt-auto text-xs font-semibold text-gray-600 hover:underline text-left"
                     >
                       Plan series →
                     </button>
@@ -622,7 +622,7 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Related Topics</h3>
               <div className="flex flex-wrap gap-2">
                 {(result.relatedTopics ?? []).map((t, i) => (
-                  <span key={i} className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-xs text-[#6D4AE0]">{t}</span>
+                  <span key={i} className="px-3 py-1 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full text-xs text-gray-600">{t}</span>
                 ))}
               </div>
             </div>
@@ -630,12 +630,12 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
 
           {/* Expert Perspectives */}
           {result.expertPerspectives && result.expertPerspectives.length > 0 && (
-            <CollapsibleList title="Expert Perspectives" items={result.expertPerspectives} icon={<Lightbulb className="w-3.5 h-3.5 text-[#6D4AE0]" />} />
+            <CollapsibleList title="Expert Perspectives" items={result.expertPerspectives} icon={<Lightbulb className="w-3.5 h-3.5 text-gray-600" />} />
           )}
 
           {/* Statistics */}
           {result.statisticsAndData && result.statisticsAndData.length > 0 && (
-            <CollapsibleList title="Statistics & Data" items={result.statisticsAndData} icon={<TrendingUp className="w-3.5 h-3.5 text-[#6D4AE0]" />} />
+            <CollapsibleList title="Statistics & Data" items={result.statisticsAndData} icon={<TrendingUp className="w-3.5 h-3.5 text-gray-600" />} />
           )}
 
           <ResultActionBar
@@ -663,16 +663,16 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
 
       {/* Research Settings sidebar */}
       <div className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
-        <div className="bg-white rounded-2xl p-4 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
+        <div className="bg-white rounded-2xl p-4 space-y-4" style={{ border: '1.5px solid #e5e7eb' }}>
           <h3 className="text-sm font-bold text-gray-800">Research Settings</h3>
 
           <div>
             <p className="text-xs font-semibold text-gray-500 mb-2">Depth</p>
-            <div className="flex rounded-xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+            <div className="flex rounded-xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
               {(['Quick', 'Standard', 'Deep'] as const).map((d) => (
                 <button key={d} type="button" onClick={() => setDepth(d)}
                   className="flex-1 py-1.5 text-xs font-semibold transition-colors"
-                  style={depth === d ? { background: '#6D4AE0', color: '#fff' } : { background: '#fff', color: '#6b7280' }}>
+                  style={depth === d ? { background: '#374151', color: '#fff' } : { background: '#fff', color: '#6b7280' }}>
                   {d}
                 </button>
               ))}
@@ -687,8 +687,8 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
                   <input type="checkbox" checked={sources.includes(src)} onChange={e => {
                     if (e.target.checked) setSources(prev => [...prev, src]);
                     else setSources(prev => prev.filter(s => s !== src));
-                  }} className="rounded accent-[#6D4AE0]" />
-                  <span className="text-xs font-medium text-gray-700 group-hover:text-[#6D4AE0] transition-colors">{src}</span>
+                  }} className="rounded accent-gray-600" />
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-gray-600 transition-colors">{src}</span>
                 </label>
               ))}
             </div>
@@ -702,13 +702,13 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
         </div>
 
         {researchHistory.entries.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 space-y-2" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="bg-white rounded-2xl p-4 space-y-2" style={{ border: '1.5px solid #e5e7eb' }}>
             <h3 className="text-sm font-bold text-gray-800">Saved Research</h3>
             <div className="space-y-1">
               {researchHistory.entries.slice(0, 5).map((entry, i) => (
                 <button key={i} type="button"
                   onClick={() => setResult(entry.result as ResearchResult)}
-                  className="w-full text-left p-2 rounded-xl hover:bg-[#f5f2fd] transition-colors">
+                  className="w-full text-left p-2 rounded-xl hover:bg-gray-50 transition-colors">
                   <p className="text-xs font-semibold text-gray-700 truncate">{entry.label}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-2">{entry.summaryText?.slice(0, 60)}…</p>
                 </button>
@@ -764,12 +764,12 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 space-y-4">
         {/* Context chip — shows what's applied from the global bar */}
         {(ctx.niche || ctx.topic) && (
           <div className="flex flex-wrap gap-2 text-xs">
-            {ctx.niche && <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-[#6D4AE0] font-medium">📌 {ctx.niche}</span>}
-            {ctx.topic && <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-[#6D4AE0] font-medium">🎯 {ctx.topic}</span>}
+            {ctx.niche && <span className="px-3 py-1 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full text-gray-600 font-medium">📌 {ctx.niche}</span>}
+            {ctx.topic && <span className="px-3 py-1 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full text-gray-600 font-medium">🎯 {ctx.topic}</span>}
           </div>
         )}
         {!ctx.niche && !ctx.topic && (
@@ -785,8 +785,8 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
                 type="button"
                 onClick={() => setEpisodes(n)}
                 className={episodes === n
-                  ? 'bg-[#6D4AE0] text-white rounded-full px-4 py-1.5 text-sm font-medium'
-                  : 'bg-white border border-[#e3ddf8] text-gray-600 rounded-full px-4 py-1.5 text-sm hover:bg-gray-50'}
+                  ? 'bg-gray-700 text-white rounded-full px-4 py-1.5 text-sm font-medium'
+                  : 'bg-white border border-[#e5e7eb] text-gray-600 rounded-full px-4 py-1.5 text-sm hover:bg-gray-50'}
               >
                 {n} eps
               </button>
@@ -826,11 +826,11 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
 
       {result && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6">
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-1">{result.seriesTitle}</h2>
             <p className="text-sm text-gray-600">{result.overview}</p>
             {result.targetAudience && (
-              <p className="text-xs text-[#6D4AE0] mt-2">👥 {result.targetAudience}</p>
+              <p className="text-xs text-gray-600 mt-2">👥 {result.targetAudience}</p>
             )}
             {result.monetizationStrategy && (
               <p className="text-xs text-gray-500 mt-2 italic">💰 {result.monetizationStrategy}</p>
@@ -839,9 +839,9 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
 
           <div className="space-y-3">
             {(result.episodes ?? []).map((ep) => (
-              <div key={ep.episodeNumber} className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
+              <div key={ep.episodeNumber} className="bg-white rounded-2xl border border-[#e5e7eb] p-5 space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-[#6D4AE0] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                  <span className="w-7 h-7 rounded-full bg-gray-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
                     {ep.episodeNumber}
                   </span>
                   <h3 className="font-semibold text-gray-800 text-sm">{ep.title}</h3>
@@ -851,15 +851,15 @@ function SeriesPlanMode({ ctx }: { ctx: ContentContext }) {
                 {Array.isArray(ep.keyPoints) && ep.keyPoints.length > 0 && (
                   <ul className="pl-9 space-y-0.5">
                     {ep.keyPoints.map((pt, i) => (
-                      <li key={i} className="text-xs text-gray-600 flex gap-1.5"><span className="text-[#6D4AE0]">•</span>{pt}</li>
+                      <li key={i} className="text-xs text-gray-600 flex gap-1.5"><span className="text-gray-600">•</span>{pt}</li>
                     ))}
                   </ul>
                 )}
-                {ep.callToAction && <p className="text-xs font-medium text-[#6D4AE0] pl-9">CTA: {ep.callToAction}</p>}
+                {ep.callToAction && <p className="text-xs font-medium text-gray-600 pl-9">CTA: {ep.callToAction}</p>}
                 <button
                   type="button"
                   onClick={() => { try { localStorage.setItem('cf_new_project_topic', ep.title); } catch {} router.push('/projects'); }}
-                  className="pl-9 text-xs font-semibold text-[#6D4AE0] hover:underline flex items-center gap-1"
+                  className="pl-9 text-xs font-semibold text-gray-600 hover:underline flex items-center gap-1"
                 >
                   <FolderPlus className="w-3 h-3" /> Start project →
                 </button>
@@ -929,7 +929,7 @@ function RepurposeMode() {
 
   return (
     <div className="space-y-5">
-      <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 space-y-4">
         <input className={inputCls} placeholder="Video title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
         <textarea
           className={`${inputCls} resize-none`}
@@ -948,8 +948,8 @@ function RepurposeMode() {
                 type="button"
                 onClick={() => togglePlatform(p)}
                 className={selectedPlatforms.includes(p)
-                  ? 'bg-[#6D4AE0] text-white rounded-full px-3 py-1 text-xs font-medium'
-                  : 'bg-white border border-[#e3ddf8] text-gray-600 rounded-full px-3 py-1 text-xs hover:bg-gray-50'}
+                  ? 'bg-gray-700 text-white rounded-full px-3 py-1 text-xs font-medium'
+                  : 'bg-white border border-[#e5e7eb] text-gray-600 rounded-full px-3 py-1 text-xs hover:bg-gray-50'}
               >
                 {p}
               </button>
@@ -985,7 +985,7 @@ function RepurposeMode() {
       {result && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(result.platforms ?? []).map((p, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-3">
+            <div key={i} className="bg-white rounded-2xl border border-[#e5e7eb] p-5 space-y-3">
               <h3 className="font-semibold text-gray-800 text-sm">{p.platform}</h3>
               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{p.content}</p>
               {p.hashtags && p.hashtags.length > 0 && (
@@ -994,7 +994,7 @@ function RepurposeMode() {
                 </div>
               )}
               {p.callToAction && (
-                <p className="text-xs font-medium text-[#6D4AE0] italic">{p.callToAction}</p>
+                <p className="text-xs font-medium text-gray-600 italic">{p.callToAction}</p>
               )}
               <ResultActionBar
                 filename={`repurpose-${(p.platform ?? 'platform').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
@@ -1052,11 +1052,11 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 space-y-4">
         {(ctx.niche || ctx.topic) && (
           <div className="flex flex-wrap gap-2 text-xs">
-            {ctx.niche && <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-[#6D4AE0] font-medium">📌 {ctx.niche}</span>}
-            {ctx.topic && <span className="px-3 py-1 bg-[#f5f2fd] border border-[#e3ddf8] rounded-full text-[#6D4AE0] font-medium">🎯 {ctx.topic}</span>}
+            {ctx.niche && <span className="px-3 py-1 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full text-gray-600 font-medium">📌 {ctx.niche}</span>}
+            {ctx.topic && <span className="px-3 py-1 bg-[#f3f4f6] border border-[#e5e7eb] rounded-full text-gray-600 font-medium">🎯 {ctx.topic}</span>}
           </div>
         )}
 
@@ -1091,7 +1091,7 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
       {result && (
         <div className="space-y-5">
           {/* Score gauges */}
-          <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6">
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6">
             <div className="flex flex-wrap gap-6 justify-center">
               <ScoreGauge score={result.overallScore ?? 0} label="Overall" />
               <ScoreGauge score={result.hookScore ?? 0} label="Hook" />
@@ -1103,7 +1103,7 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
 
           {/* Strengths */}
           {Array.isArray(result.strengths) && result.strengths.length > 0 && (
-            <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
+            <div className="bg-white rounded-2xl border border-[#e5e7eb] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-green-700 flex items-center gap-1.5">
                 <Check className="w-4 h-4" /> Strengths
               </h3>
@@ -1117,7 +1117,7 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
 
           {/* Improvements */}
           {Array.isArray(result.improvements) && result.improvements.length > 0 && (
-            <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
+            <div className="bg-white rounded-2xl border border-[#e5e7eb] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-orange-700 flex items-center gap-1.5">
                 <Zap className="w-4 h-4" /> Improvements
               </h3>
@@ -1131,7 +1131,7 @@ function ScriptScorerMode({ ctx }: { ctx: ContentContext }) {
 
           {/* Suggestions */}
           {Array.isArray(result.suggestions) && result.suggestions.length > 0 && (
-            <div className="bg-white rounded-2xl border border-[#e3ddf8] p-5 space-y-2">
+            <div className="bg-white rounded-2xl border border-[#e5e7eb] p-5 space-y-2">
               <h3 className="text-sm font-semibold text-blue-700 flex items-center gap-1.5">
                 <Lightbulb className="w-4 h-4" /> Suggestions
               </h3>
@@ -1195,8 +1195,8 @@ function CreateTab({ ctx }: { ctx: ContentContext }) {
             type="button"
             onClick={() => setMode(p.id)}
             className={mode === p.id
-              ? 'bg-[#6D4AE0] text-white rounded-full px-4 py-1.5 text-sm font-medium flex items-center gap-1.5'
-              : 'bg-white border border-[#e3ddf8] text-gray-600 rounded-full px-4 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-1.5'}
+              ? 'bg-gray-700 text-white rounded-full px-4 py-1.5 text-sm font-medium flex items-center gap-1.5'
+              : 'bg-white border border-[#e5e7eb] text-gray-600 rounded-full px-4 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-1.5'}
           >
             {p.icon}
             {p.label}
@@ -1269,12 +1269,12 @@ function ContentStudioInner() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#faf9ff]">
+    <div className="min-h-screen bg-[#f9fafb]">
       {/* Sticky context bar */}
-      <div className="sticky top-0 z-20 bg-[#faf9ff] border-b border-[#e3ddf8] pb-4 pt-2 mb-6 px-4 sm:px-6">
+      <div className="sticky top-0 z-20 bg-[#f9fafb] border-b border-[#e5e7eb] pb-4 pt-2 mb-6 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#6D4AE0]" />
+            <Sparkles className="w-5 h-5 text-gray-600" />
             <h1 className="text-base font-bold text-gray-900">Content Studio</h1>
             <span className="text-xs text-gray-400 hidden sm:inline">Your unified AI content workspace</span>
           </div>
@@ -1294,7 +1294,7 @@ function ContentStudioInner() {
               onChange={(e) => setTopic(e.target.value)}
             />
             <select
-              className="col-span-1 border border-[#e3ddf8] rounded-xl px-3 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6D4AE0]/30 focus:border-[#6D4AE0] sm:w-24"
+              className="col-span-1 border border-[#e5e7eb] rounded-xl px-3 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 sm:w-24"
               value={lang}
               onChange={(e) => setLang(e.target.value)}
             >
@@ -1319,8 +1319,8 @@ function ContentStudioInner() {
                 className="flex items-center gap-1.5 shrink-0 text-sm font-semibold transition-all"
                 style={
                   activeTab === t.id
-                    ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0', borderRadius: '0.75rem', padding: '0.5rem 1rem' }
-                    : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151', borderRadius: '0.75rem', padding: '0.5rem 1rem' }
+                    ? { background: '#f3f4f6', border: '2px solid #374151', color: '#374151', borderRadius: '0.75rem', padding: '0.5rem 1rem' }
+                    : { background: '#f9fafb', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '0.75rem', padding: '0.5rem 1rem' }
                 }
               >
                 {t.icon}

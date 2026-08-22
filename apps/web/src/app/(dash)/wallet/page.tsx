@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
@@ -68,7 +68,7 @@ const ACCESS_TIERS: AccessTier[] = [
   {
     id: 'PRO',
     name: 'Pro',
-    color: '#7C3AED',
+    color: '#374151',
     unlockLabel: 'Top up any amount',
     unlockSub: 'Credits > 0 → Pro instantly · pay as you go',
     features: ['Unlimited projects', 'All 6 platforms', 'Priority AI generation', 'Full analytics dashboard', 'Auto-scheduling', 'Short-form editor', 'AI Copilot'],
@@ -101,8 +101,8 @@ const TYPE_LABELS: Record<string, string> = {
 
 const TYPE_COLORS: Record<string, string> = {
   USAGE_DEBIT: '#b91c1c', EXPIRY: '#b91c1c',
-  PURCHASE: '#059669', TRIAL: '#7C3AED', BONUS: '#7C3AED',
-  REFERRAL: '#0891B2', PROMO: '#7C3AED', REFUND: '#1d4ed8',
+  PURCHASE: '#059669', TRIAL: '#6b7280', BONUS: '#6b7280',
+  REFERRAL: '#0891B2', PROMO: '#6b7280', REFUND: '#1d4ed8',
 };
 
 function timeAgo(iso: string): string {
@@ -229,7 +229,7 @@ function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBud
           <button
             onClick={onTopUp}
             className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[.98]"
-            style={{ background: '#fff', color: '#6D4AE0', boxShadow: '0 4px 16px rgba(0,0,0,.12)' }}
+            style={{ background: '#fff', color: '#374151', boxShadow: '0 4px 16px rgba(0,0,0,.12)' }}
           >
             <PlusCircle className="w-4 h-4" /> Top up credits
           </button>
@@ -292,21 +292,21 @@ function CostByAction() {
     <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingDown className="w-4 h-4" style={{ color: '#7C3AED' }} />
+          <TrendingDown className="w-4 h-4" style={{ color: '#374151' }} />
           <span className="text-sm font-semibold text-gray-800">Cost by AI Action</span>
         </div>
         <div className="flex items-center gap-1 rounded-xl p-0.5" style={{ background: '#f0edf9' }}>
           {([7, 30, 90] as const).map((d) => (
             <button key={d} onClick={() => setDays(d)}
               className="px-3 py-1 rounded-[10px] text-xs font-semibold transition-all"
-              style={days === d ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 1px 3px rgba(0,0,0,.08)' } : { color: '#374151' }}>
+              style={days === d ? { background: '#fff', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,.08)' } : { color: '#374151' }}>
               {d}d
             </button>
           ))}
         </div>
       </div>
 
-      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#7C3AED' }} />}
+      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} />}
 
       {data && top.length === 0 && <p className="text-sm text-gray-600 italic py-4 text-center">No usage in this period.</p>}
 
@@ -321,7 +321,7 @@ function CostByAction() {
                 <span className="text-gray-600 tabular-nums">{fmt(credits)} <span className="text-gray-600">· {ofTotal}%</span></span>
               </div>
               <div className="h-2 rounded-full overflow-hidden" style={{ background: '#f3f4f6' }}>
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #a78bfa, #7C3AED)' }} />
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #9ca3af, #374151)' }} />
               </div>
             </div>
           );
@@ -353,11 +353,11 @@ function SpendForecast() {
   return (
     <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center gap-2">
-        <CalendarClock className="w-4 h-4" style={{ color: '#7C3AED' }} />
+        <CalendarClock className="w-4 h-4" style={{ color: '#374151' }} />
         <span className="text-sm font-semibold text-gray-800">Spend Forecast</span>
       </div>
 
-      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#7C3AED' }} />}
+      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} />}
 
       {forecast && forecast.dailyBurn === 0 && (
         <p className="text-sm text-gray-600 italic py-2">No usage yet — nothing to forecast.</p>
@@ -466,15 +466,15 @@ function SmartTopUp() {
     <div className="bg-white rounded-2xl p-5 space-y-5" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4" style={{ color: '#7C3AED' }} />
+          <Zap className="w-4 h-4" style={{ color: '#374151' }} />
           <span className="text-sm font-semibold text-gray-800">Top Up Credits</span>
         </div>
 
         {/* Auto-detected locale badge */}
-        <div className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+        <div className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl" style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}>
           <span>{conf.flag}</span>
           <span>{conf.label}</span>
-          <span className="text-[10px] text-purple-400">· auto</span>
+          <span className="text-[10px] text-gray-400">· auto</span>
         </div>
       </div>
 
@@ -493,7 +493,7 @@ function SmartTopUp() {
               disabled={rechargeMutation.isPending}
               className="relative flex flex-col items-center py-3 px-1 rounded-2xl transition-all hover:scale-105 active:scale-[.98] disabled:opacity-50"
               style={isSelected || isBest
-                ? { background: 'linear-gradient(135deg,#a78bfa,#7C3AED)', border: '2px solid #6D4AE0' }
+                ? { background: 'linear-gradient(135deg, #9ca3af, #374151)', border: '2px solid #6D4AE0' }
                 : { background: '#faf9ff', border: '1.5px solid #e3ddf8' }}
             >
               {isBest && (
@@ -537,7 +537,7 @@ function SmartTopUp() {
 
       {/* Pro access unlock badge */}
       <div className="flex items-center gap-2 px-3 py-2 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f5f2fd,#ede9fb)', border: '1.5px solid #d8d0f7' }}>
-        <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: '#7C3AED' }} />
+        <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />
         <span className="text-xs font-semibold" style={{ color: '#5b21b6' }}>
           Unlocks <span className="font-extrabold">Pro access</span> while credits last — no subscription needed
         </span>
@@ -567,7 +567,7 @@ function SmartTopUp() {
                   onClick={() => { void api.wallet.rechargePack(pack.id).then((res) => { const d = res.data as { checkoutUrl: string | null }; if (d.checkoutUrl) window.location.href = d.checkoutUrl; }); }}
                   disabled={buyPackMutation.isPending}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-semibold transition-all hover:opacity-90"
-                  style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+                  style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}>
                   <PlusCircle className="w-3 h-3" />
                   {pack.name} · {pack.credits.toLocaleString()} cr · {price}
                 </button>
@@ -618,7 +618,7 @@ function PlansGrid() {
       >
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: isSuperAdmin || isEnterprise ? 'linear-gradient(135deg,#d97706,#f59e0b)' : hasCreditsPro ? 'linear-gradient(135deg,#7C3AED,#6D4AE0)' : '#e5e7eb' }}
+          style={{ background: isSuperAdmin || isEnterprise ? 'linear-gradient(135deg,#d97706,#f59e0b)' : hasCreditsPro ? 'linear-gradient(135deg,#374151,#1f2937)' : '#e5e7eb' }}
         >
           {isSuperAdmin ? <ShieldCheck className="w-5 h-5 text-white" />
             : isEnterprise ? <Crown className="w-5 h-5 text-white" />
@@ -647,7 +647,7 @@ function PlansGrid() {
             type="button"
             onClick={() => document.getElementById('credits-tab-btn')?.click()}
             className="px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0 transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#7C3AED,#6D4AE0)' }}
+            style={{ background: 'linear-gradient(135deg,#374151,#1f2937)' }}
           >
             Top Up →
           </button>
@@ -686,7 +686,7 @@ function PlansGrid() {
                   <div>
                     <h3 className="font-bold text-gray-900">{tier.name}</h3>
                     {tier.highlight && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: '#ede9fe', color: '#6D4AE0' }}>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: '#f3f4f6', color: '#374151' }}>
                         Most popular
                       </span>
                     )}
@@ -732,7 +732,7 @@ function PlansGrid() {
                     {hasCreditsPro || plan === 'pro' ? (
                       <div
                         className="w-full py-2.5 rounded-2xl text-sm font-bold text-center"
-                        style={{ background: '#ede9fe', color: '#6D4AE0' }}
+                        style={{ background: '#f3f4f6', color: '#374151' }}
                       >
                         Pro active ✓
                       </div>
@@ -741,7 +741,7 @@ function PlansGrid() {
                         type="button"
                         onClick={() => document.getElementById('credits-tab-btn')?.click()}
                         className="w-full py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[.98]"
-                        style={{ background: 'linear-gradient(135deg,#7C3AED,#6D4AE0)', boxShadow: '0 4px 16px -4px #7C3AED80' }}
+                        style={{ background: 'linear-gradient(135deg,#374151,#1f2937)', boxShadow: '0 4px 16px -4px rgba(0,0,0,.25)' }}
                       >
                         Top up to unlock Pro
                       </button>
@@ -806,7 +806,7 @@ function PlansGrid() {
                     placeholder={placeholder}
                     value={enterpriseForm[key]}
                     onChange={(e) => setEnterpriseForm((f) => ({ ...f, [key]: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400"
+                    className="w-full px-3 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400"
                   />
                 </div>
               ))}
@@ -819,7 +819,7 @@ function PlansGrid() {
                 <label
                   className="flex flex-col items-center justify-center gap-2 w-full rounded-xl cursor-pointer transition-all"
                   style={{
-                    border: enterpriseTeamFile ? '2px solid #7C3AED' : '2px dashed #d1d5db',
+                    border: enterpriseTeamFile ? '2px solid #e5e7eb' : '2px dashed #d1d5db',
                     background: enterpriseTeamFile ? '#faf5ff' : '#fafafa',
                     padding: '16px 12px',
                   }}
@@ -835,8 +835,8 @@ function PlansGrid() {
                   />
                   {enterpriseTeamFile ? (
                     <>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                      <span className="text-xs font-semibold text-purple-700 text-center break-all">{enterpriseTeamFile.name}</span>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                      <span className="text-xs font-semibold text-gray-700 text-center break-all">{enterpriseTeamFile.name}</span>
                       <button
                         type="button"
                         onClick={(e) => { e.preventDefault(); setEnterpriseTeamFile(null); }}
@@ -862,7 +862,7 @@ function PlansGrid() {
                   rows={3}
                   value={enterpriseForm.useCase}
                   onChange={(e) => setEnterpriseForm((f) => ({ ...f, useCase: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 resize-none"
+                  className="w-full px-3 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 resize-none"
                 />
               </div>
             </div>
@@ -1014,13 +1014,13 @@ function TransactionHistory() {
       <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid #f0edf9' }}>
         <span className="text-sm font-semibold text-gray-800">Transaction History</span>
         {txns.length > 20 && (
-          <button onClick={() => setShowAll((v) => !v)} className="text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+          <button onClick={() => setShowAll((v) => !v)} className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
             {showAll ? 'Show less' : `Show all ${txns.length}`}
           </button>
         )}
       </div>
 
-      {isLoading && <div className="p-5"><Loader2 className="w-5 h-5 animate-spin" style={{ color: '#7C3AED' }} /></div>}
+      {isLoading && <div className="p-5"><Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} /></div>}
       {!isLoading && txns.length === 0 && <p className="px-5 py-8 text-sm text-gray-600 text-center italic">No transactions yet.</p>}
 
       {groups.map((group) => (
@@ -1347,7 +1347,7 @@ function BudgetEditor({ onClose }: { onClose: () => void }) {
     <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" style={{ color: '#7C3AED' }} />
+          <AlertCircle className="w-4 h-4" style={{ color: '#374151' }} />
           <span className="text-sm font-semibold text-gray-800">Monthly Budget</span>
         </div>
         <button onClick={onClose} className="text-xs font-semibold text-gray-600 hover:text-gray-800">Cancel</button>
@@ -1425,7 +1425,7 @@ function CreditExpiry() {
       <div className="px-5 py-3.5" style={{ borderBottom: '1px solid #f0edf9' }}>
         <span className="text-sm font-semibold text-gray-800">Credit Expiry</span>
       </div>
-      {isLoading && <div className="p-4"><Loader2 className="w-5 h-5 animate-spin" style={{ color: '#7C3AED' }} /></div>}
+      {isLoading && <div className="p-4"><Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} /></div>}
       {lots.map((lot) => {
         const d = lot.expiresAt ? daysLeft(lot.expiresAt) : null;
         const urgStyle: React.CSSProperties = !d ? { background: '#ecfdf5', color: '#065f46' }
@@ -1493,7 +1493,7 @@ function SubscriptionManager() {
     <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid #f0edf9' }}>
         <span className="text-sm font-semibold text-gray-800">Subscription</span>
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>
+        <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#f3f4f6', color: '#374151' }}>
           {sub?.plan} · {sub?.status}
         </span>
       </div>
@@ -1509,7 +1509,7 @@ function SubscriptionManager() {
             onClick={openPortal}
             disabled={portalLoading}
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+            style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}
           >
             {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
             Manage billing
@@ -1611,7 +1611,7 @@ function WalletContent() {
         {/* Page header */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#f0edf9,#e3ddf8)' }}>
-            <Wallet className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+            <Wallet className="w-5 h-5" style={{ color: '#374151' }} />
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Billing &amp; Wallet</h1>
@@ -1620,10 +1620,10 @@ function WalletContent() {
         </div>
 
         {/* ── How billing works — shown once, above tabs ─────────────────── */}
-        <div className="rounded-2xl px-5 py-4 flex flex-col sm:flex-row gap-4" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+        <div className="rounded-2xl px-5 py-4 flex flex-col sm:flex-row gap-4" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
           <div className="flex-1 flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#ede9fe' }}>
-              <Sparkles className="w-4 h-4" style={{ color: '#7C3AED' }} />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#f3f4f6' }}>
+              <Sparkles className="w-4 h-4" style={{ color: '#374151' }} />
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">Subscription Plan</p>
@@ -1632,8 +1632,8 @@ function WalletContent() {
           </div>
           <div className="hidden sm:flex items-center text-gray-300 font-bold" aria-hidden="true">+</div>
           <div className="flex-1 flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#ede9fe' }}>
-              <Zap className="w-4 h-4" style={{ color: '#7C3AED' }} />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#f3f4f6' }}>
+              <Zap className="w-4 h-4" style={{ color: '#374151' }} />
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">AI Credits</p>
@@ -1656,7 +1656,7 @@ function WalletContent() {
               onClick={() => setTab(id)}
               className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold rounded-t-2xl transition-all -mb-px"
               style={tab === id
-                ? { background: '#fff', border: '1.5px solid #ede9f8', borderBottom: '1.5px solid #fff', color: '#6D4AE0' }
+                ? { background: '#fff', border: '1.5px solid #ede9f8', borderBottom: '1.5px solid #fff', color: '#374151' }
                 : { color: '#374151', border: '1.5px solid transparent' }
               }
             >

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Layers, Sparkles, Loader2, Plus, Trash2, Play, Pause, Pencil, Check, X, Users, Star, Wand2, Image as ImageIcon, Scissors, Headphones, FileText, Mic, Music, Search } from 'lucide-react';
 import { ImageAssetBrowser } from '@/components/image-asset-browser';
@@ -124,7 +124,7 @@ function CharacterAvatar({ character, size = 48 }: { character: Character | Char
   const url = (character as Character).avatarUrl || diceBearUrl(character.avatarStyle, seed);
   return (
     <div className="rounded-2xl overflow-hidden shrink-0 flex items-center justify-center"
-      style={{ width: size, height: size, background: '#f5f2fd', border: '2px solid #e3ddf8' }}>
+      style={{ width: size, height: size, background: '#f3f4f6', border: '2px solid #e5e7eb' }}>
       <img src={url} alt={character.name} width={size} height={size} className="w-full h-full object-cover" />
     </div>
   );
@@ -172,7 +172,7 @@ function VoicePreviewBtn({ character, size = 'sm' }: { character: Partial<Charac
   return (
     <button onClick={() => void play()} disabled={loading}
       className={cls + ' transition-all hover:scale-105 disabled:opacity-50'}
-      style={playing ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff' } : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+      style={playing ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff' } : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }}>
       {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : playing ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
       {playing ? 'Pause' : 'Preview Voice'}
     </button>
@@ -219,7 +219,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 space-y-6" style={{ border: '1.5px solid #e3ddf8' }}>
+    <div className="bg-white rounded-2xl p-6 space-y-6" style={{ border: '1.5px solid #e5e7eb' }}>
       <div className="flex items-center justify-between">
         <p className="text-base font-bold text-gray-800">{initial?.id ? 'Edit Character' : 'New Character'}</p>
         <button onClick={onCancel} className="p-1.5 rounded-xl text-gray-400 hover:bg-gray-100"><X className="w-4 h-4" /></button>
@@ -237,12 +237,12 @@ function CharacterForm({ initial, onSave, onCancel }: {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Character name *</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Professor Zoom, Robo-Max"
-                className="w-full bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3ddf8' }} />
+                className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e5e7eb' }} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
               <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief character description"
-                className="w-full bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3ddf8' }} />
+                className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e5e7eb' }} />
             </div>
           </div>
         </div>
@@ -250,7 +250,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           <label className="block text-xs font-medium text-gray-600 mb-1">Personality & speaking style</label>
           <textarea value={personality} onChange={e => setPersonality(e.target.value)} rows={2}
             placeholder="e.g. Energetic and funny, uses lots of exclamations, speaks fast and enthusiastically"
-            className="w-full bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 resize-none" style={{ border: '1.5px solid #e3ddf8' }} />
+            className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 resize-none" style={{ border: '1.5px solid #e5e7eb' }} />
         </div>
       </div>
 
@@ -260,7 +260,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           {AVATAR_STYLES.map(s => (
             <button key={s.value} onClick={() => setAvatarStyle(s.value)}
               className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
-              style={avatarStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f5f2fd' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
+              style={avatarStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
               <img src={diceBearUrl(s.value, name || 'character')} alt={s.label} width={36} height={36} className="rounded-lg" />
               <span className="text-[10px] font-medium text-gray-600 whitespace-nowrap">{s.label}</span>
             </button>
@@ -274,7 +274,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Provider</label>
             <select value={voiceProvider} onChange={e => setVoiceProvider(e.target.value as 'openai' | 'elevenlabs')}
-              className="w-full bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm outline-none" style={{ border: '1.5px solid #e3ddf8' }}>
+              className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none" style={{ border: '1.5px solid #e5e7eb' }}>
               <option value="openai">OpenAI TTS</option>
               <option value="elevenlabs">ElevenLabs</option>
             </select>
@@ -283,13 +283,13 @@ function CharacterForm({ initial, onSave, onCancel }: {
             <label className="block text-xs font-medium text-gray-600 mb-1">Base voice</label>
             {voiceProvider === 'openai' ? (
               <select value={voiceId} onChange={e => setVoiceId(e.target.value)}
-                className="w-full bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm outline-none" style={{ border: '1.5px solid #e3ddf8' }}>
+                className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none" style={{ border: '1.5px solid #e5e7eb' }}>
                 {OPENAI_VOICES.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
               </select>
             ) : (
               <input value={voiceId} onChange={e => setVoiceId(e.target.value)}
                 placeholder="ElevenLabs voice ID"
-                className="w-full bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm outline-none font-mono" style={{ border: '1.5px solid #e3ddf8' }} />
+                className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none font-mono" style={{ border: '1.5px solid #e5e7eb' }} />
             )}
           </div>
         </div>
@@ -300,7 +300,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
             {VOICE_EFFECTS.map(e => (
               <button key={e.value} onClick={() => setVoiceEffect(e.value)}
                 className="flex flex-col items-center gap-1 p-2 rounded-xl text-center transition-all"
-                style={voiceEffect === e.value ? { border: '2px solid #6D4AE0', background: '#f5f2fd' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
+                style={voiceEffect === e.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
                 <span className="text-xl">{e.emoji}</span>
                 <span className="text-[10px] font-medium text-gray-600">{e.label}</span>
               </button>
@@ -332,7 +332,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           {VIDEO_STYLES.map(s => (
             <button key={s.value} onClick={() => setVideoStyle(s.value)}
               className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all"
-              style={videoStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f5f2fd' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
+              style={videoStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xl" style={{ background: s.color }}>
                 {s.emoji}
               </div>
@@ -344,7 +344,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ border: '1.5px solid #e3ddf8' }}>Cancel</button>
+        <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ border: '1.5px solid #e5e7eb' }}>Cancel</button>
         <button onClick={() => void save()} disabled={saving}
           className="flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
           style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 20px rgba(109,74,224,.35)' }}>
@@ -419,15 +419,15 @@ function CharactersSection() {
   return (
     <div className="space-y-6">
       {/* Inner tab switcher */}
-      <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ background: '#f0edf9', width: 'fit-content' }}>
+      <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ background: '#f3f4f6', width: 'fit-content' }}>
         {CHAR_TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
             className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
-            style={tab === id ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
+            style={tab === id ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9ca3af' }}>
             <Icon className="w-3.5 h-3.5" />
             {label}
             {id === 'my' && characters.length > 0 && (
-              <span className="text-[11px] bg-purple-100 text-purple-700 rounded-full px-1.5 ml-0.5">{characters.length}</span>
+              <span className="text-[11px] bg-gray-100 text-gray-700 rounded-full px-1.5 ml-0.5">{characters.length}</span>
             )}
           </button>
         ))}
@@ -441,11 +441,11 @@ function CharactersSection() {
             <div className="py-12 text-center"><p className="text-sm text-red-500">{error}</p></div>
           ) : characters.length === 0 ? (
             <div className="py-16 text-center">
-              <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: '#6D4AE0', opacity: 0.3 }} />
+              <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: '#374151', opacity: 0.3 }} />
               <p className="text-gray-600 font-medium mb-1">No characters yet</p>
               <p className="text-sm text-gray-400 mb-4">Add a preset or create a custom character to get started</p>
               <div className="flex gap-3 justify-center">
-                <button onClick={() => setTab('presets')} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+                <button onClick={() => setTab('presets')} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }}>
                   Browse presets
                 </button>
                 <button onClick={() => setTab('create')} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white"
@@ -457,7 +457,7 @@ function CharactersSection() {
           ) : (
             <div className="space-y-3">
               {/* Filter bar */}
-              <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5" style={{ border: '1.5px solid #e5e7eb' }}>
                 <Search className="w-4 h-4 text-gray-400 shrink-0" />
                 <input type="text" value={charFilter} onChange={e => setCharFilter(e.target.value)}
                   placeholder="Filter characters…"
@@ -472,18 +472,18 @@ function CharactersSection() {
                     onSave={() => { setEditingId(null); void fetchCharacters(); }}
                     onCancel={() => setEditingId(null)} />
                 ) : (
-                  <div key={char.id} className="bg-white rounded-2xl p-4 flex items-start gap-4" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <div key={char.id} className="bg-white rounded-2xl p-4 flex items-start gap-4" style={{ border: '1.5px solid #e5e7eb' }}>
                     <CharacterAvatar character={char} size={56} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold text-gray-800">{char.name}</p>
                         {(() => { const s = VIDEO_STYLES.find(v => v.value === char.videoStyle); return s ? (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#faf9ff', color: '#6b7280', border: '1px solid #e3ddf8' }}>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb' }}>
                             {s.emoji} {s.label}
                           </span>
                         ) : null; })()}
                         {(() => { const e = VOICE_EFFECTS.find(v => v.value === char.voiceEffect); return e && e.value !== 'none' ? (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>
                             {e.emoji} {e.label}
                           </span>
                         ) : null; })()}
@@ -491,7 +491,7 @@ function CharactersSection() {
                       {char.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{char.description}</p>}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <VoicePreviewBtn character={char} />
-                        <button onClick={() => setEditingId(char.id)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ border: '1.5px solid #e3ddf8' }}>
+                        <button onClick={() => setEditingId(char.id)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ border: '1.5px solid #e5e7eb' }}>
                           <Pencil className="w-3 h-3" />Edit
                         </button>
                         <button onClick={() => { if (window.confirm(`Delete "${char.name}"?`)) void deleteCharacter(char.id); }}
@@ -505,7 +505,7 @@ function CharactersSection() {
                 )
               ))}
               <button onClick={() => setTab('create')} className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-white"
-                style={{ border: '2px dashed #e3ddf8', color: '#9b8fc4' }}>
+                style={{ border: '2px dashed #e5e7eb', color: '#9ca3af' }}>
                 <Plus className="w-4 h-4" />Add another character
               </button>
             </div>
@@ -521,24 +521,24 @@ function CharactersSection() {
             const effect = VOICE_EFFECTS.find(e => e.value === preset.voiceEffect);
             const style = VIDEO_STYLES.find(s => s.value === preset.videoStyle);
             return (
-              <div key={preset.id} className="bg-white rounded-2xl p-4 flex flex-col gap-3" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div key={preset.id} className="bg-white rounded-2xl p-4 flex flex-col gap-3" style={{ border: '1.5px solid #e5e7eb' }}>
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ background: '#f3f4f6', border: '1.5px solid #e5e7eb' }}>
                     {preset.emoji}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-800">{preset.name}</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {preset.tags.map(t => (
-                        <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full capitalize" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>{t}</span>
+                        <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full capitalize" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>{t}</span>
                       ))}
                     </div>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed">{preset.description}</p>
                 <div className="flex gap-1.5 flex-wrap">
-                  {effect && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#faf9ff', color: '#6b7280', border: '1px solid #e3ddf8' }}>{effect.emoji} {effect.label}</span>}
-                  {style && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#faf9ff', color: '#6b7280', border: '1px solid #e3ddf8' }}>{style.emoji} {style.label}</span>}
+                  {effect && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb' }}>{effect.emoji} {effect.label}</span>}
+                  {style && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb' }}>{style.emoji} {style.label}</span>}
                 </div>
                 <div className="flex items-center gap-2 mt-auto pt-1">
                   <VoicePreviewBtn character={preset} />
@@ -583,11 +583,11 @@ function VoicesLibrary() {
     <div className="space-y-5">
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-base font-bold text-gray-800">Voice Library</h2>
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#f0edf9' }}>
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#f3f4f6' }}>
           {(['all', 'male', 'female', 'neutral'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
-              style={filter === f ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
+              style={filter === f ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9ca3af' }}>
               {f}
             </button>
           ))}
@@ -595,10 +595,10 @@ function VoicesLibrary() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(voice => (
-          <div key={voice.id} className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div key={voice.id} className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e5e7eb' }}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#f5f2fd,#e3ddf8)' }}>
-                <Mic className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#f3f4f6,#e5e7eb)' }}>
+                <Mic className="w-5 h-5" style={{ color: '#374151' }} />
               </div>
               <div>
                 <p className="text-sm font-bold text-gray-800">{voice.name}</p>
@@ -637,33 +637,33 @@ function MusicStudio() {
 
   return (
     <div className="space-y-5">
-      <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
+      <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e5e7eb' }}>
         <div className="flex items-center gap-2">
-          <Music className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+          <Music className="w-5 h-5" style={{ color: '#374151' }} />
           <h2 className="text-base font-bold text-gray-800">AI Music Generator</h2>
         </div>
         <textarea value={prompt} onChange={e => setPrompt(e.target.value)} rows={2}
           placeholder="Describe the mood and style… e.g. 'upbeat background music for a tech tutorial'"
-          className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff] resize-none" />
+          className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#f9fafb] resize-none" />
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="text-xs font-semibold text-gray-500 block mb-1">Genre</label>
             <select value={genre} onChange={e => setGenre(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]">
+              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#f9fafb]">
               {MUSIC_GENRES.map(g => <option key={g}>{g}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 block mb-1">Mood</label>
             <select value={mood} onChange={e => setMood(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]">
+              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#f9fafb]">
               {MUSIC_MOODS.map(m => <option key={m}>{m}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 block mb-1">Duration (s)</label>
             <select value={duration} onChange={e => setDuration(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]">
+              className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#f9fafb]">
               {[15, 30, 60, 90, 120].map(d => <option key={d} value={d}>{d}s</option>)}
             </select>
           </div>
@@ -678,7 +678,7 @@ function MusicStudio() {
         <div className="space-y-3">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Generated Tracks</p>
           {generated.map(track => (
-            <div key={track.id} className="bg-white rounded-2xl p-4 flex items-center gap-4" style={{ border: '1.5px solid #e3ddf8' }}>
+            <div key={track.id} className="bg-white rounded-2xl p-4 flex items-center gap-4" style={{ border: '1.5px solid #e5e7eb' }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: 'linear-gradient(135deg,#6D4AE0,#9d6ff0)' }}>
                 <Music className="w-5 h-5 text-white" />
@@ -688,7 +688,7 @@ function MusicStudio() {
                 <p className="text-xs text-gray-400">{track.genre} · {track.duration}s</p>
               </div>
               <button className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-                style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+                style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>
                 Download
               </button>
             </div>
@@ -720,13 +720,13 @@ export default function CreativeStudioPage() {
   const [topTab, setTopTab] = useState<TopTab>('content');
 
   return (
-    <div className="min-h-full bg-[#faf9ff]">
+    <div className="min-h-full bg-[#f9fafb]">
       <div className="px-4 py-6 sm:p-8 max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Layers className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+            <Layers className="w-5 h-5" style={{ color: '#374151' }} />
             <h1 className="text-2xl font-extrabold text-gray-900">Creative Studio</h1>
           </div>
           <p className="text-sm text-gray-500">Content Tools · Characters · Images · Audio · Voices · Music · Shorts · Thumbnails</p>
@@ -734,15 +734,15 @@ export default function CreativeStudioPage() {
 
         {/* Top-level tab switcher — full-width scroll container so iOS can swipe */}
         <div className="w-full overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="inline-flex gap-1 p-1 rounded-xl" style={{ background: '#f0edf9', minWidth: 'max-content' }}>
+          <div className="inline-flex gap-1 p-1 rounded-xl" style={{ background: '#f3f4f6', minWidth: 'max-content' }}>
             {TOP_TABS.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => setTopTab(id)}
                 className="flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
                 style={{
                   padding: '0.5rem 0.75rem',
                   ...(topTab === id
-                    ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
-                    : { color: '#9b8fc4' }),
+                    ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
+                    : { color: '#9ca3af' }),
                 }}>
                 <Icon className="w-4 h-4 shrink-0" />
                 {/* Label hidden on mobile (all 6 icons fit); visible sm+ */}

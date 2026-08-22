@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ListOrdered, Loader2, ChevronDown, ChevronUp, Lightbulb, Clock, DollarSign, Search, Sparkles, FolderPlus, Compass } from 'lucide-react';
@@ -51,7 +51,7 @@ interface SeriesPlan {
 
 const FORMAT_COLORS: Record<string, string> = {
   tutorial: 'bg-blue-100 text-blue-700',
-  story: 'bg-purple-100 text-purple-700',
+  story: 'bg-gray-100 text-gray-700',
   review: 'bg-amber-100 text-amber-700',
   interview: 'bg-green-100 text-green-700',
   documentary: 'bg-indigo-100 text-indigo-700',
@@ -172,7 +172,7 @@ export default function SeriesPlannerPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Episodes: <span className="font-bold" style={{ color: '#6D4AE0' }}>{episodeCount}</span></label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Episodes: <span className="font-bold" style={{ color: '#374151' }}>{episodeCount}</span></label>
               <input
                 type="range"
                 min={3}
@@ -237,10 +237,10 @@ export default function SeriesPlannerPage() {
               <div className="flex items-start justify-between flex-wrap gap-3">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">{plan.seriesTitle}</h2>
-                  <p className="text-sm mt-1 font-medium italic" style={{ color: '#6D4AE0' }}>&ldquo;{plan.seriesHook}&rdquo;</p>
+                  <p className="text-sm mt-1 font-medium italic" style={{ color: '#374151' }}>&ldquo;{plan.seriesHook}&rdquo;</p>
                   <p className="text-xs text-gray-500 mt-1">For: {plan.targetAudience}</p>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.7)', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+                <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.7)', color: '#374151', border: '1.5px solid #e3ddf8' }}>
                   {plan.estimatedTotalEpisodes} episodes
                 </span>
               </div>
@@ -265,7 +265,7 @@ export default function SeriesPlannerPage() {
                         onClick={() => setExpandedEp(isOpen ? null : ep.episodeNumber)}
                         className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors"
                       >
-                        <span className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center shrink-0" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>
+                        <span className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center shrink-0" style={{ background: '#f3f4f6', color: '#374151' }}>
                           {ep.episodeNumber}
                         </span>
                         <div className="flex-1 min-w-0">
@@ -324,7 +324,7 @@ export default function SeriesPlannerPage() {
                               type="button"
                               onClick={() => { try { localStorage.setItem('cf_new_project_topic', ep.title); } catch {} router.push('/projects'); }}
                               className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-                              style={{ color: '#6D4AE0' }}
+                              style={{ color: '#374151' }}
                             >
                               <FolderPlus className="w-3 h-3" /> Start project from this episode
                             </button>
@@ -333,7 +333,7 @@ export default function SeriesPlannerPage() {
                                 type="button"
                                 onClick={() => { try { localStorage.setItem('cf_discover_topic', ep.researchAngles[0]!); } catch {} router.push('/discover'); }}
                                 className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-                                style={{ color: '#6D4AE0' }}
+                                style={{ color: '#374151' }}
                               >
                                 <Compass className="w-3 h-3" /> Explore in Discover
                               </button>

@@ -69,12 +69,12 @@ const QUICK_PROMPTS = [
 
 type QuickAction = { href?: string; prompt?: string; icon: React.ElementType; label: string; sub: string; iconBg: string; iconColor: string };
 const QUICK_ACTIONS: QuickAction[] = [
-  { href: '/content',              icon: TrendingUp,  label: 'Research Trends', sub: 'Discover viral topics',         iconBg: '#f5f3ff', iconColor: '#7C3AED' },
+  { href: '/content',              icon: TrendingUp,  label: 'Research Trends', sub: 'Discover viral topics',         iconBg: '#f3f4f6', iconColor: '#374151' },
   { prompt: 'Write a YouTube script for my next video', icon: FileText,   label: 'Write Script',    sub: 'AI-powered scripts',             iconBg: '#eff6ff', iconColor: '#2563eb' },
   { href: '/studio',               icon: ImageIcon,   label: 'Gen Thumbnail',   sub: 'AI image generation',           iconBg: '#fdf2f8', iconColor: '#db2777' },
   { href: '/publish?tab=calendar', icon: CalendarDays,label: 'Schedule Post',   sub: 'Plan your calendar',            iconBg: '#ecfdf5', iconColor: '#059669' },
   { href: '/analytics',            icon: BarChart2,   label: 'View Analytics',  sub: 'Channel performance',           iconBg: '#fffbeb', iconColor: '#d97706' },
-  { href: '/copilot',              icon: Bot,         label: 'Open Copilot',    sub: 'Chat with your AI',             iconBg: '#f5f3ff', iconColor: '#7c3aed' },
+  { href: '/copilot',              icon: Bot,         label: 'Open Copilot',    sub: 'Chat with your AI',             iconBg: '#f3f4f6', iconColor: '#374151' },
 ];
 
 function greet(name: string): string {
@@ -116,10 +116,10 @@ function SectionLabel({ icon: Icon, children }: { icon: React.ComponentType<{ cl
 // ── Auth-style card wrapper ───────────────────────────────────────────────────
 function Card({ children, className = '', href }: { children: React.ReactNode; className?: string; href?: string }) {
   const cls = `bg-white rounded-2xl p-5 ${className}`;
-  const style = { border: '1.5px solid #e3ddf8' };
+  const style = { border: '1.5px solid #e5e7eb' };
   if (href) {
     return (
-      <Link href={href} className={`block ${cls} hover:border-[#6D4AE0]/40 hover:shadow-md transition-all`} style={style}>
+      <Link href={href} className={`block ${cls} hover:border-gray-300 hover:shadow-md transition-all`} style={style}>
         {children}
       </Link>
     );
@@ -142,8 +142,8 @@ const WIZARD_STEPS = [
   },
   {
     icon: FolderOpen,
-    iconBg: '#ede9fe',
-    iconColor: '#7C3AED',
+    iconBg: '#f3f4f6',
+    iconColor: '#374151',
     title: 'Create your first content project',
     body: 'A project is your content workspace — choose a niche, and AI generates research, scripts, voice, and thumbnails.',
     cta: 'Create a project',
@@ -200,7 +200,7 @@ function OnboardingWizard({
               style={{
                 width: i + 1 === step ? '24px' : '8px',
                 height: '8px',
-                background: i + 1 <= step ? '#6D4AE0' : '#e3ddf8',
+                background: i + 1 <= step ? '#374151' : '#e5e7eb',
               }}
             />
           ))}
@@ -216,7 +216,7 @@ function OnboardingWizard({
 
         {/* Brand header */}
         <div className="text-center mb-2">
-          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6D4AE0' }}>
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>
             Step {step} of {WIZARD_STEPS.length}
           </span>
         </div>
@@ -410,17 +410,17 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-full bg-[#faf9ff]">
+    <div className="min-h-full bg-gray-50">
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
 
         {/* ── AI GREETING BANNER ─────────────────────────────────────────── */}
         <div
           className="rounded-3xl overflow-hidden relative"
-          style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)' }}
+          style={{ background: 'linear-gradient(145deg, #111827 0%, #1f2937 55%, #374151 100%)' }}
         >
           {/* Ambient orbs */}
-          <div aria-hidden className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.07)', filter: 'blur(50px)' }} />
-          <div aria-hidden className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full pointer-events-none" style={{ background: 'rgba(160,120,255,0.25)', filter: 'blur(40px)' }} />
+          <div aria-hidden className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.04)', filter: 'blur(50px)' }} />
+          <div aria-hidden className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(40px)' }} />
 
           <div className="relative px-6 sm:px-8 py-7">
             {/* Top row */}
@@ -428,9 +428,9 @@ export default function HomePage() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}
+                  style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)' }}
                 >
-                  <Bot className="w-5 h-5 text-purple-200" />
+                  <Bot className="w-5 h-5 text-gray-200" />
                 </div>
                 <div>
                   <p className="text-white/55 text-sm font-medium leading-none mb-0.5">{greeting}</p>
@@ -457,7 +457,7 @@ export default function HomePage() {
               style={{ background: 'rgba(255,255,255,0.10)', border: '1.5px solid rgba(255,255,255,0.18)' }}
             >
               <div className="flex items-center flex-1 gap-2.5 px-4 py-3 min-w-0">
-                <MessageSquare className="w-4 h-4 text-purple-300 shrink-0" />
+                <MessageSquare className="w-4 h-4 text-gray-300 shrink-0" />
                 <input
                   ref={inputRef}
                   type="text"
@@ -494,7 +494,7 @@ export default function HomePage() {
                   setTimeout(() => document.querySelector<HTMLButtonElement>('button[title="Start listening"]')?.click(), 500);
                 }}
                 className="shrink-0 w-12 flex items-center justify-center transition-all hover:opacity-80 border-l"
-                style={{ background: 'rgba(255,255,255,0.07)', color: '#c4b5fd', borderColor: 'rgba(255,255,255,0.10)' }}
+                style={{ background: 'rgba(255,255,255,0.07)', color: '#d1d5db', borderColor: 'rgba(255,255,255,0.10)' }}
               >
                 <Mic2 className="w-4 h-4" />
               </button>
@@ -530,7 +530,7 @@ export default function HomePage() {
         {!insightDismissed && (
           <div
             className="rounded-2xl p-5 relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg,#4C1D95,#7C3AED)' }}
+            style={{ background: 'linear-gradient(135deg,#1f2937,#374151)' }}
           >
             {/* Dismiss button */}
             <button
@@ -562,7 +562,7 @@ export default function HomePage() {
                 </p>
                 <a
                   href="/analytics"
-                  className="inline-block mt-3 text-purple-200 text-xs font-semibold underline underline-offset-2 hover:text-white transition-colors"
+                  className="inline-block mt-3 text-gray-300 text-xs font-semibold underline underline-offset-2 hover:text-white transition-colors"
                 >
                   See full report
                 </a>
@@ -587,8 +587,8 @@ export default function HomePage() {
                       <span
                         className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
                         style={{
-                          background: lastProject.status === 'ACTIVE' ? '#ecfdf5' : '#f5f2fd',
-                          color: lastProject.status === 'ACTIVE' ? '#065f46' : '#6D4AE0',
+                          background: lastProject.status === 'ACTIVE' ? '#ecfdf5' : '#f3f4f6',
+                          color: lastProject.status === 'ACTIVE' ? '#065f46' : '#374151',
                         }}
                       >
                         {lastProject.status}
@@ -607,21 +607,21 @@ export default function HomePage() {
                   </div>
                   <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}
+                    style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}
                   >
-                    <FolderOpen className="w-6 h-6" style={{ color: '#6D4AE0' }} />
+                    <FolderOpen className="w-6 h-6" style={{ color: '#6b7280' }} />
                   </div>
                 </div>
-                <div className="mt-4 pt-3 flex items-center gap-2" style={{ borderTop: '1.5px solid #f0edf9' }}>
-                  <span className="text-xs font-bold text-[#6D4AE0] flex items-center gap-1 group-hover:gap-2 transition-all">
+                <div className="mt-4 pt-3 flex items-center gap-2" style={{ borderTop: '1.5px solid #e5e7eb' }}>
+                  <span className="text-xs font-bold text-gray-600 flex items-center gap-1 group-hover:gap-2 transition-all">
                     Open project <ArrowRight className="w-3 h-3" />
                   </span>
                   <div className="flex-1" />
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); openCopilotWithPrompt(`Continue working on ${lastProject.title}`); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors hover:bg-[#f5f2fd]"
-                    style={{ color: '#6D4AE0' }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors hover:bg-gray-100"
+                    style={{ color: '#374151' }}
                   >
                     <Bot className="w-3 h-3" /> Ask AI
                   </button>
@@ -644,18 +644,18 @@ export default function HomePage() {
 
             {/* Recent projects list */}
             {recentProjects.length > 1 && (
-              <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-                <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1.5px solid #f0edf9' }}>
+              <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
+                <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1.5px solid #e5e7eb' }}>
                   <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Recent Projects</span>
-                  <Link href="/projects" className="text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>View all</Link>
+                  <Link href="/projects" className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>View all</Link>
                 </div>
                 <div className="divide-y" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
                   {recentProjects.slice(1).map((p) => (
                     <Link
                       key={p.id}
                       href={`/projects/${p.id}`}
-                      className="flex items-center justify-between px-5 py-3 hover:bg-[#faf9ff] transition-colors"
-                      style={{ borderBottom: '1px solid #f5f2fd' }}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+                      style={{ borderBottom: '1px solid #f3f4f6' }}
                     >
                       <div className="flex flex-col min-w-0">
                         <span className="font-semibold text-gray-900 text-sm truncate">{p.title}</span>
@@ -681,13 +681,13 @@ export default function HomePage() {
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <SectionLabel icon={CalendarDays}>Upcoming Posts</SectionLabel>
-                <Link href="/publish?tab=calendar" className="text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>View</Link>
+                <Link href="/publish?tab=calendar" className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>View</Link>
               </div>
               {upcomingPosts.length === 0 ? (
                 <div className="flex flex-col items-center py-5 text-center">
                   <CalendarDays className="w-8 h-8 text-gray-200 mb-2" />
                   <p className="text-xs text-gray-400">No upcoming posts scheduled.</p>
-                  <Link href="/publish?tab=calendar" className="mt-2 text-xs font-bold hover:underline" style={{ color: '#6D4AE0' }}>Plan your calendar →</Link>
+                  <Link href="/publish?tab=calendar" className="mt-2 text-xs font-bold hover:underline" style={{ color: '#374151' }}>Plan your calendar →</Link>
                 </div>
               ) : (
                 <div className="divide-y" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
@@ -695,8 +695,8 @@ export default function HomePage() {
                     const d = new Date(post.plannedAt);
                     const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     const isShort = post.format?.toLowerCase().includes('short');
-                    const platformBg = isShort ? '#fee2e2' : '#f5f3ff';
-                    const platformColor = isShort ? '#dc2626' : '#7C3AED';
+                    const platformBg = isShort ? '#fee2e2' : '#f3f4f6';
+                    const platformColor = isShort ? '#dc2626' : '#374151';
                     return (
                       <div key={post.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: platformBg }}>
@@ -714,7 +714,7 @@ export default function HomePage() {
                         </div>
                         <span
                           className="w-2 h-2 rounded-full mt-2 shrink-0"
-                          style={{ background: post.status === 'APPROVED' ? '#7C3AED' : '#f59e0b' }}
+                          style={{ background: post.status === 'APPROVED' ? '#374151' : '#f59e0b' }}
                         />
                       </div>
                     );
@@ -746,7 +746,7 @@ export default function HomePage() {
                     <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${(completedCount / steps.length) * 100}%`, background: 'linear-gradient(90deg, #6D4AE0, #7c5ae8)' }}
+                        style={{ width: `${(completedCount / steps.length) * 100}%`, background: '#374151' }}
                       />
                     </div>
                   </div>
@@ -755,13 +755,13 @@ export default function HomePage() {
                       <Link
                         key={step.label}
                         href={step.href}
-                        className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${step.done ? 'opacity-50 pointer-events-none' : 'hover:bg-[#faf9ff]'}`}
+                        className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${step.done ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-50'}`}
                       >
                         <div
                           className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0"
                           style={step.done
                             ? { background: '#10b981', color: '#fff' }
-                            : { background: '#f0edf9', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+                            : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }}
                         >
                           {step.done ? '✓' : i + 1}
                         </div>
@@ -790,14 +790,14 @@ export default function HomePage() {
                   <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ width: `${creditsPct}%`, background: creditsPct > 30 ? '#6D4AE0' : '#f59e0b' }}
+                      style={{ width: `${creditsPct}%`, background: creditsPct > 30 ? '#374151' : '#f59e0b' }}
                     />
                   </div>
                   <span className="text-xs text-gray-500 whitespace-nowrap tabular-nums">
                     {(trialStatus?.trialCreditsRemaining ?? 0).toLocaleString()} credits
                   </span>
                 </div>
-                <Link href="/wallet" className="text-xs font-bold flex items-center gap-1 hover:underline" style={{ color: '#6D4AE0' }}>
+                <Link href="/wallet" className="text-xs font-bold flex items-center gap-1 hover:underline" style={{ color: '#374151' }}>
                   Upgrade plan <ArrowRight className="w-3 h-3" />
                 </Link>
               </Card>
@@ -824,8 +824,8 @@ export default function HomePage() {
                         key={action.label}
                         type="button"
                         onClick={() => openCopilotWithPrompt(action.prompt!)}
-                        className="flex flex-col p-3.5 rounded-xl text-left transition-all hover:border-[#7C3AED]/30 hover:-translate-y-0.5"
-                        style={{ border: '1.5px solid #e3ddf8' }}
+                        className="flex flex-col p-3.5 rounded-xl text-left transition-all hover:border-gray-300 hover:-translate-y-0.5"
+                        style={{ border: '1.5px solid #e5e7eb' }}
                       >
                         {inner}
                       </button>
@@ -835,8 +835,8 @@ export default function HomePage() {
                     <Link
                       key={action.label}
                       href={action.href!}
-                      className="flex flex-col p-3.5 rounded-xl transition-all hover:border-[#7C3AED]/30 hover:-translate-y-0.5"
-                      style={{ border: '1.5px solid #e3ddf8' }}
+                      className="flex flex-col p-3.5 rounded-xl transition-all hover:border-gray-300 hover:-translate-y-0.5"
+                      style={{ border: '1.5px solid #e5e7eb' }}
                     >
                       {inner}
                     </Link>
@@ -854,11 +854,11 @@ export default function HomePage() {
                 value={trendNiche}
                 onChange={(e) => setTrendNiche(e.target.value)}
                 className="w-full text-sm rounded-xl px-3 py-2 mb-3 outline-none"
-                style={{ background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#1f1a3d' }}
+                style={{ background: '#f9fafb', border: '1.5px solid #e5e7eb', color: '#111827' }}
               />
               {trendsLoading && (
                 <div className="flex items-center justify-center py-3">
-                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} />
+                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6b7280' }} />
                 </div>
               )}
               {!trendsLoading && trendItems.length > 0 && (
@@ -869,7 +869,7 @@ export default function HomePage() {
                       type="button"
                       onClick={() => openCopilotWithPrompt(`Research trending topic: ${topic}`)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:opacity-80"
-                      style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+                      style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }}
                     >
                       <span
                         className="w-2 h-2 rounded-full shrink-0"
@@ -913,7 +913,7 @@ export default function HomePage() {
                     </div>
                   ))}
                   {channels.length > 3 && (
-                    <Link href="/settings/channels" className="text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                    <Link href="/settings/channels" className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
                       +{channels.length - 3} more channels
                     </Link>
                   )}

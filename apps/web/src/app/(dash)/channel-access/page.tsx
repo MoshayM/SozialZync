@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import {
@@ -206,7 +206,7 @@ function ConnectedCardContent({
 
       {/* Actions */}
       <div className="flex gap-2 mt-5">
-        <button className="flex-1 inline-flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-semibold px-3 py-2.5 rounded-xl hover:bg-gray-50 hover:border-purple-300 hover:text-purple-700 transition-all">
+        <button className="flex-1 inline-flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 text-xs font-semibold px-3 py-2.5 rounded-xl hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 transition-all">
           <RefreshCw className="w-3 h-3" />
           Manage
         </button>
@@ -244,7 +244,7 @@ function DisconnectedCardContent({ platform }: { platform: Platform }) {
 
       {/* Connect button */}
       <button
-        className="mt-5 w-full inline-flex items-center justify-center gap-2 bg-purple-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-purple-700 transition-all shadow-sm shadow-purple-200"
+        className="mt-5 w-full inline-flex items-center justify-center gap-2 bg-gray-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-700 transition-all shadow-sm shadow-purple-200"
       >
         <Plus className="w-4 h-4" />
         Connect {platform.name}
@@ -263,7 +263,7 @@ function PlatformCard({
   onDisconnect: (id: string) => void;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 hover:shadow-lg hover:border-purple-100 transition-all p-5">
+    <div className="bg-white rounded-2xl border border-gray-100 hover:shadow-lg hover:border-gray-100 transition-all p-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -288,8 +288,8 @@ function PlatformCard({
 
       {/* Audience tag */}
       <div className="mt-3 flex items-center gap-1.5">
-        <Users className="w-3.5 h-3.5 text-purple-400" />
-        <span className="text-xs text-purple-600 font-medium">{platform.audienceSize}</span>
+        <Users className="w-3.5 h-3.5 text-gray-400" />
+        <span className="text-xs text-gray-600 font-medium">{platform.audienceSize}</span>
       </div>
 
       {/* Body: connected vs disconnected */}
@@ -335,7 +335,7 @@ export default function ChannelAccessPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">Connect Your Channels</h1>
-                <p className="text-purple-200 text-sm mt-0.5">
+                <p className="text-gray-200 text-sm mt-0.5">
                   Link your social accounts to publish to multiple platforms from one place.
                 </p>
               </div>
@@ -351,8 +351,8 @@ export default function ChannelAccessPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                <Globe className="w-5 h-5 text-purple-600" />
+              <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                <Globe className="w-5 h-5 text-gray-600" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900">
@@ -421,8 +421,8 @@ export default function ChannelAccessPage() {
                   key={benefit.title}
                   className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-all"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-3">
-                    <Icon className="w-5 h-5 text-purple-600" />
+                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center mb-3">
+                    <Icon className="w-5 h-5 text-gray-600" />
                   </div>
                   <h3 className="font-semibold text-gray-900 text-sm mb-1">{benefit.title}</h3>
                   <p className="text-xs text-gray-500 leading-relaxed">{benefit.description}</p>

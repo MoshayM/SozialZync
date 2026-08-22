@@ -23,7 +23,7 @@ interface Channel {
 
 const FORMAT_COLORS: Record<string, string> = {
   tutorial: 'bg-blue-100 text-blue-700',
-  story: 'bg-purple-100 text-purple-700',
+  story: 'bg-gray-100 text-gray-700',
   review: 'bg-amber-100 text-amber-700',
   interview: 'bg-green-100 text-green-700',
   documentary: 'bg-indigo-100 text-indigo-700',
@@ -148,7 +148,7 @@ export default function AbTestingPage() {
             onClick={() => void refetch()}
             disabled={entriesLoading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold text-gray-600 disabled:opacity-50"
-            style={{ border: '1.5px solid #e3ddf8' }}
+            style={{ border: '1.5px solid #e5e7eb' }}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${entriesLoading ? 'animate-spin' : ''}`} />
             Refresh
@@ -179,15 +179,15 @@ export default function AbTestingPage() {
 
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e5e7eb' }}>
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Total Entries</p>
             <p className="text-2xl font-bold text-gray-900">{total}</p>
           </div>
-          <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e5e7eb' }}>
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Have Variants</p>
-            <p className="text-2xl font-bold" style={{ color: '#6D4AE0' }}>{withVariants}</p>
+            <p className="text-2xl font-bold" style={{ color: '#374151' }}>{withVariants}</p>
           </div>
-          <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e5e7eb' }}>
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">Coverage</p>
             <p className="text-2xl font-bold text-gray-900">{total ? Math.round(withVariants / total * 100) : 0}%</p>
           </div>
@@ -213,9 +213,9 @@ export default function AbTestingPage() {
             Loading calendar entries…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center bg-white rounded-3xl" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-              <FlaskConical className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+          <div className="py-16 text-center bg-white rounded-3xl" style={{ border: '1.5px solid #e5e7eb' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e5e7eb)' }}>
+              <FlaskConical className="w-8 h-8" style={{ color: '#374151' }} />
             </div>
             <p className="text-sm text-gray-500">No entries found. <Link href="/publish?tab=calendar" className="underline font-medium hover:text-[#6D4AE0]">Generate a content calendar →</Link></p>
           </div>
@@ -227,7 +227,7 @@ export default function AbTestingPage() {
               const variants = entry.titleVariants ?? [];
 
               return (
-                <div key={entry.id} className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+                <div key={entry.id} className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
                   <button
                     type="button"
                     onClick={() => setExpandedId(isExpanded ? null : entry.id)}
@@ -239,7 +239,7 @@ export default function AbTestingPage() {
                           {entry.format ?? 'video'}
                         </span>
                         {variants.length > 0 && (
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: '#f3f4f6', color: '#374151' }}>
                             {variants.length} variant{variants.length !== 1 ? 's' : ''}
                           </span>
                         )}
@@ -263,10 +263,10 @@ export default function AbTestingPage() {
                         <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Titles</p>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <span className="flex-1 text-sm px-3 py-2 rounded-2xl font-medium text-gray-800" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+                            <span className="flex-1 text-sm px-3 py-2 rounded-2xl font-medium text-gray-800" style={{ background: '#f3f4f6', border: '1.5px solid #e5e7eb' }}>
                               {activeTitle}
                             </span>
-                            <span className="px-2 py-1 text-[11px] font-semibold rounded-xl" style={{ color: '#6D4AE0', background: '#f5f2fd' }}>Active</span>
+                            <span className="px-2 py-1 text-[11px] font-semibold rounded-xl" style={{ color: '#374151', background: '#f3f4f6' }}>Active</span>
                           </div>
 
                           {variants.filter((v) => v !== activeTitle).map((variant, idx) => (
@@ -277,8 +277,8 @@ export default function AbTestingPage() {
                               <button
                                 onClick={() => swapMutation.mutate({ entryId: entry.id, title: variant })}
                                 disabled={swapMutation.isPending}
-                                className="px-3 py-1 text-xs font-semibold rounded-2xl disabled:opacity-50 shrink-0 transition-colors hover:bg-[#f5f2fd]"
-                                style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0' }}
+                                className="px-3 py-1 text-xs font-semibold rounded-2xl disabled:opacity-50 shrink-0 transition-colors hover:bg-[#f3f4f6]"
+                                style={{ border: '1.5px solid #e5e7eb', color: '#374151' }}
                               >
                                 {swapMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Use This'}
                               </button>

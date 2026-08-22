@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, Trash2, Music, Plus, X, Play, Pause, Download, Search, TrendingUp, ChevronDown, Sparkles } from 'lucide-react';
 import { AiMediaPicker } from '@/components/ai-media-picker';
@@ -144,7 +144,7 @@ function AudioPlayer({ url, trackId, playing, setPlaying }: {
     >
       {isPlaying
         ? <Pause className="w-4 h-4 text-white" />
-        : <Play className="w-4 h-4" style={{ color: '#6D4AE0' }} />}
+        : <Play className="w-4 h-4" style={{ color: '#374151' }} />}
     </button>
   );
 }
@@ -303,7 +303,7 @@ export default function MusicLibraryPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Music className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              <Music className="w-5 h-5" style={{ color: '#374151' }} />
               <h1 className="text-2xl font-extrabold text-gray-900">Music Library</h1>
             </div>
             <p className="text-sm text-gray-500">Royalty-free &amp; CC-licensed music for your videos</p>
@@ -328,11 +328,11 @@ export default function MusicLibraryPage() {
               onClick={() => setTab(t)}
               className="px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
               style={tab === t
-                ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
+                ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
                 : { color: '#9b8fc4' }}
             >
               {t === 'library' ? (
-                <span className="flex items-center gap-1.5"><Music className="w-3.5 h-3.5" />My Library {total > 0 && <span className="text-[11px] bg-purple-100 text-purple-700 rounded-full px-1.5">{total}</span>}</span>
+                <span className="flex items-center gap-1.5"><Music className="w-3.5 h-3.5" />My Library {total > 0 && <span className="text-[11px] bg-gray-100 text-gray-700 rounded-full px-1.5">{total}</span>}</span>
               ) : t === 'discover' ? (
                 <span className="flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5" />Discover</span>
               ) : (
@@ -440,9 +440,9 @@ export default function MusicLibraryPage() {
               {loading && tracks.length === 0 ? (
                 <div className="flex items-center justify-center gap-2 py-16 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /><span className="text-sm">Loading…</span></div>
               ) : error ? (
-                <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-red-500">{error}</p><button onClick={() => void fetchTracks()} className="mt-3 text-xs font-semibold underline" style={{ color: '#6D4AE0' }}>Retry</button></div>
+                <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-red-500">{error}</p><button onClick={() => void fetchTracks()} className="mt-3 text-xs font-semibold underline" style={{ color: '#374151' }}>Retry</button></div>
               ) : tracks.length === 0 ? (
-                <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No tracks found.</p><button type="button" onClick={() => setTab('discover')} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>Browse Discover →</button></div>
+                <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No tracks found.</p><button type="button" onClick={() => setTab('discover')} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}>Browse Discover →</button></div>
               ) : tracks.map((track, idx) => (
                 <div key={track.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff] transition-colors"
                   style={{ borderBottom: idx < tracks.length - 1 ? '1px solid #f0edf9' : 'none' }}>
@@ -459,7 +459,7 @@ export default function MusicLibraryPage() {
                         {track.license}
                       </span>
                       {track.mood.slice(0, 3).map(m => (
-                        <span key={m} className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>{m}</span>
+                        <span key={m} className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>{m}</span>
                       ))}
                     </div>
                     {track.attribution && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{track.attribution}</p>}
@@ -500,7 +500,7 @@ export default function MusicLibraryPage() {
               <div className="flex flex-wrap gap-2 items-center">
                 {/* Source */}
                 <select value={discoverSource} onChange={e => setDiscoverSource(e.target.value as 'all' | 'jamendo' | 'pixabay')}
-                  className="bg-[#faf9ff] rounded-xl px-3 py-1.5 text-xs font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0' }}>
+                  className="bg-[#faf9ff] rounded-xl px-3 py-1.5 text-xs font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: '#374151' }}>
                   {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
 
@@ -517,7 +517,7 @@ export default function MusicLibraryPage() {
                       {GENRE_OPTIONS.map(g => (
                         <button key={g} onClick={() => { setDiscoverGenre(g); setShowGenreFilter(false); }}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all"
-                          style={discoverGenre === g ? { background: '#6D4AE0', color: '#fff' } : { color: '#374151', background: '#f5f2fd' }}>
+                          style={discoverGenre === g ? { background: '#6D4AE0', color: '#fff' } : { color: '#374151', background: '#f3f4f6' }}>
                           {g}
                         </button>
                       ))}
@@ -538,7 +538,7 @@ export default function MusicLibraryPage() {
                       {MOOD_OPTIONS.map(m => (
                         <button key={m} onClick={() => { setDiscoverMood(m); setShowMoodFilter(false); }}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all"
-                          style={discoverMood === m ? { background: '#6D4AE0', color: '#fff' } : { color: '#374151', background: '#f5f2fd' }}>
+                          style={discoverMood === m ? { background: '#6D4AE0', color: '#fff' } : { color: '#374151', background: '#f3f4f6' }}>
                           {m}
                         </button>
                       ))}
@@ -567,7 +567,7 @@ export default function MusicLibraryPage() {
                 <Music className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                 <p className="text-sm text-red-500">{discoverError}</p>
                 <p className="text-xs text-gray-400 mt-1">Check that JAMENDO_CLIENT_ID is set in your environment.</p>
-                <button onClick={() => void fetchDiscover()} className="mt-3 text-xs font-semibold underline" style={{ color: '#6D4AE0' }}>Retry</button>
+                <button onClick={() => void fetchDiscover()} className="mt-3 text-xs font-semibold underline" style={{ color: '#374151' }}>Retry</button>
               </div>
             ) : discoverResults.length === 0 ? (
               <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No results. Try a different search or genre.</p></div>
@@ -585,8 +585,8 @@ export default function MusicLibraryPage() {
                         {track.imageUrl ? (
                           <img src={track.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
                         ) : (
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#f5f2fd' }}>
-                            <Music className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#f3f4f6' }}>
+                            <Music className="w-4 h-4" style={{ color: '#374151' }} />
                           </div>
                         )}
                         {/* Play */}
@@ -607,7 +607,7 @@ export default function MusicLibraryPage() {
                               {track.source}
                             </span>
                             {track.mood.slice(0, 2).map(m => (
-                              <span key={m} className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>{m}</span>
+                              <span key={m} className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>{m}</span>
                             ))}
                           </div>
                         </div>

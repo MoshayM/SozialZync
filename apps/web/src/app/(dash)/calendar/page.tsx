@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Sparkles, Plus, X, Loader2, Check, FolderPlus, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
@@ -36,7 +36,7 @@ const CATEGORIES = ['Tutorial', 'Review', 'Trending', 'Educational', 'Entertainm
 const STATUS_COLORS: Record<EntryStatus, string> = {
   idea: '#6366f1',
   draft: '#f59e0b',
-  scheduled: '#7C3AED',
+  scheduled: '#374151',
   published: '#10b981',
 };
 
@@ -181,7 +181,7 @@ function EntryModal({
             onChange={e => setTitle(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') submit(); }}
             placeholder="Video idea title…"
-            className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+            className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff]"
           />
         </div>
 
@@ -190,7 +190,7 @@ function EntryModal({
           <select
             value={platform}
             onChange={e => setPlatform(e.target.value as EntryPlatform | '')}
-            className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+            className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff]"
           >
             <option value="">Any platform</option>
             <option value="youtube">YouTube</option>
@@ -205,7 +205,7 @@ function EntryModal({
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+              className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff]"
             >
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -215,7 +215,7 @@ function EntryModal({
             <select
               value={status}
               onChange={e => setStatus(e.target.value as EntryStatus)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+              className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff]"
             >
               <option value="idea">Idea</option>
               <option value="draft">Draft</option>
@@ -232,7 +232,7 @@ function EntryModal({
             onChange={e => setNotes(e.target.value)}
             rows={2}
             placeholder="Optional notes…"
-            className="w-full px-3 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff] resize-none"
+            className="w-full px-3 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff] resize-none"
           />
         </div>
 
@@ -267,7 +267,7 @@ function EntryModal({
             type="button"
             onClick={() => { try { localStorage.setItem('cf_new_project_topic', title || initial.title || ''); } catch {} router.push('/projects'); onClose(); }}
             className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-            style={{ color: '#6D4AE0' }}
+            style={{ color: '#374151' }}
           >
             <FolderPlus className="w-3 h-3" /> Start project from this idea
           </button>
@@ -276,7 +276,7 @@ function EntryModal({
               href="/publishing"
               onClick={onClose}
               className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-              style={{ color: '#6D4AE0' }}
+              style={{ color: '#374151' }}
             >
               <ExternalLink className="w-3 h-3" /> Track on Publishing
             </Link>
@@ -375,7 +375,7 @@ function GenerateModal({
               onChange={e => setNiche(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') void generate(); }}
               placeholder="e.g. tech reviews, cooking, personal finance…"
-              className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+              className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff]"
             />
           </div>
           <div>
@@ -383,7 +383,7 @@ function GenerateModal({
             <input
               type="range" min={4} max={28} step={1} value={count}
               onChange={e => setCount(Number(e.target.value))}
-              className="w-full accent-[#7C3AED]"
+              className="w-full accent-gray-600"
             />
             <div className="flex justify-between text-[10px] text-gray-400"><span>4</span><span>28</span></div>
           </div>
@@ -391,7 +391,7 @@ function GenerateModal({
             onClick={() => void generate()}
             disabled={!niche.trim() || loading}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#D97706,#7C3AED)' }}
+            style={{ background: 'linear-gradient(135deg,#D97706,#6b7280)' }}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {loading ? 'Generating…' : 'Generate Plan'}
@@ -416,12 +416,12 @@ function GenerateModal({
                   type="checkbox"
                   checked={idea.selected}
                   onChange={() => toggleIdea(i)}
-                  className="mt-0.5 accent-[#7C3AED] shrink-0"
+                  className="mt-0.5 accent-gray-600 shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 leading-snug">{idea.title}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{idea.category}</span>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151' }}>{idea.category}</span>
                     <span className="text-[11px] text-gray-400">{idea.date}</span>
                   </div>
                 </div>
@@ -585,7 +585,7 @@ export default function ContentCalendarPage() {
             <div className="flex flex-wrap items-start gap-4 justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <CalendarDays className="w-5 h-5" style={{ color: '#7C3AED' }} />
+                  <CalendarDays className="w-5 h-5" style={{ color: '#374151' }} />
                   <h1 className="text-2xl font-extrabold text-gray-900">Content Calendar</h1>
                 </div>
                 <p className="text-sm text-gray-500">AI-planned video schedule — add ideas, track status</p>
@@ -593,7 +593,7 @@ export default function ContentCalendarPage() {
               <button
                 onClick={() => setShowGenerate(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[.98] shrink-0"
-                style={{ background: 'linear-gradient(135deg,#D97706,#7C3AED)', boxShadow: '0 4px 16px -4px rgba(109,74,224,.4)' }}
+                style={{ background: 'linear-gradient(135deg,#D97706,#6b7280)', boxShadow: '0 4px 16px -4px rgba(109,74,224,.4)' }}
               >
                 <Sparkles className="w-4 h-4" />Generate Plan
               </button>
@@ -616,7 +616,7 @@ export default function ContentCalendarPage() {
                 {(['month', 'week'] as const).map(v => (
                   <button key={v} onClick={() => setViewMode(v)}
                     className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
-                    style={viewMode === v ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
+                    style={viewMode === v ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
                     {v}
                   </button>
                 ))}
@@ -628,7 +628,7 @@ export default function ContentCalendarPage() {
               {[
                 { label: 'Total', value: stats.total, color: '#6366f1', bg: '#eef2ff' },
                 { label: 'Drafts', value: stats.drafts, color: '#f59e0b', bg: '#fffbeb' },
-                { label: 'Scheduled', value: stats.scheduled, color: '#7C3AED', bg: '#f5f2fd' },
+                { label: 'Scheduled', value: stats.scheduled, color: '#374151', bg: '#f5f2fd' },
                 { label: 'Published', value: stats.published, color: '#10b981', bg: '#ecfdf5' },
               ].map(s => (
                 <div key={s.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: s.bg, color: s.color }}>
@@ -659,17 +659,17 @@ export default function ContentCalendarPage() {
                       <div
                         key={idx}
                         className="min-h-[90px] p-1.5 border-b border-r border-[#f0edf9] transition-colors hover:bg-[#faf9ff]"
-                        style={isToday ? { background: '#f5f2fd', outline: '2px solid #7C3AED', outlineOffset: '-2px', borderRadius: '2px' } : {}}
+                        style={isToday ? { background: '#f3f4f6', outline: '2px solid #374151', outlineOffset: '-2px', borderRadius: '2px' } : {}}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span
-                            className={`text-xs font-bold leading-none ${cell.inMonth ? (isToday ? 'text-[#7C3AED]' : 'text-gray-800') : 'text-gray-300'}`}
+                            className={`text-xs font-bold leading-none ${cell.inMonth ? (isToday ? 'text-gray-900' : 'text-gray-800') : 'text-gray-300'}`}
                           >
                             {cell.day}
                           </span>
                           <button
                             onClick={() => setEditEntry({ date: cell.date! })}
-                            className="w-4 h-4 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-purple-600 hover:bg-purple-50"
+                            className="w-4 h-4 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 hover:bg-gray-50"
                             style={{ fontSize: '14px', lineHeight: 1 }}
                             title="Add entry"
                           >
@@ -694,7 +694,7 @@ export default function ContentCalendarPage() {
                           {overflow > 0 && !isExpanded && (
                             <button
                               onClick={e => { e.stopPropagation(); setExpandedDay(cell.date!); }}
-                              className="text-[10px] text-purple-500 font-semibold hover:underline w-full text-left px-1"
+                              className="text-[10px] text-gray-500 font-semibold hover:underline w-full text-left px-1"
                             >
                               +{overflow} more
                             </button>
@@ -731,9 +731,9 @@ export default function ContentCalendarPage() {
                     const d = new Date(dateStr + 'T00:00:00');
                     const isToday = dateStr === today;
                     return (
-                      <div key={dateStr} className="py-3 px-2 text-center border-r border-[#f0edf9] last:border-r-0" style={isToday ? { background: '#f5f2fd' } : {}}>
+                      <div key={dateStr} className="py-3 px-2 text-center border-r border-[#f0edf9] last:border-r-0" style={isToday ? { background: '#f3f4f6' } : {}}>
                         <div className="text-[10px] font-bold text-gray-400">{DAY_NAMES[i]}</div>
-                        <div className={`text-sm font-bold ${isToday ? 'text-[#7C3AED]' : 'text-gray-800'}`}>{d.getDate()}</div>
+                        <div className={`text-sm font-bold ${isToday ? 'text-gray-900' : 'text-gray-800'}`}>{d.getDate()}</div>
                       </div>
                     );
                   })}
@@ -760,7 +760,7 @@ export default function ContentCalendarPage() {
                               <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1" style={{ background: `${PLATFORM_COLORS[entry.platform]}18`, color: PLATFORM_COLORS[entry.platform] }}>{PLATFORM_LABELS[entry.platform]}</span>
                             )}
                             {entry.category && (
-                              <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 ml-1" style={{ background: 'rgba(109,74,224,.1)', color: '#6D4AE0' }}>{entry.category}</span>
+                              <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 ml-1" style={{ background: 'rgba(109,74,224,.1)', color: '#374151' }}>{entry.category}</span>
                             )}
                             <div className="mt-1">
                               <span className="text-[10px] font-bold capitalize" style={{ color: STATUS_COLORS[entry.status] }}>{entry.status}</span>
@@ -769,7 +769,7 @@ export default function ContentCalendarPage() {
                         ))}
                         <button
                           onClick={() => setEditEntry({ date: dateStr })}
-                          className="w-full flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-medium text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors border-2 border-dashed border-gray-200 hover:border-purple-200"
+                          className="w-full flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors border-2 border-dashed border-gray-200 hover:border-gray-200"
                         >
                           <Plus className="w-3 h-3" />Add
                         </button>
@@ -816,7 +816,7 @@ export default function ContentCalendarPage() {
                   <button
                     onClick={() => setEditEntry({ date: today })}
                     className="mt-2 text-xs font-semibold hover:underline"
-                    style={{ color: '#6D4AE0' }}
+                    style={{ color: '#374151' }}
                   >
                     + Add one
                   </button>
@@ -830,15 +830,15 @@ export default function ContentCalendarPage() {
                       <div key={e.id} onClick={() => setEditEntry(e)} className="flex items-start gap-2 cursor-pointer group">
                         <div
                           className="w-9 h-9 rounded-xl flex flex-col items-center justify-center shrink-0"
-                          style={{ background: isToday ? '#7C3AED' : '#f5f2fd' }}
+                          style={{ background: isToday ? '#374151' : '#f3f4f6' }}
                         >
                           <span className="text-[9px] font-bold" style={{ color: isToday ? '#fff' : '#9b8fc4' }}>{DAY_NAMES[(d.getDay() + 6) % 7]}</span>
                           <span className="text-sm font-extrabold leading-none" style={{ color: isToday ? '#fff' : '#6D4AE0' }}>{d.getDate()}</span>
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
-                          <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-purple-700 transition-colors">{e.title}</p>
+                          <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-gray-700 transition-colors">{e.title}</p>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            {isToday && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#7C3AED] text-white">TODAY</span>}
+                            {isToday && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-800 text-white">TODAY</span>}
                             <span className="text-[10px] font-semibold capitalize" style={{ color: STATUS_COLORS[e.status] }}>{e.status}</span>
                             {e.platform && <span className="text-[10px] font-semibold" style={{ color: PLATFORM_COLORS[e.platform] }}>{PLATFORM_LABELS[e.platform]}</span>}
                           </div>
@@ -853,7 +853,7 @@ export default function ContentCalendarPage() {
             {/* Quick Schedule card */}
             <div className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
               <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-                <Plus className="w-3.5 h-3.5 text-purple-500" />Quick Schedule
+                <Plus className="w-3.5 h-3.5 text-gray-500" />Quick Schedule
               </h3>
               <input
                 type="text"
@@ -866,12 +866,12 @@ export default function ContentCalendarPage() {
                   }
                 }}
                 placeholder="Video title…"
-                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff]"
               />
               <select
                 value={qsPlatform}
                 onChange={e => setQsPlatform(e.target.value as EntryPlatform)}
-                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff]"
               >
                 <option value="youtube">YouTube</option>
                 <option value="instagram">Instagram</option>
@@ -881,7 +881,7 @@ export default function ContentCalendarPage() {
                 type="date"
                 value={qsDate}
                 onChange={e => setQsDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#faf9ff]"
               />
               <button
                 onClick={() => {

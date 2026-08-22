@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import {
@@ -133,7 +133,7 @@ const VIDEOS: Video[] = [
     comments: '96',
     uploadDate: 'Jul 7, 2026',
     visibility: 'Public',
-    gradient: 'linear-gradient(135deg,#4a1d96 0%,#6d28d9 50%,#7c3aed 100%)',
+    gradient: 'linear-gradient(135deg,#1c1917 0%,#292524 50%,#44403c 100%)',
   },
   {
     id: 'v6',
@@ -177,7 +177,7 @@ const VIDEOS: Video[] = [
     comments: '43',
     uploadDate: 'Jun 8, 2026',
     visibility: 'Private',
-    gradient: 'linear-gradient(135deg,#312e81 0%,#4338ca 50%,#6366f1 100%)',
+    gradient: 'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#1e40af 100%)',
   },
   {
     id: 'v10',
@@ -201,7 +201,7 @@ const PLAYLISTS: Playlist[] = [
     gradients: [
       'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#1e40af 100%)',
       'linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#3730a3 100%)',
-      'linear-gradient(135deg,#4a1d96 0%,#6d28d9 50%,#7c3aed 100%)',
+      'linear-gradient(135deg,#1c1917 0%,#292524 50%,#44403c 100%)',
     ],
   },
   {
@@ -221,7 +221,7 @@ const PLAYLISTS: Playlist[] = [
     videoCount: 15,
     totalViews: '241.8K',
     gradients: [
-      'linear-gradient(135deg,#4a1d96 0%,#6d28d9 50%,#7c3aed 100%)',
+      'linear-gradient(135deg,#1c1917 0%,#292524 50%,#44403c 100%)',
       'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#1e40af 100%)',
       'linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#3730a3 100%)',
     ],
@@ -279,7 +279,7 @@ const DRAFTS: Draft[] = [
 
 const ASSETS: Asset[] = [
   { id: 'a1', name: 'channel-banner-v3.png', type: 'Image', meta: '2560×1440 · 1.2 MB', gradient: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#3730a3 100%)' },
-  { id: 'a2', name: 'intro-music-upbeat.mp3', type: 'Audio', meta: 'Audio · 2:34 · 4.8 MB', gradient: 'linear-gradient(135deg,#4a1d96 0%,#6d28d9 50%,#7c3aed 100%)' },
+  { id: 'a2', name: 'intro-music-upbeat.mp3', type: 'Audio', meta: 'Audio · 2:34 · 4.8 MB', gradient: 'linear-gradient(135deg,#064e3b 0%,#065f46 50%,#047857 100%)' },
   { id: 'a3', name: 'outro-animation-v2.mp4', type: 'Clip', meta: 'Video · 0:10 · 18.4 MB', gradient: 'linear-gradient(135deg,#14532d 0%,#166534 50%,#15803d 100%)' },
   { id: 'a4', name: 'logo-transparent.png', type: 'Image', meta: '1024×1024 · 340 KB', gradient: 'linear-gradient(135deg,#1c1917 0%,#292524 50%,#44403c 100%)' },
   { id: 'a5', name: 'lower-third-template.png', type: 'Image', meta: '1920×1080 · 890 KB', gradient: 'linear-gradient(135deg,#7c2d12 0%,#9a3412 50%,#c2410c 100%)' },
@@ -313,7 +313,7 @@ function draftStatusStyle(s: DraftStatus): { bg: string; text: string; border: s
   switch (s) {
     case 'Scripted': return { bg: 'bg-amber-50',  text: 'text-amber-600',  border: 'border-amber-100' };
     case 'Filmed':   return { bg: 'bg-blue-50',   text: 'text-blue-600',   border: 'border-blue-100'  };
-    case 'Edited':   return { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100' };
+    case 'Edited':   return { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100' };
   }
 }
 
@@ -326,8 +326,8 @@ function draftIconStyle(type: string): { bg: string; icon: React.ReactNode } {
       };
     case 'Thumbnail':
       return {
-        bg: 'bg-purple-50 border-purple-100',
-        icon: <ImageIcon className="w-5 h-5 text-purple-600" />,
+        bg: 'bg-gray-50 border-gray-100',
+        icon: <ImageIcon className="w-5 h-5 text-gray-600" />,
       };
     default:
       return {
@@ -349,7 +349,7 @@ function assetBadge(type: AssetType): string {
   switch (type) {
     case 'Audio': return 'bg-blue-50 text-blue-600 border-blue-100';
     case 'Clip':  return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-    default:      return 'bg-purple-50 text-purple-600 border-purple-100';
+    default:      return 'bg-gray-50 text-gray-600 border-gray-100';
   }
 }
 
@@ -395,7 +395,7 @@ export default function LibraryPage() {
                 placeholder="Search…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 w-40 transition"
+                className="pl-8 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 w-40 transition"
               />
             </div>
 
@@ -415,7 +415,7 @@ export default function LibraryPage() {
                       key={opt}
                       onClick={() => { setSort(opt); setSortOpen(false); }}
                       className={`w-full text-left px-4 py-2 text-sm transition hover:bg-gray-50 ${
-                        sort === opt ? 'font-semibold text-purple-700' : 'text-gray-700'
+                        sort === opt ? 'font-semibold text-gray-700' : 'text-gray-700'
                       }`}
                     >
                       {opt}
@@ -426,7 +426,7 @@ export default function LibraryPage() {
             </div>
 
             {/* Sync button */}
-            <button className="flex items-center gap-1.5 h-9 px-4 text-sm font-semibold text-white bg-purple-600 rounded-xl hover:bg-purple-700 transition shadow-sm">
+            <button className="flex items-center gap-1.5 h-9 px-4 text-sm font-semibold text-white bg-gray-600 rounded-xl hover:bg-gray-700 transition shadow-sm">
               <RefreshCw className="w-3.5 h-3.5" />
               Sync with YouTube
             </button>
@@ -443,7 +443,7 @@ export default function LibraryPage() {
                   onClick={() => setActiveChannel(ch.id)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-sm font-medium transition ${
                     activeChannel === ch.id
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                      ? 'bg-gray-600 text-white border-gray-600 shadow-sm'
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                   }`}
                 >
@@ -482,7 +482,7 @@ export default function LibraryPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`relative pb-3 px-1 mr-5 text-sm font-medium transition ${
                 activeTab === tab.id
-                  ? 'text-purple-700'
+                  ? 'text-gray-700'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -491,7 +491,7 @@ export default function LibraryPage() {
                 <span
                   className={`ml-1.5 text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
                     activeTab === tab.id
-                      ? 'bg-purple-100 text-purple-700'
+                      ? 'bg-gray-100 text-gray-700'
                       : 'bg-gray-100 text-gray-500'
                   }`}
                 >
@@ -499,7 +499,7 @@ export default function LibraryPage() {
                 </span>
               )}
               {activeTab === tab.id && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-t-sm" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-600 rounded-t-sm" />
               )}
             </button>
           ))}
@@ -567,7 +567,7 @@ export default function LibraryPage() {
                         <button className="text-[11px] font-600 px-2.5 py-1 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
                           Edit
                         </button>
-                        <button className="text-[11px] font-semibold px-2.5 py-1 border border-purple-200 text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition">
+                        <button className="text-[11px] font-semibold px-2.5 py-1 border border-gray-200 text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                           Repurpose
                         </button>
                         <div className="relative ml-auto">
@@ -605,7 +605,7 @@ export default function LibraryPage() {
 
             {/* Load more */}
             <div className="flex justify-center mt-6">
-              <button className="flex items-center gap-2 px-6 py-2 text-sm font-semibold text-gray-600 border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:text-purple-700 bg-white transition">
+              <button className="flex items-center gap-2 px-6 py-2 text-sm font-semibold text-gray-600 border-2 border-gray-200 rounded-xl hover:border-gray-400 hover:text-gray-700 bg-white transition">
                 <RefreshCw className="w-4 h-4" />
                 Load more videos
               </button>
@@ -661,7 +661,7 @@ export default function LibraryPage() {
                       <Layers className="w-3 h-3" />
                       Manage
                     </button>
-                    <button className="text-[11px] font-semibold px-2.5 py-1 border border-purple-200 text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition flex items-center gap-1">
+                    <button className="text-[11px] font-semibold px-2.5 py-1 border border-gray-200 text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition flex items-center gap-1">
                       <PlusCircle className="w-3 h-3" />
                       Add Video
                     </button>
@@ -671,7 +671,7 @@ export default function LibraryPage() {
             ))}
 
             {/* Add playlist card */}
-            <button className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-4 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-purple-300 hover:text-purple-500 transition-all cursor-pointer h-[102px]">
+            <button className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-4 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-gray-300 hover:text-gray-500 transition-all cursor-pointer h-[102px]">
               <PlusCircle className="w-5 h-5" />
               <span className="text-xs font-medium">New playlist</span>
             </button>
@@ -723,7 +723,7 @@ export default function LibraryPage() {
             })}
 
             {/* Empty new draft */}
-            <button className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-4 flex items-center gap-3 text-gray-400 hover:border-purple-300 hover:text-purple-500 transition cursor-pointer">
+            <button className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-4 flex items-center gap-3 text-gray-400 hover:border-gray-300 hover:text-gray-500 transition cursor-pointer">
               <div className="w-10 h-10 rounded-xl border-2 border-dashed border-current flex items-center justify-center flex-shrink-0">
                 <PlusCircle className="w-5 h-5" />
               </div>
@@ -768,7 +768,7 @@ export default function LibraryPage() {
               ))}
 
               {/* Upload new asset */}
-              <button className="bg-white rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-purple-300 hover:text-purple-500 transition cursor-pointer aspect-video">
+              <button className="bg-white rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-gray-300 hover:text-gray-500 transition cursor-pointer aspect-video">
                 <PlusCircle className="w-5 h-5" />
                 <span className="text-xs font-medium">Upload asset</span>
               </button>

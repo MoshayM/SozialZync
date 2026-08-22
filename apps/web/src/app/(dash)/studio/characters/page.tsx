@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Sparkles, Loader2, Plus, Trash2, Play, Pause, Pencil, Check, X, Users, Star, Wand2 } from 'lucide-react';
 
@@ -119,7 +119,7 @@ function CharacterAvatar({ character, size = 48 }: { character: Character | Char
   const url = (character as Character).avatarUrl || diceBearUrl(character.avatarStyle, seed);
   return (
     <div className="rounded-2xl overflow-hidden shrink-0 flex items-center justify-center"
-      style={{ width: size, height: size, background: '#f5f2fd', border: '2px solid #e3ddf8' }}>
+      style={{ width: size, height: size, background: '#f3f4f6', border: '2px solid #e3ddf8' }}>
       <img src={url} alt={character.name} width={size} height={size} className="w-full h-full object-cover" />
     </div>
   );
@@ -167,7 +167,7 @@ function VoicePreviewBtn({ character, size = 'sm' }: { character: Partial<Charac
   return (
     <button onClick={() => void play()} disabled={loading}
       className={cls + ' transition-all hover:scale-105 disabled:opacity-50'}
-      style={playing ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff' } : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+      style={playing ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff' } : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}>
       {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : playing ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
       {playing ? 'Pause' : 'Preview Voice'}
     </button>
@@ -257,7 +257,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           {AVATAR_STYLES.map(s => (
             <button key={s.value} onClick={() => setAvatarStyle(s.value)}
               className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
-              style={avatarStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f5f2fd' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
+              style={avatarStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
               <img src={diceBearUrl(s.value, name || 'character')} alt={s.label} width={36} height={36} className="rounded-lg" />
               <span className="text-[10px] font-medium text-gray-600 whitespace-nowrap">{s.label}</span>
             </button>
@@ -299,7 +299,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
             {VOICE_EFFECTS.map(e => (
               <button key={e.value} onClick={() => setVoiceEffect(e.value)}
                 className="flex flex-col items-center gap-1 p-2 rounded-xl text-center transition-all"
-                style={voiceEffect === e.value ? { border: '2px solid #6D4AE0', background: '#f5f2fd' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
+                style={voiceEffect === e.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
                 <span className="text-xl">{e.emoji}</span>
                 <span className="text-[10px] font-medium text-gray-600">{e.label}</span>
               </button>
@@ -334,7 +334,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           {VIDEO_STYLES.map(s => (
             <button key={s.value} onClick={() => setVideoStyle(s.value)}
               className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all"
-              style={videoStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f5f2fd' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
+              style={videoStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e3ddf8', background: '#faf9ff' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xl" style={{ background: s.color }}>
                 {s.emoji}
               </div>
@@ -425,7 +425,7 @@ export default function CharactersPage() {
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+            <Sparkles className="w-5 h-5" style={{ color: '#374151' }} />
             <h1 className="text-2xl font-extrabold text-gray-900">Character Studio</h1>
           </div>
           <p className="text-sm text-gray-500">
@@ -438,11 +438,11 @@ export default function CharactersPage() {
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setTab(id)}
               className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold transition-all"
-              style={tab === id ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
+              style={tab === id ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
               <Icon className="w-3.5 h-3.5" />
               {label}
               {id === 'my' && characters.length > 0 && (
-                <span className="text-[11px] bg-purple-100 text-purple-700 rounded-full px-1.5 ml-0.5">{characters.length}</span>
+                <span className="text-[11px] bg-gray-100 text-gray-700 rounded-full px-1.5 ml-0.5">{characters.length}</span>
               )}
             </button>
           ))}
@@ -457,11 +457,11 @@ export default function CharactersPage() {
               <div className="py-12 text-center"><p className="text-sm text-red-500">{error}</p></div>
             ) : characters.length === 0 ? (
               <div className="py-16 text-center">
-                <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: '#6D4AE0', opacity: 0.3 }} />
+                <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: '#374151', opacity: 0.3 }} />
                 <p className="text-gray-600 font-medium mb-1">No characters yet</p>
                 <p className="text-sm text-gray-400 mb-4">Add a preset or create a custom character to get started</p>
                 <div className="flex gap-3 justify-center">
-                  <button onClick={() => setTab('presets')} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+                  <button onClick={() => setTab('presets')} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}>
                     Browse presets
                   </button>
                   <button onClick={() => setTab('create')} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white"
@@ -492,7 +492,7 @@ export default function CharactersPage() {
                             </span>
                           ) : null; })()}
                           {(() => { const e = VOICE_EFFECTS.find(v => v.value === char.voiceEffect); return e && e.value !== 'none' ? (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>
                               {e.emoji} {e.label}
                             </span>
                           ) : null; })()}
@@ -533,14 +533,14 @@ export default function CharactersPage() {
               return (
                 <div key={preset.id} className="bg-white rounded-2xl p-4 flex flex-col gap-3" style={{ border: '1.5px solid #e3ddf8' }}>
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
                       {preset.emoji}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800">{preset.name}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {preset.tags.map(t => (
-                          <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full capitalize" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>{t}</span>
+                          <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full capitalize" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>{t}</span>
                         ))}
                       </div>
                     </div>

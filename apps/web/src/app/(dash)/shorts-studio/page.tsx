@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -84,7 +84,7 @@ function SendToEditorButton({ importedVideoId }: { importedVideoId: string }) {
       disabled={create.isPending}
       title="Open this video in the full Video Editor"
       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:border-[#6D4AE0]/40 disabled:opacity-50"
-      style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0', background: 'white' }}
+      style={{ border: '1.5px solid #e3ddf8', color: '#374151', background: 'white' }}
     >
       {create.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
       Video Edit
@@ -168,7 +168,7 @@ function AnalysisProgress({ importedVideoId, onRetry }: { importedVideoId: strin
           </span>
         )}
         {progressLabel && (
-          <span className="text-[11px] inline-flex items-center gap-1" style={{ color: '#6D4AE0' }}>
+          <span className="text-[11px] inline-flex items-center gap-1" style={{ color: '#374151' }}>
             <Loader2 className="w-3 h-3 animate-spin" /> {progressLabel}
           </span>
         )}
@@ -202,7 +202,7 @@ function VideoRow({ video: v, imported, checked, disabled, onToggle }: VideoRowP
       className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer"
       style={
         imported ? { border: '1.5px solid #f3f4f6', background: '#fafafa', opacity: 0.7, cursor: 'not-allowed' }
-        : checked  ? { border: '2px solid #6D4AE0', background: '#f5f2fd' }
+        : checked  ? { border: '2px solid #6D4AE0', background: '#f3f4f6' }
         : { border: '1.5px solid #e3ddf8', background: 'white' }
       }
     >
@@ -223,7 +223,7 @@ function VideoRow({ video: v, imported, checked, disabled, onToggle }: VideoRowP
         <p className="text-[11px] text-gray-400">
           {fmtDuration(v.durationMs)} · {fmtViews(v.viewCount)}
           {v.kind === 'short' && (
-            <span className="ml-2 px-1.5 py-0.5 rounded-full font-semibold text-[10px]" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>Short</span>
+            <span className="ml-2 px-1.5 py-0.5 rounded-full font-semibold text-[10px]" style={{ background: '#f3f4f6', color: '#374151' }}>Short</span>
           )}
         </p>
       </div>
@@ -253,7 +253,7 @@ function GroupBar({ open, onToggle, icon, title, count }: {
       {icon}
       <p className="text-sm font-semibold text-gray-800 truncate flex-1">{title}</p>
       {count != null && (
-        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold shrink-0" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{count}</span>
+        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold shrink-0" style={{ background: '#f3f4f6', color: '#374151' }}>{count}</span>
       )}
     </div>
   );
@@ -265,7 +265,7 @@ function LoadMoreButton({ onClick, loading }: { onClick: () => void; loading: bo
       onClick={onClick}
       disabled={loading}
       className="w-full py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:border-[#6D4AE0]/30"
-      style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0', background: 'white' }}
+      style={{ border: '1.5px solid #e3ddf8', color: '#374151', background: 'white' }}
     >
       {loading && <Loader2 className="w-4 h-4 animate-spin" />} Load more
     </button>
@@ -291,13 +291,13 @@ function PlaylistGroup({ channelId, playlist, renderVideo }: {
   return (
     <div>
       <GroupBar open={open} onToggle={() => setOpen((o) => !o)}
-        icon={<ListVideo className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />}
+        icon={<ListVideo className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />}
         title={playlist.title} count={playlist.itemCount} />
       {open && (
         <div className="mt-1.5 ml-4 space-y-1.5">
           {isLoading && (
             <div className="flex items-center gap-2 text-gray-400 py-4 justify-center text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#6D4AE0' }} /> Loading playlist…
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#374151' }} /> Loading playlist…
             </div>
           )}
           {!isLoading && items.length === 0 && <p className="text-center py-4 text-gray-400 text-sm">This playlist has no videos.</p>}
@@ -332,7 +332,7 @@ function KindVideosGroup({ channelId, kind, title, icon, renderVideo }: {
         <div className="mt-1.5 ml-4 space-y-1.5">
           {isLoading && (
             <div className="flex items-center gap-2 text-gray-400 py-4 justify-center text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#6D4AE0' }} /> Loading…
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#374151' }} /> Loading…
             </div>
           )}
           {!!error && (
@@ -370,7 +370,7 @@ function SearchResults({ channelId, q, renderVideo }: {
     <div className="space-y-1.5">
       {isLoading && (
         <div className="flex items-center gap-2 text-gray-400 py-4 justify-center text-sm">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#6D4AE0' }} /> Searching…
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#374151' }} /> Searching…
         </div>
       )}
       {!!error && (
@@ -479,8 +479,8 @@ function LibraryImportModal({
       >
         {/* Modal header */}
         <div className="flex items-center gap-3 px-6 py-5" style={{ borderBottom: '1.5px solid #f0edf9' }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#f5f2fd' }}>
-            <FolderDown className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#f3f4f6' }}>
+            <FolderDown className="w-4 h-4" style={{ color: '#374151' }} />
           </div>
           <div className="flex-1">
             <h2 className="text-base font-extrabold text-gray-900">Import from library</h2>
@@ -524,13 +524,13 @@ function LibraryImportModal({
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 px-1 pt-1">Shorts</p>
               <KindVideosGroup
                 channelId={channelId} kind="short" title="All Shorts"
-                icon={<Clapperboard className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />}
+                icon={<Clapperboard className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />}
                 renderVideo={renderVideo}
               />
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 px-1 pt-2">Videos</p>
               {loadingPlaylists && (
                 <div className="flex items-center gap-2 text-gray-400 py-4 justify-center text-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#6D4AE0' }} /> Loading playlists…
+                  <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#374151' }} /> Loading playlists…
                 </div>
               )}
               {playlists.map((p) => (
@@ -539,7 +539,7 @@ function LibraryImportModal({
               {hasMorePlaylists && <LoadMoreButton onClick={() => void fetchMorePlaylists()} loading={fetchingPlaylists} />}
               <KindVideosGroup
                 channelId={channelId} kind="video" title="All videos"
-                icon={<Film className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />}
+                icon={<Film className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />}
                 renderVideo={renderVideo}
               />
             </>
@@ -655,19 +655,19 @@ export default function ShortsStudioPage() {
         {/* ── AI Quick Tools showcase ──────────────────────────────── */}
         <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+            <Sparkles className="w-4 h-4" style={{ color: '#374151' }} />
             <span className="text-sm font-bold text-gray-800">AI Quick Tools</span>
             <span className="text-xs text-gray-400">— available after video is analyzed</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {(
               [
-                { icon: Captions,  label: 'Auto-caption',        desc: 'Add captions automatically',  color: '#6D4AE0' },
+                { icon: Captions,  label: 'Auto-caption',        desc: 'Add captions automatically',  color: '#374151' },
                 { icon: Scissors,  label: 'Remove Silence',       desc: 'Cut dead air from clips',      color: '#0891B2' },
                 { icon: ListVideo, label: 'Add Subtitles',        desc: 'Styled subtitle overlays',     color: '#059669' },
                 { icon: Wand2,     label: 'Viral Hook',           desc: 'AI-craft a hook for the clip', color: '#D97706' },
                 { icon: Film,      label: 'Auto B-roll',          desc: 'Insert matching b-roll clips', color: '#DC2626' },
-                { icon: Download,  label: 'Export to Platforms',  desc: 'YouTube, TikTok, Reels',       color: '#7C3AED' },
+                { icon: Download,  label: 'Export to Platforms',  desc: 'YouTube, TikTok, Reels',       color: '#374151' },
               ] as { icon: React.ElementType; label: string; desc: string; color: string }[]
             ).map(({ icon: Icon, label, desc, color }) => (
               <div key={label} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#faf9ff', border: '1px solid #f0edf9' }}>
@@ -765,7 +765,7 @@ export default function ShortsStudioPage() {
                 ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
                 : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 flex-1">Imported videos</span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f3f4f6', color: '#374151' }}>
                 {imported.length}
               </span>
               {importedOpen && (
@@ -775,7 +775,7 @@ export default function ShortsStudioPage() {
                     setOpenVideoIds((prev) => prev.size === imported.length ? new Set() : new Set(imported.map((v) => v.id)));
                   }}
                   className="text-xs font-semibold transition-colors hover:text-[#6D4AE0]"
-                  style={{ color: '#6D4AE0' }}
+                  style={{ color: '#374151' }}
                 >
                   {openVideoIds.size === imported.length ? 'Collapse all' : 'Expand all'}
                 </button>
@@ -851,7 +851,7 @@ export default function ShortsStudioPage() {
                                 href={`/shorts-studio/videos/${v.id}`}
                                 onClick={(e) => e.stopPropagation()}
                                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:border-[#6D4AE0]/40"
-                                style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0', background: 'white' }}
+                                style={{ border: '1.5px solid #e3ddf8', color: '#374151', background: 'white' }}
                               >
                                 <Sparkles className="w-4 h-4" /> Results
                               </Link>
@@ -868,7 +868,7 @@ export default function ShortsStudioPage() {
                 <button
                   onClick={() => setPickerOpen(true)}
                   className="w-full py-3 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 hover:bg-[#f5f2fd]"
-                  style={{ border: '1.5px dashed #c4b5fd', color: '#6D4AE0' }}
+                  style={{ border: '1.5px dashed #c4b5fd', color: '#374151' }}
                 >
                   <FolderDown className="w-4 h-4" /> Import more from library
                 </button>

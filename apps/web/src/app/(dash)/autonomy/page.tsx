@@ -70,8 +70,8 @@ const PIPELINE_COLUMNS: PipelineColumn[] = [
   },
   {
     title: 'AI Processing',
-    colorClass: 'bg-purple-50',
-    borderClass: 'border-purple-100',
+    colorClass: 'bg-gray-50',
+    borderClass: 'border-gray-100',
     dotActiveClass: 'bg-green-500',
     cards: [
       { icon: FileText, name: 'Script Agent',     status: 'active' },
@@ -511,10 +511,10 @@ export default function AutopilotPage() {
 
         {/* Empty state */}
         {!channelId && (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl" style={{ border: '1.5px solid #e5e7eb' }}>
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-              style={{ background: 'linear-gradient(135deg,#f0edf9,#e3ddf8)' }}>
-              <Sparkles className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+              style={{ background: 'linear-gradient(135deg,#f3f4f6,#e5e7eb)' }}>
+              <Sparkles className="w-8 h-8" style={{ color: '#6b7280' }} />
             </div>
             <p className="font-semibold text-gray-700">Select a channel to get started</p>
             <p className="text-sm text-gray-400 mt-1">Configure automation and let AI plan your content calendar.</p>
@@ -553,12 +553,12 @@ export default function AutopilotPage() {
                 <section>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" style={{ color: '#6D4AE0' }} /> Channel Profile
+                      <BarChart3 className="w-5 h-5" style={{ color: '#6b7280' }} /> Channel Profile
                     </h2>
                     <button type="button" onClick={() => refreshProfile.mutate()}
                       disabled={refreshProfile.isPending || profileLoading}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-gray-600 text-sm rounded-2xl hover:bg-gray-50 disabled:opacity-50"
-                      style={{ border: '1.5px solid #e3ddf8' }}>
+                      style={{ border: '1.5px solid #e5e7eb' }}>
                       {refreshProfile.isPending || profileLoading
                         ? <Loader2 className="w-4 h-4 animate-spin" />
                         : <RefreshCw className="w-4 h-4" />}
@@ -581,25 +581,25 @@ export default function AutopilotPage() {
 
                 {/* Calendar stats bar */}
                 {stats && stats.total > 0 && (
-                  <section className="bg-white rounded-2xl px-5 py-4" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <section className="bg-white rounded-2xl px-5 py-4" style={{ border: '1.5px solid #e5e7eb' }}>
                     <div className="flex items-center gap-2 mb-3">
-                      <ListChecks className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                      <ListChecks className="w-4 h-4" style={{ color: '#6b7280' }} />
                       <span className="text-sm font-semibold text-gray-800">Calendar overview</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {stats.proposed   > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"><span className="font-bold">{stats.proposed}</span> pending review</span>}
                       {stats.approved   > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#ecfdf5',color:'#065f46',border:'1px solid #a7f3d0' }}><Check className="w-3 h-3" /><span className="font-bold">{stats.approved}</span> approved</span>}
                       {stats.dismissed  > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f3f4f6',color:'#4b5563',border:'1px solid #e5e7eb' }}><X className="w-3 h-3" /><span className="font-bold">{stats.dismissed}</span> dismissed</span>}
-                      {stats.upcoming7d > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f5f2fd',color:'#6D4AE0',border:'1px solid #e3ddf8' }}><CalendarClock className="w-3 h-3" /><span className="font-bold">{stats.upcoming7d}</span> due this week</span>}
-                      {stats.approvalRate !== null   && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f5f2fd',color:'#6D4AE0',border:'1px solid #e3ddf8' }}><TrendingUp className="w-3 h-3" /><span className="font-bold">{stats.approvalRate}%</span> approval rate</span>}
+                      {stats.upcoming7d > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f3f4f6',color:'#6D4AE0',border:'1px solid #e5e7eb' }}><CalendarClock className="w-3 h-3" /><span className="font-bold">{stats.upcoming7d}</span> due this week</span>}
+                      {stats.approvalRate !== null   && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f3f4f6',color:'#6D4AE0',border:'1px solid #e5e7eb' }}><TrendingUp className="w-3 h-3" /><span className="font-bold">{stats.approvalRate}%</span> approval rate</span>}
                     </div>
                   </section>
                 )}
 
                 {/* Generate controls */}
-                <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e5e7eb' }}>
                   <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-1">
-                    <CalendarClock className="w-5 h-5" style={{ color: '#6D4AE0' }} /> Generate calendar
+                    <CalendarClock className="w-5 h-5" style={{ color: '#6b7280' }} /> Generate calendar
                   </h2>
                   <p className="text-sm text-gray-400 mb-4">
                     AI reads your profile and current trends, then proposes publish slots. Approve to create a draft; dismiss what doesn&apos;t fit.
@@ -623,7 +623,7 @@ export default function AutopilotPage() {
                     </label>
                     <button type="button" onClick={() => generate.mutate(true)} disabled={generate.isPending}
                       className="px-4 py-2 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                      style={{ border: '1.5px solid #e3ddf8' }}>
+                      style={{ border: '1.5px solid #e5e7eb' }}>
                       Dry run
                     </button>
                     <button type="button" onClick={() => generate.mutate(false)} disabled={generate.isPending}
@@ -636,13 +636,13 @@ export default function AutopilotPage() {
                   </div>
                   {critique && (
                     <div className="mt-4 flex items-start gap-2 text-sm text-gray-600 rounded-2xl px-4 py-3"
-                      style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
-                      <Sparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#6D4AE0' }} />
+                      style={{ background: '#f3f4f6', border: '1.5px solid #e5e7eb' }}>
+                      <Sparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#6b7280' }} />
                       <p><span className="font-medium text-gray-700">Self-critique:</span> {critique}</p>
                     </div>
                   )}
                   {preview && (
-                    <div className="mt-5 rounded-2xl p-4" style={{ border: '1.5px dashed #e3ddf8', background: '#faf9ff' }}>
+                    <div className="mt-5 rounded-2xl p-4" style={{ border: '1.5px dashed #e5e7eb', background: '#faf9ff' }}>
                       <p className="text-sm font-medium text-gray-700 mb-2">
                         Simulation preview ({preview.source}) — not saved
                       </p>
@@ -685,7 +685,7 @@ export default function AutopilotPage() {
                   <div className="space-y-2">
                     {proposed.map((e) => (
                       <div key={e.id} className="bg-white rounded-2xl p-4 flex items-center gap-4"
-                        style={{ border: selected.has(e.id) ? '1.5px solid #6D4AE0' : '1.5px solid #e3ddf8', background: selected.has(e.id) ? '#faf9ff' : '#fff' }}>
+                        style={{ border: selected.has(e.id) ? '1.5px solid #6D4AE0' : '1.5px solid #e5e7eb', background: selected.has(e.id) ? '#faf9ff' : '#fff' }}>
                         <input type="checkbox" checked={selected.has(e.id)}
                           onChange={(ev) => { setSelected((prev) => { const next = new Set(prev); ev.target.checked ? next.add(e.id) : next.delete(e.id); return next; }); }}
                           className="w-4 h-4 rounded border-gray-300 text-[#6D4AE0] cursor-pointer flex-shrink-0" />
@@ -708,7 +708,7 @@ export default function AutopilotPage() {
                               <div className="flex flex-col gap-0.5">
                                 {e.titleVariants.map((v, ti) => (
                                   <button key={ti} type="button" onClick={() => setTitle.mutate({ entryId: e.id, title: v })}
-                                    className="text-xs text-left text-gray-500 hover:text-[#6D4AE0] px-2 py-0.5 rounded-xl border border-transparent hover:border-[#e3ddf8] hover:bg-[#f5f2fd] transition-colors">
+                                    className="text-xs text-left text-gray-500 hover:text-[#6D4AE0] px-2 py-0.5 rounded-xl border border-transparent hover:border-[#e5e7eb] hover:bg-[#f3f4f6] transition-colors">
                                     {v}
                                   </button>
                                 ))}
@@ -739,7 +739,7 @@ export default function AutopilotPage() {
                           <button type="button" onClick={() => dismiss.mutate(e.id)}
                             disabled={approve.isPending || dismiss.isPending}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-gray-600 text-sm rounded-2xl hover:border-red-300 hover:text-red-600 hover:bg-red-50 disabled:opacity-50"
-                            style={{ border: '1.5px solid #e3ddf8' }}>
+                            style={{ border: '1.5px solid #e5e7eb' }}>
                             <X className="w-4 h-4" /> Dismiss
                           </button>
                         </div>
@@ -774,7 +774,7 @@ export default function AutopilotPage() {
               <div className="space-y-4">
                 {loadingAutomation ? (
                   <div className="flex justify-center py-16">
-                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6D4AE0' }} />
+                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6b7280' }} />
                   </div>
                 ) : (
                   <>
@@ -849,13 +849,13 @@ export default function AutopilotPage() {
                           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-2">{title}</p>
                           <div
                             className="bg-white rounded-2xl divide-y"
-                            style={{ border: '1.5px solid #e3ddf8', opacity: form.enabled ? 1 : 0.55, transition: 'opacity 0.2s' }}
+                            style={{ border: '1.5px solid #e5e7eb', opacity: form.enabled ? 1 : 0.55, transition: 'opacity 0.2s' }}
                           >
                             {items.map(({ key, label, description, icon: Icon }) => (
                               <div key={key} className="flex items-center gap-3 px-4 py-4">
                                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                                  style={{ background: '#f5f2fd' }}>
-                                  <Icon className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                                  style={{ background: '#f3f4f6' }}>
+                                  <Icon className="w-4 h-4" style={{ color: '#6b7280' }} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-semibold text-gray-800">{label}</p>
@@ -873,7 +873,7 @@ export default function AutopilotPage() {
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-2">Rate Limits</p>
                       <div className="bg-white rounded-2xl px-4 sm:px-6 py-5"
-                        style={{ border: '1.5px solid #e3ddf8', opacity: form.enabled ? 1 : 0.55, transition: 'opacity 0.2s' }}>
+                        style={{ border: '1.5px solid #e5e7eb', opacity: form.enabled ? 1 : 0.55, transition: 'opacity 0.2s' }}>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div>
                             <label htmlFor="publishInterval" className="block text-xs font-medium text-gray-500 mb-1">Publish interval (min)</label>
@@ -908,8 +908,8 @@ export default function AutopilotPage() {
 
                     {/* ── AI suggestion note ──────────────────────────────── */}
                     {aiSuggestionSource && (
-                      <div className="rounded-2xl px-5 py-3" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
-                        <p className="text-xs flex items-center gap-1.5" style={{ color: '#6D4AE0' }}>
+                      <div className="rounded-2xl px-5 py-3" style={{ background: '#f3f4f6', border: '1.5px solid #e5e7eb' }}>
+                        <p className="text-xs flex items-center gap-1.5" style={{ color: '#6b7280' }}>
                           <Sparkles className="w-3.5 h-3.5" />
                           {aiSuggestionSource === 'ai'
                             ? 'AI suggestion — review and save when ready.'
@@ -922,7 +922,7 @@ export default function AutopilotPage() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button type="button" onClick={() => suggestMutation.mutate()} disabled={suggestMutation.isPending}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 rounded-2xl font-semibold text-sm disabled:opacity-50 hover:bg-gray-50 touch-manipulation"
-                        style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0', minHeight: 44 }}>
+                        style={{ border: '1.5px solid #e5e7eb', color: '#6b7280', minHeight: 44 }}>
                         {suggestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                         Suggest with AI
                       </button>
@@ -950,9 +950,9 @@ export default function AutopilotPage() {
               <div className="space-y-5">
                 {/* Calendar health metrics */}
                 {stats && (
-                  <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e5e7eb' }}>
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
-                      <ListChecks className="w-5 h-5" style={{ color: '#6D4AE0' }} /> Calendar Health
+                      <ListChecks className="w-5 h-5" style={{ color: '#6b7280' }} /> Calendar Health
                     </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {[
@@ -961,7 +961,7 @@ export default function AutopilotPage() {
                         { label: 'Total Proposals', value: stats.total,       color: 'text-gray-700 bg-gray-50' },
                         { label: 'Approved',        value: stats.approved,    color: 'text-green-700 bg-green-50' },
                         { label: 'Dismissed',       value: stats.dismissed,   color: 'text-red-700 bg-red-50' },
-                        { label: 'Scheduled',       value: stats.scheduled,   color: 'text-[#6D4AE0] bg-[#f5f2fd]' },
+                        { label: 'Scheduled',       value: stats.scheduled,   color: 'text-[#6D4AE0] bg-[#f3f4f6]' },
                       ].map((m) => (
                         <div key={m.label} className={`rounded-2xl p-3 ${m.color}`}>
                           <p className="text-xs font-medium opacity-70">{m.label}</p>
@@ -974,9 +974,9 @@ export default function AutopilotPage() {
 
                 {/* Health score */}
                 {healthScore !== null && (
-                  <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e5e7eb' }}>
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
-                      <Target className="w-5 h-5" style={{ color: '#6D4AE0' }} /> Autopilot Health Score
+                      <Target className="w-5 h-5" style={{ color: '#6b7280' }} /> Autopilot Health Score
                     </h2>
                     <div className="flex items-end gap-2 mb-2">
                       <span className={`text-5xl font-bold ${healthScore >= 70 ? 'text-green-600' : healthScore >= 40 ? 'text-amber-600' : 'text-red-600'}`}>{healthScore}</span>
@@ -995,26 +995,26 @@ export default function AutopilotPage() {
                 )}
 
                 {/* Cross-channel insights */}
-                <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e5e7eb' }}>
                   <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
-                    <TrendingUp className="w-5 h-5" style={{ color: '#6D4AE0' }} /> Cross-Channel Insights
+                    <TrendingUp className="w-5 h-5" style={{ color: '#6b7280' }} /> Cross-Channel Insights
                   </h2>
                   {channels.length <= 1 ? (
                     <div className="text-center py-6 text-gray-500">
                       <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-30" />
                       <p className="text-sm">Connect more channels to unlock cross-channel recommendations.</p>
-                      <Link href="/settings/channels" className="mt-2 inline-block text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>Connect another channel →</Link>
+                      <Link href="/settings/channels" className="mt-2 inline-block text-xs font-semibold hover:underline" style={{ color: '#6b7280' }}>Connect another channel →</Link>
                     </div>
                   ) : crossChannel?.insights?.length ? (
                     <div className="space-y-3">
                       {crossChannel.summary && <p className="text-sm text-gray-600 mb-3">{crossChannel.summary}</p>}
                       {crossChannel.insights.map((ins, i) => (
                         <div key={i} className="flex items-start gap-3 p-4 rounded-2xl"
-                          style={ins.priority === 'high'   ? { border: '1.5px solid #e3ddf8', background: '#f5f2fd' }
+                          style={ins.priority === 'high'   ? { border: '1.5px solid #e5e7eb', background: '#f3f4f6' }
                                : ins.priority === 'medium' ? { border: '1.5px solid #bfdbfe', background: '#eff6ff' }
                                :                            { border: '1.5px solid #e5e7eb',  background: '#f9fafb' }}>
                           <span className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0 mt-0.5"
-                            style={ins.priority === 'high'   ? { background: '#e3ddf8', color: '#6D4AE0' }
+                            style={ins.priority === 'high'   ? { background: '#e5e7eb', color: '#6b7280' }
                                  : ins.priority === 'medium' ? { background: '#bfdbfe', color: '#1e40af' }
                                  :                            { background: '#e5e7eb',  color: '#374151' }}>
                             {ins.category}
@@ -1031,9 +1031,9 @@ export default function AutopilotPage() {
                 </section>
 
                 {/* Performance feedback */}
-                <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
+                <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e5e7eb' }}>
                   <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-1">
-                    <BarChart3 className="w-5 h-5" style={{ color: '#6D4AE0' }} /> Record Video Performance
+                    <BarChart3 className="w-5 h-5" style={{ color: '#6b7280' }} /> Record Video Performance
                   </h2>
                   <p className="text-sm text-gray-400 mb-4">
                     Improve future AI predictions by reporting actual video results.
@@ -1086,7 +1086,7 @@ export default function AutopilotPage() {
             {tab === 'log' && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <ScrollText className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+                  <ScrollText className="w-5 h-5" style={{ color: '#6b7280' }} />
                   <h2 className="text-lg font-semibold text-gray-900">Activity Log</h2>
                   <span className="text-sm text-gray-400">(last 30 autopilot actions)</span>
                 </div>
@@ -1095,14 +1095,14 @@ export default function AutopilotPage() {
                     <Loader2 className="w-4 h-4 animate-spin" /> Loading activity…
                   </div>
                 ) : auditLog.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 bg-white rounded-3xl" style={{ border: '1.5px solid #e3ddf8' }}>
-                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg,#f0edf9,#e3ddf8)' }}>
-                      <ScrollText className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                  <div className="flex flex-col items-center justify-center py-16 bg-white rounded-3xl" style={{ border: '1.5px solid #e5e7eb' }}>
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg,#f3f4f6,#e5e7eb)' }}>
+                      <ScrollText className="w-8 h-8" style={{ color: '#6b7280' }} />
                     </div>
                     <p className="text-sm text-gray-500">No activity logged yet.</p>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-2xl divide-y divide-gray-100" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <div className="bg-white rounded-2xl divide-y divide-gray-100" style={{ border: '1.5px solid #e5e7eb' }}>
                     {auditLog.map((entry) => {
                       const dotColor =
                         entry.action.includes('approve')  ? 'bg-green-500' :
@@ -1166,7 +1166,7 @@ export default function AutopilotPage() {
         {/* Floating bulk action bar */}
         {selected.size > 0 && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white rounded-full px-5 py-3 shadow-xl"
-            style={{ border: '1.5px solid #e3ddf8' }}>
+            style={{ border: '1.5px solid #e5e7eb' }}>
             <span className="text-sm font-medium text-gray-700">{selected.size} selected</span>
             <button type="button" onClick={() => bulkApprove.mutate(Array.from(selected))}
               disabled={bulkApprove.isPending || bulkDismiss.isPending}

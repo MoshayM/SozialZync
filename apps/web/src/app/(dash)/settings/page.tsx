@@ -353,11 +353,11 @@ function SettingsContent() {
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI &amp; Infrastructure</p>
             <a
               href="/settings/ai-infrastructure"
-              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f5f2fd]"
-              style={{ border: '1.5px solid #e3ddf8', textDecoration: 'none' }}
+              className="flex items-center gap-3 px-4 py-4 bg-white rounded-2xl mb-3 transition-colors hover:bg-[#f3f4f6]"
+              style={{ border: '1.5px solid #e5e7eb', textDecoration: 'none' }}
             >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f2fd' }}>
-                <Cpu className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f3f4f6' }}>
+                <Cpu className="w-5 h-5" style={{ color: '#6b7280' }} />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-800">AI Cost Control</p>
@@ -375,9 +375,9 @@ function SettingsContent() {
         {/* ── Profile ──────────────────────────────────────────────────── */}
         <section>
           <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Profile</p>
-          <div className="bg-white rounded-2xl p-5 space-y-5" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="bg-white rounded-2xl p-5 space-y-5" style={{ border: '1.5px solid #e5e7eb' }}>
             <div className="flex items-center gap-2">
-              <User className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              <User className="w-5 h-5" style={{ color: '#6b7280' }} />
               <span className="text-sm font-semibold text-gray-800">Your Profile</span>
             </div>
 
@@ -387,14 +387,14 @@ function SettingsContent() {
                 {/* Base layer: gradient + initial */}
                 <div suppressHydrationWarning
                   className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-3xl font-bold select-none"
-                  style={{ border: '2px solid #e3ddf8' }}>
+                  style={{ border: '2px solid #e5e7eb' }}>
                   {(profileName[0] ?? me?.name?.[0] ?? '?').toUpperCase()}
                 </div>
                 {/* Image layer */}
                 {profileAvatar && (
                   <img src={profileAvatar} alt="Avatar"
                     className="absolute inset-0 w-full h-full rounded-2xl object-cover"
-                    style={{ border: '2px solid #e3ddf8' }}
+                    style={{ border: '2px solid #e5e7eb' }}
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 )}
                 {/* Upload overlay */}
@@ -423,12 +423,12 @@ function SettingsContent() {
               <div className="space-y-1">
                 <p suppressHydrationWarning className="text-sm font-semibold text-gray-800">{profileName || me?.name || 'Your Name'}</p>
                 <p suppressHydrationWarning className="text-xs text-gray-500">{me?.email ?? ''}</p>
-                <p suppressHydrationWarning className="text-xs capitalize" style={{ color: '#6D4AE0', fontWeight: 600 }}>{me?.role?.toLowerCase() ?? 'creator'}</p>
+                <p suppressHydrationWarning className="text-xs capitalize" style={{ color: '#6b7280', fontWeight: 600 }}>{me?.role?.toLowerCase() ?? 'creator'}</p>
                 <button type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={avatarUploading}
                   className="mt-1 text-xs font-semibold underline underline-offset-2 disabled:opacity-50"
-                  style={{ color: '#6D4AE0' }}>
+                  style={{ color: '#6b7280' }}>
                   {profileAvatar ? 'Change photo' : 'Upload photo'}
                 </button>
               </div>
@@ -470,9 +470,9 @@ function SettingsContent() {
           <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Sign-in &amp; Security</p>
 
           {/* Linked accounts */}
-          <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
-              <Shield className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+          <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <Shield className="w-4 h-4" style={{ color: '#6b7280' }} />
               <div>
                 <p className="text-sm font-semibold text-gray-800">Linked accounts</p>
                 <p className="text-xs text-gray-600 mt-0.5">Connect social accounts to sign in without a password.</p>
@@ -485,7 +485,7 @@ function SettingsContent() {
               const isPending = unlinkProviderMutation.isPending || linkProviderMutation.isPending;
 
               return (
-                <div key={provider} className="flex items-center gap-4 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                <div key={provider} className="flex items-center gap-4 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
                     <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
                       <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z" />
@@ -520,8 +520,8 @@ function SettingsContent() {
                     <button
                       onClick={() => linkProviderMutation.mutate(provider)}
                       disabled={isPending}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-2xl hover:bg-[#f5f2fd] transition-colors disabled:opacity-40 font-semibold text-gray-600"
-                      style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0' }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-2xl hover:bg-[#f3f4f6] transition-colors disabled:opacity-40 font-semibold text-gray-600"
+                      style={{ border: '1.5px solid #e5e7eb', color: '#6b7280' }}
                     >
                       {linkProviderMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
                       Connect
@@ -536,9 +536,9 @@ function SettingsContent() {
 
           {/* Passkeys */}
           {passkeySupported && (
-            <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
-                <Fingerprint className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+            <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <Fingerprint className="w-4 h-4" style={{ color: '#6b7280' }} />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-800">Passkeys</p>
                   <p className="text-xs text-gray-600 mt-0.5">Sign in with Face ID, Touch ID, or a hardware key — no password needed.</p>
@@ -550,7 +550,7 @@ function SettingsContent() {
                 <div className="px-4 py-4 text-sm text-gray-600">No passkeys registered yet.</div>
               )}
               {passkeys.map((pk) => (
-                <div key={pk.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                <div key={pk.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <Key className="w-4 h-4 text-gray-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{pk.name ?? 'Unnamed passkey'}</p>
@@ -586,7 +586,7 @@ function SettingsContent() {
                   onChange={(e) => setPasskeyName(e.target.value)}
                   placeholder="Name this passkey (optional)"
                   className="flex-1 text-sm px-3 py-2 rounded-xl bg-[#faf9ff] outline-none focus:ring-2 ring-[#6D4AE0]"
-                  style={{ border: '1.5px solid #e3ddf8' }}
+                  style={{ border: '1.5px solid #e5e7eb' }}
                 />
                 <button
                   type="button"
@@ -603,11 +603,11 @@ function SettingsContent() {
           )}
 
           {/* Content channels — link to Media Control */}
-          <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
+          <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f3f4f6' }}>
               <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none" aria-hidden>
                 <rect x="2" y="7" width="20" height="15" rx="2" stroke="#6D4AE0" strokeWidth="1.8" />
-                <path d="M16 2 8 2 2 7h20z" fill="#e3ddf8" />
+                <path d="M16 2 8 2 2 7h20z" fill="#e5e7eb" />
               </svg>
               <div>
                 <p className="text-sm font-semibold text-gray-800">Content Channels</p>
@@ -627,8 +627,8 @@ function SettingsContent() {
           </div>
 
           {/* Active sessions — OWNER / SUPER_ADMIN only */}
-          {isOwner && <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="px-4 py-3 flex items-center justify-between gap-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+          {isOwner && <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
+            <div className="px-4 py-3 flex items-center justify-between gap-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
               <div>
                 <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
                   <Monitor className="w-4 h-4 text-gray-500" />
@@ -662,7 +662,7 @@ function SettingsContent() {
               const isConfirming = confirmRevokeSession === session.id;
 
               return (
-                <div key={session.id} className="flex items-start gap-3 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                <div key={session.id} className="flex items-start gap-3 px-4 py-3 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <Monitor className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -694,7 +694,7 @@ function SettingsContent() {
                       <button
                         onClick={() => setConfirmRevokeSession(null)}
                         className="px-3 py-1 text-xs rounded-2xl hover:bg-gray-50 font-semibold text-gray-600"
-                        style={{ border: '1.5px solid #e3ddf8' }}
+                        style={{ border: '1.5px solid #e5e7eb' }}
                       >
                         Cancel
                       </button>
@@ -704,7 +704,7 @@ function SettingsContent() {
                       onClick={() => setConfirmRevokeSession(session.id)}
                       disabled={revokeSessionMutation.isPending}
                       className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-gray-600 text-xs rounded-2xl hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 font-semibold"
-                      style={{ border: '1.5px solid #e3ddf8' }}
+                      style={{ border: '1.5px solid #e5e7eb' }}
                     >
                       <XCircle className="w-3 h-3" />
                       Revoke
@@ -719,9 +719,9 @@ function SettingsContent() {
         {/* ── Developer Webhooks — OWNER / SUPER_ADMIN only ───────────── */}
         {isOwner && <section>
           <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Developer Webhooks</p>
-          <div className="bg-white rounded-2xl mb-3" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
-              <Webhook className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+          <div className="bg-white rounded-2xl mb-3" style={{ border: '1.5px solid #e5e7eb' }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <Webhook className="w-4 h-4" style={{ color: '#6b7280' }} />
               <div>
                 <p className="text-sm font-semibold text-gray-800">Webhooks</p>
                 <p className="text-xs text-gray-600 mt-0.5">Receive HTTP POST notifications when events happen in your account.</p>
@@ -734,13 +734,13 @@ function SettingsContent() {
             {webhooks.map((wh) => {
               const testResult = webhookTestResults[wh.id];
               return (
-                <div key={wh.id} className="px-4 py-3 space-y-2 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                <div key={wh.id} className="px-4 py-3 space-y-2 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-mono text-gray-800 truncate">{wh.url}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {wh.events.map((ev) => (
-                          <span key={ev} className="text-[11px] font-bold rounded-full px-2.5 py-0.5" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{ev}</span>
+                          <span key={ev} className="text-[11px] font-bold rounded-full px-2.5 py-0.5" style={{ background: '#f3f4f6', color: '#6b7280' }}>{ev}</span>
                         ))}
                       </div>
                     </div>
@@ -752,8 +752,8 @@ function SettingsContent() {
                       <button
                         onClick={() => void testWebhook(wh.id)}
                         title="Send test event"
-                        className="p-1.5 text-gray-500 hover:bg-[#f5f2fd] rounded-2xl transition-colors"
-                        style={{ color: '#6D4AE0' }}
+                        className="p-1.5 text-gray-500 hover:bg-[#f3f4f6] rounded-2xl transition-colors"
+                        style={{ color: '#6b7280' }}
                       >
                         <Play className="w-3.5 h-3.5" />
                       </button>
@@ -824,7 +824,7 @@ function SettingsContent() {
                   <button
                     onClick={() => { setShowAddWebhookForm(false); setNewWebhookUrl(''); setNewWebhookEvents([]); setNewWebhookSecret(''); }}
                     className="px-3 py-1.5 text-sm rounded-2xl hover:bg-gray-50 font-semibold text-gray-600"
-                    style={{ border: '1.5px solid #e3ddf8' }}
+                    style={{ border: '1.5px solid #e5e7eb' }}
                   >
                     Cancel
                   </button>
@@ -844,7 +844,7 @@ function SettingsContent() {
                 <button
                   onClick={() => setShowAddWebhookForm(true)}
                   className="flex items-center gap-1.5 text-sm font-bold hover:opacity-80 transition-opacity"
-                  style={{ color: '#6D4AE0' }}
+                  style={{ color: '#6b7280' }}
                 >
                   <span className="text-lg leading-none">+</span> Add Webhook
                 </button>
@@ -857,9 +857,9 @@ function SettingsContent() {
         {isOwner && (
           <section>
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">API Keys</p>
-            <div className="bg-white rounded-2xl mb-3" style={{ border: '1.5px solid #e3ddf8' }}>
-              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
-                <Key className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+            <div className="bg-white rounded-2xl mb-3" style={{ border: '1.5px solid #e5e7eb' }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <Key className="w-4 h-4" style={{ color: '#6b7280' }} />
                 <div>
                   <p className="text-sm font-semibold text-gray-800">API Keys</p>
                   <p className="text-xs text-gray-600 mt-0.5">Configure provider API keys used by the AI agents. Visible to owner only.</p>
@@ -872,7 +872,7 @@ function SettingsContent() {
                 const isVisible = showKeys[entry.key] ?? false;
 
                 return (
-                  <div key={entry.key} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                  <div key={entry.key} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800">{entry.label}</p>
                       <p className="text-xs text-gray-600 font-mono mt-0.5">
@@ -933,9 +933,9 @@ function SettingsContent() {
         {pushSupported && (
           <section>
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Notifications</p>
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0edf9' }}>
-                <Bell className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <Bell className="w-4 h-4" style={{ color: '#6b7280' }} />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-800">Browser Notifications</p>
                   <p className="text-xs text-gray-600 mt-0.5">
@@ -945,7 +945,7 @@ function SettingsContent() {
                 <span
                   className="text-[11px] font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap"
                   style={{
-                    background: pushPermission === 'granted' ? '#ecfdf5' : pushPermission === 'denied' ? '#fef2f2' : '#f5f2fd',
+                    background: pushPermission === 'granted' ? '#ecfdf5' : pushPermission === 'denied' ? '#fef2f2' : '#f3f4f6',
                     color: pushPermission === 'granted' ? '#065f46' : pushPermission === 'denied' ? '#991b1b' : '#6D4AE0',
                   }}
                 >
@@ -990,7 +990,7 @@ function SettingsContent() {
 
               {pushBanner && (
                 <div className="px-4 pb-3">
-                  <p className="text-xs px-3 py-2 rounded-xl bg-[#f5f2fd] text-gray-700">{pushBanner}</p>
+                  <p className="text-xs px-3 py-2 rounded-xl bg-[#f3f4f6] text-gray-700">{pushBanner}</p>
                 </div>
               )}
             </div>
@@ -1004,7 +1004,7 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6D4AE0' }} /></div>}>
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6b7280' }} /></div>}>
       <SettingsContent />
     </Suspense>
   );

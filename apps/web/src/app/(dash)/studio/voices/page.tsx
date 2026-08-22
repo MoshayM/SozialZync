@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, Mic, Play, Pause, ChevronDown, Check, X } from 'lucide-react';
 
@@ -96,7 +96,7 @@ function VoicePlayer({ url, voiceId, playing, setPlaying }: {
       aria-label={isPlaying ? 'Pause preview' : 'Play voice preview'}>
       {isPlaying
         ? <Pause className="w-4 h-4 text-white" />
-        : <Play  className="w-4 h-4" style={{ color: '#6D4AE0' }} />}
+        : <Play  className="w-4 h-4" style={{ color: '#374151' }} />}
     </button>
   );
 }
@@ -167,7 +167,7 @@ export default function VoiceLibraryPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Mic className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              <Mic className="w-5 h-5" style={{ color: '#374151' }} />
               <h1 className="text-2xl font-extrabold text-gray-900">Voice Library</h1>
             </div>
             <p className="text-sm text-gray-500">
@@ -199,7 +199,7 @@ export default function VoiceLibraryPage() {
               style={{ border: '1.5px solid #e3ddf8', width: 180 }} />
             <select value={source} onChange={e => setSource(e.target.value as 'all' | 'elevenlabs' | 'openai')}
               className="bg-[#faf9ff] rounded-xl px-3 py-2 text-sm font-semibold outline-none"
-              style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0' }}>
+              style={{ border: '1.5px solid #e3ddf8', color: '#374151' }}>
               {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             <div className="flex gap-1.5 flex-wrap">
@@ -232,7 +232,7 @@ export default function VoiceLibraryPage() {
                       className="px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all"
                       style={useCaseFilter === u
                         ? { background: '#6D4AE0', color: '#fff' }
-                        : { color: '#374151', background: '#f5f2fd' }}>
+                        : { color: '#374151', background: '#f3f4f6' }}>
                       {u}
                     </button>
                   ))}
@@ -255,7 +255,7 @@ export default function VoiceLibraryPage() {
           <div className="py-16 text-center">
             <Mic className="w-8 h-8 mx-auto mb-2 text-gray-300" />
             <p className="text-sm text-red-500">{error}</p>
-            <button onClick={() => void fetchVoices()} className="mt-3 text-xs font-semibold underline" style={{ color: '#6D4AE0' }}>
+            <button onClick={() => void fetchVoices()} className="mt-3 text-xs font-semibold underline" style={{ color: '#374151' }}>
               Retry
             </button>
           </div>
@@ -263,7 +263,7 @@ export default function VoiceLibraryPage() {
           <div className="py-16 text-center">
             <Mic className="w-8 h-8 mx-auto mb-2 text-gray-300" />
             <p className="text-sm text-gray-500">No voices found.</p>
-            <a href="/settings/ai-providers" className="mt-2 inline-block text-xs font-semibold underline" style={{ color: '#6D4AE0' }}>
+            <a href="/settings/ai-providers" className="mt-2 inline-block text-xs font-semibold underline" style={{ color: '#374151' }}>
               Configure voice providers →
             </a>
           </div>
@@ -320,7 +320,7 @@ export default function VoiceLibraryPage() {
                     <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{voice.description}</p>
                   )}
                   {voice.useCase && (
-                    <p className="text-[11px] text-purple-600 font-medium capitalize">Use case: {voice.useCase}</p>
+                    <p className="text-[11px] text-gray-600 font-medium capitalize">Use case: {voice.useCase}</p>
                   )}
 
                   {/* Controls row: play | preview label | select/deselect */}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import {
   Film, Scissors, FolderOpen, HelpCircle, Plus, Wand2,
@@ -64,12 +64,12 @@ const QUICK_ACTIONS = [
 ];
 
 const STEP_COLORS = [
-  'linear-gradient(135deg,#7C3AED,#5B21B6)',
-  'linear-gradient(135deg,#6D28D9,#4C1D95)',
-  'linear-gradient(135deg,#8B5CF6,#6D28D9)',
-  'linear-gradient(135deg,#7C3AED,#5B21B6)',
-  'linear-gradient(135deg,#6D28D9,#4C1D95)',
-  'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+  'linear-gradient(135deg, #374151, #1f2937)',
+  'linear-gradient(135deg, #374151, #111827)',
+  'linear-gradient(135deg,#6b7280,#6D28D9)',
+  'linear-gradient(135deg, #374151, #1f2937)',
+  'linear-gradient(135deg, #374151, #111827)',
+  'linear-gradient(135deg,#6b7280,#6D28D9)',
 ];
 
 export default function GuidePage() {
@@ -84,9 +84,9 @@ export default function GuidePage() {
     color: string;
     desc: string;
   }[] = [
-    { id: 'projects', icon: FolderOpen,    label: 'Projects',        href: '/projects', steps: PROJECTS_STEPS, color: '#7C3AED', desc: 'Set up your channel, create projects, and run the full AI pipeline.' },
+    { id: 'projects', icon: FolderOpen,    label: 'Projects',        href: '/projects', steps: PROJECTS_STEPS, color: '#374151', desc: 'Set up your channel, create projects, and run the full AI pipeline.' },
     { id: 'studio',   icon: Sparkles,      label: 'Creative Studio', href: '/studio',   steps: STUDIO_STEPS,   color: '#0891B2', desc: 'Characters, images, voice, music, Shorts — all in one creative hub.' },
-    { id: 'copilot',  icon: Bot,           label: 'Copilot',         href: '/copilot',  steps: COPILOT_STEPS,  color: '#6D28D9', desc: 'Talk to the AI by voice or text — it coordinates your entire workflow.' },
+    { id: 'copilot',  icon: Bot,           label: 'Copilot',         href: '/copilot',  steps: COPILOT_STEPS,  color: '#374151', desc: 'Talk to the AI by voice or text — it coordinates your entire workflow.' },
     { id: 'publish',  icon: CalendarClock, label: 'Publish Hub',     href: '/publish',  steps: PUBLISH_STEPS,  color: '#059669', desc: 'Approve, schedule, A/B test, enable Autopilot, and track results.' },
   ];
 
@@ -112,7 +112,7 @@ export default function GuidePage() {
       <div className="min-h-full" style={{ background: '#f7f5ff' }}>
 
         {/* ── HERO BANNER ───────────────────────────────────────────────────── */}
-        <div style={{ background: 'linear-gradient(135deg,#1a0845 0%,#4f2ec4 55%,#5B21B6 100%)' }} className="relative overflow-hidden">
+        <div style={{ background: 'linear-gradient(135deg,#1a0845 0%,#4f2ec4 55%,#1f2937 100%)' }} className="relative overflow-hidden">
           {/* subtle grid overlay */}
           <div aria-hidden className="absolute inset-0 opacity-[0.04] pointer-events-none"
             style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -148,7 +148,7 @@ export default function GuidePage() {
                     onClick={() => setTab(t.id)}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap shrink-0 transition-all border"
                     style={isActive
-                      ? { background: 'rgba(255,255,255,0.95)', color: '#5B21B6', border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 16px rgba(0,0,0,.2)' }
+                      ? { background: 'rgba(255,255,255,0.95)', color: '#1f2937', border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 16px rgba(0,0,0,.2)' }
                       : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', border: '1.5px solid rgba(255,255,255,0.12)' }
                     }
                     onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)'; }}
@@ -173,10 +173,10 @@ export default function GuidePage() {
           <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e8e4f8', boxShadow: '0 2px 24px rgba(109,74,224,.06)' }}>
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#f0edf9' }}>
               <div className="flex items-center gap-2">
-                {(() => { const Icon = active.icon; return <Icon className="w-4 h-4" style={{ color: '#7C3AED' }} />; })()}
+                {(() => { const Icon = active.icon; return <Icon className="w-4 h-4" style={{ color: '#374151' }} />; })()}
                 <h2 className="text-sm font-bold text-gray-900">{active.label} — How it works</h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                  style={{ background: '#f0ebff', color: '#6D4AE0' }}>
+                  style={{ background: '#f0ebff', color: '#374151' }}>
                   {active.steps.length} steps
                 </span>
               </div>
@@ -191,7 +191,7 @@ export default function GuidePage() {
                 <Link
                   href={active.href}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', boxShadow: '0 4px 12px rgba(109,74,224,.3)' }}
+                  style={{ background: 'linear-gradient(135deg, #374151, #1f2937)', boxShadow: '0 4px 12px rgba(109,74,224,.3)' }}
                 >
                   Open {active.label}
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -218,15 +218,15 @@ export default function GuidePage() {
                     {/* Content */}
                     <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-5'}`}>
                       <div className="flex items-center gap-2 mb-1">
-                        <Icon className="w-4 h-4 shrink-0" style={{ color: '#7C3AED' }} />
+                        <Icon className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />
                         <p className="font-semibold text-gray-900 text-sm">{step.title}</p>
                       </div>
                       <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
                       {step.tip && (
                         <div className="mt-2 flex items-start gap-1.5 px-3 py-2 rounded-xl"
                           style={{ background: 'linear-gradient(135deg,#f5f2fd,#ede9f8)', border: '1px solid #d8d0f7' }}>
-                          <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: '#7C3AED' }} />
-                          <p className="text-xs leading-relaxed" style={{ color: '#5B21B6' }}>{step.tip}</p>
+                          <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: '#374151' }} />
+                          <p className="text-xs leading-relaxed" style={{ color: '#1f2937' }}>{step.tip}</p>
                         </div>
                       )}
                     </div>
@@ -239,8 +239,8 @@ export default function GuidePage() {
           {/* Pro Tips */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Lightbulb className="w-4 h-4" style={{ color: '#7C3AED' }} />
-              <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#7C3AED' }}>Pro Tips</h2>
+              <Lightbulb className="w-4 h-4" style={{ color: '#374151' }} />
+              <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#374151' }}>Pro Tips</h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               {PRO_TIPS.map((tip, i) => {
@@ -271,7 +271,7 @@ export default function GuidePage() {
                   href={href}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
                   style={primary
-                    ? { background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', color: '#fff', boxShadow: '0 4px 12px rgba(109,74,224,.3)' }
+                    ? { background: 'linear-gradient(135deg, #374151, #1f2937)', color: '#fff', boxShadow: '0 4px 12px rgba(109,74,224,.3)' }
                     : { border: '1px solid #e3ddf8', color: '#4B5563', background: '#faf9ff' }
                   }
                 >

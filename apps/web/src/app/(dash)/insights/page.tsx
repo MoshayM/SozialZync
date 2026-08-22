@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -52,13 +52,13 @@ interface TrendingTopic {
 const RECOMMENDATION_CARDS: RecommendationCard[] = [
   {
     icon: Clock,
-    iconBg: 'bg-purple-50',
-    iconColor: 'text-purple-600',
+    iconBg: 'bg-gray-50',
+    iconColor: 'text-gray-600',
     title: 'Best Post Time',
     headline: 'Tuesday & Thursday · 6 – 8 PM',
     body: 'Your audience is most active on Tues/Thurs evenings. Videos published in this window average 2.3× more views in the first 24 hours.',
     badge: '+2.3× views',
-    badgeColor: 'bg-purple-100 text-purple-700',
+    badgeColor: 'bg-gray-100 text-gray-700',
   },
   {
     icon: Flame,
@@ -116,7 +116,7 @@ function StrategyPanel({ period }: { period: Period }) {
       {/* ── AI Content Strategy ─────────────────────────────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="w-5 h-5 text-purple-600" />
+          <Sparkles className="w-5 h-5 text-gray-600" />
           <h2 className="text-base font-bold text-gray-900">AI Content Strategy</h2>
           <span className="ml-auto text-xs text-gray-400 font-medium">{period}</span>
         </div>
@@ -148,7 +148,7 @@ function StrategyPanel({ period }: { period: Period }) {
       {/* ── Optimal Posting Schedule ────────────────────────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="w-5 h-5 text-purple-600" />
+          <Calendar className="w-5 h-5 text-gray-600" />
           <h2 className="text-base font-bold text-gray-900">Optimal Posting Schedule</h2>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
@@ -185,7 +185,7 @@ function StrategyPanel({ period }: { period: Period }) {
       {/* ── Trending Topics ─────────────────────────────────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-purple-600" />
+          <TrendingUp className="w-5 h-5 text-gray-600" />
           <h2 className="text-base font-bold text-gray-900">Trending Topics</h2>
           <span className="text-xs text-gray-400 ml-auto">in your niche · {period}</span>
         </div>
@@ -194,9 +194,9 @@ function StrategyPanel({ period }: { period: Period }) {
             {TRENDING_TOPICS.map((topic) => (
               <div
                 key={topic.label}
-                className="flex items-center gap-2 bg-purple-50 border border-purple-100 rounded-full px-3.5 py-2 cursor-pointer hover:bg-purple-100 transition-all"
+                className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-full px-3.5 py-2 cursor-pointer hover:bg-gray-100 transition-all"
               >
-                <span className="text-sm font-semibold text-purple-800">{topic.label}</span>
+                <span className="text-sm font-semibold text-gray-800">{topic.label}</span>
                 <span className="text-xs font-bold text-emerald-600 bg-emerald-50 rounded-full px-1.5 py-0.5">
                   {topic.growth}
                 </span>
@@ -232,7 +232,7 @@ function InsightsContent() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as Period)}
-              className="appearance-none bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 pl-3 pr-8 py-2 cursor-pointer hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
+              className="appearance-none bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 pl-3 pr-8 py-2 cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition"
             >
               {PERIODS.map((p) => (
                 <option key={p} value={p}>{p}</option>
