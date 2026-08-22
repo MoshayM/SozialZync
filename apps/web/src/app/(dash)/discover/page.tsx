@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { Search, TrendingUp, Loader2, Lightbulb, AlertCircle, Tag, Users, Clock, Copy, Check, Zap } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
@@ -94,7 +94,7 @@ function CopyChip({ text, copied, onCopy }: { text: string; copied: boolean; onC
     <button
       onClick={onCopy}
       className="group flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm transition-colors hover:opacity-80"
-      style={{ background: '#f5f2fd', color: '#6D4AE0' }}
+      style={{ background: '#f3f4f6', color: '#374151' }}
     >
       <span>{text}</span>
       {copied
@@ -126,14 +126,14 @@ function NicheInput({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); }}
         placeholder={placeholder}
-        className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+        className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
         style={{ border: '1.5px solid #e3e0f0' }}
       />
       <button
         onClick={onSubmit}
         disabled={loading || !value.trim()}
         className="px-5 py-2 rounded-2xl font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 transition-all"
-        style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+        style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
         {buttonLabel}
@@ -242,7 +242,7 @@ function TrendsTab() {
               <div key={i} className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                 <div className="flex items-start justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 shrink-0" style={{ color: '#6D4AE0' }} />
+                    <TrendingUp className="w-5 h-5 shrink-0" style={{ color: '#374151' }} />
                     <h3 className="font-semibold text-gray-900">{t.topic}</h3>
                   </div>
                   {t.peakTime && (
@@ -254,7 +254,7 @@ function TrendsTab() {
                 <ScoreBar score={t.score} />
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {t.relatedKeywords.map((kw, j) => (
-                    <span key={j} className="px-2 py-0.5 text-xs rounded-full font-medium" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{kw}</span>
+                    <span key={j} className="px-2 py-0.5 text-xs rounded-full font-medium" style={{ background: '#f3f4f6', color: '#374151' }}>{kw}</span>
                   ))}
                 </div>
               </div>
@@ -280,8 +280,8 @@ function TrendsTab() {
       )}
       {!result && !loading && (
         <div className="text-center py-20 text-gray-400">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-            <TrendingUp className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+            <TrendingUp className="w-8 h-8" style={{ color: '#374151' }} />
           </div>
           <p className="text-sm">Enter a niche and click <strong className="text-gray-600">Analyze</strong> to see trending topics</p>
           <p className="text-xs mt-2 opacity-70">Supported: Tech, Finance, Cooking, Fitness, Gaming, Travel, Education, Business, Beauty</p>
@@ -378,7 +378,7 @@ function KeywordsTab() {
             <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Search className="w-4 h-4" style={{ color: '#6D4AE0' }} /> Search Keywords
+                  <Search className="w-4 h-4" style={{ color: '#374151' }} /> Search Keywords
                 </h3>
                 <button
                   onClick={copyAll}
@@ -411,8 +411,8 @@ function KeywordsTab() {
       )}
       {!result && !loading && (
         <div className="text-center py-20 text-gray-400">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-            <Tag className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+            <Tag className="w-8 h-8" style={{ color: '#374151' }} />
           </div>
           <p className="text-sm">Enter a topic to find YouTube search keywords and tags</p>
         </div>
@@ -497,7 +497,7 @@ function AudienceTab() {
           {result.primaryDemographic && (
             <div className="bg-white rounded-2xl p-5 col-span-full" style={{ border: '1.5px solid #e3ddf8' }}>
               <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4" style={{ color: '#6D4AE0' }} /> Primary Demographic
+                <Users className="w-4 h-4" style={{ color: '#374151' }} /> Primary Demographic
               </h3>
               <p className="text-sm text-gray-700">{result.primaryDemographic}</p>
             </div>
@@ -507,7 +507,7 @@ function AudienceTab() {
               <h3 className="font-semibold text-gray-900 mb-3">Interest Clusters</h3>
               <div className="space-y-2">
                 {result.interestClusters.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between gap-3 py-1.5 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                  <div key={i} className="flex items-center justify-between gap-3 py-1.5 hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <span className="text-sm text-gray-800">{c.cluster}</span>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {c.size && <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">{c.size}</span>}
@@ -523,7 +523,7 @@ function AudienceTab() {
               <h3 className="font-semibold text-gray-900 mb-3">Content Preferences</h3>
               <div className="flex flex-wrap gap-2">
                 {result.contentPreferences.map((p, i) => (
-                  <span key={i} className="px-2.5 py-1 rounded-full text-sm font-medium" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{p}</span>
+                  <span key={i} className="px-2.5 py-1 rounded-full text-sm font-medium" style={{ background: '#f3f4f6', color: '#374151' }}>{p}</span>
                 ))}
               </div>
             </div>
@@ -559,8 +559,8 @@ function AudienceTab() {
       )}
       {!result && !loading && (
         <div className="text-center py-20 text-gray-400">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-            <Users className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+            <Users className="w-8 h-8" style={{ color: '#374151' }} />
           </div>
           <p className="text-sm">Enter a niche to understand your target audience</p>
         </div>
@@ -657,7 +657,7 @@ function ContentGapsTab() {
               {result.gaps.map((gap, i) => (
                 <div key={i} className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{i + 1}</span>
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: '#f3f4f6', color: '#374151' }}>{i + 1}</span>
                     <h3 className="font-semibold text-gray-900">{gap.topic}</h3>
                   </div>
                   <ScoreBar score={gap.opportunityScore} />
@@ -678,8 +678,8 @@ function ContentGapsTab() {
       )}
       {!result && !loading && (
         <div className="text-center py-20 text-gray-400">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-            <Zap className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+            <Zap className="w-8 h-8" style={{ color: '#374151' }} />
           </div>
           <p className="text-sm">Enter a niche to find under-served topics you can dominate</p>
         </div>
@@ -704,7 +704,7 @@ export default function DiscoverPage() {
     <div className="min-h-full bg-[#faf9ff]">
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         {/* Hero */}
-        <div className="relative overflow-hidden rounded-2xl px-7 py-6 text-white no-print" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}>
+        <div className="relative overflow-hidden rounded-2xl px-7 py-6 text-white no-print" style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}>
           <div className="absolute -right-6 -top-8 w-36 h-36 bg-white/10 rounded-full" aria-hidden />
           <div className="absolute right-16 -bottom-10 w-24 h-24 bg-white/10 rounded-full" aria-hidden />
           <p className="text-xs text-white/80">{new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -727,7 +727,7 @@ export default function DiscoverPage() {
                 className={[
                   'px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap',
                   active
-                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    ? 'border-[#374151] text-[#374151] font-semibold'
                     : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-200',
                 ].join(' ')}
               >
@@ -738,7 +738,7 @@ export default function DiscoverPage() {
         </div>
 
         {/* Context description strip */}
-        <div className="-mx-5 lg:-mx-7 px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9]">
+        <div className="-mx-5 lg:-mx-7 px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f3f4f6]">
           <p className="text-xs text-gray-500 leading-none">
             {TABS.find((t) => t.id === hubTab)?.description}
           </p>

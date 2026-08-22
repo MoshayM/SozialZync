@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
@@ -101,7 +101,7 @@ const IMAGES: ImageItem[] = [
 ];
 
 const INITIAL_GROUPS: Group[] = [
-  { id:'g1', name:'My Favorites',   count:12, color:'#7C3AED', emoji:'⭐' },
+  { id:'g1', name:'My Favorites',   count:12, color:'#374151', emoji:'⭐' },
   { id:'g2', name:'Watch Later',    count:8,  color:'#0891B2', emoji:'🕐' },
   { id:'g3', name:'Saved for Work', count:15, color:'#059669', emoji:'💼' },
   { id:'g4', name:'Loved Shorts',   count:6,  color:'#DC2626', emoji:'❤️' },
@@ -125,6 +125,8 @@ const INITIAL_NOTIFS: Notif[] = [
 const SORT_OPTIONS = ['Trending', 'Latest', 'Most Viewed', 'Top Rated'] as const;
 type SortOption = typeof SORT_OPTIONS[number];
 type ContentType = 'all' | 'videos' | 'shorts' | 'reels' | 'images';
+
+interface PlayItem { id: string; title: string; creator: string; gi: number; duration?: string; kind: 'video'|'short'|'reel'|'image'; views?: string; likes?: string; comments?: string; }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -227,6 +229,7 @@ export default function BrowsePage() {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [statsHidden, setStatsHidden] = useState<Record<string, boolean>>({});
+  const [playing, setPlaying] = useState<PlayItem | null>(null);
 
   const sortRef    = useRef<HTMLDivElement>(null);
   const bellRef    = useRef<HTMLDivElement>(null);
@@ -309,7 +312,7 @@ export default function BrowsePage() {
 
   const handleCreateGroup = useCallback(() => {
     if (!newGroupName.trim()) return;
-    const colors = ['#7C3AED','#0891B2','#059669','#DC2626','#D97706'];
+    const colors = ['#374151','#0891B2','#059669','#DC2626','#D97706'];
     const emojis = ['⭐','🕐','💼','❤️','📌'];
     const idx = groups.length % colors.length;
     setGroups(prev => [...prev, { id:`g-${Date.now()}`, name:newGroupName.trim(), count:0, color:colors[idx], emoji:emojis[idx] }]);
@@ -356,7 +359,7 @@ export default function BrowsePage() {
         <Link href="/browse" className="flex items-center gap-2 shrink-0">
           <LogoMark className="w-8 h-8" variant="dark" />
           <span className="font-bold text-[15px] hidden sm:block tracking-tight select-none">
-            <span className="text-gray-900">Sozial</span><span style={{ color:'#7C3AED' }}>Z</span><span className="text-gray-900">ynk</span>
+            <span className="text-gray-900">Sozial</span><span style={{ color:'#374151' }}>Z</span><span className="text-gray-900">ynk</span>
           </span>
         </Link>
 
@@ -382,7 +385,7 @@ export default function BrowsePage() {
             value={search}
             onChange={e => handleSearch(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') saveSearchHistory(search); }}
-            className="w-full pl-9 pr-9 py-2 text-sm rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-400/30 focus:border-purple-400 transition-all placeholder:text-gray-400"
+            className="w-full pl-9 pr-9 py-2 text-sm rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 transition-all placeholder:text-gray-400"
           />
           {search && (
             <button type="button" onClick={() => handleSearch('')}
@@ -415,7 +418,7 @@ export default function BrowsePage() {
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                       <span className="text-[13px] font-bold text-gray-900">Creator Notifications</span>
                       {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-[11px] font-bold text-purple-600 hover:text-purple-700">
+                        <button onClick={markAllRead} className="text-[11px] font-bold text-gray-700 hover:text-gray-900">
                           Mark all read
                         </button>
                       )}
@@ -431,18 +434,18 @@ export default function BrowsePage() {
                           const Icon = n.icon;
                           return (
                             <li key={n.id}
-                              className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 ${n.read ? '' : 'bg-purple-50/50'}`}
+                              className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 ${n.read ? '' : 'bg-gray-50'}`}
                             >
                               <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                                n.type === 'removed' ? 'bg-red-100' : 'bg-purple-100'
+                                n.type === 'removed' ? 'bg-red-100' : 'bg-gray-100'
                               }`}>
-                                <Icon className={`w-3.5 h-3.5 ${n.type === 'removed' ? 'text-red-500' : 'text-purple-600'}`} />
+                                <Icon className={`w-3.5 h-3.5 ${n.type === 'removed' ? 'text-red-500' : 'text-gray-700'}`} />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[11.5px] text-gray-700 leading-snug font-medium">{n.msg}</p>
                                 <p className="text-[10px] text-gray-400 mt-0.5">{n.time}</p>
                               </div>
-                              {!n.read && <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0 mt-1.5" />}
+                              {!n.read && <span className="w-2 h-2 rounded-full bg-gray-500 shrink-0 mt-1.5" />}
                             </li>
                           );
                         })}
@@ -460,7 +463,7 @@ export default function BrowsePage() {
                   aria-label="Account menu"
                 >
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-                    style={{ background:'linear-gradient(135deg,#7C3AED,#0891B2)' }}>
+                    style={{ background:'linear-gradient(135deg,#374151,#0891B2)' }}>
                     {userName.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <span className="text-[12px] font-semibold text-gray-700 hidden sm:block max-w-[80px] truncate">{userName}</span>
@@ -471,7 +474,7 @@ export default function BrowsePage() {
                     <div className="px-4 py-3.5 border-b border-gray-100">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full flex items-center justify-center text-[14px] font-bold text-white shrink-0"
-                          style={{ background:'linear-gradient(135deg,#7C3AED,#0891B2)' }}>
+                          style={{ background:'linear-gradient(135deg,#374151,#0891B2)' }}>
                           {userName.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -552,7 +555,7 @@ export default function BrowsePage() {
               </Link>
               <Link href="/become-creator"
                 className="px-3.5 py-1.5 text-[13px] font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-95"
-                style={{ background:'linear-gradient(135deg,#7C3AED,#6D28D9)' }}>
+                style={{ background:'linear-gradient(135deg,#374151,#111827)' }}>
                 Start Creating
               </Link>
             </>
@@ -596,7 +599,7 @@ export default function BrowsePage() {
                 onClick={() => switchType(id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-150 text-left group ${
                   contentType === id
-                    ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                    ? 'bg-gray-800 text-white shadow-md shadow-gray-200'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
@@ -612,7 +615,7 @@ export default function BrowsePage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">My Video Groups</p>
                   <button
                     onClick={() => setShowCreateGroup(v => !v)}
-                    className="text-[10px] font-bold text-purple-600 hover:text-purple-700 flex items-center gap-0.5"
+                    className="text-[10px] font-bold text-gray-700 hover:text-gray-900 flex items-center gap-0.5"
                   >
                     <Plus className="w-3 h-3" />New
                   </button>
@@ -626,9 +629,9 @@ export default function BrowsePage() {
                       onChange={e => setNewGroupName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleCreateGroup(); if (e.key === 'Escape') setShowCreateGroup(false); }}
                       placeholder="e.g. My Favorites, Watch Later…"
-                      className="flex-1 min-w-0 text-[11px] border border-purple-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-400/30"
+                      className="flex-1 min-w-0 text-[11px] border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-400/30"
                     />
-                    <button onClick={handleCreateGroup} className="px-2 py-1 rounded-lg bg-purple-600 text-white text-[11px] font-bold shrink-0">
+                    <button onClick={handleCreateGroup} className="px-2 py-1 rounded-lg bg-gray-800 text-white text-[11px] font-bold shrink-0">
                       Add
                     </button>
                   </div>
@@ -661,12 +664,12 @@ export default function BrowsePage() {
 
             {/* Guest CTA */}
             {!isLoggedIn && (
-              <div className="mt-4 bg-purple-50 border border-purple-100 rounded-xl p-4">
+              <div className="mt-4 bg-gray-50 border border-gray-100 rounded-xl p-4">
                 <p className="text-[12px] font-bold text-gray-800 mb-1">Create your space</p>
                 <p className="text-[11px] text-gray-500 leading-relaxed mb-3">Save groups, track history & publish your content.</p>
                 <Link href="/become-creator"
                   className="block text-center text-[12px] font-bold text-white py-2 rounded-lg transition-all hover:opacity-90"
-                  style={{ background:'linear-gradient(135deg,#7C3AED,#6D28D9)' }}>
+                  style={{ background:'linear-gradient(135deg,#374151,#111827)' }}>
                   Get Started Free
                 </Link>
               </div>
@@ -696,7 +699,7 @@ export default function BrowsePage() {
                   <div className="flex bg-gray-100 rounded-lg p-0.5">
                     {(['grid','list'] as const).map(mode => (
                       <button key={mode} onClick={() => setViewMode(mode)}
-                        className={`p-1.5 rounded-md transition-colors ${viewMode===mode?'bg-white shadow-sm text-purple-600':'text-gray-400 hover:text-gray-600'}`}>
+                        className={`p-1.5 rounded-md transition-colors ${viewMode===mode?'bg-white shadow-sm text-gray-700':'text-gray-400 hover:text-gray-600'}`}>
                         {mode === 'grid' ? <Grid3X3 className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
                       </button>
                     ))}
@@ -704,7 +707,7 @@ export default function BrowsePage() {
                 )}
                 <div ref={sortRef} className="relative">
                   <button onClick={() => setSortOpen(v => !v)}
-                    className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-purple-300 transition-colors">
+                    className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-gray-300 transition-colors">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400" />
                     {sort}
                     <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${sortOpen?'rotate-180':''}`} />
@@ -713,7 +716,7 @@ export default function BrowsePage() {
                     <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-20 min-w-[150px] py-1 overflow-hidden">
                       {SORT_OPTIONS.map(opt => (
                         <button key={opt} onClick={() => { setSort(opt); setSortOpen(false); }}
-                          className={`w-full text-left px-4 py-2 text-[13px] hover:bg-purple-50 transition-colors ${sort===opt?'text-purple-700 font-bold bg-purple-50':'text-gray-700 font-medium'}`}>
+                          className={`w-full text-left px-4 py-2 text-[13px] hover:bg-gray-50 transition-colors ${sort===opt?'text-gray-900 font-bold bg-gray-50':'text-gray-700 font-medium'}`}>
                           {opt}
                         </button>
                       ))}
@@ -732,7 +735,7 @@ export default function BrowsePage() {
                     {viewMode === 'grid' ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredVideos.map(v => (
-                          <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative">
+                          <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative" onClick={() => setPlaying({ id: v.id, title: v.title, creator: v.creator, gi: v.gi, duration: v.duration, kind: 'video', views: v.views, likes: v.likes, comments: v.comments })}>
                             <LandscapeThumb gi={v.gi} duration={v.duration} />
                             {isLoggedIn && v.isOwn && (
                               <button
@@ -757,7 +760,7 @@ export default function BrowsePage() {
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Add to Video Group</p>
                                     {groups.map(g => (
                                       <button key={g.id} onClick={e => { e.stopPropagation(); handleSaveToGroup(g.id); }}
-                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-left transition-colors">
+                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left transition-colors">
                                         <span className="text-sm leading-none">{g.emoji}</span>
                                         <span className="text-[12px] font-medium text-gray-700 truncate flex-1">{g.name}</span>
                                         <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
@@ -765,7 +768,7 @@ export default function BrowsePage() {
                                     ))}
                                     <div className="h-px bg-gray-100 mx-2 my-1" />
                                     <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(null); setShowCreateGroup(true); }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-[12px] font-semibold text-purple-600 transition-colors">
+                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-[12px] font-semibold text-gray-700 transition-colors">
                                       <Plus className="w-3.5 h-3.5" />New Video Group
                                     </button>
                                   </div>
@@ -783,7 +786,7 @@ export default function BrowsePage() {
                     ) : (
                       <div className="space-y-2.5">
                         {filteredVideos.map(v => (
-                          <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer">
+                          <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer" onClick={() => setPlaying({ id: v.id, title: v.title, creator: v.creator, gi: v.gi, duration: v.duration, kind: 'video', views: v.views, likes: v.likes, comments: v.comments })}>
                             <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" /></div>
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                               <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
@@ -800,7 +803,7 @@ export default function BrowsePage() {
                             {isLoggedIn && (
                               <div className="cf-save-group-panel relative self-start shrink-0">
                                 <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(saveToGroupVideoId === v.id ? null : v.id); }}
-                                  className="p-2 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition-colors"
+                                  className="p-2 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
                                   title="Save to Video Group">
                                   <Bookmark className="w-4 h-4" />
                                 </button>
@@ -809,7 +812,7 @@ export default function BrowsePage() {
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Add to Video Group</p>
                                     {groups.map(g => (
                                       <button key={g.id} onClick={e => { e.stopPropagation(); handleSaveToGroup(g.id); }}
-                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-left transition-colors">
+                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left transition-colors">
                                         <span className="text-sm leading-none">{g.emoji}</span>
                                         <span className="text-[12px] font-medium text-gray-700 truncate flex-1">{g.name}</span>
                                         <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
@@ -817,7 +820,7 @@ export default function BrowsePage() {
                                     ))}
                                     <div className="h-px bg-gray-100 mx-2 my-1" />
                                     <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(null); setShowCreateGroup(true); }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-[12px] font-semibold text-purple-600 transition-colors">
+                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-[12px] font-semibold text-gray-700 transition-colors">
                                       <Plus className="w-3.5 h-3.5" />New Video Group
                                     </button>
                                   </div>
@@ -835,7 +838,7 @@ export default function BrowsePage() {
                     {!search && <h3 className="text-[15px] font-bold text-gray-900 mb-4">Shorts</h3>}
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                       {filteredShorts.map(s => (
-                        <div key={s.id} className="group cursor-pointer relative">
+                        <div key={s.id} className="group cursor-pointer relative" onClick={() => setPlaying({ id: s.id, title: s.title, creator: s.creator, gi: s.gi, duration: s.duration, kind: 'short', views: s.views, likes: s.likes, comments: s.comments })}>
                           <PortraitThumb gi={s.gi} duration={s.duration} />
                           {isLoggedIn && s.isOwn && (
                             <button onClick={e => { e.stopPropagation(); toggleStats(s.id); }}
@@ -856,7 +859,7 @@ export default function BrowsePage() {
                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Add to Video Group</p>
                                   {groups.map(g => (
                                     <button key={g.id} onClick={e => { e.stopPropagation(); handleSaveToGroup(g.id); }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-left transition-colors">
+                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left transition-colors">
                                       <span className="text-sm leading-none">{g.emoji}</span>
                                       <span className="text-[12px] font-medium text-gray-700 truncate flex-1">{g.name}</span>
                                       <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
@@ -864,7 +867,7 @@ export default function BrowsePage() {
                                   ))}
                                   <div className="h-px bg-gray-100 mx-2 my-1" />
                                   <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(null); setShowCreateGroup(true); }}
-                                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-[12px] font-semibold text-purple-600 transition-colors">
+                                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-[12px] font-semibold text-gray-700 transition-colors">
                                     <Plus className="w-3.5 h-3.5" />New Video Group
                                   </button>
                                 </div>
@@ -884,7 +887,7 @@ export default function BrowsePage() {
                     {!search && <h3 className="text-[15px] font-bold text-gray-900 mb-4">Reels</h3>}
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                       {filteredReels.map(r => (
-                        <div key={r.id} className="group cursor-pointer">
+                        <div key={r.id} className="group cursor-pointer" onClick={() => setPlaying({ id: r.id, title: r.title, creator: r.creator, gi: r.gi, duration: r.duration, kind: 'reel', views: r.views, likes: r.likes, comments: r.comments })}>
                           <PortraitThumb gi={r.gi} duration={r.duration} />
                           <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{r.creator}</p>
@@ -899,7 +902,7 @@ export default function BrowsePage() {
                     {!search && <h3 className="text-[15px] font-bold text-gray-900 mb-4">Images</h3>}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       {filteredImages.map(i => (
-                        <div key={i.id} className="group cursor-pointer">
+                        <div key={i.id} className="group cursor-pointer" onClick={() => setPlaying({ id: i.id, title: i.title, creator: i.creator, gi: i.gi, kind: 'image', views: i.views, likes: i.likes })}>
                           <SquareThumb gi={i.gi} />
                           <p className="mt-2 text-[12px] font-semibold text-gray-900 line-clamp-2">{i.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{i.creator}</p>
@@ -930,7 +933,7 @@ export default function BrowsePage() {
                 ) : viewMode === 'grid' ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredVideos.map(v => (
-                      <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative">
+                      <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative" onClick={() => setPlaying({ id: v.id, title: v.title, creator: v.creator, gi: v.gi, duration: v.duration, kind: 'video', views: v.views, likes: v.likes, comments: v.comments })}>
                         <LandscapeThumb gi={v.gi} duration={v.duration} />
                         {isLoggedIn && v.isOwn && (
                           <button onClick={e => { e.stopPropagation(); toggleStats(v.id); }}
@@ -950,7 +953,7 @@ export default function BrowsePage() {
                 ) : (
                   <div className="space-y-2.5">
                     {filteredVideos.map(v => (
-                      <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer">
+                      <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer" onClick={() => setPlaying({ id: v.id, title: v.title, creator: v.creator, gi: v.gi, duration: v.duration, kind: 'video', views: v.views, likes: v.likes, comments: v.comments })}>
                         <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
@@ -980,7 +983,7 @@ export default function BrowsePage() {
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {filteredShorts.map(s => (
-                    <div key={s.id} className="group cursor-pointer relative">
+                    <div key={s.id} className="group cursor-pointer relative" onClick={() => setPlaying({ id: s.id, title: s.title, creator: s.creator, gi: s.gi, duration: s.duration, kind: 'short', views: s.views, likes: s.likes, comments: s.comments })}>
                       <PortraitThumb gi={s.gi} duration={s.duration} />
                       {isLoggedIn && s.isOwn && (
                         <button onClick={e => { e.stopPropagation(); toggleStats(s.id); }}
@@ -1008,7 +1011,7 @@ export default function BrowsePage() {
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {filteredReels.map(r => (
-                    <div key={r.id} className="group cursor-pointer">
+                    <div key={r.id} className="group cursor-pointer" onClick={() => setPlaying({ id: r.id, title: r.title, creator: r.creator, gi: r.gi, duration: r.duration, kind: 'reel', views: r.views, likes: r.likes, comments: r.comments })}>
                       <PortraitThumb gi={r.gi} duration={r.duration} />
                       <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{r.creator}</p>
@@ -1029,7 +1032,7 @@ export default function BrowsePage() {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredImages.map(i => (
-                    <div key={i.id} className="group cursor-pointer">
+                    <div key={i.id} className="group cursor-pointer" onClick={() => setPlaying({ id: i.id, title: i.title, creator: i.creator, gi: i.gi, kind: 'image', views: i.views, likes: i.likes })}>
                       <SquareThumb gi={i.gi} />
                       <p className="mt-2 text-[12px] font-semibold text-gray-900 line-clamp-2">{i.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{i.creator}</p>
@@ -1042,6 +1045,41 @@ export default function BrowsePage() {
           </section>
         </main>
       </div>
+
+      {/* ── Player modal ───────────────────────────────────────────────── */}
+      {playing && (
+        <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4" onClick={() => setPlaying(null)}>
+          <div className={`relative rounded-2xl overflow-hidden shadow-2xl bg-white ${playing.kind === 'short' || playing.kind === 'reel' ? 'w-full max-w-xs' : 'w-full max-w-2xl'}`} onClick={e => e.stopPropagation()}>
+            <div className="relative" style={{ background: G[playing.gi % 8], aspectRatio: (playing.kind === 'short' || playing.kind === 'reel') ? '9/16' : playing.kind === 'image' ? '4/3' : '16/9' }}>
+              {playing.kind !== 'image' && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm" style={{ animation:'cfPulse 2s ease-in-out infinite' }}>
+                    <Play className="w-8 h-8 text-white fill-white translate-x-0.5" />
+                  </div>
+                </div>
+              )}
+              {playing.kind === 'image' && <ImageIcon className="absolute inset-0 m-auto w-16 h-16 text-white/20" />}
+              <button onClick={() => setPlaying(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 z-10 transition-colors"><X className="w-4 h-4" /></button>
+              {playing.duration && <span className="absolute bottom-3 right-3 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded">{playing.duration}</span>}
+            </div>
+            <div className="p-4">
+              <p className="font-bold text-gray-900 text-[15px] leading-snug mb-1">{playing.title}</p>
+              <p className="text-[12px] text-gray-500 mb-3">{playing.creator}</p>
+              {(playing.views || playing.likes) && (
+                <div className="flex items-center gap-3 mb-3">
+                  {playing.views && <span className="flex items-center gap-1 text-[11px] text-gray-400"><Eye className="w-3 h-3" />{playing.views}</span>}
+                  {playing.likes && <span className="flex items-center gap-1 text-[11px] text-gray-400"><Heart className="w-3 h-3" />{playing.likes}</span>}
+                  {playing.comments && <span className="flex items-center gap-1 text-[11px] text-gray-400"><MessageCircle className="w-3 h-3" />{playing.comments}</span>}
+                </div>
+              )}
+              <div className="p-3 bg-gray-50 rounded-xl text-[12px] text-gray-500 text-center">
+                Connect your YouTube channel in <strong className="text-gray-700">Settings → Channels</strong> to stream real content.
+              </div>
+            </div>
+          </div>
+          <style>{`@keyframes cfPulse{0%,100%{opacity:0.7;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}`}</style>
+        </div>
+      )}
     </div>
   );
 }
