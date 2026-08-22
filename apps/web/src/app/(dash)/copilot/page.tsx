@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BotMessageSquare, Send, Zap, ChevronRight,
-  BookOpen, FileText, Calendar, Search, ShieldCheck, Clock, X,
+  BookOpen, FileText, Calendar, Search, ShieldCheck, Clock, X, Plus, Bot,
   Volume2, VolumeX,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -195,6 +195,8 @@ export default function CopilotPage() {
   const [pendingCommand, setPendingCommand] = useState<CopilotCommand | null>(null);
   const [activePlanId, setActivePlanId]   = useState<string | null>(null);
   const [activePlanMsgId, setActivePlanMsgId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<{ id: string; title: string; updatedAt: string }[]>([]);
+  const [convSearch, setConvSearch] = useState('');
   const bottomRef      = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
   const planPollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -260,16 +262,21 @@ export default function CopilotPage() {
       }
     } catch { /* ignore */ }
 
-    // Load copilot sessions from API (fallback to localStorage)
+    // Load copilot sessions from API and populate conversations panel
     void apiClient
       .get<{ sessions: { id: string; title: string; messages: Message[]; updatedAt: string }[] }>('/copilot/history')
       .then((res) => {
-        // Sessions loaded — could populate a sessions panel in future; stored for reference
-        try {
-          localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(res.data.sessions.slice(0, 5)));
-        } catch { /* ignore storage errors */ }
+        const s = res.data.sessions.slice(0, 10);
+        try { localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+        setSessions(s.map(({ id, title, updatedAt }) => ({ id, title, updatedAt })));
       })
-      .catch(() => { /* non-fatal */ });
+      .catch(() => {
+        // Fallback: read from localStorage
+        try {
+          const stored = JSON.parse(localStorage.getItem(SESSION_HISTORY_KEY) ?? '[]') as { id: string; title: string; updatedAt?: string }[];
+          setSessions(stored.map((s) => ({ id: s.id, title: s.title, updatedAt: s.updatedAt ?? new Date().toISOString() })));
+        } catch { /* ignore */ }
+      });
   }, []);
 
   useEffect(() => {
@@ -494,6 +501,72 @@ export default function CopilotPage() {
         className="w-72 shrink-0 bg-white flex-col overflow-hidden hidden md:flex"
         style={{ borderRight: '1.5px solid #e3ddf8' }}
       >
+        {/* Conversations header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <h2 className="font-bold text-gray-800 text-sm">Conversations</h2>
+          <button
+            type="button"
+            onClick={() => {
+              setMessages([GREETING]);
+              setInput('');
+              setActiveAction(null);
+              setActionInput('');
+              setPendingCommand(null);
+              setActivePlanId(null);
+              setActivePlanMsgId(null);
+              sessionIdRef.current = uid();
+            }}
+            className="flex items-center gap-1.5 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
+            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+          >
+            <Plus className="w-3 h-3" /> New Chat
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-3 pb-2 relative">
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={convSearch}
+            onChange={(e) => setConvSearch(e.target.value)}
+            placeholder="Search conversations…"
+            className="w-full pl-8 pr-3 py-2 text-xs rounded-xl outline-none transition-colors"
+            style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8', color: '#374151' }}
+          />
+        </div>
+
+        {/* Session list */}
+        <div className="flex-shrink-0 overflow-y-auto max-h-48 px-2 pb-2" style={{ borderBottom: '1.5px solid #f0edf9' }}>
+          {sessions.filter((s) => !convSearch || s.title.toLowerCase().includes(convSearch.toLowerCase())).length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-3">No conversations yet</p>
+          ) : (
+            sessions
+              .filter((s) => !convSearch || s.title.toLowerCase().includes(convSearch.toLowerCase()))
+              .slice(0, 8)
+              .map((session) => (
+                <button
+                  key={session.id}
+                  type="button"
+                  onClick={() => {
+                    setMessages([GREETING]);
+                    setInput('');
+                    sessionIdRef.current = session.id;
+                  }}
+                  className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-xl transition-all hover:bg-[#f5f2fd]"
+                >
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}>
+                    <Bot className="w-3 h-3 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-800 truncate">{session.title}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{relTime(new Date(session.updatedAt).getTime())}</p>
+                  </div>
+                </button>
+              ))
+          )}
+        </div>
+
         {/* Quick Actions */}
         <div className="p-4" style={{ borderBottom: '1.5px solid #f0edf9' }}>
           <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3">

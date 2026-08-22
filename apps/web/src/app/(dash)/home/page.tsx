@@ -7,9 +7,9 @@ import {
   FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarDays, Upload,
   CheckCircle2, Circle, ChevronRight, Bot, Mic2, MessageSquare, TrendingUp,
   Clock, Activity, PlayCircle, FileText, Music2, Image as ImageIcon, Film,
-  LayoutDashboard, Flame, Scissors, Send, Loader2, X, Lightbulb,
+  LayoutDashboard, Flame, Scissors, Send, Loader2, X, Lightbulb, BarChart2,
 } from 'lucide-react';
-import { api, type TrialStatusResponse, type ChannelAutomation } from '@/lib/api';
+import { api, type TrialStatusResponse, type ChannelAutomation, type CalendarEntry } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
 import { MyContentSection } from '@/components/my-content-section';
 
@@ -67,11 +67,14 @@ const QUICK_PROMPTS = [
   { label: 'Research topic',    icon: PlayCircle,  prompt: 'Research a topic for my next video' },
 ];
 
-const QUICK_ACTIONS = [
-  { href: '/projects',      icon: Plus,          label: 'New Project',      sub: 'Start from scratch',           tileBg: '#6D4AE0' },
-  { href: '/copilot',       icon: Bot,           label: 'AI Copilot',       sub: 'Chat with your AI crew',       tileBg: '#7c5ae8' },
-  { href: '/shorts-studio', icon: Scissors,      label: 'Shorts Studio',    sub: 'Clip & export YouTube Shorts', tileBg: '#e11d48' },
-  { href: '/publish',              icon: Upload,        label: 'Publish Hub',      sub: 'Calendar, planner & publish', tileBg: '#0891b2' },
+type QuickAction = { href?: string; prompt?: string; icon: React.ElementType; label: string; sub: string; iconBg: string; iconColor: string };
+const QUICK_ACTIONS: QuickAction[] = [
+  { href: '/content',              icon: TrendingUp,  label: 'Research Trends', sub: 'Discover viral topics',         iconBg: '#f5f3ff', iconColor: '#7C3AED' },
+  { prompt: 'Write a YouTube script for my next video', icon: FileText,   label: 'Write Script',    sub: 'AI-powered scripts',             iconBg: '#eff6ff', iconColor: '#2563eb' },
+  { href: '/studio',               icon: ImageIcon,   label: 'Gen Thumbnail',   sub: 'AI image generation',           iconBg: '#fdf2f8', iconColor: '#db2777' },
+  { href: '/publish?tab=calendar', icon: CalendarDays,label: 'Schedule Post',   sub: 'Plan your calendar',            iconBg: '#ecfdf5', iconColor: '#059669' },
+  { href: '/analytics',            icon: BarChart2,   label: 'View Analytics',  sub: 'Channel performance',           iconBg: '#fffbeb', iconColor: '#d97706' },
+  { href: '/copilot',              icon: Bot,         label: 'Open Copilot',    sub: 'Chat with your AI',             iconBg: '#f5f3ff', iconColor: '#7c3aed' },
 ];
 
 function greet(name: string): string {
@@ -296,6 +299,13 @@ export default function HomePage() {
   const { data: trialStatus } = useQuery<TrialStatusResponse>({
     queryKey: ['trial-status'],
     queryFn: () => api.trial.status().then((r) => r.data),
+    staleTime: 120_000,
+  });
+
+  const { data: upcomingPosts = [] } = useQuery<CalendarEntry[]>({
+    queryKey: ['upcoming-posts', firstChannelId],
+    queryFn: () => api.autonomy.listCalendar(firstChannelId!, { status: 'APPROVED' }).then((r) => r.data),
+    enabled: !!firstChannelId,
     staleTime: 120_000,
   });
 
@@ -664,8 +674,54 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* ── RIGHT: Onboarding + Actions + Channels ───────────────────── */}
+          {/* ── RIGHT: Upcoming Posts + Onboarding + Actions + Channels ─── */}
           <div className="lg:col-span-2 space-y-4">
+
+            {/* Upcoming Posts widget */}
+            <Card>
+              <div className="flex items-center justify-between mb-3">
+                <SectionLabel icon={CalendarDays}>Upcoming Posts</SectionLabel>
+                <Link href="/publish?tab=calendar" className="text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>View</Link>
+              </div>
+              {upcomingPosts.length === 0 ? (
+                <div className="flex flex-col items-center py-5 text-center">
+                  <CalendarDays className="w-8 h-8 text-gray-200 mb-2" />
+                  <p className="text-xs text-gray-400">No upcoming posts scheduled.</p>
+                  <Link href="/publish?tab=calendar" className="mt-2 text-xs font-bold hover:underline" style={{ color: '#6D4AE0' }}>Plan your calendar →</Link>
+                </div>
+              ) : (
+                <div className="divide-y" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
+                  {upcomingPosts.slice(0, 3).map((post) => {
+                    const d = new Date(post.plannedAt);
+                    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const isShort = post.format?.toLowerCase().includes('short');
+                    const platformBg = isShort ? '#fee2e2' : '#f5f3ff';
+                    const platformColor = isShort ? '#dc2626' : '#7C3AED';
+                    return (
+                      <div key={post.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: platformBg }}>
+                          {isShort ? (
+                            <Scissors className="w-3.5 h-3.5" style={{ color: platformColor }} />
+                          ) : (
+                            <Video className="w-3.5 h-3.5" style={{ color: platformColor }} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-gray-800 truncate">{post.title}</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {post.format ?? 'Video'} · {dateStr}
+                          </p>
+                        </div>
+                        <span
+                          className="w-2 h-2 rounded-full mt-2 shrink-0"
+                          style={{ background: post.status === 'APPROVED' ? '#7C3AED' : '#f59e0b' }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
 
             {/* Onboarding checklist */}
             {!onboardingDone && (
@@ -747,29 +803,45 @@ export default function HomePage() {
               </Card>
             )}
 
-            {/* Quick actions */}
+            {/* Quick actions — 2×3 grid */}
             <Card>
               <SectionLabel icon={Sparkles}>Quick Actions</SectionLabel>
-              <div className="space-y-2">
-                {QUICK_ACTIONS.map(({ href, icon: Icon, label, sub, tileBg }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#faf9ff] transition-colors"
-                  >
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: tileBg }}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {QUICK_ACTIONS.map((action) => {
+                  const Icon = action.icon;
+                  const inner = (
+                    <>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mb-1.5" style={{ background: action.iconBg }}>
+                        <Icon className="w-4 h-4" style={{ color: action.iconColor }} />
+                      </div>
+                      <p className="text-[13px] font-semibold text-gray-900 leading-snug">{action.label}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{action.sub}</p>
+                    </>
+                  );
+                  if (action.prompt) {
+                    return (
+                      <button
+                        key={action.label}
+                        type="button"
+                        onClick={() => openCopilotWithPrompt(action.prompt!)}
+                        className="flex flex-col p-3.5 rounded-xl text-left transition-all hover:border-[#7C3AED]/30 hover:-translate-y-0.5"
+                        style={{ border: '1.5px solid #e3ddf8' }}
+                      >
+                        {inner}
+                      </button>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={action.label}
+                      href={action.href!}
+                      className="flex flex-col p-3.5 rounded-xl transition-all hover:border-[#7C3AED]/30 hover:-translate-y-0.5"
+                      style={{ border: '1.5px solid #e3ddf8' }}
                     >
-                      <Icon className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-800 leading-none mb-0.5">{label}</p>
-                      <p className="text-[11px] text-gray-400">{sub}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#6D4AE0] transition-colors shrink-0" />
-                  </Link>
-                ))}
+                      {inner}
+                    </Link>
+                  );
+                })}
               </div>
             </Card>
 
