@@ -7,7 +7,7 @@ import {
   FolderOpen, Video, Zap, Youtube, ArrowRight, Plus, Sparkles, CalendarDays, Upload,
   CheckCircle2, Circle, ChevronRight, Bot, Mic2, MessageSquare, TrendingUp,
   Clock, Activity, PlayCircle, FileText, Music2, Image as ImageIcon, Film,
-  LayoutDashboard, Flame, Scissors, Send, Loader2, X,
+  LayoutDashboard, Flame, Scissors, Send, Loader2, X, Lightbulb,
 } from 'lucide-react';
 import { api, type TrialStatusResponse, type ChannelAutomation } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
@@ -60,10 +60,11 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const QUICK_PROMPTS = [
-  { label: 'New YouTube video', icon: PlayCircle,  prompt: 'Create a new YouTube video' },
-  { label: 'Create Shorts',     icon: Scissors,    prompt: 'Create YouTube Shorts from an existing video' },
-  { label: 'Research a topic',  icon: TrendingUp,  prompt: 'Research a topic for my next video' },
   { label: 'Write a script',    icon: FileText,    prompt: 'Write a script for my next video' },
+  { label: 'Create thumbnail',  icon: ImageIcon,   prompt: 'Create a thumbnail for my next video' },
+  { label: 'Plan next video',   icon: CalendarDays, prompt: 'Help me plan my next video' },
+  { label: 'Optimize SEO',      icon: TrendingUp,  prompt: 'Help me optimize SEO for my channel' },
+  { label: 'Research topic',    icon: PlayCircle,  prompt: 'Research a topic for my next video' },
 ];
 
 const QUICK_ACTIONS = [
@@ -254,6 +255,7 @@ export default function HomePage() {
   const router = useRouter();
   const [onboardingDone, setOnboardingDone] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
+  const [insightDismissed, setInsightDismissed] = useState(false);
   // greeting uses local time — must be client-only to avoid SSR/client hydration mismatch
   const [greeting, setGreeting] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -513,6 +515,51 @@ export default function HomePage() {
           <StatCard tone="periwinkle" icon={<Video className="w-5 h-5" />}      label="Videos"           value={totalVideos} />
           <StatCard tone="pink"       icon={<Activity className="w-5 h-5" />}   label="AI Jobs"          value={totalJobs} sub="across all projects" />
         </div>
+
+        {/* ── AI CHANNEL INSIGHT ─────────────────────────────────────────── */}
+        {!insightDismissed && (
+          <div
+            className="rounded-2xl p-5 relative overflow-hidden"
+            style={{ background: 'linear-gradient(135deg,#4C1D95,#7C3AED)' }}
+          >
+            {/* Dismiss button */}
+            <button
+              type="button"
+              onClick={() => setInsightDismissed(true)}
+              aria-label="Dismiss insight"
+              className="absolute top-3.5 right-3.5 w-7 h-7 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
+              style={{ color: 'rgba(255,255,255,0.6)' }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start gap-4 pr-6">
+              {/* Icon */}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}
+              >
+                <Lightbulb className="w-5 h-5 text-white" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mb-1">AI Channel Insight</p>
+                <h3 className="text-white font-bold text-sm leading-snug mb-2">
+                  This week&apos;s AI insight
+                </h3>
+                <p className="text-white/75 text-[13px] leading-relaxed">
+                  Your shorts with hook questions in the first 3 seconds average 2.3&times; more watch time. Try leading with &ldquo;Did you know...?&rdquo; this week.
+                </p>
+                <a
+                  href="/analytics"
+                  className="inline-block mt-3 text-purple-200 text-xs font-semibold underline underline-offset-2 hover:text-white transition-colors"
+                >
+                  See full report
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── MAIN GRID ──────────────────────────────────────────────────── */}
         <div className="grid lg:grid-cols-5 gap-5">

@@ -6,6 +6,7 @@ import {
   Sparkles, RefreshCw, Loader2, CalendarClock, Check, X, XCircle,
   TrendingUp, Clapperboard, Film, BarChart3, ListChecks, Target,
   ScrollText, Save, Settings2, Download, Eye, Upload, FlaskConical,
+  Globe, BarChart2, FileText, Shield, Play, Camera, CheckCircle, ChevronRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -38,6 +39,58 @@ const PUBLISH_INTERVAL_MIN = 15, PUBLISH_INTERVAL_MAX = 1440;
 const PUBLISHES_PER_DAY_MIN = 1, PUBLISHES_PER_DAY_MAX = 10;
 const IMPORTS_PER_DAY_MIN   = 1, IMPORTS_PER_DAY_MAX   = 10;
 function clamp(v: number, mn: number, mx: number) { return Math.min(mx, Math.max(mn, v)); }
+
+// ── Pipeline Overview data ────────────────────────────────────────────────────
+
+interface PipelineCard {
+  icon: React.ComponentType<{ className?: string }>;
+  name: string;
+  status: 'active' | 'idle';
+}
+
+interface PipelineColumn {
+  title: string;
+  colorClass: string;
+  borderClass: string;
+  dotActiveClass: string;
+  cards: PipelineCard[];
+}
+
+const PIPELINE_COLUMNS: PipelineColumn[] = [
+  {
+    title: 'Input Sources',
+    colorClass: 'bg-indigo-50',
+    borderClass: 'border-indigo-100',
+    dotActiveClass: 'bg-green-500',
+    cards: [
+      { icon: Globe,     name: 'Research Agent',    status: 'active' },
+      { icon: TrendingUp, name: 'Trend Scanner',    status: 'active' },
+      { icon: BarChart2, name: 'Channel Analytics', status: 'idle'  },
+    ],
+  },
+  {
+    title: 'AI Processing',
+    colorClass: 'bg-purple-50',
+    borderClass: 'border-purple-100',
+    dotActiveClass: 'bg-green-500',
+    cards: [
+      { icon: FileText, name: 'Script Agent',     status: 'active' },
+      { icon: Shield,   name: 'Compliance Check', status: 'active' },
+      { icon: Sparkles, name: 'Media Generation', status: 'idle'  },
+    ],
+  },
+  {
+    title: 'Output Destinations',
+    colorClass: 'bg-green-50',
+    borderClass: 'border-green-100',
+    dotActiveClass: 'bg-green-500',
+    cards: [
+      { icon: Play,        name: 'YouTube',      status: 'active' },
+      { icon: Camera,      name: 'Instagram',    status: 'idle'  },
+      { icon: CheckCircle, name: 'Review Queue', status: 'active' },
+    ],
+  },
+];
 
 const DEFAULT_FORM: Omit<ChannelAutomation, 'aiSuggestion' | 'lastTickAt'> = {
   enabled: false, autoImport: false, autoAnalyze: false, autoPublish: false,
@@ -410,6 +463,51 @@ export default function AutopilotPage() {
         </div>
 
         {banner && <Banner type={banner.type} message={banner.message} onDismiss={() => setBanner(null)} />}
+
+        {/* ── Pipeline Overview ───────────────────────────────────────── */}
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg transition-all">
+          <div className="mb-4">
+            <h2 className="font-bold text-gray-900 text-base leading-tight">Automation Pipeline</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Live workflow status</p>
+          </div>
+
+          {/* 3-column grid with arrow connectors */}
+          <div className="flex flex-col lg:flex-row items-stretch gap-3 lg:gap-0">
+            {PIPELINE_COLUMNS.map((col, colIdx) => (
+              <div key={col.title} className="flex flex-col lg:flex-row items-stretch flex-1 min-w-0">
+                {/* Column card */}
+                <div className={`flex-1 rounded-2xl border p-4 ${col.colorClass} ${col.borderClass}`}>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-3">{col.title}</p>
+                  <div className="space-y-2">
+                    {col.cards.map((card) => {
+                      const Icon = card.icon;
+                      return (
+                        <div
+                          key={card.name}
+                          className="flex items-center gap-2.5 bg-white rounded-xl px-3 py-2.5 border border-gray-100 hover:shadow-sm transition-all"
+                        >
+                          <Icon className="w-4 h-4 text-gray-500 shrink-0" />
+                          <span className="text-sm font-medium text-gray-700 flex-1 min-w-0 truncate">{card.name}</span>
+                          <span
+                            className={`w-2 h-2 rounded-full shrink-0 ${card.status === 'active' ? col.dotActiveClass : 'bg-gray-300'}`}
+                            title={card.status === 'active' ? 'Active' : 'Idle'}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Arrow connector (between columns only) */}
+                {colIdx < PIPELINE_COLUMNS.length - 1 && (
+                  <div className="flex items-center justify-center px-2 py-3 lg:py-0 lg:px-3 shrink-0">
+                    <ChevronRight className="w-6 h-6 text-gray-300 rotate-90 lg:rotate-0" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Empty state */}
         {!channelId && (

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   FolderOpen, Plus, Loader2, Video, Zap, PlayCircle,
   ChevronDown, ArrowRight, Bot, Clock, MoreVertical,
+  Play, Send, Pencil, BrainCircuit, Rocket, Sun, Swords, TrendingUp, Utensils,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
@@ -128,6 +129,86 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; dot: string }> =
   ARCHIVED: { bg: '#f3f4f6', color: '#4b5563', dot: '#9ca3af' },
 };
 
+// ── Mock project data ─────────────────────────────────────────────────────────
+
+type MockProjectStatus = 'Draft' | 'In Progress' | 'Ready' | 'Published';
+type MockProjectPlatform = 'YouTube' | 'Instagram' | 'TikTok' | 'Reels' | 'Shorts';
+
+interface MockProject {
+  id: string;
+  title: string;
+  channel: string;
+  date: string;
+  platform: MockProjectPlatform;
+  status: MockProjectStatus;
+  resolution: string;
+  gradientIndex: number;
+  /** 0–4 steps completed (out of 4: Script, Produce, Review, Publish) */
+  stepsComplete: number;
+  duration: string;
+}
+
+const MOCK_PROJECTS: MockProject[] = [
+  {
+    id: 'm1', title: 'The Future of AI in 2026', channel: 'Tech Insights Channel',
+    date: 'Aug 15, 2026', platform: 'YouTube', status: 'Published',
+    resolution: '1080p', gradientIndex: 0, stepsComplete: 4, duration: '12:34',
+  },
+  {
+    id: 'm2', title: '5 Productivity Hacks for 2026', channel: 'Creator Mindset',
+    date: 'Aug 17, 2026', platform: 'YouTube', status: 'In Progress',
+    resolution: '1080p', gradientIndex: 1, stepsComplete: 2, duration: '08:47',
+  },
+  {
+    id: 'm3', title: 'Morning Routine Vlog', channel: 'Lifestyle & Daily',
+    date: 'Aug 18, 2026', platform: 'Shorts', status: 'Draft',
+    resolution: '720p', gradientIndex: 2, stepsComplete: 0, duration: '#Vertical',
+  },
+  {
+    id: 'm4', title: 'ChatGPT vs Claude – Full Comparison', channel: 'AI Deep Dives',
+    date: 'Aug 16, 2026', platform: 'YouTube', status: 'Published',
+    resolution: '4K', gradientIndex: 3, stepsComplete: 4, duration: '15:22',
+  },
+  {
+    id: 'm5', title: 'Crypto Market Update: August 2026', channel: 'Finance Unlocked',
+    date: 'Aug 19, 2026', platform: 'Instagram', status: 'Ready',
+    resolution: '1080p', gradientIndex: 4, stepsComplete: 3, duration: '04:10',
+  },
+  {
+    id: 'm6', title: 'Street Food Tour – Bangkok', channel: 'World Eats',
+    date: 'Aug 20, 2026', platform: 'Reels', status: 'In Progress',
+    resolution: '1080p', gradientIndex: 5, stepsComplete: 1, duration: '00:58',
+  },
+];
+
+const CARD_GRADIENTS: string[] = [
+  'linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4338ca 100%)',
+  'linear-gradient(135deg,#064e3b 0%,#065f46 50%,#047857 100%)',
+  'linear-gradient(135deg,#1c1917 0%,#292524 50%,#44403c 100%)',
+  'linear-gradient(135deg,#1e3a5f 0%,#1e40af 50%,#2563eb 100%)',
+  'linear-gradient(135deg,#18181b 0%,#27272a 50%,#3f3f46 100%)',
+  'linear-gradient(135deg,#431407 0%,#7c2d12 50%,#c2410c 100%)',
+];
+
+const PLATFORM_FILTER_OPTIONS: Array<'All' | MockProjectPlatform> = [
+  'All', 'YouTube', 'Instagram', 'TikTok', 'Reels', 'Shorts',
+];
+
+const PLATFORM_BADGE_STYLE: Record<MockProjectPlatform, { bg: string; label: string }> = {
+  YouTube:   { bg: '#dc2626', label: 'YouTube' },
+  Instagram: { bg: '#e1306c', label: 'Instagram' },
+  TikTok:    { bg: '#000000', label: 'TikTok' },
+  Reels:     { bg: '#c026d3', label: 'Reels' },
+  Shorts:    { bg: '#111827', label: 'Shorts' },
+};
+
+const MOCK_STATUS_STYLE: Record<MockProjectStatus, { bg: string; border: string; color: string; dot: string }> = {
+  Draft:       { bg: '#f3f4f6', border: '#e5e7eb', color: '#4b5563', dot: '#9ca3af' },
+  'In Progress': { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8', dot: '#3b82f6' },
+  Ready:       { bg: '#f0fdf4', border: '#bbf7d0', color: '#15803d', dot: '#22c55e' },
+  Published:   { bg: '#f5f3ff', border: '#ddd6fe', color: '#6d28d9', dot: '#7c3aed' },
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function platformFromChannel(ch: Channel): Platform {
@@ -179,6 +260,183 @@ function relativeTime(dateStr: string): string {
 
 const inputCls = 'w-full bg-white rounded-2xl px-4 py-3 text-sm text-gray-800 outline-none transition-all focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] placeholder:text-gray-600';
 const inputStyle = { border: '1.5px solid #e3e0f0' };
+
+// ── Mock card helpers ─────────────────────────────────────────────────────────
+
+const CARD_ICONS = [BrainCircuit, Rocket, Sun, Swords, TrendingUp, Utensils];
+
+function MockStatusBadge({ status }: { status: MockProjectStatus }) {
+  const s = MOCK_STATUS_STYLE[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0"
+      style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.color }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
+      {status}
+    </span>
+  );
+}
+
+function MockProjectCard({ project }: { project: MockProject }) {
+  const gradient = CARD_GRADIENTS[project.gradientIndex % CARD_GRADIENTS.length]!;
+  const platformStyle = PLATFORM_BADGE_STYLE[project.platform];
+  const CardIcon = CARD_ICONS[project.gradientIndex % CARD_ICONS.length]!;
+  const steps: Array<'done' | 'active' | 'pending'> = [0, 1, 2, 3].map((i) => {
+    if (i < project.stepsComplete) return 'done';
+    if (i === project.stepsComplete) return 'active';
+    return 'pending';
+  }) as Array<'done' | 'active' | 'pending'>;
+  const stepLabels = ['Script', 'Produce', 'Review', 'Publish'];
+  const stepLabelColor = (i: number): string => {
+    if (i < project.stepsComplete) return '#7c3aed';
+    if (i === project.stepsComplete && project.status === 'In Progress') return '#d97706';
+    if (project.stepsComplete === 4) return '#7c3aed';
+    return '#9ca3af';
+  };
+  const canPublish = project.status === 'Ready' || project.status === 'Published';
+
+  return (
+    <div
+      className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all"
+      style={{ transform: 'translateY(0)', transition: 'box-shadow 0.2s, transform 0.2s' }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
+    >
+      {/* Gradient thumbnail */}
+      <div className="relative h-32 flex items-end p-3" style={{ background: gradient }}>
+        {/* Radial glow overlay */}
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{ background: 'radial-gradient(ellipse at 30% 60%,#a78bfa 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,#818cf8 0%,transparent 50%)' }}
+        />
+        {/* Center icon decoration */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-25 pointer-events-none">
+          <CardIcon className="w-14 h-14 text-white" />
+        </div>
+        {/* Platform badge bottom-left */}
+        <span
+          className="relative z-10 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold text-white"
+          style={{ background: platformStyle.bg }}
+        >
+          {platformStyle.label}
+        </span>
+        {/* Resolution / duration badge bottom-right */}
+        <span className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md text-[11px] font-semibold text-white" style={{ background: 'rgba(0,0,0,0.50)' }}>
+          {project.duration}
+        </span>
+        {/* Resolution badge top-right */}
+        <span className="absolute top-3 right-3 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white" style={{ background: 'rgba(0,0,0,0.45)' }}>
+          {project.resolution}
+        </span>
+        {/* Play overlay on hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.20)' }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.20)', backdropFilter: 'blur(4px)' }}>
+            <Play className="w-5 h-5 text-white ml-0.5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div className="p-4">
+        {/* Title + status badge */}
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h3 className="font-bold text-gray-900 text-sm leading-snug">{project.title}</h3>
+          <MockStatusBadge status={project.status} />
+        </div>
+
+        {/* Channel + date */}
+        <p className="text-xs text-gray-400 mb-3">
+          {project.channel} · {project.date}
+        </p>
+
+        {/* Progress bar */}
+        <div className="mb-4">
+          <div className="flex items-center gap-1 mb-1.5">
+            {steps.map((step, i) => (
+              <div
+                key={i}
+                className="flex-1 h-1.5 rounded-full"
+                style={{
+                  background:
+                    step === 'done'   ? '#7c3aed' :
+                    step === 'active' ? 'linear-gradient(90deg,#a78bfa,#7c3aed)' :
+                    '#e9e5f8',
+                }}
+              />
+            ))}
+          </div>
+          <div className="flex justify-between">
+            {stepLabels.map((label, i) => (
+              <span key={i} className="text-[10px] font-semibold" style={{ color: stepLabelColor(i) }}>
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
+            style={{ color: '#7c3aed', background: '#f5f3ff', borderColor: '#ddd6fe' }}
+          >
+            <Pencil className="w-3 h-3" /> Edit
+          </button>
+          <button
+            type="button"
+            disabled={!canPublish}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: canPublish ? 'linear-gradient(135deg,#a78bfa,#7c3aed)' : '#d1d5db' }}
+          >
+            <Send className="w-3 h-3" /> Publish
+          </button>
+          <button
+            type="button"
+            className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockFilterBar({
+  activePlatform,
+  onPlatformChange,
+}: {
+  activePlatform: 'All' | MockProjectPlatform;
+  onPlatformChange: (p: 'All' | MockProjectPlatform) => void;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 flex items-center gap-3 flex-wrap">
+      {/* Platform chips */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {PLATFORM_FILTER_OPTIONS.map((opt) => {
+          const isActive = activePlatform === opt;
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onPlatformChange(opt)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border"
+              style={
+                isActive
+                  ? { background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }
+                  : { background: '#f5f3ff', color: '#6b7280', borderColor: '#e9e5f8' }
+              }
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ── Projects sub-components ───────────────────────────────────────────────────
 
@@ -416,6 +674,8 @@ interface ProjectsTabProps {
   activeCount: number;
   totalJobs: number;
   totalVideos: number;
+  activePlatform: 'All' | MockProjectPlatform;
+  setActivePlatform: (p: 'All' | MockProjectPlatform) => void;
 }
 
 function ProjectsTab({
@@ -425,6 +685,7 @@ function ProjectsTab({
   setRenameProject, setDeleteProject,
   isFreeTier, limits, atProjectLimit,
   filteredProjects, activeCount, totalJobs, totalVideos,
+  activePlatform, setActivePlatform,
 }: ProjectsTabProps) {
   const router = useRouter();
 
@@ -490,7 +751,34 @@ function ProjectsTab({
         </div>
       )}
 
-      {/* Grid */}
+      {/* Platform filter bar */}
+      <MockFilterBar activePlatform={activePlatform} onPlatformChange={setActivePlatform} />
+
+      {/* Mock project cards (design preview) */}
+      {(() => {
+        const visibleMockProjects =
+          activePlatform === 'All'
+            ? MOCK_PROJECTS
+            : MOCK_PROJECTS.filter((mp) => mp.platform === activePlatform);
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+            {visibleMockProjects.map((mp) => (
+              <MockProjectCard key={mp.id} project={mp} />
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Divider between mock cards and real API projects */}
+      {projects.length > 0 && (
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-gray-100" />
+          <span className="text-xs font-semibold text-gray-400 px-2">Your projects</span>
+          <div className="flex-1 h-px bg-gray-100" />
+        </div>
+      )}
+
+      {/* Grid — real API projects */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[...Array(4)].map((_, i) => <ProjectSkeleton key={i} />)}
@@ -899,6 +1187,7 @@ function ProjectsInner() {
   });
   const [renameProject, setRenameProject] = useState<Project | null>(null);
   const [deleteProject, setDeleteProject] = useState<Project | null>(null);
+  const [activePlatform, setActivePlatform] = useState<'All' | MockProjectPlatform>('All');
 
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['projects'],
@@ -991,6 +1280,8 @@ function ProjectsInner() {
         activeCount={activeCount}
         totalJobs={totalJobs}
         totalVideos={totalVideos}
+        activePlatform={activePlatform}
+        setActivePlatform={setActivePlatform}
       />
 
       {/* Modals (outside tab content so they stay mounted) */}
