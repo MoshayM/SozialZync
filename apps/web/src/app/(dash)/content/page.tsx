@@ -439,9 +439,19 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ResearchResult | null>(null);
+  const [depth, setDepth] = useState<'Quick' | 'Standard' | 'Deep'>('Standard');
+  const [sources, setSources] = useState<string[]>(['YouTube', 'Google']);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const researchHistory = useContentHistory('research');
 
   useEffect(() => { setTopic(ctx.topic); }, [ctx.topic]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cf_research_recent');
+      setRecentSearches(stored ? JSON.parse(stored) as string[] : []);
+    } catch { /* ignore */ }
+  }, []);
 
   const runResearch = useCallback(async () => {
     if (!topic && !ctx.niche) return;
@@ -453,6 +463,8 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
         topic: topic || ctx.niche,
         niche: ctx.niche,
         targetLang: ctx.lang,
+        depth: depth.toLowerCase(),
+        sources,
       });
       const resData = res.data;
       researchHistory.addEntry({
@@ -463,15 +475,26 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
         result: resData,
       });
       setResult(resData);
+      // Update recent searches
+      const key = topic || ctx.niche;
+      if (key) {
+        setRecentSearches(prev => {
+          const next = [key, ...prev.filter(s => s !== key)].slice(0, 6);
+          try { localStorage.setItem('cf_research_recent', JSON.stringify(next)); } catch { /* ignore */ }
+          return next;
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Research failed');
     } finally {
       setLoading(false);
     }
-  }, [topic, ctx.niche, ctx.lang]);
+  }, [topic, ctx.niche, ctx.lang, depth, sources]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex gap-6 items-start">
+      {/* Main research area */}
+      <div className="flex-1 min-w-0 space-y-6">
       <div className="bg-white rounded-2xl border border-[#e3ddf8] p-6 space-y-4">
         <div className="flex items-center gap-2 font-semibold text-gray-800">
           <BookOpen className="w-5 h-5 text-[#6D4AE0]" />
@@ -496,6 +519,21 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
         />
+
+        {recentSearches.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider self-center">Recent:</span>
+            {recentSearches.map((s, i) => (
+              <button key={i} type="button" onClick={() => setTopic(s)}
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors"
+                style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#ede9fb'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f5f2fd'; }}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
 
         <button type="button" onClick={() => void runResearch()} disabled={loading || (!topic && !ctx.niche)} className={`${primaryBtnCls} w-full justify-center`}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lightbulb className="w-4 h-4" />}
@@ -621,6 +659,64 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
         onRestore={(e) => setResult(e.result as ResearchResult)}
         onRerun={(e) => { setTopic(e.query); void runResearch(); }}
       />
+      </div>{/* end main research area */}
+
+      {/* Research Settings sidebar */}
+      <div className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
+        <div className="bg-white rounded-2xl p-4 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
+          <h3 className="text-sm font-bold text-gray-800">Research Settings</h3>
+
+          <div>
+            <p className="text-xs font-semibold text-gray-500 mb-2">Depth</p>
+            <div className="flex rounded-xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+              {(['Quick', 'Standard', 'Deep'] as const).map((d) => (
+                <button key={d} type="button" onClick={() => setDepth(d)}
+                  className="flex-1 py-1.5 text-xs font-semibold transition-colors"
+                  style={depth === d ? { background: '#6D4AE0', color: '#fff' } : { background: '#fff', color: '#6b7280' }}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-gray-500 mb-2">Sources</p>
+            <div className="space-y-1.5">
+              {(['YouTube', 'Google', 'Reddit', 'Twitter/X'] as const).map((src) => (
+                <label key={src} className="flex items-center gap-2 cursor-pointer group">
+                  <input type="checkbox" checked={sources.includes(src)} onChange={e => {
+                    if (e.target.checked) setSources(prev => [...prev, src]);
+                    else setSources(prev => prev.filter(s => s !== src));
+                  }} className="rounded accent-[#6D4AE0]" />
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-[#6D4AE0] transition-colors">{src}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button type="button" onClick={() => void runResearch()} disabled={loading || (!topic && !ctx.niche)}
+            className="w-full py-2 rounded-xl text-xs font-bold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+            {loading ? 'Researching…' : 'Start Research'}
+          </button>
+        </div>
+
+        {researchHistory.entries.length > 0 && (
+          <div className="bg-white rounded-2xl p-4 space-y-2" style={{ border: '1.5px solid #e3ddf8' }}>
+            <h3 className="text-sm font-bold text-gray-800">Saved Research</h3>
+            <div className="space-y-1">
+              {researchHistory.entries.slice(0, 5).map((entry, i) => (
+                <button key={i} type="button"
+                  onClick={() => setResult(entry.result as ResearchResult)}
+                  className="w-full text-left p-2 rounded-xl hover:bg-[#f5f2fd] transition-colors">
+                  <p className="text-xs font-semibold text-gray-700 truncate">{entry.label}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-2">{entry.summaryText?.slice(0, 60)}…</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
