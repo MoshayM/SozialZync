@@ -425,7 +425,7 @@ export default function ExplorePage() {
           ) : (
             <>
               <Link href="/login" className="px-3 py-1.5 rounded-full text-[11px] font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">Sign In</Link>
-              <Link href="/become-creator" className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white transition-colors"
+              <Link href="/welcome" className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white transition-colors"
                 style={{ background: '#7C3AED' }}>🚀 Start Creating</Link>
             </>
           )}
@@ -580,7 +580,7 @@ export default function ExplorePage() {
             <p className="text-[16px] font-extrabold text-gray-900 mb-1.5">Ready to publish YOUR content here?</p>
             <p className="text-[12px] text-gray-600">Join thousands of creators using SozialZynk's AI to script, produce and publish videos automatically.</p>
           </div>
-          <Link href="/become-creator"
+          <Link href="/welcome"
             className="shrink-0 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-colors hover:opacity-90"
             style={{ background: '#7C3AED' }}>
             Start Creating Free →
