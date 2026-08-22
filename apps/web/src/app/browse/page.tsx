@@ -7,6 +7,7 @@ import {
   Search, Bell, Menu, X, ChevronRight, Play, History, Plus, Film, Scissors,
   ImageIcon, Grid3X3, LayoutList, SlidersHorizontal, ChevronDown, MoreVertical,
   Heart, MessageCircle, TrendingUp, Eye, EyeOff, Trash2, Share2, Settings, LogOut,
+  Bookmark,
 } from 'lucide-react';
 
 // ── Gradients ─────────────────────────────────────────────────────────────────
@@ -100,10 +101,10 @@ const IMAGES: ImageItem[] = [
 ];
 
 const INITIAL_GROUPS: Group[] = [
-  { id:'g1', name:'AI Tools Collection', count:12, color:'#7C3AED', emoji:'🤖' },
-  { id:'g2', name:'Growth Strategies',   count:8,  color:'#0891B2', emoji:'📈' },
-  { id:'g3', name:'Monetization Tips',   count:15, color:'#059669', emoji:'💰' },
-  { id:'g4', name:'Creative Inspo',      count:6,  color:'#DC2626', emoji:'🎨' },
+  { id:'g1', name:'My Favorites',   count:12, color:'#7C3AED', emoji:'⭐' },
+  { id:'g2', name:'Watch Later',    count:8,  color:'#0891B2', emoji:'🕐' },
+  { id:'g3', name:'Saved for Work', count:15, color:'#059669', emoji:'💼' },
+  { id:'g4', name:'Loved Shorts',   count:6,  color:'#DC2626', emoji:'❤️' },
 ];
 
 const HISTORY_ITEMS: HistoryItem[] = [
@@ -215,10 +216,10 @@ export default function BrowsePage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showAllHistory, setShowAllHistory] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS);
+  const [saveToGroupVideoId, setSaveToGroupVideoId] = useState<string | null>(null);
   const [fadeKey, setFadeKey] = useState(0);
   const [bellOpen, setBellOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -255,6 +256,9 @@ export default function BrowsePage() {
       if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
         setAccountOpen(false);
         setShowSearchHistory(false);
+      }
+      if (saveToGroupVideoId && !(e.target as Element).closest?.('.cf-save-group-panel')) {
+        setSaveToGroupVideoId(null);
       }
     };
     document.addEventListener('mousedown', h);
@@ -306,12 +310,17 @@ export default function BrowsePage() {
   const handleCreateGroup = useCallback(() => {
     if (!newGroupName.trim()) return;
     const colors = ['#7C3AED','#0891B2','#059669','#DC2626','#D97706'];
-    const emojis = ['📋','🎯','⭐','🔖','📂'];
+    const emojis = ['⭐','🕐','💼','❤️','📌'];
     const idx = groups.length % colors.length;
     setGroups(prev => [...prev, { id:`g-${Date.now()}`, name:newGroupName.trim(), count:0, color:colors[idx], emoji:emojis[idx] }]);
     setNewGroupName('');
     setShowCreateGroup(false);
   }, [newGroupName, groups.length]);
+
+  const handleSaveToGroup = useCallback((groupId: string) => {
+    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, count: g.count + 1 } : g));
+    setSaveToGroupVideoId(null);
+  }, []);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('cf_token');
@@ -473,13 +482,13 @@ export default function BrowsePage() {
                     </div>
                     {/* Links */}
                     <div className="p-2">
-                      <button
-                        onClick={() => { document.getElementById('history-section')?.scrollIntoView({behavior:'smooth'}); setAccountOpen(false); }}
+                      <Link href="/account"
+                        onClick={() => setAccountOpen(false)}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors text-left font-medium"
                       >
                         <History className="w-4 h-4 text-gray-400 shrink-0" />
                         Watch History
-                      </button>
+                      </Link>
                       {/* Search History */}
                       <button
                         onClick={() => setShowSearchHistory(v => !v)}
@@ -596,11 +605,11 @@ export default function BrowsePage() {
               </button>
             ))}
 
-            {/* My Groups — logged-in only */}
+            {/* My Video Groups — logged-in only */}
             {isLoggedIn && (
               <div className="pt-3">
                 <div className="flex items-center justify-between px-2 pb-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">My Groups</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">My Video Groups</p>
                   <button
                     onClick={() => setShowCreateGroup(v => !v)}
                     className="text-[10px] font-bold text-purple-600 hover:text-purple-700 flex items-center gap-0.5"
@@ -616,7 +625,7 @@ export default function BrowsePage() {
                       value={newGroupName}
                       onChange={e => setNewGroupName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleCreateGroup(); if (e.key === 'Escape') setShowCreateGroup(false); }}
-                      placeholder="Group name…"
+                      placeholder="e.g. My Favorites, Watch Later…"
                       className="flex-1 min-w-0 text-[11px] border border-purple-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-400/30"
                     />
                     <button onClick={handleCreateGroup} className="px-2 py-1 rounded-lg bg-purple-600 text-white text-[11px] font-bold shrink-0">
@@ -625,7 +634,11 @@ export default function BrowsePage() {
                   </div>
                 )}
                 <div className="space-y-0.5">
-                  {groups.map(g => (
+                  {groups.length === 0 ? (
+                    <p className="text-[11px] text-gray-400 px-3 py-2 leading-relaxed">
+                      Save videos to your first group using the <Bookmark className="w-3 h-3 inline-block" /> on any video.
+                    </p>
+                  ) : groups.map(g => (
                     <button
                       key={g.id}
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors text-left"
@@ -637,19 +650,12 @@ export default function BrowsePage() {
                   ))}
                 </div>
                 <div className="h-px bg-gray-100 my-2 mx-2" />
-                {[
-                  { label:'Continue Watching', id:'continue-section' },
-                  { label:'Watch History',      id:'history-section'  },
-                ].map(({ label, id }) => (
-                  <button
-                    key={id}
-                    onClick={() => { document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); setSidebarOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[12px] text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors text-left font-medium"
-                  >
-                    {id === 'history-section' ? <History className="w-3.5 h-3.5 shrink-0 text-gray-400" /> : <Play className="w-3.5 h-3.5 shrink-0 text-gray-400" />}
-                    {label}
-                  </button>
-                ))}
+                <Link href="/account"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[12px] text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors text-left font-medium"
+                  onClick={() => setSidebarOpen(false)}>
+                  <History className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                  My Library
+                </Link>
               </div>
             )}
 
@@ -670,103 +676,6 @@ export default function BrowsePage() {
 
         {/* ── Main ──────────────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-5 space-y-8">
-
-          {/* Personal sections */}
-          {isLoggedIn && (
-            <>
-              {/* Continue Watching */}
-              <section id="continue-section">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-[15px] font-bold text-gray-900">Continue Watching</h2>
-                  <button className="text-[12px] font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1 transition-colors">
-                    View All <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
-                  {HISTORY_ITEMS.map(item => (
-                    <div key={item.id}
-                      className="group flex-none w-48 bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                      <div className="relative h-[108px]" style={{ background:G[item.gi % 8] }}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-8 h-8 rounded-full bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Play className="w-4 h-4 text-white fill-white translate-x-0.5" />
-                          </div>
-                        </div>
-                        <span className="absolute bottom-2 right-2 bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">{item.duration}</span>
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-                          <div className="h-full bg-purple-500 transition-all" style={{ width:`${item.progress}%` }} />
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <p className="text-[12px] font-semibold text-gray-900 line-clamp-2 leading-snug">{item.title}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">{item.creator} · {item.time}</p>
-                        <p className="text-[10px] text-purple-600 font-semibold mt-0.5">{item.progress}% watched</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* My Groups */}
-              <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-[15px] font-bold text-gray-900">My Groups</h2>
-                  <button onClick={() => setShowCreateGroup(v => !v)}
-                    className="text-[12px] font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1 transition-colors">
-                    <Plus className="w-3.5 h-3.5" />New Group
-                  </button>
-                </div>
-                <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
-                  <button onClick={() => setShowCreateGroup(true)}
-                    className="flex-none w-36 h-24 rounded-2xl border-2 border-dashed border-gray-200 hover:border-purple-400 hover:bg-purple-50 flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:text-purple-600 transition-all group shrink-0">
-                    <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    <span className="text-[11px] font-semibold">New Group</span>
-                  </button>
-                  {groups.map(g => (
-                    <div key={g.id}
-                      className="group flex-none w-36 rounded-2xl border border-gray-100 bg-white overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer shrink-0">
-                      <div className="h-16 flex items-center justify-center text-2xl"
-                        style={{ background:`${g.color}15`, borderBottom:`2px solid ${g.color}25` }}>
-                        {g.emoji}
-                      </div>
-                      <div className="p-2.5">
-                        <p className="text-[12px] font-bold text-gray-900 truncate">{g.name}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{g.count} videos</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Watch History */}
-              <section id="history-section">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-[15px] font-bold text-gray-900">Watch History</h2>
-                  <button onClick={() => setShowAllHistory(v => !v)}
-                    className="text-[12px] font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1 transition-colors">
-                    {showAllHistory ? 'Show less' : 'View All'} <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {(showAllHistory ? HISTORY_ITEMS : HISTORY_ITEMS.slice(0, 3)).map(item => (
-                    <div key={item.id}
-                      className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer flex gap-3 p-2.5">
-                      <div className="relative w-24 h-[54px] rounded-lg flex-none overflow-hidden" style={{ background:G[item.gi % 8] }}>
-                        <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] font-bold px-1 py-0.5 rounded">{item.duration}</span>
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black/20">
-                          <div className="h-full bg-purple-500" style={{ width:`${item.progress}%` }} />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <p className="text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{item.title}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{item.time} · {item.progress}% done</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </>
-          )}
 
           {/* ── Public content grid ────────────────────────────────────────── */}
           <section key={fadeKey} style={{ animation:'fadeIn 0.2s ease-out' }}>
@@ -834,6 +743,35 @@ export default function BrowsePage() {
                                 {statsHidden[v.id] ? <EyeOff className="w-3.5 h-3.5 text-white" /> : <Eye className="w-3.5 h-3.5 text-white" />}
                               </button>
                             )}
+                            {isLoggedIn && (
+                              <div className="cf-save-group-panel absolute top-2 right-2 z-10">
+                                <button
+                                  onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(saveToGroupVideoId === v.id ? null : v.id); }}
+                                  className="w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="Save to Video Group"
+                                >
+                                  <Bookmark className="w-3.5 h-3.5 text-white" />
+                                </button>
+                                {saveToGroupVideoId === v.id && (
+                                  <div className="cf-save-group-panel absolute right-0 top-8 bg-white rounded-xl shadow-2xl border border-gray-100 w-48 py-1 overflow-hidden">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Add to Video Group</p>
+                                    {groups.map(g => (
+                                      <button key={g.id} onClick={e => { e.stopPropagation(); handleSaveToGroup(g.id); }}
+                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-left transition-colors">
+                                        <span className="text-sm leading-none">{g.emoji}</span>
+                                        <span className="text-[12px] font-medium text-gray-700 truncate flex-1">{g.name}</span>
+                                        <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
+                                      </button>
+                                    ))}
+                                    <div className="h-px bg-gray-100 mx-2 my-1" />
+                                    <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(null); setShowCreateGroup(true); }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-[12px] font-semibold text-purple-600 transition-colors">
+                                      <Plus className="w-3.5 h-3.5" />New Video Group
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             <div className="p-3">
                               <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug mb-1">{v.title}</p>
                               <p className="text-[11px] text-gray-500">{v.creator} · {v.time}</p>
@@ -859,9 +797,33 @@ export default function BrowsePage() {
                                 {statsHidden[v.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
                             )}
-                            <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 self-start shrink-0">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
+                            {isLoggedIn && (
+                              <div className="cf-save-group-panel relative self-start shrink-0">
+                                <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(saveToGroupVideoId === v.id ? null : v.id); }}
+                                  className="p-2 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition-colors"
+                                  title="Save to Video Group">
+                                  <Bookmark className="w-4 h-4" />
+                                </button>
+                                {saveToGroupVideoId === v.id && (
+                                  <div className="cf-save-group-panel absolute right-0 top-9 bg-white rounded-xl shadow-2xl border border-gray-100 w-48 py-1 overflow-hidden z-20">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Add to Video Group</p>
+                                    {groups.map(g => (
+                                      <button key={g.id} onClick={e => { e.stopPropagation(); handleSaveToGroup(g.id); }}
+                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-left transition-colors">
+                                        <span className="text-sm leading-none">{g.emoji}</span>
+                                        <span className="text-[12px] font-medium text-gray-700 truncate flex-1">{g.name}</span>
+                                        <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
+                                      </button>
+                                    ))}
+                                    <div className="h-px bg-gray-100 mx-2 my-1" />
+                                    <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(null); setShowCreateGroup(true); }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-[12px] font-semibold text-purple-600 transition-colors">
+                                      <Plus className="w-3.5 h-3.5" />New Video Group
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -881,6 +843,33 @@ export default function BrowsePage() {
                               title={statsHidden[s.id] ? 'Show stats' : 'Hide stats'}>
                               {statsHidden[s.id] ? <EyeOff className="w-3.5 h-3.5 text-white" /> : <Eye className="w-3.5 h-3.5 text-white" />}
                             </button>
+                          )}
+                          {isLoggedIn && (
+                            <div className="cf-save-group-panel absolute top-2 right-2 z-10">
+                              <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(saveToGroupVideoId === s.id ? null : s.id); }}
+                                className="w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Save to Video Group">
+                                <Bookmark className="w-3.5 h-3.5 text-white" />
+                              </button>
+                              {saveToGroupVideoId === s.id && (
+                                <div className="cf-save-group-panel absolute right-0 top-8 bg-white rounded-xl shadow-2xl border border-gray-100 w-48 py-1 overflow-hidden">
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Add to Video Group</p>
+                                  {groups.map(g => (
+                                    <button key={g.id} onClick={e => { e.stopPropagation(); handleSaveToGroup(g.id); }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-left transition-colors">
+                                      <span className="text-sm leading-none">{g.emoji}</span>
+                                      <span className="text-[12px] font-medium text-gray-700 truncate flex-1">{g.name}</span>
+                                      <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
+                                    </button>
+                                  ))}
+                                  <div className="h-px bg-gray-100 mx-2 my-1" />
+                                  <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(null); setShowCreateGroup(true); }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-purple-50 text-[12px] font-semibold text-purple-600 transition-colors">
+                                    <Plus className="w-3.5 h-3.5" />New Video Group
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           )}
                           <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{s.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{s.creator}</p>
