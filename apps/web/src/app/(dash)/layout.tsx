@@ -44,8 +44,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     category: 'Discover',
     items: [
-      { href: '/explore',   icon: Globe,      label: 'Public Feed' },
-      { href: '/browse',    icon: Compass,    label: 'Browse' },
+      { href: '/browse',    icon: Globe,      label: 'Public Feed' },
     ],
   },
 ];
@@ -570,7 +569,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       // Non-fatal
     }
     clearTokens();
-    router.push('/explore');
+    router.push('/browse');
   }
 
   /* Sidebar nav link renderer (shared by desktop sidebar + mobile drawer) */
@@ -720,7 +719,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         </button>
 
         {/* Logo — clicks to public feed */}
-        <Link href="/explore" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity" title="Public Feed">
+        <Link href="/browse" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity" title="Public Feed">
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" />
           <div className="leading-[1.15] hidden sm:block">
             <div className="font-bold text-[15px] tracking-[-0.4px]">
@@ -740,7 +739,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
         {/* Public Feed button */}
         <Link
-          href="/explore"
+          href="/browse"
           title="Public Feed"
           className="hidden sm:flex w-[42px] h-[42px] rounded-[12px] items-center justify-center transition-colors shrink-0 touch-manipulation"
           style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
