@@ -1,12 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Clapperboard, Loader2, Download, Wand2, CheckCircle2, XCircle,
   Clock, Film, Captions, Sparkles, ChevronDown, ChevronRight,
-  Search, X, FolderDown, ListVideo, Trash2,
+  Search, X, FolderDown, ListVideo, Trash2, Scissors,
 } from 'lucide-react';
 import { api, type LibraryVideo, type LibraryPlaylist, type LibraryVideosPage, type LibraryPlaylistsPage, type LibraryPlaylistItemsPage } from '@/lib/api';
 import { usePlan } from '@/lib/plan';
@@ -650,6 +650,52 @@ export default function ShortsStudioPage() {
               <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           )}
+        </div>
+
+        {/* ── AI Quick Tools showcase ──────────────────────────────── */}
+        <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+            <span className="text-sm font-bold text-gray-800">AI Quick Tools</span>
+            <span className="text-xs text-gray-400">— available after video is analyzed</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {(
+              [
+                { icon: Captions,  label: 'Auto-caption',        desc: 'Add captions automatically',  color: '#6D4AE0' },
+                { icon: Scissors,  label: 'Remove Silence',       desc: 'Cut dead air from clips',      color: '#0891B2' },
+                { icon: ListVideo, label: 'Add Subtitles',        desc: 'Styled subtitle overlays',     color: '#059669' },
+                { icon: Wand2,     label: 'Viral Hook',           desc: 'AI-craft a hook for the clip', color: '#D97706' },
+                { icon: Film,      label: 'Auto B-roll',          desc: 'Insert matching b-roll clips', color: '#DC2626' },
+                { icon: Download,  label: 'Export to Platforms',  desc: 'YouTube, TikTok, Reels',       color: '#7C3AED' },
+              ] as { icon: React.ElementType; label: string; desc: string; color: string }[]
+            ).map(({ icon: Icon, label, desc, color }) => (
+              <div key={label} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#faf9ff', border: '1px solid #f0edf9' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}18`, color }}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-800 leading-tight">{label}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Export destinations ───────────────────────────────────── */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-semibold text-gray-500">Export to:</span>
+          {[
+            { label: 'YouTube Shorts',  color: '#EF4444', bg: '#fef2f2' },
+            { label: 'TikTok',          color: '#0EA5E9', bg: '#f0f9ff' },
+            { label: 'Instagram Reels', color: '#EC4899', bg: '#fdf2f8' },
+          ].map(({ label, color, bg }) => (
+            <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: bg, color, border: `1px solid ${color}30` }}>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+              {label}
+            </span>
+          ))}
         </div>
 
         {/* ── No channel selected (or free user) ───────────────────── */}
