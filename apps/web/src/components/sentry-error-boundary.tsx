@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import * as Sentry from '@sentry/nextjs';
 
@@ -46,7 +46,7 @@ export class SentryErrorBoundary extends Component<Props, State> {
               type="button"
               onClick={() => window.location.reload()}
               className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg,#6D4AE0,#5B21B6)' }}
+              style={{ background: 'linear-gradient(135deg,#374151,#1f2937)' }}
             >
               Refresh page
             </button>

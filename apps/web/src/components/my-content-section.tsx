@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -42,7 +42,7 @@ function PrivacyBadge({ isPublic }: { isPublic: boolean }) {
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-      style={{ background: 'rgba(124,58,237,.1)', color: '#7C3AED' }}>
+      style={{ background: 'rgba(55,65,81,.1)', color: '#374151' }}>
       <Lock className="w-2.5 h-2.5" /> Private
     </span>
   );
@@ -213,7 +213,7 @@ export function MyContentSection() {
                 onClick={() => setFilter(f)}
                 className="px-3 py-1 rounded-[10px] text-[11px] font-semibold transition-all capitalize"
                 style={filter === f
-                  ? { background: '#fff', color: '#7C3AED', boxShadow: '0 1px 4px rgba(124,58,237,.15)' }
+                  ? { background: '#fff', color: '#374151', boxShadow: '0 1px 4px rgba(55,65,81,.15)' }
                   : { color: '#6b7280' }}
               >
                 {f === 'private' && <Lock className="w-2.5 h-2.5 inline mr-1" />}
@@ -226,7 +226,7 @@ export function MyContentSection() {
         <Link
           href="/projects"
           className="text-xs font-semibold hover:underline"
-          style={{ color: '#7C3AED' }}
+          style={{ color: '#374151' }}
         >
           View all →
         </Link>
@@ -234,9 +234,9 @@ export function MyContentSection() {
 
       {/* Content permission callout */}
       <div className="rounded-2xl p-4 mb-4 grid grid-cols-2 gap-4"
-        style={{ background: 'rgba(124,58,237,.04)', border: '1px solid rgba(124,58,237,.15)' }}>
+        style={{ background: 'rgba(55,65,81,.04)', border: '1px solid rgba(55,65,81,.15)' }}>
         <div>
-          <div className="text-[10px] font-extrabold mb-2" style={{ color: '#A78BFA' }}>
+          <div className="text-[10px] font-extrabold mb-2" style={{ color: '#9ca3af' }}>
             🔒 PRIVATE — full creator control
           </div>
           <div className="text-[10px] leading-relaxed" style={{ color: '#6b7280' }}>
@@ -289,7 +289,7 @@ export function MyContentSection() {
           <Link
             href="/projects"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white transition-colors"
-            style={{ background: '#7C3AED' }}
+            style={{ background: '#374151' }}
           >
             <Plus className="w-3.5 h-3.5" /> Create Content
           </Link>
@@ -302,7 +302,7 @@ export function MyContentSection() {
             <div key={item.id}
               className="rounded-2xl overflow-hidden group relative transition-all hover:-translate-y-0.5"
               style={{ background: '#fff', border: '1.5px solid #e3ddf8', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(124,58,237,.35)'; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(55,65,81,.35)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e3ddf8'; }}
             >
               {/* Thumbnail */}
@@ -377,7 +377,7 @@ export function MyContentSection() {
           <Link href="/projects"
             className="rounded-2xl flex flex-col items-center justify-center aspect-video sm:aspect-auto min-h-[120px] gap-2 transition-all hover:border-purple-300"
             style={{ border: '1.5px dashed #d1d5db', background: 'transparent' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(124,58,237,.03)'; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(55,65,81,.03)'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
           >
             <Plus className="w-6 h-6 text-gray-400" />

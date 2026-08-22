@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Code2, Copy, Check, Plus, Trash2, X, ChevronDown, ChevronUp, Loader2, BarChart2, Key } from 'lucide-react';
@@ -187,7 +187,7 @@ export default function DeveloperPage() {
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
           >
             <Code2 className="w-5 h-5 text-white" />
           </div>
@@ -209,18 +209,18 @@ export default function DeveloperPage() {
         {createdKey && (
           <div
             className="rounded-2xl p-5"
-            style={{ background: '#f5f2fd', border: '1.5px solid #c4b5fd' }}
+            style={{ background: '#f3f4f6', border: '1.5px solid #d1d5db' }}
           >
             <div className="flex items-start justify-between mb-2">
               <div>
-                <p className="font-semibold" style={{ color: '#6D4AE0' }}>Key created! Copy it now — it won&apos;t be shown again.</p>
+                <p className="font-semibold" style={{ color: '#374151' }}>Key created! Copy it now — it won&apos;t be shown again.</p>
                 <p className="text-xs mt-0.5" style={{ color: '#7c5ae8' }}>Store this key securely. We cannot recover it.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setCreatedKey(null)}
                 className="ml-4"
-                style={{ color: '#a78bfa' }}
+                style={{ color: '#9ca3af' }}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -232,7 +232,7 @@ export default function DeveloperPage() {
               type="button"
               onClick={() => void copyText(createdKey, 'key')}
               className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium text-white"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
             >
               {copiedKey ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copiedKey ? 'Copied!' : 'Copy Key'}
@@ -248,7 +248,7 @@ export default function DeveloperPage() {
               type="button"
               onClick={() => setTab(t)}
               className={`px-5 py-2 text-sm font-medium rounded-2xl transition-colors capitalize ${tab === t ? 'bg-white shadow' : 'text-gray-500 hover:text-gray-700'}`}
-              style={tab === t ? { color: '#6D4AE0' } : undefined}
+              style={tab === t ? { color: '#374151' } : undefined}
             >
               {t === 'keys'
                 ? <span className="flex items-center gap-1.5"><Key className="w-3.5 h-3.5" /> API Keys</span>
@@ -269,7 +269,7 @@ export default function DeveloperPage() {
                 className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               >
                 <span className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" style={{ color: '#6D4AE0' }} /> Create New API Key
+                  <Plus className="w-4 h-4" style={{ color: '#374151' }} /> Create New API Key
                 </span>
                 {showCreate
                   ? <ChevronUp className="w-4 h-4 text-gray-400" />
@@ -286,7 +286,7 @@ export default function DeveloperPage() {
                       value={newKeyName}
                       onChange={e => setNewKeyName(e.target.value)}
                       placeholder="e.g. Production Integration"
-                      className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                      className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                       style={{ border: '1.5px solid #e3e0f0' }}
                       required
                     />
@@ -298,7 +298,7 @@ export default function DeveloperPage() {
                       value={newKeyDesc}
                       onChange={e => setNewKeyDesc(e.target.value)}
                       placeholder="Optional description"
-                      className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                      className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                       style={{ border: '1.5px solid #e3e0f0' }}
                     />
                   </div>
@@ -311,8 +311,8 @@ export default function DeveloperPage() {
                             type="checkbox"
                             checked={newKeyScopes.includes(scope)}
                             onChange={() => toggleScope(scope)}
-                            className="rounded border-gray-300 focus:ring-[#6D4AE0]"
-                            style={{ accentColor: '#6D4AE0' }}
+                            className="rounded border-gray-300 focus:ring-[#374151]"
+                            style={{ accentColor: '#374151' }}
                           />
                           <span className="text-xs text-gray-700">{scope}</span>
                         </label>
@@ -325,7 +325,7 @@ export default function DeveloperPage() {
                       type="submit"
                       disabled={creating || !newKeyName.trim()}
                       className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium text-white disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                      style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                     >
                       {creating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                       {creating ? 'Creating…' : 'Create API Key'}
@@ -388,7 +388,7 @@ export default function DeveloperPage() {
                         {(key.scopes ?? []).length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mb-3">
                             {(key.scopes ?? []).map(s => (
-                              <span key={s} className="px-2 py-0.5 bg-[#f5f2fd] text-[#6D4AE0] rounded-full text-xs">{s}</span>
+                              <span key={s} className="px-2 py-0.5 bg-[#f3f4f6] text-[#374151] rounded-full text-xs">{s}</span>
                             ))}
                           </div>
                         )}
@@ -441,7 +441,7 @@ export default function DeveloperPage() {
             {/* Webhooks link */}
             <div className="bg-white rounded-2xl px-4 py-3 text-sm text-gray-600" style={{ border: '1.5px solid #e3ddf8' }}>
               Manage webhooks in{' '}
-              <a href="/settings" className="font-medium hover:underline" style={{ color: '#6D4AE0' }}>Settings → Developer Webhooks</a>.
+              <a href="/settings" className="font-medium hover:underline" style={{ color: '#374151' }}>Settings → Developer Webhooks</a>.
             </div>
           </div>
         )}
@@ -459,7 +459,7 @@ export default function DeveloperPage() {
                   onClick={() => setUsageDays(d)}
                   className={`px-3 py-1.5 rounded-2xl text-sm font-medium transition-colors ${usageDays === d ? 'text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                   style={usageDays === d
-                    ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }
+                    ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }
                     : { border: '1.5px solid #e3ddf8' }
                   }
                 >
@@ -481,7 +481,7 @@ export default function DeveloperPage() {
                   type="button"
                   onClick={() => void loadUsage(usageDays)}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium text-white"
-                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                 >
                   <Loader2 className="w-3.5 h-3.5" /> Retry
                 </button>
@@ -521,7 +521,7 @@ export default function DeveloperPage() {
                               className="h-2 rounded-full transition-all"
                               style={{
                                 width: `${Math.max(2, (k.total / maxUsage) * 100)}%`,
-                                background: 'linear-gradient(90deg, #6D4AE0, #9d6ff0)',
+                                background: 'linear-gradient(90deg, #374151, #9d6ff0)',
                               }}
                             />
                           </div>

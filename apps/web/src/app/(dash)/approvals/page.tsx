@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -112,7 +112,7 @@ function ShortsExportReview({ result }: { result: ShortsExportResult }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-extrabold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#6D4AE0' }}>
+        <p className="text-xs font-extrabold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#374151' }}>
           <Clapperboard className="w-3.5 h-3.5" />
           {(result.clipType ?? 'SHORT').replace(/_/g, ' ')}
           {result.durationMs ? ` · ${Math.round(result.durationMs / 1000)}s` : ''}
@@ -125,12 +125,12 @@ function ShortsExportReview({ result }: { result: ShortsExportResult }) {
           <p className="flex items-center gap-1 flex-wrap mt-2">
             <Tag className="w-3 h-3 text-gray-400" />
             {meta.tags!.slice(0, 8).map((t) => (
-              <span key={t} className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{t}</span>
+              <span key={t} className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: '#f3f4f6', color: '#374151' }}>{t}</span>
             ))}
           </p>
         )}
         {result.shortClipId && (
-          <Link href={`/shorts-studio/clips/${result.shortClipId}/export`} className="inline-block text-xs hover:underline mt-2" style={{ color: '#6D4AE0' }}>
+          <Link href={`/shorts-studio/clips/${result.shortClipId}/export`} className="inline-block text-xs hover:underline mt-2" style={{ color: '#374151' }}>
             Open full export page →
           </Link>
         )}
@@ -222,7 +222,7 @@ function HistoryRow({ a, open, onToggle }: { a: Approval; open: boolean; onToggl
             href={`/shorts-studio/clips/${shorts.shortClipId}/export`}
             onClick={(e) => e.stopPropagation()}
             className="hover:opacity-70 shrink-0 transition-opacity"
-            style={{ color: '#6D4AE0' }}
+            style={{ color: '#374151' }}
             title="Open clip export page"
           >
             <ExternalLink className="w-4 h-4" />
@@ -471,7 +471,7 @@ export default function PublishCenterPage() {
   // Tab button style helper
   const tabStyle = (active: boolean): React.CSSProperties =>
     active
-      ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', color: '#fff', border: '1.5px solid transparent', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }
+      ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', color: '#fff', border: '1.5px solid transparent', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }
       : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' };
 
   return (
@@ -540,7 +540,7 @@ export default function PublishCenterPage() {
                 style={
                   pageTab === 'pending'
                     ? { background: 'rgba(255,255,255,0.25)', color: '#fff' }
-                    : { background: '#6D4AE0', color: '#fff' }
+                    : { background: '#374151', color: '#fff' }
                 }
               >
                 {approvals.length}
@@ -572,12 +572,12 @@ export default function PublishCenterPage() {
           <>
             {isLoading ? (
               <div className="flex justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#6D4AE0' }} />
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#374151' }} />
               </div>
             ) : approvals.length === 0 ? (
               <div className="bg-white rounded-3xl p-12 flex flex-col items-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                  <CheckCircle className="w-7 h-7" style={{ color: '#6D4AE0' }} />
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                  <CheckCircle className="w-7 h-7" style={{ color: '#374151' }} />
                 </div>
                 <p className="text-sm font-semibold text-gray-700">No pending approvals</p>
                 <p className="text-xs text-gray-400 mt-1">All caught up!</p>
@@ -611,7 +611,7 @@ export default function PublishCenterPage() {
                         value={notes[a.id] ?? ''}
                         onChange={(e) => setNotes((n) => ({ ...n, [a.id]: e.target.value }))}
                         rows={2}
-                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                         style={{ border: '1.5px solid #e3e0f0' }}
                       />
                     </div>
@@ -704,7 +704,7 @@ export default function PublishCenterPage() {
               <select
                 value={channelId}
                 onChange={(e) => { handleChannelChange(e.target.value); }}
-                className="bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                className="bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                 style={{ border: '1.5px solid #e3e0f0' }}
                 aria-label="Select channel"
               >
@@ -720,7 +720,7 @@ export default function PublishCenterPage() {
                   className="px-3 py-2.5 flex items-center gap-1.5 text-sm font-semibold rounded-2xl transition-all"
                   style={
                     view === 'month'
-                      ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', color: '#fff', border: '1.5px solid transparent', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }
+                      ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', color: '#fff', border: '1.5px solid transparent', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }
                       : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
                   }
                 >
@@ -732,7 +732,7 @@ export default function PublishCenterPage() {
                   className="px-3 py-2.5 flex items-center gap-1.5 text-sm font-semibold rounded-2xl transition-all"
                   style={
                     view === 'list'
-                      ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', color: '#fff', border: '1.5px solid transparent', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }
+                      ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', color: '#fff', border: '1.5px solid transparent', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }
                       : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
                   }
                 >
@@ -754,8 +754,8 @@ export default function PublishCenterPage() {
           <>
             {history.length === 0 ? (
               <div className="bg-white rounded-3xl p-12 flex flex-col items-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                  <History className="w-7 h-7" style={{ color: '#6D4AE0' }} />
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                  <History className="w-7 h-7" style={{ color: '#374151' }} />
                 </div>
                 <p className="text-sm font-semibold text-gray-700">No review history yet</p>
                 <p className="text-xs text-gray-400 mt-1">Approved and rejected items will appear here.</p>
@@ -765,12 +765,12 @@ export default function PublishCenterPage() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
                     <History className="w-4 h-4" /> Recently reviewed
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{history.length}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f3f4f6', color: '#374151' }}>{history.length}</span>
                   </h2>
                   <button
                     onClick={() => setOpenRows((prev) => prev.size === history.length ? new Set() : new Set(history.map((a) => a.id)))}
                     className="text-xs hover:underline"
-                    style={{ color: '#6D4AE0' }}
+                    style={{ color: '#374151' }}
                   >
                     {openRows.size === history.length ? 'Collapse all' : 'Expand all'}
                   </button>
@@ -859,7 +859,7 @@ function PlanContentModal({
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-            <Plus className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+            <Plus className="w-4 h-4" style={{ color: '#374151' }} />
             Plan new content
           </h2>
           <button type="button" onClick={onClose} className="p-1.5 rounded-2xl hover:bg-gray-50 text-gray-400" style={{ border: '1.5px solid #e3ddf8' }}>
@@ -876,7 +876,7 @@ function PlanContentModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. How to grow on YouTube in 2026"
-              className="w-full px-4 py-3 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+              className="w-full px-4 py-3 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
               style={{ border: '1.5px solid #e3e0f0' }}
             />
           </div>
@@ -892,7 +892,7 @@ function PlanContentModal({
                     onClick={() => setFmt(f)}
                     className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
                     style={fmt === f
-                      ? { background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)', color: '#fff', border: '1.5px solid transparent' }
+                      ? { background: 'linear-gradient(135deg, #374151, #7c5ae8)', color: '#fff', border: '1.5px solid transparent' }
                       : { background: '#faf9ff', color: '#374151', border: '1.5px solid #e3ddf8' }}
                   >
                     {f === 'SHORT' ? <><Scissors className="w-3 h-3 inline mr-1" />Short</> : 'Video'}
@@ -906,7 +906,7 @@ function PlanContentModal({
                 type="datetime-local"
                 value={plannedAt}
                 onChange={(e) => setPlannedAt(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
@@ -921,7 +921,7 @@ function PlanContentModal({
               value={angle}
               onChange={(e) => setAngle(e.target.value)}
               placeholder="A compelling hook that stops viewers mid-scroll"
-              className="w-full px-4 py-3 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+              className="w-full px-4 py-3 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
               style={{ border: '1.5px solid #e3e0f0' }}
             />
           </div>
@@ -934,7 +934,7 @@ function PlanContentModal({
               onClick={() => mutate()}
               disabled={isPending || !title.trim()}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-bold text-white disabled:opacity-50 transition-all"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Add to calendar
@@ -1069,14 +1069,14 @@ function MonthView({ channelId, onSelect }: { channelId: string; onSelect: (v: T
 
         {isLoading && (
           <div className="flex items-center gap-2 py-16 justify-center text-gray-400">
-            <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} /> Loading calendar…
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} /> Loading calendar…
           </div>
         )}
 
         {!isLoading && (
           <>
             {/* Weekday headers */}
-            <div className="grid grid-cols-7 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 pb-2 mb-1" style={{ borderBottom: '1px solid #f0edf9' }}>
+            <div className="grid grid-cols-7 text-[10px] font-extrabold uppercase tracking-widest text-gray-400 pb-2 mb-1" style={{ borderBottom: '1px solid #f3f4f6' }}>
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
                 <div key={d} className="px-2">{d}</div>
               ))}
@@ -1094,7 +1094,7 @@ function MonthView({ channelId, onSelect }: { channelId: string; onSelect: (v: T
                   <div
                     key={key}
                     className={`group p-1.5 min-h-[100px] flex flex-col gap-1 ${inMonth ? '' : 'bg-[#faf9ff]/60'}`}
-                    style={{ borderBottom: '1px solid #f0edf9', borderRight: '1px solid #f0edf9' }}
+                    style={{ borderBottom: '1px solid #f3f4f6', borderRight: '1px solid #f3f4f6' }}
                   >
                     <div className="flex items-center justify-between">
                       <span
@@ -1103,7 +1103,7 @@ function MonthView({ channelId, onSelect }: { channelId: string; onSelect: (v: T
                             ? 'text-white'
                             : inMonth ? 'text-gray-700' : 'text-gray-400'
                         }`}
-                        style={isToday(day) ? { background: '#6D4AE0' } : {}}
+                        style={isToday(day) ? { background: '#374151' } : {}}
                       >
                         {format(day, 'd')}
                       </span>
@@ -1113,8 +1113,8 @@ function MonthView({ channelId, onSelect }: { channelId: string; onSelect: (v: T
                           type="button"
                           onClick={() => setPlanDay(day)}
                           title="Plan content for this day"
-                          className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full flex items-center justify-center transition-opacity hover:bg-[#6D4AE0]/10"
-                          style={{ color: '#6D4AE0' }}
+                          className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full flex items-center justify-center transition-opacity hover:bg-[#374151]/10"
+                          style={{ color: '#374151' }}
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
@@ -1219,7 +1219,7 @@ function ListView({ channelId, onSelect }: { channelId: string; onSelect: (v: Tr
               className="px-3 py-2 text-sm font-semibold rounded-2xl transition-all"
               style={
                 statusTab === t
-                  ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', color: '#fff', border: '1.5px solid transparent', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }
+                  ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', color: '#fff', border: '1.5px solid transparent', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }
                   : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
               }
             >
@@ -1235,14 +1235,14 @@ function ListView({ channelId, onSelect }: { channelId: string; onSelect: (v: Tr
             onChange={(e) => { setSearchInput(e.target.value); }}
             placeholder="Search videos…"
             aria-label="Search videos"
-            className="w-full pl-10 pr-4 bg-white rounded-2xl py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all placeholder:text-gray-400"
+            className="w-full pl-10 pr-4 bg-white rounded-2xl py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all placeholder:text-gray-400"
             style={{ border: '1.5px solid #e3e0f0' }}
           />
         </div>
         {!isLoading && (
           <span
             className="rounded-full text-[11px] font-bold px-2.5 py-0.5 ml-auto"
-            style={{ background: '#f5f2fd', color: '#6D4AE0' }}
+            style={{ background: '#f3f4f6', color: '#374151' }}
           >
             {total} video{total === 1 ? '' : 's'}
           </span>
@@ -1251,14 +1251,14 @@ function ListView({ channelId, onSelect }: { channelId: string; onSelect: (v: Tr
 
       {isLoading && (
         <div className="flex items-center gap-2 py-20 justify-center text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6D4AE0' }} /> Loading videos…
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} /> Loading videos…
         </div>
       )}
 
       {!isLoading && videos.length === 0 && (
         <div className="bg-white rounded-3xl p-16 flex flex-col items-center justify-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-            <CalendarClock className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+            <CalendarClock className="w-8 h-8" style={{ color: '#374151' }} />
           </div>
           <p className="text-base font-extrabold text-gray-900 mb-1">No {statusTab === 'all' ? 'tracked' : STATUS_LABEL[statusTab as TrackedVideoStatus].toLowerCase()} videos yet</p>
           <p className="text-sm text-gray-400">Videos appear here once they are scheduled or published.</p>
@@ -1275,7 +1275,7 @@ function ListView({ channelId, onSelect }: { channelId: string; onSelect: (v: Tr
                 type="button"
                 onClick={() => { onSelect(v); }}
                 className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-[#faf9ff] transition-colors"
-                style={{ borderBottom: '1px solid #f0edf9' }}
+                style={{ borderBottom: '1px solid #f3f4f6' }}
               >
                 {/* Thumbnail */}
                 {v.thumbnailUrl ? (
@@ -1321,7 +1321,7 @@ function ListView({ channelId, onSelect }: { channelId: string; onSelect: (v: Tr
             );
           })}
           {hasNextPage && (
-            <div className="p-3 flex justify-center" style={{ borderTop: '1px solid #f0edf9' }}>
+            <div className="p-3 flex justify-center" style={{ borderTop: '1px solid #f3f4f6' }}>
               <button
                 type="button"
                 onClick={() => { void fetchNextPage(); }}
@@ -1420,7 +1420,7 @@ function VideoDetailModal({ video, onClose }: { video: TrackedVideo; onClose: ()
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               <ExternalLink className="w-4 h-4" /> Open on YouTube
             </a>

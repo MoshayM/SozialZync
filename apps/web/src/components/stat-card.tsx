@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 import React from 'react';
 
 export type StatTone = 'lilac' | 'pink' | 'cream' | 'periwinkle';
 
 const TONES: Record<StatTone, { cardBg: string; cardBorder: string; tileBg: string }> = {
-  lilac:      { cardBg: '#f5f2fd', cardBorder: '#e3ddf8', tileBg: '#6D4AE0' },
+  lilac:      { cardBg: '#f3f4f6', cardBorder: '#e3ddf8', tileBg: '#374151' },
   pink:       { cardBg: '#fdf2f8', cardBorder: '#f9d0ea', tileBg: '#e0196e' },
   cream:      { cardBg: '#fefce8', cardBorder: '#fde68a', tileBg: '#d97706' },
   periwinkle: { cardBg: '#eff6ff', cardBorder: '#bfdbfe', tileBg: '#3b82f6' },
@@ -56,7 +56,7 @@ export function PastelBars({
 }) {
   const bars = data.slice(0, maxBars);
   const max = Math.max(...bars.map((b) => b.value), 0.0001);
-  const COLORS = ['#6D4AE0', '#f0c14d', '#10b981', '#3b82f6', '#ec4899', '#f97316', '#8b5cf6'];
+  const COLORS = ['#374151', '#f0c14d', '#10b981', '#3b82f6', '#ec4899', '#f97316', '#8b5cf6'];
   return (
     <div className="flex items-end justify-around gap-3 h-44 pt-2">
       {bars.map((b, i) => (

@@ -43,7 +43,7 @@ const STATUS_COLORS: Record<EntryStatus, string> = {
 const STATUS_BG: Record<EntryStatus, string> = {
   idea: '#eef2ff',
   draft: '#fffbeb',
-  scheduled: '#f5f2fd',
+  scheduled: '#f3f4f6',
   published: '#ecfdf5',
 };
 
@@ -255,7 +255,7 @@ function EntryModal({
             onClick={submit}
             disabled={!title.trim()}
             className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 16px -4px rgba(109,74,224,.4)' }}
+            style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 16px -4px rgba(55,65,81,.4)' }}
           >
             <Check className="w-3.5 h-3.5" />Save
           </button>
@@ -402,7 +402,7 @@ function GenerateModal({
         {loading && (
           <div className="flex-1 overflow-y-auto space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-12 rounded-xl animate-pulse" style={{ background: '#f0edf9' }} />
+              <div key={i} className="h-12 rounded-xl animate-pulse" style={{ background: '#f3f4f6' }} />
             ))}
           </div>
         )}
@@ -435,7 +435,7 @@ function GenerateModal({
             onClick={addSelected}
             disabled={!ideas.some(i => i.selected)}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-all hover:opacity-90 shrink-0"
-            style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 16px -4px rgba(109,74,224,.4)' }}
+            style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 16px -4px rgba(55,65,81,.4)' }}
           >
             <Check className="w-4 h-4" />
             Add {ideas.filter(i => i.selected).length} to Calendar
@@ -593,7 +593,7 @@ export default function ContentCalendarPage() {
               <button
                 onClick={() => setShowGenerate(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[.98] shrink-0"
-                style={{ background: 'linear-gradient(135deg,#D97706,#6b7280)', boxShadow: '0 4px 16px -4px rgba(109,74,224,.4)' }}
+                style={{ background: 'linear-gradient(135deg,#D97706,#6b7280)', boxShadow: '0 4px 16px -4px rgba(55,65,81,.4)' }}
               >
                 <Sparkles className="w-4 h-4" />Generate Plan
               </button>
@@ -612,11 +612,11 @@ export default function ContentCalendarPage() {
                   <ChevronRight className="w-4 h-4 text-gray-600" />
                 </button>
               </div>
-              <div className="flex gap-1 p-1 rounded-xl ml-auto" style={{ background: '#f0edf9' }}>
+              <div className="flex gap-1 p-1 rounded-xl ml-auto" style={{ background: '#f3f4f6' }}>
                 {(['month', 'week'] as const).map(v => (
                   <button key={v} onClick={() => setViewMode(v)}
                     className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
-                    style={viewMode === v ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
+                    style={viewMode === v ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(55,65,81,.15)' } : { color: '#9b8fc4' }}>
                     {v}
                   </button>
                 ))}
@@ -628,7 +628,7 @@ export default function ContentCalendarPage() {
               {[
                 { label: 'Total', value: stats.total, color: '#6366f1', bg: '#eef2ff' },
                 { label: 'Drafts', value: stats.drafts, color: '#f59e0b', bg: '#fffbeb' },
-                { label: 'Scheduled', value: stats.scheduled, color: '#374151', bg: '#f5f2fd' },
+                { label: 'Scheduled', value: stats.scheduled, color: '#374151', bg: '#f3f4f6' },
                 { label: 'Published', value: stats.published, color: '#10b981', bg: '#ecfdf5' },
               ].map(s => (
                 <div key={s.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: s.bg, color: s.color }}>
@@ -649,7 +649,7 @@ export default function ContentCalendarPage() {
                 {/* Grid rows */}
                 <div className="grid grid-cols-7">
                   {grid.map((cell, idx) => {
-                    if (!cell.date) return <div key={idx} className="min-h-[90px] border-b border-r border-[#f0edf9]" />;
+                    if (!cell.date) return <div key={idx} className="min-h-[90px] border-b border-r border-[#f3f4f6]" />;
                     const cellEntries = entries.filter(e => e.date === cell.date);
                     const isToday = cell.date === today;
                     const isExpanded = expandedDay === cell.date;
@@ -658,7 +658,7 @@ export default function ContentCalendarPage() {
                     return (
                       <div
                         key={idx}
-                        className="min-h-[90px] p-1.5 border-b border-r border-[#f0edf9] transition-colors hover:bg-[#faf9ff]"
+                        className="min-h-[90px] p-1.5 border-b border-r border-[#f3f4f6] transition-colors hover:bg-[#faf9ff]"
                         style={isToday ? { background: '#f3f4f6', outline: '2px solid #374151', outlineOffset: '-2px', borderRadius: '2px' } : {}}
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -731,7 +731,7 @@ export default function ContentCalendarPage() {
                     const d = new Date(dateStr + 'T00:00:00');
                     const isToday = dateStr === today;
                     return (
-                      <div key={dateStr} className="py-3 px-2 text-center border-r border-[#f0edf9] last:border-r-0" style={isToday ? { background: '#f3f4f6' } : {}}>
+                      <div key={dateStr} className="py-3 px-2 text-center border-r border-[#f3f4f6] last:border-r-0" style={isToday ? { background: '#f3f4f6' } : {}}>
                         <div className="text-[10px] font-bold text-gray-400">{DAY_NAMES[i]}</div>
                         <div className={`text-sm font-bold ${isToday ? 'text-gray-900' : 'text-gray-800'}`}>{d.getDate()}</div>
                       </div>
@@ -745,7 +745,7 @@ export default function ContentCalendarPage() {
                     return (
                       <div
                         key={dateStr}
-                        className="min-h-[200px] p-2 border-r border-[#f0edf9] last:border-r-0 space-y-1.5"
+                        className="min-h-[200px] p-2 border-r border-[#f3f4f6] last:border-r-0 space-y-1.5"
                         style={isToday ? { background: '#faf5ff' } : {}}
                       >
                         {dayEntries.map(entry => (
@@ -760,7 +760,7 @@ export default function ContentCalendarPage() {
                               <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1" style={{ background: `${PLATFORM_COLORS[entry.platform]}18`, color: PLATFORM_COLORS[entry.platform] }}>{PLATFORM_LABELS[entry.platform]}</span>
                             )}
                             {entry.category && (
-                              <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 ml-1" style={{ background: 'rgba(109,74,224,.1)', color: '#374151' }}>{entry.category}</span>
+                              <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 ml-1" style={{ background: 'rgba(55,65,81,.1)', color: '#374151' }}>{entry.category}</span>
                             )}
                             <div className="mt-1">
                               <span className="text-[10px] font-bold capitalize" style={{ color: STATUS_COLORS[entry.status] }}>{entry.status}</span>
@@ -833,7 +833,7 @@ export default function ContentCalendarPage() {
                           style={{ background: isToday ? '#374151' : '#f3f4f6' }}
                         >
                           <span className="text-[9px] font-bold" style={{ color: isToday ? '#fff' : '#9b8fc4' }}>{DAY_NAMES[(d.getDay() + 6) % 7]}</span>
-                          <span className="text-sm font-extrabold leading-none" style={{ color: isToday ? '#fff' : '#6D4AE0' }}>{d.getDate()}</span>
+                          <span className="text-sm font-extrabold leading-none" style={{ color: isToday ? '#fff' : '#374151' }}>{d.getDate()}</span>
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
                           <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-gray-700 transition-colors">{e.title}</p>
@@ -897,7 +897,7 @@ export default function ContentCalendarPage() {
                 }}
                 disabled={!qsTitle.trim()}
                 className="w-full py-2 rounded-xl text-xs font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}
+                style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
               >
                 Schedule Post
               </button>

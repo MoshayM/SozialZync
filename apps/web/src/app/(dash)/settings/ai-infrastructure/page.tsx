@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, apiClient } from '@/lib/api';
@@ -176,7 +176,7 @@ function IosToggle({ checked, onChange }: { checked: boolean; onChange: (v: bool
   return (
     <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
       style={{ position: 'relative', display: 'inline-flex', width: 44, height: 26, borderRadius: 13,
-        border: 'none', padding: 0, cursor: 'pointer', background: checked ? '#6D4AE0' : '#d1d5db',
+        border: 'none', padding: 0, cursor: 'pointer', background: checked ? '#374151' : '#d1d5db',
         transition: 'background 0.2s', flexShrink: 0, outline: 'none', WebkitTapHighlightColor: 'transparent' }}>
       <span style={{ position: 'absolute', top: 3, left: checked ? 21 : 3, width: 20, height: 20,
         borderRadius: '50%', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.25)', transition: 'left 0.2s' }} />
@@ -199,7 +199,7 @@ function ProviderCard({
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
   const [testMsg, setTestMsg] = useState('');
   const isConnected = config.enabled && !!config.maskedHint;
-  const icon = PROVIDER_ICONS[config.provider] ?? { bg: '#6D4AE0', color: '#fff', letter: config.provider[0]?.toUpperCase() ?? '?' };
+  const icon = PROVIDER_ICONS[config.provider] ?? { bg: '#374151', color: '#fff', letter: config.provider[0]?.toUpperCase() ?? '?' };
 
   async function handleTest() {
     setTestStatus('loading'); setTestMsg('Connecting…');
@@ -240,7 +240,7 @@ function ProviderCard({
         )}
       </div>
 
-      <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid #f0edf9' }}>
+      <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid #f3f4f6' }}>
         {/* Masked key or env hint */}
         {isConnected && config.maskedHint ? (
           <>
@@ -262,7 +262,7 @@ function ProviderCard({
                 value={config.apiKey}
                 onChange={(e) => onKeyChange(config.provider, e.target.value)}
                 placeholder="Paste your API key…"
-                className="w-full rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0', paddingRight: '2.5rem' }}
                 autoComplete="off"
               />
@@ -280,7 +280,7 @@ function ProviderCard({
           <select
             value={config.model}
             onChange={(e) => onModelChange(config.provider, e.target.value)}
-            className="w-full rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 cursor-pointer"
+            className="w-full rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 cursor-pointer"
             style={{ border: '1.5px solid #e3e0f0' }}>
             <option value={config.model}>{config.model}</option>
             {config.provider === 'anthropic' && <>
@@ -321,7 +321,7 @@ function ProviderCard({
                 value={config.apiKey}
                 onChange={(e) => onKeyChange(config.provider, e.target.value)}
                 placeholder="Enter new key to replace..."
-                className="w-full rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0', paddingRight: '2.5rem' }}
                 autoComplete="off"
               />
@@ -348,7 +348,7 @@ function ProviderCard({
           {!isConnected && (
             <button type="button"
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)' }}>
+              style={{ background: 'linear-gradient(135deg, #374151, #7c5ae8)' }}>
               <Save className="w-3.5 h-3.5" /> Save &amp; Connect
             </button>
           )}
@@ -532,14 +532,14 @@ export default function AiInfrastructurePage() {
       <div className="min-h-full flex items-center justify-center bg-[#faf9ff]">
         <div className="text-center max-w-sm px-6 py-12">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: '#f5f2fd' }}>
-            <Shield className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+            style={{ background: '#f3f4f6' }}>
+            <Shield className="w-8 h-8" style={{ color: '#374151' }} />
           </div>
           <h2 className="text-xl font-extrabold text-gray-900 mb-2">Access restricted</h2>
           <p className="text-sm text-gray-500 mb-6">
             AI &amp; Infrastructure settings are only available to admins, developers, and owners.
           </p>
-          <a href="/settings" className="text-sm font-semibold" style={{ color: '#6D4AE0' }}>
+          <a href="/settings" className="text-sm font-semibold" style={{ color: '#374151' }}>
             ← Back to settings
           </a>
         </div>
@@ -575,7 +575,7 @@ export default function AiInfrastructurePage() {
 
         {/* ── Section 1: AI Providers ──────────────────────────────────────── */}
         <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+          <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: '#fff7ed' }}>
               <Key className="w-4 h-4" style={{ color: '#d97706' }} />
@@ -603,7 +603,7 @@ export default function AiInfrastructurePage() {
 
         {/* ── Section 2: My AI Preference ─────────────────────────────────── */}
         <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+          <div className="px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
             <p className="text-sm font-semibold text-gray-800">My AI Preference</p>
             <p className="text-xs text-gray-400 mt-0.5">
               Choose which AI provider handles requests. Auto picks the best provider per task type
@@ -641,7 +641,7 @@ export default function AiInfrastructurePage() {
 
         {/* ── Section 3: Enable / Disable ─────────────────────────────────── */}
         <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+          <div className="px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-500">ENABLE / DISABLE PROVIDERS</p>
             <p className="text-xs text-gray-400 mt-1">Disabled providers are skipped even in Auto mode.</p>
           </div>
@@ -669,10 +669,10 @@ export default function AiInfrastructurePage() {
 
         {/* ── Section 4: Active Providers ─────────────────────────────────── */}
         <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+          <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
             <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-              style={{ border: '2px solid #6D4AE0' }}>
-              <div className="w-2 h-2 rounded-full" style={{ background: '#6D4AE0' }} />
+              style={{ border: '2px solid #374151' }}>
+              <div className="w-2 h-2 rounded-full" style={{ background: '#374151' }} />
             </div>
             <p className="text-sm font-semibold text-gray-800">Active Providers</p>
           </div>
@@ -701,8 +701,8 @@ export default function AiInfrastructurePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Config File Models */}
           <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
-              <SlidersHorizontal className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />
+            <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <SlidersHorizontal className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />
               <div>
                 <p className="text-sm font-semibold text-gray-800">Config File Models</p>
                 <p className="text-xs text-gray-400">Stored in ai-config.json — used by existing routes</p>
@@ -715,7 +715,7 @@ export default function AiInfrastructurePage() {
                   <select
                     value={agentModels[task.key] ?? task.defaultModel}
                     onChange={(e) => setAgentModels((prev) => ({ ...prev, [task.key]: e.target.value }))}
-                    className="w-full rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 cursor-pointer"
+                    className="w-full rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 cursor-pointer"
                     style={{ border: '1.5px solid #e3e0f0' }}>
                     {MODEL_OPTIONS.map((m) => (
                       <option key={m.value} value={m.value}>{m.label}</option>
@@ -728,7 +728,7 @@ export default function AiInfrastructurePage() {
 
           {/* Cost Parameters */}
           <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+            <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
               <Gauge className="w-4 h-4 shrink-0" style={{ color: '#f59e0b' }} />
               <p className="text-sm font-semibold text-gray-800">Cost Parameters</p>
             </div>
@@ -747,7 +747,7 @@ export default function AiInfrastructurePage() {
                     type="number"
                     value={costParams[key]}
                     onChange={(e) => setCostParams((prev) => ({ ...prev, [key]: parseInt(e.target.value, 10) || 0 }))}
-                    className="w-full rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                    className="w-full rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-[#374151]/20"
                     style={{ border: '1.5px solid #e3e0f0' }}
                   />
                   <p className="text-[10px] text-gray-400 mt-1">{hint}</p>
@@ -759,8 +759,8 @@ export default function AiInfrastructurePage() {
 
         {/* ── Section 6: Live Route Overrides ─────────────────────────────── */}
         <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
-            <GitBranch className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />
+          <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
+            <GitBranch className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Live Route Overrides</p>
               <p className="text-xs text-gray-400">Per-task provider/model overrides — no redeploy needed</p>
@@ -793,7 +793,7 @@ export default function AiInfrastructurePage() {
                   <select
                     value={current}
                     onChange={(e) => setRouteOverrides((prev) => ({ ...prev, [task.key]: e.target.value }))}
-                    className="flex-1 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 cursor-pointer"
+                    className="flex-1 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 cursor-pointer"
                     style={{
                       border: '1.5px solid #e3e0f0',
                       background: isSet ? 'rgba(251,191,36,0.08)' : '#fff',
@@ -811,7 +811,7 @@ export default function AiInfrastructurePage() {
 
         {/* ── Section 7: Ollama Local LLM ─────────────────────────────────── */}
         <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+          <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: '#f3e8ff' }}>
               <Zap className="w-4 h-4" style={{ color: '#7c3aed' }} />
@@ -841,7 +841,7 @@ export default function AiInfrastructurePage() {
               {ollamaModels.length === 0 ? (
                 <div className="rounded-xl px-4 py-5 text-center"
                   style={{ border: '1.5px dashed #e3e0f0' }}>
-                  <p className="text-sm font-semibold" style={{ color: '#6D4AE0' }}>No models detected</p>
+                  <p className="text-sm font-semibold" style={{ color: '#374151' }}>No models detected</p>
                   <p className="text-xs text-gray-400 mt-1">Set OLLAMA_ENABLED=true and start Ollama, then pull models below</p>
                 </div>
               ) : (
@@ -866,10 +866,10 @@ export default function AiInfrastructurePage() {
                   { name: 'qwen2.5:7b',  tasks: 'Copilot · Trend Discovery · SEO', desc: 'Fast inference, good instruction following' },
                   { name: 'qwen2.5:72b', tasks: 'Complex Tasks (optional)', desc: 'Near-Claude accuracy, requires 48GB VRAM' },
                 ].map((m) => (
-                  <div key={m.name} className="rounded-xl p-3 cursor-pointer hover:border-[#6D4AE0] transition-colors"
+                  <div key={m.name} className="rounded-xl p-3 cursor-pointer hover:border-[#374151] transition-colors"
                     style={{ background: '#f5f3ff', border: '1px solid #e8e4f8' }}
                     onClick={() => setPullModel(m.name)}>
-                    <p className="text-sm font-bold" style={{ color: '#6D4AE0' }}>{m.name}</p>
+                    <p className="text-sm font-bold" style={{ color: '#374151' }}>{m.name}</p>
                     <p className="text-[10px] text-gray-500 mt-0.5">{m.tasks}</p>
                     <p className="text-[10px] text-gray-400 mt-1">{m.desc}</p>
                   </div>
@@ -902,7 +902,7 @@ export default function AiInfrastructurePage() {
                   value={pullModel}
                   onChange={(e) => setPullModel(e.target.value)}
                   placeholder="e.g. qwen2.5:14b"
-                  className="flex-1 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                  className="flex-1 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
                 <button type="button" onClick={() => void handlePull()} disabled={pulling || !pullModel.trim()}
@@ -938,8 +938,8 @@ export default function AiInfrastructurePage() {
 
         {/* ── Section 8: AI Usage ──────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
-            <BarChart3 className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />
+          <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
+            <BarChart3 className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">AI Usage (Last 30 Days)</p>
               <p className="text-xs text-gray-400">From ai_usage_log</p>
@@ -959,7 +959,7 @@ export default function AiInfrastructurePage() {
                 { label: 'INTERACTIVE',        value: String(usageData.interactivePerHr),        suffix: '/hr' },
                 { label: 'SAVINGS VS SONNET',  value: `$${usageData.savingsVsSonnet.toFixed(4)}`, suffix: '' },
               ].map((s) => (
-                <div key={s.label} className="rounded-xl px-4 py-3" style={{ border: '1px solid #f0edf9', background: '#faf9ff' }}>
+                <div key={s.label} className="rounded-xl px-4 py-3" style={{ border: '1px solid #f3f4f6', background: '#faf9ff' }}>
                   <p className="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">{s.label}</p>
                   <p className="text-xl font-extrabold text-gray-900">
                     {s.value}<span className="text-sm font-normal text-gray-400">{s.suffix}</span>

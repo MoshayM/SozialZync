@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { HardDrive, Trash2, RefreshCw, FolderOpen, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -98,7 +98,7 @@ export default function StoragePage() {
       {stats && (
         <div className="rounded-2xl p-5" style={{ background: 'white', border: '1.5px solid #e3ddf8' }}>
           <div className="flex items-center gap-3 mb-4">
-            <HardDrive className="w-5 h-5 text-[#6D4AE0]" />
+            <HardDrive className="w-5 h-5 text-[#374151]" />
             <div>
               <p className="text-sm font-bold text-gray-900">Disk Usage</p>
               <p className="text-xs text-gray-400">{diskPct}% used · {fmt(stats.diskFree)} free of {fmt(stats.diskTotal)}</p>
@@ -107,7 +107,7 @@ export default function StoragePage() {
           <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
-              style={{ width: `${diskPct}%`, background: diskPct > 85 ? '#ef4444' : diskPct > 60 ? '#f59e0b' : '#6D4AE0' }}
+              style={{ width: `${diskPct}%`, background: diskPct > 85 ? '#ef4444' : diskPct > 60 ? '#f59e0b' : '#374151' }}
             />
           </div>
           <div className="flex items-center gap-1.5 mt-3">
@@ -123,7 +123,7 @@ export default function StoragePage() {
       {/* Categories */}
       {loading && !stats ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 text-[#6D4AE0] animate-spin" />
+          <Loader2 className="w-6 h-6 text-[#374151] animate-spin" />
         </div>
       ) : (
         <div className="space-y-2">
@@ -143,7 +143,7 @@ export default function StoragePage() {
                     <p className="text-xs text-gray-400">{fmt(cat.sizeBytes)} · {cat.fileCount} files</p>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-[#6D4AE0] transition-all" style={{ width: `${pct}%`, opacity: cat.exists ? 1 : 0.3 }} />
+                    <div className="h-full rounded-full bg-[#374151] transition-all" style={{ width: `${pct}%`, opacity: cat.exists ? 1 : 0.3 }} />
                   </div>
                 </div>
                 {canClear && (
@@ -165,9 +165,9 @@ export default function StoragePage() {
 
       {/* Total */}
       {stats && (
-        <div className="rounded-xl px-5 py-3 flex items-center justify-between" style={{ background: '#f5f2fd', border: '1px solid #d4c9f9' }}>
+        <div className="rounded-xl px-5 py-3 flex items-center justify-between" style={{ background: '#f3f4f6', border: '1px solid #d4c9f9' }}>
           <p className="text-sm font-bold text-gray-700">Total AI storage used</p>
-          <p className="text-sm font-extrabold" style={{ color: '#6D4AE0' }}>{fmt(stats.totalUsedBytes)}</p>
+          <p className="text-sm font-extrabold" style={{ color: '#374151' }}>{fmt(stats.totalUsedBytes)}</p>
         </div>
       )}
     </div>

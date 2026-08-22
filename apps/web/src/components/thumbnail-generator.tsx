@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState } from 'react';
 import { Sparkles, Loader2, Download, RefreshCw, Palette, Layout, Image as ImageIcon } from 'lucide-react';
 
@@ -72,7 +72,7 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
       {/* Input form */}
       <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -86,14 +86,14 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
             <label className="block text-xs font-medium text-gray-600 mb-1">Video title <span className="text-red-500">*</span></label>
             <input value={title} onChange={e => setTitle(e.target.value)}
               placeholder="e.g. 5 Productivity Hacks That Changed My Life"
-              className="w-full bg-[#faf9ff] rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+              className="w-full bg-[#faf9ff] rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
               style={{ border: '1.5px solid #e3ddf8' }} />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Script excerpt (optional — improves accuracy)</label>
             <textarea value={script} onChange={e => setScript(e.target.value)} rows={3}
               placeholder="Paste the first paragraph or hook of your script…"
-              className="w-full bg-[#faf9ff] rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 resize-none"
+              className="w-full bg-[#faf9ff] rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 resize-none"
               style={{ border: '1.5px solid #e3ddf8' }} />
           </div>
         </div>
@@ -106,7 +106,7 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
               <button key={o.value} onClick={() => setStyle(o.value as typeof style)}
                 className="flex flex-col items-start px-3 py-2 rounded-xl text-left transition-all"
                 style={style === o.value
-                  ? { background: '#f5f2fd', border: '1.5px solid #6D4AE0', color: '#6D4AE0' }
+                  ? { background: '#f3f4f6', border: '1.5px solid #374151', color: '#374151' }
                   : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }}>
                 <span className="text-xs font-semibold">{o.label}</span>
                 <span className="text-[10px] text-gray-400">{o.desc}</span>
@@ -123,7 +123,7 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
           </label>
           <button onClick={() => void generate()} disabled={loading || !title.trim()}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 transition-all"
-            style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 20px rgba(109,74,224,.35)' }}>
+            style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 20px rgba(55,65,81,.35)' }}>
             {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</> : result ? <><RefreshCw className="w-4 h-4" /> Regenerate</> : <><Sparkles className="w-4 h-4" /> Generate</>}
           </button>
         </div>
@@ -136,7 +136,7 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
           {/* Suggested title + palette */}
           <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="flex items-center gap-2">
-              <Layout className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+              <Layout className="w-4 h-4" style={{ color: '#374151' }} />
               <p className="text-sm font-bold text-gray-800">AI Suggested Title</p>
             </div>
             <div className="rounded-xl px-4 py-3" style={{ background: '#faf9ff', border: '1.5px solid #e3ddf8' }}>
@@ -165,7 +165,7 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
           {result.imageUrls.length > 0 && (
             <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
               <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                <ImageIcon className="w-4 h-4" style={{ color: '#374151' }} />
                 <p className="text-sm font-bold text-gray-800">Generated Thumbnails</p>
                 <span className="text-[11px] text-gray-400">(AI generated — add text overlay in editor)</span>
               </div>
@@ -192,7 +192,7 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
               {result.prompts.map((_, i) => (
                 <button key={i} onClick={() => setActivePrompt(i)}
                   className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                  style={activePrompt === i ? { background: '#6D4AE0', color: '#fff' } : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+                  style={activePrompt === i ? { background: '#374151', color: '#fff' } : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}>
                   Concept {i + 1}
                 </button>
               ))}
@@ -210,7 +210,7 @@ export function ThumbnailGenerator({ initialTitle = '', initialScript = '', chan
                 <button
                   onClick={() => { void navigator.clipboard.writeText(result.prompts[activePrompt].prompt); }}
                   className="text-xs font-semibold px-3 py-1.5 rounded-xl transition-all"
-                  style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}>
+                  style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}>
                   Copy prompt
                 </button>
               </div>

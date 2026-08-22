@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { Activity, Clock, CheckCircle, XCircle, Pause, RefreshCw, Loader2, Zap } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -14,7 +14,7 @@ interface QueueStats {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING:   '#6D4AE0',
+  PENDING:   '#374151',
   RUNNING:   '#2563eb',
   COMPLETED: '#16a34a',
   FAILED:    '#dc2626',
@@ -78,7 +78,7 @@ export default function QueuePage() {
       <div>
         <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-3">Live Queue (BullMQ / Redis)</h2>
         {loading && !stats ? (
-          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-[#6D4AE0]" /></div>
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-[#374151]" /></div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {bullCards.map(({ label, value, icon: Icon, color, bg }) => (
@@ -122,8 +122,8 @@ export default function QueuePage() {
         </div>
       )}
 
-      <div className="rounded-xl px-5 py-3 flex items-center gap-2" style={{ background: '#f5f2fd', border: '1px solid #d4c9f9' }}>
-        <Zap className="w-4 h-4 text-[#6D4AE0] shrink-0" />
+      <div className="rounded-xl px-5 py-3 flex items-center gap-2" style={{ background: '#f3f4f6', border: '1px solid #d4c9f9' }}>
+        <Zap className="w-4 h-4 text-[#374151] shrink-0" />
         <p className="text-xs text-gray-600">Queue auto-refreshes every 15 seconds. Active jobs process in the background via Redis/BullMQ workers.</p>
       </div>
     </div>

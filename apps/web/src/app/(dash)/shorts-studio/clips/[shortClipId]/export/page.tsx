@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -473,7 +473,7 @@ export default function ClipExportPage() {
                           onClick={() => { void publishMutation.mutate(); }}
                           disabled={publishMutation.isPending}
                           className="flex items-center gap-1.5 px-4 py-2 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors shadow-sm"
-                          style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                          style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                         >
                           {publishMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                           Publish Now
@@ -486,10 +486,10 @@ export default function ClipExportPage() {
                         </button>
                       </div>
                     ) : (
-                      <div className="bg-[#f5f2fd] rounded-xl p-4 border border-[#e3ddf8]">
+                      <div className="bg-[#f3f4f6] rounded-xl p-4 border border-[#e3ddf8]">
                         <div className="flex items-center justify-between mb-3">
                           <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-                            <CalendarClock className="w-4 h-4" style={{ color: '#6D4AE0' }} /> Schedule for later
+                            <CalendarClock className="w-4 h-4" style={{ color: '#374151' }} /> Schedule for later
                           </p>
                           <button
                             onClick={() => { setShowSchedule(false); setScheduledAt(''); }}
@@ -513,7 +513,7 @@ export default function ClipExportPage() {
                             onClick={() => { void publishMutation.mutate(); }}
                             disabled={publishMutation.isPending || !scheduledAt}
                             className="flex items-center gap-1.5 px-4 py-2 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors"
-                            style={{ background: scheduledAt ? 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' : undefined, backgroundColor: !scheduledAt ? '#9ca3af' : undefined }}
+                            style={{ background: scheduledAt ? 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' : undefined, backgroundColor: !scheduledAt ? '#9ca3af' : undefined }}
                           >
                             {publishMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarClock className="w-4 h-4" />}
                             Confirm Schedule

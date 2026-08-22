@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -140,7 +140,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)' }} className="py-16 px-4">
+      <div style={{ background: 'linear-gradient(135deg, #4f2ec4 0%, #374151 55%, #7c5ae8 100%)' }} className="py-16 px-4">
         <div className="max-w-3xl mx-auto">
           <Link
             href="/"
@@ -194,12 +194,12 @@ export default function PrivacyPage() {
           <p>Last updated: August 7, 2026</p>
           <p>
             Also read our{' '}
-            <Link href="/terms" className="text-[#6D4AE0] hover:underline font-medium">
+            <Link href="/terms" className="text-[#374151] hover:underline font-medium">
               Terms of Service
             </Link>
           </p>
           <p>
-            <Link href="/" className="text-[#6D4AE0] hover:underline">
+            <Link href="/" className="text-[#374151] hover:underline">
               ← Return to Sozialzynk
             </Link>
           </p>

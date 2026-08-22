@@ -172,7 +172,7 @@ function VoicePreviewBtn({ character, size = 'sm' }: { character: Partial<Charac
   return (
     <button onClick={() => void play()} disabled={loading}
       className={cls + ' transition-all hover:scale-105 disabled:opacity-50'}
-      style={playing ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff' } : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }}>
+      style={playing ? { background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff' } : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }}>
       {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : playing ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
       {playing ? 'Pause' : 'Preview Voice'}
     </button>
@@ -237,12 +237,12 @@ function CharacterForm({ initial, onSave, onCancel }: {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Character name *</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Professor Zoom, Robo-Max"
-                className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e5e7eb' }} />
+                className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e5e7eb' }} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
               <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief character description"
-                className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e5e7eb' }} />
+                className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e5e7eb' }} />
             </div>
           </div>
         </div>
@@ -250,7 +250,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           <label className="block text-xs font-medium text-gray-600 mb-1">Personality & speaking style</label>
           <textarea value={personality} onChange={e => setPersonality(e.target.value)} rows={2}
             placeholder="e.g. Energetic and funny, uses lots of exclamations, speaks fast and enthusiastically"
-            className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 resize-none" style={{ border: '1.5px solid #e5e7eb' }} />
+            className="w-full bg-[#f9fafb] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 resize-none" style={{ border: '1.5px solid #e5e7eb' }} />
         </div>
       </div>
 
@@ -260,7 +260,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           {AVATAR_STYLES.map(s => (
             <button key={s.value} onClick={() => setAvatarStyle(s.value)}
               className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
-              style={avatarStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
+              style={avatarStyle === s.value ? { border: '2px solid #374151', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
               <img src={diceBearUrl(s.value, name || 'character')} alt={s.label} width={36} height={36} className="rounded-lg" />
               <span className="text-[10px] font-medium text-gray-600 whitespace-nowrap">{s.label}</span>
             </button>
@@ -300,7 +300,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
             {VOICE_EFFECTS.map(e => (
               <button key={e.value} onClick={() => setVoiceEffect(e.value)}
                 className="flex flex-col items-center gap-1 p-2 rounded-xl text-center transition-all"
-                style={voiceEffect === e.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
+                style={voiceEffect === e.value ? { border: '2px solid #374151', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
                 <span className="text-xl">{e.emoji}</span>
                 <span className="text-[10px] font-medium text-gray-600">{e.label}</span>
               </button>
@@ -312,13 +312,13 @@ function CharacterForm({ initial, onSave, onCancel }: {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Pitch: {voicePitch.toFixed(1)}x</label>
             <input type="range" min={0.5} max={2.0} step={0.05} value={voicePitch} onChange={e => setVoicePitch(Number(e.target.value))}
-              className="w-full accent-[#6D4AE0]" />
+              className="w-full accent-[#374151]" />
             <div className="flex justify-between text-[10px] text-gray-400 mt-0.5"><span>0.5x (deep)</span><span>2.0x (high)</span></div>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Speed: {voiceSpeed.toFixed(1)}x</label>
             <input type="range" min={0.5} max={2.0} step={0.05} value={voiceSpeed} onChange={e => setVoiceSpeed(Number(e.target.value))}
-              className="w-full accent-[#6D4AE0]" />
+              className="w-full accent-[#374151]" />
             <div className="flex justify-between text-[10px] text-gray-400 mt-0.5"><span>0.5x (slow)</span><span>2.0x (fast)</span></div>
           </div>
         </div>
@@ -332,7 +332,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
           {VIDEO_STYLES.map(s => (
             <button key={s.value} onClick={() => setVideoStyle(s.value)}
               className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all"
-              style={videoStyle === s.value ? { border: '2px solid #6D4AE0', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
+              style={videoStyle === s.value ? { border: '2px solid #374151', background: '#f3f4f6' } : { border: '1.5px solid #e5e7eb', background: '#f9fafb' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xl" style={{ background: s.color }}>
                 {s.emoji}
               </div>
@@ -347,7 +347,7 @@ function CharacterForm({ initial, onSave, onCancel }: {
         <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ border: '1.5px solid #e5e7eb' }}>Cancel</button>
         <button onClick={() => void save()} disabled={saving}
           className="flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
-          style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 20px rgba(109,74,224,.35)' }}>
+          style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 20px rgba(55,65,81,.35)' }}>
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
           {saving ? 'Saving...' : 'Save Character'}
         </button>
@@ -423,7 +423,7 @@ function CharactersSection() {
         {CHAR_TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
             className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
-            style={tab === id ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9ca3af' }}>
+            style={tab === id ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(55,65,81,.15)' } : { color: '#9ca3af' }}>
             <Icon className="w-3.5 h-3.5" />
             {label}
             {id === 'my' && characters.length > 0 && (
@@ -449,7 +449,7 @@ function CharactersSection() {
                   Browse presets
                 </button>
                 <button onClick={() => setTab('create')} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-                  style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+                  style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
                   <Plus className="w-4 h-4" />Create custom
                 </button>
               </div>
@@ -544,7 +544,7 @@ function CharactersSection() {
                   <VoicePreviewBtn character={preset} />
                   <button onClick={() => void addFromPreset(preset.id)} disabled={added || isAdding}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ml-auto transition-all"
-                    style={added ? { background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #bbf7d0' } : { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.3)' }}>
+                    style={added ? { background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #bbf7d0' } : { background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(55,65,81,.3)' }}>
                     {isAdding ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                     {added ? '+ Added' : isAdding ? 'Adding...' : '+ Add'}
                   </button>
@@ -587,7 +587,7 @@ function VoicesLibrary() {
           {(['all', 'male', 'female', 'neutral'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
-              style={filter === f ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9ca3af' }}>
+              style={filter === f ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(55,65,81,.15)' } : { color: '#9ca3af' }}>
               {f}
             </button>
           ))}
@@ -670,7 +670,7 @@ function MusicStudio() {
         </div>
         <button onClick={() => void generate()} disabled={generating || !prompt.trim()}
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+          style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
           {generating ? <><Loader2 className="w-4 h-4 animate-spin" />Generating…</> : <><Music className="w-4 h-4" />Generate Track</>}
         </button>
       </div>
@@ -680,7 +680,7 @@ function MusicStudio() {
           {generated.map(track => (
             <div key={track.id} className="bg-white rounded-2xl p-4 flex items-center gap-4" style={{ border: '1.5px solid #e5e7eb' }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'linear-gradient(135deg,#6D4AE0,#9d6ff0)' }}>
+                style={{ background: 'linear-gradient(135deg,#374151,#9d6ff0)' }}>
                 <Music className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -741,7 +741,7 @@ export default function CreativeStudioPage() {
                 style={{
                   padding: '0.5rem 0.75rem',
                   ...(topTab === id
-                    ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
+                    ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(55,65,81,.15)' }
                     : { color: '#9ca3af' }),
                 }}>
                 <Icon className="w-4 h-4 shrink-0" />

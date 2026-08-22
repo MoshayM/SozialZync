@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { Suspense, useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
@@ -46,7 +46,7 @@ const STATUS_BADGE: Record<string, { label: string; icon: React.ComponentType<{ 
   BRIEFED:    { label: 'Brief ready', icon: Clock,        style: { background: '#f3f4f6', color: '#4b5563' } },
   GENERATING: { label: 'Generating',  icon: RefreshCw,    style: { background: '#eff6ff', color: '#1d4ed8' } },
   READY:      { label: 'Ready',       icon: CheckCircle,  style: { background: '#ecfdf5', color: '#065f46' } },
-  ACCEPTED:   { label: 'Accepted',    icon: CheckCircle,  style: { background: '#f5f2fd', color: '#6D4AE0' } },
+  ACCEPTED:   { label: 'Accepted',    icon: CheckCircle,  style: { background: '#f3f4f6', color: '#374151' } },
   FAILED:     { label: 'Failed',      icon: AlertCircle,  style: { background: '#fef2f2', color: '#dc2626' } },
 };
 
@@ -339,7 +339,7 @@ function MediaLibraryTab() {
                 {connected && !plat.hasSync && plat.id !== 'FACEBOOK' && plat.id !== 'INSTAGRAM' && (
                   <div className="p-10 flex flex-col items-center text-center">
                     <div className="px-3 py-1 rounded-full text-xs font-bold mb-3 inline-flex"
-                         style={{ background: '#f0edf9', color: '#6D4AE0' }}>
+                         style={{ background: '#f3f4f6', color: '#374151' }}>
                       Coming Soon
                     </div>
                     <p className="text-sm font-extrabold text-gray-900 mb-1">{plat.label} Media Library</p>
@@ -408,11 +408,11 @@ function MediaLibraryTab() {
                               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
                             </div>
                           </div>
-                          {assetsLoading && <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6D4AE0' }} /></div>}
+                          {assetsLoading && <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" style={{ color: '#374151' }} /></div>}
                           {assetsError && <p className="text-sm text-red-500">{assetsError}</p>}
                           {selectedAssetProject && !assetsLoading && assets.length === 0 && !assetsError && (
                             <div className="rounded-3xl p-12 flex flex-col items-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                              <Layers className="w-10 h-10 mb-3" style={{ color: '#6D4AE0' }} />
+                              <Layers className="w-10 h-10 mb-3" style={{ color: '#374151' }} />
                               <p className="text-sm font-semibold text-gray-700">No assets yet for this project</p>
                               <p className="text-xs text-gray-600 mt-1">Run Voice Spec, Image Brief, or Music Brief from the project pipeline.</p>
                             </div>
@@ -422,9 +422,9 @@ function MediaLibraryTab() {
                             return (
                               <div key={kind}>
                                 <h3 className="flex items-center gap-2 mb-3">
-                                  <KindIcon className="w-4 h-4 text-[#6D4AE0]" />
+                                  <KindIcon className="w-4 h-4 text-[#374151]" />
                                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{kind.replace('_', ' ')}</span>
-                                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{kindAssets.length}</span>
+                                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#f3f4f6', color: '#374151' }}>{kindAssets.length}</span>
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   {kindAssets.map(asset => {
@@ -495,7 +495,7 @@ function MediaLibraryTab() {
                           )}
                           {!videosLoading && allVideos.length === 0 && (
                             <div className="rounded-3xl p-14 flex flex-col items-center justify-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                              <ListVideo className="w-10 h-10 mb-3" style={{ color: '#6D4AE0' }} />
+                              <ListVideo className="w-10 h-10 mb-3" style={{ color: '#374151' }} />
                               <p className="text-base font-extrabold text-gray-900 mb-1">No videos synced yet</p>
                               <p className="text-sm text-gray-600 mb-4">Sync your channel to see videos here.</p>
                               <SyncBadge channelId={ytChannelId} />
@@ -542,7 +542,7 @@ function ChannelsPageInner() {
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link2 className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+            <Link2 className="w-5 h-5" style={{ color: '#374151' }} />
             <h1 className="text-2xl font-extrabold text-gray-900">Channel Access</h1>
           </div>
           <p className="text-sm text-gray-500">Connect and manage your social channels. Browse your synced media library.</p>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -51,7 +51,7 @@ function VideoRow({ video }: { video: TrackedVideo }) {
   return (
     <div
       className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#faf9ff] transition-colors"
-      style={{ borderBottom: '1px solid #f0edf9' }}
+      style={{ borderBottom: '1px solid #f3f4f6' }}
     >
       {/* Thumbnail */}
       <div className="w-16 h-10 bg-gray-100 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -64,7 +64,7 @@ function VideoRow({ video }: { video: TrackedVideo }) {
 
       {/* Title + channel */}
       <div className="flex-1 min-w-0">
-        <Link href={`/projects/${video.project.id}`} className="text-sm font-medium text-gray-900 truncate block hover:text-[#6D4AE0] hover:underline transition-colors">{video.title}</Link>
+        <Link href={`/projects/${video.project.id}`} className="text-sm font-medium text-gray-900 truncate block hover:text-[#374151] hover:underline transition-colors">{video.title}</Link>
         <p className="text-xs text-gray-400 mt-0.5">{video.channel.title}</p>
       </div>
 
@@ -107,7 +107,7 @@ function VideoRow({ video }: { video: TrackedVideo }) {
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-4 px-5 py-3.5 animate-pulse" style={{ borderBottom: '1px solid #f0edf9' }}>
+    <div className="flex items-center gap-4 px-5 py-3.5 animate-pulse" style={{ borderBottom: '1px solid #f3f4f6' }}>
       <div className="w-16 h-10 bg-gray-100 rounded-2xl flex-shrink-0" />
       <div className="flex-1 space-y-2">
         <div className="h-3.5 bg-gray-100 rounded w-2/3" />
@@ -120,7 +120,7 @@ function SkeletonRow() {
 }
 
 const EMPTY_MESSAGES: Record<StatusFilter, React.ReactNode> = {
-  ALL: <>No videos tracked yet. <Link href="/publish" className="underline font-medium hover:text-[#6D4AE0]">Approve and publish a video</Link> to get started.</>,
+  ALL: <>No videos tracked yet. <Link href="/publish" className="underline font-medium hover:text-[#374151]">Approve and publish a video</Link> to get started.</>,
   SCHEDULED: 'No videos currently scheduled.',
   PUBLISHED: 'No published videos yet.',
   FAILED: 'No failed uploads — great!',
@@ -211,7 +211,7 @@ export default function PublishingPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2">
-              <Upload className="w-6 h-6" style={{ color: '#6D4AE0' }} />
+              <Upload className="w-6 h-6" style={{ color: '#374151' }} />
               Publishing
             </h1>
             <p className="text-sm text-gray-400 mt-0.5">Track scheduled and published YouTube videos</p>
@@ -230,7 +230,7 @@ export default function PublishingPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+              <Calendar className="w-4 h-4" style={{ color: '#374151' }} />
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Scheduled</span>
             </div>
             {summaryLoading ? (
@@ -297,7 +297,7 @@ export default function PublishingPage() {
                 setChannelId(e.target.value);
                 localStorage.setItem(CHANNEL_LS_KEY, e.target.value);
               }}
-              className="appearance-none bg-white rounded-2xl pl-4 pr-9 py-3 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+              className="appearance-none bg-white rounded-2xl pl-4 pr-9 py-3 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
               style={{ border: '1.5px solid #e3e0f0' }}
             >
               <option value="">All channels</option>
@@ -316,7 +316,7 @@ export default function PublishingPage() {
               placeholder="Search videos…"
               value={q}
               onChange={e => setQ(e.target.value)}
-              className="w-full pl-10 pr-4 bg-white rounded-2xl py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all placeholder:text-gray-400"
+              className="w-full pl-10 pr-4 bg-white rounded-2xl py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all placeholder:text-gray-400"
               style={{ border: '1.5px solid #e3e0f0' }}
             />
           </div>
@@ -331,7 +331,7 @@ export default function PublishingPage() {
               className="px-4 py-2 rounded-2xl text-sm font-semibold transition-all"
               style={
                 statusFilter === tab.id
-                  ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
+                  ? { background: '#f3f4f6', border: '2px solid #374151', color: '#374151' }
                   : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
               }
             >
@@ -356,8 +356,8 @@ export default function PublishingPage() {
             </div>
           ) : allVideos.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                <Upload className="w-7 h-7" style={{ color: '#6D4AE0' }} />
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                <Upload className="w-7 h-7" style={{ color: '#374151' }} />
               </div>
               <p className="text-base font-extrabold text-gray-900 mb-1">Nothing here yet</p>
               <p className="text-sm text-gray-400">{EMPTY_MESSAGES[statusFilter]}</p>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -300,7 +300,7 @@ function ScriptViewer({ r }: { r: Record<string, unknown> }) {
           <button
             onClick={() => { try { localStorage.setItem('cf_score_pending', plainText); } catch {} router.push('/score-script'); }}
             className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white rounded-lg transition-opacity hover:opacity-90"
-            style={{ background: '#6D4AE0' }}
+            style={{ background: '#374151' }}
             title="Score this script with AI"
           >
             <Award className="w-3 h-3" /> Score
@@ -873,7 +873,7 @@ export default function ProjectDetailPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">{project.title}</h1>
             <p className="text-gray-500 mt-1 text-sm">
               {project.channel ? project.channel.title : (
-                <Link href="/settings/channels" className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity" style={{ background: '#f0edf9', color: '#6D4AE0' }}>
+                <Link href="/settings/channels" className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity" style={{ background: '#f3f4f6', color: '#374151' }}>
                   No account linked · connect →
                 </Link>
               )}
@@ -890,7 +890,7 @@ export default function ProjectDetailPage() {
             </span>
             <Link
               href="/shorts-studio"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-[#d4c9f9] text-[#6D4AE0] bg-[#f5f2fd] hover:bg-[#ede9fe] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-[#d4c9f9] text-[#374151] bg-[#f3f4f6] hover:bg-[#e5e7eb] transition-colors"
             >
               <Clapperboard className="w-3.5 h-3.5" /> Shorts Studio
             </Link>
@@ -914,7 +914,7 @@ export default function ProjectDetailPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 pb-3 pt-2 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
                 activeTab === tab.id
-                  ? 'border-[#6D4AE0] text-[#6D4AE0]'
+                  ? 'border-[#374151] text-[#374151]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -1544,11 +1544,11 @@ export default function ProjectDetailPage() {
       {/* Welcome panel for new projects with no jobs */}
       {project.jobs.length === 0 && (
         <div className="mb-6 rounded-2xl overflow-hidden border border-[#d4c9f9]"
-             style={{ background: 'linear-gradient(135deg, #f5f2fd 0%, #faf9ff 100%)' }}>
+             style={{ background: 'linear-gradient(135deg, #f3f4f6 0%, #faf9ff 100%)' }}>
           <div className="px-6 py-5">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-                   style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)' }}>
+                   style={{ background: 'linear-gradient(135deg, #374151, #7c5ae8)' }}>
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -1558,7 +1558,7 @@ export default function ProjectDetailPage() {
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { icon: Search,    label: 'Research Topic',  color: '#6D4AE0', bg: '#f5f2fd', jobType: 'RESEARCH' },
+                    { icon: Search,    label: 'Research Topic',  color: '#374151', bg: '#f3f4f6', jobType: 'RESEARCH' },
                     { icon: FileText,  label: 'Write Script',    color: '#0284c7', bg: '#f0f9ff', jobType: 'SCRIPT' },
                     { icon: Tag,       label: 'SEO Metadata',    color: '#0891b2', bg: '#ecfeff', jobType: 'METADATA' },
                     { icon: ImageIcon, label: 'Thumbnail Idea',  color: '#d97706', bg: '#fffbeb', jobType: 'THUMBNAIL' },
@@ -1597,7 +1597,7 @@ export default function ProjectDetailPage() {
                       .then((r) => { window.location.href = (r.data as { url: string }).url; })
                       .catch(() => { window.location.href = '/settings/channels'; });
                   }}
-                  className="text-[#6D4AE0] font-semibold hover:underline"
+                  className="text-[#374151] font-semibold hover:underline"
                 >
                   Connect a channel →
                 </button>
@@ -1919,7 +1919,7 @@ function MultiPublishModal({ videoTitle, channelConnected, onYouTube, onConnectY
                     <button
                       onClick={onConnectYouTube}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0"
-                      style={{ background: '#6D4AE0' }}
+                      style={{ background: '#374151' }}
                     >
                       Connect
                     </button>
@@ -1937,7 +1937,7 @@ function MultiPublishModal({ videoTitle, channelConnected, onYouTube, onConnectY
         <div className="px-6 pb-5">
           <p className="text-xs text-gray-400 text-center">
             More platforms coming soon. Connect accounts anytime from{' '}
-            <a href="/settings/channels" className="text-[#6D4AE0] font-semibold hover:underline" onClick={onClose}>
+            <a href="/settings/channels" className="text-[#374151] font-semibold hover:underline" onClick={onClose}>
               Settings → Channels
             </a>
           </p>
@@ -2097,7 +2097,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
 
     return (
       <div className="space-y-3">
-        <div className="rounded-xl px-5 py-4 space-y-2" style={{ background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}>
+        <div className="rounded-xl px-5 py-4 space-y-2" style={{ background: '#f3f4f6', border: '1.5px solid #d4c9f9' }}>
           <p className="text-sm font-semibold" style={{ color: '#4c1d95' }}>
             Ready to publish? Connect an account.
           </p>
@@ -2108,7 +2108,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
             <button
               onClick={() => void startOAuth(`/projects/${projectId}?publish=1`)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-              style={{ background: '#6D4AE0', color: '#fff' }}
+              style={{ background: '#374151', color: '#fff' }}
             >
               Connect Account
             </button>
@@ -2129,7 +2129,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
                     <button
                       onClick={() => void downloadFile(f.name)}
                       className="text-xs font-semibold"
-                      style={{ color: '#6D4AE0' }}
+                      style={{ color: '#374151' }}
                     >
                       Download
                     </button>
@@ -2153,7 +2153,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
                   onClick={() => void buildAndDownload()}
                   disabled={exportsBuilding}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
-                  style={{ background: '#f3f0fd', color: '#6D4AE0', border: '1px solid #d4c9f9' }}
+                  style={{ background: '#f3f0fd', color: '#374151', border: '1px solid #d4c9f9' }}
                 >
                   {exportsBuilding ? 'Building…' : 'Build Export Package'}
                 </button>

@@ -90,7 +90,7 @@ function VoicePlayer({ url, voiceId, playing, setPlaying }: {
       onClick={() => setPlaying(isPlaying ? null : voiceId)}
       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95"
       style={{
-        background: isPlaying ? 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' : '#f5f2fd',
+        background: isPlaying ? 'linear-gradient(135deg,#374151,#7c5ae8)' : '#f3f4f6',
         border: '1.5px solid #e3ddf8',
       }}
       aria-label={isPlaying ? 'Pause preview' : 'Play voice preview'}>
@@ -195,7 +195,7 @@ export default function VoiceLibraryPage() {
           <div className="flex flex-wrap gap-2 items-center">
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search voices…"
-              className="bg-[#faf9ff] rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+              className="bg-[#faf9ff] rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
               style={{ border: '1.5px solid #e3ddf8', width: 180 }} />
             <select value={source} onChange={e => setSource(e.target.value as 'all' | 'elevenlabs' | 'openai')}
               className="bg-[#faf9ff] rounded-xl px-3 py-2 text-sm font-semibold outline-none"
@@ -207,7 +207,7 @@ export default function VoiceLibraryPage() {
                 <button key={g} onClick={() => setGenderFilter(g)}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all capitalize"
                   style={genderFilter === g
-                    ? { background: '#6D4AE0', color: '#fff', border: '1.5px solid #6D4AE0' }
+                    ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' }
                     : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
                   {g}
                 </button>
@@ -217,7 +217,7 @@ export default function VoiceLibraryPage() {
               <button onClick={() => setShowUseCaseMenu(v => !v)}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold"
                 style={{
-                  background: useCaseFilter !== 'All' ? '#6D4AE0' : '#faf9ff',
+                  background: useCaseFilter !== 'All' ? '#374151' : '#faf9ff',
                   color: useCaseFilter !== 'All' ? '#fff' : '#6b7280',
                   border: '1.5px solid #e3ddf8',
                 }}>
@@ -231,7 +231,7 @@ export default function VoiceLibraryPage() {
                     <button key={u} onClick={() => { setUseCaseFilter(u); setShowUseCaseMenu(false); }}
                       className="px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all"
                       style={useCaseFilter === u
-                        ? { background: '#6D4AE0', color: '#fff' }
+                        ? { background: '#374151', color: '#fff' }
                         : { color: '#374151', background: '#f3f4f6' }}>
                       {u}
                     </button>
@@ -275,15 +275,15 @@ export default function VoiceLibraryPage() {
                 <div key={voice.id}
                   className="bg-white rounded-2xl p-4 flex flex-col gap-3 transition-all"
                   style={{
-                    border: isSelected ? '2px solid #6D4AE0' : '1.5px solid #e3ddf8',
-                    boxShadow: isSelected ? '0 0 0 3px rgba(109,74,224,0.1)' : undefined,
+                    border: isSelected ? '2px solid #374151' : '1.5px solid #e3ddf8',
+                    boxShadow: isSelected ? '0 0 0 3px rgba(55,65,81,0.1)' : undefined,
                   }}>
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg font-bold"
                       style={{
                         background: voice.source === 'elevenlabs'
-                          ? 'linear-gradient(135deg,#6D4AE0,#7c5ae8)'
+                          ? 'linear-gradient(135deg,#374151,#7c5ae8)'
                           : 'linear-gradient(135deg,#0ea5e9,#0284c7)',
                         color: '#fff',
                       }}>
@@ -294,8 +294,8 @@ export default function VoiceLibraryPage() {
                       <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize"
                           style={{
-                            background: voice.source === 'elevenlabs' ? '#f5f2fd' : '#eff6ff',
-                            color: voice.source === 'elevenlabs' ? '#6D4AE0' : '#2563eb',
+                            background: voice.source === 'elevenlabs' ? '#f3f4f6' : '#eff6ff',
+                            color: voice.source === 'elevenlabs' ? '#374151' : '#2563eb',
                             border: '1px solid #e3ddf8',
                           }}>
                           {voice.source === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI'}
@@ -349,7 +349,7 @@ export default function VoiceLibraryPage() {
                       <button
                         onClick={() => selectVoice(voice)}
                         className="px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 active:scale-95"
-                        style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+                        style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
                         Select
                       </button>
                     )}

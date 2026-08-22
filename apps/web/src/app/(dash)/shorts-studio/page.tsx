@@ -83,7 +83,7 @@ function SendToEditorButton({ importedVideoId }: { importedVideoId: string }) {
       onClick={(e) => { e.stopPropagation(); create.mutate(); }}
       disabled={create.isPending}
       title="Open this video in the full Video Editor"
-      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:border-[#6D4AE0]/40 disabled:opacity-50"
+      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:border-[#374151]/40 disabled:opacity-50"
       style={{ border: '1.5px solid #e3ddf8', color: '#374151', background: 'white' }}
     >
       {create.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
@@ -202,7 +202,7 @@ function VideoRow({ video: v, imported, checked, disabled, onToggle }: VideoRowP
       className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer"
       style={
         imported ? { border: '1.5px solid #f3f4f6', background: '#fafafa', opacity: 0.7, cursor: 'not-allowed' }
-        : checked  ? { border: '2px solid #6D4AE0', background: '#f3f4f6' }
+        : checked  ? { border: '2px solid #374151', background: '#f3f4f6' }
         : { border: '1.5px solid #e3ddf8', background: 'white' }
       }
     >
@@ -212,7 +212,7 @@ function VideoRow({ video: v, imported, checked, disabled, onToggle }: VideoRowP
         disabled={imported || disabled}
         onChange={() => onToggle(v.youtubeVideoId)}
         className="w-4 h-4 shrink-0"
-        style={{ accentColor: '#6D4AE0' }}
+        style={{ accentColor: '#374151' }}
         aria-label={`Select ${v.title}`}
       />
       {v.thumbnailUrl && (
@@ -246,7 +246,7 @@ function GroupBar({ open, onToggle, icon, title, count }: {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
-      className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer transition-all hover:border-[#6D4AE0]/30"
+      className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer transition-all hover:border-[#374151]/30"
       style={{ border: '1.5px solid #e3ddf8', background: 'white' }}
     >
       {open ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
@@ -264,7 +264,7 @@ function LoadMoreButton({ onClick, loading }: { onClick: () => void; loading: bo
     <button
       onClick={onClick}
       disabled={loading}
-      className="w-full py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:border-[#6D4AE0]/30"
+      className="w-full py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:border-[#374151]/30"
       style={{ border: '1.5px solid #e3ddf8', color: '#374151', background: 'white' }}
     >
       {loading && <Loader2 className="w-4 h-4 animate-spin" />} Load more
@@ -343,7 +343,7 @@ function KindVideosGroup({ channelId, kind, title, icon, renderVideo }: {
             </div>
           )}
           {!isLoading && !error && videos.length === 0 && (
-            <p className="text-center py-4 text-gray-400 text-sm">Nothing here yet — sync this channel from the <Link href="/library" className="text-[#6D4AE0] hover:underline font-medium">Library page</Link>.</p>
+            <p className="text-center py-4 text-gray-400 text-sm">Nothing here yet — sync this channel from the <Link href="/library" className="text-[#374151] hover:underline font-medium">Library page</Link>.</p>
           )}
           {videos.map(renderVideo)}
           {hasNextPage && <LoadMoreButton onClick={() => void fetchNextPage()} loading={isFetchingNextPage} />}
@@ -478,7 +478,7 @@ function LibraryImportModal({
         style={{ border: '1.5px solid #e3ddf8' }}
       >
         {/* Modal header */}
-        <div className="flex items-center gap-3 px-6 py-5" style={{ borderBottom: '1.5px solid #f0edf9' }}>
+        <div className="flex items-center gap-3 px-6 py-5" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#f3f4f6' }}>
             <FolderDown className="w-4 h-4" style={{ color: '#374151' }} />
           </div>
@@ -495,7 +495,7 @@ function LibraryImportModal({
         {/* Search */}
         <div className="px-6 pt-4 pb-2">
           <div
-            className="flex items-center gap-2 bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
+            className="flex items-center gap-2 bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
             style={{ border: '1.5px solid #e3e0f0' }}
           >
             <Search className="w-4 h-4 text-gray-400 ml-3.5 shrink-0" />
@@ -547,7 +547,7 @@ function LibraryImportModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-5" style={{ borderTop: '1.5px solid #f0edf9' }}>
+        <div className="px-6 py-5" style={{ borderTop: '1.5px solid #f3f4f6' }}>
           {importError && (
             <JobErrorCard error={importError} errorCode="VIDEO_IMPORT_FAILED" className="mb-3" />
           )}
@@ -560,7 +560,7 @@ function LibraryImportModal({
               onClick={() => void importSelected()}
               disabled={selected.size === 0 || importing}
               className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(109,74,224,0.30)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
             >
               {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {importing ? 'Importing…' : `Import${selected.size > 0 ? ` (${selected.size})` : ''}`}
@@ -639,7 +639,7 @@ export default function ShortsStudioPage() {
                 value={channelId}
                 onChange={(e) => selectChannel(e.target.value)}
                 aria-label="Channel"
-                className="bg-white rounded-2xl pl-4 pr-10 py-2.5 text-sm font-semibold text-gray-700 outline-none appearance-none cursor-pointer transition-all focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0]"
+                className="bg-white rounded-2xl pl-4 pr-10 py-2.5 text-sm font-semibold text-gray-700 outline-none appearance-none cursor-pointer transition-all focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151]"
                 style={{ border: '1.5px solid #e3e0f0' }}
               >
                 <option value="">Select a channel…</option>
@@ -670,7 +670,7 @@ export default function ShortsStudioPage() {
                 { icon: Download,  label: 'Export to Platforms',  desc: 'YouTube, TikTok, Reels',       color: '#374151' },
               ] as { icon: React.ElementType; label: string; desc: string; color: string }[]
             ).map(({ icon: Icon, label, desc, color }) => (
-              <div key={label} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#faf9ff', border: '1px solid #f0edf9' }}>
+              <div key={label} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#faf9ff', border: '1px solid #f3f4f6' }}>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}18`, color }}>
                   <Icon className="w-4 h-4" />
                 </div>
@@ -701,7 +701,7 @@ export default function ShortsStudioPage() {
         {/* ── No channel selected (or free user) ───────────────────── */}
         {(isFreeTier || !channelId) && (
           <div className="bg-white rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
               ✂️
             </div>
             {isFreeTier ? (
@@ -718,7 +718,7 @@ export default function ShortsStudioPage() {
               <>
                 <h2 className="text-xl font-extrabold text-gray-900 mb-2">No channels connected</h2>
                 <p className="text-gray-400 text-sm max-w-xs leading-relaxed mb-4">Connect a YouTube channel to import long-form videos and start clipping Shorts.</p>
-                <Link href="/settings/channels" className="inline-flex items-center gap-1 text-sm font-semibold text-[#6D4AE0] hover:underline">
+                <Link href="/settings/channels" className="inline-flex items-center gap-1 text-sm font-semibold text-[#374151] hover:underline">
                   Connect a channel →
                 </Link>
               </>
@@ -734,7 +734,7 @@ export default function ShortsStudioPage() {
         {/* ── Channel selected but no imports ─────────────────────── */}
         {!isFreeTier && channelId && imported.length === 0 && (
           <div className="bg-white rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
               📥
             </div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-2">No videos yet</h2>
@@ -742,7 +742,7 @@ export default function ShortsStudioPage() {
             <button
               onClick={() => setPickerOpen(true)}
               className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.30)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.30)' }}
             >
               <FolderDown className="w-4 h-4" /> Import videos from library
             </button>
@@ -758,7 +758,7 @@ export default function ShortsStudioPage() {
               role="button"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setImportedOpen((o) => !o); } }}
-              className="flex items-center gap-2.5 bg-white rounded-2xl px-4 py-3.5 cursor-pointer transition-all hover:border-[#6D4AE0]/30"
+              className="flex items-center gap-2.5 bg-white rounded-2xl px-4 py-3.5 cursor-pointer transition-all hover:border-[#374151]/30"
               style={{ border: '1.5px solid #e3ddf8' }}
             >
               {importedOpen
@@ -774,7 +774,7 @@ export default function ShortsStudioPage() {
                     e.stopPropagation();
                     setOpenVideoIds((prev) => prev.size === imported.length ? new Set() : new Set(imported.map((v) => v.id)));
                   }}
-                  className="text-xs font-semibold transition-colors hover:text-[#6D4AE0]"
+                  className="text-xs font-semibold transition-colors hover:text-[#374151]"
                   style={{ color: '#374151' }}
                 >
                   {openVideoIds.size === imported.length ? 'Collapse all' : 'Expand all'}
@@ -787,8 +787,8 @@ export default function ShortsStudioPage() {
                 {imported.map((v) => {
                   const open = openVideoIds.has(v.id);
                   return (
-                    <div key={v.id} className="bg-white rounded-2xl overflow-hidden transition-all hover:border-[#6D4AE0]/30"
-                      style={{ border: `1.5px solid ${open ? '#6D4AE0' : '#e3ddf8'}` }}>
+                    <div key={v.id} className="bg-white rounded-2xl overflow-hidden transition-all hover:border-[#374151]/30"
+                      style={{ border: `1.5px solid ${open ? '#374151' : '#e3ddf8'}` }}>
                       {/* Video row header */}
                       <div
                         onClick={() => setOpenVideoIds((prev) => {
@@ -829,7 +829,7 @@ export default function ShortsStudioPage() {
 
                       {/* Expanded content */}
                       {open && (
-                        <div className="px-5 pb-5 pt-3 flex items-start gap-4 flex-wrap" style={{ borderTop: '1.5px solid #f0edf9' }}>
+                        <div className="px-5 pb-5 pt-3 flex items-start gap-4 flex-wrap" style={{ borderTop: '1.5px solid #f3f4f6' }}>
                           <div className="flex-1 min-w-[240px]">
                             <AnalysisProgress importedVideoId={v.id} onRetry={() => analyzeMutation.mutate(v.id)} />
                           </div>
@@ -838,7 +838,7 @@ export default function ShortsStudioPage() {
                               onClick={(e) => { e.stopPropagation(); analyzeMutation.mutate(v.id); }}
                               disabled={analyzeMutation.isPending}
                               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 active:scale-[0.97]"
-                              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 2px 10px rgba(109,74,224,0.25)' }}
+                              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 2px 10px rgba(55,65,81,0.25)' }}
                             >
                               {analyzeMutation.isPending && analyzeMutation.variables === v.id
                                 ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -850,7 +850,7 @@ export default function ShortsStudioPage() {
                               <Link
                                 href={`/shorts-studio/videos/${v.id}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:border-[#6D4AE0]/40"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:border-[#374151]/40"
                                 style={{ border: '1.5px solid #e3ddf8', color: '#374151', background: 'white' }}
                               >
                                 <Sparkles className="w-4 h-4" /> Results
@@ -867,8 +867,8 @@ export default function ShortsStudioPage() {
                 {/* Import more */}
                 <button
                   onClick={() => setPickerOpen(true)}
-                  className="w-full py-3 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 hover:bg-[#f5f2fd]"
-                  style={{ border: '1.5px dashed #c4b5fd', color: '#374151' }}
+                  className="w-full py-3 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 hover:bg-[#f3f4f6]"
+                  style={{ border: '1.5px dashed #d1d5db', color: '#374151' }}
                 >
                   <FolderDown className="w-4 h-4" /> Import more from library
                 </button>

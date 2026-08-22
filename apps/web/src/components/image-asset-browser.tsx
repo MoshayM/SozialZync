@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useCallback, useEffect } from 'react';
 import { Search, Loader2, Image as ImageIcon, Download, ExternalLink, X, AlertCircle } from 'lucide-react';
 
@@ -115,12 +115,12 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') void search(query); }}
               placeholder="Search royalty-free images…"
-              className="w-full bg-[#faf9ff] rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+              className="w-full bg-[#faf9ff] rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
               style={{ border: '1.5px solid #e3ddf8' }}
             />
           </div>
           <select value={source} onChange={e => setSource(e.target.value)}
-            className="bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0' }}>
+            className="bg-[#faf9ff] rounded-xl px-3 py-2.5 text-sm font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: '#374151' }}>
             {SOURCE_OPTIONS.map(o => (
               <option key={o.value} value={o.value}>
                 {o.label}{o.key && providers[o.key] && !providers[o.key].available ? ' (not configured)' : ''}
@@ -129,7 +129,7 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
           </select>
           <button onClick={() => void search(query)} disabled={loading || !query.trim() || selectedProviderUnavailable}
             className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+            style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
           </button>
         </div>
@@ -141,7 +141,7 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
             {TOPIC_SUGGESTIONS.map(t => (
               <button key={t} onClick={() => void trending(t)}
                 className="px-2.5 py-1 rounded-full text-xs font-medium capitalize transition-all hover:bg-purple-100"
-                style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+                style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>
                 {t}
               </button>
             ))}
@@ -223,7 +223,7 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
                   </button>
                   {onSelect && (
                     <button className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs"
-                      style={{ background: '#6D4AE0' }} title="Use this image">
+                      style={{ background: '#374151' }} title="Use this image">
                       +
                     </button>
                   )}
@@ -256,7 +256,7 @@ export function ImageAssetBrowser({ onSelect, compact = false }: ImageAssetBrows
                 </a>
                 <a href={preview.url} download target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+                  style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
                   <Download className="w-3.5 h-3.5" /> Download
                 </a>
                 <button onClick={() => setPreview(null)} className="p-1.5 rounded-xl text-gray-400 hover:bg-gray-100">

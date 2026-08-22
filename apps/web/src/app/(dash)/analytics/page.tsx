@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BarChart2, TrendingUp, TrendingDown, Minus, Lightbulb, RefreshCw, ChevronRight, ChevronDown, Gauge, Video, AlertTriangle, MousePointerClick } from 'lucide-react';
@@ -54,7 +54,7 @@ interface TokenUsageSummary {
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
-  anthropic: '#6D4AE0',
+  anthropic: '#374151',
   google: '#4285F4',
   openai: '#10A37F',
 };
@@ -83,7 +83,7 @@ function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] }) {
             className="w-full rounded-t-sm transition-all"
             style={{
               height: `${Math.max((d.costUsd / max) * 72, 2)}px`,
-              background: '#6D4AE0',
+              background: '#374151',
               opacity: 0.7,
             }}
           />
@@ -228,7 +228,7 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2">
-            <BarChart2 className="w-6 h-6" style={{ color: '#6D4AE0' }} />
+            <BarChart2 className="w-6 h-6" style={{ color: '#374151' }} />
             Analytics &amp; Growth
           </h1>
           <p className="text-sm text-gray-600 mt-0.5">AI-powered channel diagnostics and next-video recommendations</p>
@@ -239,7 +239,7 @@ export default function AnalyticsPage() {
           <div className="space-y-5">
             {tokenUsage === null && (
               <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#374151' }} />
                 <p className="text-sm text-gray-600">Loading AI usage…</p>
               </div>
             )}
@@ -252,8 +252,8 @@ export default function AnalyticsPage() {
 
             {tokenUsage !== null && tokenUsage !== 'unavailable' && tokenUsage.totals.calls === 0 && (
               <div className="bg-white rounded-3xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                  <BarChart2 className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                  <BarChart2 className="w-8 h-8" style={{ color: '#374151' }} />
                 </div>
                 <p className="text-base font-extrabold text-gray-900 mb-1">No AI usage yet</p>
                 <p className="text-sm text-gray-600">Run the content pipeline to start generating AI usage data.</p>
@@ -362,7 +362,7 @@ export default function AnalyticsPage() {
                             .slice()
                             .sort((a, b) => b.costUsd - a.costUsd)
                             .map((m) => (
-                              <tr key={`${m.provider}:${m.model}`} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                              <tr key={`${m.provider}:${m.model}`} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                                 <td className="py-2">
                                   <div className="flex items-center gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: providerColor(m.provider) }} />
@@ -395,7 +395,7 @@ export default function AnalyticsPage() {
                         </thead>
                         <tbody>
                           {tokenUsage.byVideo.map((v) => (
-                            <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                            <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                               <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
                               <td className="py-1.5 text-right text-gray-600">{v.calls}</td>
                               <td className="py-1.5 text-right text-gray-600">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
@@ -422,7 +422,7 @@ export default function AnalyticsPage() {
                   id="analytics-channel"
                   value={channelId}
                   onChange={e => setChannelId(e.target.value)}
-                  className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all appearance-none"
+                  className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all appearance-none"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 >
                   <option value="">Choose a channel…</option>
@@ -440,10 +440,10 @@ export default function AnalyticsPage() {
                   value={channelId}
                   onChange={e => setChannelId(e.target.value)}
                   placeholder="Channel ID"
-                  className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                  className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
-                <Link href="/settings/channels" className="shrink-0 text-sm font-semibold hover:underline whitespace-nowrap" style={{ color: '#6D4AE0' }}>
+                <Link href="/settings/channels" className="shrink-0 text-sm font-semibold hover:underline whitespace-nowrap" style={{ color: '#374151' }}>
                   Connect a channel →
                 </Link>
               </div>
@@ -453,7 +453,7 @@ export default function AnalyticsPage() {
                 onClick={runAnalytics}
                 disabled={!channelId || loadingAnalytics}
                 className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
               >
                 {loadingAnalytics ? <RefreshCw className="w-4 h-4 animate-spin" /> : <BarChart2 className="w-4 h-4" />}
                 {loadingAnalytics ? 'Analyzing…' : 'Run Analytics'}
@@ -479,7 +479,7 @@ export default function AnalyticsPage() {
                   className="flex items-center gap-1.5 px-5 pb-3 pt-2 text-sm font-semibold transition-colors border-b-2 -mb-px whitespace-nowrap"
                   style={
                     activeView === v
-                      ? { borderColor: '#6D4AE0', color: '#6D4AE0' }
+                      ? { borderColor: '#374151', color: '#374151' }
                       : locked
                       ? { borderColor: 'transparent', color: '#374151', cursor: 'not-allowed' }
                       : { borderColor: 'transparent', color: '#374151' }
@@ -498,8 +498,8 @@ export default function AnalyticsPage() {
           <div className="space-y-5">
             {!channelId && (
               <div className="bg-white rounded-3xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                  <BarChart2 className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                  <BarChart2 className="w-8 h-8" style={{ color: '#374151' }} />
                 </div>
                 <p className="text-base font-extrabold text-gray-900 mb-1">No channel selected</p>
                 <p className="text-sm text-gray-600">Select a channel above to see its performance scorecard.</p>
@@ -507,7 +507,7 @@ export default function AnalyticsPage() {
             )}
             {channelId && scorecardLoading && (
               <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#374151' }} />
                 <p className="text-sm text-gray-600">Loading scorecard…</p>
               </div>
             )}
@@ -691,7 +691,7 @@ export default function AnalyticsPage() {
                         <ImpactBadge impact={insight.impact} />
                       </div>
                       <p className="text-sm text-gray-800 mb-1">{insight.finding}</p>
-                      <p className="text-xs flex items-center gap-1" style={{ color: '#6D4AE0' }}><ChevronRight className="w-3 h-3" />{insight.suggestion}</p>
+                      <p className="text-xs flex items-center gap-1" style={{ color: '#374151' }}><ChevronRight className="w-3 h-3" />{insight.suggestion}</p>
                     </div>
                   </div>
                 ))}
@@ -732,7 +732,7 @@ export default function AnalyticsPage() {
                 onClick={runGrowth}
                 disabled={loadingGrowth}
                 className="no-print w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
               >
                 {loadingGrowth ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
                 {loadingGrowth ? 'Generating growth recommendations…' : 'Generate Growth Report & Next Topics'}
@@ -744,7 +744,7 @@ export default function AnalyticsPage() {
               <div className="space-y-4 fade-in">
                 <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                   <h2 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" style={{ color: '#6D4AE0' }} /> Growth Summary
+                    <TrendingUp className="w-4 h-4" style={{ color: '#374151' }} /> Growth Summary
                   </h2>
                   <p className="text-sm text-gray-600">{growth.summary}</p>
                 </div>
@@ -777,7 +777,7 @@ export default function AnalyticsPage() {
                         <div>
                           <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{a.area}</p>
                           <p className="text-sm text-gray-800">{a.action}</p>
-                          <p className="text-xs mt-0.5" style={{ color: '#6D4AE0' }}>{a.expectedImpact}</p>
+                          <p className="text-xs mt-0.5" style={{ color: '#374151' }}>{a.expectedImpact}</p>
                         </div>
                       </div>
                     ))}
@@ -799,7 +799,7 @@ export default function AnalyticsPage() {
                 onClick={runBenchmark}
                 disabled={loadingBenchmark || !channelId}
                 className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
               >
                 {loadingBenchmark ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
                 {loadingBenchmark ? 'Analyzing…' : 'Run Benchmark'}
@@ -812,8 +812,8 @@ export default function AnalyticsPage() {
 
             {!benchmark && !loadingBenchmark && (
               <div className="bg-white rounded-3xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                  <TrendingUp className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                  <TrendingUp className="w-8 h-8" style={{ color: '#374151' }} />
                 </div>
                 <p className="text-base font-extrabold text-gray-900 mb-1">No benchmark yet</p>
                 <p className="text-sm text-gray-600">Select a channel above and click Run Benchmark to compare against similar YouTube channels.</p>
@@ -822,7 +822,7 @@ export default function AnalyticsPage() {
 
             {loadingBenchmark && (
               <div className="bg-white rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#6D4AE0' }} />
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: '#374151' }} />
                 <p className="text-sm text-gray-600">Fetching peer channels from YouTube…</p>
               </div>
             )}
@@ -847,12 +847,12 @@ export default function AnalyticsPage() {
                 <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-semibold text-gray-700">Subscriber Percentile</span>
-                    <span className="text-sm font-black" style={{ color: '#6D4AE0' }}>{benchmark.subscriberPercentile}th</span>
+                    <span className="text-sm font-black" style={{ color: '#374151' }}>{benchmark.subscriberPercentile}th</span>
                   </div>
                   <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ width: `${benchmark.subscriberPercentile}%`, background: 'linear-gradient(90deg, #6D4AE0, #7c5ae8)' }}
+                      style={{ width: `${benchmark.subscriberPercentile}%`, background: 'linear-gradient(90deg, #374151, #7c5ae8)' }}
                     />
                   </div>
                   <p className="text-xs text-gray-600 mt-2">Among {benchmark.peers.length} comparable channels</p>
@@ -876,7 +876,7 @@ export default function AnalyticsPage() {
                 {/* Peer table */}
                 {benchmark.peers.length > 0 && (
                   <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-                    <div className="px-5 py-4" style={{ borderBottom: '1px solid #f0edf9' }}>
+                    <div className="px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Comparable Channels</p>
                     </div>
                     <table className="w-full text-sm">
@@ -889,7 +889,7 @@ export default function AnalyticsPage() {
                       </thead>
                       <tbody>
                         {benchmark.peers.map((peer, i) => (
-                          <tr key={i} className="hover:bg-[#faf9ff] transition-colors" style={{ borderTop: '1px solid #f0edf9' }}>
+                          <tr key={i} className="hover:bg-[#faf9ff] transition-colors" style={{ borderTop: '1px solid #f3f4f6' }}>
                             <td className="px-5 py-3 font-medium text-gray-900">{peer.title}</td>
                             <td className="px-5 py-3 text-right text-gray-600">{peer.subscribers.toLocaleString()}</td>
                             <td className="px-5 py-3 text-right text-gray-600">{peer.videoCount.toLocaleString()}</td>

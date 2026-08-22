@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -124,7 +124,7 @@ const inputCls =
   'w-full border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 bg-white';
 
 const primaryBtnCls =
-  'rounded-2xl font-bold text-white bg-gradient-to-br from-[#6D4AE0] to-[#7c5ae8] shadow-[0_4px_20px_rgba(109,74,224,0.35)] px-6 py-3 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2';
+  'rounded-2xl font-bold text-white bg-gradient-to-br from-[#374151] to-[#7c5ae8] shadow-[0_4px_20px_rgba(55,65,81,0.35)] px-6 py-3 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2';
 
 // ── Collapsible list ──────────────────────────────────────────────────────────
 
@@ -696,7 +696,7 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
 
           <button type="button" onClick={() => void runResearch()} disabled={loading || (!topic && !ctx.niche)}
             className="w-full py-2 rounded-xl text-xs font-bold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+            style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
             {loading ? 'Researching…' : 'Start Research'}
           </button>
         </div>
@@ -1303,7 +1303,7 @@ function ContentStudioInner() {
             <button
               type="button"
               onClick={applyContext}
-              className="col-span-1 rounded-2xl font-bold text-white bg-gradient-to-br from-[#6D4AE0] to-[#7c5ae8] shadow-[0_4px_20px_rgba(109,74,224,0.35)] px-5 py-3 text-sm hover:opacity-90 transition-opacity whitespace-nowrap"
+              className="col-span-1 rounded-2xl font-bold text-white bg-gradient-to-br from-[#374151] to-[#7c5ae8] shadow-[0_4px_20px_rgba(55,65,81,0.35)] px-5 py-3 text-sm hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               Apply
             </button>

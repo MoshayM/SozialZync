@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, Loader2, AlertCircle, CheckCircle2, Clock, RefreshCw, Filter, X, Zap, Play, ChevronDown } from 'lucide-react';
@@ -109,7 +109,7 @@ export default function MonitorPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}>
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}>
               <Activity className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -185,7 +185,7 @@ export default function MonitorPage() {
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1 text-xs font-medium rounded-2xl capitalize transition-colors ${statusFilter === s ? 'bg-white shadow text-[#6D4AE0]' : 'text-gray-600 hover:text-gray-700'}`}
+                className={`px-3 py-1 text-xs font-medium rounded-2xl capitalize transition-colors ${statusFilter === s ? 'bg-white shadow text-[#374151]' : 'text-gray-600 hover:text-gray-700'}`}
               >
                 {s}
               </button>
@@ -195,7 +195,7 @@ export default function MonitorPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="bg-white rounded-2xl px-4 py-3 pr-8 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 appearance-none"
+              className="bg-white rounded-2xl px-4 py-3 pr-8 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#374151]/20 appearance-none"
               style={{ border: '1.5px solid #e3e0f0' }}
             >
               <option value="all">All types</option>
@@ -223,8 +223,8 @@ export default function MonitorPage() {
             </div>
           ) : jobs.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f0edf9, #e5e7eb)' }}>
-                <Activity className="w-8 h-8 text-[#6D4AE0]" />
+              <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
+                <Activity className="w-8 h-8 text-[#374151]" />
               </div>
               <p className="text-sm text-gray-600">No jobs match the current filter.</p>
             </div>
@@ -263,7 +263,7 @@ export default function MonitorPage() {
                     {job.project ? (
                       <Link
                         href={`/projects/${job.project.id}`}
-                        className="text-xs text-gray-600 hover:text-[#6D4AE0] hover:underline truncate block mt-0.5"
+                        className="text-xs text-gray-600 hover:text-[#374151] hover:underline truncate block mt-0.5"
                       >
                         {job.project.title}
                       </Link>

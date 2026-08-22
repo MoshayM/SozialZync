@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import {
   Zap, Film, Bot, ArrowRight, CheckCircle2, ChevronRight, Sparkles, ShieldCheck,
   Globe2, Repeat2, Clock, Star, Hash, LineChart, MessageSquare, Target, Users, Calendar,
@@ -157,7 +157,7 @@ export default function WelcomePage() {
             <div className="orb-pulse absolute top-1/3 left-[5%] w-80 h-80 rounded-full" style={{background:'#1e3a5f',filter:'blur(70px)',animationDelay:'2s'}} />
             <div className="orb-pulse absolute top-1/4 right-[5%] w-60 h-60 rounded-full" style={{background:'#374151',filter:'blur(60px)',animationDelay:'4s'}} />
             <div className="orb-pulse absolute bottom-0 right-1/3 w-96 h-96 rounded-full" style={{background:'#1e1b4b',filter:'blur(80px)',animationDelay:'1s'}} />
-            <div className="spin-slow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full" style={{border:'1px solid rgba(167,139,250,.1)'}} />
+            <div className="spin-slow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full" style={{border:'1px solid rgba(156,163,175,.1)'}} />
             <div className="spin-rev absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full" style={{border:'1px solid rgba(55,65,81,.06)'}} />
           </div>
 
@@ -423,7 +423,7 @@ export default function WelcomePage() {
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${role==='ai'?'':'opacity-90'}`} style={{background:role==='ai'?'linear-gradient(135deg,#9ca3af,#374151)':'linear-gradient(135deg,#f472b6,#ec4899)',color:'#fff'}}>
                             {role==='ai'?'AI':'U'}
                           </div>
-                          <div className="max-w-[76%] px-3 py-2 rounded-xl text-[11px] leading-relaxed" style={{background:role==='ai'?'rgba(167,139,250,.12)':'rgba(255,255,255,.08)',color:role==='ai'?'#e0d7ff':'rgba(255,255,255,.85)',borderRadius:role==='ai'?'18px 18px 18px 4px':'18px 18px 4px 18px'}}>
+                          <div className="max-w-[76%] px-3 py-2 rounded-xl text-[11px] leading-relaxed" style={{background:role==='ai'?'rgba(156,163,175,.12)':'rgba(255,255,255,.08)',color:role==='ai'?'#e0d7ff':'rgba(255,255,255,.85)',borderRadius:role==='ai'?'18px 18px 18px 4px':'18px 18px 4px 18px'}}>
                             {text}
                           </div>
                         </div>

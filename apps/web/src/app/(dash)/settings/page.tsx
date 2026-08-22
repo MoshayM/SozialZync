@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
@@ -443,7 +443,7 @@ function SettingsContent() {
               <label className="block text-xs font-medium text-gray-600 mb-1">Display name</label>
               <input type="text" value={profileName} onChange={(e) => setProfileName(e.target.value)}
                 placeholder="Your name"
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                 style={{ border: '1.5px solid #e3e0f0' }} />
             </div>
 
@@ -453,7 +453,7 @@ function SettingsContent() {
                 onClick={() => updateProfileMutation.mutate()}
                 disabled={updateProfileMutation.isPending || avatarUploading}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}>
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}>
                 {updateProfileMutation.isPending
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : profileSaved
@@ -585,7 +585,7 @@ function SettingsContent() {
                   value={passkeyName}
                   onChange={(e) => setPasskeyName(e.target.value)}
                   placeholder="Name this passkey (optional)"
-                  className="flex-1 text-sm px-3 py-2 rounded-xl bg-[#faf9ff] outline-none focus:ring-2 ring-[#6D4AE0]"
+                  className="flex-1 text-sm px-3 py-2 rounded-xl bg-[#faf9ff] outline-none focus:ring-2 ring-[#374151]"
                   style={{ border: '1.5px solid #e5e7eb' }}
                 />
                 <button
@@ -593,7 +593,7 @@ function SettingsContent() {
                   onClick={() => { void handleAddPasskey(); }}
                   disabled={addingPasskey}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-white text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                 >
                   {addingPasskey ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                   Add Passkey
@@ -606,7 +606,7 @@ function SettingsContent() {
           <div className="bg-white rounded-2xl mb-4 overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
             <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f3f4f6' }}>
               <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none" aria-hidden>
-                <rect x="2" y="7" width="20" height="15" rx="2" stroke="#6D4AE0" strokeWidth="1.8" />
+                <rect x="2" y="7" width="20" height="15" rx="2" stroke="#374151" strokeWidth="1.8" />
                 <path d="M16 2 8 2 2 7h20z" fill="#e5e7eb" />
               </svg>
               <div>
@@ -619,7 +619,7 @@ function SettingsContent() {
               <a
                 href="/settings/channels"
                 className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 transition-opacity"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)', textDecoration: 'none' }}
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)', textDecoration: 'none' }}
               >
                 <Plus className="w-3.5 h-3.5" /> Manage Channels
               </a>
@@ -787,7 +787,7 @@ function SettingsContent() {
                   value={newWebhookUrl}
                   onChange={(e) => setNewWebhookUrl(e.target.value)}
                   placeholder="https://your-server.com/webhook"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                   style={{ border: '1.5px solid #e3e0f0' }}
                   required
                 />
@@ -805,7 +805,7 @@ function SettingsContent() {
                             )
                           }
                           className="w-4 h-4 rounded"
-                          style={{ accentColor: '#6D4AE0' }}
+                          style={{ accentColor: '#374151' }}
                         />
                         {ev.label}
                       </label>
@@ -817,7 +817,7 @@ function SettingsContent() {
                   value={newWebhookSecret}
                   onChange={(e) => setNewWebhookSecret(e.target.value)}
                   placeholder="Optional signing secret"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
                 <div className="flex gap-2 justify-end">
@@ -832,7 +832,7 @@ function SettingsContent() {
                     onClick={() => createWebhookMutation.mutate()}
                     disabled={createWebhookMutation.isPending || !newWebhookUrl.trim() || newWebhookEvents.length === 0}
                     className="flex items-center gap-1.5 px-4 py-1.5 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                    style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                    style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
                   >
                     {createWebhookMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     Save
@@ -889,7 +889,7 @@ function SettingsContent() {
                           onChange={(e) =>
                             setApiKeyDrafts((prev) => ({ ...prev, [entry.key]: e.target.value }))
                           }
-                          className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono placeholder:text-gray-600 placeholder:font-sans"
+                          className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono placeholder:text-gray-600 placeholder:font-sans"
                           style={{ border: '1.5px solid #e3e0f0', paddingRight: entry.set && draft === undefined ? '5rem' : '2.5rem' }}
                         />
                         {entry.set && draft === undefined && (
@@ -919,7 +919,7 @@ function SettingsContent() {
                   onClick={() => saveApiKeysMutation.mutate()}
                   disabled={saveApiKeysMutation.isPending}
                   className="flex items-center gap-2 px-5 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                  style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
                 >
                   {saveApiKeysMutation.isPending
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
@@ -946,7 +946,7 @@ function SettingsContent() {
                   className="text-[11px] font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap"
                   style={{
                     background: pushPermission === 'granted' ? '#ecfdf5' : pushPermission === 'denied' ? '#fef2f2' : '#f3f4f6',
-                    color: pushPermission === 'granted' ? '#065f46' : pushPermission === 'denied' ? '#991b1b' : '#6D4AE0',
+                    color: pushPermission === 'granted' ? '#065f46' : pushPermission === 'denied' ? '#991b1b' : '#374151',
                   }}
                 >
                   {pushPermission === 'granted' ? 'Enabled' : pushPermission === 'denied' ? 'Blocked' : 'Off'}
@@ -978,7 +978,7 @@ function SettingsContent() {
                     onClick={() => { void handlePushSubscribe(); }}
                     disabled={pushSubscribing}
                     className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                    style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                    style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
                   >
                     {pushSubscribing
                       ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -30,7 +30,7 @@ function daysUntil(dateStr: string): number {
 function offerTypeBadge(type: string): string {
   switch (type) {
     case 'FIRST_RECHARGE': return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'WELCOME': return 'bg-[#f5f2fd] text-[#6D4AE0]';
+    case 'WELCOME': return 'bg-[#f3f4f6] text-[#374151]';
     case 'LOYALTY': return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'WINBACK': return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'LOW_CREDIT': return 'bg-red-50 text-red-700 border-red-200';
@@ -60,7 +60,7 @@ function TrialStatusCard() {
 
   if (isLoading) return (
     <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-      <Loader2 className="w-5 h-5 animate-spin text-[#6D4AE0]" />
+      <Loader2 className="w-5 h-5 animate-spin text-[#374151]" />
     </div>
   );
   if (isError || !data?.hasTrial) return null;
@@ -88,7 +88,7 @@ function TrialStatusCard() {
   return (
     <div className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="flex items-center gap-2">
-        <Clock className="w-4 h-4 text-[#6D4AE0]" />
+        <Clock className="w-4 h-4 text-[#374151]" />
         <span className="text-sm font-semibold text-gray-800">Free Trial</span>
         {status && (
           <span className={`text-[11px] font-medium border rounded-full px-2 py-0.5 ${
@@ -108,7 +108,7 @@ function TrialStatusCard() {
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${pct > 30 ? 'bg-[#6D4AE0]' : pct > 10 ? 'bg-amber-400' : 'bg-red-400'}`}
+              className={`h-full rounded-full transition-all ${pct > 30 ? 'bg-[#374151]' : pct > 10 ? 'bg-amber-400' : 'bg-red-400'}`}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -145,15 +145,15 @@ function UpgradeNudges() {
   return (
     <section className="space-y-2">
       {recs.map((rec) => (
-        <div key={rec.id} className="bg-[#f5f2fd] rounded-2xl px-4 py-3 flex items-center gap-3" style={{ border: '1.5px solid #e3ddf8' }}>
-          <AlertCircle className="w-4 h-4 text-[#6D4AE0] shrink-0" />
+        <div key={rec.id} className="bg-[#f3f4f6] rounded-2xl px-4 py-3 flex items-center gap-3" style={{ border: '1.5px solid #e3ddf8' }}>
+          <AlertCircle className="w-4 h-4 text-[#374151] shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm text-gray-800">{reasonLabel(rec.reasonCode)}</p>
             <p className="text-xs text-gray-600 mt-0.5">
               Recommended plan: <span className="font-semibold">{rec.recommendedPlan}</span>
             </p>
           </div>
-          <a href="/wallet" className="shrink-0 text-xs font-semibold text-[#6D4AE0] hover:underline px-2 py-1 rounded-2xl">
+          <a href="/wallet" className="shrink-0 text-xs font-semibold text-[#374151] hover:underline px-2 py-1 rounded-2xl">
             Upgrade
           </a>
           <button onClick={() => dismissMutation.mutate(rec.id)} aria-label="Dismiss" className="shrink-0 text-gray-500 hover:text-gray-600 p-1 rounded-2xl">
@@ -187,7 +187,7 @@ function OfferCenter() {
 
   if (isLoading) return (
     <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
-      <Loader2 className="w-5 h-5 animate-spin text-[#6D4AE0]" />
+      <Loader2 className="w-5 h-5 animate-spin text-[#374151]" />
     </div>
   );
   if (offers.length === 0) return null;
@@ -195,7 +195,7 @@ function OfferCenter() {
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
       <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-        <Gift className="w-4 h-4 text-[#6D4AE0]" />
+        <Gift className="w-4 h-4 text-[#374151]" />
         <span className="text-sm font-semibold text-gray-800">Offer Center</span>
       </div>
       <div className="divide-y divide-gray-50">
@@ -226,7 +226,7 @@ function OfferCenter() {
                   onClick={() => redeemMutation.mutate(offer.id)}
                   disabled={redeemMutation.isPending && redeemMutation.variables === offer.id}
                   className="inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl font-bold text-white text-xs disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+                  style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
                 >
                   {redeemMutation.isPending && redeemMutation.variables === offer.id && <Loader2 className="w-3 h-3 animate-spin" />}
                   Redeem
@@ -288,7 +288,7 @@ function ScorecardTab() {
 
       <OfferCenter />
 
-      <div className="rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}>
+      <div className="rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}>
         <div className="flex items-center gap-3 mb-3">
           <Zap className="w-5 h-5" />
           <span className="font-semibold text-lg">Unlock More Power</span>
@@ -296,7 +296,7 @@ function ScorecardTab() {
         <p className="text-sm text-white mb-4">
           Upgrade to Pro for advanced analytics, unlimited AI generations, priority rendering, and multi-channel management.
         </p>
-        <Link href="/wallet" className="inline-flex items-center gap-2 bg-white text-[#6D4AE0] font-semibold px-4 py-2 rounded-2xl text-sm hover:bg-[#f5f2fd] transition-colors">
+        <Link href="/wallet" className="inline-flex items-center gap-2 bg-white text-[#374151] font-semibold px-4 py-2 rounded-2xl text-sm hover:bg-[#f3f4f6] transition-colors">
           <TrendingUp className="w-4 h-4" /> View Plans
         </Link>
       </div>
@@ -364,7 +364,7 @@ function GoalsTab() {
     <div className="space-y-5">
       <div className="bg-white rounded-2xl p-5 space-y-5" style={{ border: '1.5px solid #e3ddf8' }}>
         <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-[#6D4AE0]" />
+          <Target className="w-4 h-4 text-[#374151]" />
           <span className="text-sm font-semibold text-gray-800">Content Goals</span>
         </div>
 
@@ -376,8 +376,8 @@ function GoalsTab() {
                 <button
                   key={n}
                   onClick={() => setGoals((g) => ({ ...g, weeklyVideos: n }))}
-                  className={`w-9 h-9 rounded-2xl text-sm font-semibold border transition-colors ${goals.weeklyVideos === n ? 'text-white' : 'bg-gray-50 text-gray-700 hover:border-[#6D4AE0]/40'}`}
-                  style={goals.weeklyVideos === n ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', border: 'none' } : { border: '1.5px solid #e3ddf8' }}
+                  className={`w-9 h-9 rounded-2xl text-sm font-semibold border transition-colors ${goals.weeklyVideos === n ? 'text-white' : 'bg-gray-50 text-gray-700 hover:border-[#374151]/40'}`}
+                  style={goals.weeklyVideos === n ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', border: 'none' } : { border: '1.5px solid #e3ddf8' }}
                 >
                   {n}
                 </button>
@@ -392,8 +392,8 @@ function GoalsTab() {
                 <button
                   key={n}
                   onClick={() => setGoals((g) => ({ ...g, monthlyShortsTarget: n }))}
-                  className={`px-3 h-9 rounded-2xl text-sm font-semibold border transition-colors ${goals.monthlyShortsTarget === n ? 'text-white' : 'bg-gray-50 text-gray-700 hover:border-[#6D4AE0]/40'}`}
-                  style={goals.monthlyShortsTarget === n ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', border: 'none' } : { border: '1.5px solid #e3ddf8' }}
+                  className={`px-3 h-9 rounded-2xl text-sm font-semibold border transition-colors ${goals.monthlyShortsTarget === n ? 'text-white' : 'bg-gray-50 text-gray-700 hover:border-[#374151]/40'}`}
+                  style={goals.monthlyShortsTarget === n ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', border: 'none' } : { border: '1.5px solid #e3ddf8' }}
                 >
                   {n === 0 ? 'None' : n}
                 </button>
@@ -404,7 +404,7 @@ function GoalsTab() {
           <button
             onClick={saveGoals}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white text-sm"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
           >
             {saved ? <CheckCircle2 className="w-4 h-4" /> : <Target className="w-4 h-4" />}
             {saved ? 'Saved!' : 'Save Goals'}
@@ -426,7 +426,7 @@ function GoalsTab() {
             </div>
             <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${videoProgress >= 100 ? 'bg-green-500' : videoProgress >= 50 ? 'bg-[#6D4AE0]' : 'bg-amber-400'}`}
+                className={`h-full rounded-full transition-all ${videoProgress >= 100 ? 'bg-green-500' : videoProgress >= 50 ? 'bg-[#374151]' : 'bg-amber-400'}`}
                 style={{ width: `${videoProgress}%` }}
               />
             </div>
@@ -502,14 +502,14 @@ export default function GrowthPage() {
     <div className="min-h-full bg-[#faf9ff]">
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         <div className="flex items-center gap-3">
-          <TrendingUp className="w-7 h-7 text-[#6D4AE0]" />
+          <TrendingUp className="w-7 h-7 text-[#374151]" />
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Growth</h1>
             <p className="text-sm text-gray-600 mt-0.5">Track your performance and content goals</p>
           </div>
         </div>
 
-        <div className="flex gap-1 bg-[#f0edf9] p-1 rounded-2xl w-fit">
+        <div className="flex gap-1 bg-[#f3f4f6] p-1 rounded-2xl w-fit">
           {TABS.map((t) => (
             <button
               key={t.id}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Target, Loader2, ChevronDown, ChevronUp, TrendingUp, AlertTriangle, CheckCircle2, FolderPlus, Zap, Clock } from 'lucide-react';
@@ -51,7 +51,7 @@ function StartProjectButton({ title }: { title: string }) {
       type="button"
       onClick={() => { try { localStorage.setItem('cf_new_project_topic', title); } catch {} router.push('/projects'); }}
       className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-      style={{ color: '#6D4AE0' }}
+      style={{ color: '#374151' }}
     >
       <FolderPlus className="w-3 h-3" /> Start project →
     </button>
@@ -67,7 +67,7 @@ function WeekCard({ week }: { week: WeekPlan }) {
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)', color: '#6D4AE0' }}>
+          <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)', color: '#374151' }}>
             {week.week}
           </span>
           <div>
@@ -88,7 +88,7 @@ function WeekCard({ week }: { week: WeekPlan }) {
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${COMPLEXITY_BADGE[v.productionComplexity] ?? 'bg-gray-100 text-gray-600'}`}>
                     {v.productionComplexity}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{v.suggestedFormat}</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#f3f4f6', color: '#374151' }}>{v.suggestedFormat}</span>
                 </div>
               </div>
               <p className="text-xs text-gray-600 leading-relaxed">{v.rationale}</p>
@@ -96,7 +96,7 @@ function WeekCard({ week }: { week: WeekPlan }) {
                 <div className="flex-1 bg-gray-100 rounded-full h-1.5">
                   <div
                     className="h-1.5 rounded-full"
-                    style={{ width: `${v.estimatedImpact}%`, background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                    style={{ width: `${v.estimatedImpact}%`, background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                   />
                 </div>
                 <span className="text-xs text-gray-600 flex-shrink-0">Impact: {v.estimatedImpact}%</span>
@@ -148,7 +148,7 @@ export default function StrategyPage() {
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2">
-            <Target className="w-6 h-6" style={{ color: '#6D4AE0' }} /> Content Strategy Planner
+            <Target className="w-6 h-6" style={{ color: '#374151' }} /> Content Strategy Planner
           </h1>
           <p className="text-sm text-gray-600 mt-0.5">AI decomposes your growth goal into a concrete weekly content plan</p>
         </div>
@@ -165,7 +165,7 @@ export default function StrategyPage() {
                   <select
                     value={channelId}
                     onChange={(e) => setChannelId(e.target.value)}
-                    className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 appearance-none"
+                    className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#374151]/20 appearance-none"
                     style={{ border: '1.5px solid #e3e0f0' }}
                   >
                     <option value="">Select a channel…</option>
@@ -176,7 +176,7 @@ export default function StrategyPage() {
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
                 </div>
                 {channels.length === 0 && (
-                  <Link href="/settings/channels" className="mt-1 block text-xs font-medium hover:underline" style={{ color: '#6D4AE0' }}>
+                  <Link href="/settings/channels" className="mt-1 block text-xs font-medium hover:underline" style={{ color: '#374151' }}>
                     Connect a channel first →
                   </Link>
                 )}
@@ -189,7 +189,7 @@ export default function StrategyPage() {
                   onChange={(e) => setGoal(e.target.value)}
                   placeholder="e.g. Grow to 50k subscribers and 500k monthly views in 3 months through tutorial content"
                   rows={4}
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 resize-none"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 resize-none"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
               </div>
@@ -200,7 +200,7 @@ export default function StrategyPage() {
                   <select
                     value={timeframe}
                     onChange={(e) => setTimeframe(Number(e.target.value))}
-                    className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 appearance-none"
+                    className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#374151]/20 appearance-none"
                     style={{ border: '1.5px solid #e3e0f0' }}
                   >
                     <option value={4}>4 weeks (1 month)</option>
@@ -217,7 +217,7 @@ export default function StrategyPage() {
               onClick={handleGenerate}
               disabled={loading || !channelId || !goal.trim()}
               className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-white disabled:opacity-50 transition-opacity"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
               {loading ? 'Decomposing goal…' : 'Generate Strategy Plan'}
@@ -229,11 +229,11 @@ export default function StrategyPage() {
 
             {plan?.resources && (
               <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
-                <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2"><Clock className="w-4 h-4" style={{ color: '#6D4AE0' }} /> Resources</h3>
+                <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2"><Clock className="w-4 h-4" style={{ color: '#374151' }} /> Resources</h3>
                 <p className="text-sm text-gray-600"><span className="font-medium">{plan.resources.hoursPerWeek}h/week</span> estimated</p>
                 <div className="flex flex-wrap gap-1.5">
                   {plan.resources.contentTypes.map((ct, i) => (
-                    <span key={i} className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>{ct}</span>
+                    <span key={i} className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#f3f4f6', color: '#374151' }}>{ct}</span>
                   ))}
                 </div>
                 {plan.resources.toolsNeeded.length > 0 && (
@@ -254,8 +254,8 @@ export default function StrategyPage() {
           <div className="lg:col-span-3">
             {!plan && !loading && (
               <div className="flex flex-col items-center justify-center h-full py-20 rounded-3xl" style={{ background: '#fff' }}>
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                  <Target className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                  <Target className="w-8 h-8" style={{ color: '#374151' }} />
                 </div>
                 <p className="font-medium text-gray-600">Your strategy plan will appear here</p>
                 <p className="text-sm mt-1 text-gray-600">Set a goal, choose a channel, and click Generate</p>
@@ -296,8 +296,8 @@ export default function StrategyPage() {
                   onNew={() => setPlan(null)}
                 />
                 {/* Summary */}
-                <div className="rounded-2xl p-5" style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2" style={{ color: '#6D4AE0' }}><TrendingUp className="w-4 h-4" /> Strategy Overview</h3>
+                <div className="rounded-2xl p-5" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2" style={{ color: '#374151' }}><TrendingUp className="w-4 h-4" /> Strategy Overview</h3>
                   <p className="text-sm leading-relaxed text-gray-700">{plan.summary}</p>
                 </div>
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -39,12 +39,12 @@ function Banner({
   const styles: Record<BannerType, React.CSSProperties> = {
     success: { background: '#ecfdf5', color: '#065f46', border: '1.5px solid #a7f3d0' },
     error: { background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fca5a5' },
-    info: { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #c4b5fd' },
+    info: { background: '#f3f4f6', color: '#374151', border: '1.5px solid #d1d5db' },
   };
   const icons: Record<BannerType, React.ReactNode> = {
     success: <CheckCircle className="w-4 h-4 shrink-0" style={{ color: '#065f46' }} />,
     error: <XCircle className="w-4 h-4 shrink-0" style={{ color: '#dc2626' }} />,
-    info: <AlertCircle className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />,
+    info: <AlertCircle className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />,
   };
   return (
     <div className="flex items-start gap-2 rounded-2xl px-4 py-3 text-sm" style={styles[type]}>
@@ -94,7 +94,7 @@ function Toggle({
           fontWeight: 700,
           letterSpacing: '0.05em',
           cursor: disabled ? 'not-allowed' : 'pointer',
-          background: checked ? '#6D4AE0' : 'transparent',
+          background: checked ? '#374151' : 'transparent',
           color: checked ? '#fff' : '#9ca3af',
           transition: 'background 0.15s, color 0.15s',
           WebkitTapHighlightColor: 'transparent',
@@ -251,7 +251,7 @@ export default function AutomationPage() {
     {
       key: 'autoPublish',
       label: 'Auto-publish approved Shorts',
-      description: (<>Publishes clips YOU approved, paced by the limits below — nothing is published without compliance + approval. Manage approvals in <Link href="/approvals" style={{ color: '#6D4AE0', textDecoration: 'underline' }}>Approvals</Link>.</>),
+      description: (<>Publishes clips YOU approved, paced by the limits below — nothing is published without compliance + approval. Manage approvals in <Link href="/approvals" style={{ color: '#374151', textDecoration: 'underline' }}>Approvals</Link>.</>),
     },
     {
       key: 'chapterSyncEnabled',
@@ -277,7 +277,7 @@ export default function AutomationPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2">
-              <Workflow className="w-6 h-6" style={{ color: '#6D4AE0' }} />
+              <Workflow className="w-6 h-6" style={{ color: '#374151' }} />
               Automation
             </h1>
             <p className="text-sm text-gray-400 mt-0.5">Configure automatic import, analysis, and publishing per channel.</p>
@@ -285,7 +285,7 @@ export default function AutomationPage() {
           <select
             value={channelId}
             onChange={(e) => selectChannel(e.target.value)}
-            className="w-full sm:w-auto bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+            className="w-full sm:w-auto bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
             style={{ border: '1.5px solid #e3e0f0' }}
             aria-label="Channel"
           >
@@ -304,14 +304,14 @@ export default function AutomationPage() {
         {/* No channel selected */}
         {!channelId && (
           <div className="bg-white rounded-3xl p-12 flex flex-col items-center text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-              <Workflow className="w-7 h-7" style={{ color: '#6D4AE0' }} />
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+              <Workflow className="w-7 h-7" style={{ color: '#374151' }} />
             </div>
             {channels.length === 0 ? (
               <>
                 <p className="text-sm font-semibold text-gray-700">No channels connected yet</p>
                 <p className="text-xs text-gray-400 mt-1 mb-4">Connect a YouTube channel to configure automation</p>
-                <Link href="/settings/channels" className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)' }}>
+                <Link href="/settings/channels" className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg, #374151, #7c5ae8)' }}>
                   <PlusCircle className="w-4 h-4" /> Connect a channel
                 </Link>
               </>
@@ -324,7 +324,7 @@ export default function AutomationPage() {
         {/* Loading */}
         {channelId && loadingAutomation && (
           <div className="flex justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6D4AE0' }} />
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#374151' }} />
           </div>
         )}
 
@@ -386,7 +386,7 @@ export default function AutomationPage() {
                         clamp(Number(e.target.value), PUBLISH_INTERVAL_MIN, PUBLISH_INTERVAL_MAX),
                       )
                     }
-                    className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all disabled:opacity-50"
+                    className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all disabled:opacity-50"
                     style={{ border: '1.5px solid #e3e0f0' }}
                   />
                   <p className="text-[11px] text-gray-400 mt-1">15 – 1440 min</p>
@@ -410,7 +410,7 @@ export default function AutomationPage() {
                         clamp(Number(e.target.value), PUBLISHES_PER_DAY_MIN, PUBLISHES_PER_DAY_MAX),
                       )
                     }
-                    className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all disabled:opacity-50"
+                    className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all disabled:opacity-50"
                     style={{ border: '1.5px solid #e3e0f0' }}
                   />
                   <p className="text-[11px] text-gray-400 mt-1">1 – 10</p>
@@ -434,7 +434,7 @@ export default function AutomationPage() {
                         clamp(Number(e.target.value), IMPORTS_PER_DAY_MIN, IMPORTS_PER_DAY_MAX),
                       )
                     }
-                    className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all disabled:opacity-50"
+                    className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all disabled:opacity-50"
                     style={{ border: '1.5px solid #e3e0f0' }}
                   />
                   <p className="text-[11px] text-gray-400 mt-1">1 – 10</p>
@@ -444,8 +444,8 @@ export default function AutomationPage() {
 
             {/* AI suggestion source note */}
             {aiSuggestionSource && (
-              <div className="px-6 py-3" style={{ background: '#f5f2fd', borderTop: '1.5px solid #e3ddf8' }}>
-                <p className="text-xs flex items-center gap-1.5" style={{ color: '#6D4AE0' }}>
+              <div className="px-6 py-3" style={{ background: '#f3f4f6', borderTop: '1.5px solid #e3ddf8' }}>
+                <p className="text-xs flex items-center gap-1.5" style={{ color: '#374151' }}>
                   <Sparkles className="w-3.5 h-3.5" />
                   {aiSuggestionSource === 'ai' ? 'AI suggestion — review and save when ready.' : 'Based on your upload cadence — review and save when ready.'}
                 </p>
@@ -459,7 +459,7 @@ export default function AutomationPage() {
                 onClick={() => suggestMutation.mutate()}
                 disabled={!channelId || suggestMutation.isPending}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-2xl font-semibold text-sm disabled:opacity-50 transition-all hover:bg-gray-50 touch-manipulation"
-                style={{ border: '1.5px solid #e3ddf8', color: '#6D4AE0', minHeight: '44px' }}
+                style={{ border: '1.5px solid #e3ddf8', color: '#374151', minHeight: '44px' }}
               >
                 {suggestMutation.isPending
                   ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -472,7 +472,7 @@ export default function AutomationPage() {
                 onClick={() => updateMutation.mutate()}
                 disabled={!channelId || updateMutation.isPending}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 sm:py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all touch-manipulation"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)', minHeight: '44px' }}
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)', minHeight: '44px' }}
               >
                 {updateMutation.isPending
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FlaskConical, Loader2, CheckCircle2, RefreshCw, ChevronDown, ChevronUp, Youtube, BarChart2 } from 'lucide-react';
@@ -136,7 +136,7 @@ export default function AbTestingPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}>
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}>
               <FlaskConical className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -165,7 +165,7 @@ export default function AbTestingPage() {
               <select
                 value={channelId}
                 onChange={(e) => setSelectedChannelId(e.target.value)}
-                className="bg-white rounded-2xl px-4 py-3 pr-9 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 min-w-[200px] appearance-none"
+                className="bg-white rounded-2xl px-4 py-3 pr-9 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[#374151]/20 min-w-[200px] appearance-none"
                 style={{ border: '1.5px solid #e3e0f0' }}
               >
                 {channels.map((c) => (
@@ -199,7 +199,7 @@ export default function AbTestingPage() {
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`px-4 py-1.5 text-sm font-medium rounded-xl transition-colors ${activeTab === key ? 'bg-white shadow text-[#6D4AE0]' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-1.5 text-sm font-medium rounded-xl transition-colors ${activeTab === key ? 'bg-white shadow text-[#374151]' : 'text-gray-500 hover:text-gray-700'}`}
             >
               {label}
             </button>
@@ -214,10 +214,10 @@ export default function AbTestingPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center bg-white rounded-3xl" style={{ border: '1.5px solid #e5e7eb' }}>
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e5e7eb)' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
               <FlaskConical className="w-8 h-8" style={{ color: '#374151' }} />
             </div>
-            <p className="text-sm text-gray-500">No entries found. <Link href="/publish?tab=calendar" className="underline font-medium hover:text-[#6D4AE0]">Generate a content calendar →</Link></p>
+            <p className="text-sm text-gray-500">No entries found. <Link href="/publish?tab=calendar" className="underline font-medium hover:text-[#374151]">Generate a content calendar →</Link></p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -295,7 +295,7 @@ export default function AbTestingPage() {
                           ))}
 
                           {variants.length === 0 && (
-                            <p className="text-xs text-gray-400 italic">No variants generated yet. <Link href="/publish?tab=calendar" className="underline hover:text-[#6D4AE0]">Open Calendar →</Link></p>
+                            <p className="text-xs text-gray-400 italic">No variants generated yet. <Link href="/publish?tab=calendar" className="underline hover:text-[#374151]">Open Calendar →</Link></p>
                           )}
                         </div>
                       </div>
@@ -311,7 +311,7 @@ export default function AbTestingPage() {
                         <button
                           type="button"
                           onClick={() => setStatsOpen((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))}
-                          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#6D4AE0] transition-colors"
+                          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#374151] transition-colors"
                         >
                           <BarChart2 className="w-3.5 h-3.5" />
                           {statsOpen[entry.id] ? 'Hide Stats' : 'View Live Stats'}

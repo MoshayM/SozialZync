@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useCallback } from 'react';
 import { Copy, Check, Download, Share2, Trash2, Save, Volume2, VolumeX, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
 
@@ -71,7 +71,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
         type="button"
         onClick={() => void handleCopy()}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
-        style={{ background: copied ? '#ecfdf5' : '#f5f2fd', color: copied ? '#065f46' : '#6D4AE0', border: `1.5px solid ${copied ? '#a7f3d0' : '#e3ddf8'}` }}
+        style={{ background: copied ? '#ecfdf5' : '#f3f4f6', color: copied ? '#065f46' : '#374151', border: `1.5px solid ${copied ? '#a7f3d0' : '#e3ddf8'}` }}
         title="Copy to clipboard"
       >
         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -81,7 +81,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
         type="button"
         onClick={handleDownload}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
-        style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+        style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}
         title="Download as text file"
       >
         <Download className="w-3.5 h-3.5" />
@@ -91,7 +91,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
         type="button"
         onClick={() => void handleShare()}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
-        style={{ background: shared ? '#ecfdf5' : '#f5f2fd', color: shared ? '#065f46' : '#6D4AE0', border: `1.5px solid ${shared ? '#a7f3d0' : '#e3ddf8'}` }}
+        style={{ background: shared ? '#ecfdf5' : '#f3f4f6', color: shared ? '#065f46' : '#374151', border: `1.5px solid ${shared ? '#a7f3d0' : '#e3ddf8'}` }}
         title="Share"
       >
         <Share2 className="w-3.5 h-3.5" />
@@ -167,8 +167,8 @@ export function ResultActionBar({ text, filename = 'result', onRegenerate }: Res
   const pill = (active: boolean, accent?: string) => {
     const base = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border';
     if (active && accent === 'green') return `${base} bg-green-50 border-green-200 text-green-700`;
-    if (active) return `${base} bg-[#f0edfb] border-[#c4b5f4] text-[#6D4AE0]`;
-    return `${base} bg-white border-[#e3ddf8] text-gray-600 hover:bg-[#f5f2fd] hover:border-[#c4b5f4] hover:text-[#6D4AE0]`;
+    if (active) return `${base} bg-[#f0edfb] border-[#c4b5f4] text-[#374151]`;
+    return `${base} bg-white border-[#e3ddf8] text-gray-600 hover:bg-[#f3f4f6] hover:border-[#c4b5f4] hover:text-[#374151]`;
   };
 
   return (

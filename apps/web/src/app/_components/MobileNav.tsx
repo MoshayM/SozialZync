@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
@@ -51,7 +51,7 @@ export function MobileNav() {
               <div className="flex items-center gap-2.5">
                 <LogoMark className="w-9 h-9 shrink-0" />
                 <span className="font-bold text-lg tracking-[-0.4px]">
-                  <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+                  <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
                 </span>
               </div>
               <button
@@ -95,7 +95,7 @@ export function MobileNav() {
                 href="/login"
                 onClick={() => setOpen(false)}
                 className="w-full py-4 text-center rounded-2xl bg-white font-bold text-base shadow-lg hover:bg-purple-50 active:bg-purple-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors touch-manipulation"
-                style={{ color: '#7C3AED' }}
+                style={{ color: '#374151' }}
               >
                 Get started free
               </Link>

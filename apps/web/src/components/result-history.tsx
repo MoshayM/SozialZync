@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { History, ChevronDown, ChevronUp, Trash2, RefreshCw, Clock } from 'lucide-react';
 import { type HistoryEntry } from '@/hooks/use-content-history';
@@ -25,12 +25,12 @@ export function ResultHistory({ entries, onRestore, onRerun, onDelete, timeAgo }
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-[#faf9ff] hover:bg-[#f5f2fd] transition-colors text-sm"
+        className="w-full flex items-center justify-between px-5 py-3.5 bg-[#faf9ff] hover:bg-[#f3f4f6] transition-colors text-sm"
       >
         <span className="flex items-center gap-2 font-semibold text-gray-700">
-          <History className="w-4 h-4 text-[#6D4AE0]" />
+          <History className="w-4 h-4 text-[#374151]" />
           Previous Results
-          <span className="px-2 py-0.5 bg-[#f0edfb] text-[#6D4AE0] rounded-full text-xs font-bold">
+          <span className="px-2 py-0.5 bg-[#f0edfb] text-[#374151] rounded-full text-xs font-bold">
             {entries.length}
           </span>
         </span>
@@ -57,14 +57,14 @@ export function ResultHistory({ entries, onRestore, onRerun, onDelete, timeAgo }
                     <button
                       type="button"
                       onClick={() => onRestore(entry)}
-                      className="flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-[#f5f2fd] border border-[#e3ddf8] text-[#6D4AE0] rounded-full hover:bg-[#ebe6fb] transition-colors"
+                      className="flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-[#f3f4f6] border border-[#e3ddf8] text-[#374151] rounded-full hover:bg-[#ebe6fb] transition-colors"
                     >
                       View result
                     </button>
                     <button
                       type="button"
                       onClick={() => onRerun(entry)}
-                      className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-white border border-[#e3ddf8] text-gray-600 rounded-full hover:bg-[#f5f2fd] hover:text-[#6D4AE0] hover:border-[#c4b5f4] transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-white border border-[#e3ddf8] text-gray-600 rounded-full hover:bg-[#f3f4f6] hover:text-[#374151] hover:border-[#c4b5f4] transition-colors"
                     >
                       <RefreshCw className="w-3 h-3" /> Try Again
                     </button>

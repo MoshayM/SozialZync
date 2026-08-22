@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { Cpu, Zap, RefreshCw, Loader2, Thermometer, HardDrive, Activity } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -84,7 +84,7 @@ export default function GpuPage() {
 
       {/* GPU list */}
       {loading && !stats ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#6D4AE0]" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#374151]" /></div>
       ) : (
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Detected GPUs</h2>
@@ -104,7 +104,7 @@ export default function GpuPage() {
                 <div className="grid grid-cols-3 gap-3">
                   {gpu.vramMb && (
                     <div className="rounded-xl p-3" style={{ background: '#faf9ff', border: '1px solid #e3ddf8' }}>
-                      <HardDrive className="w-4 h-4 text-[#6D4AE0] mb-1" />
+                      <HardDrive className="w-4 h-4 text-[#374151] mb-1" />
                       <p className="text-lg font-extrabold text-gray-900">{(gpu.vramMb / 1024).toFixed(1)} GB</p>
                       <p className="text-xs text-gray-400">VRAM Total</p>
                     </div>
@@ -134,7 +134,7 @@ export default function GpuPage() {
                     <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${vramPct}%`, background: vramPct > 85 ? '#ef4444' : vramPct > 60 ? '#f59e0b' : '#6D4AE0' }}
+                        style={{ width: `${vramPct}%`, background: vramPct > 85 ? '#ef4444' : vramPct > 60 ? '#f59e0b' : '#374151' }}
                       />
                     </div>
                   </div>
@@ -158,14 +158,14 @@ export default function GpuPage() {
 
       {/* Compatible models */}
       {stats && (
-        <div className="rounded-2xl p-5 space-y-3" style={{ background: '#f5f2fd', border: '1px solid #d4c9f9' }}>
+        <div className="rounded-2xl p-5 space-y-3" style={{ background: '#f3f4f6', border: '1px solid #d4c9f9' }}>
           <p className="text-sm font-bold" style={{ color: '#4c1d95' }}>Compatible self-hosted models for {backendMeta.label}</p>
           <div className="flex flex-wrap gap-2">
             {(COMPATIBLE_MODELS[primary] ?? COMPATIBLE_MODELS['cpu']!).map(m => (
-              <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'white', color: '#6D4AE0', border: '1px solid #d4c9f9' }}>{m}</span>
+              <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'white', color: '#374151', border: '1px solid #d4c9f9' }}>{m}</span>
             ))}
           </div>
-          <p className="text-xs text-gray-500">Configure providers at <a href="/settings/ai-providers" className="text-[#6D4AE0] font-semibold hover:underline">Settings → AI Providers</a></p>
+          <p className="text-xs text-gray-500">Configure providers at <a href="/settings/ai-providers" className="text-[#374151] font-semibold hover:underline">Settings → AI Providers</a></p>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { Server, Cpu, Zap, HardDrive, Puzzle, ArrowRight, CheckCircle } from 'lucide-react';
 
@@ -15,8 +15,8 @@ export default function SelfHostedGuidePage() {
     {
       icon: Server,
       title: 'AI Provider Architecture',
-      color: '#6D4AE0',
-      bg: '#f5f2fd',
+      color: '#374151',
+      bg: '#f3f4f6',
       content: (
         <div className="space-y-3 text-sm text-gray-600">
           <p>The platform uses a <strong>provider-first</strong> architecture. Every AI feature routes through a provider registry that tries local/self-hosted options before falling back to cloud APIs.</p>
@@ -27,7 +27,7 @@ export default function SelfHostedGuidePage() {
             <li>OpenRouter (any model via unified API)</li>
             <li>Cloud APIs (OpenAI, Anthropic, Gemini) — optional</li>
           </ol>
-          <p>Configure providers at <Link href="/settings/ai-providers" className="text-[#6D4AE0] font-semibold hover:underline">Settings → AI Providers →</Link></p>
+          <p>Configure providers at <Link href="/settings/ai-providers" className="text-[#374151] font-semibold hover:underline">Settings → AI Providers →</Link></p>
         </div>
       ),
     },
@@ -52,7 +52,7 @@ export default function SelfHostedGuidePage() {
               </div>
             ))}
           </div>
-          <p>View current hardware at <Link href="/settings/gpu" className="text-[#6D4AE0] font-semibold hover:underline">Settings → GPU &amp; Hardware →</Link></p>
+          <p>View current hardware at <Link href="/settings/gpu" className="text-[#374151] font-semibold hover:underline">Settings → GPU &amp; Hardware →</Link></p>
         </div>
       ),
     },
@@ -64,14 +64,14 @@ export default function SelfHostedGuidePage() {
       content: (
         <div className="space-y-3 text-sm text-gray-600">
           <p className="font-semibold text-gray-700">Option A — Ollama (recommended)</p>
-          <div className="rounded-xl p-3 font-mono text-xs" style={{ background: '#1e1b2e', color: '#a78bfa' }}>
+          <div className="rounded-xl p-3 font-mono text-xs" style={{ background: '#1e1b2e', color: '#9ca3af' }}>
             <p># Install Ollama</p>
             <p>curl -fsSL https://ollama.ai/install.sh | sh</p>
             <p className="mt-2"># Pull a model</p>
             <p>ollama pull llama3.2</p>
             <p className="mt-2"># Ollama runs on http://localhost:11434</p>
           </div>
-          <p>Then add <code className="bg-gray-100 px-1 rounded text-xs">OLLAMA_URL=http://localhost:11434</code> to your <code className="bg-gray-100 px-1 rounded text-xs">.env</code> and configure at <Link href="/settings/ai-providers" className="text-[#6D4AE0] font-semibold hover:underline">AI Providers →</Link></p>
+          <p>Then add <code className="bg-gray-100 px-1 rounded text-xs">OLLAMA_URL=http://localhost:11434</code> to your <code className="bg-gray-100 px-1 rounded text-xs">.env</code> and configure at <Link href="/settings/ai-providers" className="text-[#374151] font-semibold hover:underline">AI Providers →</Link></p>
           <p className="font-semibold text-gray-700">Option B — LM Studio</p>
           <p>Download LM Studio, load any GGUF model, start the local server on port 1234. Set <code className="bg-gray-100 px-1 rounded text-xs">LM_STUDIO_URL=http://localhost:1234</code>.</p>
         </div>
@@ -111,7 +111,7 @@ export default function SelfHostedGuidePage() {
             ))}
           </div>
           <p>Implement the <code className="bg-gray-100 px-1 rounded text-xs">IPlugin</code> interface from <code className="bg-gray-100 px-1 rounded text-xs">apps/api/src/modules/plugins/plugin.types.ts</code> and register via <code className="bg-gray-100 px-1 rounded text-xs">PluginRegistryService.register()</code>.</p>
-          <p>Active plugins: <Link href="/api/v1/plugins" className="text-[#6D4AE0] font-semibold hover:underline">GET /api/v1/plugins →</Link></p>
+          <p>Active plugins: <Link href="/api/v1/plugins" className="text-[#374151] font-semibold hover:underline">GET /api/v1/plugins →</Link></p>
         </div>
       ),
     },
@@ -135,12 +135,12 @@ export default function SelfHostedGuidePage() {
       </div>
 
       {/* Quick status checklist */}
-      <div className="rounded-2xl p-5" style={{ background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#f3f4f6', border: '1.5px solid #d4c9f9' }}>
         <p className="text-sm font-bold mb-3" style={{ color: '#4c1d95' }}>Setup checklist</p>
         <div className="space-y-1.5">
           {checks.map(c => (
             <div key={c} className="flex items-center gap-2">
-              <CheckCircle className="w-3.5 h-3.5 text-[#6D4AE0] shrink-0" />
+              <CheckCircle className="w-3.5 h-3.5 text-[#374151] shrink-0" />
               <p className="text-xs text-gray-600">{c}</p>
             </div>
           ))}
@@ -161,7 +161,7 @@ export default function SelfHostedGuidePage() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Link href="/settings/ai-providers" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#6D4AE0' }}>
+        <Link href="/settings/ai-providers" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#374151' }}>
           Configure AI Providers <ArrowRight className="w-4 h-4" />
         </Link>
         <Link href="/settings/gpu" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">

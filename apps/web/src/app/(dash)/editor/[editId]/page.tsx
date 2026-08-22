@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -572,7 +572,7 @@ function AIAudioPanel({
               disabled={voiceGenerating || !script.trim() || !selectedVoiceId}
               onClick={() => { void handleGenerateVoice(); }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(109,74,224,0.3)' }}
+              style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(55,65,81,0.3)' }}
             >
               {voiceGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mic className="w-3.5 h-3.5" />}
               {voiceGenerating ? 'Generating…' : 'Generate & Add to Timeline'}
@@ -637,7 +637,7 @@ function AIAudioPanel({
               disabled={!selectedMusic}
               onClick={addMusicToTimeline}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(109,74,224,0.3)' }}
+              style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(55,65,81,0.3)' }}
             >
               <ListMusic className="w-3.5 h-3.5" />
               Add to Timeline
@@ -1218,7 +1218,7 @@ function Inspector({
                   }
                 }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(109,74,224,0.3)' }}
+                style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff', boxShadow: '0 2px 12px rgba(55,65,81,0.3)' }}
               >
                 {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                 {enhancing ? 'Processing audio…' : 'Run AI Enhance'}

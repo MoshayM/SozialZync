@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { Volume2, Waves, Scissors, CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -89,7 +89,7 @@ export default function AudioStudioPage() {
           value={inputPath}
           onChange={e => { setInputPath(e.target.value); setResult(null); setError(null); }}
           placeholder="/data/sozialzync/projects/my-recording.mp4"
-          className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
+          className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono"
           style={{ borderColor: '#d4c9f9' }}
         />
         <p className="text-[11px] text-gray-400">Server-side absolute path — the output file is saved alongside with a suffix.</p>
@@ -172,8 +172,8 @@ export default function AudioStudioPage() {
         icon={<Volume2 className="w-4 h-4" />}
         label="Loudness Normalize"
         description="Set final volume to YouTube standard (-14 LUFS)."
-        color="#6D4AE0"
-        bg="#f5f2fd"
+        color="#374151"
+        bg="#f3f4f6"
         borderColor="#ddd6fe"
         enabled={normalizeEnabled}
         onToggle={() => setNormalizeEnabled(v => !v)}
@@ -190,7 +190,7 @@ export default function AudioStudioPage() {
               onChange={e => setTargetLufs(Number(e.target.value))}
               className="flex-1" disabled={!normalizeEnabled}
             />
-            <span className="text-sm font-bold w-14 text-right" style={{ color: '#6D4AE0' }}>{targetLufs} LUFS</span>
+            <span className="text-sm font-bold w-14 text-right" style={{ color: '#374151' }}>{targetLufs} LUFS</span>
           </div>
           <div className="flex justify-between text-[11px] text-gray-400 mt-0.5">
             <span>Quiet (-24)</span><span>YouTube (-14) ★</span><span>Loud (-9)</span>
@@ -203,7 +203,7 @@ export default function AudioStudioPage() {
         onClick={() => void runPipeline()}
         disabled={loading || enabledCount === 0 || !inputPath.trim()}
         className="w-full py-3.5 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-40"
-        style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+        style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
       >
         {loading
           ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
@@ -234,7 +234,7 @@ export default function AudioStudioPage() {
             <p className="text-xs text-green-800 font-mono break-all mt-0.5">{result.finalPath}</p>
           </div>
           <div className="pt-2 border-t border-green-100">
-            <a href="/shorts-studio" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+            <a href="/shorts-studio" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
               Open in Shorts Studio →
             </a>
           </div>

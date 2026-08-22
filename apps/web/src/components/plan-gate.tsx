@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Lock } from 'lucide-react';
@@ -109,20 +109,20 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
         style={{
           background: preview ? 'rgba(250,249,255,0.88)' : 'white',
           backdropFilter: preview ? 'blur(4px)' : undefined,
-          border: preview ? undefined : '1.5px dashed #c4b5fd',
+          border: preview ? undefined : '1.5px dashed #d1d5db',
           borderRadius: preview ? undefined : 16,
         }}
       >
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-          style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}
+          style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}
         >
-          <Lock className="w-6 h-6" style={{ color: '#6D4AE0' }} />
+          <Lock className="w-6 h-6" style={{ color: '#374151' }} />
         </div>
 
         <p className="text-sm font-extrabold text-gray-900 mb-1 text-center px-6">
           {featureLabel ? `${featureLabel} requires ` : 'Requires '}
-          <span style={{ color: '#6D4AE0' }}>{PLAN_LABEL[requiredPlan]}</span>
+          <span style={{ color: '#374151' }}>{PLAN_LABEL[requiredPlan]}</span>
           {PLAN_PRICE[requiredPlan] && (
             <span className="text-gray-600 font-medium"> ({PLAN_PRICE[requiredPlan]})</span>
           )}
@@ -135,8 +135,8 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
           href="/wallet"
           className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
           style={{
-            background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-            boxShadow: '0 4px 16px rgba(109,74,224,0.30)',
+            background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)',
+            boxShadow: '0 4px 16px rgba(55,65,81,0.30)',
           }}
         >
           Upgrade to {PLAN_LABEL[requiredPlan]}

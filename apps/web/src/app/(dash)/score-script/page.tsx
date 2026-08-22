@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Award, Loader2, CheckCircle2, ArrowRight, ChevronDown, ChevronUp, Zap, Target, ExternalLink, FolderPlus, ArrowRightLeft } from 'lucide-react';
@@ -79,7 +79,7 @@ function DimensionCard({ dim }: { dim: QualityDimension }) {
           <button
             onClick={() => setOpen((v) => !v)}
             className="mt-2 text-xs flex items-center gap-1 hover:opacity-80"
-            style={{ color: '#6D4AE0' }}
+            style={{ color: '#374151' }}
           >
             {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {open ? 'Hide tips' : `${dim.tips.length} tip${dim.tips.length !== 1 ? 's' : ''}`}
@@ -168,7 +168,7 @@ export default function ScoreScriptPage() {
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2">
-            <Award className="w-6 h-6" style={{ color: '#6D4AE0' }} /> Script Quality Scorer
+            <Award className="w-6 h-6" style={{ color: '#374151' }} /> Script Quality Scorer
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">Get an AI-powered quality analysis of your script before production</p>
         </div>
@@ -179,7 +179,7 @@ export default function ScoreScriptPage() {
             <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold text-gray-800 text-sm">Your Script</h2>
-                <Link href="/projects" className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                <Link href="/projects" className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: '#374151' }}>
                   <ExternalLink className="w-3 h-3" /> Browse projects
                 </Link>
               </div>
@@ -191,7 +191,7 @@ export default function ScoreScriptPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. 10 Productivity Hacks for 2025"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
               </div>
@@ -203,7 +203,7 @@ export default function ScoreScriptPage() {
                   value={niche}
                   onChange={(e) => setNiche(e.target.value)}
                   placeholder="e.g. Productivity, Finance, Tech"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
               </div>
@@ -218,7 +218,7 @@ export default function ScoreScriptPage() {
                   onChange={(e) => setScriptText(e.target.value)}
                   placeholder="Paste your full script here…"
                   rows={14}
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all resize-none"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all resize-none"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
               </div>
@@ -228,7 +228,7 @@ export default function ScoreScriptPage() {
               onClick={handleScore}
               disabled={loading || !scriptText.trim()}
               className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-2xl font-semibold disabled:opacity-50 transition-all"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
               {loading ? 'Analyzing…' : 'Score Script'}
@@ -243,7 +243,7 @@ export default function ScoreScriptPage() {
           <div className="lg:col-span-3">
             {!result && !loading && (
               <div className="flex flex-col items-center justify-center h-full py-20 text-gray-400">
-                <Award className="w-12 h-12 mb-4" style={{ color: '#6D4AE0', opacity: 0.3 }} />
+                <Award className="w-12 h-12 mb-4" style={{ color: '#374151', opacity: 0.3 }} />
                 <p className="font-medium text-gray-500">Your quality report will appear here</p>
                 <p className="text-sm mt-1">Paste your script and click Score Script</p>
               </div>
@@ -291,7 +291,7 @@ export default function ScoreScriptPage() {
 
                   {result.estimatedRetentionPct > 0 && (
                     <div className="mt-4 flex items-center gap-2 text-sm">
-                      <Target className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                      <Target className="w-4 h-4" style={{ color: '#374151' }} />
                       <span className="text-gray-600">Estimated retention:</span>
                       <span className="font-semibold text-gray-900">{result.estimatedRetentionPct}%</span>
                     </div>
@@ -341,7 +341,7 @@ export default function ScoreScriptPage() {
                     type="button"
                     onClick={() => { try { localStorage.setItem('cf_repurpose_pending', scriptText); } catch {} router.push('/repurpose'); }}
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-                    style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                   >
                     <ArrowRightLeft className="w-3.5 h-3.5" /> Repurpose this script
                   </button>
@@ -350,7 +350,7 @@ export default function ScoreScriptPage() {
                       type="button"
                       onClick={() => { try { localStorage.setItem('cf_new_project_topic', title); } catch {} router.push('/projects'); }}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-semibold hover:opacity-80 transition-opacity"
-                      style={{ color: '#6D4AE0', border: '1.5px solid #e3ddf8', background: 'white' }}
+                      style={{ color: '#374151', border: '1.5px solid #e3ddf8', background: 'white' }}
                     >
                       <FolderPlus className="w-3.5 h-3.5" /> Start project from this script
                     </button>

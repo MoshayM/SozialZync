@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
 import {
@@ -226,7 +226,7 @@ function ProviderCard({
         onClick={onTest}
         disabled={testing || health.inCooldown}
         className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 w-full justify-center"
-        style={{ border: '1.5px solid #6D4AE0', color: '#6D4AE0', background: '#fff' }}
+        style={{ border: '1.5px solid #374151', color: '#374151', background: '#fff' }}
       >
         {testing ? (
           <>
@@ -384,7 +384,7 @@ export default function ProviderHealthPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Activity className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              <Activity className="w-5 h-5" style={{ color: '#374151' }} />
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">
                 Provider Health
               </h1>
@@ -400,7 +400,7 @@ export default function ProviderHealthPage() {
             onClick={() => void runAllTests(providers)}
             disabled={loading || providers.length === 0}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-            style={{ border: '1.5px solid #6D4AE0', color: '#6D4AE0', background: '#fff' }}
+            style={{ border: '1.5px solid #374151', color: '#374151', background: '#fff' }}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Re-check All
@@ -439,7 +439,7 @@ export default function ProviderHealthPage() {
             <a
               href="/settings/ai-providers"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
             >
               Configure AI Providers →
             </a>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { usePlan } from '@/lib/plan';
 
 interface ProGateProps {
@@ -44,20 +44,20 @@ export function ProBanner({ feature, description, className = '' }: ProBannerPro
     <div
       className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${className}`}
       style={{
-        background: 'linear-gradient(135deg,rgba(124,58,237,.08),rgba(167,139,250,.12))',
-        border: '1px solid rgba(124,58,237,.2)',
+        background: 'linear-gradient(135deg,rgba(55,65,81,.08),rgba(156,163,175,.12))',
+        border: '1px solid rgba(55,65,81,.2)',
       }}
     >
       <span className="text-xl shrink-0">⭐</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-[#6D4AE0]">{feature} · Pro Feature</p>
-        {description && <p className="text-xs leading-snug mt-0.5" style={{ color: 'rgba(109,74,224,.7)' }}>{description}</p>}
+        <p className="text-sm font-bold text-[#374151]">{feature} · Pro Feature</p>
+        {description && <p className="text-xs leading-snug mt-0.5" style={{ color: 'rgba(55,65,81,.7)' }}>{description}</p>}
       </div>
       <button
         type="button"
         onClick={upgradeToPro}
         className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-90"
-        style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}
+        style={{ background: 'linear-gradient(135deg,#9ca3af,#374151)' }}
       >
         Upgrade
       </button>
@@ -79,13 +79,13 @@ function ProUpgradeCard({
       className="rounded-2xl p-6 flex flex-col items-center text-center gap-4 max-w-sm mx-auto w-full"
       style={{
         background: 'white',
-        border: '1.5px solid rgba(124,58,237,.25)',
-        boxShadow: '0 8px 32px -8px rgba(124,58,237,.2)',
+        border: '1.5px solid rgba(55,65,81,.25)',
+        boxShadow: '0 8px 32px -8px rgba(55,65,81,.2)',
       }}
     >
       <div
         className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl"
-        style={{ background: 'linear-gradient(135deg,rgba(167,139,250,.2),rgba(124,58,237,.15))' }}
+        style={{ background: 'linear-gradient(135deg,rgba(156,163,175,.2),rgba(55,65,81,.15))' }}
       >
         ⭐
       </div>
@@ -101,8 +101,8 @@ function ProUpgradeCard({
           onClick={onUpgrade}
           className="w-full py-3 rounded-2xl text-white font-bold text-sm transition-opacity hover:opacity-90"
           style={{
-            background: 'linear-gradient(135deg,#a78bfa,#7C3AED)',
-            boxShadow: '0 4px 16px -4px rgba(124,58,237,.5)',
+            background: 'linear-gradient(135deg,#9ca3af,#374151)',
+            boxShadow: '0 4px 16px -4px rgba(55,65,81,.5)',
           }}
         >
           Upgrade to Pro
@@ -118,7 +118,7 @@ export function ProLockBadge() {
   return (
     <span
       className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide shrink-0"
-      style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)', color: 'white' }}
+      style={{ background: 'linear-gradient(135deg,#9ca3af,#374151)', color: 'white' }}
     >
       Pro
     </span>

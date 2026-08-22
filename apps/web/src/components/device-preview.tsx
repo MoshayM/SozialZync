@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -248,7 +248,7 @@ function BottomToolbar({
                 onClick={() => { onSwitch(d.id); setMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/10 transition-colors"
                 style={{
-                  color: d.id === activeDev.id ? '#a78bfa' : 'rgba(255,255,255,0.85)',
+                  color: d.id === activeDev.id ? '#9ca3af' : 'rgba(255,255,255,0.85)',
                   fontWeight: d.id === activeDev.id ? 700 : 400,
                   borderBottom: '1px solid rgba(255,255,255,0.06)',
                 }}
@@ -256,7 +256,7 @@ function BottomToolbar({
                 <d.icon className="w-4 h-4 shrink-0" />
                 <span>{d.label}</span>
                 {d.id === activeDev.id && (
-                  <span className="ml-auto text-[10px] font-bold tracking-wide" style={{ color:'#a78bfa' }}>ACTIVE</span>
+                  <span className="ml-auto text-[10px] font-bold tracking-wide" style={{ color:'#9ca3af' }}>ACTIVE</span>
                 )}
                 {d.id !== activeDev.id && (
                   <span className="ml-auto text-xs text-white/30">{d.w}px</span>
@@ -272,7 +272,7 @@ function BottomToolbar({
       {/* Compare all devices */}
       <button type="button" onClick={onCompare} title={compareMode ? 'Single view' : 'Compare all'}
         className="flex items-center justify-center w-10 h-10 hover:bg-white/10 transition-colors"
-        style={{ color: compareMode ? '#a78bfa' : 'rgba(255,255,255,0.6)' }}
+        style={{ color: compareMode ? '#9ca3af' : 'rgba(255,255,255,0.6)' }}
       >
         {compareMode ? <Maximize2 className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
       </button>
@@ -339,7 +339,7 @@ export function DevicePreview() {
             onClick={() => setPage(p.id)}
             className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all touch-manipulation"
             style={page === p.id
-              ? { background:'#7C3AED', color:'#fff', border:'1.5px solid #7C3AED' }
+              ? { background:'#374151', color:'#fff', border:'1.5px solid #374151' }
               : { background:'#faf9ff', color:'#374151', border:'1.5px solid #e3ddf8' }
             }
           >

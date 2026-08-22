@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -1184,7 +1184,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
         ) : (
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-500">Producing for</p>
-            <p className="text-xs italic" style={{ color: '#6D4AE0' }}>No account linked · connect anytime</p>
+            <p className="text-xs italic" style={{ color: '#374151' }}>No account linked · connect anytime</p>
           </div>
         )}
       </div>

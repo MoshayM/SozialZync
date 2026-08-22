@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -69,7 +69,7 @@ export function PwaInstallButtonLanding() {
       <button
         onClick={async () => { const ok = await install(); if (ok) setDone(true); }}
         className="mt-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105"
-        style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)', boxShadow: '0 8px 24px -6px rgba(124,58,237,.5)' }}
+        style={{ background: 'linear-gradient(135deg,#9ca3af,#374151)', boxShadow: '0 8px 24px -6px rgba(55,65,81,.5)' }}
       >
         Install Now
       </button>
@@ -123,13 +123,13 @@ export function PwaInstallBanner() {
         className="rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl"
         style={{
           background: 'linear-gradient(135deg,#1a0f4a,#2d1b6e)',
-          border: '1px solid rgba(167,139,250,0.3)',
+          border: '1px solid rgba(156,163,175,0.3)',
           backdropFilter: 'blur(20px)',
         }}
       >
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}
+          style={{ background: 'linear-gradient(135deg,#9ca3af,#374151)' }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
             <path d="M12 2L3 7l9 5 9-5-9-5zM3 17l9 5 9-5M3 12l9 5 9-5" />
@@ -149,7 +149,7 @@ export function PwaInstallBanner() {
           <button
             onClick={() => void install()}
             className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}
+            style={{ background: 'linear-gradient(135deg,#9ca3af,#374151)' }}
           >
             Install
           </button>
@@ -157,7 +157,7 @@ export function PwaInstallBanner() {
           <button
             onClick={() => setIosHint(!iosHint)}
             className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#a78bfa,#7C3AED)' }}
+            style={{ background: 'linear-gradient(135deg,#9ca3af,#374151)' }}
           >
             How?
           </button>

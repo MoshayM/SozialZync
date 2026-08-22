@@ -139,7 +139,7 @@ function groupTxns(txns: WalletTransaction[]): { label: string; items: WalletTra
 function UsageRing({ pct }: { pct: number }) {
   const r = 40, cx = 50, cy = 50, circumference = 2 * Math.PI * r;
   const offset = circumference - (pct / 100) * circumference;
-  const color = pct > 85 ? '#f87171' : pct > 60 ? '#fbbf24' : '#a78bfa';
+  const color = pct > 85 ? '#f87171' : pct > 60 ? '#fbbf24' : '#9ca3af';
   return (
     <svg viewBox="0 0 100 100" className="w-28 h-28" style={{ transform: 'rotate(-90deg)' }}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.15)" strokeWidth="10" />
@@ -187,7 +187,7 @@ function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBud
   const daysLeft = forecast?.daysToEmpty != null ? Math.round(forecast.daysToEmpty) : null;
 
   return (
-    <div className="rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)', boxShadow: '0 20px 50px -10px rgba(109,74,224,.45)' }}>
+    <div className="rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #374151 55%, #7c5ae8 100%)', boxShadow: '0 20px 50px -10px rgba(55,65,81,.45)' }}>
       {/* Main body */}
       <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
         <div className="flex-1 min-w-0">
@@ -261,7 +261,7 @@ function FinancialHero({ onTopUp, onSetBudget }: { onTopUp: () => void; onSetBud
           {
             label: 'Forecast', unit: 'remaining',
             value: daysLeft != null ? `~${daysLeft}d` : '∞',
-            color: daysLeft == null ? '#a78bfa' : daysLeft <= 7 ? '#f87171' : daysLeft <= 30 ? '#fbbf24' : '#86efac',
+            color: daysLeft == null ? '#9ca3af' : daysLeft <= 7 ? '#f87171' : daysLeft <= 30 ? '#fbbf24' : '#86efac',
           },
         ].map(({ label, value, unit, color }) => (
           <div key={label} className="px-4 py-3 text-center">
@@ -295,7 +295,7 @@ function CostByAction() {
           <TrendingDown className="w-4 h-4" style={{ color: '#374151' }} />
           <span className="text-sm font-semibold text-gray-800">Cost by AI Action</span>
         </div>
-        <div className="flex items-center gap-1 rounded-xl p-0.5" style={{ background: '#f0edf9' }}>
+        <div className="flex items-center gap-1 rounded-xl p-0.5" style={{ background: '#f3f4f6' }}>
           {([7, 30, 90] as const).map((d) => (
             <button key={d} onClick={() => setDays(d)}
               className="px-3 py-1 rounded-[10px] text-xs font-semibold transition-all"
@@ -493,7 +493,7 @@ function SmartTopUp() {
               disabled={rechargeMutation.isPending}
               className="relative flex flex-col items-center py-3 px-1 rounded-2xl transition-all hover:scale-105 active:scale-[.98] disabled:opacity-50"
               style={isSelected || isBest
-                ? { background: 'linear-gradient(135deg, #9ca3af, #374151)', border: '2px solid #6D4AE0' }
+                ? { background: 'linear-gradient(135deg, #9ca3af, #374151)', border: '2px solid #374151' }
                 : { background: '#faf9ff', border: '1.5px solid #e3ddf8' }}
             >
               {isBest && (
@@ -529,14 +529,14 @@ function SmartTopUp() {
           onClick={() => { if (customAmt) handleBuy(Number(customAmt)); }}
           disabled={!customAmt || rechargeMutation.isPending}
           className="px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}
+          style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
         >
           {rechargeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buy'}
         </button>
       </div>
 
       {/* Pro access unlock badge */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f5f2fd,#ede9fb)', border: '1.5px solid #d8d0f7' }}>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f3f4f6,#ede9fb)', border: '1.5px solid #d8d0f7' }}>
         <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />
         <span className="text-xs font-semibold" style={{ color: '#5b21b6' }}>
           Unlocks <span className="font-extrabold">Pro access</span> while credits last — no subscription needed
@@ -612,7 +612,7 @@ function PlansGrid() {
       <div
         className="rounded-2xl p-4 flex items-center gap-3"
         style={{
-          background: isSuperAdmin || isEnterprise ? 'linear-gradient(135deg,#fffbeb,#fef3c7)' : hasCreditsPro ? 'linear-gradient(135deg,#f5f2fd,#ede9fb)' : '#f9fafb',
+          background: isSuperAdmin || isEnterprise ? 'linear-gradient(135deg,#fffbeb,#fef3c7)' : hasCreditsPro ? 'linear-gradient(135deg,#f3f4f6,#ede9fb)' : '#f9fafb',
           border: `1.5px solid ${isSuperAdmin || isEnterprise ? '#fde68a' : hasCreditsPro ? '#d8d0f7' : '#e5e7eb'}`,
         }}
       >
@@ -701,7 +701,7 @@ function PlansGrid() {
                 {/* Unlock label */}
                 <div
                   className="rounded-xl px-3 py-2.5"
-                  style={{ background: tier.id === 'PRO' ? '#f5f2fd' : tier.id === 'ENTERPRISE' ? '#fffbeb' : '#f9fafb' }}
+                  style={{ background: tier.id === 'PRO' ? '#f3f4f6' : tier.id === 'ENTERPRISE' ? '#fffbeb' : '#f9fafb' }}
                 >
                   <p className="text-sm font-extrabold" style={{ color: tier.color }}>{tier.unlockLabel}</p>
                   <p className="text-[11px] text-gray-600 mt-0.5">{tier.unlockSub}</p>
@@ -1011,7 +1011,7 @@ function TransactionHistory() {
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid #f0edf9' }}>
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid #f3f4f6' }}>
         <span className="text-sm font-semibold text-gray-800">Transaction History</span>
         {txns.length > 20 && (
           <button onClick={() => setShowAll((v) => !v)} className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
@@ -1025,7 +1025,7 @@ function TransactionHistory() {
 
       {groups.map((group) => (
         <div key={group.label}>
-          <div className="px-5 py-2" style={{ background: '#f9f7ff', borderBottom: '1px solid #f0edf9', borderTop: '1px solid #f0edf9' }}>
+          <div className="px-5 py-2" style={{ background: '#f9f7ff', borderBottom: '1px solid #f3f4f6', borderTop: '1px solid #f3f4f6' }}>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{group.label}</span>
           </div>
           {group.items.map((tx) => (
@@ -1060,12 +1060,12 @@ function statusChipStyle(s: string): string {
   switch (s) {
     case 'ACTIVE': return 'bg-[#ecfdf5] text-[#065f46]';
     case 'EXPIRED': return 'bg-red-50 text-red-700 border-red-200';
-    case 'CONVERTED': return 'bg-[#f5f2fd] text-[#6D4AE0]';
+    case 'CONVERTED': return 'bg-[#f3f4f6] text-[#374151]';
     case 'PENDING_REVIEW': return 'bg-[#fff7ed] text-[#c2410c]';
     case 'REVOKED': return 'bg-[#f3f4f6] text-[#4b5563]';
     case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
     case 'QUALIFIED': return 'bg-[#ecfdf5] text-[#065f46]';
-    case 'REWARDED': return 'bg-[#f5f2fd] text-[#6D4AE0]';
+    case 'REWARDED': return 'bg-[#f3f4f6] text-[#374151]';
     case 'FLAGGED': return 'bg-red-50 text-red-700 border-red-200';
     default: return 'bg-[#f3f4f6] text-[#4b5563]';
   }
@@ -1134,22 +1134,22 @@ function ReferralCenter() {
     <div className="space-y-4">
       <div className="bg-white rounded-2xl p-4 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
         <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#6D4AE0]" />
+          <Users className="w-4 h-4 text-[#374151]" />
           <span className="text-sm font-semibold text-gray-800">Referral Center</span>
         </div>
 
-        {codeLoading && <Loader2 className="w-5 h-5 animate-spin text-[#6D4AE0]" />}
+        {codeLoading && <Loader2 className="w-5 h-5 animate-spin text-[#374151]" />}
 
         {codeData && (
           <>
             <div className="space-y-2">
               <p className="text-xs text-gray-600">Your referral code</p>
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold tracking-widest text-[#6D4AE0] font-mono">{codeData.code}</span>
+                <span className="text-2xl font-bold tracking-widest text-[#374151] font-mono">{codeData.code}</span>
                 <button
                   onClick={() => void copyCode(codeData.code)}
                   aria-label="Copy referral code"
-                  className="p-1.5 rounded-2xl text-gray-500 hover:text-[#6D4AE0] transition-colors"
+                  className="p-1.5 rounded-2xl text-gray-500 hover:text-[#374151] transition-colors"
                   style={{ border: '1.5px solid #e3ddf8' }}
                 >
                   {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
@@ -1171,7 +1171,7 @@ function ReferralCenter() {
                 <button
                   onClick={() => void copyCode(shareUrl)}
                   aria-label="Copy share link"
-                  className="px-3 py-2 rounded-2xl text-gray-600 hover:text-[#6D4AE0] transition-colors text-xs font-semibold"
+                  className="px-3 py-2 rounded-2xl text-gray-600 hover:text-[#374151] transition-colors text-xs font-semibold"
                   style={{ border: '1.5px solid #e3ddf8' }}
                 >
                   {copied ? 'Copied!' : 'Copy'}
@@ -1197,7 +1197,7 @@ function ReferralCenter() {
           </>
         )}
 
-        {earningsLoading && <Loader2 className="w-4 h-4 animate-spin text-[#6D4AE0]" />}
+        {earningsLoading && <Loader2 className="w-4 h-4 animate-spin text-[#374151]" />}
         {earnings && (
           <div className="flex flex-wrap gap-3">
             <div className="flex flex-col bg-gray-50 rounded-2xl px-3 py-2 min-w-[80px]">
@@ -1259,14 +1259,14 @@ function ReferralCenter() {
             onChange={(e) => { setRedeemInput(e.target.value); setRedeemError(''); setRedeemSuccess(false); }}
             placeholder="Enter code"
             aria-label="Referral code input"
-            className="flex-1 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+            className="flex-1 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
             style={{ border: '1.5px solid #e3e0f0' }}
           />
           <button
             onClick={() => { if (redeemInput.trim()) redeemMutation.mutate(redeemInput.trim()); }}
             disabled={!redeemInput.trim() || redeemMutation.isPending}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
           >
             {redeemMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Apply
@@ -1295,7 +1295,7 @@ function ReferralCenter() {
           </div>
           <div className="divide-y divide-gray-50">
             {leaderboard.slice(0, 10).map((entry) => (
-              <div key={entry.rank} className={`flex items-center gap-3 px-4 py-2.5 ${entry.userLabel.includes('(you)') ? 'bg-[#f5f2fd]' : ''}`}>
+              <div key={entry.rank} className={`flex items-center gap-3 px-4 py-2.5 ${entry.userLabel.includes('(you)') ? 'bg-[#f3f4f6]' : ''}`}>
                 <span className={`text-sm font-bold w-6 text-center ${entry.rank <= 3 ? 'text-amber-500' : 'text-gray-500'}`}>
                   {entry.rank}
                 </span>
@@ -1361,7 +1361,7 @@ function BudgetEditor({ onClose }: { onClose: () => void }) {
           value={limitDraft}
           onChange={(e) => setLimitDraft(e.target.value)}
           placeholder="e.g. 10000"
-          className="w-full bg-white rounded-2xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+          className="w-full bg-white rounded-2xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#374151]/20"
           style={{ border: '1.5px solid #e3e0f0' }}
         />
       </div>
@@ -1370,13 +1370,13 @@ function BudgetEditor({ onClose }: { onClose: () => void }) {
         <label className="block text-xs font-semibold text-gray-600 mb-1.5">Alert at {thresholdDraft}% used</label>
         <input type="range" min={1} max={100} value={thresholdDraft}
           onChange={(e) => setThresholdDraft(e.target.value)}
-          className="w-full" style={{ accentColor: '#6D4AE0' }} />
+          className="w-full" style={{ accentColor: '#374151' }} />
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" checked={hardCapDraft}
           onChange={(e) => setHardCapDraft(e.target.checked)}
-          className="rounded" style={{ accentColor: '#6D4AE0' }} />
+          className="rounded" style={{ accentColor: '#374151' }} />
         <span className="text-sm text-gray-700">Hard cap — block AI when limit reached</span>
       </label>
 
@@ -1392,7 +1392,7 @@ function BudgetEditor({ onClose }: { onClose: () => void }) {
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
           className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
-          style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}
+          style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
         >
           {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
           Save budget
@@ -1422,7 +1422,7 @@ function CreditExpiry() {
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-      <div className="px-5 py-3.5" style={{ borderBottom: '1px solid #f0edf9' }}>
+      <div className="px-5 py-3.5" style={{ borderBottom: '1px solid #f3f4f6' }}>
         <span className="text-sm font-semibold text-gray-800">Credit Expiry</span>
       </div>
       {isLoading && <div className="p-4"><Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} /></div>}
@@ -1491,7 +1491,7 @@ function SubscriptionManager() {
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid #f0edf9' }}>
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid #f3f4f6' }}>
         <span className="text-sm font-semibold text-gray-800">Subscription</span>
         <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#f3f4f6', color: '#374151' }}>
           {sub?.plan} · {sub?.status}
@@ -1610,7 +1610,7 @@ function WalletContent() {
 
         {/* Page header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#f0edf9,#e3ddf8)' }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#f3f4f6,#e3ddf8)' }}>
             <Wallet className="w-5 h-5" style={{ color: '#374151' }} />
           </div>
           <div>

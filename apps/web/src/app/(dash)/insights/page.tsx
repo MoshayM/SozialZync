@@ -263,11 +263,11 @@ function InsightsContent() {
                 className={[
                   'flex items-center gap-1.5 px-3 sm:px-4 py-3 text-sm font-medium shrink-0 border-b-2 transition-all whitespace-nowrap touch-manipulation',
                   active
-                    ? 'border-[#6D4AE0] text-[#6D4AE0] font-semibold'
+                    ? 'border-[#374151] text-[#374151] font-semibold'
                     : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200',
                 ].join(' ')}
               >
-                <t.icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#6D4AE0]' : 'text-gray-400'}`} />
+                <t.icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#374151]' : 'text-gray-400'}`} />
                 {t.label}
               </button>
             );
@@ -276,7 +276,7 @@ function InsightsContent() {
       </div>
 
       {/* ── Context description strip ────────────────────────────────────── */}
-      <div className="px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f0edf9]">
+      <div className="px-5 sm:px-7 py-2.5 bg-[#faf9ff] border-b border-[#f3f4f6]">
         <p className="text-xs text-gray-600 leading-none">{activeTabDef?.description}</p>
       </div>
 

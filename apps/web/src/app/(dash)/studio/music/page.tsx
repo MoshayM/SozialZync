@@ -139,7 +139,7 @@ function AudioPlayer({ url, trackId, playing, setPlaying }: {
     <button
       onClick={() => setPlaying(isPlaying ? null : trackId)}
       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105"
-      style={{ background: isPlaying ? 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' : '#f5f2fd', border: '1.5px solid #e3ddf8' }}
+      style={{ background: isPlaying ? 'linear-gradient(135deg,#374151,#7c5ae8)' : '#f3f4f6', border: '1.5px solid #e3ddf8' }}
       aria-label={isPlaying ? 'Pause' : 'Play preview'}
     >
       {isPlaying
@@ -312,7 +312,7 @@ export default function MusicLibraryPage() {
             <button
               onClick={() => { setShowAddForm(v => !v); setAddError(null); }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-all"
-              style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 20px rgba(109,74,224,.35)' }}
+              style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 20px rgba(55,65,81,.35)' }}
             >
               {showAddForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
               {showAddForm ? 'Cancel' : 'Import Track'}
@@ -321,14 +321,14 @@ export default function MusicLibraryPage() {
         </div>
 
         {/* ── Tab switcher ─────────────────────────────────────────────────── */}
-        <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full" style={{ background: '#f0edf9', WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full" style={{ background: '#f3f4f6', WebkitOverflowScrolling: 'touch' }}>
           {(['library', 'discover', 'ai'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className="px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
               style={tab === t
-                ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(109,74,224,.15)' }
+                ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(55,65,81,.15)' }
                 : { color: '#9b8fc4' }}
             >
               {t === 'library' ? (
@@ -358,52 +358,52 @@ export default function MusicLibraryPage() {
                     <div key={field}>
                       <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                       <input value={form[field]} onChange={e => updateForm(field, e.target.value)} placeholder={placeholder}
-                        className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3e0f0' }} />
+                        className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3e0f0' }} />
                     </div>
                   ))}
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">File URL or path *</label>
                     <input value={form.fileUrl} onChange={e => updateForm('fileUrl', e.target.value)} placeholder="https://example.com/track.mp3"
-                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 font-mono" style={{ border: '1.5px solid #e3e0f0' }} />
+                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 font-mono" style={{ border: '1.5px solid #e3e0f0' }} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Duration (seconds) *</label>
                     <input type="number" min={1} value={form.duration} onChange={e => updateForm('duration', e.target.value)} placeholder="180"
-                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3e0f0' }} />
+                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3e0f0' }} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">License</label>
                     <select value={form.license} onChange={e => updateForm('license', e.target.value)}
-                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3e0f0' }}>
+                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3e0f0' }}>
                       {LICENSE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Mood tags (comma-separated)</label>
                     <input value={form.mood} onChange={e => updateForm('mood', e.target.value)} placeholder="energetic, calm, upbeat"
-                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3e0f0' }} />
+                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3e0f0' }} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Genre tags (comma-separated)</label>
                     <input value={form.genre} onChange={e => updateForm('genre', e.target.value)} placeholder="electronic, ambient"
-                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3e0f0' }} />
+                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3e0f0' }} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Source URL</label>
                     <input value={form.source} onChange={e => updateForm('source', e.target.value)} placeholder="freemusicarchive.org"
-                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3e0f0' }} />
+                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3e0f0' }} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Attribution text</label>
                     <input value={form.attribution} onChange={e => updateForm('attribution', e.target.value)} placeholder="Music by Artist (CC BY)"
-                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3e0f0' }} />
+                      className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3e0f0' }} />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
                   <button onClick={() => { setShowAddForm(false); setAddError(null); }} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ border: '1.5px solid #e3ddf8' }}>Cancel</button>
                   <button onClick={() => void handleAdd()} disabled={submitting}
                     className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 20px rgba(109,74,224,.35)' }}>
+                    style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 20px rgba(55,65,81,.35)' }}>
                     {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     Import Track
                   </button>
@@ -415,19 +415,19 @@ export default function MusicLibraryPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tracks…"
-                  className="bg-white rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3ddf8', width: 200 }} />
+                  className="bg-white rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3ddf8', width: 200 }} />
                 <div className="flex flex-wrap gap-1.5">
                   {LICENSE_FILTER_CHIPS.map(chip => (
                     <button key={chip.value} onClick={() => setLicenseFilter(chip.value)}
                       className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                      style={licenseFilter === chip.value ? { background: '#6D4AE0', color: '#fff', border: '1.5px solid #6D4AE0' } : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                      style={licenseFilter === chip.value ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' } : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
                       {chip.label}
                     </button>
                   ))}
                 </div>
                 {availableMoods.length > 0 && (
                   <select value={moodFilter} onChange={e => setMoodFilter(e.target.value)}
-                    className="bg-white rounded-xl px-3 py-1.5 text-xs font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: moodFilter ? '#6D4AE0' : '#6b7280' }}>
+                    className="bg-white rounded-xl px-3 py-1.5 text-xs font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: moodFilter ? '#374151' : '#6b7280' }}>
                     <option value="">All moods</option>
                     {availableMoods.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
@@ -445,7 +445,7 @@ export default function MusicLibraryPage() {
                 <div className="py-16 text-center"><Music className="w-8 h-8 mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">No tracks found.</p><button type="button" onClick={() => setTab('discover')} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}>Browse Discover →</button></div>
               ) : tracks.map((track, idx) => (
                 <div key={track.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff] transition-colors"
-                  style={{ borderBottom: idx < tracks.length - 1 ? '1px solid #f0edf9' : 'none' }}>
+                  style={{ borderBottom: idx < tracks.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
                   <AudioPlayer url={track.previewUrl ?? track.fileUrl} trackId={track.id} playing={playing} setPlaying={setPlaying} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -487,11 +487,11 @@ export default function MusicLibraryPage() {
                   <input value={discoverQuery} onChange={e => setDiscoverQuery(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') void fetchDiscover(true); }}
                     placeholder="Search royalty-free music…"
-                    className="w-full bg-[#faf9ff] rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3ddf8' }} />
+                    className="w-full bg-[#faf9ff] rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3ddf8' }} />
                 </div>
                 <button onClick={() => void fetchDiscover(true)}
                   className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-all"
-                  style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 20px rgba(109,74,224,.25)' }}>
+                  style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 20px rgba(55,65,81,.25)' }}>
                   Search
                 </button>
               </div>
@@ -508,7 +508,7 @@ export default function MusicLibraryPage() {
                 <div className="relative">
                   <button onClick={() => setShowGenreFilter(v => !v)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                    style={{ background: discoverGenre ? '#6D4AE0' : '#faf9ff', color: discoverGenre ? '#fff' : '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                    style={{ background: discoverGenre ? '#374151' : '#faf9ff', color: discoverGenre ? '#fff' : '#6b7280', border: '1.5px solid #e3ddf8' }}>
                     {discoverGenre || 'Genre'}<ChevronDown className="w-3 h-3" />
                   </button>
                   {showGenreFilter && (
@@ -517,7 +517,7 @@ export default function MusicLibraryPage() {
                       {GENRE_OPTIONS.map(g => (
                         <button key={g} onClick={() => { setDiscoverGenre(g); setShowGenreFilter(false); }}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all"
-                          style={discoverGenre === g ? { background: '#6D4AE0', color: '#fff' } : { color: '#374151', background: '#f3f4f6' }}>
+                          style={discoverGenre === g ? { background: '#374151', color: '#fff' } : { color: '#374151', background: '#f3f4f6' }}>
                           {g}
                         </button>
                       ))}
@@ -529,7 +529,7 @@ export default function MusicLibraryPage() {
                 <div className="relative">
                   <button onClick={() => setShowMoodFilter(v => !v)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold"
-                    style={{ background: discoverMood ? '#6D4AE0' : '#faf9ff', color: discoverMood ? '#fff' : '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                    style={{ background: discoverMood ? '#374151' : '#faf9ff', color: discoverMood ? '#fff' : '#6b7280', border: '1.5px solid #e3ddf8' }}>
                     {discoverMood || 'Mood'}<ChevronDown className="w-3 h-3" />
                   </button>
                   {showMoodFilter && (
@@ -538,7 +538,7 @@ export default function MusicLibraryPage() {
                       {MOOD_OPTIONS.map(m => (
                         <button key={m} onClick={() => { setDiscoverMood(m); setShowMoodFilter(false); }}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all"
-                          style={discoverMood === m ? { background: '#6D4AE0', color: '#fff' } : { color: '#374151', background: '#f3f4f6' }}>
+                          style={discoverMood === m ? { background: '#374151', color: '#fff' } : { color: '#374151', background: '#f3f4f6' }}>
                           {m}
                         </button>
                       ))}
@@ -580,7 +580,7 @@ export default function MusicLibraryPage() {
                     const isImporting = importingId === track.externalId;
                     return (
                       <div key={track.externalId} className="flex items-center gap-3 px-4 py-3 hover:bg-[#faf9ff] transition-colors"
-                        style={{ borderBottom: idx < discoverResults.length - 1 ? '1px solid #f0edf9' : 'none' }}>
+                        style={{ borderBottom: idx < discoverResults.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
                         {/* Artwork */}
                         {track.imageUrl ? (
                           <img src={track.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
@@ -623,7 +623,7 @@ export default function MusicLibraryPage() {
                             className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
                             style={imported
                               ? { background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #bbf7d0' }
-                              : { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.3)' }}>
+                              : { background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(55,65,81,.3)' }}>
                             {isImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                             {imported ? '✓ Saved' : isImporting ? 'Saving…' : '+ Import'}
                           </button>

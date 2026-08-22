@@ -245,7 +245,7 @@ function CommandPalette({
         onMouseDown={e => e.stopPropagation()}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#f0edf9]">
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#f3f4f6]">
           <Search className="w-4 h-4 shrink-0 text-[#9a97ab]" />
           <input
             ref={inputRef}
@@ -299,7 +299,7 @@ function CommandPalette({
         </div>
 
         {/* Footer hint */}
-        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-[#f0edf9]">
+        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-[#f3f4f6]">
           {[['↑↓', 'Navigate'], ['↵', 'Open'], ['Esc', 'Close']].map(([key, action]) => (
             <span key={key} className="flex items-center gap-1 text-[11px] text-gray-400">
               <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb' }}>{key}</kbd>
@@ -653,7 +653,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                             background:
                               badge === 'NEW'  ? 'linear-gradient(135deg,#10B981,#059669)' :
                               badge === 'BETA' ? 'linear-gradient(135deg,#F59E0B,#D97706)' :
-                              badge === 'AI'   ? 'rgba(109,74,224,.18)' :
+                              badge === 'AI'   ? 'rgba(55,65,81,.18)' :
                                                 'linear-gradient(135deg,#6366F1,#4F46E5)',
                           }}>
                             {badge}

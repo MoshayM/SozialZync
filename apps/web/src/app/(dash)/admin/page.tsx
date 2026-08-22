@@ -53,7 +53,7 @@ interface TokenUsageSummary {
 
 function aiProviderColor(p: string): string {
   const key = p.toLowerCase();
-  if (key.includes('claude') || key.includes('anthropic')) return '#6D4AE0';
+  if (key.includes('claude') || key.includes('anthropic')) return '#374151';
   if (key.includes('gemini') || key.includes('google')) return '#4285F4';
   if (key.includes('gpt') || key.includes('openai')) return '#10A37F';
   return '#8b88a0';
@@ -71,7 +71,7 @@ function DailyTrendBars({ byDay }: { byDay: TokenUsageSummary['byDay'] | undefin
     <div className="flex items-end gap-[3px] h-20 w-full overflow-hidden">
       {byDay.map((d) => (
         <div key={d.date} className="flex-1 flex flex-col items-center justify-end" title={`${d.date}: $${d.costUsd.toFixed(4)}`}>
-          <div className="w-full rounded-t-sm" style={{ height: `${Math.max((d.costUsd / max) * 72, 2)}px`, background: '#6D4AE0', opacity: 0.7 }} />
+          <div className="w-full rounded-t-sm" style={{ height: `${Math.max((d.costUsd / max) * 72, 2)}px`, background: '#374151', opacity: 0.7 }} />
         </div>
       ))}
     </div>
@@ -350,7 +350,7 @@ function AdVideoTab() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
             <Film className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -362,7 +362,7 @@ function AdVideoTab() {
           href="/sozialzync-ad-30s.mp4"
           download="sozialzync-ad-30s.mp4"
           className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}
+          style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
         >
           <Download className="w-4 h-4" />
           Download .mp4
@@ -372,7 +372,7 @@ function AdVideoTab() {
       {/* Video player */}
       <div
         className="relative rounded-3xl overflow-hidden"
-        style={{ background: '#0e0924', border: '1.5px solid rgba(109,74,224,.25)', boxShadow: '0 0 0 1px rgba(109,74,224,.1), 0 0 40px rgba(109,74,224,.15)' }}
+        style={{ background: '#0e0924', border: '1.5px solid rgba(55,65,81,.25)', boxShadow: '0 0 0 1px rgba(55,65,81,.1), 0 0 40px rgba(55,65,81,.15)' }}
         onMouseEnter={() => setShowControls(true)}
         onMouseLeave={() => setShowControls(false)}
       >
@@ -387,7 +387,7 @@ function AdVideoTab() {
           <button
             onClick={toggleMute}
             className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-colors"
-            style={{ color: muted ? 'rgba(255,255,255,.4)' : '#a78bfa', background: muted ? 'transparent' : 'rgba(167,139,250,.1)' }}
+            style={{ color: muted ? 'rgba(255,255,255,.4)' : '#9ca3af', background: muted ? 'transparent' : 'rgba(156,163,175,.1)' }}
             aria-label={muted ? 'Unmute' : 'Mute'}
           >
             {muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
@@ -417,7 +417,7 @@ function AdVideoTab() {
             <button
               onClick={togglePlay}
               className="w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 backdrop-blur-sm"
-              style={{ background: 'rgba(109,74,224,.8)', border: '2px solid rgba(255,255,255,.25)' }}
+              style={{ background: 'rgba(55,65,81,.8)', border: '2px solid rgba(255,255,255,.25)' }}
               aria-label={playing ? 'Pause' : 'Play'}
             >
               {playing
@@ -755,7 +755,7 @@ export default function AdminDashboardPage() {
             }}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
             style={adminTab === id
-              ? { background: '#f3f4f6', border: '2px solid #6D4AE0', color: '#374151' }
+              ? { background: '#f3f4f6', border: '2px solid #374151', color: '#374151' }
               : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
             }
           >
@@ -805,7 +805,7 @@ export default function AdminDashboardPage() {
 
           {aiUsage && aiUsage !== 'error' && aiUsage.totals.calls === 0 && (
             <div className="bg-white rounded-3xl p-12 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
                 <Cpu className="w-8 h-8" style={{ color: '#374151' }} />
               </div>
               <p className="text-base font-extrabold text-gray-900 mb-1">No AI usage yet</p>
@@ -894,7 +894,7 @@ export default function AdminDashboardPage() {
                       </thead>
                       <tbody>
                         {aiUsage.byModel.slice().sort((a, b) => b.costUsd - a.costUsd).map((m) => (
-                          <tr key={`${m.provider}:${m.model}`} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                          <tr key={`${m.provider}:${m.model}`} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                             <td className="py-2">
                               <div className="flex items-center gap-2">
                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: aiProviderColor(m.provider) }} />
@@ -927,7 +927,7 @@ export default function AdminDashboardPage() {
                       </thead>
                       <tbody>
                         {aiUsage.byVideo.map((v) => (
-                          <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f0edf9' }}>
+                          <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
                             <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
                             <td className="py-1.5 text-right text-gray-600">{v.calls}</td>
                             <td className="py-1.5 text-right text-gray-600">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
@@ -953,7 +953,7 @@ export default function AdminDashboardPage() {
               <p className="text-sm text-gray-600 mt-0.5">Session analytics by platform and subscription plan</p>
             </div>
             {/* Range selector */}
-            <div className="flex items-center gap-1 rounded-2xl p-1" style={{ background: '#f0edf9' }}>
+            <div className="flex items-center gap-1 rounded-2xl p-1" style={{ background: '#f3f4f6' }}>
               {(['7d', '30d', '90d'] as const).map((r) => (
                 <button
                   key={r}
@@ -1056,7 +1056,7 @@ export default function AdminDashboardPage() {
                 className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
               />
             </div>
-            <div className="flex items-center gap-1 rounded-2xl p-1" style={{ background: '#f0edf9' }}>
+            <div className="flex items-center gap-1 rounded-2xl p-1" style={{ background: '#f3f4f6' }}>
               {(['all', 'free', 'pro', 'enterprise'] as const).map((p) => (
                 <button
                   key={p}
@@ -1079,7 +1079,7 @@ export default function AdminDashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left border-b border-[#f0edf9]">
+                  <tr className="text-left border-b border-[#f3f4f6]">
                     <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">User</th>
                     <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Plan</th>
                     <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 hidden sm:table-cell">Channels</th>
@@ -1092,7 +1092,7 @@ export default function AdminDashboardPage() {
                   {usersLoading ? (
                     <tr>
                       <td colSpan={6} className="px-5 py-10 text-center">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#6D4AE0] mx-auto" />
+                        <Loader2 className="w-5 h-5 animate-spin text-[#374151] mx-auto" />
                       </td>
                     </tr>
                   ) : filteredUsers.length === 0 ? (
@@ -1147,7 +1147,7 @@ export default function AdminDashboardPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-5 py-3 border-t border-[#f0edf9] flex items-center justify-between">
+            <div className="px-5 py-3 border-t border-[#f3f4f6] flex items-center justify-between">
               <span className="text-xs text-gray-600">{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} shown</span>
               <span className="text-xs text-gray-600">Superadmin access · All actions logged</span>
             </div>
@@ -1259,7 +1259,7 @@ export default function AdminDashboardPage() {
 
                   {/* Expanded detail */}
                   {isExpanded && (
-                    <div className="border-t border-[#f0edf9] p-5 space-y-4">
+                    <div className="border-t border-[#f3f4f6] p-5 space-y-4">
                       {/* Use case */}
                       <div>
                         <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Use Case</p>
@@ -1276,7 +1276,7 @@ export default function AdminDashboardPage() {
                               onClick={() => handleAiValidate(req.id)}
                               disabled={validatingId === req.id}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 disabled:opacity-60"
-                              style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff' }}
+                              style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff' }}
                             >
                               {validatingId === req.id
                                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analysing…</>
@@ -1499,7 +1499,7 @@ export default function AdminDashboardPage() {
                   type="button"
                   disabled={generating}
                   onClick={() => { void handleGenerateForecasts(); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold text-[#6D4AE0] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold text-[#374151] transition-colors disabled:opacity-50"
                   style={{ border: '1.5px solid #e3ddf8' }}
                 >
                   <RefreshCw className={`w-3 h-3 ${generating ? 'animate-spin' : ''}`} />

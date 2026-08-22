@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Loader2, Music, Mic, Play, Pause, Check, RefreshCw, ChevronRight } from 'lucide-react';
 
@@ -90,8 +90,8 @@ function PreviewBtn({ url, id, playing, setPlaying }: {
       onClick={() => setPlaying(isPlaying ? null : id)}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105"
       style={isPlaying
-        ? { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff' }
-        : { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #e3ddf8' }}
+        ? { background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff' }
+        : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}
       aria-label={isPlaying ? 'Pause' : 'Preview'}
     >
       {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
@@ -153,7 +153,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
       {/* ── Script input ───────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -167,7 +167,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
           onChange={e => setScriptText(e.target.value)}
           placeholder="Paste your video script or describe your content here…&#10;&#10;Example: &quot;This video covers 5 productivity tips for remote workers. Energetic and motivational tone targeting professionals aged 25-40.&quot;"
           rows={5}
-          className="w-full bg-[#faf9ff] rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 resize-none leading-relaxed"
+          className="w-full bg-[#faf9ff] rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 resize-none leading-relaxed"
           style={{ border: '1.5px solid #e3ddf8', color: '#374151' }}
         />
 
@@ -177,7 +177,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
             onClick={() => void analyze()}
             disabled={loading || !scriptText.trim()}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 20px rgba(109,74,224,.35)' }}
+            style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 20px rgba(55,65,81,.35)' }}
           >
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>
@@ -201,9 +201,9 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
           {/* Music card */}
           <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="flex items-center gap-2">
-              <Music className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+              <Music className="w-4 h-4" style={{ color: '#374151' }} />
               <p className="text-sm font-bold text-gray-800">Background Music</p>
-              <span className="ml-auto text-[11px] px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+              <span className="ml-auto text-[11px] px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>
                 AI Pick
               </span>
             </div>
@@ -224,7 +224,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
                       </span>
                     )}
                     {musicPick.track.mood.slice(0, 2).map(m => (
-                      <span key={m} className="text-[11px] px-2 py-0.5 rounded-full capitalize" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>{m}</span>
+                      <span key={m} className="text-[11px] px-2 py-0.5 rounded-full capitalize" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>{m}</span>
                     ))}
                     <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: musicPick.source === 'library' ? '#f0fdf4' : '#eff6ff', color: musicPick.source === 'library' ? '#16a34a' : '#2563eb', border: '1px solid #e3ddf8' }}>
                       {musicPick.source === 'library' ? '★ Library' : '↓ Imported'}
@@ -233,7 +233,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
                 </div>
 
                 {/* AI reasoning */}
-                <div className="rounded-xl px-3 py-2.5" style={{ background: '#faf9ff', border: '1.5px solid #f0edf9' }}>
+                <div className="rounded-xl px-3 py-2.5" style={{ background: '#faf9ff', border: '1.5px solid #f3f4f6' }}>
                   <p className="text-[11px] text-gray-500 italic">"{musicPick.reason}"</p>
                 </div>
 
@@ -249,7 +249,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ml-auto"
                     style={musicAccepted
                       ? { background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #bbf7d0' }
-                      : { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.3)' }}
+                      : { background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(55,65,81,.3)' }}
                   >
                     {musicAccepted ? <><Check className="w-3 h-3" /> Applied</> : <>Apply <ChevronRight className="w-3 h-3" /></>}
                   </button>
@@ -269,9 +269,9 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
           {/* Voice card */}
           <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="flex items-center gap-2">
-              <Mic className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+              <Mic className="w-4 h-4" style={{ color: '#374151' }} />
               <p className="text-sm font-bold text-gray-800">Narration Voice</p>
-              <span className="ml-auto text-[11px] px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f5f2fd', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+              <span className="ml-auto text-[11px] px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>
                 AI Pick
               </span>
             </div>
@@ -280,20 +280,20 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
               <>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold text-white shrink-0"
-                    style={{ background: voicePick.provider === 'elevenlabs' ? 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' : 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}>
+                    style={{ background: voicePick.provider === 'elevenlabs' ? 'linear-gradient(135deg,#374151,#7c5ae8)' : 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}>
                     {voicePick.name.charAt(0)}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{voicePick.name}</p>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: voicePick.provider === 'elevenlabs' ? '#f5f2fd' : '#eff6ff', color: voicePick.provider === 'elevenlabs' ? '#6D4AE0' : '#2563eb', border: '1px solid #e3ddf8' }}>
+                      style={{ background: voicePick.provider === 'elevenlabs' ? '#f3f4f6' : '#eff6ff', color: voicePick.provider === 'elevenlabs' ? '#374151' : '#2563eb', border: '1px solid #e3ddf8' }}>
                       {voicePick.provider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI TTS'}
                     </span>
                   </div>
                 </div>
 
                 {/* AI reasoning */}
-                <div className="rounded-xl px-3 py-2.5" style={{ background: '#faf9ff', border: '1.5px solid #f0edf9' }}>
+                <div className="rounded-xl px-3 py-2.5" style={{ background: '#faf9ff', border: '1.5px solid #f3f4f6' }}>
                   <p className="text-[11px] text-gray-500 italic">"{voicePick.reason}"</p>
                 </div>
 
@@ -309,7 +309,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ml-auto"
                     style={voiceAccepted
                       ? { background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #bbf7d0' }
-                      : { background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(109,74,224,.3)' }}
+                      : { background: 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff', boxShadow: '0 2px 8px rgba(55,65,81,.3)' }}
                   >
                     {voiceAccepted ? <><Check className="w-3 h-3" /> Applied</> : <>Apply <ChevronRight className="w-3 h-3" /></>}
                   </button>
@@ -328,7 +328,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
 
       {/* ── How it works ───────────────────────────────────────────────────── */}
       {!hasResults && !loading && (
-        <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #f0edf9' }}>
+        <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #f3f4f6' }}>
           <p className="text-xs font-semibold text-gray-600 mb-3">How AI matching works</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
@@ -337,7 +337,7 @@ export function AiMediaPicker({ initialScript = '', onMusicAccepted, onVoiceAcce
               { step: '3', title: 'Pick voice', desc: 'Selects the most suitable ElevenLabs or OpenAI voice for your content\'s tone' },
             ].map(({ step, title, desc }) => (
               <div key={step} className="flex gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: '#6D4AE0' }}>{step}</div>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: '#374151' }}>{step}</div>
                 <div>
                   <p className="text-xs font-semibold text-gray-700">{title}</p>
                   <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{desc}</p>

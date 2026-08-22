@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { Palette, Mic, Save, CheckCircle, RefreshCw, Wand2 } from 'lucide-react';
 import Link from 'next/link';
@@ -48,7 +48,7 @@ export default function BrandKitPage() {
   // Brand kit state
   const [niche, setNiche] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#7c3aed');
-  const [accentColor, setAccentColor] = useState('#a78bfa');
+  const [accentColor, setAccentColor] = useState('#9ca3af');
   const [bgColor, setBgColor] = useState('#1a1a2e');
   const [fontStyle, setFontStyle] = useState('Modern sans-serif (Inter/Poppins)');
   const [visualMood, setVisualMood] = useState('professional, clean, modern');
@@ -73,7 +73,7 @@ export default function BrandKitPage() {
     setSelected(ch);
     setNiche(ch.niche ?? '');
     setPrimaryColor(ch.brandKit?.colorPalette?.[0] ?? '#7c3aed');
-    setAccentColor(ch.brandKit?.colorPalette?.[1] ?? '#a78bfa');
+    setAccentColor(ch.brandKit?.colorPalette?.[1] ?? '#9ca3af');
     setBgColor(ch.brandKit?.colorPalette?.[2] ?? '#1a1a2e');
     setFontStyle(ch.brandKit?.fontStyle ?? 'Modern sans-serif (Inter/Poppins)');
     setVisualMood(ch.brandKit?.visualMood ?? 'professional, clean, modern');
@@ -101,7 +101,7 @@ export default function BrandKitPage() {
       const cluster = (audience.interestClusters?.[0]?.cluster ?? '').toLowerCase();
       const combined = `${demo} ${cluster}`;
 
-      let primary = '#7c3aed', accent = '#a78bfa', bg = '#1a1a2e';
+      let primary = '#7c3aed', accent = '#9ca3af', bg = '#1a1a2e';
       let mood = 'professional, clean, modern';
       let thumb = 'Bold text overlay, high contrast, eye-catching';
 
@@ -179,7 +179,7 @@ export default function BrandKitPage() {
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         {/* Page header */}
         <div className="flex items-center gap-3">
-          <Palette className="w-7 h-7" style={{ color: '#6D4AE0' }} />
+          <Palette className="w-7 h-7" style={{ color: '#374151' }} />
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Brand Kit</h1>
             <p className="text-sm text-gray-400 mt-0.5">Visual identity and voice profile used across all AI-generated assets</p>
@@ -196,7 +196,7 @@ export default function BrandKitPage() {
                 onClick={() => selectChannel(ch)}
                 className="px-3 py-1.5 rounded-2xl text-sm font-semibold transition-all"
                 style={selected?.id === ch.id
-                  ? { background: '#f5f2fd', color: '#6D4AE0', border: '1.5px solid #6D4AE0' }
+                  ? { background: '#f3f4f6', color: '#374151', border: '1.5px solid #374151' }
                   : { background: 'white', color: '#4b5563', border: '1.5px solid #e3ddf8' }
                 }
               >
@@ -204,7 +204,7 @@ export default function BrandKitPage() {
               </button>
             ))}
             {channels.length === 0 && (
-              <p className="text-sm text-gray-400">No channels connected — <Link href="/settings/channels" className="underline font-medium hover:text-[#6D4AE0]">Connect a YouTube channel</Link> first.</p>
+              <p className="text-sm text-gray-400">No channels connected — <Link href="/settings/channels" className="underline font-medium hover:text-[#374151]">Connect a YouTube channel</Link> first.</p>
             )}
           </div>
         </div>
@@ -219,16 +219,16 @@ export default function BrandKitPage() {
                 value={niche}
                 onChange={e => setNiche(e.target.value)}
                 placeholder="e.g. AI, Technology, Personal Finance, Health…"
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
 
             {/* AI Generate */}
-            <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8', background: 'linear-gradient(135deg, #faf9ff 0%, #f5f2fd 100%)' }}>
+            <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8', background: 'linear-gradient(135deg, #faf9ff 0%, #f3f4f6 100%)' }}>
               <div className="flex items-start gap-3 mb-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                  <Wand2 className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                  <Wand2 className="w-4 h-4" style={{ color: '#374151' }} />
                 </div>
                 <div>
                   <h2 className="font-semibold text-gray-900">AI Generate Brand Identity</h2>
@@ -246,7 +246,7 @@ export default function BrandKitPage() {
                 onClick={() => { void generateBrandIdentity(); }}
                 disabled={aiGenerating || !niche.trim()}
                 className="flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{ border: '1.5px solid #6D4AE0', color: '#6D4AE0', background: 'white' }}
+                style={{ border: '1.5px solid #374151', color: '#374151', background: 'white' }}
               >
                 {aiGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 {aiGenerating ? 'Generating…' : 'Generate Brand Identity'}
@@ -266,7 +266,7 @@ export default function BrandKitPage() {
                     <label className="block text-xs text-gray-400 mb-1">{label}</label>
                     <div className="flex items-center gap-2">
                       <input type="color" value={value} onChange={e => set(e.target.value)} className="w-8 h-8 rounded-lg cursor-pointer" style={{ border: '1.5px solid #e3ddf8' }} />
-                      <input type="text" value={value} onChange={e => set(e.target.value)} className="flex-1 rounded-xl px-2 py-1 text-xs font-mono bg-white outline-none focus:ring-2 focus:ring-[#6D4AE0]/20" style={{ border: '1.5px solid #e3e0f0' }} />
+                      <input type="text" value={value} onChange={e => set(e.target.value)} className="flex-1 rounded-xl px-2 py-1 text-xs font-mono bg-white outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3e0f0' }} />
                     </div>
                   </div>
                 ))}
@@ -286,15 +286,15 @@ export default function BrandKitPage() {
               <div className="space-y-3">
                 <div>
                   <label htmlFor="brand-font-style" className="block text-xs text-gray-400 mb-1">Font Style</label>
-                  <input id="brand-font-style" type="text" value={fontStyle} onChange={e => setFontStyle(e.target.value)} className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all" style={{ border: '1.5px solid #e3e0f0' }} />
+                  <input id="brand-font-style" type="text" value={fontStyle} onChange={e => setFontStyle(e.target.value)} className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all" style={{ border: '1.5px solid #e3e0f0' }} />
                 </div>
                 <div>
                   <label htmlFor="brand-visual-mood" className="block text-xs text-gray-400 mb-1">Visual Mood</label>
-                  <input id="brand-visual-mood" type="text" value={visualMood} onChange={e => setVisualMood(e.target.value)} placeholder="e.g. professional, clean, modern" className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all" style={{ border: '1.5px solid #e3e0f0' }} />
+                  <input id="brand-visual-mood" type="text" value={visualMood} onChange={e => setVisualMood(e.target.value)} placeholder="e.g. professional, clean, modern" className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all" style={{ border: '1.5px solid #e3e0f0' }} />
                 </div>
                 <div>
                   <label htmlFor="brand-thumbnail-style" className="block text-xs text-gray-400 mb-1">Thumbnail Style</label>
-                  <input id="brand-thumbnail-style" type="text" value={thumbnailStyle} onChange={e => setThumbnailStyle(e.target.value)} placeholder="e.g. Bold text overlay, reaction shot" className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all" style={{ border: '1.5px solid #e3e0f0' }} />
+                  <input id="brand-thumbnail-style" type="text" value={thumbnailStyle} onChange={e => setThumbnailStyle(e.target.value)} placeholder="e.g. Bold text overlay, reaction shot" className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all" style={{ border: '1.5px solid #e3e0f0' }} />
                 </div>
               </div>
             </div>
@@ -302,7 +302,7 @@ export default function BrandKitPage() {
             {/* Voice Profile */}
             <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
               <div className="flex items-center gap-2 mb-1">
-                <Mic className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+                <Mic className="w-4 h-4" style={{ color: '#374151' }} />
                 <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">Voice Profile</h2>
               </div>
               <p className="text-xs text-gray-400 mb-4">Used by VoiceAgent to generate per-section TTS specifications</p>
@@ -321,7 +321,7 @@ export default function BrandKitPage() {
                       value={value}
                       onChange={e => set(e.target.value)}
                       placeholder={placeholder}
-                      className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                      className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                       style={{ border: '1.5px solid #e3e0f0' }}
                     />
                   </div>
@@ -335,7 +335,7 @@ export default function BrandKitPage() {
               onClick={save}
               disabled={saving}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
               {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Brand Kit'}

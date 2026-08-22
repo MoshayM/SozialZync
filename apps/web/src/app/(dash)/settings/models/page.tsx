@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, RefreshCw, Download, Trash2, HardDrive, CheckCircle2, XCircle, Cpu, MemoryStick } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -309,7 +309,7 @@ export default function ModelManagerPage() {
                       <div
                         key={i}
                         className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-3 py-2.5 rounded-xl"
-                        style={{ background: '#faf9ff', border: '1px solid #f0edf9' }}
+                        style={{ background: '#faf9ff', border: '1px solid #f3f4f6' }}
                       >
                         <span className="text-sm font-semibold text-gray-800 flex-1 truncate" title={gpu.name}>
                           {gpu.name}
@@ -323,7 +323,7 @@ export default function ModelManagerPage() {
                           {gpu.utilizationPct != null && (
                             <span
                               className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                              style={{ background: '#ede9fb', color: '#6D4AE0' }}
+                              style={{ background: '#ede9fb', color: '#374151' }}
                             >
                               {gpu.utilizationPct}% util
                             </span>
@@ -341,9 +341,9 @@ export default function ModelManagerPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div
                     className="flex items-center gap-2 flex-1 px-3 py-2.5 rounded-xl"
-                    style={{ background: '#faf9ff', border: '1px solid #f0edf9' }}
+                    style={{ background: '#faf9ff', border: '1px solid #f3f4f6' }}
                   >
-                    <Cpu className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />
+                    <Cpu className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-gray-700 truncate" title={systemStats.cpuModel}>
                         {systemStats.cpuModel}
@@ -353,9 +353,9 @@ export default function ModelManagerPage() {
                   </div>
                   <div
                     className="flex items-center gap-2 sm:w-48 px-3 py-2.5 rounded-xl"
-                    style={{ background: '#faf9ff', border: '1px solid #f0edf9' }}
+                    style={{ background: '#faf9ff', border: '1px solid #f3f4f6' }}
                   >
-                    <MemoryStick className="w-4 h-4 shrink-0" style={{ color: '#6D4AE0' }} />
+                    <MemoryStick className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />
                     <div>
                       <p className="text-xs font-semibold text-gray-700">System RAM</p>
                       <p className="text-xs text-gray-500">
@@ -376,7 +376,7 @@ export default function ModelManagerPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <HardDrive className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+              <HardDrive className="w-5 h-5" style={{ color: '#374151' }} />
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Model Manager</h1>
             </div>
             <p className="text-sm text-gray-500">
@@ -408,7 +408,7 @@ export default function ModelManagerPage() {
               onClick={() => void fetchModels()}
               disabled={loading}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-              style={{ border: '1.5px solid #6D4AE0', color: '#6D4AE0', background: '#fff' }}
+              style={{ border: '1.5px solid #374151', color: '#374151', background: '#fff' }}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               Refresh
@@ -468,7 +468,7 @@ export default function ModelManagerPage() {
                   <div
                     key={model.name}
                     className="flex items-center gap-4 px-4 py-3 hover:bg-[#faf9ff] transition-colors"
-                    style={{ borderBottom: idx < models.length - 1 ? '1px solid #f0edf9' : 'none' }}
+                    style={{ borderBottom: idx < models.length - 1 ? '1px solid #f3f4f6' : 'none' }}
                   >
                     {/* Model icon */}
                     <div
@@ -549,7 +549,7 @@ export default function ModelManagerPage() {
           </p>
           <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="flex items-center gap-2 mb-1">
-              <Download className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+              <Download className="w-4 h-4" style={{ color: '#374151' }} />
               <span className="text-sm font-semibold text-gray-800">Download from Ollama Registry</span>
             </div>
             <p className="text-xs text-gray-500 -mt-2">
@@ -559,7 +559,7 @@ export default function ModelManagerPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
-                style={{ color: '#6D4AE0' }}
+                style={{ color: '#374151' }}
               >
                 ollama.ai/library
               </a>
@@ -579,7 +579,7 @@ export default function ModelManagerPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') void handlePull(); }}
                 placeholder="e.g. llama3.2, mistral:7b, qwen2.5:14b"
                 disabled={!!pulling}
-                className="flex-1 bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono disabled:opacity-50"
+                className="flex-1 bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono disabled:opacity-50"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
               <button
@@ -588,8 +588,8 @@ export default function ModelManagerPage() {
                 disabled={!!pulling || !pullInput.trim()}
                 className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 whitespace-nowrap"
                 style={{
-                  background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-                  boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
+                  background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)',
+                  boxShadow: '0 4px 20px rgba(55,65,81,0.35)',
                 }}
               >
                 {pulling ? (
@@ -610,11 +610,11 @@ export default function ModelManagerPage() {
             {pulling && (
               <div
                 className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}
+                style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}
               >
-                <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: '#6D4AE0' }} />
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: '#374151' }} />
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: '#6D4AE0' }}>
+                  <p className="text-sm font-semibold" style={{ color: '#374151' }}>
                     Pulling model…
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5 font-mono">{pulling}</p>
@@ -664,8 +664,8 @@ export default function ModelManagerPage() {
                       }}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all hover:opacity-80 active:scale-[0.97] disabled:opacity-50 disabled:cursor-default font-mono"
                       style={{
-                        background: isInstalled ? '#f0fdf4' : '#f5f2fd',
-                        color: isInstalled ? '#16a34a' : '#6D4AE0',
+                        background: isInstalled ? '#f0fdf4' : '#f3f4f6',
+                        color: isInstalled ? '#16a34a' : '#374151',
                         border: `1.5px solid ${isInstalled ? '#bbf7d0' : '#e3ddf8'}`,
                       }}
                       title={isInstalled ? 'Already installed' : `Click to select ${name}`}
@@ -693,7 +693,7 @@ export default function ModelManagerPage() {
                   <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #ece8f8' }}>Task</th>
                   <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #ece8f8' }}>Local (Ollama)</th>
                   <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#059669', borderBottom: '1px solid #ece8f8' }}>Free Cloud</th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#6D4AE0', borderBottom: '1px solid #ece8f8' }}>Best Quality</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #ece8f8' }}>Best Quality</th>
                 </tr>
               </thead>
               <tbody>
@@ -705,7 +705,7 @@ export default function ModelManagerPage() {
                     </td>
                     <td style={{ padding: '10px 16px', color: '#374151', borderBottom: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: 12 }}>{row.localModel}</td>
                     <td style={{ padding: '10px 16px', color: '#059669', borderBottom: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: 12 }}>{row.freeCloudModel}</td>
-                    <td style={{ padding: '10px 16px', color: '#6D4AE0', borderBottom: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: 12 }}>{row.bestModel}</td>
+                    <td style={{ padding: '10px 16px', color: '#374151', borderBottom: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: 12 }}>{row.bestModel}</td>
                   </tr>
                 ))}
               </tbody>

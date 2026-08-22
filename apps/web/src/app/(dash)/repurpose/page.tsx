@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import {
   ArrowRightLeft, Loader2, Copy, Check, ChevronDown, ChevronUp,
@@ -158,7 +158,7 @@ function PlatformCard({ item }: { item: RepurposeItem }) {
             </div>
           )}
           {item.platform === 'shorts' && (
-            <Link href="/shorts-studio" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+            <Link href="/shorts-studio" className="inline-flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
               <ExternalLink className="w-3 h-3" /> Open in Shorts Studio →
             </Link>
           )}
@@ -243,7 +243,7 @@ export default function RepurposePage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2">
-            <ArrowRightLeft className="w-6 h-6" style={{ color: '#6D4AE0' }} /> Content Repurposer
+            <ArrowRightLeft className="w-6 h-6" style={{ color: '#374151' }} /> Content Repurposer
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">Adapt your YouTube script into native content for every platform</p>
         </div>
@@ -254,7 +254,7 @@ export default function RepurposePage() {
             <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold text-gray-800 text-sm">Source Content</h2>
-                <Link href="/projects" className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: '#6D4AE0' }}>
+                <Link href="/projects" className="flex items-center gap-1 text-[11px] font-semibold hover:underline" style={{ color: '#374151' }}>
                   <ExternalLink className="w-3 h-3" /> Browse projects
                 </Link>
               </div>
@@ -266,7 +266,7 @@ export default function RepurposePage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. How to start a YouTube channel"
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
               </div>
@@ -281,7 +281,7 @@ export default function RepurposePage() {
                   onChange={(e) => setScriptText(e.target.value)}
                   placeholder="Paste your video script, summary, or key talking points here..."
                   rows={12}
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 resize-none"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 resize-none"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
               </div>
@@ -315,7 +315,7 @@ export default function RepurposePage() {
               onClick={handleRepurpose}
               disabled={loading || !scriptText.trim() || selectedPlatforms.size === 0}
               className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-white disabled:opacity-50 transition-opacity"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
               {loading ? 'Repurposing…' : `Repurpose for ${selectedPlatforms.size} platform${selectedPlatforms.size !== 1 ? 's' : ''}`}
@@ -330,8 +330,8 @@ export default function RepurposePage() {
           <div className="lg:col-span-3">
             {!result && !loading && (
               <div className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-3xl" style={{ border: '1.5px solid #e3ddf8' }}>
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-                  <ArrowRightLeft className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+                  <ArrowRightLeft className="w-8 h-8" style={{ color: '#374151' }} />
                 </div>
                 <p className="font-medium text-gray-500">Your adapted content will appear here</p>
                 <p className="text-sm mt-1 text-gray-400">Select platforms and paste your script to get started</p>
@@ -362,7 +362,7 @@ export default function RepurposePage() {
                   onNew={clearResult}
                 />
                 {result.summary && (
-                  <div className="bg-[#f5f2fd] rounded-2xl px-4 py-3" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <div className="bg-[#f3f4f6] rounded-2xl px-4 py-3" style={{ border: '1.5px solid #e3ddf8' }}>
                     <p className="text-sm text-gray-700">{result.summary}</p>
                   </div>
                 )}

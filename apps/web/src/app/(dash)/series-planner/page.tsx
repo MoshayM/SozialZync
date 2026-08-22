@@ -132,7 +132,7 @@ export default function SeriesPlannerPage() {
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}>
             <ListOrdered className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -150,7 +150,7 @@ export default function SeriesPlannerPage() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="e.g. Mastering Personal Finance from Zero"
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
@@ -161,7 +161,7 @@ export default function SeriesPlannerPage() {
                 <select
                   value={niche}
                   onChange={(e) => setNiche(e.target.value)}
-                  className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 appearance-none"
+                  className="w-full bg-white rounded-2xl px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#374151]/20 appearance-none"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 >
                   <option value="">Select niche…</option>
@@ -179,7 +179,7 @@ export default function SeriesPlannerPage() {
                 max={12}
                 value={episodeCount}
                 onChange={(e) => setEpisodeCount(Number(e.target.value))}
-                className="w-full mt-2 accent-[#6D4AE0]"
+                className="w-full mt-2 accent-[#374151]"
               />
               <div className="flex justify-between text-xs text-gray-400 mt-1"><span>3</span><span>12</span></div>
             </div>
@@ -190,7 +190,7 @@ export default function SeriesPlannerPage() {
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
                 placeholder="e.g. 25–40 year olds new to investing"
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
@@ -202,7 +202,7 @@ export default function SeriesPlannerPage() {
             onClick={() => void generate()}
             disabled={loading || !topic.trim() || !niche}
             className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-white disabled:opacity-50 transition-opacity"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {loading ? 'Planning series…' : 'Generate Series Plan'}
@@ -233,7 +233,7 @@ export default function SeriesPlannerPage() {
               onNew={clearPlan}
             />
             {/* Series overview */}
-            <div className="rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #f5f2fd, #ede8fc)', border: '1.5px solid #e3ddf8' }}>
+            <div className="rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #f3f4f6, #ede8fc)', border: '1.5px solid #e3ddf8' }}>
               <div className="flex items-start justify-between flex-wrap gap-3">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">{plan.seriesTitle}</h2>
@@ -292,7 +292,7 @@ export default function SeriesPlannerPage() {
                               <ul className="space-y-1">
                                 {ep.keyPoints.map((pt, i) => (
                                   <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                    <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#6D4AE0' }} />
+                                    <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#374151' }} />
                                     {pt}
                                   </li>
                                 ))}

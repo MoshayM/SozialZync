@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, XCircle, RefreshCw, Loader2, ExternalLink, AlertCircle, X } from 'lucide-react';
 import { apiClient } from '@/lib/api';
@@ -323,7 +323,7 @@ export default function PublishingAccountsPage() {
       )}
 
       {loading && Object.keys(statuses).length === 0 ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#6D4AE0]" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#374151]" /></div>
       ) : (
         <div className="space-y-3">
           {Object.entries(PLATFORM_META).map(([platformId, meta]) => {

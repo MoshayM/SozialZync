@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { Volume2, Mic2 } from 'lucide-react';
 import AudioStudioPage from '@/app/(dash)/studio/audio/page';
@@ -16,7 +16,7 @@ export function AudioStudioContent() {
         <div
           className="inline-flex items-center gap-1 rounded-2xl p-[3px]"
           style={{
-            background: '#f0edf9',
+            background: '#f3f4f6',
             border: '1.5px solid #e3ddf8',
           }}
         >
@@ -27,9 +27,9 @@ export function AudioStudioContent() {
             style={
               activeTab === 'audio'
                 ? {
-                    background: 'linear-gradient(135deg,#a78bfa,#7C3AED)',
+                    background: 'linear-gradient(135deg,#9ca3af,#374151)',
                     color: '#fff',
-                    boxShadow: '0 2px 8px rgba(124,58,237,.35)',
+                    boxShadow: '0 2px 8px rgba(55,65,81,.35)',
                   }
                 : {
                     background: 'transparent',
@@ -47,9 +47,9 @@ export function AudioStudioContent() {
             style={
               activeTab === 'voice'
                 ? {
-                    background: 'linear-gradient(135deg,#a78bfa,#7C3AED)',
+                    background: 'linear-gradient(135deg,#9ca3af,#374151)',
                     color: '#fff',
-                    boxShadow: '0 2px 8px rgba(124,58,237,.35)',
+                    boxShadow: '0 2px 8px rgba(55,65,81,.35)',
                   }
                 : {
                     background: 'transparent',

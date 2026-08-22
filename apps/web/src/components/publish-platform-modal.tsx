@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
@@ -76,7 +76,7 @@ export function PublishPlatformModal({
           <p className="text-sm text-gray-500 mb-4 truncate">{projectTitle}</p>
         )}
 
-        <div className="rounded-xl px-4 py-3 mb-4" style={{ background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}>
+        <div className="rounded-xl px-4 py-3 mb-4" style={{ background: '#f3f4f6', border: '1.5px solid #d4c9f9' }}>
           <p className="text-xs" style={{ color: '#4c1d95' }}>
             ℹ You don&apos;t need to connect any account now. Create your content first. Connect whenever you&apos;re ready to publish.
           </p>
@@ -115,14 +115,14 @@ export function PublishPlatformModal({
                 {isConnected ? (
                   <button
                     onClick={handlePublish}
-                    className="rounded-lg bg-[#6D4AE0] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#5a3bc7] transition-colors"
+                    className="rounded-lg bg-[#374151] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#5a3bc7] transition-colors"
                   >
                     Publish
                   </button>
                 ) : (
                   <button
                     onClick={() => void handleConnect(platform.id)}
-                    className="rounded-lg border border-[#6D4AE0] px-4 py-1.5 text-sm font-medium text-[#6D4AE0] hover:bg-[#6D4AE0]/5 transition-colors"
+                    className="rounded-lg border border-[#374151] px-4 py-1.5 text-sm font-medium text-[#374151] hover:bg-[#374151]/5 transition-colors"
                   >
                     Connect
                   </button>

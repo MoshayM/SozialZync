@@ -118,7 +118,7 @@ export default function GuidePage() {
             style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
           {/* glow orb */}
           <div aria-hidden className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse,rgba(167,139,250,.25) 0%,transparent 70%)', transform: 'translate(30%, -40%)' }} />
+            style={{ background: 'radial-gradient(ellipse,rgba(156,163,175,.25) 0%,transparent 70%)', transform: 'translate(30%, -40%)' }} />
 
           <div className="relative max-w-3xl mx-auto px-5 lg:px-7 py-10 lg:py-12">
             <div className="flex items-center gap-3 mb-5">
@@ -170,8 +170,8 @@ export default function GuidePage() {
         <div className="max-w-3xl mx-auto px-5 lg:px-7 py-7 space-y-6">
 
           {/* Steps card */}
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e8e4f8', boxShadow: '0 2px 24px rgba(109,74,224,.06)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#f0edf9' }}>
+          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e8e4f8', boxShadow: '0 2px 24px rgba(55,65,81,.06)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#f3f4f6' }}>
               <div className="flex items-center gap-2">
                 {(() => { const Icon = active.icon; return <Icon className="w-4 h-4" style={{ color: '#374151' }} />; })()}
                 <h2 className="text-sm font-bold text-gray-900">{active.label} — How it works</h2>
@@ -191,7 +191,7 @@ export default function GuidePage() {
                 <Link
                   href={active.href}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #374151, #1f2937)', boxShadow: '0 4px 12px rgba(109,74,224,.3)' }}
+                  style={{ background: 'linear-gradient(135deg, #374151, #1f2937)', boxShadow: '0 4px 12px rgba(55,65,81,.3)' }}
                 >
                   Open {active.label}
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -208,11 +208,11 @@ export default function GuidePage() {
                     {/* Timeline */}
                     <div className="flex flex-col items-center shrink-0">
                       <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 text-white text-sm font-extrabold shadow-md"
-                        style={{ background: STEP_COLORS[i % STEP_COLORS.length], boxShadow: '0 4px 12px rgba(109,74,224,.25)' }}>
+                        style={{ background: STEP_COLORS[i % STEP_COLORS.length], boxShadow: '0 4px 12px rgba(55,65,81,.25)' }}>
                         {i + 1}
                       </div>
                       {!isLast && (
-                        <div className="w-px flex-1 my-2" style={{ background: 'linear-gradient(to bottom,#c4b5fd,transparent)', minHeight: '24px' }} />
+                        <div className="w-px flex-1 my-2" style={{ background: 'linear-gradient(to bottom,#d1d5db,transparent)', minHeight: '24px' }} />
                       )}
                     </div>
                     {/* Content */}
@@ -224,7 +224,7 @@ export default function GuidePage() {
                       <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
                       {step.tip && (
                         <div className="mt-2 flex items-start gap-1.5 px-3 py-2 rounded-xl"
-                          style={{ background: 'linear-gradient(135deg,#f5f2fd,#ede9f8)', border: '1px solid #d8d0f7' }}>
+                          style={{ background: 'linear-gradient(135deg,#f3f4f6,#ede9f8)', border: '1px solid #d8d0f7' }}>
                           <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: '#374151' }} />
                           <p className="text-xs leading-relaxed" style={{ color: '#1f2937' }}>{step.tip}</p>
                         </div>
@@ -247,9 +247,9 @@ export default function GuidePage() {
                 const Icon = tip.icon;
                 return (
                   <div key={tip.title} className="bg-white rounded-2xl p-4 space-y-2 transition-all hover:-translate-y-0.5"
-                    style={{ border: '1.5px solid #e8e4f8', boxShadow: '0 2px 16px rgba(109,74,224,.04)' }}>
+                    style={{ border: '1.5px solid #e8e4f8', boxShadow: '0 2px 16px rgba(55,65,81,.04)' }}>
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                      style={{ background: STEP_COLORS[i % STEP_COLORS.length], boxShadow: '0 3px 10px rgba(109,74,224,.22)' }}>
+                      style={{ background: STEP_COLORS[i % STEP_COLORS.length], boxShadow: '0 3px 10px rgba(55,65,81,.22)' }}>
                       <Icon className="w-4 h-4 text-white" />
                     </div>
                     <p className="text-sm font-bold text-gray-900">{tip.title}</p>
@@ -271,7 +271,7 @@ export default function GuidePage() {
                   href={href}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
                   style={primary
-                    ? { background: 'linear-gradient(135deg, #374151, #1f2937)', color: '#fff', boxShadow: '0 4px 12px rgba(109,74,224,.3)' }
+                    ? { background: 'linear-gradient(135deg, #374151, #1f2937)', color: '#fff', boxShadow: '0 4px 12px rgba(55,65,81,.3)' }
                     : { border: '1px solid #e3ddf8', color: '#4B5563', background: '#faf9ff' }
                   }
                 >
@@ -284,7 +284,7 @@ export default function GuidePage() {
 
           {/* Self-hosted AI guide */}
           <div className="rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap"
-            style={{ background: 'linear-gradient(135deg,#1a0845,#4f2ec4)', border: '1.5px solid rgba(109,74,224,.3)' }}>
+            style={{ background: 'linear-gradient(135deg,#1a0845,#4f2ec4)', border: '1.5px solid rgba(55,65,81,.3)' }}>
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <BookOpen className="w-4 h-4 text-white/80" />

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -122,7 +122,7 @@ function IosToggle({ checked, onChange, disabled }: {
         padding: 0,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.45 : 1,
-        background: checked ? '#6D4AE0' : '#d1d5db',
+        background: checked ? '#374151' : '#d1d5db',
         transition: 'background 0.2s ease',
         flexShrink: 0,
         outline: 'none',
@@ -423,7 +423,7 @@ export default function AutopilotPage() {
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight flex items-center gap-2.5">
               <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)', boxShadow: '0 4px 14px -4px rgba(109,74,224,.45)' }}>
+                style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 14px -4px rgba(55,65,81,.45)' }}>
                 <Sparkles className="w-[18px] h-[18px] text-white" />
               </span>
               Autopilot
@@ -452,7 +452,7 @@ export default function AutopilotPage() {
             <select
               value={channelId}
               onChange={(e) => selectChannel(e.target.value)}
-              className="bg-white rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+              className="bg-white rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
               style={{ border: '1.5px solid #e3e0f0' }}
               aria-label="Select channel"
             >
@@ -530,13 +530,13 @@ export default function AutopilotPage() {
                   key={id} type="button"
                   onClick={() => setTab(id)}
                   className={`flex-1 relative flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-xl transition-colors
-                    ${tab === id ? 'bg-white shadow text-[#6D4AE0]' : 'text-gray-500 hover:text-gray-700'}`}
+                    ${tab === id ? 'bg-white shadow text-[#374151]' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {label}
                   {badge && (
                     <span className="absolute -top-1.5 -right-1 min-w-[20px] h-5 px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
-                      style={{ background: '#6D4AE0' }}>
+                      style={{ background: '#374151' }}>
                       {badge}
                     </span>
                   )}
@@ -590,8 +590,8 @@ export default function AutopilotPage() {
                       {stats.proposed   > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"><span className="font-bold">{stats.proposed}</span> pending review</span>}
                       {stats.approved   > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#ecfdf5',color:'#065f46',border:'1px solid #a7f3d0' }}><Check className="w-3 h-3" /><span className="font-bold">{stats.approved}</span> approved</span>}
                       {stats.dismissed  > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f3f4f6',color:'#4b5563',border:'1px solid #e5e7eb' }}><X className="w-3 h-3" /><span className="font-bold">{stats.dismissed}</span> dismissed</span>}
-                      {stats.upcoming7d > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f3f4f6',color:'#6D4AE0',border:'1px solid #e5e7eb' }}><CalendarClock className="w-3 h-3" /><span className="font-bold">{stats.upcoming7d}</span> due this week</span>}
-                      {stats.approvalRate !== null   && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f3f4f6',color:'#6D4AE0',border:'1px solid #e5e7eb' }}><TrendingUp className="w-3 h-3" /><span className="font-bold">{stats.approvalRate}%</span> approval rate</span>}
+                      {stats.upcoming7d > 0          && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f3f4f6',color:'#374151',border:'1px solid #e5e7eb' }}><CalendarClock className="w-3 h-3" /><span className="font-bold">{stats.upcoming7d}</span> due this week</span>}
+                      {stats.approvalRate !== null   && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background:'#f3f4f6',color:'#374151',border:'1px solid #e5e7eb' }}><TrendingUp className="w-3 h-3" /><span className="font-bold">{stats.approvalRate}%</span> approval rate</span>}
                     </div>
                   </section>
                 )}
@@ -608,7 +608,7 @@ export default function AutopilotPage() {
                     <label className="text-sm text-gray-600">
                       Weeks
                       <select value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}
-                        className="block mt-1 bg-white rounded-2xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                        className="block mt-1 bg-white rounded-2xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                         style={{ border: '1.5px solid #e3e0f0' }}>
                         {[1,2,3,4].map((w) => <option key={w} value={w}>{w}</option>)}
                       </select>
@@ -616,7 +616,7 @@ export default function AutopilotPage() {
                     <label className="text-sm text-gray-600">
                       Slots per week
                       <select value={perWeek} onChange={(e) => setPerWeek(Number(e.target.value))}
-                        className="block mt-1 bg-white rounded-2xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                        className="block mt-1 bg-white rounded-2xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                         style={{ border: '1.5px solid #e3e0f0' }}>
                         {[1,2,3,4,5,6,7].map((n) => <option key={n} value={n}>{n}</option>)}
                       </select>
@@ -628,7 +628,7 @@ export default function AutopilotPage() {
                     </button>
                     <button type="button" onClick={() => generate.mutate(false)} disabled={generate.isPending}
                       className="flex items-center gap-2 px-5 py-2 rounded-2xl font-bold text-white disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg,#6D4AE0 0%,#7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,.35)' }}>
+                      style={{ background: 'linear-gradient(135deg,#374151 0%,#7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,.35)' }}>
                       {generate.isPending
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Planning…</>
                         : <><Sparkles className="w-4 h-4" /> Generate calendar</>}
@@ -675,7 +675,7 @@ export default function AutopilotPage() {
                         <input type="checkbox"
                           checked={proposed.every((e) => selected.has(e.id))}
                           onChange={(ev) => { if (ev.target.checked) setSelected(new Set(proposed.map((e) => e.id))); else setSelected(new Set()); }}
-                          className="w-4 h-4 rounded border-gray-300 text-[#6D4AE0] cursor-pointer" />
+                          className="w-4 h-4 rounded border-gray-300 text-[#374151] cursor-pointer" />
                         Select all
                       </label>
                     )}
@@ -685,10 +685,10 @@ export default function AutopilotPage() {
                   <div className="space-y-2">
                     {proposed.map((e) => (
                       <div key={e.id} className="bg-white rounded-2xl p-4 flex items-center gap-4"
-                        style={{ border: selected.has(e.id) ? '1.5px solid #6D4AE0' : '1.5px solid #e5e7eb', background: selected.has(e.id) ? '#faf9ff' : '#fff' }}>
+                        style={{ border: selected.has(e.id) ? '1.5px solid #374151' : '1.5px solid #e5e7eb', background: selected.has(e.id) ? '#faf9ff' : '#fff' }}>
                         <input type="checkbox" checked={selected.has(e.id)}
                           onChange={(ev) => { setSelected((prev) => { const next = new Set(prev); ev.target.checked ? next.add(e.id) : next.delete(e.id); return next; }); }}
-                          className="w-4 h-4 rounded border-gray-300 text-[#6D4AE0] cursor-pointer flex-shrink-0" />
+                          className="w-4 h-4 rounded border-gray-300 text-[#374151] cursor-pointer flex-shrink-0" />
                         <div className="w-14 text-center shrink-0">
                           <p className="text-xs text-gray-500">{format(new Date(e.plannedAt), 'EEE')}</p>
                           <p className="text-lg font-bold text-gray-900 leading-tight">{format(new Date(e.plannedAt), 'd')}</p>
@@ -708,7 +708,7 @@ export default function AutopilotPage() {
                               <div className="flex flex-col gap-0.5">
                                 {e.titleVariants.map((v, ti) => (
                                   <button key={ti} type="button" onClick={() => setTitle.mutate({ entryId: e.id, title: v })}
-                                    className="text-xs text-left text-gray-500 hover:text-[#6D4AE0] px-2 py-0.5 rounded-xl border border-transparent hover:border-[#e5e7eb] hover:bg-[#f3f4f6] transition-colors">
+                                    className="text-xs text-left text-gray-500 hover:text-[#374151] px-2 py-0.5 rounded-xl border border-transparent hover:border-[#e5e7eb] hover:bg-[#f3f4f6] transition-colors">
                                     {v}
                                   </button>
                                 ))}
@@ -782,22 +782,22 @@ export default function AutopilotPage() {
                     <div
                       className="flex items-center justify-between px-4 py-3 rounded-2xl mb-5"
                       style={{
-                        background: form.enabled ? '#ede9fe' : '#f3f4f6',
-                        border: `1.5px solid ${form.enabled ? '#c4b5fd' : '#e5e7eb'}`,
+                        background: form.enabled ? '#e5e7eb' : '#f3f4f6',
+                        border: `1.5px solid ${form.enabled ? '#d1d5db' : '#e5e7eb'}`,
                       }}
                     >
                       <div className="flex items-center gap-2.5">
                         <span
                           style={{
                             width: 8, height: 8, borderRadius: '50%',
-                            background: form.enabled ? '#6D4AE0' : '#9ca3af',
+                            background: form.enabled ? '#374151' : '#9ca3af',
                             flexShrink: 0,
-                            boxShadow: form.enabled ? '0 0 0 3px rgba(109,74,224,0.2)' : 'none',
+                            boxShadow: form.enabled ? '0 0 0 3px rgba(55,65,81,0.2)' : 'none',
                           }}
                         />
                         <span
                           className="text-sm font-semibold"
-                          style={{ color: form.enabled ? '#6D4AE0' : '#6b7280' }}
+                          style={{ color: form.enabled ? '#374151' : '#6b7280' }}
                         >
                           {form.enabled ? 'Autopilot is running' : 'Autopilot is paused'}
                         </span>
@@ -808,10 +808,10 @@ export default function AutopilotPage() {
                         disabled={saveMutation.isPending}
                         className="px-4 py-1.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
                         style={{
-                          background: form.enabled ? '#fff' : 'linear-gradient(135deg,#6D4AE0,#7c5ae8)',
-                          color: form.enabled ? '#6D4AE0' : '#fff',
-                          border: form.enabled ? '1.5px solid #c4b5fd' : 'none',
-                          boxShadow: form.enabled ? 'none' : '0 4px 12px rgba(109,74,224,0.35)',
+                          background: form.enabled ? '#fff' : 'linear-gradient(135deg,#374151,#7c5ae8)',
+                          color: form.enabled ? '#374151' : '#fff',
+                          border: form.enabled ? '1.5px solid #d1d5db' : 'none',
+                          boxShadow: form.enabled ? 'none' : '0 4px 12px rgba(55,65,81,0.35)',
                         }}
                       >
                         {form.enabled ? 'Pause' : 'Resume'}
@@ -880,7 +880,7 @@ export default function AutopilotPage() {
                             <input id="publishInterval" type="number" min={PUBLISH_INTERVAL_MIN} max={PUBLISH_INTERVAL_MAX}
                               value={form.publishIntervalMinutes} disabled={!form.enabled}
                               onChange={(e) => setField('publishIntervalMinutes', clamp(Number(e.target.value), PUBLISH_INTERVAL_MIN, PUBLISH_INTERVAL_MAX))}
-                              className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 disabled:opacity-50"
+                              className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 disabled:opacity-50"
                               style={{ border: '1.5px solid #e3e0f0' }} />
                             <p className="text-[11px] text-gray-400 mt-1">15 – 1440 min</p>
                           </div>
@@ -889,7 +889,7 @@ export default function AutopilotPage() {
                             <input id="maxPublishes" type="number" min={PUBLISHES_PER_DAY_MIN} max={PUBLISHES_PER_DAY_MAX}
                               value={form.maxPublishesPerDay} disabled={!form.enabled}
                               onChange={(e) => setField('maxPublishesPerDay', clamp(Number(e.target.value), PUBLISHES_PER_DAY_MIN, PUBLISHES_PER_DAY_MAX))}
-                              className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 disabled:opacity-50"
+                              className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 disabled:opacity-50"
                               style={{ border: '1.5px solid #e3e0f0' }} />
                             <p className="text-[11px] text-gray-400 mt-1">1 – 10</p>
                           </div>
@@ -898,7 +898,7 @@ export default function AutopilotPage() {
                             <input id="maxImports" type="number" min={IMPORTS_PER_DAY_MIN} max={IMPORTS_PER_DAY_MAX}
                               value={form.maxImportsPerDay} disabled={!form.enabled}
                               onChange={(e) => setField('maxImportsPerDay', clamp(Number(e.target.value), IMPORTS_PER_DAY_MIN, IMPORTS_PER_DAY_MAX))}
-                              className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 disabled:opacity-50"
+                              className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 disabled:opacity-50"
                               style={{ border: '1.5px solid #e3e0f0' }} />
                             <p className="text-[11px] text-gray-400 mt-1">1 – 10</p>
                           </div>
@@ -928,7 +928,7 @@ export default function AutopilotPage() {
                       </button>
                       <button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 rounded-2xl font-bold text-white text-sm disabled:opacity-50 touch-manipulation"
-                        style={{ background: 'linear-gradient(135deg,#6D4AE0 0%,#7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,.35)', minHeight: 44 }}>
+                        style={{ background: 'linear-gradient(135deg,#374151 0%,#7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,.35)', minHeight: 44 }}>
                         {saveMutation.isPending
                           ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
                           : <><Save className="w-4 h-4" /> Save settings</>}
@@ -961,7 +961,7 @@ export default function AutopilotPage() {
                         { label: 'Total Proposals', value: stats.total,       color: 'text-gray-700 bg-gray-50' },
                         { label: 'Approved',        value: stats.approved,    color: 'text-green-700 bg-green-50' },
                         { label: 'Dismissed',       value: stats.dismissed,   color: 'text-red-700 bg-red-50' },
-                        { label: 'Scheduled',       value: stats.scheduled,   color: 'text-[#6D4AE0] bg-[#f3f4f6]' },
+                        { label: 'Scheduled',       value: stats.scheduled,   color: 'text-[#374151] bg-[#f3f4f6]' },
                       ].map((m) => (
                         <div key={m.label} className={`rounded-2xl p-3 ${m.color}`}>
                           <p className="text-xs font-medium opacity-70">{m.label}</p>
@@ -1042,37 +1042,37 @@ export default function AutopilotPage() {
                     <div>
                       <label htmlFor="fb-video-id" className="block text-xs font-medium text-gray-600 mb-1">YouTube Video ID *</label>
                       <input id="fb-video-id" type="text" value={fbVideoId} onChange={(e) => setFbVideoId(e.target.value)} placeholder="e.g. dQw4w9WgXcQ"
-                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                         style={{ border: '1.5px solid #e3e0f0' }} />
                     </div>
                     <div>
                       <label htmlFor="fb-views" className="block text-xs font-medium text-gray-600 mb-1">Views *</label>
                       <input id="fb-views" type="number" value={fbViews} onChange={(e) => setFbViews(e.target.value)} placeholder="e.g. 12500" min="0"
-                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                         style={{ border: '1.5px solid #e3e0f0' }} />
                     </div>
                     <div>
                       <label htmlFor="fb-likes" className="block text-xs font-medium text-gray-600 mb-1">Likes (optional)</label>
                       <input id="fb-likes" type="number" value={fbLikes} onChange={(e) => setFbLikes(e.target.value)} placeholder="e.g. 430" min="0"
-                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                         style={{ border: '1.5px solid #e3e0f0' }} />
                     </div>
                     <div>
                       <label htmlFor="fb-ctr" className="block text-xs font-medium text-gray-600 mb-1">CTR % (optional)</label>
                       <input id="fb-ctr" type="number" value={fbCtr} onChange={(e) => setFbCtr(e.target.value)} placeholder="e.g. 4.2" min="0" max="100" step="0.1"
-                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                         style={{ border: '1.5px solid #e3e0f0' }} />
                     </div>
                     <div>
                       <label htmlFor="fb-duration" className="block text-xs font-medium text-gray-600 mb-1">Avg Watch Duration secs (optional)</label>
                       <input id="fb-duration" type="number" value={fbDuration} onChange={(e) => setFbDuration(e.target.value)} placeholder="e.g. 180" min="0"
-                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                        className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                         style={{ border: '1.5px solid #e3e0f0' }} />
                     </div>
                   </div>
                   <button type="button" onClick={() => void submitFeedback()} disabled={fbLoading || !fbVideoId || !fbViews}
                     className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-white disabled:opacity-50"
-                    style={{ background: 'linear-gradient(135deg,#6D4AE0 0%,#7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,.35)' }}>
+                    style={{ background: 'linear-gradient(135deg,#374151 0%,#7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,.35)' }}>
                     {fbLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     Submit Feedback
                   </button>

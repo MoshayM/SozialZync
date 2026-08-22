@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Server,
@@ -426,7 +426,7 @@ function IosToggle({ checked, onChange }: { checked: boolean; onChange: (v: bool
         border: 'none',
         padding: 0,
         cursor: 'pointer',
-        background: checked ? '#6D4AE0' : '#d1d5db',
+        background: checked ? '#374151' : '#d1d5db',
         transition: 'background 0.2s',
         flexShrink: 0,
         outline: 'none',
@@ -462,7 +462,7 @@ function TierIcon({ tier }: { tier: ProviderTier }) {
 const TIER_STYLES: Record<ProviderTier, { bg: string; color: string; label: string }> = {
   local: { bg: '#ecfdf5', color: '#065f46', label: 'Local' },
   'self-hosted': { bg: '#eff6ff', color: '#1e40af', label: 'Self-hosted' },
-  cloud: { bg: '#f5f2fd', color: '#6D4AE0', label: 'Cloud' },
+  cloud: { bg: '#f3f4f6', color: '#374151', label: 'Cloud' },
   custom: { bg: '#fef9ee', color: '#92400e', label: 'Custom' },
 };
 
@@ -491,7 +491,7 @@ function ProviderIcon({ provider }: { provider: string }) {
     perplexity:  { bg: '#20b2aa', color: '#fff', letter: 'P' },
     novita:      { bg: '#7c3aed', color: '#fff', letter: 'N' },
   };
-  const cfg = icons[provider] ?? { bg: '#6D4AE0', color: '#fff', letter: provider[0]?.toUpperCase() ?? '?' };
+  const cfg = icons[provider] ?? { bg: '#374151', color: '#fff', letter: provider[0]?.toUpperCase() ?? '?' };
   return (
     <div
       className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 select-none"
@@ -553,7 +553,7 @@ function ImageProviderCard({ provider }: { provider: ImageProviderDef }) {
         <p className="text-sm font-semibold text-gray-800">{provider.label}</p>
         <p className="text-xs text-gray-500 mt-0.5">{provider.desc}</p>
       </div>
-      <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid #f0edf9' }}>
+      <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid #f3f4f6' }}>
         <div className="pt-3">
           <label className="block text-xs font-medium text-gray-600 mb-1">Base URL</label>
           <input
@@ -561,7 +561,7 @@ function ImageProviderCard({ provider }: { provider: ImageProviderDef }) {
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
             placeholder={provider.defaultUrl}
-            className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
+            className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono"
             style={{ border: '1.5px solid #e3e0f0' }}
           />
         </div>
@@ -571,7 +571,7 @@ function ImageProviderCard({ provider }: { provider: ImageProviderDef }) {
             onClick={() => void handleTest()}
             disabled={testState.status === 'loading'}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-            style={{ border: '1.5px solid #6D4AE0', color: '#6D4AE0', background: '#fff' }}
+            style={{ border: '1.5px solid #374151', color: '#374151', background: '#fff' }}
           >
             {testState.status === 'loading' ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -591,7 +591,7 @@ function ImageProviderCard({ provider }: { provider: ImageProviderDef }) {
                   ? 'bg-green-50 text-green-700'
                   : testState.status === 'error'
                   ? 'bg-red-50 text-red-600'
-                  : 'bg-[#f5f2fd] text-[#6D4AE0]'
+                  : 'bg-[#f3f4f6] text-[#374151]'
               }`}
             >
               {testState.message}
@@ -686,7 +686,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
           <button
             type="button"
             onClick={() => setExpanded((e) => !e)}
-            className="p-1.5 rounded-xl hover:bg-[#f5f2fd] transition-colors"
+            className="p-1.5 rounded-xl hover:bg-[#f3f4f6] transition-colors"
             aria-label={expanded ? 'Collapse' : 'Expand'}
           >
             {expanded ? (
@@ -700,7 +700,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
 
       {/* Expanded config panel */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-4" style={{ borderTop: '1px solid #f0edf9' }}>
+        <div className="px-4 pb-4 space-y-4" style={{ borderTop: '1px solid #f3f4f6' }}>
           <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Base URL */}
             <div className="sm:col-span-2">
@@ -715,7 +715,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
                 value={config.baseUrl}
                 onChange={(e) => update({ baseUrl: e.target.value })}
                 placeholder={config.defaultBaseUrl || 'https://your-endpoint/v1'}
-                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
+                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
@@ -735,7 +735,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
                 value={config.apiKey}
                 onChange={(e) => update({ apiKey: e.target.value })}
                 placeholder={config.requiresKey ? 'Paste your API key…' : 'Leave blank for local providers'}
-                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
+                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono"
                 style={{ border: '1.5px solid #e3e0f0' }}
                 autoComplete="off"
               />
@@ -749,7 +749,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
                 value={config.model}
                 onChange={(e) => update({ model: e.target.value })}
                 placeholder="e.g. gpt-4o-mini, llama3.2, claude-3-5-haiku-20241022"
-                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
@@ -758,7 +758,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Temperature
-                <span className="ml-1.5 font-mono text-[#6D4AE0]">{config.temperature.toFixed(1)}</span>
+                <span className="ml-1.5 font-mono text-[#374151]">{config.temperature.toFixed(1)}</span>
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -769,7 +769,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
                   value={config.temperature}
                   onChange={(e) => update({ temperature: parseFloat(e.target.value) })}
                   className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
-                  style={{ accentColor: '#6D4AE0' }}
+                  style={{ accentColor: '#374151' }}
                 />
                 <input
                   type="number"
@@ -781,7 +781,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
                     const v = parseFloat(e.target.value);
                     if (!isNaN(v) && v >= 0 && v <= 2) update({ temperature: v });
                   }}
-                  className="w-16 bg-white rounded-xl px-2 py-1.5 text-xs text-center outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
+                  className="w-16 bg-white rounded-xl px-2 py-1.5 text-xs text-center outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
               </div>
@@ -800,7 +800,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
                   const v = parseInt(e.target.value, 10);
                   if (!isNaN(v) && v > 0) update({ maxTokens: v });
                 }}
-                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
+                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
@@ -813,7 +813,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
                 value={config.contextLength ?? ''}
                 onChange={e => update({ contextLength: e.target.value ? parseInt(e.target.value) : undefined })}
                 placeholder="e.g. 8192"
-                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all font-mono"
+                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all font-mono"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
@@ -850,7 +850,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
               onClick={() => void handleTestConnection()}
               disabled={testState.status === 'loading'}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-              style={{ border: '1.5px solid #6D4AE0', color: '#6D4AE0', background: '#fff' }}
+              style={{ border: '1.5px solid #374151', color: '#374151', background: '#fff' }}
             >
               {testState.status === 'loading' ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -870,7 +870,7 @@ function ProviderCard({ config, onChange }: ProviderCardProps) {
                     ? 'bg-green-50 text-green-700'
                     : testState.status === 'error'
                     ? 'bg-red-50 text-red-600'
-                    : 'bg-[#f5f2fd] text-[#6D4AE0]'
+                    : 'bg-[#f3f4f6] text-[#374151]'
                 }`}
               >
                 {testState.message}
@@ -955,7 +955,7 @@ export default function AIProvidersPage() {
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Cpu className="w-5 h-5" style={{ color: '#6D4AE0' }} />
+            <Cpu className="w-5 h-5" style={{ color: '#374151' }} />
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">AI Providers</h1>
           </div>
           <p className="text-sm text-gray-500">
@@ -966,7 +966,7 @@ export default function AIProvidersPage() {
         {/* ── Priority order banner ────────────────────────────────────────── */}
         <div
           className="rounded-2xl px-4 py-3 flex items-center gap-3 flex-wrap"
-          style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}
+          style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}
         >
           <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Priority order</span>
           <div className="flex items-center gap-2 flex-wrap">
@@ -986,7 +986,7 @@ export default function AIProvidersPage() {
             <span className="text-gray-400 text-xs font-bold">→</span>
             <span
               className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full"
-              style={{ background: '#f5f2fd', color: '#6D4AE0' }}
+              style={{ background: '#f3f4f6', color: '#374151' }}
             >
               <Cloud className="w-3 h-3" /> Cloud
             </span>
@@ -1113,7 +1113,7 @@ export default function AIProvidersPage() {
           </p>
           <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="flex items-center gap-2 mb-1">
-              <Settings2 className="w-4 h-4" style={{ color: '#6D4AE0' }} />
+              <Settings2 className="w-4 h-4" style={{ color: '#374151' }} />
               <span className="text-sm font-semibold text-gray-800">Provider Routing</span>
             </div>
             <p className="text-xs text-gray-500 -mt-2">
@@ -1127,7 +1127,7 @@ export default function AIProvidersPage() {
                 <select
                   value={defaultProvider}
                   onChange={(e) => setDefaultProvider(e.target.value)}
-                  className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all cursor-pointer"
+                  className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all cursor-pointer"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 >
                   <option value="">— Auto (highest priority) —</option>
@@ -1150,7 +1150,7 @@ export default function AIProvidersPage() {
                 <select
                   value={fallbackProvider}
                   onChange={(e) => setFallbackProvider(e.target.value)}
-                  className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all cursor-pointer"
+                  className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all cursor-pointer"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 >
                   <option value="">— None —</option>
@@ -1188,8 +1188,8 @@ export default function AIProvidersPage() {
             onClick={() => void handleSave()}
             className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] transition-all"
             style={{
-              background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)',
-              boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
+              background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)',
+              boxShadow: '0 4px 20px rgba(55,65,81,0.35)',
             }}
           >
             <Save className="w-4 h-4" />

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { Suspense, useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -124,7 +124,7 @@ const LANGUAGES = [
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; dot: string }> = {
   ACTIVE:   { bg: '#ecfdf5', color: '#065f46', dot: '#10b981' },
-  DRAFT:    { bg: '#f5f2fd', color: '#6D4AE0', dot: '#6D4AE0' },
+  DRAFT:    { bg: '#f3f4f6', color: '#374151', dot: '#374151' },
   PAUSED:   { bg: '#fff7ed', color: '#c2410c', dot: '#f97316' },
   ARCHIVED: { bg: '#f3f4f6', color: '#4b5563', dot: '#9ca3af' },
 };
@@ -258,7 +258,7 @@ function relativeTime(dateStr: string): string {
 
 // ── Shared input styles ───────────────────────────────────────────────────────
 
-const inputCls = 'w-full bg-white rounded-2xl px-4 py-3 text-sm text-gray-800 outline-none transition-all focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] placeholder:text-gray-600';
+const inputCls = 'w-full bg-white rounded-2xl px-4 py-3 text-sm text-gray-800 outline-none transition-all focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] placeholder:text-gray-600';
 const inputStyle = { border: '1.5px solid #e3e0f0' };
 
 // ── Mock card helpers ─────────────────────────────────────────────────────────
@@ -308,7 +308,7 @@ function MockProjectCard({ project }: { project: MockProject }) {
         {/* Radial glow overlay */}
         <div
           className="absolute inset-0 opacity-20"
-          style={{ background: 'radial-gradient(ellipse at 30% 60%,#a78bfa 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,#818cf8 0%,transparent 50%)' }}
+          style={{ background: 'radial-gradient(ellipse at 30% 60%,#9ca3af 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,#818cf8 0%,transparent 50%)' }}
         />
         {/* Center icon decoration */}
         <div className="absolute inset-0 flex items-center justify-center opacity-25 pointer-events-none">
@@ -360,7 +360,7 @@ function MockProjectCard({ project }: { project: MockProject }) {
                 style={{
                   background:
                     step === 'done'   ? '#7c3aed' :
-                    step === 'active' ? 'linear-gradient(90deg,#a78bfa,#7c3aed)' :
+                    step === 'active' ? 'linear-gradient(90deg,#9ca3af,#7c3aed)' :
                     '#e9e5f8',
                 }}
               />
@@ -388,7 +388,7 @@ function MockProjectCard({ project }: { project: MockProject }) {
             type="button"
             disabled={!canPublish}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: canPublish ? 'linear-gradient(135deg,#a78bfa,#7c3aed)' : '#d1d5db' }}
+            style={{ background: canPublish ? 'linear-gradient(135deg,#9ca3af,#7c3aed)' : '#d1d5db' }}
           >
             <Send className="w-3 h-3" /> Publish
           </button>
@@ -558,7 +558,7 @@ function CardMenu({ onRename, onDelete }: { onRename: () => void; onDelete: () =
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); onRename(); }}
-            className="w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#f5f2fd] hover:text-[#6D4AE0] transition-colors"
+            className="w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#f3f4f6] hover:text-[#374151] transition-colors"
           >
             Rename
           </button>
@@ -596,7 +596,7 @@ function RenameModal({ project, onClose, onSuccess }: { project: Project; onClos
       onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-        <div className="px-7 py-5 flex items-center justify-between" style={{ borderBottom: '1.5px solid #f0edf9' }}>
+        <div className="px-7 py-5 flex items-center justify-between" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
           <div>
             <h2 className="text-lg font-extrabold text-gray-900">Rename project</h2>
             <p className="text-xs text-gray-600 mt-0.5">Update the title for this project</p>
@@ -613,12 +613,12 @@ function RenameModal({ project, onClose, onSuccess }: { project: Project; onClos
             />
           </Field>
         </div>
-        <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f0edf9' }}>
+        <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
           <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
           <button
             type="button" onClick={() => renameMutation.mutate()} disabled={disabled}
             className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(109,74,224,0.30)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
           >
             {renameMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             {renameMutation.isPending ? 'Saving…' : 'Save'}
@@ -644,7 +644,7 @@ function DeleteModal({ project, onClose, onSuccess }: { project: Project; onClos
       onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-        <div className="px-7 py-5 flex items-center justify-between" style={{ borderBottom: '1.5px solid #f0edf9' }}>
+        <div className="px-7 py-5 flex items-center justify-between" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
           <h2 className="text-lg font-extrabold text-gray-900">Delete this project?</h2>
           <button type="button" onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-colors text-lg leading-none">×</button>
         </div>
@@ -656,7 +656,7 @@ function DeleteModal({ project, onClose, onSuccess }: { project: Project; onClos
             This cannot be undone. All jobs and videos in this project will be removed.
           </div>
         </div>
-        <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f0edf9' }}>
+        <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
           <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
           <button
             type="button" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}
@@ -749,7 +749,7 @@ function ProjectsTab({
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-sm text-gray-600">Manage your content campaigns</p>
             {isFreeTier && (
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151' }}>
                 {projects.length}/{limits.maxProjects} Free
               </span>
             )}
@@ -761,7 +761,7 @@ function ProjectsTab({
           disabled={atProjectLimit}
           title={atProjectLimit ? `Free plan: max ${limits.maxProjects} projects. Upgrade to Pro for unlimited.` : undefined}
           className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+          style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
         >
           <Plus className="w-4 h-4" /> New Project
         </button>
@@ -782,10 +782,10 @@ function ProjectsTab({
         <div className="flex items-center justify-between text-sm">
           <p className="text-gray-600">
             {filteredProjects.length > 0
-              ? <><span className="font-semibold text-gray-800">{filteredProjects.length}</span> result{filteredProjects.length !== 1 ? 's' : ''} for &ldquo;<span className="text-[#6D4AE0] font-semibold">{searchQuery}</span>&rdquo;</>
-              : <>No projects match &ldquo;<span className="text-[#6D4AE0] font-semibold">{searchQuery}</span>&rdquo;</>}
+              ? <><span className="font-semibold text-gray-800">{filteredProjects.length}</span> result{filteredProjects.length !== 1 ? 's' : ''} for &ldquo;<span className="text-[#374151] font-semibold">{searchQuery}</span>&rdquo;</>
+              : <>No projects match &ldquo;<span className="text-[#374151] font-semibold">{searchQuery}</span>&rdquo;</>}
           </p>
-          <button type="button" onClick={() => router.replace('/projects')} className="text-xs font-semibold text-[#6D4AE0] hover:underline">
+          <button type="button" onClick={() => router.replace('/projects')} className="text-xs font-semibold text-[#374151] hover:underline">
             Clear search
           </button>
         </div>
@@ -834,11 +834,11 @@ function ProjectsTab({
         <div className="rounded-3xl flex flex-col items-center justify-center py-16 px-6 text-center" style={{ background: 'white', border: '1.5px solid #e3ddf8' }}>
           <div className="text-4xl mb-4">🔍</div>
           <h2 className="text-lg font-extrabold text-gray-900 mb-1">No results</h2>
-          <p className="text-gray-600 text-sm">Try a different keyword or filter, or <button type="button" onClick={() => { router.replace('/projects'); setStatusFilter('All Status'); }} className="text-[#6D4AE0] font-semibold hover:underline">clear filters</button>.</p>
+          <p className="text-gray-600 text-sm">Try a different keyword or filter, or <button type="button" onClick={() => { router.replace('/projects'); setStatusFilter('All Status'); }} className="text-[#374151] font-semibold hover:underline">clear filters</button>.</p>
         </div>
       ) : projects.length === 0 ? (
         <div className="rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ background: 'white', border: '1.5px solid #e3ddf8' }}>
-          <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>🎬</div>
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>🎬</div>
           <h2 className="text-xl font-extrabold text-gray-900 mb-2">No projects yet</h2>
           <p className="text-gray-600 text-sm max-w-xs mb-8 leading-relaxed">
             Create your first content campaign — YouTube videos, Instagram Reels, LinkedIn articles, TikTok videos, and more.
@@ -846,7 +846,7 @@ function ProjectsTab({
           <button
             type="button" onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.30)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.30)' }}
           >
             <Plus className="w-4 h-4" /> Create first project
           </button>
@@ -861,7 +861,7 @@ function ProjectsTab({
               <div key={p.id} className="relative group">
                 <Link
                   href={`/projects/${p.id}`}
-                  className="block bg-white rounded-2xl p-5 transition-all hover:border-[#6D4AE0]/40 hover:shadow-lg hover:-translate-y-0.5"
+                  className="block bg-white rounded-2xl p-5 transition-all hover:border-[#374151]/40 hover:shadow-lg hover:-translate-y-0.5"
                   style={{ border: '1.5px solid #e3ddf8' }}
                 >
                   <div className="flex items-start gap-3 mb-4 pr-10">
@@ -874,7 +874,7 @@ function ProjectsTab({
                         {p.targetLang && p.targetLang !== 'en' && (() => {
                           const lang = LANGUAGES.find(l => l.code === p.targetLang);
                           return lang ? (
-                            <span className="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: '#f0edf9', color: '#6D4AE0', border: '1px solid #e3ddf8' }}>
+                            <span className="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>
                               {lang.flag} {lang.code.toUpperCase()}
                             </span>
                           ) : null;
@@ -884,7 +884,7 @@ function ProjectsTab({
                         <PlatformIcon platform={platform} size={14} />
                         {p.channel?.title
                           ? <span className="truncate">{p.channel.title}</span>
-                          : <span className="truncate italic" style={{ color: '#6D4AE0' }}>No account linked</span>}
+                          : <span className="truncate italic" style={{ color: '#374151' }}>No account linked</span>}
                         {crossPosts.length > 0 && (
                           <span className="flex items-center gap-1 ml-1">
                             <span className="text-[10px] text-gray-300 mx-0.5">+</span>
@@ -909,13 +909,13 @@ function ProjectsTab({
                             p.publishingStatus === 'SCHEDULED'  ? '#dbeafe' :
                             p.publishingStatus === 'FAILED'     ? '#fee2e2' :
                             p.publishingStatus === 'READY'      ? '#f0fdf4' :
-                            '#f5f2fd',
+                            '#f3f4f6',
                           color:
                             p.publishingStatus === 'PUBLISHED'  ? '#16a34a' :
                             p.publishingStatus === 'SCHEDULED'  ? '#1d4ed8' :
                             p.publishingStatus === 'FAILED'     ? '#dc2626' :
                             p.publishingStatus === 'READY'      ? '#15803d' :
-                            '#6D4AE0',
+                            '#374151',
                         }}
                       >
                         {p.publishingStatus === 'PUBLISHED' ? '✓ Published' :
@@ -927,7 +927,7 @@ function ProjectsTab({
                       </span>
                     )}
                   </div>
-                  <div className="h-px mb-3" style={{ background: '#f5f2fd' }} />
+                  <div className="h-px mb-3" style={{ background: '#f3f4f6' }} />
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: pdCfg.bg, color: pdCfg.textColor }}>
@@ -939,7 +939,7 @@ function ProjectsTab({
                     <div className="flex items-center gap-1.5 text-[11px] text-gray-600">
                       <Clock className="w-3 h-3" />
                       {relativeTime(p.updatedAt)}
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#6D4AE0] transition-colors ml-1" />
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#374151] transition-colors ml-1" />
                     </div>
                   </div>
                 </Link>
@@ -962,14 +962,14 @@ function ProjectsTab({
           onKeyDown={(e) => { if (e.key === 'Escape') closeCreate(); }}
         >
           <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="px-7 py-5 flex items-start justify-between gap-4" style={{ borderBottom: '1.5px solid #f0edf9' }}>
+            <div className="px-7 py-5 flex items-start justify-between gap-4" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
               <div className="space-y-2.5">
                 <h2 className="text-lg font-extrabold text-gray-900">New Project</h2>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   {[{ n: 1, label: 'Platform & Format' }, { n: 2, label: 'Accounts & Details' }].map(({ n, label }) => (
                     <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: createStep >= n ? '#6D4AE0' : '#e5e7eb', color: createStep >= n ? '#fff' : '#4b5563' }}>{n}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: createStep === n ? '#6D4AE0' : '#4b5563' }}>{label}</span>
+                      <span style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: createStep >= n ? '#374151' : '#e5e7eb', color: createStep >= n ? '#fff' : '#4b5563' }}>{n}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: createStep === n ? '#374151' : '#4b5563' }}>{label}</span>
                       {n < 2 && <span style={{ width: 24, height: 2, background: '#e5e7eb', borderRadius: 2 }} />}
                     </div>
                   ))}
@@ -1029,12 +1029,12 @@ function ProjectsTab({
                     </div>
                   </div>
                 </div>
-                <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f0edf9' }}>
+                <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
                   <button type="button" onClick={closeCreate} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
                   <button
                     type="button" onClick={() => setCreateStep(2)}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(109,74,224,0.30)' }}
+                    style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
                   >
                     Next →
                   </button>
@@ -1052,18 +1052,18 @@ function ProjectsTab({
                     />
                   )}
                   <Field
-                    label={<span className="flex items-center gap-2">Primary account<span className="text-xs font-medium rounded-full px-2 py-0.5" style={{ background: '#ede9fe', color: '#6D4AE0' }}>Optional</span></span>}
+                    label={<span className="flex items-center gap-2">Primary account<span className="text-xs font-medium rounded-full px-2 py-0.5" style={{ background: '#e5e7eb', color: '#374151' }}>Optional</span></span>}
                     hint={`Optimizes content for ${selPlatform.label}. You can connect an account now or publish later.`}
                   >
                     {platformChannels.length === 0 ? (
-                      <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: '#f5f2fd', border: '1.5px solid #d4c9f9' }}>
+                      <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: '#f3f4f6', border: '1.5px solid #d4c9f9' }}>
                         <p className="font-semibold mb-1" style={{ color: '#4c1d95' }}>ℹ No accounts connected yet</p>
                         <p style={{ color: '#4b5563' }}>You don&apos;t need to connect any account now. Create your content first.</p>
                         <p className="mt-2">
                           <button
                             type="button"
                             onClick={() => void startOAuthFromWizard()}
-                            className="text-[#6D4AE0] font-semibold hover:underline"
+                            className="text-[#374151] font-semibold hover:underline"
                           >
                             Connect Account →
                           </button>
@@ -1089,7 +1089,7 @@ function ProjectsTab({
                     {otherChannels.length === 0 ? (
                       <p style={{ fontSize: 12, color: '#4b5563' }}>
                         No other accounts connected yet.{' '}
-                        <Link href="/publish?tab=accounts" className="text-[#6D4AE0] font-semibold hover:underline" onClick={closeCreate}>Connect accounts →</Link>
+                        <Link href="/publish?tab=accounts" className="text-[#374151] font-semibold hover:underline" onClick={closeCreate}>Connect accounts →</Link>
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-2 mt-1">
@@ -1163,13 +1163,13 @@ function ProjectsTab({
                 </div>
 
                 {createError && <p className="px-7 pb-2 text-sm text-red-600">{createError}</p>}
-                <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f0edf9' }}>
+                <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
                   <button type="button" onClick={() => setCreateStep(1)} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">← Back</button>
                   <button
                     type="button" onClick={() => createMutation.mutate()}
                     disabled={!form.title || createMutation.isPending}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(109,74,224,0.30)' }}
+                    style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
                   >
                     {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                     {createMutation.isPending ? 'Creating…' : 'Create project'}

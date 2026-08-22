@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -107,7 +107,7 @@ function VerifyingView({ provider }: { provider: string }) {
               key={step}
               className="flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-500"
               style={{
-                background: done ? '#f0fdf4' : current ? '#f5f2fd' : '#f9f9fb',
+                background: done ? '#f0fdf4' : current ? '#f3f4f6' : '#f9f9fb',
                 border: `1.5px solid ${done ? '#bbf7d0' : current ? '#e3ddf8' : '#f0f0f5'}`,
               }}
             >
@@ -190,7 +190,7 @@ function LinkRequiredView({ email, provider }: { email: string; provider: string
       {/* Steps */}
       <div
         className="rounded-2xl px-4 py-4 space-y-3.5 mb-6"
-        style={{ background: '#f5f2fd', border: '1.5px solid #e3ddf8' }}
+        style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}
       >
         <p className="text-xs font-semibold text-[#374151] mb-1">To connect {meta.label}, do this:</p>
         {[
@@ -211,7 +211,7 @@ function LinkRequiredView({ email, provider }: { email: string; provider: string
         className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99]"
         style={{
           background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
-          boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
+          boxShadow: '0 4px 20px rgba(55,65,81,0.35)',
         }}
       >
         Sign in to your account
@@ -242,7 +242,7 @@ function ErrorView({ message }: { message: string }) {
         className="w-full py-3.5 text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99]"
         style={{
           background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
-          boxShadow: '0 4px 20px rgba(109,74,224,0.35)',
+          boxShadow: '0 4px 20px rgba(55,65,81,0.35)',
         }}
       >
         Try again

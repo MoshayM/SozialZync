@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef, useState, useEffect } from 'react';
 import { Volume2, VolumeX, Play, Maximize2 } from 'lucide-react';
 
@@ -53,7 +53,7 @@ export function HeroVideo() {
         <button
           onClick={toggleMute}
           className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-semibold transition-colors"
-          style={{ color: muted ? 'rgba(255,255,255,.35)' : '#a78bfa', background: muted ? 'transparent' : 'rgba(167,139,250,.1)' }}
+          style={{ color: muted ? 'rgba(255,255,255,.35)' : '#9ca3af', background: muted ? 'transparent' : 'rgba(156,163,175,.1)' }}
           aria-label={muted ? 'Unmute' : 'Mute'}
         >
           {muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
@@ -84,7 +84,7 @@ export function HeroVideo() {
           <button
             onClick={togglePlay}
             className="w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 backdrop-blur-sm"
-            style={{ background: 'rgba(109,74,224,.75)', border: '2px solid rgba(255,255,255,.25)' }}
+            style={{ background: 'rgba(55,65,81,.75)', border: '2px solid rgba(255,255,255,.25)' }}
             aria-label={playing ? 'Pause' : 'Play'}
           >
             {playing

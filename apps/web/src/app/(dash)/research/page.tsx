@@ -212,7 +212,7 @@ export default function ResearchPage() {
                   key={h}
                   type="button"
                   onClick={() => setTopic(h)}
-                  className="mr-2 mb-1 px-3 py-1 bg-[#f5f2fd] text-[#6D4AE0] rounded-full text-sm hover:bg-[#ede8fc] transition-colors"
+                  className="mr-2 mb-1 px-3 py-1 bg-[#f3f4f6] text-[#374151] rounded-full text-sm hover:bg-[#ede8fc] transition-colors"
                 >
                   {h}
                 </button>
@@ -226,7 +226,7 @@ export default function ResearchPage() {
               value={topic}
               onChange={e => setTopic(e.target.value)}
               placeholder="e.g. The impact of AI on creative jobs in 2025"
-              className="w-full bg-white rounded-2xl px-4 py-3 text-sm resize-none outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+              className="w-full bg-white rounded-2xl px-4 py-3 text-sm resize-none outline-none focus:ring-2 focus:ring-[#374151]/20"
               style={{ border: '1.5px solid #e3e0f0' }}
             />
           </div>
@@ -238,7 +238,7 @@ export default function ResearchPage() {
                 value={niche}
                 onChange={e => setNiche(e.target.value)}
                 placeholder="e.g. Technology, AI"
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
             </div>
@@ -248,7 +248,7 @@ export default function ResearchPage() {
                 <button
                   type="button"
                   onClick={() => { setLangOpen(o => !o); setLangSearch(''); }}
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm text-left flex items-center justify-between outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm text-left flex items-center justify-between outline-none focus:ring-2 focus:ring-[#374151]/20"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 >
                   <span>{LANG_OPTIONS.find(o => o.value === lang)?.label ?? 'English'}</span>
@@ -273,8 +273,8 @@ export default function ResearchPage() {
                           key={o.value}
                           type="button"
                           onClick={() => { setLang(o.value); setLangOpen(false); setLangSearch(''); }}
-                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#f5f2fd] transition-colors"
-                          style={{ color: lang === o.value ? '#6D4AE0' : '#374151', fontWeight: lang === o.value ? 700 : 400 }}
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#f3f4f6] transition-colors"
+                          style={{ color: lang === o.value ? '#374151' : '#374151', fontWeight: lang === o.value ? 700 : 400 }}
                         >
                           {lang === o.value && <span className="mr-2">✓</span>}{o.label}
                         </button>
@@ -296,7 +296,7 @@ export default function ResearchPage() {
             onClick={() => { void research(); }}
             disabled={loading || !topic.trim()}
             className="w-full py-3 disabled:opacity-50 rounded-2xl font-bold text-white flex items-center justify-center gap-2 transition-opacity"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
             {loading ? 'Researching…' : 'Research with AI'}
@@ -337,7 +337,7 @@ export default function ResearchPage() {
                 <ol className="space-y-2">
                   {result.keyFacts.map((fact, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="shrink-0 w-5 h-5 bg-[#f5f2fd] text-[#6D4AE0] rounded-full text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                      <span className="shrink-0 w-5 h-5 bg-[#f3f4f6] text-[#374151] rounded-full text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
                       <span className="flex-1 px-3 py-1.5 bg-[#faf9ff] rounded-2xl text-sm text-gray-700" style={{ border: '1.5px solid #e3ddf8' }}>{fact}</span>
                       <CopyChip text={fact} />
                     </li>
@@ -352,11 +352,11 @@ export default function ResearchPage() {
                 <h2 className="font-semibold text-gray-900 mb-3">Content Angles</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {result.contentAngles.map((a, i) => (
-                    <div key={i} className="border-l-4 border-[#6D4AE0] bg-[#f5f2fd]/40 rounded-r-2xl pl-4 pr-3 py-3">
+                    <div key={i} className="border-l-4 border-[#374151] bg-[#f3f4f6]/40 rounded-r-2xl pl-4 pr-3 py-3">
                       <p className="font-semibold text-gray-900 text-sm mb-1">{a.angle}</p>
                       <p className="text-gray-600 text-sm leading-relaxed">{a.hook}</p>
                       {a.targetAudience && (
-                        <span className="mt-2 inline-block px-2 py-0.5 bg-[#f5f2fd] text-[#6D4AE0] rounded-full text-xs">{a.targetAudience}</span>
+                        <span className="mt-2 inline-block px-2 py-0.5 bg-[#f3f4f6] text-[#374151] rounded-full text-xs">{a.targetAudience}</span>
                       )}
                     </div>
                   ))}
@@ -412,7 +412,7 @@ export default function ResearchPage() {
                       key={i}
                       type="button"
                       onClick={() => setTopic(t)}
-                      className="px-3 py-1 bg-[#f5f2fd] text-[#6D4AE0] rounded-full text-sm hover:bg-[#ede8fc] transition-colors"
+                      className="px-3 py-1 bg-[#f3f4f6] text-[#374151] rounded-full text-sm hover:bg-[#ede8fc] transition-colors"
                     >
                       {t}
                     </button>
@@ -434,7 +434,7 @@ export default function ResearchPage() {
                 type="button"
                 onClick={() => { try { localStorage.setItem('cf_new_project_topic', result.topic); } catch {} router.push('/projects'); }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-white"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0, #7c5ae8)' }}
+                style={{ background: 'linear-gradient(135deg, #374151, #7c5ae8)' }}
               >
                 <FolderPlus className="w-4 h-4" /> Start project from this topic
               </button>
@@ -442,7 +442,7 @@ export default function ResearchPage() {
                 type="button"
                 onClick={() => { try { localStorage.setItem('cf_discover_topic', result.topic); } catch {} router.push('/discover'); }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold"
-                style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #c4b5fd' }}
+                style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #d1d5db' }}
               >
                 <Compass className="w-4 h-4" /> Explore in Discover
               </button>

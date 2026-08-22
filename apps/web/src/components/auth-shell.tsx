@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React from 'react';
 import { LogoMark } from '@/components/logo-mark';
 
@@ -178,7 +178,7 @@ export function LoginShell({
         <div className="relative z-10 flex items-center gap-4">
           <div className="relative w-14 h-14 shrink-0">
             {/* Orbital rings */}
-            <div className="lf-spin absolute inset-[-8px] rounded-full" style={{border:'1px solid rgba(167,139,250,.35)'}} />
+            <div className="lf-spin absolute inset-[-8px] rounded-full" style={{border:'1px solid rgba(156,163,175,.35)'}} />
             <div className="lf-spin-r absolute inset-[-16px] rounded-full" style={{border:'1px solid rgba(0,0,0,.15)'}} />
             <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
           </div>

@@ -56,7 +56,7 @@ function CreateOrgCard({ onCreated }: { onCreated: (org: Org) => void }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Acme Studios"
-            className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+            className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
             style={{ border: '1.5px solid #e3e0f0' }}
           />
         </div>
@@ -68,7 +68,7 @@ function CreateOrgCard({ onCreated }: { onCreated: (org: Org) => void }) {
             value={billingEmail}
             onChange={(e) => setBillingEmail(e.target.value)}
             placeholder="finance@acme.example"
-            className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+            className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
             style={{ border: '1.5px solid #e3e0f0' }}
           />
         </div>
@@ -80,7 +80,7 @@ function CreateOrgCard({ onCreated }: { onCreated: (org: Org) => void }) {
         onClick={() => create.mutate()}
         disabled={!name.trim() || create.isPending}
         className="inline-flex items-center gap-1.5 disabled:opacity-50 text-white text-sm font-bold rounded-2xl px-5 py-3"
-        style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+        style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
       >
         {create.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
         Create organization
@@ -153,7 +153,7 @@ function BudgetCard({ org }: { org: Org }) {
               aria-label="Budget scope"
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
-              className="bg-white rounded-2xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+              className="bg-white rounded-2xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-[#374151]/20"
               style={{ border: '1.5px solid #e3e0f0' }}
             >
               <option value="">Org-wide</option>
@@ -196,7 +196,7 @@ function BudgetCard({ org }: { org: Org }) {
         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full ${consumedPct >= 90 ? 'bg-red-500' : consumedPct >= 70 ? 'bg-amber-400' : ''}`}
-            style={{ width: `${consumedPct}%`, ...(consumedPct < 70 ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' } : {}) }}
+            style={{ width: `${consumedPct}%`, ...(consumedPct < 70 ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' } : {}) }}
           />
         </div>
       )}
@@ -214,19 +214,19 @@ function BudgetCard({ org }: { org: Org }) {
             <div>
               <label htmlFor="budget-start" className="block text-xs text-gray-600 mb-1">Period start</label>
               <input id="budget-start" type="date" value={start} onChange={(e) => setStart(e.target.value)}
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }} />
             </div>
             <div>
               <label htmlFor="budget-end" className="block text-xs text-gray-600 mb-1">Period end</label>
               <input id="budget-end" type="date" value={end} onChange={(e) => setEnd(e.target.value)}
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }} />
             </div>
             <div>
               <label htmlFor="budget-credits" className="block text-xs text-gray-600 mb-1">Allocated credits</label>
               <input id="budget-credits" type="number" min={0} value={allocated} onChange={(e) => setAllocated(e.target.value)}
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }} />
             </div>
           </div>
@@ -242,7 +242,7 @@ function BudgetCard({ org }: { org: Org }) {
               onClick={() => save.mutate()}
               disabled={!start || !end || save.isPending}
               className="inline-flex items-center gap-1.5 disabled:opacity-50 text-white text-sm font-bold rounded-2xl px-5 py-3"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               {save.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save period
             </button>
@@ -334,13 +334,13 @@ function MembersCard({ org }: { org: Org }) {
               <label htmlFor="member-email" className="block text-xs text-gray-600 mb-1">Email (must be registered)</label>
               <input id="member-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                 placeholder="teammate@example.com"
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }} />
             </div>
             <div>
               <label htmlFor="member-role" className="block text-xs text-gray-600 mb-1">Role</label>
               <select id="member-role" value={role} onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }}>
                 <option value="MEMBER">Member</option>
                 <option value="TEAM_MANAGER">Team manager</option>
@@ -352,7 +352,7 @@ function MembersCard({ org }: { org: Org }) {
               <div>
                 <label htmlFor="member-team" className="block text-xs text-gray-600 mb-1">Team</label>
                 <select id="member-team" value={teamId} onChange={(e) => setTeamId(e.target.value)}
-                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                   style={{ border: '1.5px solid #e3e0f0' }}>
                   <option value="">No team</option>
                   {teams.map((t) => (
@@ -375,7 +375,7 @@ function MembersCard({ org }: { org: Org }) {
             onClick={() => add.mutate()}
             disabled={!email.trim() || add.isPending}
             className="inline-flex items-center gap-1.5 disabled:opacity-50 text-white text-sm font-bold rounded-2xl px-5 py-3"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
           >
             {add.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
             Add member
@@ -433,14 +433,14 @@ function TeamsCard({ org }: { org: Org }) {
               <label htmlFor="team-name" className="block text-xs text-gray-600 mb-1">Team name</label>
               <input id="team-name" value={name} onChange={(e) => setName(e.target.value)}
                 placeholder="Video production"
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }} />
             </div>
             <button
               onClick={() => create.mutate()}
               disabled={!name.trim() || create.isPending}
               className="inline-flex items-center gap-1.5 disabled:opacity-50 text-white text-sm font-bold rounded-2xl px-5 py-3"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(109,74,224,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               {create.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
               Create team
@@ -537,7 +537,7 @@ export default function OrgsPage() {
               id="org-select"
               value={selected?.id ?? ''}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+              className="bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
               style={{ border: '1.5px solid #e3e0f0' }}
             >
               {orgs.map((o) => (

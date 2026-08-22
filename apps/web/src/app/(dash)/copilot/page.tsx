@@ -93,8 +93,8 @@ const QUICK_ACTIONS: QuickAction[] = [
     description: 'Build a full script from scratch',
     placeholder: 'Video title or concept?',
     template: (v) => `Generate a detailed script outline for a YouTube video titled: "${v}"`,
-    tileBg: '#f5f2fd',
-    iconColor: '#6D4AE0',
+    tileBg: '#f3f4f6',
+    iconColor: '#374151',
   },
   {
     id: 'calendar',
@@ -517,7 +517,7 @@ export default function CopilotPage() {
               sessionIdRef.current = uid();
             }}
             className="flex items-center gap-1.5 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
-            style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
           >
             <Plus className="w-3 h-3" /> New Chat
           </button>
@@ -537,7 +537,7 @@ export default function CopilotPage() {
         </div>
 
         {/* Session list */}
-        <div className="flex-shrink-0 overflow-y-auto max-h-48 px-2 pb-2" style={{ borderBottom: '1.5px solid #f0edf9' }}>
+        <div className="flex-shrink-0 overflow-y-auto max-h-48 px-2 pb-2" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
           {sessions.filter((s) => !convSearch || s.title.toLowerCase().includes(convSearch.toLowerCase())).length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-3">No conversations yet</p>
           ) : (
@@ -553,9 +553,9 @@ export default function CopilotPage() {
                     setInput('');
                     sessionIdRef.current = session.id;
                   }}
-                  className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-xl transition-all hover:bg-[#f5f2fd]"
+                  className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-xl transition-all hover:bg-[#f3f4f6]"
                 >
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}>
                     <Bot className="w-3 h-3 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -568,7 +568,7 @@ export default function CopilotPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="p-4" style={{ borderBottom: '1.5px solid #f0edf9' }}>
+        <div className="p-4" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
           <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3">
             Quick Actions
           </p>
@@ -583,7 +583,7 @@ export default function CopilotPage() {
                   className="flex flex-col items-start gap-2 p-3 rounded-2xl text-left transition-all hover:-translate-y-0.5"
                   style={
                     isActive
-                      ? { background: '#f3f4f6', border: '2px solid #6D4AE0' }
+                      ? { background: '#f3f4f6', border: '2px solid #374151' }
                       : { background: '#faf9ff', border: '1.5px solid #e3ddf8' }
                   }
                 >
@@ -595,7 +595,7 @@ export default function CopilotPage() {
                   </div>
                   <span
                     className="text-xs font-bold leading-tight"
-                    style={{ color: isActive ? '#6D4AE0' : '#374151' }}
+                    style={{ color: isActive ? '#374151' : '#374151' }}
                   >
                     {action.label}
                   </span>
@@ -607,14 +607,14 @@ export default function CopilotPage() {
           {/* Expanded action input */}
           {currentAction && (
             <div className="mt-3 p-3 rounded-2xl" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
-              <p className="text-[11px] text-[#6D4AE0] font-semibold mb-2">{currentAction.description}</p>
+              <p className="text-[11px] text-[#374151] font-semibold mb-2">{currentAction.description}</p>
               <input
                 autoFocus
                 value={actionInput}
                 onChange={(e) => setActionInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleQuickActionSubmit(currentAction); }}
                 placeholder={currentAction.placeholder}
-                className="w-full text-xs px-3 py-2 bg-white rounded-xl outline-none focus:ring-2 focus:ring-[#6D4AE0]/20 focus:border-[#6D4AE0] transition-all"
+                className="w-full text-xs px-3 py-2 bg-white rounded-xl outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
               <div className="flex gap-2 mt-2">
@@ -622,7 +622,7 @@ export default function CopilotPage() {
                   onClick={() => handleQuickActionSubmit(currentAction)}
                   disabled={!actionInput.trim()}
                   className="flex-1 text-xs py-2 rounded-xl font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
-                  style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                 >
                   Go
                 </button>
@@ -653,12 +653,12 @@ export default function CopilotPage() {
                 <button
                   key={i}
                   onClick={() => setInput(h.text)}
-                  className="w-full text-left px-3 py-2.5 rounded-xl transition-all hover:border-[#6D4AE0]/30 group"
+                  className="w-full text-left px-3 py-2.5 rounded-xl transition-all hover:border-[#374151]/30 group"
                   style={{ border: '1.5px solid transparent' }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#f5f2fd'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#e3ddf8'; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#f3f4f6'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#e3ddf8'; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'transparent'; }}
                 >
-                  <p className="text-xs text-gray-700 truncate font-medium group-hover:text-[#6D4AE0]">{h.text}</p>
+                  <p className="text-xs text-gray-700 truncate font-medium group-hover:text-[#374151]">{h.text}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">{relTime(h.ts)}</p>
                 </button>
               ))}
@@ -673,7 +673,7 @@ export default function CopilotPage() {
         {/* Chat header */}
         <div
           className="flex-shrink-0 px-6 py-4 flex items-center gap-3"
-          style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #6D4AE0 55%, #7c5ae8 100%)', borderBottom: '1px solid rgba(255,255,255,.1)' }}
+          style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #374151 55%, #7c5ae8 100%)', borderBottom: '1px solid rgba(255,255,255,.1)' }}
         >
           <div className="w-10 h-10 bg-white/15 rounded-2xl flex items-center justify-center" style={{ boxShadow:'0 2px 8px rgba(0,0,0,.2)' }}>
             <BotMessageSquare className="w-5 h-5 text-white" />
@@ -710,7 +710,7 @@ export default function CopilotPage() {
                 onClick={() => { setActiveAction(isActive ? null : action.id); setActionInput(''); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold shrink-0 transition-all active:scale-95 touch-manipulation"
                 style={isActive
-                  ? { background: '#6D4AE0', color: '#fff', border: '1.5px solid #6D4AE0' }
+                  ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' }
                   : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }
                 }
               >
@@ -731,14 +731,14 @@ export default function CopilotPage() {
                 onChange={(e) => setActionInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleQuickActionSubmit(currentAction); }}
                 placeholder={currentAction.placeholder}
-                className="flex-1 text-sm px-3 py-2 bg-[#faf9ff] rounded-xl outline-none focus:ring-2 focus:ring-[#6D4AE0]/20"
+                className="flex-1 text-sm px-3 py-2 bg-[#faf9ff] rounded-xl outline-none focus:ring-2 focus:ring-[#374151]/20"
                 style={{ border: '1.5px solid #e3e0f0' }}
               />
               <button
                 onClick={() => handleQuickActionSubmit(currentAction)}
                 disabled={!actionInput.trim()}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
               >
                 Go
               </button>
@@ -762,7 +762,7 @@ export default function CopilotPage() {
                 className="w-8 h-8 rounded-2xl flex items-center justify-center text-xs font-extrabold flex-shrink-0 mt-0.5 text-white"
                 style={
                   msg.role === 'assistant'
-                    ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }
+                    ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }
                     : { background: 'linear-gradient(135deg, #374151 0%, #1f2937 100%)' }
                 }
               >
@@ -776,10 +776,10 @@ export default function CopilotPage() {
                   } ${msg.error ? '' : ''}`}
                   style={
                     msg.role === 'user'
-                      ? { background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 2px 12px rgba(109,74,224,0.25)' }
+                      ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 2px 12px rgba(55,65,81,0.25)' }
                       : msg.error
                       ? { border: '1.5px solid #fecaca', background: '#fff5f5' }
-                      : { border: '1.5px solid #e3ddf8', boxShadow: '0 1px 4px rgba(109,74,224,0.06)' }
+                      : { border: '1.5px solid #e3ddf8', boxShadow: '0 1px 4px rgba(55,65,81,0.06)' }
                   }
                 >
                   <span className={`whitespace-pre-wrap ${msg.error ? 'text-red-600' : ''}`}>{msg.content}</span>
@@ -818,7 +818,7 @@ export default function CopilotPage() {
                         onClick={() => void confirmAction(msg.needsConfirmation!)}
                         disabled={loading}
                         className="flex-1 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
-                        style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                        style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                       >
                         ✓ Confirm
                       </button>
@@ -842,7 +842,7 @@ export default function CopilotPage() {
                     className="mt-2 p-3 rounded-2xl w-full"
                     style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}
                   >
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#6D4AE0] mb-2">
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#374151] mb-2">
                       {msg.plan.goal}
                     </p>
                     <div className="space-y-1.5">
@@ -880,7 +880,7 @@ export default function CopilotPage() {
                       onClick={() => readAloud(msg)}
                       title={speakingId === msg.id ? 'Stop' : 'Read aloud'}
                       className="flex items-center justify-center w-6 h-6 rounded-full transition-colors hover:bg-[#f0edfb]"
-                      style={{ color: speakingId === msg.id ? '#6D4AE0' : '#d1d5db' }}
+                      style={{ color: speakingId === msg.id ? '#374151' : '#d1d5db' }}
                     >
                       {speakingId === msg.id
                         ? <VolumeX className="w-3.5 h-3.5" />
@@ -897,7 +897,7 @@ export default function CopilotPage() {
             <div className="flex gap-3 items-end">
               <div
                 className="w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0 text-white"
-                style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)' }}
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
               >
                 <Zap className="w-3.5 h-3.5" />
               </div>
@@ -933,7 +933,7 @@ export default function CopilotPage() {
               <button
                 key={chip}
                 onClick={() => void sendMessage(chip)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white rounded-full text-xs text-gray-600 font-medium transition-all hover:text-[#6D4AE0] hover:border-[#6D4AE0]/40 whitespace-nowrap"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white rounded-full text-xs text-gray-600 font-medium transition-all hover:text-[#374151] hover:border-[#374151]/40 whitespace-nowrap"
                 style={{ border: '1.5px solid #e3ddf8' }}
               >
                 <ChevronRight className="w-3 h-3 text-gray-400" />
@@ -947,7 +947,7 @@ export default function CopilotPage() {
         <div className="flex-shrink-0 bg-white px-4 py-3" style={{ borderTop: '1.5px solid #e3ddf8' }}>
           <div className="flex items-end gap-2.5 max-w-3xl mx-auto">
             <div
-              className="flex-1 bg-white rounded-2xl flex items-end transition-all focus-within:ring-2 focus-within:ring-[#6D4AE0]/20 focus-within:border-[#6D4AE0]"
+              className="flex-1 bg-white rounded-2xl flex items-end transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
               style={{ border: '1.5px solid #e3e0f0' }}
             >
               <textarea
@@ -967,7 +967,7 @@ export default function CopilotPage() {
               disabled={loading || !input.trim()}
               aria-label="Send message"
               className="w-10 h-10 flex items-center justify-center rounded-2xl text-white flex-shrink-0 transition-all hover:opacity-90 disabled:opacity-40 active:scale-[0.96]"
-              style={{ background: 'linear-gradient(135deg, #6D4AE0 0%, #7c5ae8 100%)', boxShadow: '0 2px 10px rgba(109,74,224,0.30)' }}
+              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 2px 10px rgba(55,65,81,0.30)' }}
             >
               <Send className="w-4 h-4" />
             </button>

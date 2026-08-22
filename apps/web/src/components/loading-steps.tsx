@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export function LoadingSteps({ steps, active }: LoadingStepsProps) {
 
   return (
     <div className="rounded-2xl border border-[#e3ddf8] bg-[#faf9ff] px-5 py-4 space-y-2.5 animate-in fade-in duration-300">
-      <p className="text-[11px] font-semibold text-[#6D4AE0] uppercase tracking-widest mb-1 flex items-center gap-1.5">
+      <p className="text-[11px] font-semibold text-[#374151] uppercase tracking-widest mb-1 flex items-center gap-1.5">
         <Loader2 className="w-3 h-3 animate-spin" /> AI is working
       </p>
       {steps.map((step, i) => {
@@ -40,7 +40,7 @@ export function LoadingSteps({ steps, active }: LoadingStepsProps) {
               done
                 ? 'bg-green-100 text-green-600'
                 : running
-                ? 'bg-[#6D4AE0] text-white'
+                ? 'bg-[#374151] text-white'
                 : 'bg-gray-100 text-gray-300'
             }`}>
               {done ? '✓' : i + 1}

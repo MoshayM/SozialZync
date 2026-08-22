@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -38,7 +38,7 @@ function notifIcon(type: string) {
   if (['TRIAL_EXPIRING', 'CREDITS_LOW'].includes(type))
     return <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />;
   if (type === 'APPROVAL_REQUEST')
-    return <Clock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#6D4AE0' }} />;
+    return <Clock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#374151' }} />;
   return <Bell className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />;
 }
 
@@ -119,7 +119,7 @@ export default function NotificationsPage() {
           </div>
           <div className="flex items-center gap-3 pt-1">
             {unreadCount > 0 && (
-              <span className="inline-flex items-center justify-center rounded-full text-[11px] font-bold px-2.5 py-0.5" style={{ background: '#f5f2fd', color: '#6D4AE0' }}>
+              <span className="inline-flex items-center justify-center rounded-full text-[11px] font-bold px-2.5 py-0.5" style={{ background: '#f3f4f6', color: '#374151' }}>
                 {unreadCount} unread
               </span>
             )}
@@ -128,7 +128,7 @@ export default function NotificationsPage() {
               disabled={unreadCount === 0 || markAllMutation.isPending}
               onClick={() => markAllMutation.mutate()}
               className="text-sm font-bold hover:underline disabled:opacity-40 disabled:no-underline flex items-center gap-1"
-              style={{ color: '#6D4AE0' }}
+              style={{ color: '#374151' }}
             >
               {markAllMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Mark all read
@@ -145,7 +145,7 @@ export default function NotificationsPage() {
               onClick={() => setActiveTab(tab.id)}
               className="flex-shrink-0 py-1.5 px-4 text-sm font-semibold rounded-2xl transition-all whitespace-nowrap"
               style={activeTab === tab.id
-                ? { background: '#f5f2fd', border: '2px solid #6D4AE0', color: '#6D4AE0' }
+                ? { background: '#f3f4f6', border: '2px solid #374151', color: '#374151' }
                 : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }}
             >
               {tab.label}
@@ -156,12 +156,12 @@ export default function NotificationsPage() {
         {/* Notification list */}
         {isLoading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="w-7 h-7 animate-spin" style={{ color: '#6D4AE0' }} />
+            <Loader2 className="w-7 h-7 animate-spin" style={{ color: '#374151' }} />
           </div>
         ) : allItems.length === 0 ? (
           <div className="bg-white rounded-3xl flex flex-col items-center py-16 gap-4" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f0edf9, #e3ddf8)' }}>
-              <Bell className="w-8 h-8" style={{ color: '#6D4AE0' }} />
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+              <Bell className="w-8 h-8" style={{ color: '#374151' }} />
             </div>
             <div className="text-center">
               <p className="text-base font-extrabold text-gray-900">You&apos;re all caught up</p>
@@ -177,8 +177,8 @@ export default function NotificationsPage() {
                 onClick={() => handleRowClick(n)}
                 className="w-full text-left flex items-start gap-3 px-5 py-4 transition-colors hover:bg-[#faf9ff]"
                 style={{
-                  background: !n.readAt ? 'rgba(109,74,224,0.03)' : 'white',
-                  borderBottom: '1px solid #f0edf9',
+                  background: !n.readAt ? 'rgba(55,65,81,0.03)' : 'white',
+                  borderBottom: '1px solid #f3f4f6',
                 }}
               >
                 {notifIcon(n.type)}
@@ -192,7 +192,7 @@ export default function NotificationsPage() {
                   <p className="text-[11px] text-gray-400 mt-1">{relativeTime(n.createdAt)}</p>
                 </div>
                 {!n.readAt && (
-                  <span className="mt-1.5 shrink-0 w-2 h-2 rounded-full" style={{ background: '#6D4AE0' }} aria-hidden="true" />
+                  <span className="mt-1.5 shrink-0 w-2 h-2 rounded-full" style={{ background: '#374151' }} aria-hidden="true" />
                 )}
               </button>
             ))}
