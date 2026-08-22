@@ -405,16 +405,21 @@ function MockProjectCard({ project }: { project: MockProject }) {
 }
 
 function MockFilterBar({
-  activePlatform,
-  onPlatformChange,
+  activePlatform, onPlatformChange,
+  statusFilter, onStatusChange,
+  sortBy, onSortChange,
 }: {
   activePlatform: 'All' | MockProjectPlatform;
   onPlatformChange: (p: 'All' | MockProjectPlatform) => void;
+  statusFilter: string;
+  onStatusChange: (s: string) => void;
+  sortBy: string;
+  onSortChange: (s: string) => void;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 flex items-center gap-3 flex-wrap">
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 flex flex-wrap items-center gap-3">
       {/* Platform chips */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap flex-1">
         {PLATFORM_FILTER_OPTIONS.map((opt) => {
           const isActive = activePlatform === opt;
           return (
@@ -433,6 +438,29 @@ function MockFilterBar({
             </button>
           );
         })}
+      </div>
+      {/* Status + Sort dropdowns */}
+      <div className="flex items-center gap-2">
+        <select
+          value={statusFilter}
+          onChange={(e) => onStatusChange(e.target.value)}
+          className="text-xs font-semibold rounded-xl px-3 py-1.5 border appearance-none cursor-pointer outline-none transition-all"
+          style={{ background: '#f5f3ff', border: '1.5px solid #e9e5f8', color: '#374151' }}
+        >
+          {['All Status', 'Active', 'Draft', 'In Review', 'Published', 'Archived'].map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+        <select
+          value={sortBy}
+          onChange={(e) => onSortChange(e.target.value)}
+          className="text-xs font-semibold rounded-xl px-3 py-1.5 border appearance-none cursor-pointer outline-none transition-all"
+          style={{ background: '#f5f3ff', border: '1.5px solid #e9e5f8', color: '#374151' }}
+        >
+          {['Latest', 'Oldest', 'A–Z', 'Z–A'].map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
       </div>
     </div>
   );
@@ -688,6 +716,18 @@ function ProjectsTab({
   activePlatform, setActivePlatform,
 }: ProjectsTabProps) {
   const router = useRouter();
+  const [statusFilter, setStatusFilter] = useState<string>('All Status');
+  const [sortBy, setSortBy] = useState<string>('Latest');
+
+  const displayProjects = (() => {
+    let list = filteredProjects;
+    if (statusFilter !== 'All Status') list = list.filter(p => p.status === statusFilter.toUpperCase().replace(' ', '_'));
+    if (sortBy === 'Oldest') list = [...list].sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+    else if (sortBy === 'A–Z') list = [...list].sort((a, b) => a.title.localeCompare(b.title));
+    else if (sortBy === 'Z–A') list = [...list].sort((a, b) => b.title.localeCompare(a.title));
+    else list = [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return list;
+  })();
 
   const selPlatform = PLATFORMS.find(d => d.platform === form.platform) ?? PLATFORMS[0]!;
   const platformChannels = channels.filter(ch => platformFromChannel(ch) === form.platform);
@@ -751,8 +791,15 @@ function ProjectsTab({
         </div>
       )}
 
-      {/* Platform filter bar */}
-      <MockFilterBar activePlatform={activePlatform} onPlatformChange={setActivePlatform} />
+      {/* Platform filter bar + Status + Sort */}
+      <MockFilterBar
+        activePlatform={activePlatform}
+        onPlatformChange={setActivePlatform}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+      />
 
       {/* Mock project cards (design preview) */}
       {(() => {
@@ -783,11 +830,11 @@ function ProjectsTab({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[...Array(4)].map((_, i) => <ProjectSkeleton key={i} />)}
         </div>
-      ) : filteredProjects.length === 0 && searchQuery ? (
+      ) : displayProjects.length === 0 && (searchQuery || statusFilter !== 'All Status') ? (
         <div className="rounded-3xl flex flex-col items-center justify-center py-16 px-6 text-center" style={{ background: 'white', border: '1.5px solid #e3ddf8' }}>
           <div className="text-4xl mb-4">🔍</div>
           <h2 className="text-lg font-extrabold text-gray-900 mb-1">No results</h2>
-          <p className="text-gray-600 text-sm">Try a different keyword or <button type="button" onClick={() => router.replace('/projects')} className="text-[#6D4AE0] font-semibold hover:underline">clear the search</button>.</p>
+          <p className="text-gray-600 text-sm">Try a different keyword or filter, or <button type="button" onClick={() => { router.replace('/projects'); setStatusFilter('All Status'); }} className="text-[#6D4AE0] font-semibold hover:underline">clear filters</button>.</p>
         </div>
       ) : projects.length === 0 ? (
         <div className="rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ background: 'white', border: '1.5px solid #e3ddf8' }}>
@@ -806,7 +853,7 @@ function ProjectsTab({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredProjects.map((p) => {
+          {displayProjects.map((p) => {
             const { platform, format } = getProjectMeta(p.id);
             const pdCfg = PLATFORMS.find(d => d.platform === platform) ?? PLATFORMS[0]!;
             const crossPosts = getCrossPosts(p.id);
