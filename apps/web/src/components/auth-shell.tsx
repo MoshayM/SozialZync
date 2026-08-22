@@ -77,7 +77,7 @@ const LOGIN_FEATURES = [
   { icon: '📝', text: 'AI Script Writer' },
   { icon: '🎭', text: 'Character Studio' },
   { icon: '✅', text: 'Compliance Engine' },
-  { icon: '🚀', text: 'YouTube Publishing' },
+  { icon: '🚀', text: 'Multi-Platform Publishing' },
 ];
 
 const LOGIN_STATS = [
@@ -180,13 +180,13 @@ export function LoginShell({
             {/* Orbital rings */}
             <div className="lf-spin absolute inset-[-8px] rounded-full" style={{border:'1px solid rgba(167,139,250,.35)'}} />
             <div className="lf-spin-r absolute inset-[-16px] rounded-full" style={{border:'1px solid rgba(124,58,237,.18)'}} />
-            <LogoMark className="absolute inset-0 w-full h-full" />
+            <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
           </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
-              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+              <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Z</span><span className="text-white">ynk</span>
             </div>
-            <div className="text-white/45 text-xs mt-0.5">AI YouTube Content OS</div>
+            <div className="text-white/45 text-xs mt-0.5">AI Creator Platform</div>
           </div>
         </div>
 
@@ -194,18 +194,18 @@ export function LoginShell({
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-8" style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)',border:'1px solid rgba(255,255,255,.12)' }}>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            AI YouTube Content OS
+            AI Creator Platform
           </div>
 
           <h1 className="text-5xl xl:text-[3.4rem] font-extrabold text-white leading-[1.1] mb-5">
             Research. Script.<br />
             <span style={{ WebkitTextFillColor: 'transparent', WebkitBackgroundClip: 'text', backgroundImage: 'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa,#c4b5fd)', backgroundClip: 'text', backgroundSize:'200% 100%', animation:'lf-grad 4s ease infinite' }}>
-              Publish.
+              Publish Everywhere.
             </span>
           </h1>
 
           <p className="text-white/60 text-[1.05rem] leading-relaxed max-w-sm mb-10">
-            Your full YouTube content pipeline — from trend research and AI scripts to compliance-checked publishing. Available 24/7.
+            Your full content creation pipeline — from trend research and AI scripts to compliance-checked publishing across all your channels. Available 24/7.
           </p>
 
           {/* Feature pills */}
@@ -237,7 +237,7 @@ export function LoginShell({
             {[...Array(5)].map((_, i) => <span key={i} className="text-[#f0c14d] text-sm" aria-hidden>★</span>)}
           </div>
           <p className="text-white/75 text-sm leading-relaxed mb-4">
-            &ldquo;Sozialzynk helped me grow from 5K to 150K subscribers in 6 months. The research-backed scripts and compliance check saved me so much time.&rdquo;
+            &ldquo;SozialZynk helped me grow from 5K to 150K subscribers in 6 months. The AI research and multi-platform publishing saved me so much time.&rdquo;
           </p>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-[#6D4AE0] shrink-0">M</div>
@@ -256,7 +256,7 @@ export function LoginShell({
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
 
@@ -457,7 +457,7 @@ export function RegisterShell({
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
 
@@ -583,7 +583,7 @@ export function ForgotPasswordShell({
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
           {children}
@@ -678,7 +678,7 @@ export function ResetPasswordShell({
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
           {children}
@@ -863,7 +863,7 @@ export function OAuthCallbackShell({
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
           </div>
 

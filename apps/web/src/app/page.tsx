@@ -14,14 +14,14 @@ import { HeroVideo } from '@/components/hero-video';
 
 const CAPABILITIES = [
   { icon: Bot,           color: '#7C3AED', bg: '#F3EEFF', title: 'AI Copilot (Voice)',      desc: 'Voice-enabled robot assistant. Speak to plan, create, and manage your channel — live transcript + chest-panel mic.' },
-  { icon: Zap,           color: '#D97706', bg: '#FFFBEB', title: 'Trend Discovery',          desc: 'Surfaces trending YouTube topics before they peak so you create content while the audience is growing.' },
+  { icon: Zap,           color: '#D97706', bg: '#FFFBEB', title: 'Trend Discovery',          desc: 'Surfaces trending topics before they peak so you create content while the audience is growing.' },
   { icon: Target,        color: '#BE185D', bg: '#FDF2F8', title: 'Research & Fact-Check',    desc: 'ResearchAgent gathers source material; FactCheckAgent verifies every claim before it reaches your script.' },
-  { icon: Sparkles,      color: '#7C3AED', bg: '#F3EEFF', title: 'AI Script Writer',         desc: 'Monetization-compliant, fact-checked scripts in your brand voice — with hooks, CTAs, and YouTube SEO baked in.' },
+  { icon: Sparkles,      color: '#7C3AED', bg: '#F3EEFF', title: 'AI Script Writer',         desc: 'Monetization-compliant, fact-checked scripts in your brand voice — with hooks, CTAs, and platform SEO baked in.' },
   { icon: Users,         color: '#0891B2', bg: '#ECFEFF', title: 'Character Studio',         desc: 'Generate original AI characters and avatars for your videos, thumbnails, and brand identity.' },
-  { icon: Star,          color: '#DC2626', bg: '#FFF1F1', title: 'AI Thumbnails & Images',  desc: 'Eye-catching thumbnails and storyboard frames generated in seconds — sized perfectly for YouTube.' },
+  { icon: Star,          color: '#DC2626', bg: '#FFF1F1', title: 'AI Thumbnails & Images',  desc: 'Eye-catching thumbnails and storyboard frames generated in seconds — sized for every platform.' },
   { icon: Globe2,        color: '#059669', bg: '#ECFDF5', title: 'Voice & Audio Studio',     desc: 'Text-to-speech narration, multi-voice synthesis, and AI music — all with your brand voice profile.' },
   { icon: Film,          color: '#1D4ED8', bg: '#EFF6FF', title: 'Shorts Studio',            desc: 'AI finds the best moments from long videos, adds captions and hooks, and exports viral Shorts.' },
-  { icon: ShieldCheck,   color: '#059669', bg: '#ECFDF5', title: 'Compliance Engine',        desc: 'Every piece of content passes copyright, YouTube monetization policy, and fact-check gates automatically.' },
+  { icon: ShieldCheck,   color: '#059669', bg: '#ECFDF5', title: 'Compliance Engine',        desc: 'Every piece of content passes copyright, platform monetization policy, and fact-check gates automatically.' },
   { icon: Calendar,      color: '#7C3AED', bg: '#F3EEFF', title: 'Publish & Autopilot',      desc: 'Schedule at peak times, review before publish, or let Autopilot handle the full pipeline hands-free.' },
   { icon: LineChart,     color: '#D97706', bg: '#FFFBEB', title: 'A/B Testing',              desc: 'Test titles and thumbnails on live videos. AI picks the winner — more clicks, better rankings.' },
   { icon: MessageSquare, color: '#0891B2', bg: '#ECFEFF', title: 'Channel Analytics',        desc: 'All your performance metrics in one place. AI recommends what to create next based on what actually works.' },
@@ -91,10 +91,10 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-white/10 backdrop-blur-xl" style={{background:'rgba(14,9,36,.85)'}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
-            <Link href="/" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Sozialzynk">
-              <LogoMark className="w-9 h-9 shrink-0" />
+            <Link href="/" className="flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="SozialZynk">
+              <LogoMark className="w-9 h-9 shrink-0" variant="light" />
               <span className="font-bold text-lg leading-none hidden sm:block tracking-[-0.4px]">
-                <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Zynk</span>
+                <span className="text-white">Sozial</span><span style={{ color: '#c4b5fd' }}>Z</span><span className="text-white">ynk</span>
               </span>
             </Link>
 
@@ -110,7 +110,7 @@ export default function LandingPage() {
               <Link href="/login" className="px-4 py-2 rounded-xl text-white/80 text-sm font-semibold hover:text-white hover:bg-white/8 transition-colors min-h-[44px] flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                 Log in
               </Link>
-              <Link href="/login" className="px-5 py-2 rounded-xl text-sm font-bold shadow-lg min-h-[44px] flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all hover:opacity-90" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',color:'#fff'}}>
+              <Link href="/become-creator" className="px-5 py-2 rounded-xl text-sm font-bold shadow-lg min-h-[44px] flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-all hover:opacity-90" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',color:'#fff'}}>
                 Get started free
               </Link>
             </div>
@@ -161,7 +161,7 @@ export default function LandingPage() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 mb-8 text-sm font-medium" style={{background:'rgba(124,58,237,.18)',backdropFilter:'blur(12px)',color:'rgba(255,255,255,.85)'}}>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              AI YouTube Content Operating System
+              AI-Powered Creator Platform
             </div>
 
             {/* Headline */}
@@ -169,12 +169,12 @@ export default function LandingPage() {
               Research. Script.
               <br />
               <span className="gradient-animated" style={{background:'linear-gradient(90deg,#c4b5fd,#818cf8,#a78bfa,#c4b5fd)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
-                Publish to YouTube.
+                Publish Everywhere.
               </span>
             </h1>
 
             <p className="mt-6 text-base sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-              Sozialzynk runs your entire YouTube content pipeline — from trend research to compliance-checked publishing.{' '}
+              SozialZynk runs your entire content creation pipeline — from trend research to compliance-checked multi-platform publishing.{' '}
               <span className="text-white/80">Your AI content team, available 24/7. No burnout. No guesswork.</span>
             </p>
 
@@ -185,7 +185,7 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/login" className="shimmer-btn inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:scale-105 hover:shadow-purple-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{boxShadow:'0 20px 50px -12px rgba(124,58,237,.65)'}}>
+              <Link href="/become-creator" className="shimmer-btn inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:scale-105 hover:shadow-purple-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{boxShadow:'0 20px 50px -12px rgba(124,58,237,.65)'}}>
                 <Zap className="w-4 h-4" />
                 Start creating free
               </Link>
@@ -213,22 +213,19 @@ export default function LandingPage() {
 
             {/* Platform logos */}
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <span className="text-xs font-medium mr-2" style={{color:'rgba(255,255,255,.35)'}}>Primary platform</span>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white" style={{background:'#FF0000'}}>
-                <span className="text-[10px] opacity-90">YT</span>
-                <span className="opacity-80">YouTube</span>
-              </span>
-              <span className="text-xs font-medium mx-1" style={{color:'rgba(255,255,255,.25)'}}>Also publishes to:</span>
+              <span className="text-xs font-medium mr-2" style={{color:'rgba(255,255,255,.35)'}}>Publish to</span>
               {[
+                { label: 'YouTube',   bg: '#FF0000',                                                          short: 'YT', border: undefined },
                 { label: 'Instagram', bg: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)', short: 'IG', border: undefined },
                 { label: 'TikTok',   bg: '#010101',                                                          short: 'TT', border: '1px solid rgba(255,255,255,.15)' },
                 { label: 'LinkedIn', bg: '#0A66C2',                                                          short: 'LI', border: undefined },
               ].map(({ label, bg, short, border }) => (
-                <span key={label} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold text-white opacity-60" style={{background:bg, border: border ?? 'none'}}>
+                <span key={label} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold text-white opacity-70" style={{background:bg, border: border ?? 'none'}}>
                   <span className="opacity-90">{short}</span>
                   <span className="hidden sm:inline opacity-80">{label}</span>
                 </span>
               ))}
+              <span className="text-xs font-medium ml-1" style={{color:'rgba(255,255,255,.25)'}}>+ more</span>
             </div>
 
             {/* Hero visual — product demo video */}
@@ -257,7 +254,7 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
               {[
-                { stat: '100K+ Creators', label: 'Building on YouTube' },
+                { stat: '100K+ Creators', label: 'Publishing with AI' },
                 { stat: '10× Faster',     label: 'Than manual research' },
                 { stat: '5M+ Scripts',    label: 'AI-generated & published' },
                 { stat: 'Zero',           label: 'Manual repurposing needed' },
@@ -282,7 +279,7 @@ export default function LandingPage() {
                 <span style={{color:'#7C3AED'}}> powered by AI</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-                One platform replaces your entire YouTube content stack. From trend discovery to analytics — all connected.
+                One platform for your entire content stack. From trend discovery to multi-platform publishing and analytics — all connected.
               </p>
             </div>
 
@@ -312,7 +309,7 @@ export default function LandingPage() {
                 <span style={{color:'#7C3AED'}}> to a published video</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">
-                Tell Sozialzynk what you want to create. It researches, writes, checks compliance, and publishes to your YouTube channel.
+                Tell SozialZynk what you want to create. It researches, writes, checks compliance, and publishes to all your channels.
               </p>
             </div>
 
@@ -344,7 +341,7 @@ export default function LandingPage() {
 
             {/* CTA below workflow */}
             <div className="text-center mt-14">
-              <Link href="/login" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-500 shadow-2xl" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 16px 40px -10px rgba(124,58,237,.5)'}}>
+              <Link href="/become-creator" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-base transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-500 shadow-2xl" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 16px 40px -10px rgba(124,58,237,.5)'}}>
                 <Zap className="w-4 h-4" />
                 Start your first AI project
                 <ArrowRight className="w-4 h-4" />
@@ -365,11 +362,11 @@ export default function LandingPage() {
                   <span style={{color:'#7C3AED'}}>Just conversation.</span>
                 </h2>
                 <p className="mt-6 text-lg text-gray-500 leading-relaxed">
-                  Sozialzynk&apos;s AI Copilot works like an experienced YouTube content manager. Tell it what you need — it researches trends, writes compliant scripts, generates assets, and gets your video published.
+                  SozialZynk&apos;s AI Copilot works like an experienced content manager. Tell it what you need — it researches trends, writes compliant scripts, generates assets, and gets your content published everywhere.
                 </p>
                 <ul className="mt-8 space-y-4">
                   {[
-                    { t: 'Full YouTube pipeline',   d: 'One conversation handles research, scripting, visuals, voice, and publishing.' },
+                    { t: 'Full content pipeline',   d: 'One conversation handles research, scripting, visuals, voice, and multi-platform publishing.' },
                     { t: 'Voice & text input',       d: 'Speak or type — the Copilot understands both.' },
                     { t: 'Multi-language support',   d: 'Responds in your language: English, Hindi, Tamil, and 30+ more.' },
                     { t: 'Brand voice memory',        d: 'Remembers your tone and style so every script sounds authentically like you.' },
@@ -414,7 +411,7 @@ export default function LandingPage() {
                     {/* Chat messages */}
                     <div className="space-y-3 pt-2">
                       {[
-                        { role:'ai',  text:"What would you like to create for your YouTube channel today?" },
+                        { role:'ai',  text:"What content would you like to create today?" },
                         { role:'user',text:"Research trending topics and write 3 scripts." },
                         { role:'ai',  text:"ResearchAgent found 8 trending gaps in your niche. Writing 3 fact-checked scripts now." },
                         { role:'user',text:"Great. Add thumbnails and voice narration." },
@@ -453,7 +450,7 @@ export default function LandingPage() {
                 <span style={{color:'#7C3AED'}}> nothing to install</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-                Three powerful tools work together seamlessly — from trend discovery to a published, compliant YouTube video.
+                Three powerful tools work together seamlessly — from trend discovery to published, compliant content across all your platforms.
               </p>
             </div>
 
@@ -465,8 +462,8 @@ export default function LandingPage() {
                   bg: '#F3EEFF',
                   title: 'Projects',
                   badge: 'Step 1',
-                  desc: 'Your content command center. Connect your YouTube channel, create projects by niche, and let AI run the full research → script → voice → publish pipeline.',
-                  steps: ['Connect your YouTube channel', 'Create a project with your niche and goals', 'AI generates the complete content pipeline'],
+                  desc: 'Your content command center. Connect your channels, create projects by niche, and let AI run the full research → script → voice → publish pipeline.',
+                  steps: ['Connect your channels and platforms', 'Create a project with your niche and goals', 'AI generates the complete content pipeline'],
                 },
                 {
                   Icon: Sparkles,
@@ -526,7 +523,7 @@ export default function LandingPage() {
                 <span style={{color:'#7C3AED'}}> Scale as you grow.</span>
               </h2>
               <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-                Every plan includes AI-powered content creation, compliance checks, and YouTube publishing. No hidden fees.
+                Every plan includes AI-powered content creation, compliance checks, and multi-platform publishing. No hidden fees.
               </p>
             </div>
 
@@ -536,12 +533,12 @@ export default function LandingPage() {
                   name: 'Free',
                   price: '$0',
                   period: 'forever',
-                  description: 'Perfect for exploring AI-powered YouTube content creation.',
+                  description: 'Perfect for exploring AI-powered content creation.',
                   cta: 'Start free',
                   popular: false,
                   features: [
                     { text: '50 AI credits / month', included: true },
-                    { text: '1 YouTube channel', included: true },
+                    { text: '1 channel', included: true },
                     { text: 'AI Copilot (limited)', included: true },
                     { text: 'Shorts Studio (5 clips/mo)', included: true },
                     { text: 'Auto-publish', included: false },
@@ -648,7 +645,7 @@ export default function LandingPage() {
                   </ul>
 
                   <Link
-                    href="/login"
+                    href={name === 'Agency' ? '/login' : '/become-creator'}
                     className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED] ${
                       popular ? 'text-white' : 'text-white'
                     }`}
@@ -676,7 +673,7 @@ export default function LandingPage() {
                 <span>📲</span> Available everywhere
               </div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
-                Take Sozialzynk<br />
+                Take SozialZynk<br />
                 <span style={{background:'linear-gradient(90deg,#c4b5fd,#a78bfa)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
                   wherever you create
                 </span>
@@ -750,19 +747,19 @@ export default function LandingPage() {
             <div className="relative">
               <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{color:'#a78bfa'}}>Start today</p>
               <h2 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
-                Your YouTube channel,<br />on autopilot.
+                Your content,<br />on autopilot.
               </h2>
               <p className="mt-6 text-lg text-white/60 max-w-xl mx-auto">
-                Join 100,000+ YouTube creators who use AI to research, create, and publish smarter. Free to start — no credit card required.
+                Join 100,000+ creators who use AI to research, create, and publish smarter across every platform. Free to start.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/login" className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 20px 50px -12px rgba(124,58,237,.6)'}}>
+                <Link href="/become-creator" className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-2xl font-bold text-white text-base shadow-2xl transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#a78bfa,#7C3AED)',boxShadow:'0 20px 50px -12px rgba(124,58,237,.6)'}}>
                   <Zap className="w-5 h-5" />
                   Get started free
                 </Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm">
-                {['No credit card required','YouTube publishing included','14-day free trial'].map(t => (
+                {['No credit card required','Multi-platform publishing','14-day free trial'].map(t => (
                   <span key={t} className="flex items-center gap-1.5" style={{color:'rgba(255,255,255,.45)'}}>
                     <CheckCircle2 className="w-4 h-4" style={{color:'#a78bfa'}} />
                     {t}
@@ -779,10 +776,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <LogoMark className="w-9 h-9 shrink-0" />
+              <LogoMark className="w-9 h-9 shrink-0" variant="light" />
               <div>
-                <p className="font-bold text-base leading-tight">Sozialzynk</p>
-                <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.35)'}}>AI YouTube Content OS</p>
+                <p className="font-bold text-base leading-tight">Sozial<span style={{color:'#c4b5fd'}}>Z</span>ynk</p>
+                <p className="text-xs mt-0.5" style={{color:'rgba(255,255,255,.35)'}}>AI Creator Platform</p>
               </div>
             </div>
             <nav aria-label="Footer navigation">
@@ -798,7 +795,7 @@ export default function LandingPage() {
             </nav>
           </div>
           <div className="mt-8 pt-8 text-center text-xs" style={{borderTop:'1px solid rgba(255,255,255,.06)',color:'rgba(255,255,255,.25)'}}>
-            &copy; {new Date().getFullYear()} Sozialzynk. All rights reserved.
+            &copy; {new Date().getFullYear()} SozialZynk. All rights reserved.
           </div>
         </div>
       </footer>

@@ -570,10 +570,10 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 style={{
                   gap: '6px', padding: '10px 12px 6px', background: 'transparent',
                   fontSize: '11.5px', fontWeight: 600, letterSpacing: '-.1px',
-                  color: 'rgba(255,255,255,.55)', fontFamily: 'inherit', transition: 'color 150ms ease',
+                  color: '#9CA3AF', fontFamily: 'inherit', transition: 'color 150ms ease',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,.90)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,.55)'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#374151'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#9CA3AF'; }}
               >
                 <span style={{ flex: '1 1 auto', textAlign: 'left' }}>{category}</span>
                 <ChevronDown style={{
@@ -585,7 +585,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             ) : (
               <div style={{
                 fontSize: '11.5px', fontWeight: 600, letterSpacing: '-.1px',
-                color: 'rgba(255,255,255,.40)', padding: '10px 12px 6px',
+                color: '#D1D5DB', padding: '10px 12px 6px',
               }}>
                 {category}
               </div>
@@ -608,14 +608,14 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   letterSpacing: isActive ? '-.15px' : '-.05px',
                   textDecoration: 'none',
                   justifyContent: opts.collapsed ? 'center' : 'flex-start',
-                  background: isActive ? 'rgba(255,255,255,.92)' : 'transparent',
-                  color: isActive ? '#6D28D9' : 'rgba(255,255,255,.78)',
+                  background: isActive ? '#EDE9FE' : 'transparent',
+                  color: isActive ? '#6D28D9' : '#374151',
                   transition: 'background 180ms ease, color 180ms ease',
-                  boxShadow: isActive ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
+                  boxShadow: isActive ? '0 1px 4px rgba(109,74,224,.15)' : 'none',
                 };
                 const inner = (
                   <>
-                    <Icon style={{ width: '18px', height: '18px', flexShrink: 0, opacity: isActive ? 1 : 0.78, color: isActive ? '#7C3AED' : 'inherit' }} />
+                    <Icon style={{ width: '18px', height: '18px', flexShrink: 0, opacity: isActive ? 1 : 0.7, color: isActive ? '#7C3AED' : '#6B7280' }} />
                     {!opts.collapsed && (
                       <>
                         <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>{label}</span>
@@ -626,7 +626,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                             background:
                               badge === 'NEW'  ? 'linear-gradient(135deg,#10B981,#059669)' :
                               badge === 'BETA' ? 'linear-gradient(135deg,#F59E0B,#D97706)' :
-                              badge === 'AI'   ? 'rgba(255,255,255,.22)' :
+                              badge === 'AI'   ? 'rgba(109,74,224,.18)' :
                                                 'linear-gradient(135deg,#6366F1,#4F46E5)',
                           }}>
                             {badge}
@@ -636,8 +636,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     )}
                   </>
                 );
-                const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(255,255,255,.13)'; el.style.color = '#fff'; } };
-                const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = 'rgba(255,255,255,.78)'; } };
+                const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(109,74,224,.07)'; el.style.color = '#111827'; } };
+                const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = '#374151'; } };
                 return action ? (
                   <button
                     key={href}
@@ -704,12 +704,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" />
           <div className="leading-[1.15] hidden sm:block">
             <div className="font-bold text-[15px] tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </div>
-            <div className="text-[11px] font-medium" style={{ color: '#5a576b' }}>YouTube Content OS</div>
+            <div className="text-[11px] font-medium" style={{ color: '#5a576b' }}>AI Creator Platform</div>
           </div>
           <div className="font-bold text-[15px] tracking-[-0.4px] sm:hidden">
-            <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Zync</span>
+            <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
           </div>
         </div>
 
@@ -957,9 +957,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             sidebarCollapsed ? 'lg:w-[62px]' : 'lg:w-[244px]',
           ].join(' ')}
           style={{
-            background: 'linear-gradient(185deg,#7C3AED 0%,#5B21B6 100%)',
-            WebkitFontSmoothing: 'antialiased',
-            MozOsxFontSmoothing: 'grayscale',
+            background: '#F3F4F6',
+            borderRight: '1px solid #E5E7EB',
           } as React.CSSProperties}
         >
           {/* ── Logo header ── */}
@@ -970,24 +969,24 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               padding: sidebarCollapsed ? '0' : '0 16px',
               justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
               gap: '11px',
-              borderBottom: '1px solid rgba(255,255,255,.10)',
+              borderBottom: '1px solid #E5E7EB',
             }}
           >
-            <LogoMark className="shrink-0" style={{ width: '34px', height: '34px', borderRadius: '9px', border: '1.5px solid rgba(255,255,255,.28)' }} />
+            <LogoMark className="shrink-0" style={{ width: '34px', height: '34px' }} />
             {!sidebarCollapsed && (
               <>
                 <div style={{ overflow: 'hidden', lineHeight: 1.35, flex: '1 1 auto' }}>
                   <div style={{ fontWeight: 800, fontSize: '16px', letterSpacing: '-.5px', whiteSpace: 'nowrap' }}>
-                    <span style={{ color: '#fff' }}>Sozial</span><span style={{ color: '#c4b5fd' }}>Zync</span>
+                    <span style={{ color: '#111827' }}>Sozial</span><span style={{ color: '#7C3AED' }}>Z</span><span style={{ color: '#111827' }}>ynk</span>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.65)', fontWeight: 500, letterSpacing: '.1px', whiteSpace: 'nowrap' }}>YouTube Content OS</div>
+                  <div style={{ fontSize: '11px', color: '#6B7280', fontWeight: 500, letterSpacing: '.1px', whiteSpace: 'nowrap' }}>AI Creator Platform</div>
                 </div>
                 {/* Close button — only visible on mobile */}
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
                   className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl shrink-0 touch-manipulation"
-                  style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: 'none' }}
+                  style={{ background: '#E5E7EB', color: '#374151', border: 'none' }}
                   aria-label="Close navigation"
                 >
                   <X className="w-4 h-4" />
@@ -1008,18 +1007,18 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           </nav>
 
           {/* ── Mobile-only bottom links inside drawer ── */}
-          <div className="lg:hidden shrink-0 border-t border-white/10 p-3 space-y-1">
+          <div className="lg:hidden shrink-0 border-t border-gray-200 p-3 space-y-1">
             {BOTTOM_ITEMS.map(({ href, icon: Icon, label }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                style={{ color: 'rgba(255,255,255,.75)', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.13)'; }}
+                style={{ color: '#374151', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(109,74,224,.07)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
-                <Icon style={{ width: '17px', height: '17px', flexShrink: 0 }} />
+                <Icon style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6B7280' }} />
                 {label}
               </Link>
             ))}
@@ -1027,8 +1026,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               type="button"
               onClick={() => { setMobileMenuOpen(false); void handleLogout(); }}
               className="flex items-center gap-3 w-full border-none cursor-pointer px-3 py-2.5 rounded-xl transition-colors touch-manipulation"
-              style={{ color: '#fca5a5', fontSize: '14px', fontWeight: 500, background: 'transparent', fontFamily: 'inherit' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(252,165,165,.15)'; }}
+              style={{ color: '#ef4444', fontSize: '14px', fontWeight: 500, background: 'transparent', fontFamily: 'inherit' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FEF2F2'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               <LogOut style={{ width: '17px', height: '17px', flexShrink: 0 }} />

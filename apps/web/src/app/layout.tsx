@@ -19,9 +19,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'Sozialzynk', template: '%s · Sozialzynk' },
-  description: 'AI-powered YouTube Content Operating System. Create, grow and publish with AI — from research to viral shorts.',
-  applicationName: 'Sozialzynk',
+  title: { default: 'SozialZynk', template: '%s · SozialZynk' },
+  description: 'AI-powered creator platform. Research, script, create, and publish across all your channels — from one intelligent workspace.',
+  applicationName: 'SozialZynk',
   alternates: { canonical: '/' },
   icons: {
     icon: '/icon.svg',
@@ -31,21 +31,21 @@ export const metadata: Metadata = {
   // PWA / mobile app meta
   appleWebApp: {
     capable: true,
-    title: 'Sozialzynk',
+    title: 'SozialZynk',
     statusBarStyle: 'black-translucent',
   },
   formatDetection: { telephone: false },
   openGraph: {
     type: 'website',
     url: SITE_URL,
-    siteName: 'Sozialzynk',
-    title: 'Sozialzynk — YouTube Content OS',
-    description: 'Turn long videos into publish-ready Shorts, edit with a full timeline, and publish — AI-assisted end to end.',
+    siteName: 'SozialZynk',
+    title: 'SozialZynk — AI Creator Platform',
+    description: 'Your AI content team. Research, script, create, and publish to every channel — faster, smarter, and always on-brand.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Sozialzynk',
-    description: 'AI-powered YouTube content creation platform.',
+    title: 'SozialZynk',
+    description: 'AI-powered multi-platform content creation for serious creators.',
   },
 };
 
