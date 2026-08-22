@@ -7,12 +7,14 @@ import { useRouter } from 'next/navigation';
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type EntryStatus = 'idea' | 'draft' | 'scheduled' | 'published';
+type EntryPlatform = 'youtube' | 'instagram' | 'tiktok';
 
 interface CalendarEntry {
   id: string;
   date: string; // 'YYYY-MM-DD'
   title: string;
   status: EntryStatus;
+  platform?: EntryPlatform;
   category?: string;
   notes?: string;
 }
@@ -43,6 +45,18 @@ const STATUS_BG: Record<EntryStatus, string> = {
   draft: '#fffbeb',
   scheduled: '#f5f2fd',
   published: '#ecfdf5',
+};
+
+const PLATFORM_COLORS: Record<string, string> = {
+  youtube: '#EF4444',
+  instagram: '#EC4899',
+  tiktok: '#0EA5E9',
+};
+
+const PLATFORM_LABELS: Record<string, string> = {
+  youtube: 'YouTube',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
 };
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -123,6 +137,7 @@ function EntryModal({
   const [title, setTitle] = useState(initial.title ?? '');
   const [category, setCategory] = useState(initial.category ?? 'Tutorial');
   const [status, setStatus] = useState<EntryStatus>(initial.status ?? 'idea');
+  const [platform, setPlatform] = useState<EntryPlatform | ''>(initial.platform ?? '');
   const [notes, setNotes] = useState(initial.notes ?? '');
   const overlayRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -134,6 +149,7 @@ function EntryModal({
       date: initial.date,
       title: title.trim(),
       status,
+      platform: platform || undefined,
       category,
       notes: notes.trim() || undefined,
     });
@@ -167,6 +183,20 @@ function EntryModal({
             placeholder="Video idea title…"
             className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
           />
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-gray-600 block mb-1">Platform</label>
+          <select
+            value={platform}
+            onChange={e => setPlatform(e.target.value as EntryPlatform | '')}
+            className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+          >
+            <option value="">Any platform</option>
+            <option value="youtube">YouTube</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -429,6 +459,11 @@ export default function ContentCalendarPage() {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const today = todayStr();
 
+  // Quick Schedule state
+  const [qsTitle, setQsTitle] = useState('');
+  const [qsPlatform, setQsPlatform] = useState<EntryPlatform>('youtube');
+  const [qsDate, setQsDate] = useState(todayStr());
+
   // Load from localStorage on mount
   useEffect(() => { setEntries(loadEntries()); }, []);
 
@@ -506,7 +541,7 @@ export default function ContentCalendarPage() {
   // ── Week grid ────────────────────────────────────────────────────────────────
 
   function buildWeekDays() {
-    // Find Monday of the week containing today (or viewYear/viewMonth/1 if different month)
+    // Find Monday of the week containing today
     const ref = new Date();
     const dow = (ref.getDay() + 6) % 7;
     const monday = new Date(ref);
@@ -533,214 +568,342 @@ export default function ContentCalendarPage() {
   const grid = buildMonthGrid();
   const weekDays = buildWeekDays();
 
+  // This Week entries — used by sidebar
+  const thisWeekEntries = weekDays
+    .flatMap(d => entries.filter(e => e.date === d))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return (
     <div className="min-h-full bg-[#faf9ff]">
-      <div className="px-4 py-6 sm:p-8 max-w-6xl mx-auto space-y-5">
+      <div className="px-4 py-6 sm:p-8 max-w-7xl mx-auto">
+        <div className="flex gap-6 items-start">
 
-        {/* Header */}
-        <div className="flex flex-wrap items-start gap-4 justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <CalendarDays className="w-5 h-5" style={{ color: '#7C3AED' }} />
-              <h1 className="text-2xl font-extrabold text-gray-900">Content Calendar</h1>
-            </div>
-            <p className="text-sm text-gray-500">AI-planned video schedule — add ideas, track status</p>
-          </div>
-          <button
-            onClick={() => setShowGenerate(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[.98] shrink-0"
-            style={{ background: 'linear-gradient(135deg,#D97706,#7C3AED)', boxShadow: '0 4px 16px -4px rgba(109,74,224,.4)' }}
-          >
-            <Sparkles className="w-4 h-4" />Generate Plan
-          </button>
-        </div>
+          {/* ── Main calendar area ─────────────────────────────────────────── */}
+          <div className="flex-1 min-w-0 space-y-5">
 
-        {/* Month nav + view toggle */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1">
-            <button onClick={prevMonth} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white transition-colors border border-[#e3ddf8]">
-              <ChevronLeft className="w-4 h-4 text-gray-600" />
-            </button>
-            <span className="text-base font-bold text-gray-900 min-w-[160px] text-center">
-              {MONTH_NAMES[viewMonth]} {viewYear}
-            </span>
-            <button onClick={nextMonth} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white transition-colors border border-[#e3ddf8]">
-              <ChevronRight className="w-4 h-4 text-gray-600" />
-            </button>
-          </div>
-          <div className="flex gap-1 p-1 rounded-xl ml-auto" style={{ background: '#f0edf9' }}>
-            {(['month', 'week'] as const).map(v => (
-              <button key={v} onClick={() => setViewMode(v)}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
-                style={viewMode === v ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
-                {v}
+            {/* Header */}
+            <div className="flex flex-wrap items-start gap-4 justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <CalendarDays className="w-5 h-5" style={{ color: '#7C3AED' }} />
+                  <h1 className="text-2xl font-extrabold text-gray-900">Content Calendar</h1>
+                </div>
+                <p className="text-sm text-gray-500">AI-planned video schedule — add ideas, track status</p>
+              </div>
+              <button
+                onClick={() => setShowGenerate(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[.98] shrink-0"
+                style={{ background: 'linear-gradient(135deg,#D97706,#7C3AED)', boxShadow: '0 4px 16px -4px rgba(109,74,224,.4)' }}
+              >
+                <Sparkles className="w-4 h-4" />Generate Plan
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats bar */}
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { label: 'Total', value: stats.total, color: '#6366f1', bg: '#eef2ff' },
-            { label: 'Drafts', value: stats.drafts, color: '#f59e0b', bg: '#fffbeb' },
-            { label: 'Scheduled', value: stats.scheduled, color: '#7C3AED', bg: '#f5f2fd' },
-            { label: 'Published', value: stats.published, color: '#10b981', bg: '#ecfdf5' },
-          ].map(s => (
-            <div key={s.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: s.bg, color: s.color }}>
-              <span className="text-base font-extrabold">{s.value}</span>{s.label}
             </div>
-          ))}
-        </div>
 
-        {/* ── Month View ── */}
-        {viewMode === 'month' && (
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            {/* Day header */}
-            <div className="grid grid-cols-7 border-b border-[#e3ddf8]">
-              {DAY_NAMES.map(d => (
-                <div key={d} className="py-2.5 text-center text-xs font-bold text-gray-500">{d}</div>
+            {/* Month nav + view toggle */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1">
+                <button onClick={prevMonth} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white transition-colors border border-[#e3ddf8]">
+                  <ChevronLeft className="w-4 h-4 text-gray-600" />
+                </button>
+                <span className="text-base font-bold text-gray-900 min-w-[160px] text-center">
+                  {MONTH_NAMES[viewMonth]} {viewYear}
+                </span>
+                <button onClick={nextMonth} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white transition-colors border border-[#e3ddf8]">
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+              <div className="flex gap-1 p-1 rounded-xl ml-auto" style={{ background: '#f0edf9' }}>
+                {(['month', 'week'] as const).map(v => (
+                  <button key={v} onClick={() => setViewMode(v)}
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize"
+                    style={viewMode === v ? { background: '#fff', color: '#6D4AE0', boxShadow: '0 2px 8px rgba(109,74,224,.15)' } : { color: '#9b8fc4' }}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats bar */}
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { label: 'Total', value: stats.total, color: '#6366f1', bg: '#eef2ff' },
+                { label: 'Drafts', value: stats.drafts, color: '#f59e0b', bg: '#fffbeb' },
+                { label: 'Scheduled', value: stats.scheduled, color: '#7C3AED', bg: '#f5f2fd' },
+                { label: 'Published', value: stats.published, color: '#10b981', bg: '#ecfdf5' },
+              ].map(s => (
+                <div key={s.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: s.bg, color: s.color }}>
+                  <span className="text-base font-extrabold">{s.value}</span>{s.label}
+                </div>
               ))}
             </div>
-            {/* Grid rows */}
-            <div className="grid grid-cols-7">
-              {grid.map((cell, idx) => {
-                if (!cell.date) return <div key={idx} className="min-h-[90px] border-b border-r border-[#f0edf9]" />;
-                const cellEntries = entries.filter(e => e.date === cell.date);
-                const isToday = cell.date === today;
-                const isExpanded = expandedDay === cell.date;
-                const visible = isExpanded ? cellEntries : cellEntries.slice(0, 3);
-                const overflow = cellEntries.length - 3;
-                return (
-                  <div
-                    key={idx}
-                    className="min-h-[90px] p-1.5 border-b border-r border-[#f0edf9] transition-colors hover:bg-[#faf9ff]"
-                    style={isToday ? { background: '#f5f2fd', outline: '2px solid #7C3AED', outlineOffset: '-2px', borderRadius: '2px' } : {}}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        className={`text-xs font-bold leading-none ${cell.inMonth ? (isToday ? 'text-[#7C3AED]' : 'text-gray-800') : 'text-gray-300'}`}
+
+            {/* ── Month View ── */}
+            {viewMode === 'month' && (
+              <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+                {/* Day header */}
+                <div className="grid grid-cols-7 border-b border-[#e3ddf8]">
+                  {DAY_NAMES.map(d => (
+                    <div key={d} className="py-2.5 text-center text-xs font-bold text-gray-500">{d}</div>
+                  ))}
+                </div>
+                {/* Grid rows */}
+                <div className="grid grid-cols-7">
+                  {grid.map((cell, idx) => {
+                    if (!cell.date) return <div key={idx} className="min-h-[90px] border-b border-r border-[#f0edf9]" />;
+                    const cellEntries = entries.filter(e => e.date === cell.date);
+                    const isToday = cell.date === today;
+                    const isExpanded = expandedDay === cell.date;
+                    const visible = isExpanded ? cellEntries : cellEntries.slice(0, 3);
+                    const overflow = cellEntries.length - 3;
+                    return (
+                      <div
+                        key={idx}
+                        className="min-h-[90px] p-1.5 border-b border-r border-[#f0edf9] transition-colors hover:bg-[#faf9ff]"
+                        style={isToday ? { background: '#f5f2fd', outline: '2px solid #7C3AED', outlineOffset: '-2px', borderRadius: '2px' } : {}}
                       >
-                        {cell.day}
-                      </span>
-                      <button
-                        onClick={() => setEditEntry({ date: cell.date! })}
-                        className="w-4 h-4 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-purple-600 hover:bg-purple-50"
-                        style={{ fontSize: '14px', lineHeight: 1 }}
-                        title="Add entry"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div
-                      className="space-y-0.5 cursor-pointer"
-                      onClick={() => { if (cellEntries.length === 0) setEditEntry({ date: cell.date! }); }}
-                    >
-                      {visible.map(entry => (
+                        <div className="flex items-center justify-between mb-1">
+                          <span
+                            className={`text-xs font-bold leading-none ${cell.inMonth ? (isToday ? 'text-[#7C3AED]' : 'text-gray-800') : 'text-gray-300'}`}
+                          >
+                            {cell.day}
+                          </span>
+                          <button
+                            onClick={() => setEditEntry({ date: cell.date! })}
+                            className="w-4 h-4 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-purple-600 hover:bg-purple-50"
+                            style={{ fontSize: '14px', lineHeight: 1 }}
+                            title="Add entry"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                         <div
-                          key={entry.id}
-                          onClick={e => { e.stopPropagation(); setEditEntry(entry); }}
-                          className="flex items-center gap-1 px-1 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity"
-                          style={{ background: STATUS_BG[entry.status] }}
+                          className="space-y-0.5 cursor-pointer"
+                          onClick={() => { if (cellEntries.length === 0) setEditEntry({ date: cell.date! }); }}
                         >
-                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: STATUS_COLORS[entry.status] }} />
-                          <span className="text-[10px] font-medium truncate" style={{ color: STATUS_COLORS[entry.status] }}>{entry.title}</span>
+                          {visible.map(entry => (
+                            <div
+                              key={entry.id}
+                              onClick={e => { e.stopPropagation(); setEditEntry(entry); }}
+                              className="flex items-center gap-1 px-1 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                              style={{ background: entry.platform ? `${PLATFORM_COLORS[entry.platform]}18` : STATUS_BG[entry.status] }}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: entry.platform ? PLATFORM_COLORS[entry.platform] : STATUS_COLORS[entry.status] }} />
+                              <span className="text-[10px] font-medium truncate" style={{ color: entry.platform ? PLATFORM_COLORS[entry.platform] : STATUS_COLORS[entry.status] }}>{entry.title}</span>
+                            </div>
+                          ))}
+                          {overflow > 0 && !isExpanded && (
+                            <button
+                              onClick={e => { e.stopPropagation(); setExpandedDay(cell.date!); }}
+                              className="text-[10px] text-purple-500 font-semibold hover:underline w-full text-left px-1"
+                            >
+                              +{overflow} more
+                            </button>
+                          )}
+                          {isExpanded && (
+                            <button
+                              onClick={e => { e.stopPropagation(); setExpandedDay(null); }}
+                              className="text-[10px] text-gray-400 font-semibold hover:underline w-full text-left px-1"
+                            >
+                              show less
+                            </button>
+                          )}
                         </div>
-                      ))}
-                      {overflow > 0 && !isExpanded && (
-                        <button
-                          onClick={e => { e.stopPropagation(); setExpandedDay(cell.date!); }}
-                          className="text-[10px] text-purple-500 font-semibold hover:underline w-full text-left px-1"
-                        >
-                          +{overflow} more
-                        </button>
-                      )}
-                      {isExpanded && (
-                        <button
-                          onClick={e => { e.stopPropagation(); setExpandedDay(null); }}
-                          className="text-[10px] text-gray-400 font-semibold hover:underline w-full text-left px-1"
-                        >
-                          show less
-                        </button>
-                      )}
-                    </div>
-                    {cellEntries.length === 0 && cell.inMonth && (
-                      <div
-                        onClick={() => setEditEntry({ date: cell.date! })}
-                        className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer mt-1"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-gray-300" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── Week View ── */}
-        {viewMode === 'week' && (
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-            <div className="grid grid-cols-7 border-b border-[#e3ddf8]">
-              {weekDays.map((dateStr, i) => {
-                const d = new Date(dateStr + 'T00:00:00');
-                const isToday = dateStr === today;
-                return (
-                  <div key={dateStr} className="py-3 px-2 text-center border-r border-[#f0edf9] last:border-r-0" style={isToday ? { background: '#f5f2fd' } : {}}>
-                    <div className="text-[10px] font-bold text-gray-400">{DAY_NAMES[i]}</div>
-                    <div className={`text-sm font-bold ${isToday ? 'text-[#7C3AED]' : 'text-gray-800'}`}>{d.getDate()}</div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-7">
-              {weekDays.map(dateStr => {
-                const dayEntries = entries.filter(e => e.date === dateStr);
-                const isToday = dateStr === today;
-                return (
-                  <div
-                    key={dateStr}
-                    className="min-h-[200px] p-2 border-r border-[#f0edf9] last:border-r-0 space-y-1.5"
-                    style={isToday ? { background: '#faf5ff' } : {}}
-                  >
-                    {dayEntries.map(entry => (
-                      <div
-                        key={entry.id}
-                        onClick={() => setEditEntry(entry)}
-                        className="p-2 rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
-                        style={{ background: STATUS_BG[entry.status], border: `1.5px solid ${STATUS_COLORS[entry.status]}22` }}
-                      >
-                        <p className="text-xs font-semibold leading-snug line-clamp-2" style={{ color: STATUS_COLORS[entry.status] }}>{entry.title}</p>
-                        {entry.category && (
-                          <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1" style={{ background: 'rgba(109,74,224,.1)', color: '#6D4AE0' }}>{entry.category}</span>
+                        {cellEntries.length === 0 && cell.inMonth && (
+                          <div
+                            onClick={() => setEditEntry({ date: cell.date! })}
+                            className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer mt-1"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-gray-300" />
+                          </div>
                         )}
-                        <div className="mt-1">
-                          <span className="text-[10px] font-bold capitalize" style={{ color: STATUS_COLORS[entry.status] }}>{entry.status}</span>
-                        </div>
                       </div>
-                    ))}
-                    <button
-                      onClick={() => setEditEntry({ date: dateStr })}
-                      className="w-full flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-medium text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors border-2 border-dashed border-gray-200 hover:border-purple-200"
-                    >
-                      <Plus className="w-3 h-3" />Add
-                    </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Week View ── */}
+            {viewMode === 'week' && (
+              <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+                <div className="grid grid-cols-7 border-b border-[#e3ddf8]">
+                  {weekDays.map((dateStr, i) => {
+                    const d = new Date(dateStr + 'T00:00:00');
+                    const isToday = dateStr === today;
+                    return (
+                      <div key={dateStr} className="py-3 px-2 text-center border-r border-[#f0edf9] last:border-r-0" style={isToday ? { background: '#f5f2fd' } : {}}>
+                        <div className="text-[10px] font-bold text-gray-400">{DAY_NAMES[i]}</div>
+                        <div className={`text-sm font-bold ${isToday ? 'text-[#7C3AED]' : 'text-gray-800'}`}>{d.getDate()}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="grid grid-cols-7">
+                  {weekDays.map(dateStr => {
+                    const dayEntries = entries.filter(e => e.date === dateStr);
+                    const isToday = dateStr === today;
+                    return (
+                      <div
+                        key={dateStr}
+                        className="min-h-[200px] p-2 border-r border-[#f0edf9] last:border-r-0 space-y-1.5"
+                        style={isToday ? { background: '#faf5ff' } : {}}
+                      >
+                        {dayEntries.map(entry => (
+                          <div
+                            key={entry.id}
+                            onClick={() => setEditEntry(entry)}
+                            className="p-2 rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+                            style={{ background: STATUS_BG[entry.status], border: `1.5px solid ${STATUS_COLORS[entry.status]}22` }}
+                          >
+                            <p className="text-xs font-semibold leading-snug line-clamp-2" style={{ color: STATUS_COLORS[entry.status] }}>{entry.title}</p>
+                            {entry.platform && (
+                              <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1" style={{ background: `${PLATFORM_COLORS[entry.platform]}18`, color: PLATFORM_COLORS[entry.platform] }}>{PLATFORM_LABELS[entry.platform]}</span>
+                            )}
+                            {entry.category && (
+                              <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 ml-1" style={{ background: 'rgba(109,74,224,.1)', color: '#6D4AE0' }}>{entry.category}</span>
+                            )}
+                            <div className="mt-1">
+                              <span className="text-[10px] font-bold capitalize" style={{ color: STATUS_COLORS[entry.status] }}>{entry.status}</span>
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => setEditEntry({ date: dateStr })}
+                          className="w-full flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-medium text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors border-2 border-dashed border-gray-200 hover:border-purple-200"
+                        >
+                          <Plus className="w-3 h-3" />Add
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Legend — status + platform */}
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <div className="flex items-center gap-4 flex-wrap">
+                {(Object.entries(STATUS_COLORS) as Array<[EntryStatus, string]>).map(([s, color]) => (
+                  <div key={s} className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                    <span className="capitalize font-medium">{s}</span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {Object.entries(PLATFORM_COLORS).map(([p, color]) => (
+                  <div key={p} className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                    <span className="capitalize font-medium">{PLATFORM_LABELS[p]}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 flex-wrap">
-          {(Object.entries(STATUS_COLORS) as Array<[EntryStatus, string]>).map(([s, color]) => (
-            <div key={s} className="flex items-center gap-1.5 text-xs text-gray-500">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-              <span className="capitalize font-medium">{s}</span>
+          {/* ── Right Sidebar ──────────────────────────────────────────────── */}
+          <div className="hidden lg:flex flex-col gap-4 w-72 shrink-0 sticky top-6">
+
+            {/* This Week card */}
+            <div className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-gray-800">This Week</h3>
+                <span className="text-xs text-gray-400">{thisWeekEntries.length} post{thisWeekEntries.length !== 1 ? 's' : ''}</span>
+              </div>
+              {thisWeekEntries.length === 0 ? (
+                <div className="py-4 text-center">
+                  <p className="text-xs text-gray-400">No posts this week</p>
+                  <button
+                    onClick={() => setEditEntry({ date: today })}
+                    className="mt-2 text-xs font-semibold hover:underline"
+                    style={{ color: '#6D4AE0' }}
+                  >
+                    + Add one
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {thisWeekEntries.map(e => {
+                    const isToday = e.date === today;
+                    const d = new Date(e.date + 'T00:00:00');
+                    return (
+                      <div key={e.id} onClick={() => setEditEntry(e)} className="flex items-start gap-2 cursor-pointer group">
+                        <div
+                          className="w-9 h-9 rounded-xl flex flex-col items-center justify-center shrink-0"
+                          style={{ background: isToday ? '#7C3AED' : '#f5f2fd' }}
+                        >
+                          <span className="text-[9px] font-bold" style={{ color: isToday ? '#fff' : '#9b8fc4' }}>{DAY_NAMES[(d.getDay() + 6) % 7]}</span>
+                          <span className="text-sm font-extrabold leading-none" style={{ color: isToday ? '#fff' : '#6D4AE0' }}>{d.getDate()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0 pt-0.5">
+                          <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-purple-700 transition-colors">{e.title}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {isToday && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#7C3AED] text-white">TODAY</span>}
+                            <span className="text-[10px] font-semibold capitalize" style={{ color: STATUS_COLORS[e.status] }}>{e.status}</span>
+                            {e.platform && <span className="text-[10px] font-semibold" style={{ color: PLATFORM_COLORS[e.platform] }}>{PLATFORM_LABELS[e.platform]}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ))}
+
+            {/* Quick Schedule card */}
+            <div className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
+              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                <Plus className="w-3.5 h-3.5 text-purple-500" />Quick Schedule
+              </h3>
+              <input
+                type="text"
+                value={qsTitle}
+                onChange={e => setQsTitle(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && qsTitle.trim() && qsDate) {
+                    saveEntry({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, date: qsDate, title: qsTitle.trim(), status: 'scheduled', platform: qsPlatform });
+                    setQsTitle('');
+                  }
+                }}
+                placeholder="Video title…"
+                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+              />
+              <select
+                value={qsPlatform}
+                onChange={e => setQsPlatform(e.target.value as EntryPlatform)}
+                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+              >
+                <option value="youtube">YouTube</option>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+              </select>
+              <input
+                type="date"
+                value={qsDate}
+                onChange={e => setQsDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 focus:outline-none focus:border-purple-400 bg-[#faf9ff]"
+              />
+              <button
+                onClick={() => {
+                  if (!qsTitle.trim() || !qsDate) return;
+                  saveEntry({
+                    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                    date: qsDate,
+                    title: qsTitle.trim(),
+                    status: 'scheduled',
+                    platform: qsPlatform,
+                  });
+                  setQsTitle('');
+                }}
+                disabled={!qsTitle.trim()}
+                className="w-full py-2 rounded-xl text-xs font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg,#6D4AE0,#7c5ae8)' }}
+              >
+                Schedule Post
+              </button>
+            </div>
+
+          </div>
         </div>
       </div>
 
