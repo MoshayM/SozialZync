@@ -701,7 +701,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="cf-shell overflow-hidden flex flex-col bg-[#F4F3FB] text-[#1E1B2E]">
+    <div className="cf-shell overflow-hidden flex flex-col bg-[#f3f4f6] text-[#1E1B2E]">
 
       <CommandPalette
         open={paletteOpen}
