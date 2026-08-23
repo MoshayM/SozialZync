@@ -242,7 +242,7 @@ function detectEmotion(text: string): 'excited' | 'error' | 'neutral' {
 }
 
 // CSS plastic robot body with SVG camera-lens eyes (matching Capture.PNG style)
-function RobotSvgBody({ state, excited, onMicToggle, voiceEnabled }: { state: RobotState; excited: boolean; onMicToggle?: () => void; voiceEnabled?: boolean }) {
+function RobotSvgBody({ state, excited, onMicToggle, voiceEnabled, volumeBars }: { state: RobotState; excited: boolean; onMicToggle?: () => void; voiceEnabled?: boolean; volumeBars?: number[] }) {
   const [pupilOff, setPupilOff] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -380,12 +380,21 @@ function RobotSvgBody({ state, excited, onMicToggle, voiceEnabled }: { state: Ro
                   : 'inset 0 2px 10px rgba(0,0,0,0.9)',
               }}
             >
-              {/* Listening — big green bars */}
+              {/* Listening — amplitude-driven green bars */}
               {isListening && (
-                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3.5, width:'100%', paddingBottom:4, paddingTop:4 }}>
-                  {[0,1,2,3,4].map(i => (
-                    <div key={i} style={{ width:6, height:'65%', borderRadius:3, transformOrigin:'bottom', background:'#4ADE80', boxShadow:'0 0 7px #4ADE80cc', animation:`cfVoiceBar 0.38s ease-in-out ${i*0.11}s infinite` }} />
-                  ))}
+                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3.5, width:'100%', paddingBottom:4, paddingTop:4, height:'65%' }}>
+                  {[0,1,2,3,4].map(i => {
+                    const amp = volumeBars ? Math.max(0.08, Math.min(1, volumeBars[i] ?? 0.15)) : null;
+                    return (
+                      <div key={i} style={{
+                        width:6, height:'100%', borderRadius:3, transformOrigin:'bottom',
+                        background:'#4ADE80', boxShadow:`0 0 7px #4ADE80${amp ? Math.round(amp * 255).toString(16).padStart(2,'0') : 'cc'}`,
+                        transform: amp !== null ? `scaleY(${amp})` : undefined,
+                        animation: amp === null ? `cfVoiceBar 0.38s ease-in-out ${i*0.11}s infinite` : 'none',
+                        transition: amp !== null ? 'transform 0.06s ease-out, box-shadow 0.06s ease-out' : 'none',
+                      }} />
+                    );
+                  })}
                 </div>
               )}
 
@@ -448,7 +457,7 @@ function RobotSvgBody({ state, excited, onMicToggle, voiceEnabled }: { state: Ro
   );
 }
 
-function RobotAvatar({ state, excited = false, compact = false, onMicToggle, voiceEnabled }: { state: RobotState; excited?: boolean; compact?: boolean; onMicToggle?: () => void; voiceEnabled?: boolean }) {
+function RobotAvatar({ state, excited = false, compact = false, onMicToggle, voiceEnabled, volumeBars }: { state: RobotState; excited?: boolean; compact?: boolean; onMicToggle?: () => void; voiceEnabled?: boolean; volumeBars?: number[] }) {
   const robotAnim: React.CSSProperties['animation'] = excited
     ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
     : state === 'speaking' ? 'cfHeadBob 0.9s ease-in-out infinite'
@@ -461,7 +470,7 @@ function RobotAvatar({ state, excited = false, compact = false, onMicToggle, voi
     return (
       <div style={{ position:'relative', width:76, height:90, flexShrink:0, animation:robotAnim }}>
         <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-52%) scale(0.72)', transformOrigin:'center center' }}>
-          <RobotSvgBody state={state} excited={excited} onMicToggle={onMicToggle} voiceEnabled={voiceEnabled} />
+          <RobotSvgBody state={state} excited={excited} onMicToggle={onMicToggle} voiceEnabled={voiceEnabled} volumeBars={volumeBars} />
         </div>
         {excited && [{dx:'-20px',dy:'-18px'},{dx:'20px',dy:'-18px'},{dx:'-24px',dy:'4px'},{dx:'24px',dy:'4px'}].map((s, i) => (
           <span key={i} style={{ position:'absolute', top:28, left:38, width:4, height:4, borderRadius:'50%',
@@ -567,11 +576,17 @@ export function CopilotPanel() {
   const [showBubble, setShowBubble]   = useState(false);
   const bubbleTimerRef = useRef<ReturnType<typeof setTimeout>|null>(null);
 
+  // real-time voice amplitude (5 bars, 0–1)
+  const [volumeBars, setVolumeBars] = useState<number[]>([0.15, 0.15, 0.15, 0.15, 0.15]);
+
   // refs
   const conversationRef  = useRef(false);
   const recognitionRef   = useRef<SpeechRecognitionLike|null>(null);
   const mediaRecorderRef = useRef<MediaRecorder|null>(null);
   const audioChunksRef   = useRef<Blob[]>([]);
+  const micAudioCtxRef   = useRef<AudioContext|null>(null);
+  const micAnalyserRef   = useRef<AnalyserNode|null>(null);
+  const micRafRef        = useRef<number>(0);
   const messagesEndRef   = useRef<HTMLDivElement>(null);
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
   const speechPrimedRef  = useRef(false);
@@ -642,6 +657,45 @@ export function CopilotPanel() {
     const id = setTimeout(() => setMicError(null), 6000);
     return () => clearTimeout(id);
   }, [micError]);
+
+  // ── Voice amplitude analyser ──────────────────────────────────────────────
+
+  const startVoiceAnalyser = useCallback((stream: MediaStream) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const AC: typeof AudioContext = (window as any).AudioContext ?? (window as any).webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.55;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      micAudioCtxRef.current = ctx;
+      micAnalyserRef.current = analyser;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const step = Math.floor(analyser.frequencyBinCount / 5);
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        const bars = Array.from({ length: 5 }, (_, idx) => {
+          let sum = 0;
+          for (let j = idx * step; j < (idx + 1) * step; j++) sum += data[j] ?? 0;
+          return Math.max(0.08, (sum / step) / 255);
+        });
+        setVolumeBars(bars);
+        micRafRef.current = requestAnimationFrame(tick);
+      };
+      micRafRef.current = requestAnimationFrame(tick);
+    } catch { /* AudioContext unavailable */ }
+  }, []);
+
+  const stopVoiceAnalyser = useCallback(() => {
+    cancelAnimationFrame(micRafRef.current);
+    micAnalyserRef.current?.disconnect();
+    micAudioCtxRef.current?.close().catch(() => {});
+    micAudioCtxRef.current = null;
+    micAnalyserRef.current = null;
+    setVolumeBars([0.15, 0.15, 0.15, 0.15, 0.15]);
+  }, []);
 
   // ── Audio priming ──────────────────────────────────────────────────────────
 
@@ -831,6 +885,7 @@ export function CopilotPanel() {
     let stream: MediaStream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
     catch { setListening(false); setMicError('Microphone permission denied'); return; }
+    startVoiceAnalyser(stream);
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
       : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
     const recorder = new MediaRecorder(stream, { mimeType });
@@ -839,6 +894,7 @@ export function CopilotPanel() {
     setRecording(true);
     recorder.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
     recorder.onstop = async () => {
+      stopVoiceAnalyser();
       setRecording(false); setListening(false);
       stream.getTracks().forEach(t => t.stop());
       const blob = new Blob(audioChunksRef.current, { type: mimeType });
@@ -864,14 +920,15 @@ export function CopilotPanel() {
     };
     recorder.start(250);
     window.speechSynthesis?.cancel();
-  }, [lang, send]);
+  }, [lang, send, startVoiceAnalyser, stopVoiceAnalyser]);
 
   const startBrowserSTT = useCallback(async () => {
     const rec = getBrowserRecognition();
     if (!rec) { setListening(false); setMicError('Voice not supported — use Chrome or Edge'); return; }
+    let analyserStream: MediaStream | null = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(t => t.stop());
+      analyserStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      startVoiceAnalyser(analyserStream); // keep stream open for amplitude analysis
     } catch (err) {
       setListening(false); conversationRef.current = false;
       const name = (err as { name?: string }).name;
@@ -894,18 +951,22 @@ export function CopilotPanel() {
       setInput(finalText + interim);
     };
     rec.onend = () => {
+      stopVoiceAnalyser();
+      analyserStream?.getTracks().forEach(t => t.stop());
       setListening(false);
       if (finalText.trim()) { conversationRef.current = true; void send(finalText.trim()); }
       else { conversationRef.current = false; setInput(''); setLiveTranscript(''); }
     };
     rec.onerror = e => {
+      stopVoiceAnalyser();
+      analyserStream?.getTracks().forEach(t => t.stop());
       setListening(false); conversationRef.current = false;
       if (e.error === 'not-allowed') setMicError('Mic blocked — allow microphone in your browser');
     };
     window.speechSynthesis?.cancel();
     try { rec.start(); }
-    catch { setListening(false); conversationRef.current = false; setMicError('Could not start microphone'); }
-  }, [send, lang]);
+    catch { stopVoiceAnalyser(); analyserStream?.getTracks().forEach(t => t.stop()); setListening(false); conversationRef.current = false; setMicError('Could not start microphone'); }
+  }, [send, lang, startVoiceAnalyser, stopVoiceAnalyser]);
 
   const startListening = useCallback(() => {
     setMicError(null);
@@ -918,6 +979,7 @@ export function CopilotPanel() {
     primeAudio();
     if (listening || recording) {
       conversationRef.current = false;
+      stopVoiceAnalyser();
       if (mediaRecorderRef.current) stopServerSTT();
       else recognitionRef.current?.stop();
       setListening(false); setRecording(false);
@@ -925,7 +987,7 @@ export function CopilotPanel() {
     }
     setListening(true); setMicError(null); conversationRef.current = true;
     startListening();
-  }, [listening, recording, startListening, stopServerSTT, primeAudio]);
+  }, [listening, recording, startListening, stopServerSTT, stopVoiceAnalyser, primeAudio]);
 
   function toggleVoice() {
     primeAudio();
@@ -1367,7 +1429,7 @@ export function CopilotPanel() {
 
           {/* ── Robot — full size, behind panel ── */}
           <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
-            <RobotAvatar state={robotState} excited={excited} onMicToggle={toggleVoice} voiceEnabled={voiceEnabled} />
+            <RobotAvatar state={robotState} excited={excited} onMicToggle={toggleVoice} voiceEnabled={voiceEnabled} volumeBars={volumeBars} />
           </div>
 
           {/* ── Topic pills — bottom of robot ── */}
