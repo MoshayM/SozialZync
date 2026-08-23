@@ -1,6 +1,7 @@
 /**
  * setup-admins.cjs
- * Ensures the designated OWNER and SUPER_ADMIN accounts have:
+ * Ensures designated SUPER_ADMIN accounts have:
+ *   - Correct role (SUPER_ADMIN) + password hash
  *   - AGENCY subscription that never expires (currentPeriodEnd = 2099-12-31)
  *   - Wallet with 10 M purchased credits (bypasses trial checks)
  *   - TrialGrant status = CONVERTED (never counted as trial user)
@@ -12,14 +13,31 @@
 'use strict';
 
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const ADMINS = [
-  { email: 'moshaymuthukumar@gmail.com', role: 'SUPER_ADMIN', stripeKey: 'admin_sa_moshaymuthukumar' },
-  { email: 'ethonanpasumvalki@gmail.com', role: 'OWNER',       stripeKey: 'admin_owner_ethonanpasumvalki' },
+  {
+    email: 'sozialzync@gmail.com',
+    role: 'SUPER_ADMIN',
+    password: 'Admin@123',
+    stripeKey: 'admin_sa_sozialzync',
+  },
+  {
+    email: 'ethonanpasumvalki@gmail.com',
+    role: 'SUPER_ADMIN',
+    password: 'Creator@123',
+    stripeKey: 'admin_sa_ethonanpasumvalki',
+  },
+  {
+    email: 'moshaymuthukumar@gmail.com',
+    role: 'SUPER_ADMIN',
+    password: null,
+    stripeKey: 'admin_sa_moshaymuthukumar',
+  },
 ];
 
-const AGENCY_EXPIRY    = new Date('2099-12-31T23:59:59.000Z');
-const ADMIN_CREDITS    = 10_000_000;
+const AGENCY_EXPIRY = new Date('2099-12-31T23:59:59.000Z');
+const ADMIN_CREDITS = 10_000_000;
 
 async function main() {
   const prisma = new PrismaClient();
@@ -27,36 +45,48 @@ async function main() {
     for (const admin of ADMINS) {
       console.log(`\n→ Setting up ${admin.role}: ${admin.email}`);
 
-      // 1. Upsert user record
+      // 1. Hash password if provided
+      const passwordHash = admin.password ? await bcrypt.hash(admin.password, 12) : undefined;
+
+      // 2. Upsert user record with role + password
       const user = await prisma.user.upsert({
         where:  { email: admin.email },
-        update: { role: admin.role },
-        create: { email: admin.email, role: admin.role },
+        update: {
+          role: admin.role,
+          ...(passwordHash ? { passwordHash } : {}),
+          emailVerified: new Date(),
+        },
+        create: {
+          email: admin.email,
+          role: admin.role,
+          emailVerified: new Date(),
+          ...(passwordHash ? { passwordHash } : {}),
+        },
       });
-      console.log(`  ✓ User ${user.id} (${user.role})`);
+      console.log(`  ✓ User ${user.id} (${user.role})${passwordHash ? ' — password set' : ' — password unchanged'}`);
 
-      // 2. Upsert AGENCY subscription — never expires
+      // 3. Upsert AGENCY subscription — never expires
       const sub = await prisma.subscription.upsert({
         where:  { userId: user.id },
         update: {
+          plan:              'AGENCY',
+          status:            'ACTIVE',
+          currentPeriodEnd:  AGENCY_EXPIRY,
+          cancelAtPeriodEnd: false,
+        },
+        create: {
+          userId:             user.id,
+          stripeCustomerId:   admin.stripeKey,
           plan:               'AGENCY',
           status:             'ACTIVE',
+          currentPeriodStart: new Date(),
           currentPeriodEnd:   AGENCY_EXPIRY,
           cancelAtPeriodEnd:  false,
         },
-        create: {
-          userId:              user.id,
-          stripeCustomerId:    admin.stripeKey,
-          plan:                'AGENCY',
-          status:              'ACTIVE',
-          currentPeriodStart:  new Date(),
-          currentPeriodEnd:    AGENCY_EXPIRY,
-          cancelAtPeriodEnd:   false,
-        },
       });
-      console.log(`  ✓ Subscription ${sub.id} — AGENCY until ${AGENCY_EXPIRY.toISOString().slice(0, 10)}`);
+      console.log(`  ✓ Subscription ${sub.id} — AGENCY until 2099-12-31`);
 
-      // 3. Upsert wallet with abundant purchased credits
+      // 4. Upsert wallet with abundant purchased credits
       const wallet = await prisma.wallet.upsert({
         where:  { userId: user.id },
         update: {
@@ -73,7 +103,7 @@ async function main() {
       });
       console.log(`  ✓ Wallet ${wallet.id} — ${ADMIN_CREDITS.toLocaleString()} credits`);
 
-      // 4. Mark trial as CONVERTED so isTrialUser() is always false
+      // 5. Mark trial as CONVERTED so isTrialUser() is always false
       const now = new Date();
       const trialGrant = await prisma.trialGrant.upsert({
         where:  { userId: user.id },
@@ -89,7 +119,10 @@ async function main() {
       console.log(`  ✓ TrialGrant ${trialGrant.id} — CONVERTED`);
     }
 
-    console.log('\n✅ Admin setup complete.\n');
+    console.log('\n✅ Admin setup complete.');
+    console.log('\nAlso set these env vars on Railway (API service):');
+    console.log('  SUPER_ADMIN_EMAILS=sozialzync@gmail.com,ethonanpasumvalki@gmail.com,moshaymuthukumar@gmail.com');
+    console.log('\nThen redeploy: railway up\n');
   } finally {
     await prisma.$disconnect();
   }

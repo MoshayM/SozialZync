@@ -994,6 +994,10 @@ export const api = {
     users: () => apiClient.get<AdminUser[]>('/admin/users'),
     setRechargesFrozen: (userId: string, frozen: boolean, reason?: string) =>
       apiClient.post<{ id: string; email: string; rechargesFrozen: boolean }>(`/admin/users/${userId}/recharges-frozen`, { frozen, reason }),
+    upsertAdminUser: (email: string, password: string, role: 'SUPER_ADMIN' | 'OWNER' = 'SUPER_ADMIN', name?: string) =>
+      apiClient.post<{ id: string; email: string; role: string; name: string; action: 'created' | 'updated' }>('/admin/users/upsert', { email, password, role, name }),
+    transferRecords: (sourceEmail: string, targetEmail: string) =>
+      apiClient.post<{ from: string; to: string; transferred: Record<string, number> }>('/admin/users/transfer-records', { sourceEmail, targetEmail }),
     publicContent: (opts?: { cursor?: string; take?: number; q?: string }) => {
       const sp = new URLSearchParams();
       if (opts?.cursor) sp.set('cursor', opts.cursor);

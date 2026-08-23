@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards, BadRequestException } from '@nestjs/common';
-import { IsIn, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import * as bcrypt from 'bcryptjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard, RequirePermissions } from '../../common/guards/permissions.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
@@ -20,6 +21,18 @@ class AdjustWalletDto {
   @IsInt() amount!: number;
   @IsString() @MinLength(5) reason!: string;
   @IsIn(['BONUS', 'PROMO', 'ADJUSTMENT']) entryType!: 'BONUS' | 'PROMO' | 'ADJUSTMENT';
+}
+
+class UpsertAdminUserDto {
+  @IsEmail() email!: string;
+  @IsString() @MinLength(8) password!: string;
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsIn(['SUPER_ADMIN', 'OWNER']) role?: 'SUPER_ADMIN' | 'OWNER';
+}
+
+class TransferRecordsDto {
+  @IsEmail() sourceEmail!: string;
+  @IsEmail() targetEmail!: string;
 }
 
 /**
@@ -163,5 +176,92 @@ export class AdminController {
       },
     });
     return { entry, before: before.balanceCredits, after: after.balanceCredits };
+  }
+
+  /** POST /admin/users/upsert
+   * Create or update an admin user with a specific email, password, and role.
+   * Creates the account if it doesn't exist; updates password + role if it does.
+   */
+  @Post('users/upsert')
+  @RequirePermissions('admin:users')
+  async upsertAdminUser(@Body() dto: UpsertAdminUserDto, @CurrentUser() admin: JwtPayload) {
+    const email = dto.email.trim().toLowerCase();
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const role = dto.role ?? 'SUPER_ADMIN';
+
+    const existing = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      select: { id: true, email: true, role: true },
+    });
+
+    let user;
+    if (existing) {
+      user = await this.prisma.user.update({
+        where: { id: existing.id },
+        data: { passwordHash, role, name: dto.name ?? undefined },
+        select: { id: true, email: true, role: true, name: true },
+      });
+    } else {
+      user = await this.prisma.user.create({
+        data: { email, passwordHash, role, name: dto.name ?? email.split('@')[0], emailVerified: new Date() },
+        select: { id: true, email: true, role: true, name: true },
+      });
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: admin.sub,
+        action: existing ? 'admin:user-updated' : 'admin:user-created',
+        target: user.id,
+        meta: { email, role, by: admin.email } as never,
+      },
+    });
+
+    return { ...user, action: existing ? 'updated' : 'created' };
+  }
+
+  /** POST /admin/users/transfer-records
+   * Transfer all content records from sourceEmail to targetEmail.
+   * Moves: Channels, Projects, Videos, Scripts, ImportedVideos, Assets, EditProjects.
+   */
+  @Post('users/transfer-records')
+  @RequirePermissions('admin:users')
+  async transferRecords(@Body() dto: TransferRecordsDto, @CurrentUser() admin: JwtPayload) {
+    const [src, tgt] = await Promise.all([
+      this.prisma.user.findFirst({ where: { email: { equals: dto.sourceEmail.trim().toLowerCase(), mode: 'insensitive' } }, select: { id: true, email: true } }),
+      this.prisma.user.findFirst({ where: { email: { equals: dto.targetEmail.trim().toLowerCase(), mode: 'insensitive' } }, select: { id: true, email: true } }),
+    ]);
+    if (!src) throw new BadRequestException(`Source user not found: ${dto.sourceEmail}`);
+    if (!tgt) throw new BadRequestException(`Target user not found: ${dto.targetEmail}`);
+    if (src.id === tgt.id) throw new BadRequestException('Source and target are the same user');
+
+    const [channels, projects, videos, assets, editProjects, importedVideos] = await Promise.all([
+      this.prisma.channel.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
+      this.prisma.project.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
+      this.prisma.video.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
+      this.prisma.asset.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
+      this.prisma.editProject.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
+      this.prisma.importedVideo.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
+    ]);
+
+    const summary = {
+      channels: channels.count,
+      projects: projects.count,
+      videos: videos.count,
+      assets: assets.count,
+      editProjects: editProjects.count,
+      importedVideos: importedVideos.count,
+    };
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: admin.sub,
+        action: 'admin:transfer-records',
+        target: tgt.id,
+        meta: { from: src.email, to: tgt.email, summary, by: admin.email } as never,
+      },
+    });
+
+    return { from: src.email, to: tgt.email, transferred: summary };
   }
 }
