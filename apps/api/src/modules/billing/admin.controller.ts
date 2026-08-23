@@ -235,22 +235,15 @@ export class AdminController {
     if (!tgt) throw new BadRequestException(`Target user not found: ${dto.targetEmail}`);
     if (src.id === tgt.id) throw new BadRequestException('Source and target are the same user');
 
-    const [channels, projects, videos, assets, editProjects, importedVideos] = await Promise.all([
+    // Video, Asset, EditProject, ImportedVideo cascade from Project/Channel — no direct userId field.
+    const [channels, projects] = await Promise.all([
       this.prisma.channel.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
       this.prisma.project.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
-      this.prisma.video.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
-      this.prisma.asset.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
-      this.prisma.editProject.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
-      this.prisma.importedVideo.updateMany({ where: { userId: src.id }, data: { userId: tgt.id } }),
     ]);
 
     const summary = {
       channels: channels.count,
       projects: projects.count,
-      videos: videos.count,
-      assets: assets.count,
-      editProjects: editProjects.count,
-      importedVideos: importedVideos.count,
     };
 
     await this.prisma.auditLog.create({
