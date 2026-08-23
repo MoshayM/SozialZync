@@ -50,8 +50,8 @@ export function ProBanner({ feature, description, className = '' }: ProBannerPro
     >
       <span className="text-xl shrink-0">⭐</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-[#374151]">{feature} · Pro Feature</p>
-        {description && <p className="text-xs leading-snug mt-0.5" style={{ color: 'rgba(55,65,81,.7)' }}>{description}</p>}
+        <p className="text-sm font-bold text-white/90">{feature} · Pro Feature</p>
+        {description && <p className="text-xs leading-snug mt-0.5 text-white/65">{description}</p>}
       </div>
       <button
         type="button"
@@ -78,9 +78,10 @@ function ProUpgradeCard({
     <div
       className="rounded-2xl p-6 flex flex-col items-center text-center gap-4 max-w-sm mx-auto w-full"
       style={{
-        background: 'white',
-        border: '1.5px solid rgba(55,65,81,.25)',
-        boxShadow: '0 8px 32px -8px rgba(55,65,81,.2)',
+        background: 'rgba(255,255,255,.05)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,.08)',
+        boxShadow: '0 8px 32px -8px rgba(0,0,0,.4)',
       }}
     >
       <div
@@ -90,8 +91,8 @@ function ProUpgradeCard({
         ⭐
       </div>
       <div>
-        <p className="font-extrabold text-gray-900 text-base mb-1">{feature}</p>
-        <p className="text-sm text-gray-500 leading-relaxed">
+        <p className="font-extrabold text-white text-base mb-1">{feature}</p>
+        <p className="text-sm text-white/55 leading-relaxed">
           {description ?? 'This feature is available on the Pro plan. Upgrade to unlock it.'}
         </p>
       </div>
@@ -107,7 +108,7 @@ function ProUpgradeCard({
         >
           Upgrade to Pro
         </button>
-        <p className="text-[11px] text-gray-400">No credit card required to explore</p>
+        <p className="text-[11px] text-white/45">No credit card required to explore</p>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -42,7 +42,7 @@ function PrivacyBadge({ isPublic }: { isPublic: boolean }) {
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-      style={{ background: 'rgba(55,65,81,.1)', color: '#374151' }}>
+      style={{ background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.55)' }}>
       <Lock className="w-2.5 h-2.5" /> Private
     </span>
   );
@@ -95,8 +95,8 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
       disabled={disabled}
       onClick={(e) => { e.stopPropagation(); setOpen(false); if (!disabled) onClick(); }}
       className="w-full text-left flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      style={{ color: danger ? '#dc2626' : '#374151' }}
-      onMouseEnter={(e) => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.background = danger ? '#fef2f2' : '#f9fafb'; }}
+      style={{ color: danger ? '#dc2626' : 'rgba(255,255,255,.8)' }}
+      onMouseEnter={(e) => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.background = danger ? 'rgba(239,68,68,.12)' : 'rgba(255,255,255,.06)'; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = ''; }}
     >
       {icon} {label}
@@ -118,38 +118,38 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
       </button>
 
       {open && (
-        <div className="absolute right-0 top-9 bg-white rounded-2xl py-1.5 min-w-[175px] shadow-xl z-30"
-          style={{ border: '1.5px solid #e3ddf8' }}>
+        <div className="absolute right-0 top-9 rounded-2xl py-1.5 min-w-[175px] shadow-xl z-30"
+          style={{ background: 'rgba(15,10,35,.95)', backdropFilter: 'blur(12px)', border: '1.5px solid rgba(255,255,255,.1)' }}>
           {mi(() => null, <Play className="w-3.5 h-3.5" />, 'Watch / Preview')}
           {!item.isPublic && mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Edit in Editor')}
-          {!item.isPublic && mi(() => null, <Send className="w-3.5 h-3.5 text-purple-600" />, 'Publish to Channel')}
+          {!item.isPublic && mi(() => null, <Send className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,.65)' }} />, 'Publish to Channel')}
           {!item.isPublic && mi(() => null, <Download className="w-3.5 h-3.5" />, 'Download Original')}
-          <div className="h-px bg-gray-100 my-1" />
+          <div className="h-px my-1" style={{ background: 'rgba(255,255,255,.08)' }} />
           {item.isPublic && item.shareUrl && (
             <button
               type="button"
               onClick={async (e) => { e.stopPropagation(); setOpen(false); await navigator.clipboard.writeText(item.shareUrl!).catch(() => null); }}
               className="w-full text-left flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors"
               style={{ color: '#0891B2' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#f0fdfe'; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(8,145,178,.1)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = ''; }}
             >
               <Share2 className="w-3.5 h-3.5" /> Share Link / Copy URL
             </button>
           )}
           {mi(() => null, <BarChart2 className="w-3.5 h-3.5" />, 'Analytics')}
-          <div className="h-px bg-gray-100 my-1" />
+          <div className="h-px my-1" style={{ background: 'rgba(255,255,255,.08)' }} />
           {!item.isPublic
             ? mi(onMakePublic, <Globe className="w-3.5 h-3.5" />, 'Make Public')
             : mi(onMakePrivate, <EyeOff className="w-3.5 h-3.5" />, 'Move to Private')
           }
-          <div className="h-px bg-gray-100 my-1" />
+          <div className="h-px my-1" style={{ background: 'rgba(255,255,255,.08)' }} />
           {mi(onDelete, <Trash2 className="w-3.5 h-3.5" />, 'Delete', true)}
 
           {/* Greyed-out disabled actions for public content */}
           {item.isPublic && (
             <>
-              <div className="h-px bg-gray-100 my-1" />
+              <div className="h-px my-1" style={{ background: 'rgba(255,255,255,.08)' }} />
               {mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Edit — move to Private first', false, true)}
               {mi(() => null, <Download className="w-3.5 h-3.5" />, 'Download — not available', false, true)}
             </>
@@ -186,11 +186,11 @@ export function MyContentSection() {
   // Skeleton cards
   function SkeletonCard() {
     return (
-      <div className="rounded-2xl overflow-hidden animate-pulse" style={{ border: '1.5px solid #e3ddf8' }}>
-        <div className="aspect-video bg-gray-100" />
+      <div className="rounded-2xl overflow-hidden animate-pulse" style={{ border: '1.5px solid rgba(255,255,255,.08)' }}>
+        <div className="aspect-video" style={{ background: 'rgba(255,255,255,.06)' }} />
         <div className="p-3 space-y-2">
-          <div className="h-3 bg-gray-100 rounded-lg w-4/5" />
-          <div className="h-2.5 bg-gray-100 rounded-lg w-2/5" />
+          <div className="h-3 rounded-lg w-4/5" style={{ background: 'rgba(255,255,255,.06)' }} />
+          <div className="h-2.5 rounded-lg w-2/5" style={{ background: 'rgba(255,255,255,.06)' }} />
         </div>
       </div>
     );
@@ -201,11 +201,11 @@ export function MyContentSection() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
-            <Film className="w-4 h-4 text-purple-500" />
+          <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
+            <Film className="w-4 h-4 text-white/55" />
             My Content
           </h2>
-          <div className="flex items-center gap-1 p-0.5 rounded-xl" style={{ background: '#f3f4f6' }}>
+          <div className="flex items-center gap-1 p-0.5 rounded-xl" style={{ background: 'rgba(255,255,255,.06)' }}>
             {(['all', 'private', 'public'] as const).map(f => (
               <button
                 key={f}
@@ -213,8 +213,8 @@ export function MyContentSection() {
                 onClick={() => setFilter(f)}
                 className="px-3 py-1 rounded-[10px] text-[11px] font-semibold transition-all capitalize"
                 style={filter === f
-                  ? { background: '#fff', color: '#374151', boxShadow: '0 1px 4px rgba(55,65,81,.15)' }
-                  : { color: '#6b7280' }}
+                  ? { background: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.9)', boxShadow: '0 1px 4px rgba(0,0,0,.3)' }
+                  : { color: 'rgba(255,255,255,.45)' }}
               >
                 {f === 'private' && <Lock className="w-2.5 h-2.5 inline mr-1" />}
                 {f === 'public' && <Globe className="w-2.5 h-2.5 inline mr-1" />}
@@ -226,7 +226,7 @@ export function MyContentSection() {
         <Link
           href="/projects"
           className="text-xs font-semibold hover:underline"
-          style={{ color: '#374151' }}
+          style={{ color: 'rgba(255,255,255,.55)' }}
         >
           View all →
         </Link>
@@ -234,12 +234,12 @@ export function MyContentSection() {
 
       {/* Content permission callout */}
       <div className="rounded-2xl p-4 mb-4 grid grid-cols-2 gap-4"
-        style={{ background: 'rgba(55,65,81,.04)', border: '1px solid rgba(55,65,81,.15)' }}>
+        style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
         <div>
-          <div className="text-[10px] font-extrabold mb-2" style={{ color: '#9ca3af' }}>
+          <div className="text-[10px] font-extrabold mb-2" style={{ color: 'rgba(255,255,255,.45)' }}>
             🔒 PRIVATE — full creator control
           </div>
-          <div className="text-[10px] leading-relaxed" style={{ color: '#6b7280' }}>
+          <div className="text-[10px] leading-relaxed" style={{ color: 'rgba(255,255,255,.55)' }}>
             ✅ Watch / Preview<br />
             ✅ Edit in Editor<br />
             ✅ Publish to connected channel<br />
@@ -251,7 +251,7 @@ export function MyContentSection() {
           <div className="text-[10px] font-extrabold mb-2" style={{ color: '#059669' }}>
             🌐 PUBLIC — share-only
           </div>
-          <div className="text-[10px] leading-relaxed" style={{ color: '#6b7280' }}>
+          <div className="text-[10px] leading-relaxed" style={{ color: 'rgba(255,255,255,.55)' }}>
             ✅ Share link / Copy URL<br />
             ✅ View Analytics<br />
             ✅ Move back to Private (your content only)<br />
@@ -268,20 +268,20 @@ export function MyContentSection() {
       )}
 
       {isError && (
-        <div className="rounded-2xl p-8 text-center" style={{ border: '1.5px solid #e3ddf8', background: '#fff' }}>
-          <Film className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-          <p className="text-sm font-semibold text-gray-500 mb-1">Content not available</p>
-          <p className="text-xs text-gray-400">The content service is unavailable. Check back shortly.</p>
+        <div className="rounded-2xl p-8 text-center" style={{ background: 'rgba(255,255,255,.05)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px' }}>
+          <Film className="w-8 h-8 mx-auto mb-3 text-white/35" />
+          <p className="text-sm font-semibold text-white/55 mb-1">Content not available</p>
+          <p className="text-xs text-white/45">The content service is unavailable. Check back shortly.</p>
         </div>
       )}
 
       {isEmpty && (
-        <div className="rounded-2xl p-10 text-center" style={{ border: '1.5px dashed #d8d0f5', background: '#faf8ff' }}>
+        <div className="rounded-2xl p-10 text-center" style={{ border: '1.5px dashed rgba(255,255,255,.15)', background: 'rgba(255,255,255,.03)' }}>
           <div className="text-3xl mb-3">🎬</div>
-          <p className="text-sm font-bold text-gray-700 mb-1">
+          <p className="text-sm font-bold text-white/80 mb-1">
             {filter === 'public' ? 'No public content yet' : filter === 'private' ? 'No private content' : 'No content yet'}
           </p>
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="text-xs text-white/45 mb-4">
             {filter === 'public'
               ? 'Make a private video public to share it with the world.'
               : 'Create your first video or upload existing content to get started.'}
@@ -301,9 +301,9 @@ export function MyContentSection() {
           {items.map((item, i) => (
             <div key={item.id}
               className="rounded-2xl overflow-hidden group relative transition-all hover:-translate-y-0.5"
-              style={{ background: '#fff', border: '1.5px solid #e3ddf8', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(55,65,81,.35)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e3ddf8'; }}
+              style={{ background: 'rgba(255,255,255,.05)', backdropFilter: 'blur(12px)', border: '1.5px solid rgba(255,255,255,.08)', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,.2)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,.08)'; }}
             >
               {/* Thumbnail */}
               <div className="aspect-video relative flex items-center justify-center overflow-hidden"
@@ -340,7 +340,7 @@ export function MyContentSection() {
 
               {/* Body */}
               <div className="p-3">
-                <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">{item.title}</p>
+                <p className="text-xs font-semibold text-white line-clamp-2 leading-snug mb-2">{item.title}</p>
                 <div className="flex items-center justify-between gap-2">
                   <PrivacyBadge isPublic={item.isPublic} />
                   {item.isPublic && item.shareUrl
@@ -358,8 +358,8 @@ export function MyContentSection() {
                         type="button"
                         onClick={() => visibilityMut.mutate({ id: item.id, isPublic: true })}
                         disabled={visibilityMut.isPending}
-                        className="text-[10px] font-semibold flex items-center gap-1 transition-colors hover:text-purple-600 disabled:opacity-50"
-                        style={{ color: '#9CA3AF' }}
+                        className="text-[10px] font-semibold flex items-center gap-1 transition-colors hover:text-white/80 disabled:opacity-50"
+                        style={{ color: 'rgba(255,255,255,.45)' }}
                       >
                         {visibilityMut.isPending
                           ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -375,13 +375,13 @@ export function MyContentSection() {
 
           {/* Upload / Create card */}
           <Link href="/projects"
-            className="rounded-2xl flex flex-col items-center justify-center aspect-video sm:aspect-auto min-h-[120px] gap-2 transition-all hover:border-purple-300"
-            style={{ border: '1.5px dashed #d1d5db', background: 'transparent' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(55,65,81,.03)'; }}
+            className="rounded-2xl flex flex-col items-center justify-center aspect-video sm:aspect-auto min-h-[120px] gap-2 transition-all hover:border-white/25"
+            style={{ border: '1.5px dashed rgba(255,255,255,.15)', background: 'transparent' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,.04)'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
           >
-            <Plus className="w-6 h-6 text-gray-400" />
-            <span className="text-xs font-semibold text-gray-400">Upload or Create</span>
+            <Plus className="w-6 h-6 text-white/45" />
+            <span className="text-xs font-semibold text-white/45">Upload or Create</span>
           </Link>
         </div>
       )}

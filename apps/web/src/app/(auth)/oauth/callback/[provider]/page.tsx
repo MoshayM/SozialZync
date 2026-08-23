@@ -90,10 +90,10 @@ function VerifyingView({ provider }: { provider: string }) {
         </div>
       </div>
 
-      <h2 className="text-2xl font-extrabold text-gray-900 mb-1.5">
+      <h2 className="text-2xl font-extrabold text-white mb-1.5">
         Connecting {meta.label}
       </h2>
-      <p className="text-gray-400 text-sm mb-8">
+      <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
         Finishing up your sign-in — just a moment.
       </p>
 
@@ -107,8 +107,8 @@ function VerifyingView({ provider }: { provider: string }) {
               key={step}
               className="flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-500"
               style={{
-                background: done ? '#f0fdf4' : current ? '#f3f4f6' : '#f9f9fb',
-                border: `1.5px solid ${done ? '#bbf7d0' : current ? '#e3ddf8' : '#f0f0f5'}`,
+                background: done ? 'rgba(34,197,94,0.12)' : current ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+                border: `1.5px solid ${done ? 'rgba(34,197,94,0.3)' : current ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)'}`,
               }}
             >
               <div
@@ -127,7 +127,7 @@ function VerifyingView({ provider }: { provider: string }) {
               </div>
               <span
                 className="text-sm font-medium transition-colors duration-300"
-                style={{ color: done ? '#16a34a' : current ? '#374151' : '#9ca3af' }}
+                style={{ color: done ? '#4ade80' : current ? '#ffffff' : 'rgba(255,255,255,0.4)' }}
               >
                 {step}
               </span>
@@ -136,7 +136,7 @@ function VerifyingView({ provider }: { provider: string }) {
         })}
       </div>
 
-      <p className="text-[11px] text-gray-400">Do not close this window</p>
+      <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Do not close this window</p>
     </div>
   );
 }
@@ -150,18 +150,18 @@ function LinkedView({ provider }: { provider: string }) {
       <div className="flex justify-center mb-6">
         <div
           className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
-          style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', boxShadow: '0 8px 32px rgba(34,197,94,0.18)' }}
+          style={{ background: 'rgba(34,197,94,0.15)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
         >
           ✅
         </div>
       </div>
-      <h2 className="text-2xl font-extrabold text-gray-900 mb-2">
+      <h2 className="text-2xl font-extrabold text-white mb-2">
         {meta.label} connected!
       </h2>
-      <p className="text-gray-500 text-sm leading-relaxed mb-1">
+      <p className="text-sm leading-relaxed mb-1" style={{ color: 'rgba(255,255,255,0.65)' }}>
         Your account is now linked.
       </p>
-      <p className="text-gray-400 text-xs">Redirecting to Settings…</p>
+      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Redirecting to Settings…</p>
     </div>
   );
 }
@@ -175,24 +175,24 @@ function LinkRequiredView({ email, provider }: { email: string; provider: string
       <div className="flex justify-center mb-6">
         <div
           className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
-          style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', boxShadow: '0 8px 32px rgba(234,179,8,0.15)' }}
+          style={{ background: 'rgba(234,179,8,0.12)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
         >
           🔗
         </div>
       </div>
 
-      <h2 className="text-2xl font-extrabold text-gray-900 mb-2 text-center">Account already exists</h2>
-      <p className="text-gray-500 text-sm text-center leading-relaxed mb-6">
+      <h2 className="text-2xl font-extrabold text-white mb-2 text-center">Account already exists</h2>
+      <p className="text-sm text-center leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.6)' }}>
         A Sozialzynk account is already registered for{' '}
-        <span className="font-semibold text-gray-700 break-all">{email}</span>.
+        <span className="font-semibold text-white break-all">{email}</span>.
       </p>
 
       {/* Steps */}
       <div
         className="rounded-2xl px-4 py-4 space-y-3.5 mb-6"
-        style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}
+        style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(255,255,255,0.12)' }}
       >
-        <p className="text-xs font-semibold text-[#374151] mb-1">To connect {meta.label}, do this:</p>
+        <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.75)' }}>To connect {meta.label}, do this:</p>
         {[
           { n: '1', text: 'Sign in with your existing password or OTP' },
           { n: '2', text: `Go to Settings → Connected Accounts → Link ${meta.label}` },
@@ -201,7 +201,7 @@ function LinkRequiredView({ email, provider }: { email: string; provider: string
             <div className="w-5 h-5 rounded-full bg-[#374151] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
               {s.n}
             </div>
-            <p className="text-gray-600 text-xs leading-relaxed">{s.text}</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>{s.text}</p>
           </div>
         ))}
       </div>
@@ -228,14 +228,14 @@ function ErrorView({ message }: { message: string }) {
       <div className="flex justify-center mb-6">
         <div
           className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
-          style={{ background: '#fef2f2', boxShadow: '0 8px 32px rgba(239,68,68,0.12)' }}
+          style={{ background: 'rgba(239,68,68,0.12)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
         >
           ⚠️
         </div>
       </div>
 
-      <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Sign-in failed</h2>
-      <p className="text-gray-500 text-sm leading-relaxed mb-8">{message}</p>
+      <h2 className="text-2xl font-extrabold text-white mb-2">Sign-in failed</h2>
+      <p className="text-sm leading-relaxed mb-8" style={{ color: 'rgba(255,255,255,0.6)' }}>{message}</p>
 
       <Link
         href="/login"

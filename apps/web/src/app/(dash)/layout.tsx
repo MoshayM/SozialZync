@@ -129,12 +129,12 @@ function GlobalSearch() {
       onSubmit={e => { e.preventDefault(); submit(query); }}
       className="hidden md:flex flex-1 max-w-[400px] ml-3 items-center gap-2 rounded-[12px] px-3 py-2 transition-all"
       style={{
-        background: focused ? '#fff' : '#F7F6FB',
-        border: focused ? '1.5px solid #374151' : '1px solid #ECECF3',
+        background: focused ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.05)',
+        border: focused ? '1px solid rgba(255,255,255,.25)' : '1px solid rgba(255,255,255,.08)',
         boxShadow: focused ? '0 0 0 3px rgba(0,0,0,.07)' : 'none',
       }}
     >
-      <Search className="w-[16px] h-[16px] shrink-0" style={{ color: focused ? '#374151' : '#9a97ab' }} />
+      <Search className="w-[16px] h-[16px] shrink-0" style={{ color: focused ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.4)' }} />
       <input
         ref={inputRef}
         type="search"
@@ -143,7 +143,7 @@ function GlobalSearch() {
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder="Search projects, videos, channels…"
-        className="border-none outline-none bg-transparent text-sm flex-1 min-w-0 text-[#1E1B2E] placeholder:text-[#9a97ab]"
+        className="border-none outline-none bg-transparent text-sm flex-1 min-w-0 text-white placeholder:text-white/40"
         style={{ fontFamily: 'inherit' }}
         aria-label="Search"
       />
@@ -161,7 +161,7 @@ function GlobalSearch() {
       ) : (
         <kbd
           className="shrink-0 text-[11px] font-medium select-none hidden lg:block"
-          style={{ color: '#9ca3af' }}
+          style={{ color: 'rgba(255,255,255,.3)' }}
           title="Press ⌘K to open command palette"
         >
           ⌘K
@@ -241,12 +241,12 @@ function CommandPalette({
     >
       <div
         className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl"
-        style={{ background: '#fff', border: '1px solid #e3ddf8' }}
+        style={{ background: 'rgba(10,5,32,.96)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,.12)' }}
         onMouseDown={e => e.stopPropagation()}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#f3f4f6]">
-          <Search className="w-4 h-4 shrink-0 text-[#9a97ab]" />
+        <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+          <Search className="w-4 h-4 shrink-0 text-white/40" />
           <input
             ref={inputRef}
             type="text"
@@ -254,21 +254,21 @@ function CommandPalette({
             onChange={e => { onQueryChange(e.target.value); onSelectedIdxChange(0); }}
             onKeyDown={handleKeyDown}
             placeholder="Search pages and actions…"
-            className="flex-1 bg-transparent outline-none text-sm text-[#1E1B2E] placeholder:text-[#9a97ab]"
+            className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-white/40"
           />
-          <kbd className="text-[11px] font-medium px-1.5 py-0.5 rounded-md select-none" style={{ background: '#f3f4f6', color: '#9a97ab', border: '1px solid #e5e7eb' }}>ESC</kbd>
+          <kbd className="text-[11px] font-medium px-1.5 py-0.5 rounded-md select-none" style={{ background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}>ESC</kbd>
         </div>
 
         {/* Results */}
         <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
           {filtered.length === 0 ? (
-            <p className="text-sm text-center py-10 text-gray-400">No results for &quot;{query}&quot;</p>
+            <p className="text-sm text-center py-10 text-white/35">No results for &quot;{query}&quot;</p>
           ) : (
             groups.map(group => {
               const items = filtered.filter(i => i.group === group);
               return (
                 <div key={group}>
-                  <div className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{group}</div>
+                  <div className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-white/35">{group}</div>
                   {items.map(item => {
                     const currentIdx = flatIdx++;
                     const isSelected = currentIdx === selectedIdx;
@@ -281,12 +281,12 @@ function CommandPalette({
                         onMouseEnter={() => onSelectedIdxChange(currentIdx)}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
                         style={{
-                          background: isSelected ? '#f3f4f6' : 'transparent',
-                          color: isSelected ? '#111827' : '#374151',
+                          background: isSelected ? 'rgba(255,255,255,.1)' : 'transparent',
+                          color: isSelected ? 'white' : 'rgba(255,255,255,.7)',
                         }}
                       >
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: isSelected ? '#e5e7eb' : '#f3f4f6' }}>
-                          <Icon className="w-3.5 h-3.5" style={{ color: isSelected ? '#111827' : '#6b7280' }} />
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: isSelected ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.08)' }}>
+                          <Icon className="w-3.5 h-3.5" style={{ color: isSelected ? 'white' : 'rgba(255,255,255,.45)' }} />
                         </div>
                         <span className="font-medium">{item.label}</span>
                       </button>
@@ -299,10 +299,10 @@ function CommandPalette({
         </div>
 
         {/* Footer hint */}
-        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-[#f3f4f6]">
+        <div className="flex items-center gap-4 px-4 py-2.5" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
           {[['↑↓', 'Navigate'], ['↵', 'Open'], ['Esc', 'Close']].map(([key, action]) => (
-            <span key={key} className="flex items-center gap-1 text-[11px] text-gray-400">
-              <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb' }}>{key}</kbd>
+            <span key={key} className="flex items-center gap-1 text-[11px] text-white/35">
+              <kbd className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.1)' }}>{key}</kbd>
               {action}
             </span>
           ))}
@@ -320,17 +320,17 @@ function CreditsBanner() {
 
   if (creditsExhausted) {
     return (
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-medium" style={{ background: '#fffbeb', borderBottom: '1px solid #fbbf24', color: '#92400e' }}>
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-medium" style={{ background: 'rgba(120,53,15,.25)', borderBottom: '1px solid rgba(251,191,36,.3)', color: 'rgba(251,191,36,.9)' }}>
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 shrink-0 text-amber-500" />
           <span>Your AI credits ran out — <strong>top up to restore Pro access</strong></span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <a href="/wallet" className="px-3 py-1 rounded-xl text-xs font-bold text-white" style={{ background: '#d97706' }}>
+          <a href="/wallet" className="px-3 py-1 rounded-xl text-xs font-bold text-white" style={{ background: '#b45309' }}>
             Top Up →
           </a>
-          <button onClick={() => { clearCreditProFlag(); setDismissed(true); }} className="p-1 rounded-lg hover:bg-amber-100 transition-colors" aria-label="Dismiss">
-            <X className="w-3.5 h-3.5 text-amber-600" />
+          <button onClick={() => { clearCreditProFlag(); setDismissed(true); }} className="p-1 rounded-lg transition-colors" style={{}} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(251,191,36,.15)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }} aria-label="Dismiss">
+            <X className="w-3.5 h-3.5 text-amber-500" />
           </button>
         </div>
       </div>
@@ -338,15 +338,15 @@ function CreditsBanner() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium" style={{ background: '#fefce8', borderBottom: '1px solid #fde68a', color: '#854d0e' }}>
+    <div className="flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium" style={{ background: 'rgba(120,53,15,.25)', borderBottom: '1px solid rgba(251,191,36,.3)', color: 'rgba(251,191,36,.9)' }}>
       <div className="flex items-center gap-2">
         <Zap className="w-3.5 h-3.5 shrink-0 text-yellow-500" />
         <span>Running low — <strong>{credits?.toLocaleString()} credits</strong> remaining. Top up to keep Pro access.</span>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <a href="/wallet" className="px-2.5 py-1 rounded-xl font-bold text-white" style={{ background: '#ca8a04' }}>Top Up</a>
-        <button onClick={() => setDismissed(true)} className="p-1 rounded-lg hover:bg-yellow-100 transition-colors" aria-label="Dismiss">
-          <X className="w-3 h-3 text-yellow-600" />
+        <a href="/wallet" className="px-2.5 py-1 rounded-xl font-bold text-white" style={{ background: '#b45309' }}>Top Up</a>
+        <button onClick={() => setDismissed(true)} className="p-1 rounded-lg transition-colors" onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(251,191,36,.12)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }} aria-label="Dismiss">
+          <X className="w-3 h-3 text-yellow-500" />
         </button>
       </div>
     </div>
@@ -598,7 +598,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   fontSize: '11.5px', fontWeight: 600, letterSpacing: '-.1px',
                   color: '#9ca3af', fontFamily: 'inherit', transition: 'color 150ms ease',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#6b7280'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,.55)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#9ca3af'; }}
               >
                 <span style={{ flex: '1 1 auto', textAlign: 'left' }}>{category}</span>
@@ -635,14 +635,14 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   letterSpacing: isActive ? '-.15px' : '-.05px',
                   textDecoration: 'none',
                   justifyContent: opts.collapsed ? 'center' : 'flex-start',
-                  background: isActive ? '#f3f4f6' : 'transparent',
-                  color: isActive ? '#111827' : '#374151',
+                  background: isActive ? 'rgba(255,255,255,.1)' : 'transparent',
+                  color: isActive ? 'white' : 'rgba(255,255,255,.65)',
                   transition: 'background 180ms ease, color 180ms ease',
                   boxShadow: 'none',
                 };
                 const inner = (
                   <>
-                    <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#111827' : '#9ca3af' }} />
+                    <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? 'white' : 'rgba(255,255,255,.4)' }} />
                     {!opts.collapsed && (
                       <>
                         <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>{label}</span>
@@ -663,8 +663,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     )}
                   </>
                 );
-                const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = '#f3f4f6'; el.style.color = '#374151'; } };
-                const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = '#374151'; } };
+                const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(255,255,255,.06)'; el.style.color = 'rgba(255,255,255,.85)'; } };
+                const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = 'rgba(255,255,255,.65)'; } };
                 return action ? (
                   <button
                     key={href}
@@ -701,7 +701,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="cf-shell overflow-hidden flex flex-col bg-[#F4F3FB] text-[#1E1B2E]">
+    <div className="cf-shell overflow-hidden flex flex-col bg-[#060414] text-white">
 
       <CommandPalette
         open={paletteOpen}
@@ -714,13 +714,13 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       />
 
       {/* ── TOPBAR ──────────────────────────────────────────────────────── */}
-      <header className="flex items-center gap-2 sm:gap-3.5 px-3 sm:px-[22px] py-[11px] bg-white border-b border-[#ECECF3] shrink-0 z-[30]">
+      <header className="flex items-center gap-2 sm:gap-3.5 px-3 sm:px-[22px] py-[11px] shrink-0 z-[30]" style={{ background: 'rgba(6,4,20,.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
 
         {/* Hamburger */}
         <button
           type="button"
           onClick={handleHamburger}
-          className="w-10 h-10 shrink-0 border border-[#ECECF3] rounded-[11px] bg-white text-[#5b5772] flex items-center justify-center hover:bg-[#F6F5FC] active:bg-[#EDE9FD] transition-colors touch-manipulation"
+          className="w-10 h-10 shrink-0 border border-white/10 rounded-[11px] bg-white/5 text-white/70 flex items-center justify-center hover:bg-white/10 active:bg-white/15 transition-colors touch-manipulation"
           aria-label="Toggle menu"
         >
           <Menu className="w-[18px] h-[18px]" />
@@ -731,7 +731,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <LogoMark className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] shrink-0" />
           <div className="leading-[1.15] hidden sm:block">
             <div className="cf-brand-gradient-text font-extrabold text-[15px] tracking-[-0.5px]">SozialZynk</div>
-            <div className="text-[11px] font-semibold tracking-[0.02em]" style={{ color: '#6b7280' }}>AI Creator Platform</div>
+            <div className="text-[11px] font-semibold tracking-[0.02em]" style={{ color: 'rgba(255,255,255,.4)' }}>AI Creator Platform</div>
           </div>
           <div className="cf-brand-gradient-text font-extrabold text-[15px] tracking-[-0.5px] sm:hidden">SozialZynk</div>
         </Link>
@@ -746,9 +746,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           href="/browse"
           title="Public Feed"
           className="hidden sm:flex w-[42px] h-[42px] rounded-[12px] items-center justify-center transition-colors shrink-0 touch-manipulation"
-          style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.color = '#5b5772'; }}
+          style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.65)' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.1)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.05)'; }}
         >
           <Globe className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
         </Link>
@@ -759,7 +759,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             href="/admin"
             title="Admin panel"
             className="flex w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] items-center justify-center transition-all shrink-0 touch-manipulation"
-            style={{ border: '1.5px solid #e5e7eb', background: '#f9fafb', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+            style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.65)', boxShadow: 'none' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.88'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
           >
@@ -773,7 +773,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           title="Ask Copilot"
           onClick={() => window.dispatchEvent(new CustomEvent('cf:open-copilot'))}
           className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center hover:opacity-90 active:opacity-75 transition-opacity shrink-0 touch-manipulation"
-          style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#6b7280' }}
+          style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.65)' }}
         >
           <Bot className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
         </button>
@@ -783,9 +783,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           href="/settings/channels"
           title="Channel Access"
           className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
-          style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; }}
+          style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.65)' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.1)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.05)'; }}
         >
           <Link2 className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
         </Link>
@@ -798,14 +798,14 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             aria-haspopup="true"
             aria-expanded={bellOpen}
             onClick={() => { setBellOpen(o => !o); if (!bellOpen) void fetchNotifications(); }}
-            className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center hover:bg-[#F6F5FC] active:bg-[#EDE9FD] transition-colors relative touch-manipulation"
-            style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
+            className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center hover:bg-white/10 active:bg-white/15 transition-colors relative touch-manipulation"
+            style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.65)' }}
           >
             <Bell className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
             {unreadCount > 0 && (
               <span
                 className="absolute flex items-center justify-center text-white font-bold leading-none"
-                style={{ top: '-6px', right: '-6px', minWidth: '19px', height: '19px', padding: '0 5px', borderRadius: '20px', background: '#EF4444', fontSize: '11px', border: '2px solid #fff' }}
+                style={{ top: '-6px', right: '-6px', minWidth: '19px', height: '19px', padding: '0 5px', borderRadius: '20px', background: '#EF4444', fontSize: '11px', border: '2px solid #060414' }}
               >
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
@@ -816,13 +816,13 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             <div
               role="dialog"
               aria-label="Notifications"
-              className="notif-panel absolute right-0 z-50 bg-white overflow-hidden animate-drop-down"
-              style={{ top: 'calc(100% + 10px)', width: 'min(360px, calc(100vw - 24px))', border: '1px solid #ECECF3', borderRadius: '18px', boxShadow: '0 30px 70px -24px rgba(30,27,46,.4)' }}
+              className="notif-panel absolute right-0 z-50 overflow-hidden animate-drop-down"
+              style={{ top: 'calc(100% + 10px)', width: 'min(360px, calc(100vw - 24px))', background: 'rgba(10,5,32,.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '18px', boxShadow: '0 30px 70px -24px rgba(0,0,0,.7)' }}
             >
-              <div className="flex items-center justify-between" style={{ padding: '15px 18px', borderBottom: '1px solid #F1EFF7' }}>
-                <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-.3px' }}>Notifications</span>
+              <div className="flex items-center justify-between" style={{ padding: '15px 18px', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+                <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-.3px', color: 'white' }}>Notifications</span>
                 {unreadCount > 0 && (
-                  <button type="button" onClick={() => void handleMarkAllRead()} className="border-none bg-transparent cursor-pointer" style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', fontFamily: 'inherit' }}>
+                  <button type="button" onClick={() => void handleMarkAllRead()} className="border-none bg-transparent cursor-pointer" style={{ fontSize: '12.5px', fontWeight: 700, color: 'rgba(255,255,255,.65)', fontFamily: 'inherit' }}>
                     Mark all read
                   </button>
                 )}
@@ -830,15 +830,15 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <ul style={{ maxHeight: '340px', overflowY: 'auto' }}>
                 {notifications.length === 0 ? (
                   <li style={{ padding: '36px 20px', textAlign: 'center' }}>
-                    <div style={{ width: '46px', height: '46px', margin: '0 auto 12px', borderRadius: '14px', background: '#F3F2F9', color: '#c3c0d2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '46px', height: '46px', margin: '0 auto 12px', borderRadius: '14px', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Bell className="w-[22px] h-[22px]" />
                     </div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#6b6880' }}>You&apos;re all caught up</div>
-                    <div style={{ fontSize: '12.5px', color: '#a8a5b8', fontWeight: 500, marginTop: '2px' }}>No new notifications</div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'rgba(255,255,255,.65)' }}>You&apos;re all caught up</div>
+                    <div style={{ fontSize: '12.5px', color: 'rgba(255,255,255,.45)', fontWeight: 500, marginTop: '2px' }}>No new notifications</div>
                   </li>
                 ) : (
                   notifications.map((n) => (
-                    <li key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '13px 16px', borderBottom: '1px solid #F6F5FB' }}>
+                    <li key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
                       <div
                         role="button"
                         tabIndex={0}
@@ -847,16 +847,18 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                         onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !n.readAt) void handleMarkRead(n.id); }}
                       >
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                          <div style={{ fontSize: '13.5px', fontWeight: 700, flex: '1 1 auto' }}>{n.title}</div>
-                          <div style={{ fontSize: '11px', color: '#a8a5b8', fontWeight: 600, flexShrink: 0 }}>{relativeTime(n.createdAt)}</div>
+                          <div style={{ fontSize: '13.5px', fontWeight: 700, flex: '1 1 auto', color: 'white' }}>{n.title}</div>
+                          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.45)', fontWeight: 600, flexShrink: 0 }}>{relativeTime(n.createdAt)}</div>
                         </div>
-                        {n.body && <div style={{ fontSize: '12.5px', color: '#8b88a0', fontWeight: 500, lineHeight: 1.45, marginTop: '2px' }}>{n.body}</div>}
+                        {n.body && <div style={{ fontSize: '12.5px', color: 'rgba(255,255,255,.45)', fontWeight: 500, lineHeight: 1.45, marginTop: '2px' }}>{n.body}</div>}
                       </div>
                       <button
                         type="button"
                         onClick={() => { if (!n.readAt) void handleMarkRead(n.id); setBellOpen(false); }}
-                        className="flex items-center justify-center border-none cursor-pointer hover:bg-[#FDECEC] hover:text-[#EF4444] transition-all touch-manipulation"
-                        style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '8px', background: 'transparent', color: '#c3c0d2' }}
+                        className="flex items-center justify-center border-none cursor-pointer transition-all touch-manipulation"
+                        style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '8px', background: 'transparent', color: 'rgba(255,255,255,.3)' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,.15)'; (e.currentTarget as HTMLElement).style.color = '#EF4444'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,.3)'; }}
                         title="Dismiss"
                       >
                         <X className="w-[15px] h-[15px]" />
@@ -868,8 +870,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <Link
                 href="/notifications"
                 onClick={() => setBellOpen(false)}
-                className="block w-full text-center text-xs font-semibold hover:bg-[#F6F5FC] active:bg-[#EDE9FD]"
-                style={{ padding: '12px', color: '#374151', borderTop: '1px solid #e5e7eb' }}
+                className="block w-full text-center text-xs font-semibold hover:bg-white/5 active:bg-white/10"
+                style={{ padding: '12px', color: 'rgba(255,255,255,.75)', borderTop: '1px solid rgba(255,255,255,.08)' }}
               >
                 View all notifications →
               </Link>
@@ -883,30 +885,30 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             type="button"
             aria-label="Open user menu"
             onClick={() => setUserMenuOpen(o => !o)}
-            className="flex items-center gap-2 hover:bg-[#F6F5FC] active:bg-[#EDE9FD] transition-colors cursor-pointer touch-manipulation"
-            style={{ background: '#fff', border: '1px solid #ECECF3', borderRadius: '12px', padding: '5px 5px 5px 5px' }}
+            className="flex items-center gap-2 hover:bg-white/10 active:bg-white/15 transition-colors cursor-pointer touch-manipulation"
+            style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '12px', padding: '5px 5px 5px 5px' }}
           >
             <UserAvatar name={meData?.name ?? userName} url={meData?.avatarUrl} size={32} />
             {/* Name — shown on sm+ screens */}
             <div className="hidden sm:block max-w-[120px]" style={{ lineHeight: 1.2, textAlign: 'left', paddingRight: '6px' }}>
               <div className="truncate" style={{ fontWeight: 700, fontSize: '13.5px' }}>{meData?.name ?? userName}</div>
-              <div style={{ fontSize: '11.5px', color: '#5a576b', fontWeight: 500 }}>
+              <div style={{ fontSize: '11.5px', color: 'rgba(255,255,255,.45)', fontWeight: 500 }}>
                 {meData?.role === 'SUPER_ADMIN' ? 'Super Admin' : meData?.role === 'OWNER' ? 'Owner' : 'Creator'}
               </div>
             </div>
-            <ChevronDown className="hidden sm:block w-3.5 h-3.5 shrink-0 mr-2" style={{ color: '#9a97ab', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />
+            <ChevronDown className="hidden sm:block w-3.5 h-3.5 shrink-0 mr-2" style={{ color: 'rgba(255,255,255,.3)', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />
           </button>
 
           {userMenuOpen && (
             <div
-              className="absolute right-0 z-50 bg-white overflow-hidden"
-              style={{ top: 'calc(100% + 8px)', width: '220px', border: '1px solid #ECECF3', borderRadius: '16px', boxShadow: '0 20px 50px -12px rgba(30,27,46,.25)' }}
+              className="absolute right-0 z-50 overflow-hidden"
+              style={{ top: 'calc(100% + 8px)', width: '220px', background: 'rgba(10,5,32,.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '16px', boxShadow: '0 20px 50px -12px rgba(0,0,0,.7)' }}
             >
-              <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #F1EFF7' }}>
-                <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#1E1B2E' }}>{meData?.name ?? userName}</div>
-                <div style={{ fontSize: '11.5px', color: '#8b88a0', fontWeight: 500, marginTop: '1px' }}>{meData?.email ?? 'Creator'}</div>
+              <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+                <div style={{ fontWeight: 700, fontSize: '13.5px', color: 'white' }}>{meData?.name ?? userName}</div>
+                <div style={{ fontSize: '11.5px', color: 'rgba(255,255,255,.45)', fontWeight: 500, marginTop: '1px' }}>{meData?.email ?? 'Creator'}</div>
                 {(meData?.role === 'SUPER_ADMIN' || meData?.role === 'OWNER') && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: meData.role === 'SUPER_ADMIN' ? '#f3f4f6' : '#eff6ff', color: meData.role === 'SUPER_ADMIN' ? '#374151' : '#1d4ed8', border: `1px solid ${meData.role === 'SUPER_ADMIN' ? '#d1d5db' : '#bfdbfe'}`, borderRadius: '6px', padding: '2px 7px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.75)', border: '1px solid rgba(255,255,255,.15)', borderRadius: '6px', padding: '2px 7px' }}>
                     <ShieldCheck style={{ width: '10px', height: '10px' }} />
                     {meData.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Owner'}
                   </span>
@@ -919,11 +921,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     href={href}
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2.5 transition-colors"
-                    style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: '#3d3a52' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
+                    style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: 'rgba(255,255,255,.75)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.06)'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
-                    <Icon style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280', opacity: .85 }} />
+                    <Icon style={{ width: '16px', height: '16px', flexShrink: 0, color: 'rgba(255,255,255,.45)', opacity: .85 }} />
                     {label}
                   </Link>
                 ))}
@@ -932,22 +934,22 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     href="/admin?tab=users"
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2.5 transition-colors"
-                    style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: '#374151' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
+                    style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: 'rgba(255,255,255,.75)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.06)'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
-                    <ShieldCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280' }} />
+                    <ShieldCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: 'rgba(255,255,255,.45)' }} />
                     Switch / View Account
                   </Link>
                 )}
               </div>
-              <div style={{ padding: '0 6px 6px', borderTop: '1px solid #F1EFF7', marginTop: '2px', paddingTop: '6px' }}>
+              <div style={{ padding: '0 6px 6px', borderTop: '1px solid rgba(255,255,255,.07)', marginTop: '2px', paddingTop: '6px' }}>
                 <button
                   type="button"
                   onClick={() => { setUserMenuOpen(false); void handleLogout(); }}
                   className="flex items-center gap-2.5 w-full border-none cursor-pointer transition-colors touch-manipulation"
                   style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, background: 'transparent', color: '#ef4444', fontFamily: 'inherit' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FEF2F2'; }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,.12)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 >
                   <LogOut style={{ width: '16px', height: '16px', flexShrink: 0 }} />
@@ -994,8 +996,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             sidebarCollapsed ? 'lg:w-[62px]' : 'lg:w-[244px]',
           ].join(' ')}
           style={{
-            background: '#ffffff',
-            borderRight: '1px solid #e5e7eb',
+            background: '#0c0620',
+            borderRight: '1px solid rgba(255,255,255,.07)',
           } as React.CSSProperties}
         >
           {/* ── Logo header ── */}
@@ -1006,24 +1008,24 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               padding: sidebarCollapsed ? '0' : '0 16px',
               justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
               gap: '11px',
-              borderBottom: '1px solid #f0f0f0',
+              borderBottom: '1px solid rgba(255,255,255,.07)',
             }}
           >
             <LogoMark className="shrink-0" style={{ width: '34px', height: '34px' }} />
             {!sidebarCollapsed && (
               <>
                 <div style={{ overflow: 'hidden', lineHeight: 1.35, flex: '1 1 auto' }}>
-                  <div style={{ fontWeight: 800, fontSize: '16px', letterSpacing: '-.5px', whiteSpace: 'nowrap', color: '#111827' }}>
+                  <div style={{ fontWeight: 800, fontSize: '16px', letterSpacing: '-.5px', whiteSpace: 'nowrap', color: 'white' }}>
                     SozialZynk
                   </div>
-                  <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500, letterSpacing: '.01em', whiteSpace: 'nowrap' }}>AI Creator Platform</div>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)', fontWeight: 500, letterSpacing: '.01em', whiteSpace: 'nowrap' }}>AI Creator Platform</div>
                 </div>
                 {/* Close button — only visible on mobile */}
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
                   className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl shrink-0 touch-manipulation"
-                  style={{ background: '#f3f4f6', color: '#374151', border: 'none' }}
+                  style={{ background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.7)', border: 'none' }}
                   aria-label="Close navigation"
                 >
                   <X className="w-4 h-4" />
@@ -1057,15 +1059,15 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                     letterSpacing: '-.1px',
                     textDecoration: 'none',
                     justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                    background: pathname.startsWith('/admin') ? '#f3f4f6' : '#f9fafb',
-                    color: '#374151',
-                    border: '1px solid #e5e7eb',
+                    background: 'rgba(255,255,255,.06)',
+                    color: 'rgba(255,255,255,.75)',
+                    border: '1px solid rgba(255,255,255,.1)',
                     transition: 'background 180ms ease',
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = pathname.startsWith('/admin') ? '#f3f4f6' : '#f9fafb'; }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.1)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.06)'; }}
                 >
-                  <ShieldCheck style={{ width: '18px', height: '18px', flexShrink: 0, color: '#6b7280' }} />
+                  <ShieldCheck style={{ width: '18px', height: '18px', flexShrink: 0, color: 'rgba(255,255,255,.45)' }} />
                   {!sidebarCollapsed && <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>Admin Panel</span>}
                 </Link>
               </div>
@@ -1073,18 +1075,18 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           </nav>
 
           {/* ── Mobile-only bottom links inside drawer ── */}
-          <div className="lg:hidden shrink-0 p-3 space-y-1" style={{ borderTop: '1px solid #f0f0f0' }}>
+          <div className="lg:hidden shrink-0 p-3 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,.07)' }}>
             {BOTTOM_ITEMS.map(({ href, icon: Icon, label }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                style={{ color: '#374151', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
+                style={{ color: 'rgba(255,255,255,.75)', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.06)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
-                <Icon style={{ width: '17px', height: '17px', flexShrink: 0, color: '#9ca3af' }} />
+                <Icon style={{ width: '17px', height: '17px', flexShrink: 0, color: 'rgba(255,255,255,.4)' }} />
                 {label}
               </Link>
             ))}
@@ -1093,11 +1095,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                style={{ color: '#374151', fontSize: '14px', fontWeight: 700, textDecoration: 'none', background: '#f3f4f6', border: '1px solid #e5e7eb' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
+                style={{ color: 'rgba(255,255,255,.75)', fontSize: '14px', fontWeight: 700, textDecoration: 'none', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.1)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.1)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.08)'; }}
               >
-                <ShieldCheck style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
+                <ShieldCheck style={{ width: '17px', height: '17px', flexShrink: 0, color: 'rgba(255,255,255,.45)' }} />
                 Admin Panel
               </Link>
             )}
@@ -1106,7 +1108,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               onClick={() => { setMobileMenuOpen(false); void handleLogout(); }}
               className="flex items-center gap-3 w-full border-none cursor-pointer px-3 py-2.5 rounded-xl transition-colors touch-manipulation"
               style={{ color: '#ef4444', fontSize: '14px', fontWeight: 500, background: 'transparent', fontFamily: 'inherit' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fef2f2'; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,.12)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               <LogOut style={{ width: '17px', height: '17px', flexShrink: 0 }} />
@@ -1118,7 +1120,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         {/* ── MAIN ─────────────────────────────────────────────────────────── */}
         <main className="cf-main-mobile-pad flex-1 overflow-y-auto overflow-x-hidden">
           {isOffline && (
-            <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold" style={{ background: '#fef3c7', borderBottom: '1px solid #fcd34d', color: '#92400e' }}>
+            <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold" style={{ background: 'rgba(120,53,15,.2)', borderBottom: '1px solid rgba(251,191,36,.25)', color: 'rgba(251,191,36,.9)' }}>
               <WifiOff className="w-3.5 h-3.5 shrink-0 text-amber-600" />
               <span>You&apos;re offline — AI features and publishing are unavailable until reconnected.</span>
             </div>
@@ -1132,7 +1134,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       <nav
         className="cf-mobile-nav fixed bottom-0 inset-x-0 lg:hidden z-30"
         aria-label="Mobile navigation"
-        style={{ background: '#fff', borderTop: '1px solid #e5e7eb' }}
+        style={{ background: 'rgba(6,4,20,.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,.08)' }}
       >
         <div className="flex items-center h-14">
 
@@ -1143,12 +1145,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <Link
                 key={href}
                 href={href}
-                className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative"
-                style={{ color: isActive ? '#111827' : '#9a97ab' }}
+                className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-white/5 touch-manipulation relative"
+                style={{ color: isActive ? 'white' : 'rgba(255,255,255,.4)' }}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {isActive && (
-                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#374151' }} />
+                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: 'white' }} />
                 )}
                 <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
                 <span className="text-[10.5px] font-semibold leading-none">{label}</span>
@@ -1174,7 +1176,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               >
                 <Plus className="w-[21px] h-[21px] text-white" strokeWidth={2.5} />
               </span>
-              <span className="text-[10.5px] font-semibold leading-none" style={{ color: '#374151' }}>Create</span>
+              <span className="text-[10.5px] font-semibold leading-none" style={{ color: 'rgba(255,255,255,.7)' }}>Create</span>
             </Link>
           </div>
 
@@ -1185,12 +1187,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <Link
                 key={href}
                 href={href}
-                className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative"
-                style={{ color: isActive ? '#111827' : '#9a97ab' }}
+                className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-white/5 touch-manipulation relative"
+                style={{ color: isActive ? 'white' : 'rgba(255,255,255,.4)' }}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {isActive && (
-                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#374151' }} />
+                  <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: 'white' }} />
                 )}
                 <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
                 <span className="text-[10.5px] font-semibold leading-none">{label}</span>
@@ -1202,8 +1204,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation border-none relative"
-            style={{ background: 'transparent', color: '#9a97ab' }}
+            className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-white/5 touch-manipulation border-none relative"
+            style={{ background: 'transparent', color: 'rgba(255,255,255,.4)' }}
             aria-label="Open navigation menu"
           >
             <Menu className="w-[22px] h-[22px]" strokeWidth={1.8} />

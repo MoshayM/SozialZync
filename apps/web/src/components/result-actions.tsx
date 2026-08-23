@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState, useCallback } from 'react';
 import { Copy, Check, Download, Share2, Trash2, Save, Volume2, VolumeX, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
 
@@ -63,7 +63,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {savedAt && (
-        <span className="flex items-center gap-1 text-[11px] text-gray-400 font-medium mr-1">
+        <span className="flex items-center gap-1 text-[11px] text-white/45 font-medium mr-1">
           <Save className="w-3 h-3" /> Auto-saved {savedAt}
         </span>
       )}
@@ -71,7 +71,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
         type="button"
         onClick={() => void handleCopy()}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
-        style={{ background: copied ? '#ecfdf5' : '#f3f4f6', color: copied ? '#065f46' : '#374151', border: `1.5px solid ${copied ? '#a7f3d0' : '#e3ddf8'}` }}
+        style={{ background: copied ? 'rgba(16,185,129,.15)' : 'rgba(255,255,255,.08)', color: copied ? '#6ee7b7' : 'rgba(255,255,255,.8)', border: `1.5px solid ${copied ? 'rgba(16,185,129,.3)' : 'rgba(255,255,255,.12)'}` }}
         title="Copy to clipboard"
       >
         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -81,7 +81,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
         type="button"
         onClick={handleDownload}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
-        style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e3ddf8' }}
+        style={{ background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.8)', border: '1.5px solid rgba(255,255,255,.12)' }}
         title="Download as text file"
       >
         <Download className="w-3.5 h-3.5" />
@@ -91,7 +91,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
         type="button"
         onClick={() => void handleShare()}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
-        style={{ background: shared ? '#ecfdf5' : '#f3f4f6', color: shared ? '#065f46' : '#374151', border: `1.5px solid ${shared ? '#a7f3d0' : '#e3ddf8'}` }}
+        style={{ background: shared ? 'rgba(16,185,129,.15)' : 'rgba(255,255,255,.08)', color: shared ? '#6ee7b7' : 'rgba(255,255,255,.8)', border: `1.5px solid ${shared ? 'rgba(16,185,129,.3)' : 'rgba(255,255,255,.12)'}` }}
         title="Share"
       >
         <Share2 className="w-3.5 h-3.5" />
@@ -102,7 +102,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
           type="button"
           onClick={onNew}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ml-auto"
-          style={{ background: 'transparent', color: '#9ca3af', border: '1.5px solid #e5e7eb' }}
+          style={{ background: 'transparent', color: 'rgba(255,255,255,.45)', border: '1.5px solid rgba(255,255,255,.1)' }}
           title="Start new — clears current result"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -166,13 +166,13 @@ export function ResultActionBar({ text, filename = 'result', onRegenerate }: Res
 
   const pill = (active: boolean, accent?: string) => {
     const base = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border';
-    if (active && accent === 'green') return `${base} bg-green-50 border-green-200 text-green-700`;
-    if (active) return `${base} bg-[#f0edfb] border-[#c4b5f4] text-[#374151]`;
-    return `${base} bg-white border-[#e3ddf8] text-gray-600 hover:bg-[#f3f4f6] hover:border-[#c4b5f4] hover:text-[#374151]`;
+    if (active && accent === 'green') return `${base} bg-emerald-500/15 border-emerald-500/30 text-emerald-400`;
+    if (active) return `${base} bg-white/10 border-white/20 text-white/90`;
+    return `${base} bg-white/6 border-white/10 text-white/65 hover:bg-white/10 hover:border-white/20 hover:text-white/80`;
   };
 
   return (
-    <div className="border-t border-[#f0edfb] pt-3 mt-3">
+    <div className="border-t border-white/8 pt-3 mt-3">
       <div className="flex flex-wrap gap-2 items-center">
         <button type="button" onClick={() => void handleCopy()} className={pill(copied, 'green')} title="Copy to clipboard">
           {copied
@@ -204,7 +204,7 @@ export function ResultActionBar({ text, filename = 'result', onRegenerate }: Res
           <button
             type="button"
             onClick={() => setLiked(l => l === 'up' ? null : 'up')}
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border ${liked === 'up' ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-[#e3ddf8] text-gray-400 hover:text-green-500 hover:border-green-200'}`}
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border ${liked === 'up' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-white/6 border-white/10 text-white/45 hover:text-emerald-400 hover:border-emerald-500/30'}`}
             title="Good result"
           >
             <ThumbsUp className="w-3.5 h-3.5" />
@@ -212,7 +212,7 @@ export function ResultActionBar({ text, filename = 'result', onRegenerate }: Res
           <button
             type="button"
             onClick={() => setLiked(l => l === 'down' ? null : 'down')}
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border ${liked === 'down' ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-[#e3ddf8] text-gray-400 hover:text-red-400 hover:border-red-200'}`}
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border ${liked === 'down' ? 'bg-red-500/12 border-red-500/20 text-red-400' : 'bg-white/6 border-white/10 text-white/45 hover:text-red-400 hover:border-red-500/20'}`}
             title="Poor result"
           >
             <ThumbsDown className="w-3.5 h-3.5" />

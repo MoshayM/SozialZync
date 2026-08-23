@@ -20,33 +20,33 @@ export function AuthShell({
   footer: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-200 relative overflow-hidden py-10 px-4">
-      <div className="absolute top-16 left-[12%] w-24 h-10 bg-white/80 rounded-full blur-[1px]" />
-      <div className="absolute top-24 left-[16%] w-14 h-8 bg-white/70 rounded-full" />
-      <div className="absolute top-32 right-[14%] w-28 h-11 bg-white/80 rounded-full blur-[1px]" />
-      <div className="absolute bottom-24 left-[8%] w-40 h-40 bg-gray-400/60 rounded-full" />
-      <div className="absolute bottom-10 right-[6%] w-56 h-56 bg-gray-300/50 rounded-full" />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden py-10 px-4" style={{ background: 'radial-gradient(ellipse at 30% 50%,#0f172a 0%,#0a0520 60%,#010009 100%)' }}>
+      <div className="absolute top-16 left-[12%] w-24 h-10 rounded-full blur-[1px]" style={{ background: 'rgba(255,255,255,.03)' }} />
+      <div className="absolute top-24 left-[16%] w-14 h-8 rounded-full" style={{ background: 'rgba(255,255,255,.03)' }} />
+      <div className="absolute top-32 right-[14%] w-28 h-11 rounded-full blur-[1px]" style={{ background: 'rgba(255,255,255,.03)' }} />
+      <div className="absolute bottom-24 left-[8%] w-40 h-40 rounded-full" style={{ background: 'rgba(255,255,255,.03)' }} />
+      <div className="absolute bottom-10 right-[6%] w-56 h-56 rounded-full" style={{ background: 'rgba(255,255,255,.03)' }} />
 
-      <div className="relative w-full max-w-md bg-gray-50 rounded-[3rem] shadow-2xl px-6 pt-10 pb-8">
-        <p className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-gray-600 mb-3">{brand}</p>
+      <div className="relative w-full max-w-md rounded-[3rem] shadow-2xl px-6 pt-10 pb-8" style={{ background: 'rgba(255,255,255,.05)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,.1)' }}>
+        <p className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-white/55 mb-3">{brand}</p>
         <div className="text-center">
           <span className="text-lg" aria-hidden>💜</span>
-          <h1 className="text-3xl font-extrabold text-gray-800 mt-1">
+          <h1 className="text-3xl font-extrabold text-white mt-1">
             <span className="text-[#e8c14d] mr-2" aria-hidden>✦</span>
             {title}
             <span className="text-[#e8c14d] ml-2" aria-hidden>✦</span>
           </h1>
-          <p className="text-sm text-gray-600 mt-2">{subtitle}</p>
+          <p className="text-sm text-white/55 mt-2">{subtitle}</p>
         </div>
         <div className="relative z-10 flex justify-center -mb-9 mt-6">
           <div className="w-24 h-24 rounded-full bg-gradient-to-b from-gray-300 to-gray-400 shadow-lg flex items-center justify-center text-5xl select-none" aria-hidden>
             {mascot}
           </div>
         </div>
-        <div className="bg-white rounded-[2rem] shadow-xl px-5 pb-6 pt-14">
+        <div className="rounded-[2rem] shadow-xl px-5 pb-6 pt-14" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
           {children}
         </div>
-        <div className="text-center text-sm text-gray-600 mt-5">{footer}</div>
+        <div className="text-center text-sm text-white/50 mt-5">{footer}</div>
       </div>
     </div>
   );
@@ -57,13 +57,13 @@ export function AuthPillInput({
   ...inputProps
 }: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div className="flex items-center bg-white border border-gray-200 rounded-full shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)] pr-3 focus-within:ring-2 focus-within:ring-gray-400">
+    <div className="flex items-center rounded-full pr-3 focus-within:ring-2 focus-within:ring-white/20" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
       <span className="w-10 h-10 m-1 rounded-full bg-gray-600 text-white flex items-center justify-center shrink-0">
         {icon}
       </span>
       <input
         {...inputProps}
-        className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+        className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none"
       />
     </div>
   );
@@ -116,7 +116,6 @@ export function LoginShell({
         .lf-card { transform-style:preserve-3d; }
         .lf-card:hover { transform:perspective(800px) rotateX(-4deg) rotateY(6deg) translateZ(8px) scale(1.02); transition:transform .4s ease,box-shadow .4s ease; box-shadow:0 24px 48px -8px rgba(0,0,0,.25); }
         .lf-shimmer-btn { background:linear-gradient(90deg,#9ca3af,#374151,#6b7280,#374151,#9ca3af); background-size:300% 100%; animation:lf-shimmer 3s linear infinite; }
-        .lf-rp { background:linear-gradient(135deg,#fafafa 0%,#f3f4f6 40%,#e5e7eb 100%); background-size:200% 200%; animation:lf-rp-shift 8s ease infinite; }
       `}</style>
 
       {/* ── Left: Brand panel ──────────────────────────────────────────── */}
@@ -250,24 +249,24 @@ export function LoginShell({
       </div>
 
       {/* ── Right: Form panel (gradient animated) ────────────────────────── */}
-      <div className="lf-rp flex-1 flex items-center justify-center px-6 sm:px-10 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center px-6 sm:px-10 py-12 overflow-y-auto" style={{ background: 'radial-gradient(ellipse at 50% 0%,#0f172a 0%,#0a0520 70%,#010009 100%)' }}>
         <div className="w-full max-w-[370px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" />
+            <LogoMark className="w-9 h-9 shrink-0" variant="light" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#ffffff' }}>Sozial</span><span style={{ color: '#d1d5db' }}>Z</span><span style={{ color: '#ffffff' }}>ynk</span>
             </span>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-[1.9rem] font-extrabold text-gray-900 leading-tight mb-1.5">Welcome back</h2>
-            <p className="text-gray-500 text-sm">Sign in to continue to your dashboard</p>
+            <h2 className="text-[1.9rem] font-extrabold text-white leading-tight mb-1.5">Welcome back</h2>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>Sign in to continue to your dashboard</p>
           </div>
 
           {children}
 
-          <div className="text-center text-sm text-gray-500 mt-8">{footer}</div>
+          <div className="text-center text-sm mt-8" style={{ color: 'rgba(255,255,255,0.5)' }}>{footer}</div>
         </div>
       </div>
     </div>
@@ -288,21 +287,24 @@ export function LoginInput({
   return (
     <div>
       {label && (
-        <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</label>
+        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>{label}</label>
       )}
       <div
-        className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-gray-300 focus-within:border-gray-400"
-        style={{ border: '1.5px solid #e5e7eb' }}
+        className="flex items-center rounded-2xl transition-all focus-within:ring-2"
+        style={{ border: '1.5px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)', outline: 'none' }}
+        onFocus={() => undefined}
       >
         {icon && (
-          <span className="pl-3.5 text-gray-600 shrink-0">{icon}</span>
+          <span className="pl-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }}>{icon}</span>
         )}
         <input
           {...inputProps}
-          className="flex-1 min-w-0 bg-transparent px-3 py-3 text-sm text-gray-800 placeholder-gray-600 focus:outline-none"
+          className="flex-1 min-w-0 bg-transparent px-3 py-3 text-sm text-white focus:outline-none"
+          style={{ color: 'white' }}
+          placeholder={inputProps.placeholder}
         />
         {rightElement && (
-          <span className="pr-2 shrink-0">{rightElement}</span>
+          <span className="pr-2 shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }}>{rightElement}</span>
         )}
       </div>
     </div>
@@ -451,24 +453,24 @@ export function RegisterShell({
       </div>
 
       {/* ── Right: Form panel ──────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-10 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center px-6 sm:px-10 py-10 overflow-y-auto" style={{ background: 'radial-gradient(ellipse at 60% 20%, #0f172a 0%, #040415 55%, #000814 100%)' }}>
         <div className="w-full max-w-[380px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" />
+            <LogoMark className="w-9 h-9 shrink-0" variant="light" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#ffffff' }}>Sozial</span><span style={{ color: '#d1d5db' }}>Z</span><span style={{ color: '#ffffff' }}>ynk</span>
             </span>
           </div>
 
           <div className="mb-7">
-            <h2 className="text-[1.75rem] font-extrabold text-gray-900 leading-tight mb-1.5">Create your account</h2>
-            <p className="text-gray-600 text-sm">Free forever · No credit card required</p>
+            <h2 className="text-[1.75rem] font-extrabold text-white leading-tight mb-1.5">Create your account</h2>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>Free forever · No credit card required</p>
           </div>
 
           {children}
 
-          <p className="text-center text-sm text-gray-600 mt-7">{footer}</p>
+          <p className="text-center text-sm mt-7" style={{ color: 'rgba(255,255,255,0.5)' }}>{footer}</p>
         </div>
       </div>
     </div>
@@ -578,16 +580,16 @@ export function ForgotPasswordShell({
       </div>
 
       {/* ── Right panel ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center px-6 sm:px-10 py-12 overflow-y-auto" style={{ background: 'radial-gradient(ellipse at 60% 20%, #0f172a 0%, #040415 55%, #000814 100%)' }}>
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" />
+            <LogoMark className="w-9 h-9 shrink-0" variant="light" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#ffffff' }}>Sozial</span><span style={{ color: '#d1d5db' }}>Z</span><span style={{ color: '#ffffff' }}>ynk</span>
             </span>
           </div>
           {children}
-          <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
+          <p className="text-center text-sm mt-8" style={{ color: 'rgba(255,255,255,0.5)' }}>{footer}</p>
         </div>
       </div>
     </div>
@@ -673,16 +675,16 @@ export function ResetPasswordShell({
       </div>
 
       {/* ── Right panel ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center px-6 sm:px-10 py-12 overflow-y-auto" style={{ background: 'radial-gradient(ellipse at 60% 20%, #0f172a 0%, #040415 55%, #000814 100%)' }}>
         <div className="w-full max-w-[370px]">
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" />
+            <LogoMark className="w-9 h-9 shrink-0" variant="light" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#ffffff' }}>Sozial</span><span style={{ color: '#d1d5db' }}>Z</span><span style={{ color: '#ffffff' }}>ynk</span>
             </span>
           </div>
           {children}
-          <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
+          <p className="text-center text-sm mt-8" style={{ color: 'rgba(255,255,255,0.5)' }}>{footer}</p>
         </div>
       </div>
     </div>
@@ -857,19 +859,19 @@ export function OAuthCallbackShell({
       </div>
 
       {/* ── Right: Status panel ─────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center px-6 sm:px-10 py-12 overflow-y-auto" style={{ background: 'radial-gradient(ellipse at 60% 20%, #0f172a 0%, #040415 55%, #000814 100%)' }}>
         <div className="w-full max-w-[360px]">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <LogoMark className="w-9 h-9 shrink-0" />
+            <LogoMark className="w-9 h-9 shrink-0" variant="light" />
             <span className="font-bold text-lg tracking-[-0.4px]">
-              <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
+              <span style={{ color: '#ffffff' }}>Sozial</span><span style={{ color: '#d1d5db' }}>Z</span><span style={{ color: '#ffffff' }}>ynk</span>
             </span>
           </div>
 
           {children}
 
-          <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
+          <p className="text-center text-sm mt-8" style={{ color: 'rgba(255,255,255,0.5)' }}>{footer}</p>
         </div>
       </div>
     </div>
@@ -902,9 +904,9 @@ export function SocialRow({
     <div className="mt-5">
       {/* Divider */}
       <div className="flex items-center gap-3 mb-4">
-        <span className="flex-1 h-px bg-gray-200" />
-        <span className="text-xs text-gray-400 font-medium tracking-wide">or</span>
-        <span className="flex-1 h-px bg-gray-200" />
+        <span className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
+        <span className="text-xs font-medium tracking-wide" style={{ color: 'rgba(255,255,255,0.4)' }}>or</span>
+        <span className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
       </div>
 
       {/* Google button — full width, Google brand style */}
@@ -915,12 +917,17 @@ export function SocialRow({
         aria-label="Continue with Google"
         className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl font-medium text-sm transition-all select-none ${
           googleEnabled
-            ? 'bg-white text-gray-700 hover:bg-gray-50 hover:shadow-md active:scale-[0.99] cursor-pointer'
-            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+            ? 'hover:opacity-90 active:scale-[0.99] cursor-pointer'
+            : 'cursor-not-allowed'
         }`}
-        style={{
-          border: '1.5px solid #e2e8f0',
-          boxShadow: googleEnabled ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+        style={googleEnabled ? {
+          background: 'rgba(255,255,255,.08)',
+          border: '1px solid rgba(255,255,255,.12)',
+          color: 'white',
+        } : {
+          background: 'rgba(255,255,255,.04)',
+          border: '1px solid rgba(255,255,255,.12)',
+          color: 'rgba(255,255,255,.25)',
         }}
       >
         <GoogleLogo />

@@ -68,8 +68,8 @@ export default function SetPasswordPage() {
             <CheckCircle2 className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-800">Password set!</h2>
-            <p className="text-sm text-gray-500 mt-1">Taking you to your dashboard…</p>
+            <h2 className="text-lg font-bold text-white">Password set!</h2>
+            <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>Taking you to your dashboard…</p>
           </div>
         </div>
       </LoginShell>
@@ -82,7 +82,7 @@ export default function SetPasswordPage() {
         <button
           type="button"
           onClick={() => router.push('/home')}
-          className="text-xs text-gray-400 hover:text-gray-600 hover:underline transition-colors"
+          className="text-xs hover:underline transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}
         >
           Skip for now — I'll use OTP to sign in
         </button>
@@ -97,8 +97,8 @@ export default function SetPasswordPage() {
           <ShieldCheck className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Create a password</h1>
-          <p className="text-xs text-gray-400 mt-1 max-w-[260px]">
+          <h1 className="text-xl font-bold text-white">Create a password</h1>
+          <p className="text-xs mt-1 max-w-[260px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Add a password so you can also sign in with your email — no OTP needed next time.
           </p>
         </div>
@@ -107,12 +107,12 @@ export default function SetPasswordPage() {
       <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-4">
         {/* Password field */}
         <div className="space-y-1.5">
-          <label className="block text-xs text-gray-500 font-medium px-1">New password</label>
+          <label className="block text-xs font-medium px-1" style={{ color: 'rgba(255,255,255,0.6)' }}>New password</label>
           <div
-            className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
-            style={{ border: '1.5px solid #e3e0f0' }}
+            className="flex items-center rounded-2xl transition-all"
+            style={{ border: '1.5px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)' }}
           >
-            <div className="pl-4 text-gray-400"><Lock className="w-4 h-4" /></div>
+            <div className="pl-4" style={{ color: 'rgba(255,255,255,0.45)' }}><Lock className="w-4 h-4" /></div>
             <input
               type={showPw ? 'text' : 'password'}
               aria-label="New password"
@@ -122,13 +122,14 @@ export default function SetPasswordPage() {
               autoComplete="new-password"
               minLength={8}
               required
-              className="flex-1 px-3 py-3 text-sm outline-none bg-transparent text-gray-800 placeholder:text-gray-400"
+              className="flex-1 px-3 py-3 text-sm outline-none bg-transparent text-white"
+              style={{ color: 'white' }}
             />
             <button
               type="button"
               onClick={() => setShowPw((v) => !v)}
               aria-label={showPw ? 'Hide password' : 'Show password'}
-              className="pr-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="pr-4 transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
             >
               {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -143,7 +144,7 @@ export default function SetPasswordPage() {
                     key={i}
                     className="h-1 flex-1 rounded-full transition-all duration-300"
                     style={{
-                      background: i <= strength.score ? strength.color : '#e5e7eb',
+                      background: i <= strength.score ? strength.color : 'rgba(255,255,255,0.12)',
                     }}
                   />
                 ))}
@@ -157,14 +158,16 @@ export default function SetPasswordPage() {
 
         {/* Confirm password field */}
         <div className="space-y-1.5">
-          <label className="block text-xs text-gray-500 font-medium px-1">Confirm password</label>
+          <label className="block text-xs font-medium px-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Confirm password</label>
           <div
-            className="flex items-center bg-white rounded-2xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
+            className="flex items-center rounded-2xl transition-all"
             style={{
-              border: `1.5px solid ${confirm.length > 0 ? (passwordsMatch ? '#22c55e' : '#ef4444') : '#e3e0f0'}`,
+              border: `1.5px solid ${confirm.length > 0 ? (passwordsMatch ? '#22c55e' : '#ef4444') : 'rgba(255,255,255,0.12)'}`,
+              background: 'rgba(255,255,255,0.07)',
+              backdropFilter: 'blur(8px)',
             }}
           >
-            <div className="pl-4 text-gray-400"><Lock className="w-4 h-4" /></div>
+            <div className="pl-4" style={{ color: 'rgba(255,255,255,0.45)' }}><Lock className="w-4 h-4" /></div>
             <input
               type={showConfirm ? 'text' : 'password'}
               aria-label="Confirm password"
@@ -173,26 +176,27 @@ export default function SetPasswordPage() {
               onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password"
               required
-              className="flex-1 px-3 py-3 text-sm outline-none bg-transparent text-gray-800 placeholder:text-gray-400"
+              className="flex-1 px-3 py-3 text-sm outline-none bg-transparent text-white"
+              style={{ color: 'white' }}
             />
             <button
               type="button"
               onClick={() => setShowConfirm((v) => !v)}
               aria-label={showConfirm ? 'Hide' : 'Show'}
-              className="pr-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="pr-4 transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
             >
               {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
           {confirm.length > 0 && !passwordsMatch && (
-            <p className="text-[11px] text-red-500 px-0.5">Passwords don't match</p>
+            <p className="text-[11px] text-red-400 px-0.5">Passwords don't match</p>
           )}
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
+          <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
             <span className="text-red-400 text-sm" aria-hidden>⚠</span>
-            <p className="text-red-600 text-xs font-medium">{error}</p>
+            <p className="text-xs font-medium" style={{ color: '#fca5a5' }}>{error}</p>
           </div>
         )}
 
@@ -203,7 +207,7 @@ export default function SetPasswordPage() {
           style={{
             background: canSubmit
               ? 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
-              : '#c4b5f4',
+              : 'rgba(255,255,255,0.12)',
             boxShadow: canSubmit ? '0 4px 20px rgba(55,65,81,0.35)' : 'none',
           }}
         >
