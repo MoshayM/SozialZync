@@ -14,14 +14,13 @@ function Input({
 }) {
   return (
     <div
-      className="flex items-center rounded-xl transition-all"
-      style={{ border: '1.5px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)' }}
+      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
+      style={{ border: '1.5px solid #e5e7eb', background: '#fff' }}
     >
       <input
         type={type} placeholder={placeholder} value={value} onChange={onChange}
         autoComplete={autoComplete} autoFocus={autoFocus} required={required}
-        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-white focus:outline-none"
-        style={{ color: 'white' }}
+        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
       />
     </div>
   );
@@ -29,9 +28,9 @@ function Input({
 
 function ErrorNote({ msg }: { msg: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-red-50 border border-red-100">
       <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-      <p className="text-xs font-medium leading-relaxed" style={{ color: '#fca5a5' }}>{msg}</p>
+      <p className="text-red-600 text-xs font-medium leading-relaxed">{msg}</p>
     </div>
   );
 }
@@ -88,8 +87,7 @@ export default function ForgotPasswordPage() {
   const backLink = (
     <Link
       href="/login"
-      className="inline-flex items-center gap-1.5 font-semibold hover:underline"
-      style={{ color: 'rgba(255,255,255,0.75)' }}
+      className="inline-flex items-center gap-1.5 text-[#374151] font-semibold hover:underline"
     >
       <ArrowLeft className="w-3.5 h-3.5" />
       Back to sign in
@@ -105,22 +103,21 @@ export default function ForgotPasswordPage() {
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{
-                background: 'rgba(255,255,255,0.10)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                boxShadow: '0 8px 24px rgba(55,65,81,0.18)',
               }}
             >
-              <Mail className="w-8 h-8 text-white" />
+              <Mail className="w-8 h-8 text-[#374151]" />
             </div>
           </div>
 
-          <h2 className="text-2xl font-extrabold text-white mb-1.5">Check your inbox</h2>
-          <p className="text-sm leading-relaxed mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-1.5">Check your inbox</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-2">
             We sent a reset link to{' '}
-            <span className="font-semibold text-white">{email}</span>.
+            <span className="font-semibold text-gray-700">{email}</span>.
           </p>
-          <p className="text-xs mb-6" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            The link is valid for <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.7)' }}>1 hour</span>.
+          <p className="text-gray-400 text-xs mb-6">
+            The link is valid for <span className="font-semibold text-gray-600">1 hour</span>.
             Check your spam folder if you don&apos;t see it.
           </p>
 
@@ -128,7 +125,7 @@ export default function ForgotPasswordPage() {
             type="button"
             onClick={() => { setEmailSent(false); setEmail(''); }}
             className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-            style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', border: '1.5px solid rgba(255,255,255,0.12)' }}
+            style={{ background: '#f9fafb', color: '#374151', border: '1.5px solid #e5e7eb' }}
           >
             Try a different email
           </button>
@@ -146,29 +143,28 @@ export default function ForgotPasswordPage() {
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
               style={{
-                background: 'rgba(255,255,255,0.10)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                boxShadow: '0 8px 24px rgba(55,65,81,0.18)',
               }}
             >
               🔑
             </div>
           </div>
 
-          <h2 className="text-2xl font-extrabold text-white mb-1.5 text-center">Your reset link</h2>
-          <p className="text-sm leading-relaxed mb-5 text-center" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-1.5 text-center">Your reset link</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-5 text-center">
             Click the link below or copy it to reset your password.
-            Valid for <span className="font-semibold text-white">1 hour</span>.
+            Valid for <span className="font-semibold text-gray-700">1 hour</span>.
           </p>
 
           <div
             className="rounded-xl px-4 py-3 mb-3 break-all"
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(255,255,255,0.12)' }}
+            style={{ background: '#f9fafb', border: '1.5px solid #e5e7eb' }}
           >
             <a
               href={resetUrl}
-              className="text-xs font-medium hover:underline"
-              style={{ color: 'rgba(255,255,255,0.7)', wordBreak: 'break-all' }}
+              className="text-[#374151] text-xs font-medium hover:underline"
+              style={{ wordBreak: 'break-all' }}
             >
               {resetUrl}
             </a>
@@ -193,9 +189,9 @@ export default function ForgotPasswordPage() {
               href={resetUrl}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
               style={{
-                background: 'rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.85)',
-                border: '1.5px solid rgba(255,255,255,0.12)',
+                background: '#f9fafb',
+                color: '#374151',
+                border: '1.5px solid #e5e7eb',
               }}
             >
               <ExternalLink className="w-4 h-4" />
@@ -203,7 +199,7 @@ export default function ForgotPasswordPage() {
             </a>
           </div>
 
-          <p className="text-center text-xs mt-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <p className="text-center text-xs text-gray-400 mt-4">
             This link is single-use and expires in 1 hour.
           </p>
         </div>
@@ -219,18 +215,18 @@ export default function ForgotPasswordPage() {
           <div className="flex justify-center mb-5">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-              style={{ background: 'rgba(239,68,68,0.15)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+              style={{ background: '#fef2f2', boxShadow: '0 8px 24px rgba(239,68,68,0.12)' }}
             >
               🔍
             </div>
           </div>
 
-          <h2 className="text-2xl font-extrabold text-white mb-2">Account not found</h2>
-          <p className="text-sm leading-relaxed mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Account not found</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-2">
             No account is registered with{' '}
-            <span className="font-semibold text-white">{email}</span>.
+            <span className="font-semibold text-gray-700">{email}</span>.
           </p>
-          <p className="text-xs mb-6" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <p className="text-gray-400 text-xs mb-6">
             Double-check the address or create a new account.
           </p>
 
@@ -250,7 +246,7 @@ export default function ForgotPasswordPage() {
             <Link
               href="/register"
               className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
-              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', border: '1.5px solid rgba(255,255,255,0.12)' }}
+              style={{ background: '#f9fafb', color: '#374151', border: '1.5px solid #e5e7eb' }}
             >
               Create an account
             </Link>
@@ -264,8 +260,8 @@ export default function ForgotPasswordPage() {
   return (
     <ForgotPasswordShell footer={backLink}>
       <div className="mb-6">
-        <h2 className="text-2xl font-extrabold text-white leading-tight mb-1.5">Forgot your password?</h2>
-        <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <h2 className="text-2xl font-extrabold text-gray-900 leading-tight mb-1.5">Forgot your password?</h2>
+        <p className="text-gray-500 text-sm leading-relaxed">
           Enter your email and we&apos;ll send you a reset link.
         </p>
       </div>

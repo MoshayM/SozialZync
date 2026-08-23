@@ -4,10 +4,10 @@ import React from 'react';
 export type StatTone = 'lilac' | 'pink' | 'cream' | 'periwinkle';
 
 const TONES: Record<StatTone, { cardBg: string; cardBorder: string; tileBg: string }> = {
-  lilac:      { cardBg: 'rgba(255,255,255,.05)', cardBorder: 'rgba(255,255,255,.08)', tileBg: '#374151' },
-  pink:       { cardBg: 'rgba(255,255,255,.05)', cardBorder: 'rgba(255,255,255,.08)', tileBg: '#e0196e' },
-  cream:      { cardBg: 'rgba(255,255,255,.05)', cardBorder: 'rgba(255,255,255,.08)', tileBg: '#d97706' },
-  periwinkle: { cardBg: 'rgba(255,255,255,.05)', cardBorder: 'rgba(255,255,255,.08)', tileBg: '#3b82f6' },
+  lilac:      { cardBg: '#f3f4f6', cardBorder: '#e3ddf8', tileBg: '#374151' },
+  pink:       { cardBg: '#fdf2f8', cardBorder: '#f9d0ea', tileBg: '#e0196e' },
+  cream:      { cardBg: '#fefce8', cardBorder: '#fde68a', tileBg: '#d97706' },
+  periwinkle: { cardBg: '#eff6ff', cardBorder: '#bfdbfe', tileBg: '#3b82f6' },
 };
 
 export function StatCard({
@@ -16,7 +16,7 @@ export function StatCard({
   label,
   value,
   sub,
-  subClassName = 'text-white/65',
+  subClassName = 'text-gray-600',
 }: {
   tone: StatTone;
   icon: React.ReactNode;
@@ -29,7 +29,7 @@ export function StatCard({
   return (
     <div
       className="rounded-2xl p-5"
-      style={{ background: t.cardBg, border: `1.5px solid ${t.cardBorder}`, backdropFilter: 'blur(12px)' }}
+      style={{ background: t.cardBg, border: `1.5px solid ${t.cardBorder}` }}
     >
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center text-white mb-3 shrink-0"
@@ -37,8 +37,8 @@ export function StatCard({
       >
         {icon}
       </div>
-      <p className="text-xs font-semibold text-white/65 uppercase tracking-wide">{label}</p>
-      <div className="text-3xl font-extrabold text-white mt-0.5 tabular-nums leading-none">{value}</div>
+      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{label}</p>
+      <div className="text-3xl font-extrabold text-gray-900 mt-0.5 tabular-nums leading-none">{value}</div>
       {sub && <p className={`text-xs mt-1.5 font-medium ${subClassName}`}>{sub}</p>}
     </div>
   );
@@ -65,14 +65,14 @@ export function PastelBars({
           className="flex flex-col items-center gap-2 flex-1 min-w-0"
           title={b.title ?? `${b.label}: ${formatValue ? formatValue(b.value) : b.value}`}
         >
-          <span className="text-[10px] text-white/65 tabular-nums">
+          <span className="text-[10px] text-gray-600 tabular-nums">
             {formatValue ? formatValue(b.value) : b.value}
           </span>
           <div
             className="w-6 rounded-full transition-all duration-500"
             style={{ height: `${Math.max((b.value / max) * 120, 8)}px`, backgroundColor: COLORS[i % COLORS.length] }}
           />
-          <span className="text-[10px] text-white/65 truncate max-w-full">{b.label}</span>
+          <span className="text-[10px] text-gray-600 truncate max-w-full">{b.label}</span>
         </div>
       ))}
     </div>
@@ -86,7 +86,7 @@ export function PastelDonut({
   segments: Array<{ label: string; value: number; color: string }>;
 }) {
   const total = segments.reduce((s, x) => s + x.value, 0);
-  if (total === 0) return <p className="text-sm text-white/65 py-8 text-center">No data yet</p>;
+  if (total === 0) return <p className="text-sm text-gray-600 py-8 text-center">No data yet</p>;
 
   let acc = 0;
   const stops = segments
@@ -107,11 +107,11 @@ export function PastelDonut({
         role="img"
         aria-label={segments.map((s) => `${s.label}: ${Math.round((s.value / total) * 100)}%`).join(', ')}
       >
-        <div className="absolute inset-[22%] rounded-full shadow-inner" style={{ background: 'rgba(6,4,20,.85)' }} />
+        <div className="absolute inset-[22%] bg-white rounded-full shadow-inner" />
       </div>
       <ul className="space-y-2">
         {segments.map((s) => (
-          <li key={s.label} className="flex items-center gap-2 text-xs text-white/65">
+          <li key={s.label} className="flex items-center gap-2 text-xs text-gray-600">
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
             <span className="flex-1">{s.label}</span>
             <span className="font-semibold tabular-nums">{Math.round((s.value / total) * 100)}%</span>

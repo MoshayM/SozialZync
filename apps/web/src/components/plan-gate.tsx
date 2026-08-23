@@ -107,27 +107,27 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
       <div
         className={`${preview ? 'absolute inset-0' : 'py-16'} flex flex-col items-center justify-center z-10`}
         style={{
-          background: preview ? 'rgba(6,4,20,0.82)' : 'rgba(255,255,255,.05)',
-          backdropFilter: preview ? 'blur(8px)' : 'blur(12px)',
-          border: preview ? undefined : '1.5px dashed rgba(255,255,255,.15)',
+          background: preview ? 'rgba(250,249,255,0.88)' : 'white',
+          backdropFilter: preview ? 'blur(4px)' : undefined,
+          border: preview ? undefined : '1.5px dashed #d1d5db',
           borderRadius: preview ? undefined : 16,
         }}
       >
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-          style={{ background: 'rgba(255,255,255,.08)' }}
+          style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}
         >
           <Lock className="w-6 h-6" style={{ color: '#374151' }} />
         </div>
 
-        <p className="text-sm font-extrabold text-white mb-1 text-center px-6">
+        <p className="text-sm font-extrabold text-gray-900 mb-1 text-center px-6">
           {featureLabel ? `${featureLabel} requires ` : 'Requires '}
-          <span style={{ color: '#9ca3af' }}>{PLAN_LABEL[requiredPlan]}</span>
+          <span style={{ color: '#374151' }}>{PLAN_LABEL[requiredPlan]}</span>
           {PLAN_PRICE[requiredPlan] && (
-            <span className="text-white/65 font-medium"> ({PLAN_PRICE[requiredPlan]})</span>
+            <span className="text-gray-600 font-medium"> ({PLAN_PRICE[requiredPlan]})</span>
           )}
         </p>
-        <p className="text-xs text-white/65 mb-5 text-center px-10 leading-relaxed">
+        <p className="text-xs text-gray-600 mb-5 text-center px-10 leading-relaxed">
           {PLAN_DESC[requiredPlan]}
         </p>
 
@@ -142,7 +142,7 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
           Upgrade to {PLAN_LABEL[requiredPlan]}
         </Link>
 
-        <p className="text-[11px] text-white/55 mt-3">
+        <p className="text-[11px] text-gray-600 mt-3">
           Current plan: <span className="font-semibold">{PLAN_LABEL[userPlan]}</span>
         </p>
       </div>

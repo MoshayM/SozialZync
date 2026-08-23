@@ -40,8 +40,8 @@ function Input({
 }) {
   return (
     <div
-      className="flex items-center rounded-xl transition-all"
-      style={{ border: '1.5px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)' }}
+      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
+      style={{ border: '1.5px solid #e5e7eb', background: '#fff' }}
     >
       <input
         type={type}
@@ -51,10 +51,9 @@ function Input({
         autoComplete={autoComplete}
         autoFocus={autoFocus}
         required={required}
-        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-white focus:outline-none"
-        style={{ color: 'white' }}
+        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
       />
-      {rightElement && <span className="pr-2 shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }}>{rightElement}</span>}
+      {rightElement && <span className="pr-2 shrink-0">{rightElement}</span>}
     </div>
   );
 }
@@ -87,9 +86,9 @@ function PrimaryBtn({
 
 function ErrorNote({ msg }: { msg: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-red-50 border border-red-100">
       <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
-      <p className="text-xs font-medium leading-relaxed" style={{ color: '#fca5a5' }}>{msg}</p>
+      <p className="text-red-600 text-xs font-medium leading-relaxed">{msg}</p>
     </div>
   );
 }
@@ -198,15 +197,15 @@ export default function LoginPage() {
         <div className="space-y-2 text-center">
           <div>
             New to Sozialzynk?{' '}
-            <Link href="/register" className="font-semibold hover:underline" style={{ color: 'rgba(255,255,255,0.85)' }}>
+            <Link href="/register" className="text-[#374151] font-semibold hover:underline">
               Create a free account
             </Link>
           </div>
-          <div className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <div className="text-xs text-gray-400">
             By continuing you agree to our{' '}
-            <Link href="/terms" className="hover:underline" style={{ color: 'rgba(255,255,255,0.5)' }}>Terms</Link>
+            <Link href="/terms" className="hover:underline">Terms</Link>
             {' & '}
-            <Link href="/privacy" className="hover:underline" style={{ color: 'rgba(255,255,255,0.5)' }}>Privacy</Link>
+            <Link href="/privacy" className="hover:underline">Privacy</Link>
           </div>
         </div>
       }
@@ -252,7 +251,7 @@ export default function LoginPage() {
 
             {/* Passkey hint for users who may not know what it is */}
             {!hasPlatformAuth && (
-              <p className="text-[11px] text-center leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-[11px] text-center text-gray-400 leading-relaxed">
                 No passkey yet? Sign in with your password first, then add one in Settings.
               </p>
             )}
@@ -261,11 +260,11 @@ export default function LoginPage() {
 
         {/* ── Divider ──────────────────────────────────────── */}
         <div className="flex items-center gap-3">
-          <span className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.10)' }} />
-          <span className="text-[11px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <span className="flex-1 h-px bg-gray-100" />
+          <span className="text-[11px] font-medium text-gray-400 uppercase tracking-widest">
             {passkeySupported ? 'or' : 'Sign in'}
           </span>
-          <span className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.10)' }} />
+          <span className="flex-1 h-px bg-gray-100" />
         </div>
 
         {/* ── Password form (secondary) ─────────────────────── */}
@@ -293,7 +292,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="p-2 transition-colors rounded-lg" style={{ color: 'rgba(255,255,255,0.45)' }}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -302,7 +301,7 @@ export default function LoginPage() {
             <div className="flex justify-end">
               <Link
                 href="/forgot-password"
-                className="text-xs hover:underline font-medium py-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}
+                className="text-xs text-[#374151] hover:underline font-medium py-0.5"
               >
                 Forgot password?
               </Link>

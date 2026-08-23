@@ -31,7 +31,7 @@ export function useElapsedSeconds(since: string | number | null): number {
 export function ElapsedBadge({ since, className = '' }: { since: string | number; className?: string }) {
   const secs = useElapsedSeconds(since);
   return (
-    <span className={`inline-flex items-center gap-1 text-xs text-white/55 tabular-nums ${className}`}>
+    <span className={`inline-flex items-center gap-1 text-xs text-gray-500 tabular-nums ${className}`}>
       <Timer className="w-3 h-3" />
       {formatElapsed(secs)}
     </span>
@@ -52,33 +52,28 @@ export function AiWorkingCard({ title, steps = [], hint }: AiWorkingCardProps) {
   const stepIdx = steps.length ? Math.min(Math.floor(secs / STEP_INTERVAL_SECS), steps.length - 1) : -1;
 
   return (
-    <div
-      style={{ background: 'rgba(255,255,255,.05)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '12px' }}
-      className="p-6 fade-in"
-      role="status"
-      aria-live="polite"
-    >
+    <div className="bg-white border border-brand-100 rounded-xl p-6 fade-in" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,.08)' }}>
-            <Sparkles className="w-5 h-5 text-white/70 animate-pulse" />
+          <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-brand-600 animate-pulse" />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-white text-sm truncate">{title}</p>
+            <p className="font-semibold text-gray-900 text-sm truncate">{title}</p>
             {stepIdx >= 0 && (
-              <p className="text-xs text-white/55 mt-0.5 truncate">{steps[stepIdx]}…</p>
+              <p className="text-xs text-gray-500 mt-0.5 truncate">{steps[stepIdx]}…</p>
             )}
           </div>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-2xl font-bold text-white tabular-nums leading-none">{formatElapsed(secs)}</p>
-          <p className="text-xs text-white/55 mt-1">elapsed</p>
+          <p className="text-2xl font-bold text-gray-900 tabular-nums leading-none">{formatElapsed(secs)}</p>
+          <p className="text-xs text-gray-500 mt-1">elapsed</p>
         </div>
       </div>
 
       <div className="h-1.5 rounded-full shimmer-bar" />
 
-      <p className="text-xs text-white/55 mt-3">
+      <p className="text-xs text-gray-500 mt-3">
         {hint ?? 'This usually takes 10–30 seconds — results appear here the moment they are ready.'}
       </p>
     </div>

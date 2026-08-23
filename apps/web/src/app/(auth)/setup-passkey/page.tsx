@@ -44,7 +44,7 @@ export default function SetupPasskeyPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-5" style={{ background: 'radial-gradient(ellipse at 60% 20%, #0f172a 0%, #040415 55%, #000814 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center p-5" style={{ background: 'linear-gradient(135deg, #1a0f4a 0%, #2d1b6e 100%)' }}>
         <div className="w-full max-w-md text-center space-y-6">
           <div className="w-20 h-20 rounded-3xl mx-auto flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
             <Fingerprint className="w-10 h-10 text-white" />
@@ -56,7 +56,7 @@ export default function SetupPasskeyPage() {
           <button
             onClick={() => router.push('/home')}
             className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #374151, #4b5563)', color: '#fff' }}
+            style={{ background: '#fff', color: '#2d1b6e' }}
           >
             Continue to Sozialzynk <ChevronRight className="w-4 h-4" />
           </button>
@@ -66,7 +66,7 @@ export default function SetupPasskeyPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-5" style={{ background: 'radial-gradient(ellipse at 60% 20%, #0f172a 0%, #040415 55%, #000814 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center p-5" style={{ background: 'linear-gradient(135deg, #1a0f4a 0%, #2d1b6e 100%)' }}>
       <div className="w-full max-w-md space-y-6">
 
         {/* Skip button */}

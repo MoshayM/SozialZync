@@ -28,16 +28,10 @@ export function Banner({
 }: { type: BannerType; message: unknown; onDismiss: () => void }) {
   const text = safeString(message);
   const styles: Record<BannerType, string> = {
-    success: 'border text-emerald-300',
-    error: 'border text-red-400',
-    warning: 'border text-amber-400',
-    info: 'border text-blue-400',
-  };
-  const styleInline: Record<BannerType, React.CSSProperties> = {
-    success: { background: 'rgba(16,185,129,.1)', borderColor: 'rgba(16,185,129,.2)' },
-    error: { background: 'rgba(239,68,68,.12)', borderColor: 'rgba(239,68,68,.2)' },
-    warning: { background: 'rgba(251,191,36,.1)', borderColor: 'rgba(251,191,36,.2)' },
-    info: { background: 'rgba(59,130,246,.1)', borderColor: 'rgba(59,130,246,.2)' },
+    success: 'bg-green-50 border-green-200 text-green-800',
+    error: 'bg-red-50 border-red-200 text-red-800',
+    warning: 'bg-amber-50 border-amber-200 text-amber-800',
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
   };
   const icons: Record<BannerType, React.ReactNode> = {
     success: <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />,
@@ -46,7 +40,7 @@ export function Banner({
     info: <AlertCircle className="w-4 h-4 text-blue-600 shrink-0" />,
   };
   return (
-    <div className={`flex items-start gap-2 rounded-xl px-4 py-3 text-sm ${styles[type]}`} style={styleInline[type]}>
+    <div className={`flex items-start gap-2 border rounded-xl px-4 py-3 text-sm ${styles[type]}`}>
       {icons[type]}
       <span className="flex-1 whitespace-pre-wrap">{text}</span>
       <button onClick={onDismiss} className="ml-2 opacity-60 hover:opacity-100">

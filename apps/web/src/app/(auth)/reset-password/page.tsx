@@ -48,7 +48,7 @@ function StrengthMeter({ password }: { password: string }) {
           <div
             key={i}
             className="flex-1 h-1.5 rounded-full transition-all duration-300"
-            style={{ background: i <= meta.bars ? meta.color : 'rgba(255,255,255,0.12)' }}
+            style={{ background: i <= meta.bars ? meta.color : '#e5e7eb' }}
           />
         ))}
       </div>
@@ -56,7 +56,7 @@ function StrengthMeter({ password }: { password: string }) {
       {/* Label + requirements */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold" style={{ color: meta.color }}>{meta.label}</span>
-        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{REQUIREMENTS.filter((r) => r.test(password)).length}/{REQUIREMENTS.length}</span>
+        <span className="text-[10px] text-gray-400">{REQUIREMENTS.filter((r) => r.test(password)).length}/{REQUIREMENTS.length}</span>
       </div>
 
       {/* Checklist — only show unmet items to reduce noise */}
@@ -66,10 +66,10 @@ function StrengthMeter({ password }: { password: string }) {
             const met = r.test(password);
             return (
               <div key={r.label} className="flex items-center gap-2">
-                <span className={`text-xs shrink-0 ${met ? 'text-green-400' : 'text-white/25'}`} aria-hidden>
+                <span className={`text-xs shrink-0 ${met ? 'text-green-500' : 'text-gray-300'}`} aria-hidden>
                   {met ? '✓' : '○'}
                 </span>
-                <span className={`text-xs ${met ? 'text-green-400 line-through' : 'text-white/40'}`}>{r.label}</span>
+                <span className={`text-xs ${met ? 'text-green-600 line-through' : 'text-gray-400'}`}>{r.label}</span>
               </div>
             );
           })}
@@ -116,7 +116,7 @@ function ResetPasswordInner() {
       footer={
         <Link
           href="/login"
-          className="inline-flex items-center gap-1.5 font-semibold hover:underline" style={{ color: 'rgba(255,255,255,0.75)' }}
+          className="inline-flex items-center gap-1.5 text-[#374151] font-semibold hover:underline"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to sign in
@@ -130,9 +130,8 @@ function ResetPasswordInner() {
             <div
               className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
               style={{
-                background: 'rgba(34,197,94,0.12)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                boxShadow: '0 8px 32px rgba(34,197,94,0.18)',
               }}
             >
               ✅

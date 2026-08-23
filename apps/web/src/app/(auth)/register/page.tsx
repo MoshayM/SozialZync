@@ -26,8 +26,8 @@ function Input({
 }) {
   return (
     <div
-      className="flex items-center rounded-xl transition-all"
-      style={{ border: '1.5px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)' }}
+      className="flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#374151]/20 focus-within:border-[#374151]"
+      style={{ border: '1.5px solid #e5e7eb', background: '#fff' }}
     >
       <input
         type={type}
@@ -37,19 +37,18 @@ function Input({
         autoComplete={autoComplete}
         autoFocus={autoFocus}
         required={required}
-        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-white focus:outline-none"
-        style={{ color: 'white' }}
+        className="flex-1 min-w-0 bg-transparent px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
       />
-      {rightElement && <span className="pr-2 shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>{rightElement}</span>}
+      {rightElement && <span className="pr-2 shrink-0">{rightElement}</span>}
     </div>
   );
 }
 
 function ErrorNote({ msg }: { msg: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+    <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-red-50 border border-red-100">
       <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
-      <p className="text-xs font-medium leading-relaxed" style={{ color: '#fca5a5' }}>{msg}</p>
+      <p className="text-red-600 text-xs font-medium leading-relaxed">{msg}</p>
     </div>
   );
 }
@@ -116,15 +115,15 @@ function RegisterInner() {
       footer={
         <>
           Already have an account?{' '}
-          <Link href="/login" className="font-semibold hover:underline" style={{ color: 'rgba(255,255,255,0.85)' }}>
+          <Link href="/login" className="text-[#374151] font-semibold hover:underline">
             Sign in
           </Link>
           <br />
-          <span className="text-xs mt-1 inline-block" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <span className="text-xs text-gray-400 mt-1 inline-block">
             By signing up you agree to our{' '}
-            <Link href="/terms" className="hover:underline" style={{ color: 'rgba(255,255,255,0.5)' }}>Terms</Link>
+            <Link href="/terms" className="hover:underline">Terms</Link>
             {' & '}
-            <Link href="/privacy" className="hover:underline" style={{ color: 'rgba(255,255,255,0.5)' }}>Privacy</Link>
+            <Link href="/privacy" className="hover:underline">Privacy</Link>
           </span>
         </>
       }
@@ -159,7 +158,7 @@ function RegisterInner() {
               type="button"
               onClick={() => setShowPassword(v => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="p-2 transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
