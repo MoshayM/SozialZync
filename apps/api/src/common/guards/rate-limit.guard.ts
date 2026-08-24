@@ -106,9 +106,8 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
     ]);
 
     if (opts) {
-      const ip = (req.ip ?? req.socket?.remoteAddress ?? 'unknown').replace(/[^\w.:]/g, '_');
-      this.logger.debug(`[RateLimit] bucket=${opts.bucket} available=${this.available} ip=${ip} status=${this.redis.status}`);
       if (!this.available) return true;
+      const ip = (req.ip ?? req.socket?.remoteAddress ?? 'unknown').replace(/[^\w.:]/g, '_');
       const key = `ratelimit:${opts.bucket}:${ip}`;
       await this.enforceWindow(key, opts.limit, opts.windowSecs);
     }

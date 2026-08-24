@@ -81,6 +81,11 @@ async function bootstrap() {
   // every webhook fails verification.
   const app = await NestFactory.create(AppModule, { logger: new StructuredLogger(), rawBody: true });
 
+  // Trust Railway's reverse proxy (100.64.0.0/10 — RFC 6598 Shared Address Space)
+  // so req.ip resolves to the real client IP from X-Forwarded-For rather than the
+  // proxy hop IP. Required for rate limiting to key per real client, not per proxy.
+  app.set('trust proxy', true);
+
   app.use(helmet());
   // First in the chain so every downstream log, error envelope, and Sentry
   // event carries the request's correlation ID.
