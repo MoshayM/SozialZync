@@ -16,6 +16,11 @@ import { LoginShell, SocialRow } from '@/components/auth-shell';
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
 
+function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod|Android|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 function detectPasskeyLabel(): string {
   if (typeof navigator === 'undefined') return 'Passkey';
   const ua = navigator.userAgent;
@@ -96,6 +101,12 @@ function ErrorNote({ msg }: { msg: string }) {
 export default function LoginPage() {
   const router = useRouter();
 
+  // Already logged in — skip login page entirely
+  useEffect(() => {
+    const tok = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
+    if (tok) router.replace('/home');
+  }, [router]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -104,6 +115,7 @@ export default function LoginPage() {
 
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyLabel, setPasskeyLabel] = useState('Passkey');
+  // Passkey shown on mobile/iOS/Android only — not needed on laptops/desktops
   const [passkeySupported, setPasskeySupported] = useState(false);
   const [hasPlatformAuth, setHasPlatformAuth] = useState(false);
   const passkeyHandledRef = useRef(false);
@@ -123,15 +135,16 @@ export default function LoginPage() {
     }
   };
 
-  // Detect device passkey capability
+  // Detect device passkey capability — mobile/iOS/Android only, skip on desktop
   useEffect(() => {
     if (typeof PublicKeyCredential === 'undefined') return;
+    if (!isMobileDevice()) return;
     setPasskeySupported(true);
     setPasskeyLabel(detectPasskeyLabel());
     platformAuthenticatorIsAvailable().then(setHasPlatformAuth).catch(() => {});
   }, []);
 
-  // Arm browser autofill passkey (triggers when user taps the autocomplete suggestion)
+  // Arm browser autofill passkey — mobile only (passkeySupported already guards desktop)
   useEffect(() => {
     if (!passkeySupported) return;
     let cancelled = false;

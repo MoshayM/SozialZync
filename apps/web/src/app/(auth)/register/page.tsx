@@ -67,9 +67,12 @@ function RegisterInner() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Already logged in — no need to register again
+    const tok = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
+    if (tok) { router.replace('/home'); return; }
     const ref = searchParams.get('ref');
     if (ref) localStorage.setItem('cf.pendingReferralCode', ref);
-  }, [searchParams]);
+  }, [router, searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
