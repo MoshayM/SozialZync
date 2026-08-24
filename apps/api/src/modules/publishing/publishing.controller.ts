@@ -76,7 +76,7 @@ export class PublishingController {
     const isElevatedPublish = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
     if (!isElevatedPublish && publishPlan === 'FREE' && dto.channelId) {
       throw new ForbiddenException(
-        'Free accounts can publish content to the SozialZynk platform. Upgrade to Starter or higher to publish directly to YouTube, Facebook, or Instagram.',
+        'Free accounts can publish content to the SozialZynk platform. Upgrade to Pro ($17/mo) to publish directly to YouTube, Instagram, and more.',
       );
     }
     return this.svc.publish(

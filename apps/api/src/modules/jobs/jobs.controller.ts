@@ -15,24 +15,30 @@ import { MEDIA_ERROR_RETRYABLE, type MediaErrorCode } from '@cf/shared';
 const OVERRIDABLE_TYPES: ReadonlySet<string> = new Set(['SCRIPT', 'TREND_ANALYSIS', 'MUSIC_BRIEF', 'METADATA']);
 
 /**
- * Job types available on the Starter plan (3 AI agent families).
- * Matches billing page: "3 AI agents" for Starter.
- *   Family 1 — Research:  RESEARCH, TREND_ANALYSIS, AUDIENCE_ANALYSIS
- *   Family 2 — Script:    SCRIPT, METADATA, SEO_OPTIMIZATION
- *   Family 3 — Publish:   PUBLISH, CALENDAR_PROPOSAL
- *   System/internal:      CHANNEL_SYNC, AUTOMATION_TICK, COMPLIANCE, FACT_CHECK
- * Pro & Agency unlock all remaining agents.
+ * Job types available on the Free plan.
+ * Free users get: Shorts Studio (all types) + compliance/system internals.
+ * All other AI pipeline agents (research, script, publish, etc.) require Pro.
  */
-const STARTER_JOB_TYPES: ReadonlySet<JobType> = new Set<JobType>([
-  // Agent family 1 — Research & Strategy
-  'RESEARCH', 'TREND_ANALYSIS', 'AUDIENCE_ANALYSIS',
-  // Agent family 2 — Script & Copy
-  'SCRIPT', 'METADATA', 'SEO_OPTIMIZATION',
-  // Agent family 3 — Publishing
-  'PUBLISH', 'CALENDAR_PROPOSAL',
+const FREE_JOB_TYPES: ReadonlySet<JobType> = new Set<JobType>([
+  // Shorts Studio — free for all users (unlimited)
+  'SHORTS_ANALYZE', 'VIDEO_IMPORT', 'TRANSCRIPT_ANALYSIS', 'SCENE_DETECTION',
+  'TOPIC_SEGMENTATION', 'HIGHLIGHT_DETECTION', 'SHORTS_GENERATION',
+  'AUTO_EDIT', 'CAPTION_GENERATION', 'SHORTS_RENDER', 'SHORTS_EXPORT', 'SHORTS_PUBLISH',
   // Always-internal compliance (not user-triggered, but permitted to run)
   'COMPLIANCE', 'FACT_CHECK',
   // System heartbeat jobs
+  'CHANNEL_SYNC', 'AUTOMATION_TICK',
+]);
+
+/**
+ * Legacy STARTER_JOB_TYPES kept for backward compat with existing STARTER accounts.
+ * New signups only get FREE or PRO.
+ */
+const STARTER_JOB_TYPES: ReadonlySet<JobType> = new Set<JobType>([
+  'RESEARCH', 'TREND_ANALYSIS', 'AUDIENCE_ANALYSIS',
+  'SCRIPT', 'METADATA', 'SEO_OPTIMIZATION',
+  'PUBLISH', 'CALENDAR_PROPOSAL',
+  'COMPLIANCE', 'FACT_CHECK',
   'CHANNEL_SYNC', 'AUTOMATION_TICK',
 ]);
 
@@ -104,14 +110,14 @@ export class JobsController {
     const isElevated = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
 
     if (!isElevated) {
-      if (plan === 'FREE') {
+      if (plan === 'FREE' && !FREE_JOB_TYPES.has(dto.type as JobType)) {
         throw new ForbiddenException(
-          'AI agents require a paid plan. Upgrade to Starter or higher to run jobs.',
+          `The "${dto.type}" agent requires a Pro plan. Upgrade to Pro ($17/mo) to unlock all AI agents.`,
         );
       }
       if (plan === 'STARTER' && !STARTER_JOB_TYPES.has(dto.type as JobType)) {
         throw new ForbiddenException(
-          `The "${dto.type}" agent requires Pro or above. Upgrade to unlock all 15 AI agents.`,
+          `The "${dto.type}" agent requires Pro or above. Upgrade to Pro ($17/mo) to unlock all AI agents.`,
         );
       }
     }

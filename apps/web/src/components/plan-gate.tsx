@@ -17,11 +17,11 @@ const PLAN_PRICE: Record<Plan, string> = {
   FREE: '', STARTER: '$17/mo', PRO: '$17/mo', ENTERPRISE: '$149/mo', AGENCY: '$149/mo',
 };
 const PLAN_DESC: Record<Plan, string> = {
-  FREE: 'Start free — 50 credits/month, 1 channel, AI Copilot, Shorts Studio.',
-  STARTER: 'Go Pro for $17/month — all AI agents, unlimited publishing, analytics, and ad revenue monetization.',
-  PRO: 'Go Pro for $17/month — all AI agents, unlimited publishing, analytics, and ad revenue monetization.',
-  ENTERPRISE: 'Agency plan — team seats, white-label, client workspaces, and dedicated SLA.',
-  AGENCY: 'Agency plan — team seats, white-label, client workspaces, and dedicated SLA.',
+  FREE: 'You\'re on the Free plan — 2,000 credits/month, unlimited channels, unlimited AI Copilot & Shorts Studio.',
+  STARTER: 'Go Pro for $17/month — unlimited credits, unlimited publishing, own branding, ad revenue, and dedicated SLA.',
+  PRO: 'Go Pro for $17/month — unlimited credits, unlimited publishing, own branding, ad revenue monetization, and dedicated SLA & support.',
+  ENTERPRISE: 'Admin-managed — organisation features, custom AI model training, and dedicated SLA.',
+  AGENCY: 'Admin-managed — organisation features, custom AI model training, and dedicated SLA.',
 };
 
 // ── Role helpers ──────────────────────────────────────────────────────────────

@@ -60,25 +60,25 @@ const TESTIMONIALS = [
 const PLANS = [
   {
     name: 'Free', price: '$0', period: 'forever', popular: false,
-    description: 'Explore AI-powered creation with no commitment.',
+    description: 'Start creating with AI. No credit card required.',
     cta: 'Start free', href: '/register',
     features: [
-      { text: '50 AI credits / month', ok: true },
-      { text: '1 connected channel', ok: true },
-      { text: 'AI Copilot (10 queries/day)', ok: true },
-      { text: 'Shorts Studio (5 clips/mo)', ok: true },
+      { text: '2,000 AI credits / month', ok: true },
+      { text: 'Unlimited channels connected', ok: true },
+      { text: 'Unlimited AI Copilot queries', ok: true },
+      { text: 'Unlimited Shorts Studio', ok: true },
       { text: 'Publish to SozialZynk feed', ok: true },
-      { text: 'Export / download files', ok: false },
       { text: 'Publish to YouTube / Instagram', ok: false },
+      { text: 'Export / download files', ok: false },
       { text: 'Ad revenue monetization', ok: false },
     ],
   },
   {
     name: 'Pro', price: '$17', period: 'per month', popular: true,
-    description: 'Everything you need to grow and monetize your channel.',
+    description: 'Unlimited power to grow and monetize your channel.',
     cta: 'Go Pro', href: '/register',
     features: [
-      { text: '2,000 AI credits / month', ok: true },
+      { text: 'Unlimited AI credits', ok: true },
       { text: 'Unlimited channels', ok: true },
       { text: 'Unlimited AI Copilot', ok: true },
       { text: 'Full Creative Studio (all tools)', ok: true },
@@ -86,20 +86,7 @@ const PLANS = [
       { text: 'Export / download files', ok: true },
       { text: 'A/B Testing + Analytics', ok: true },
       { text: 'Ad revenue monetization', ok: true },
-    ],
-  },
-  {
-    name: 'Agency', price: '$149', period: 'per month', popular: false,
-    description: 'For teams and agencies managing multiple brands.',
-    cta: 'Contact sales', href: '/login',
-    features: [
-      { text: 'Unlimited credits', ok: true },
-      { text: 'Unlimited channels', ok: true },
-      { text: 'Everything in Pro', ok: true },
-      { text: 'Team members & role management', ok: true },
-      { text: 'Shared organisation wallet', ok: true },
-      { text: 'White-label dashboard', ok: true },
-      { text: 'Custom AI model training', ok: true },
+      { text: 'Own branding (white-label)', ok: true },
       { text: 'Dedicated SLA & support', ok: true },
     ],
   },
@@ -539,7 +526,7 @@ export default function BecomeCreatorPage() {
                 Every plan includes AI-powered content creation, compliance checks, and multi-platform publishing. No hidden fees.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
               {PLANS.map(({ name, price, period, description, cta, href, popular, features }) => (
                 <div key={name} className={`relative flex flex-col rounded-3xl p-6 transition-all ${popular?'shadow-2xl ring-2 ring-[#374151] scale-[1.02]':'border border-gray-100 hover:border-gray-200 hover:shadow-lg'}`} style={popular?{background:'linear-gradient(160deg,#0e0924 0%,#1a0f4a 100%)'}:{background:'#fff'}}>
                   {popular && (

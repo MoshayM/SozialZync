@@ -63,24 +63,16 @@ const ACCESS_TIERS: AccessTier[] = [
     color: '#6B7280',
     unlockLabel: 'Always free',
     unlockSub: 'No top-up needed · 0 credits required',
-    features: ['3 projects', '10 AI actions/day', 'Basic analytics', 'Single platform', 'Community support'],
+    features: ['2,000 AI credits/month', 'Unlimited channels connected', 'Unlimited AI Copilot queries', 'Unlimited Shorts Studio', 'Publish to SozialZynk feed only'],
   },
   {
     id: 'PRO',
     name: 'Pro — $17/mo',
     color: '#374151',
     unlockLabel: 'Upgrade to Pro',
-    unlockSub: '$17/month · all AI tools + publish to all platforms',
-    features: ['2,000 AI credits/month', 'Unlimited channels', 'Priority AI generation', 'Full analytics + A/B testing', 'Publish to YouTube & Instagram', 'Export & download files', 'Ad revenue monetization'],
+    unlockSub: '$17/month · unlimited credits + publish everywhere',
+    features: ['Unlimited AI credits', 'Unlimited channels', 'Full Creative Studio (all agents)', 'Full analytics + A/B testing', 'Publish to YouTube & Instagram', 'Export & download files', 'Ad revenue monetization', 'Own branding (white-label)', 'Dedicated SLA & support'],
     highlight: true,
-  },
-  {
-    id: 'ENTERPRISE',
-    name: 'Agency — $149/mo',
-    color: '#D97706',
-    unlockLabel: 'Contact sales',
-    unlockSub: '$149/month · team seats, white-label, dedicated SLA',
-    features: ['Everything in Pro', 'Team seats & role management', 'White-label dashboard', 'Shared organisation wallet', 'Custom AI model training', 'Dedicated account manager + SLA'],
   },
 ];
 
@@ -1768,7 +1760,7 @@ function WithdrawTab() {
             'Admin reviews within 1–3 business days',
             'Payouts via bank transfer or PayPal',
             `Minimum: ${(rates?.minWithdrawalCredits ?? 1000).toLocaleString()} credits ($${rates?.minWithdrawalUsd?.toFixed(0) ?? '10'})`,
-            'Pro and Agency accounts only',
+            'Pro accounts only',
           ].map((item) => (
             <li key={item} className="flex items-center gap-2 text-xs text-gray-600">
               <CheckCircle className="w-3 h-3 shrink-0 text-gray-400" />

@@ -45,10 +45,10 @@ const COPILOT_STEPS: Step[] = [
 const PUBLISH_STEPS: Step[] = [
   { icon: CheckCircle2,  title: 'Review approved content',    desc: 'In Publish Hub → Publish Center, all compliance-checked content awaiting your approval is listed. Preview the video, script, thumbnail, and voice track.' },
   { icon: CalendarClock, title: 'Schedule at the best time',  desc: 'Click "Schedule" on any approved piece and the AI picks the optimal posting time for your audience. You can override the suggested time or set a custom slot.' },
-  { icon: FlaskConical,  title: 'Run A/B Tests',              desc: 'Select a live video, enter two alternative titles or upload two thumbnail variants, and let the platform split-test them over 48 hours. The winning variant is automatically promoted.', tip: 'A/B Testing is available on Pro and Agency plans.' },
+  { icon: FlaskConical,  title: 'Run A/B Tests',              desc: 'Select a live video, enter two alternative titles or upload two thumbnail variants, and let the platform split-test them over 48 hours. The winning variant is automatically promoted.', tip: 'A/B Testing is available on Pro plan.' },
   { icon: Sparkles,      title: 'Enable Autopilot',           desc: 'Toggle Autopilot on to let the AI handle the full publish pipeline — research, script, compliance check, voice, thumbnail, and scheduling — without manual approval steps.' },
   { icon: BarChart3,     title: 'Track performance',          desc: 'After publishing, head to Insights Hub → Analytics to monitor views, watch time, CTR, and subscriber growth. The AI surfaces patterns and suggests your next topic.' },
-  { icon: Award,         title: 'Earn ad revenue (Pro)',      desc: 'On Pro plan, enable Ad Revenue for any published project from the project page. SozialZynk pays 50 credits per 1,000 Browse page views — credited daily to your wallet. Track earnings in Home → Ad Revenue card.', tip: 'Ad revenue is available on Pro and Agency plans. Upgrade in Wallet → Plans.' },
+  { icon: Award,         title: 'Earn ad revenue (Pro)',      desc: 'On Pro plan, enable Ad Revenue for any published project from the project page. SozialZynk pays 50 credits per 1,000 Browse page views — credited daily to your wallet. Track earnings in Home → Ad Revenue card.', tip: 'Ad revenue is available on Pro plan. Upgrade in Wallet → Plans.' },
 ];
 
 const PRO_TIPS = [

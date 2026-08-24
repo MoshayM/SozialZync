@@ -475,7 +475,7 @@ export default function AnalyticsPage() {
                 <button
                   key={v}
                   onClick={() => !locked && setActiveView(v)}
-                  title={locked ? 'Requires Starter plan' : undefined}
+                  title={locked ? 'Requires Pro plan' : undefined}
                   className="flex items-center gap-1.5 px-5 pb-3 pt-2 text-sm font-semibold transition-colors border-b-2 -mb-px whitespace-nowrap"
                   style={
                     activeView === v
