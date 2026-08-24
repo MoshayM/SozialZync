@@ -504,8 +504,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const tok = localStorage.getItem('cf_token');
     if (!tok) {
-      // /browse is a public page — show it without auth instead of redirecting
-      if (pathname !== '/browse') router.push('/login');
+      // Unauthenticated users land on the public feed (/browse) rather than /login.
+      // /browse has Sign In + Start Creating buttons in the header.
+      router.push('/browse');
       return;
     }
     setToken(tok);
