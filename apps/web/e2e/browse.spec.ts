@@ -120,8 +120,8 @@ test.describe('Browse page — feed mode', () => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 8_000 });
-    // Counter like "1 / 44" — inside the feed overlay
-    await expect(page.locator('[role="dialog"]').getByText(/1 \/ \d+/)).toBeVisible({ timeout: 5_000 });
+    // Counter like "1 / 44" — anchored regex so "11 / 44", "21 / 44" etc. don't match; .first() avoids strict mode
+    await expect(page.locator('[role="dialog"]').getByText(/^1 \/ \d+$/).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('keyboard ArrowDown navigates to next item', async ({ page }) => {
@@ -129,13 +129,12 @@ test.describe('Browse page — feed mode', () => {
     await page.getByRole('button', { name: /watch feed/i }).click();
     const feed = page.locator('[role="dialog"]');
     await expect(feed).toBeVisible({ timeout: 8_000 });
-    const counter = feed.getByText(/1 \/ \d+/);
-    await expect(counter).toBeVisible({ timeout: 5_000 });
-    const initialText = await counter.textContent();
+    // .first() — multiple slides rendered in DOM simultaneously
+    await expect(feed.getByText(/^1 \/ \d+$/).first()).toBeVisible({ timeout: 5_000 });
     await page.keyboard.press('ArrowDown');
     await page.waitForTimeout(800); // allow scroll animation
-    const newText = await feed.getByText(/\d+ \/ \d+/).textContent();
-    expect(newText).not.toBe(initialText);
+    // After ArrowDown, slide 2 counter becomes the active/visible one
+    await expect(feed.getByText(/^2 \/ \d+$/).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('feed right-action column has like, comment, share, save buttons', async ({ page }) => {
