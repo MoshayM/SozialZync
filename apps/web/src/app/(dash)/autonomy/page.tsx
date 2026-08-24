@@ -6,7 +6,7 @@ import {
   Sparkles, RefreshCw, Loader2, CalendarClock, Check, X, XCircle,
   TrendingUp, Clapperboard, Film, BarChart3, ListChecks, Target,
   ScrollText, Save, Settings2, Download, Eye, Upload, FlaskConical,
-  Globe, BarChart2, FileText, Shield, Play, Camera, CheckCircle, ChevronRight,
+  Globe, BarChart2, FileText, Shield, Play, Camera, CheckCircle, ChevronRight, Lock,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -14,6 +14,7 @@ import {
   type CalendarEntry, type ChannelProfileRow,
   type GenerateCalendarResult, type ChannelAutomation,
 } from '@/lib/api';
+import { isAdminRole, planFromToken, planAtLeast } from '@/components/plan-gate';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { Banner, type BannerState } from '@/components/banner';
 import { StatCard } from '@/components/stat-card';
@@ -152,6 +153,13 @@ export default function AutopilotPage() {
   const qc = useQueryClient();
   const [banner, setBanner]   = useState<BannerState | null>(null);
   const [tab, setTab]         = useState<Tab>('planner');
+
+  const [gateChecked, setGateChecked] = useState(false);
+  const [gateBlocked, setGateBlocked] = useState(false);
+  useEffect(() => {
+    setGateBlocked(!(isAdminRole() || planAtLeast(planFromToken(), 'PRO')));
+    setGateChecked(true);
+  }, []);
 
   // channel
   const [channelId, setChannelId] = useState('');
@@ -413,6 +421,34 @@ export default function AutopilotPage() {
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  if (!gateChecked) return null;
+
+  if (gateBlocked) {
+    return (
+      <div className="min-h-full bg-[#faf9ff] flex items-center justify-center p-8">
+        <div className="w-full max-w-sm rounded-2xl p-8 flex flex-col items-center text-center gap-4"
+          style={{ background: 'white', border: '1.5px dashed #d1d5db' }}>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg,#f3f4f6,#e3ddf8)' }}>
+            <Lock className="w-6 h-6" style={{ color: '#374151' }} />
+          </div>
+          <div>
+            <p className="text-sm font-extrabold text-gray-900 mb-1">Autopilot requires Pro</p>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Upgrade to Pro ($17/mo) to enable Autopilot — AI runs your full pipeline: research, scripting, compliance, and publishing hands-free.
+            </p>
+          </div>
+          <Link href="/wallet"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg,#374151 0%,#7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}>
+            Upgrade to Pro
+          </Link>
+          <p className="text-[11px] text-gray-500">Current plan: <span className="font-semibold">Free</span></p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-[#faf9ff]">
