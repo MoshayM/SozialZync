@@ -1,3 +1,4 @@
+# build-buster: 20260824-v1
 FROM node:22-slim AS base
 RUN npm install -g pnpm@latest && apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
