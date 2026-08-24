@@ -15,3 +15,9 @@ scripts/
 *.jpg
 *.png
 *.txt
+AI/
+design-ui/
+live-ui/
+apps/web/playwright-report/
+Copilot.PNG
+updateworkflow.png

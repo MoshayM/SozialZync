@@ -66,7 +66,7 @@ export class DemoSeedService implements OnApplicationBootstrap {
         data: {
           userId: admin.id,
           isDemo: true,
-          status: 'COMPLETE',
+          status: 'ACTIVE',
           publishingStatus: 'PUBLISHED',
           ...project,
         },
