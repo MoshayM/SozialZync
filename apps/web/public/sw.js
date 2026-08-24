@@ -1,8 +1,8 @@
 // Sozialzynk Service Worker
 // Handles offline support and caching for PWA install
 
-const CACHE_NAME = 'sz-v3';
-const STATIC_ASSETS = ['/', '/login', '/offline'];
+const CACHE_NAME = 'sz-v4';
+const STATIC_ASSETS = ['/', '/browse', '/offline'];
 
 // ── Install: pre-cache shell ──────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -35,7 +35,7 @@ self.addEventListener('fetch', (event) => {
   // API calls: network only (never cache auth/data)
   if (url.pathname.startsWith('/api/')) return;
 
-  // Navigation requests: network first, fall back to cache then offline
+  // Navigation requests: network first, fall back to /browse (cached) then /offline
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -44,7 +44,10 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((c) => c.put(request, clone));
           return res;
         })
-        .catch(() => caches.match(request).then((cached) => cached ?? caches.match('/offline') ?? Response.error()))
+        .catch(() =>
+          caches.match(request)
+            .then((cached) => cached ?? caches.match('/browse') ?? caches.match('/offline') ?? Response.error())
+        )
     );
     return;
   }
