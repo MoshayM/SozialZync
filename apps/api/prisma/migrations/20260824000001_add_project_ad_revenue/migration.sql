@@ -1,0 +1,5 @@
+-- AddColumn: ad revenue fields to projects table
+ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "viewCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "adRevenueCredits" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "adRevenuePaidOut" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "adRevenueEnabled" BOOLEAN NOT NULL DEFAULT false;

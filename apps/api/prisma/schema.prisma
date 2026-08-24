@@ -156,6 +156,14 @@ model Project {
   targetLang  String        @default("en")
   /** Phase 5 §10: when set, agent-job spend reserves on this org's shared wallet. */
   billingOrgId String?
+  /** Ad revenue: cumulative public Browse page views */
+  viewCount   Int           @default(0)
+  /** Ad revenue: credits earned from platform ad impressions, awaiting payout */
+  adRevenueCredits Int      @default(0)
+  /** Ad revenue: total credits ever paid out to creator wallet */
+  adRevenuePaidOut Int      @default(0)
+  /** Ad revenue: opt-in flag — creator must enable to participate */
+  adRevenueEnabled Boolean  @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 

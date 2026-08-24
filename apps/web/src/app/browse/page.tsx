@@ -32,6 +32,11 @@ function useDemoProjects(): DemoProject[] {
   return projects;
 }
 
+function trackProjectView(projectId: string) {
+  const base = '/api/proxy';
+  fetch(`${base}/projects/browse/${projectId}/view`, { method: 'POST' }).catch(() => undefined);
+}
+
 function DemoFeatured({ projects, onPlay }: { projects: DemoProject[]; onPlay: (p: { id: string; title: string; creator: string; gi: number; duration?: string; kind: 'video' }) => void }) {
   if (projects.length === 0) return null;
 
@@ -786,7 +791,7 @@ export default function BrowsePage() {
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-5 space-y-8">
 
           {/* ── Demo / Featured Projects (from API) ────────────────────────── */}
-          <DemoFeatured projects={demoProjects} onPlay={item => setPlaying(item)} />
+          <DemoFeatured projects={demoProjects} onPlay={item => { trackProjectView(item.id); setPlaying(item); }} />
 
           {/* ── Public content grid ────────────────────────────────────────── */}
           <section key={fadeKey} style={{ animation:'fadeIn 0.2s ease-out' }}>

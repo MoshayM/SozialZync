@@ -253,6 +253,50 @@ function OnboardingWizard({
   );
 }
 
+// ── Ad Revenue Card ───────────────────────────────────────────────────────────
+function AdRevenueCard() {
+  const [stats, setStats] = useState<Array<{ projectId: string; title: string; viewCount: number; adRevenueCredits: number; adRevenuePaidOut: number; adRevenueEnabled: boolean }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/proxy/projects/ad-revenue/stats', {
+      headers: { Authorization: `Bearer ${typeof window !== 'undefined' ? (localStorage.getItem('cf_token') ?? '') : ''}` },
+    })
+      .then(r => r.ok ? r.json() as Promise<typeof stats> : Promise.resolve([]))
+      .then(data => { if (Array.isArray(data)) setStats(data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const totalViews = stats.reduce((s, p) => s + p.viewCount, 0);
+  const totalPending = stats.reduce((s, p) => s + p.adRevenueCredits, 0);
+  const totalPaid = stats.reduce((s, p) => s + p.adRevenuePaidOut, 0);
+  const hasEnabled = stats.some(p => p.adRevenueEnabled);
+
+  if (loading || (!hasEnabled && stats.length === 0)) return null;
+
+  return (
+    <Card>
+      <SectionLabel icon={TrendingUp}>Ad Revenue</SectionLabel>
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="text-center">
+          <p className="text-lg font-bold text-[#374151]">{totalViews.toLocaleString()}</p>
+          <p className="text-[10px] text-gray-400">Total Views</p>
+        </div>
+        <div className="text-center">
+          <p className="text-lg font-bold text-emerald-600">{totalPending}</p>
+          <p className="text-[10px] text-gray-400">Credits Pending</p>
+        </div>
+        <div className="text-center">
+          <p className="text-lg font-bold text-gray-500">{totalPaid}</p>
+          <p className="text-[10px] text-gray-400">Total Paid Out</p>
+        </div>
+      </div>
+      <p className="text-[10px] text-gray-400 text-center">50 credits per 1,000 views · Paid daily to your wallet</p>
+    </Card>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const router = useRouter();
@@ -802,6 +846,9 @@ export default function HomePage() {
                 </Link>
               </Card>
             )}
+
+            {/* Ad revenue earnings card */}
+            <AdRevenueCard />
 
             {/* Quick actions — 2×3 grid */}
             <Card>
