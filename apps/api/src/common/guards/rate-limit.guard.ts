@@ -69,16 +69,18 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
     const redisUrl = process.env['REDIS_URL'];
     if (redisUrl) {
       const u = new URL(redisUrl);
+      // Eager connect (no lazyConnect) matches BullModule pattern — ensures the
+      // connection is ready before the first INCR command in canActivate().
       this.redis = new Redis({
         host: u.hostname,
         port: u.port ? parseInt(u.port, 10) : 6379,
         ...(u.password ? { password: u.password } : {}),
         ...(u.protocol === 'rediss:' ? { tls: {} } : {}),
-        lazyConnect: true,
         enableOfflineQueue: false,
         maxRetriesPerRequest: 1,
       });
     } else {
+      // No REDIS_URL: lazy-connect so the app boots without Redis; fails open.
       this.redis = new Redis({
         host: process.env['REDIS_HOST'] ?? '127.0.0.1',
         port: Number(process.env['REDIS_PORT'] ?? 6379),
