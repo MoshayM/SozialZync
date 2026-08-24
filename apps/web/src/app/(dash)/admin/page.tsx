@@ -39,7 +39,7 @@ import { DevicePreview } from '@/components/device-preview';
 import { api, apiClient, type AdminProvider, type AdminPublicContent, type AdminUser, type EnterpriseMetrics, type ForecastRow, type ModerationAction } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
-type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation' | 'api-keys' | 'ad-revenue';
+type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation' | 'api-keys' | 'ad-revenue' | 'withdrawals';
 
 interface PlatformAdRevenueStats {
   totalViews: number;
@@ -545,6 +545,13 @@ export default function AdminDashboardPage() {
   const [adRevenueLoading, setAdRevenueLoading] = useState(false);
   const [adRevenueDistributing, setAdRevenueDistributing] = useState(false);
   const [adRevenueError, setAdRevenueError] = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- withdrawal stats are dynamic
+  const [withdrawalStats, setWithdrawalStats] = useState<any>(null);
+  const [withdrawalList, setWithdrawalList] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
+  const [withdrawalFilter, setWithdrawalFilter] = useState('PENDING');
+  const [withdrawalActionId, setWithdrawalActionId] = useState<string | null>(null);
+  const [rejectNotes, setRejectNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [error, setError] = useState('');
@@ -720,6 +727,20 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  const loadWithdrawals = useCallback(async (filter?: string) => {
+    const f = filter ?? withdrawalFilter;
+    setWithdrawalsLoading(true);
+    try {
+      const [statsRes, listRes] = await Promise.all([
+        apiClient.get<any>('/wallet/admin/withdrawals/stats'), // eslint-disable-line @typescript-eslint/no-explicit-any
+        apiClient.get<any[]>(`/wallet/admin/withdrawals?status=${f}`), // eslint-disable-line @typescript-eslint/no-explicit-any
+      ]);
+      setWithdrawalStats(statsRes.data);
+      setWithdrawalList(listRes.data);
+    } catch { /* non-fatal */ }
+    finally { setWithdrawalsLoading(false); }
+  }, [withdrawalFilter]);
+
   const distributeAdRevenue = async () => {
     setAdRevenueDistributing(true);
     setAdRevenueError('');
@@ -811,6 +832,7 @@ export default function AdminDashboardPage() {
             { id: 'moderation',          label: 'Content Moderation',   icon: <ShieldAlert className="w-4 h-4" /> },
             { id: 'api-keys',            label: 'API Keys & Providers',  icon: <Cpu className="w-4 h-4" /> },
             { id: 'ad-revenue',          label: 'Ad Revenue',            icon: <DollarSign className="w-4 h-4" /> },
+            { id: 'withdrawals',         label: 'Withdrawals',           icon: <PiggyBank className="w-4 h-4" /> },
           ] as { id: AdminTab; label: string; icon: React.ReactNode }[]
         ).map(({ id, label, icon }) => (
           <button
@@ -823,6 +845,7 @@ export default function AdminDashboardPage() {
               if (id === 'moderation') void loadModeration();
               if (id === 'api-keys') void loadSystemProviders();
               if (id === 'ad-revenue') void loadAdRevenue();
+              if (id === 'withdrawals') void loadWithdrawals();
             }}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
             style={adminTab === id
@@ -2117,6 +2140,201 @@ export default function AdminDashboardPage() {
             </>
           ) : (
             <p className="text-sm text-gray-500 py-8 text-center">Click Refresh to load platform ad revenue stats.</p>
+          )}
+        </div>
+      )}
+
+      {/* ── Withdrawals tab ──────────────────────────────────────────────── */}
+      {adminTab === 'withdrawals' && (
+        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Creator Withdrawals</h1>
+              <p className="text-sm text-gray-600 mt-0.5">Review and process creator payout requests — platform fee auto-credited to super admin</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadWithdrawals()}
+              disabled={withdrawalsLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-gray-600 transition-colors"
+              style={{ border: '1.5px solid #e3ddf8' }}
+            >
+              <RefreshCw className={`w-4 h-4 ${withdrawalsLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Stats row */}
+          {withdrawalStats && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard tone="lilac"      icon={<Clock className="w-5 h-5" />}      label="Pending"            value={String(withdrawalStats.pending)}                                       sub="awaiting review"        subClassName="text-gray-600" />
+              <StatCard tone="pink"       icon={<DollarSign className="w-5 h-5" />} label="Platform Earned"    value={`$${(withdrawalStats.totalPlatformEarnedUsd ?? 0).toFixed(2)}`}        sub="fees collected (paid)"  subClassName="text-gray-600" />
+              <StatCard tone="cream"      icon={<TrendingUp className="w-5 h-5" />} label="Total Paid Out"     value={`$${(withdrawalStats.totalPaidOutUsd ?? 0).toFixed(2)}`}               sub="to creators (paid)"     subClassName="text-gray-600" />
+              <StatCard tone="periwinkle" icon={<PiggyBank className="w-5 h-5" />}  label="Platform Fee"       value={`${withdrawalStats.platformFeePct ?? 20}%`}                            sub="of each withdrawal"     subClassName="text-gray-600" />
+            </div>
+          )}
+
+          {/* Filter bar */}
+          <div className="flex items-center gap-1 rounded-2xl p-1 self-start" style={{ background: '#f3f4f6' }}>
+            {(['PENDING', 'APPROVED', 'PAID', 'REJECTED', 'ALL'] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => {
+                  setWithdrawalFilter(f);
+                  void loadWithdrawals(f);
+                }}
+                className="px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                style={withdrawalFilter === f
+                  ? { background: '#fff', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
+                  : { color: '#374151' }
+                }
+              >
+                {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* Withdrawals table */}
+          {withdrawalsLoading ? (
+            <div className="bg-white rounded-2xl p-10 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+              <Loader2 className="w-5 h-5 animate-spin mx-auto" style={{ color: '#374151' }} />
+            </div>
+          ) : withdrawalList.length === 0 ? (
+            <div className="bg-white rounded-2xl p-10 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+              <PiggyBank className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+              <p className="text-sm text-gray-600">
+                {withdrawalStats ? 'No withdrawals match this filter.' : 'Click Refresh to load withdrawal data.'}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      {['Creator', 'Credits', 'You Receive', 'Platform Fee', 'Status', 'Payout Email', 'Date', 'Actions'].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {withdrawalList.map((w: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+                      const wStatusStyles: Record<string, React.CSSProperties> = {
+                        PENDING:    { background: '#fffbeb', color: '#b45309' },
+                        APPROVED:   { background: '#eff6ff', color: '#1d4ed8' },
+                        PROCESSING: { background: '#eff6ff', color: '#1d4ed8' },
+                        PAID:       { background: '#ecfdf5', color: '#065f46' },
+                        REJECTED:   { background: '#fef2f2', color: '#b91c1c' },
+                      };
+                      return (
+                        <>
+                          <tr key={w.id} className="hover:bg-[#faf9ff]" style={{ borderBottom: withdrawalActionId === w.id ? 'none' : '1px solid #f9f7ff' }}>
+                            <td className="px-4 py-3">
+                              <p className="font-semibold text-gray-800 text-sm">{w.user?.name ?? '—'}</p>
+                              <p className="text-xs text-gray-500">{w.user?.email}</p>
+                            </td>
+                            <td className="px-4 py-3 font-medium text-gray-800 tabular-nums">{(w.creditsRequested ?? 0).toLocaleString()}</td>
+                            <td className="px-4 py-3 font-bold text-green-700 tabular-nums">${(w.creatorAmountUsd ?? 0).toFixed(2)}</td>
+                            <td className="px-4 py-3 text-gray-600 tabular-nums">${(w.platformFeeUsd ?? 0).toFixed(2)}</td>
+                            <td className="px-4 py-3">
+                              <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold" style={wStatusStyles[w.status] ?? { background: '#f3f4f6', color: '#374151' }}>
+                                {w.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-600">{w.payoutEmail ?? '—'}</td>
+                            <td className="px-4 py-3 text-xs text-gray-600">{new Date(w.createdAt).toLocaleDateString()}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                {w.status === 'PENDING' && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        await apiClient.post(`/wallet/admin/withdrawals/${w.id}/approve`);
+                                        void loadWithdrawals();
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setWithdrawalActionId(withdrawalActionId === w.id ? null : w.id);
+                                        setRejectNotes('');
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                                {w.status === 'APPROVED' && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      await apiClient.post(`/wallet/admin/withdrawals/${w.id}/paid`, {});
+                                      void loadWithdrawals();
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                                  >
+                                    Mark Paid
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          {/* Inline reject form */}
+                          {withdrawalActionId === w.id && (
+                            <tr key={`${w.id}-reject`} style={{ borderBottom: '1px solid #f9f7ff' }}>
+                              <td colSpan={8} className="px-4 pb-3">
+                                <div className="rounded-xl p-3 space-y-2" style={{ background: '#fff1f2', border: '1px solid #fecaca' }}>
+                                  <p className="text-xs font-semibold text-red-700">Rejection reason (required — returned to creator&apos;s balance)</p>
+                                  <textarea
+                                    value={rejectNotes}
+                                    onChange={(e) => setRejectNotes(e.target.value)}
+                                    rows={2}
+                                    placeholder="E.g. Insufficient verification, payout email not valid…"
+                                    className="w-full rounded-xl border border-red-200 px-3 py-2 text-xs text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-red-200"
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={!rejectNotes.trim()}
+                                      onClick={async () => {
+                                        if (!rejectNotes.trim()) return;
+                                        await apiClient.post(`/wallet/admin/withdrawals/${w.id}/reject`, { notes: rejectNotes });
+                                        setWithdrawalActionId(null);
+                                        setRejectNotes('');
+                                        void loadWithdrawals();
+                                      }}
+                                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-40"
+                                    >
+                                      Confirm Reject
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setWithdrawalActionId(null); setRejectNotes(''); }}
+                                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-5 py-3 border-t border-[#f3f4f6]">
+                <span className="text-xs text-gray-600">{withdrawalList.length} withdrawal{withdrawalList.length !== 1 ? 's' : ''} shown</span>
+              </div>
+            </div>
           )}
         </div>
       )}

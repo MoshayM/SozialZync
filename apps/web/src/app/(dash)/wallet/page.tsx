@@ -5,11 +5,11 @@ import { Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle, AlertTriangle, CalendarClock, CheckCircle, Copy,
-  Crown, ExternalLink, Gift, Lightbulb, Loader2, PlusCircle, Share2, ShieldCheck, Sparkles,
+  Crown, DollarSign, ExternalLink, Gift, Lightbulb, Loader2, PlusCircle, Share2, ShieldCheck, Sparkles,
   Trophy, TrendingDown, TrendingUp, Users, Wallet, X, Zap,
 } from 'lucide-react';
 import {
-  api,
+  api, apiClient,
   type BudgetState, type CreditForecast, type CreditLotRow,
   type CreditPackRow, type CreditRecommendation, type EnterpriseMetrics,
   type LeaderboardEntry, type ReferralEarnings,
@@ -1561,9 +1561,272 @@ function SubscriptionManager() {
   );
 }
 
+// ── Withdrawal / Monetization Payout ─────────────────────────────────────────
+
+interface WithdrawHistoryItem {
+  id: string;
+  creditsRequested: number;
+  creatorAmountUsd: number;
+  platformFeeUsd: number;
+  status: string;
+  payoutEmail: string | null;
+  createdAt: string;
+}
+
+interface WithdrawPageData {
+  withdrawals: WithdrawHistoryItem[];
+  availableBonusCredits: number;
+  withdrawnCredits: number;
+  rates: {
+    creditsPerUsd: number;
+    platformFeePct: number;
+    minWithdrawalCredits: number;
+    minWithdrawalUsd: number;
+  };
+}
+
+const W_STATUS_STYLES: Record<string, React.CSSProperties> = {
+  PENDING:    { background: '#fffbeb', color: '#b45309' },
+  APPROVED:   { background: '#eff6ff', color: '#1d4ed8' },
+  PROCESSING: { background: '#eff6ff', color: '#1d4ed8' },
+  PAID:       { background: '#ecfdf5', color: '#065f46' },
+  REJECTED:   { background: '#fef2f2', color: '#b91c1c' },
+};
+
+function WithdrawTab() {
+  const [data, setData] = useState<WithdrawPageData | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [credits, setCredits] = useState('');
+  const [payoutEmail, setPayoutEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [submitError, setSubmitError] = useState('');
+
+  async function loadData() {
+    setDataLoading(true);
+    try {
+      const r = await apiClient.get<WithdrawPageData>('/wallet/withdrawals');
+      setData(r.data);
+    } catch { /* non-fatal */ }
+    finally { setDataLoading(false); }
+  }
+
+  useEffect(() => { void loadData(); }, []);
+
+  const rates = data?.rates;
+  const creditsNum = parseInt(credits, 10) || 0;
+  const canEstimate = !!rates && creditsNum >= rates.minWithdrawalCredits;
+  const platformFeeCredits = canEstimate ? Math.floor(creditsNum * (rates!.platformFeePct / 100)) : 0;
+  const creatorCredits = creditsNum - platformFeeCredits;
+  const amountUsd = rates ? creditsNum / rates.creditsPerUsd : 0;
+  const platformFeeUsd = rates ? platformFeeCredits / rates.creditsPerUsd : 0;
+  const creatorAmountUsd = rates ? creatorCredits / rates.creditsPerUsd : 0;
+  const insufficientBalance = data != null && creditsNum > 0 && creditsNum > data.availableBonusCredits;
+
+  async function submit() {
+    if (!canEstimate || insufficientBalance) return;
+    setSubmitting(true);
+    setSubmitError('');
+    setSuccess('');
+    try {
+      await apiClient.post('/wallet/withdraw', { credits: creditsNum, payoutEmail: payoutEmail || undefined });
+      setSuccess('Withdrawal request submitted! An admin will review within 1–3 business days.');
+      setCredits('');
+      setPayoutEmail('');
+      await loadData();
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } } };
+      setSubmitError(ax.response?.data?.message ?? 'Withdrawal failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (dataLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#374151' }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Balance card */}
+      <div className="rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(145deg, #4f2ec4 0%, #374151 55%, #7c5ae8 100%)', boxShadow: '0 20px 50px -10px rgba(55,65,81,.45)' }}>
+        <div className="p-6 grid grid-cols-3 gap-4">
+          {[
+            { label: 'Available', value: (data?.availableBonusCredits ?? 0).toLocaleString(), sub: 'bonus credits' },
+            { label: 'Withdrawn', value: (data?.withdrawnCredits ?? 0).toLocaleString(), sub: 'total credits' },
+            { label: 'Rate', value: `$${rates ? (1 / rates.creditsPerUsd).toFixed(2) : '—'}`, sub: 'per credit' },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="text-center">
+              <p className="text-[10px] text-white/60 uppercase tracking-wider mb-0.5">{label}</p>
+              <p className="text-2xl font-extrabold text-white tabular-nums leading-none">{value}</p>
+              <p className="text-[10px] text-white/60 mt-0.5">{sub}</p>
+            </div>
+          ))}
+        </div>
+        <div className="px-6 py-2 flex items-center gap-2" style={{ background: 'rgba(0,0,0,.18)', borderTop: '1px solid rgba(255,255,255,.1)' }}>
+          <DollarSign className="w-3.5 h-3.5 text-white/60" />
+          <p className="text-[11px] text-white/70">
+            Earn ad revenue credits by enabling monetisation on your projects in the Browse page
+          </p>
+        </div>
+      </div>
+
+      {/* Calculator + form */}
+      <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-4 h-4" style={{ color: '#374151' }} />
+          <span className="text-sm font-semibold text-gray-800">Request Withdrawal</span>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+            Credits to withdraw {rates ? `(min ${rates.minWithdrawalCredits.toLocaleString()})` : ''}
+          </label>
+          <input
+            type="number"
+            value={credits}
+            onChange={(e) => setCredits(e.target.value)}
+            min={rates?.minWithdrawalCredits ?? 1000}
+            step={100}
+            placeholder={`e.g. ${rates?.minWithdrawalCredits ?? 1000}`}
+            className="w-full rounded-2xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#374151]/20"
+            style={{ border: '1.5px solid #e3e0f0' }}
+          />
+          {insufficientBalance && (
+            <p className="text-xs text-red-500 mt-1">
+              Insufficient balance — you have {data!.availableBonusCredits.toLocaleString()} credits available.
+            </p>
+          )}
+        </div>
+
+        {canEstimate && (
+          <div className="rounded-xl px-4 py-3 space-y-1.5" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-600">You withdraw</span>
+              <span className="font-semibold text-gray-800">{creditsNum.toLocaleString()} cr = ${amountUsd.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-600">Platform fee ({rates!.platformFeePct}%)</span>
+              <span className="font-semibold text-red-600">−{platformFeeCredits.toLocaleString()} cr = ${platformFeeUsd.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm border-t border-gray-200 pt-1.5">
+              <span className="font-bold text-gray-900">You receive</span>
+              <span className="font-extrabold text-green-700">{creatorCredits.toLocaleString()} cr = ${creatorAmountUsd.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="text-xs font-semibold text-gray-600 block mb-1.5">Payout email (PayPal or bank transfer)</label>
+          <input
+            type="email"
+            value={payoutEmail}
+            onChange={(e) => setPayoutEmail(e.target.value)}
+            placeholder="your@paypal.com"
+            className="w-full rounded-2xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#374151]/20"
+            style={{ border: '1.5px solid #e3e0f0' }}
+          />
+        </div>
+
+        {success && (
+          <div className="flex items-start gap-2 rounded-2xl px-4 py-3" style={{ background: '#ecfdf5', border: '1.5px solid #6ee7b7' }}>
+            <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-emerald-800">{success}</p>
+          </div>
+        )}
+        {submitError && (
+          <div className="flex items-start gap-2 rounded-2xl px-4 py-3" style={{ background: '#fef2f2', border: '1.5px solid #fecaca' }}>
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700">{submitError}</p>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => void submit()}
+          disabled={submitting || !canEstimate || insufficientBalance}
+          className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
+          style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
+        >
+          {submitting
+            ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</span>
+            : 'Request Withdrawal'}
+        </button>
+      </div>
+
+      {/* How it works */}
+      <div className="rounded-2xl px-5 py-4" style={{ background: '#faf9ff', border: '1.5px solid #e3ddf8' }}>
+        <p className="text-xs font-bold text-gray-700 mb-2">How payouts work</p>
+        <ul className="space-y-1.5">
+          {[
+            `${rates?.creditsPerUsd ?? 100} credits = $1.00`,
+            `${rates?.platformFeePct ?? 20}% platform fee applies`,
+            'Admin reviews within 1–3 business days',
+            'Payouts via bank transfer or PayPal',
+            `Minimum: ${(rates?.minWithdrawalCredits ?? 1000).toLocaleString()} credits ($${rates?.minWithdrawalUsd?.toFixed(0) ?? '10'})`,
+            'Pro and Agency accounts only',
+          ].map((item) => (
+            <li key={item} className="flex items-center gap-2 text-xs text-gray-600">
+              <CheckCircle className="w-3 h-3 shrink-0 text-gray-400" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* History table */}
+      {data && data.withdrawals.length > 0 ? (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+          <div className="px-5 py-3.5" style={{ borderBottom: '1px solid #f3f4f6' }}>
+            <span className="text-sm font-semibold text-gray-800">Withdrawal History</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <th className="px-5 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Date</th>
+                  <th className="px-5 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Credits</th>
+                  <th className="px-5 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-gray-600">You Receive</th>
+                  <th className="px-5 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Status</th>
+                  <th className="px-5 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-gray-600 hidden sm:table-cell">Payout Email</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#f9f7ff]">
+                {data.withdrawals.map((w) => (
+                  <tr key={w.id} className="hover:bg-[#faf9ff]">
+                    <td className="px-5 py-3 text-xs text-gray-600">{new Date(w.createdAt).toLocaleDateString()}</td>
+                    <td className="px-5 py-3 font-medium text-gray-800 tabular-nums">{w.creditsRequested.toLocaleString()}</td>
+                    <td className="px-5 py-3 font-bold text-green-700 tabular-nums">${w.creatorAmountUsd.toFixed(2)}</td>
+                    <td className="px-5 py-3">
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold" style={W_STATUS_STYLES[w.status] ?? { background: '#f3f4f6', color: '#374151' }}>
+                        {w.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-xs text-gray-600 hidden sm:table-cell">{w.payoutEmail ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl p-10 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
+          <DollarSign className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+          <p className="text-sm text-gray-600">No withdrawal requests yet.</p>
+          <p className="text-xs text-gray-400 mt-1">Earn ad revenue from the Browse page, then request a payout above.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type WalletTab = 'credits' | 'plan' | 'referrals';
+type WalletTab = 'credits' | 'plan' | 'referrals' | 'withdraw';
 
 function WalletContent() {
   const searchParams = useSearchParams();
@@ -1648,6 +1911,7 @@ function WalletContent() {
             { id: 'credits',   label: 'AI Credits', icon: <Zap className="w-4 h-4" /> },
             { id: 'plan',      label: 'My Plan',    icon: <Sparkles className="w-4 h-4" /> },
             { id: 'referrals', label: 'Referrals',  icon: <Gift className="w-4 h-4" /> },
+            { id: 'withdraw',  label: 'Withdraw',   icon: <DollarSign className="w-4 h-4" /> },
           ] as { id: WalletTab; label: string; icon: React.ReactNode }[]).map(({ id, label, icon }) => (
             <button
               key={id}
@@ -1711,6 +1975,13 @@ function WalletContent() {
         {tab === 'referrals' && (
           <div className="space-y-5">
             <ReferralCenter />
+          </div>
+        )}
+
+        {/* ── Withdraw tab ───────────────────────────────────────────────── */}
+        {tab === 'withdraw' && (
+          <div className="space-y-5">
+            <WithdrawTab />
           </div>
         )}
 
