@@ -45,8 +45,13 @@ try:
     chk("Referrer-Policy present",              "referrer-policy" in h)
     chk("Permissions-Policy present",           "permissions-policy" in h, severity="warn")
     csp = h.get("content-security-policy", "")
-    chk("CSP: no unsafe-inline scripts",        "unsafe-inline" not in csp,
-        "'unsafe-inline' weakens XSS protection" if "unsafe-inline" in csp else "", severity="warn")
+    # Check script-src specifically — style-src 'unsafe-inline' is a separate,
+    # lower-risk concern (CSS can't execute JS) and is kept for UI lib compat.
+    script_src = next((d.strip() for d in csp.split(';') if d.strip().startswith('script-src')), '')
+    chk("CSP: no unsafe-inline in script-src",
+        "unsafe-inline" not in script_src,
+        "'unsafe-inline' in script-src enables XSS" if "unsafe-inline" in script_src else "",
+        severity="warn")
     chk("CSP: no unsafe-eval",                  "unsafe-eval" not in csp,
         "'unsafe-eval' allows code execution" if "unsafe-eval" in csp else "", severity="warn")
     chk("Server header no version leak",

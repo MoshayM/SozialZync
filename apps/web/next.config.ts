@@ -1,36 +1,8 @@
 import type { NextConfig } from 'next';
 
-// Security headers (docs4/14, docs4/23 app-side): the API already ships the
-// helmet set; the web app must send its own. CSP allows exactly what the app
-// uses — YouTube thumbnails, the configured API origin (+ its websocket), and
-// blob previews for rendered media. Next's runtime requires inline scripts;
-// eval is only allowed in dev where the toolchain needs it.
-const apiOrigin = (() => {
-  try {
-    return new URL(process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1').origin;
-  } catch {
-    return 'http://localhost:4007';
-  }
-})();
-const wsOrigin = apiOrigin.replace(/^http/, 'ws');
-
-const csp = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'self'",
-  "form-action 'self'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV !== 'production' ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://i.ytimg.com https://yt3.googleusercontent.com",
-  "font-src 'self' data:",
-  "worker-src 'self' blob:",
-  `media-src 'self' blob: ${apiOrigin}`,
-  `connect-src 'self' ${apiOrigin} ${wsOrigin}${process.env['SENTRY_DSN'] ? ' https://*.sentry.io' : ''}`,
-].join('; ');
-
+// Non-CSP security headers. CSP is set per-request in middleware.ts so it can
+// carry a unique nonce — static headers() here can't generate per-request values.
 const securityHeaders = [
-  { key: 'Content-Security-Policy', value: csp },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
