@@ -1,5 +1,5 @@
 type AxiosLike = {
-  response?: { data?: unknown };
+  response?: { data?: unknown; status?: number };
   message?: string;
 };
 
@@ -14,6 +14,16 @@ const CODE_HINTS: Record<string, string> = {
     'This is usually a temporary provider outage — nothing was charged. Try again in a moment.',
   RATE_LIMITED: "You're sending requests too quickly — wait a few seconds and try again.",
 };
+
+/** Intercepts 403 responses and converts them to clear, user-friendly messages. */
+function friendlyForbidden(data: unknown, httpStatus?: number): string | null {
+  if (httpStatus !== 403) return null;
+  const raw = extractString(data);
+  // If the backend message explicitly mentions Pro / upgrade, use it verbatim
+  if (raw && /pro|upgrade|plan|credits/i.test(raw)) return raw;
+  // Generic 403 fallback — never show "403 Forbidden" to users
+  return 'This feature requires a Pro account. Upgrade to Pro ($17/mo) to unlock it — visit your Wallet to upgrade.';
+}
 
 function envelopeHint(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
@@ -41,12 +51,19 @@ export function getErrorMessage(error: unknown): string {
 
   // Axios error — check response.data first
   const axiosErr = error as AxiosLike;
-  if (axiosErr?.response?.data !== undefined) {
-    const fromData = extractString(axiosErr.response.data);
-    const hint = envelopeHint(axiosErr.response.data);
-    if (fromData && hint) return `${fromData.replace(/\.?\s*$/, '.')} ${hint}`;
-    if (fromData) return fromData;
-    if (hint) return hint;
+  if (axiosErr?.response !== undefined) {
+    const status = (axiosErr.response as { status?: number; data?: unknown }).status;
+    const data = axiosErr.response.data;
+    // 403 → always show a user-friendly upgrade message
+    const forbidden = friendlyForbidden(data, status);
+    if (forbidden) return forbidden;
+    if (data !== undefined) {
+      const fromData = extractString(data);
+      const hint = envelopeHint(data);
+      if (fromData && hint) return `${fromData.replace(/\.?\s*$/, '.')} ${hint}`;
+      if (fromData) return fromData;
+      if (hint) return hint;
+    }
   }
 
   // Plain Error or any object with .message

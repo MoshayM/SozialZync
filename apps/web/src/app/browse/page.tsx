@@ -1,13 +1,13 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { LogoMark } from '@/components/logo-mark';
 import {
   Search, Bell, Menu, X, ChevronRight, Play, History, Plus, Film, Scissors,
-  ImageIcon, Grid3X3, LayoutList, SlidersHorizontal, ChevronDown, MoreVertical,
-  Heart, MessageCircle, TrendingUp, Eye, EyeOff, Trash2, Share2, Settings, LogOut,
-  Bookmark, Sparkles, Clock,
+  ImageIcon, Grid3X3, LayoutList, SlidersHorizontal, ChevronDown, ChevronUp,
+  Heart, MessageCircle, TrendingUp, Eye, EyeOff, Trash2, Share2, Settings,
+  LogOut, Bookmark, Sparkles, Clock, Mic,
 } from 'lucide-react';
 
 // ── Demo projects (from API) ───────────────────────────────────────────────────
@@ -27,17 +27,19 @@ function useDemoProjects(): DemoProject[] {
     fetch(`${base}/projects/browse?limit=6`)
       .then(r => r.ok ? r.json() as Promise<DemoProject[]> : Promise.resolve([]))
       .then(data => { if (Array.isArray(data)) setProjects(data); })
-      .catch(() => { /* silently skip — static content still shown */ });
+      .catch(() => { /* silently skip */ });
   }, []);
   return projects;
 }
 
 function trackProjectView(projectId: string) {
-  const base = '/api/proxy';
-  fetch(`${base}/projects/browse/${projectId}/view`, { method: 'POST' }).catch(() => undefined);
+  fetch('/api/proxy/projects/browse/' + projectId + '/view', { method: 'POST' }).catch(() => undefined);
 }
 
-function DemoFeatured({ projects, onPlay }: { projects: DemoProject[]; onPlay: (p: { id: string; title: string; creator: string; gi: number; duration?: string; kind: 'video' }) => void }) {
+function DemoFeatured({ projects, onOpenFeed }: {
+  projects: DemoProject[];
+  onOpenFeed: (item: FeedItem) => void;
+}) {
   if (projects.length === 0) return null;
 
   const gradients = [
@@ -67,13 +69,13 @@ function DemoFeatured({ projects, onPlay }: { projects: DemoProject[]; onPlay: (
           const gi = i % gradients.length;
           const firstVideo = p.videos?.[0];
           const duration = fmtDuration(firstVideo?.duration ?? (p.contentFormat === 'DOCUMENTARY' ? 720 : undefined));
+          const feedItem: FeedItem = { id: p.id, title: p.title, creator: '@SozialZynk', gi, duration, kind: 'video', views: '—', likes: '—' };
           return (
             <div
               key={p.id}
               className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer"
-              onClick={() => onPlay({ id: p.id, title: p.title, creator: '@SozialZynk', gi, duration, kind: 'video' })}
+              onClick={() => { trackProjectView(p.id); onOpenFeed(feedItem); }}
             >
-              {/* Thumbnail */}
               <div className="relative w-full h-44 overflow-hidden" style={{ background: gradients[gi] }}>
                 {firstVideo?.thumbnailUrl ? (
                   <img src={firstVideo.thumbnailUrl} alt={p.title} className="w-full h-full object-cover" />
@@ -85,15 +87,12 @@ function DemoFeatured({ projects, onPlay }: { projects: DemoProject[]; onPlay: (
                     <p className="text-white/70 text-[11px] font-medium text-center line-clamp-2">{p.title}</p>
                   </div>
                 )}
-                {/* Play overlay */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
                   <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                     <Play className="w-7 h-7 text-white fill-white translate-x-0.5" />
                   </div>
                 </div>
-                {/* Duration */}
                 <span className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">{duration}</span>
-                {/* Demo badge */}
                 <span className="absolute top-2 left-2 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
                   <Sparkles className="w-2.5 h-2.5" />AD
                 </span>
@@ -146,6 +145,11 @@ interface ShortItem {
 interface ImageItem {
   id: string; title: string; creator: string; views: string;
   gi: number; likes: string; isOwn: boolean;
+}
+interface FeedItem {
+  id: string; title: string; creator: string; gi: number; duration?: string;
+  kind: 'video' | 'short' | 'reel' | 'image';
+  views: string; likes: string; comments?: string; shares?: string;
 }
 interface Group { id: string; name: string; count: number; color: string; emoji: string; }
 interface HistoryItem { id: string; title: string; creator: string; progress: number; duration: string; time: string; gi: number; }
@@ -216,26 +220,17 @@ const INITIAL_GROUPS: Group[] = [
   { id:'g4', name:'Loved Shorts',   count:6,  color:'#DC2626', emoji:'❤️' },
 ];
 
-const HISTORY_ITEMS: HistoryItem[] = [
-  { id:'h1', title:'How to Script Videos with AI',     creator:'@ScriptMaster', progress:65, duration:'12:30', time:'2h ago',    gi:2 },
-  { id:'h2', title:'Complete Guide to YouTube SEO',    creator:'@SEOPro',       progress:30, duration:'18:45', time:'Yesterday', gi:3 },
-  { id:'h3', title:'AI Thumbnail Generation Tutorial', creator:'@ThumbnailAI',  progress:90, duration:'9:15',  time:'2 days ago',gi:4 },
-  { id:'h4', title:'Viral Hooks That Get Clicks',      creator:'@HookMaster',   progress:45, duration:'14:20', time:'3 days ago',gi:5 },
-];
-
 const INITIAL_NOTIFS: Notif[] = [
-  { id:'n1', type:'like',       icon: Heart,          msg:'@TechDaily liked your video "AI Tools That Changed…"', time:'2m ago',  read:false },
-  { id:'n2', type:'comment',    icon: MessageCircle,  msg:'@GrowthPro commented: "This is gold!"',                time:'15m ago', read:false },
-  { id:'n3', type:'milestone',  icon: TrendingUp,     msg:'Your Short hit 1,000 views!',                          time:'1h ago',  read:false },
-  { id:'n4', type:'visibility', icon: Eye,            msg:'Your video is now public',                              time:'3h ago',  read:true  },
-  { id:'n5', type:'removed',    icon: Trash2,         msg:'Admin removed "Content Title" for policy violation',   time:'1d ago',  read:true  },
+  { id:'n1', type:'like',       icon: Heart,         msg:'@TechDaily liked your video "AI Tools That Changed…"', time:'2m ago',  read:false },
+  { id:'n2', type:'comment',    icon: MessageCircle, msg:'@GrowthPro commented: "This is gold!"',                time:'15m ago', read:false },
+  { id:'n3', type:'milestone',  icon: TrendingUp,    msg:'Your Short hit 1,000 views!',                          time:'1h ago',  read:false },
+  { id:'n4', type:'visibility', icon: Eye,           msg:'Your video is now public',                              time:'3h ago',  read:true  },
+  { id:'n5', type:'removed',    icon: Trash2,        msg:'Admin removed "Content Title" for policy violation',   time:'1d ago',  read:true  },
 ];
 
 const SORT_OPTIONS = ['Trending', 'Latest', 'Most Viewed', 'Top Rated'] as const;
 type SortOption = typeof SORT_OPTIONS[number];
 type ContentType = 'all' | 'videos' | 'shorts' | 'reels' | 'images';
-
-interface PlayItem { id: string; title: string; creator: string; gi: number; duration?: string; kind: 'video'|'short'|'reel'|'image'; views?: string; likes?: string; comments?: string; }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -287,30 +282,286 @@ function SquareThumb({ gi }: { gi: number }) {
   );
 }
 
-// ── Stats bar ─────────────────────────────────────────────────────────────────
-
 function StatsBar({ views, likes, comments, shares, hidden }: {
   views: string; likes: string; comments: string; shares?: string; hidden: boolean;
 }) {
-  if (hidden) {
-    return <p className="text-[10px] text-gray-400 mt-1 italic">Stats hidden</p>;
-  }
+  if (hidden) return <p className="text-[10px] text-gray-400 mt-1 italic">Stats hidden</p>;
   return (
     <div className="flex items-center gap-2.5 mt-1 flex-wrap">
-      <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
-        <Eye className="w-3 h-3" />{views}
-      </span>
-      <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
-        <Heart className="w-3 h-3" />{likes}
-      </span>
-      <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
-        <MessageCircle className="w-3 h-3" />{comments}
-      </span>
-      {shares && (
-        <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
-          <Share2 className="w-3 h-3" />{shares}
-        </span>
+      <span className="flex items-center gap-0.5 text-[10px] text-gray-400"><Eye className="w-3 h-3" />{views}</span>
+      <span className="flex items-center gap-0.5 text-[10px] text-gray-400"><Heart className="w-3 h-3" />{likes}</span>
+      <span className="flex items-center gap-0.5 text-[10px] text-gray-400"><MessageCircle className="w-3 h-3" />{comments}</span>
+      {shares && <span className="flex items-center gap-0.5 text-[10px] text-gray-400"><Share2 className="w-3 h-3" />{shares}</span>}
+    </div>
+  );
+}
+
+// ── FeedSlide component ───────────────────────────────────────────────────────
+
+function FeedSlide({
+  item, isActive, isLiked, isSaved, currentIdx, totalCount,
+  onClose, onLike, onSave, onNext, onPrev,
+}: {
+  item: FeedItem; isActive: boolean; isLiked: boolean; isSaved: boolean;
+  currentIdx: number; totalCount: number;
+  onClose: () => void; onLike: (id: string, kind: string) => void;
+  onSave: (id: string, kind: string) => void;
+  onNext: () => void; onPrev: () => void;
+}) {
+  const isPortrait = item.kind === 'short' || item.kind === 'reel';
+  const itemKey = `${item.id}-${item.kind}`;
+
+  return (
+    <div
+      data-slide="true"
+      data-idx={String(currentIdx)}
+      className="relative w-full shrink-0 flex items-center justify-center overflow-hidden select-none"
+      style={{ height: '100dvh', scrollSnapAlign: 'start', background: G[item.gi % 8] }}
+    >
+      {/* Ambient vignette */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.55) 100%)' }} />
+
+      {/* Content */}
+      {isPortrait ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ height: '85dvh', aspectRatio: '9/16', maxWidth: '380px' }}>
+            <div className="absolute inset-0" style={{ background: G[item.gi % 8] }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className={`w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm transition-all duration-500 ${isActive ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}
+                style={isActive ? { animation: 'cfPulse 2.5s ease-in-out infinite' } : {}}>
+                <Play className="w-8 h-8 text-white fill-white translate-x-1" />
+              </div>
+            </div>
+            {item.duration && (
+              <span className="absolute bottom-3 right-3 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">{item.duration}</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center px-4 sm:px-10">
+          <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl" style={{ maxWidth: '860px', aspectRatio: item.kind === 'image' ? '4/3' : '16/9' }}>
+            <div className="absolute inset-0" style={{ background: G[item.gi % 8] }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              {item.kind !== 'image' ? (
+                <div className={`w-20 h-20 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm transition-all duration-500 ${isActive ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}
+                  style={isActive ? { animation: 'cfPulse 2.5s ease-in-out infinite' } : {}}>
+                  <Play className="w-10 h-10 text-white fill-white translate-x-1" />
+                </div>
+              ) : (
+                <ImageIcon className="w-16 h-16 text-white/30" />
+              )}
+            </div>
+            {item.duration && (
+              <span className="absolute bottom-3 right-3 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">{item.duration}</span>
+            )}
+          </div>
+        </div>
       )}
+
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 h-16 px-4 flex items-center justify-between z-10"
+        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.55), transparent)' }}>
+        <div className="flex items-center gap-2">
+          <span className="text-white/60 text-[11px] font-medium bg-black/30 px-2 py-0.5 rounded-full backdrop-blur-sm">
+            {currentIdx + 1} / {totalCount}
+          </span>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
+          aria-label="Close feed"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Right action column */}
+      <div className="absolute right-3 sm:right-5 bottom-24 flex flex-col items-center gap-4 z-10">
+        <button onClick={() => onLike(item.id, item.kind)} className="flex flex-col items-center gap-1" aria-label={isLiked ? 'Unlike' : 'Like'}>
+          <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-sm transition-all ${isLiked ? 'bg-red-500/90 scale-110' : 'bg-black/40 hover:bg-black/60'}`}>
+            <Heart className={`w-5 h-5 ${isLiked ? 'text-white fill-white' : 'text-white'}`} />
+          </div>
+          <span className="text-white text-[10px] font-bold drop-shadow-md">{item.likes}</span>
+        </button>
+
+        <button className="flex flex-col items-center gap-1" aria-label="Comments">
+          <div className="w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center backdrop-blur-sm transition-colors">
+            <MessageCircle className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-white text-[10px] font-bold drop-shadow-md">{item.comments ?? '—'}</span>
+        </button>
+
+        <button className="flex flex-col items-center gap-1" aria-label="Share">
+          <div className="w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center backdrop-blur-sm transition-colors">
+            <Share2 className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-white text-[10px] font-bold drop-shadow-md">{item.shares ?? 'Share'}</span>
+        </button>
+
+        <button onClick={() => onSave(item.id, item.kind)} className="flex flex-col items-center gap-1" aria-label={isSaved ? 'Unsave' : 'Save'}>
+          <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-sm transition-all ${isSaved ? 'bg-amber-400/90 scale-110' : 'bg-black/40 hover:bg-black/60'}`}>
+            <Bookmark className={`w-5 h-5 ${isSaved ? 'text-white fill-white' : 'text-white'}`} />
+          </div>
+          <span className="text-white text-[10px] font-bold drop-shadow-md">{isSaved ? 'Saved' : 'Save'}</span>
+        </button>
+      </div>
+
+      {/* Bottom info overlay */}
+      <div
+        className="absolute bottom-0 left-0 right-14 sm:right-20 p-4 sm:p-5 z-10"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 65%, transparent 100%)' }}
+      >
+        <div className="flex items-center gap-2.5 mb-2">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white bg-white/20 backdrop-blur-sm shrink-0">
+            {(item.creator.charAt(1) ?? 'C').toUpperCase()}
+          </div>
+          <span className="text-white text-[13px] font-bold">{item.creator}</span>
+          <span className="ml-auto capitalize text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/15 text-white/80 backdrop-blur-sm">{item.kind}</span>
+        </div>
+        <p className="text-white font-bold text-[15px] sm:text-[17px] leading-snug mb-1.5 line-clamp-2">{item.title}</p>
+        <div className="flex items-center gap-3">
+          <span className="text-white/60 text-[11px] flex items-center gap-1"><Eye className="w-3 h-3" />{item.views}</span>
+          {item.duration && <span className="text-white/60 text-[11px] flex items-center gap-1"><Clock className="w-3 h-3" />{item.duration}</span>}
+        </div>
+      </div>
+
+      {/* Desktop up/down arrows */}
+      {currentIdx > 0 && (
+        <button onClick={onPrev} className="hidden lg:flex absolute left-6 top-1/2 -translate-y-8 w-10 h-10 rounded-full bg-black/40 items-center justify-center backdrop-blur-sm hover:bg-black/60 transition-colors z-10" aria-label="Previous">
+          <ChevronUp className="w-5 h-5 text-white" />
+        </button>
+      )}
+      {currentIdx < totalCount - 1 && (
+        <button onClick={onNext} className="hidden lg:flex absolute left-6 bottom-24 w-10 h-10 rounded-full bg-black/40 items-center justify-center backdrop-blur-sm hover:bg-black/60 transition-colors z-10" aria-label="Next">
+          <ChevronDown className="w-5 h-5 text-white" />
+        </button>
+      )}
+
+      {/* Mobile swipe hint */}
+      {currentIdx === 0 && totalCount > 1 && (
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 lg:hidden z-10">
+          <p className="text-white/40 text-[10px] font-medium" style={{ animation: 'cfBounce 1.5s ease-in-out infinite' }}>Swipe up for next</p>
+        </div>
+      )}
+
+      {/* CSS keyframes */}
+      <style>{`
+        @keyframes cfPulse{0%,100%{opacity:0.75;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+        @keyframes cfBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-4px)}}
+      `}</style>
+    </div>
+  );
+}
+
+// ── FeedView component ────────────────────────────────────────────────────────
+
+function FeedView({
+  items, startIndex, onClose,
+}: {
+  items: FeedItem[]; startIndex: number; onClose: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(startIndex);
+  const [likedKeys, setLikedKeys] = useState<Set<string>>(new Set());
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+
+  // Scroll to start on mount (instant)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const slide = container.querySelector(`[data-idx="${startIndex}"]`) as HTMLElement | null;
+    if (slide) container.scrollTop = slide.offsetTop;
+  }, [startIndex]);
+
+  // IntersectionObserver — track active slide
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+            setActiveIdx(parseInt((entry.target as HTMLElement).dataset['idx'] ?? '0', 10));
+          }
+        });
+      },
+      { root: container, threshold: 0.55 },
+    );
+    const slides = container.querySelectorAll('[data-slide]');
+    slides.forEach(s => observer.observe(s));
+    return () => observer.disconnect();
+  }, [items]);
+
+  // Prevent body scroll
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); navigateTo(Math.min(activeIdx + 1, items.length - 1)); }
+      else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); navigateTo(Math.max(activeIdx - 1, 0)); }
+      else if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [activeIdx, items.length, onClose]);
+
+  function navigateTo(idx: number) {
+    const container = containerRef.current;
+    if (!container) return;
+    const slide = container.querySelector(`[data-idx="${idx}"]`) as HTMLElement | null;
+    slide?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function toggleLike(id: string, kind: string) {
+    const k = `${id}-${kind}`;
+    setLikedKeys(prev => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  }
+
+  function toggleSave(id: string, kind: string) {
+    const k = `${id}-${kind}`;
+    setSavedKeys(prev => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="fixed inset-0 z-[250] bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <p className="text-lg font-bold mb-2">No content to show</p>
+          <button onClick={onClose} className="text-sm text-white/60 hover:text-white underline">Go back</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[250] bg-black" role="dialog" aria-label="Content feed">
+      <div
+        ref={containerRef}
+        className="h-full overflow-y-scroll"
+        style={{ scrollSnapType: 'y mandatory', scrollbarWidth: 'none' } as React.CSSProperties}
+      >
+        {items.map((item, idx) => (
+          <FeedSlide
+            key={`${item.id}-${item.kind}`}
+            item={item}
+            isActive={activeIdx === idx}
+            isLiked={likedKeys.has(`${item.id}-${item.kind}`)}
+            isSaved={savedKeys.has(`${item.id}-${item.kind}`)}
+            currentIdx={idx}
+            totalCount={items.length}
+            onClose={onClose}
+            onLike={toggleLike}
+            onSave={toggleSave}
+            onNext={() => navigateTo(Math.min(idx + 1, items.length - 1))}
+            onPrev={() => navigateTo(Math.max(idx - 1, 0))}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -339,14 +590,18 @@ export default function BrowsePage() {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [statsHidden, setStatsHidden] = useState<Record<string, boolean>>({});
-  const [playing, setPlaying] = useState<PlayItem | null>(null);
+  // Feed mode
+  const [feedOpen, setFeedOpen] = useState(false);
+  const [feedStartIdx, setFeedStartIdx] = useState(0);
+  // Voice search
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
 
   const sortRef    = useRef<HTMLDivElement>(null);
   const bellRef    = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const searchRef  = useRef<HTMLInputElement>(null);
 
-  // Auth detection
   useEffect(() => {
     try {
       const token = localStorage.getItem('cf_token');
@@ -359,9 +614,11 @@ export default function BrowsePage() {
       const hist = localStorage.getItem('cf_search_history');
       if (hist) setSearchHistory(JSON.parse(hist) as string[]);
     } catch { /* guest */ }
+    setVoiceSupported(
+      typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window),
+    );
   }, []);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
@@ -376,9 +633,8 @@ export default function BrowsePage() {
     };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
-  }, []);
+  }, [saveToGroupVideoId]);
 
-  // Keyboard: '/' focuses search
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === '/' && document.activeElement?.tagName !== 'INPUT') {
@@ -425,7 +681,7 @@ export default function BrowsePage() {
     const colors = ['#374151','#0891B2','#059669','#DC2626','#D97706'];
     const emojis = ['⭐','🕐','💼','❤️','📌'];
     const idx = groups.length % colors.length;
-    setGroups(prev => [...prev, { id:`g-${Date.now()}`, name:newGroupName.trim(), count:0, color:colors[idx], emoji:emojis[idx] }]);
+    setGroups(prev => [...prev, { id:`g-${Date.now()}`, name:newGroupName.trim(), count:0, color:colors[idx]!, emoji:emojis[idx]! }]);
     setNewGroupName('');
     setShowCreateGroup(false);
   }, [newGroupName, groups.length]);
@@ -441,6 +697,32 @@ export default function BrowsePage() {
     window.location.href = '/browse';
   }, []);
 
+  // Voice search
+  const startVoiceSearch = useCallback(() => {
+    const SR = (window as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition
+      ?? (window as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+    if (!SR) return;
+    // @reason: dynamic browser API, no TS type available without webkitSpeechRecognition lib
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition = new (SR as any)();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => setVoiceActive(true);
+    recognition.onresult = (e: { results: { [0]: { [0]: { transcript: string } } } }) => {
+      const transcript = e.results[0]?.[0]?.transcript ?? '';
+      if (transcript) {
+        handleSearch(transcript);
+        saveSearchHistory(transcript);
+        if (searchRef.current) searchRef.current.value = transcript;
+      }
+      setVoiceActive(false);
+    };
+    recognition.onerror = () => setVoiceActive(false);
+    recognition.onend = () => setVoiceActive(false);
+    recognition.start();
+  }, [handleSearch, saveSearchHistory]);
+
   const unreadCount = notifs.filter(n => !n.read).length;
 
   // Filtered content
@@ -449,6 +731,20 @@ export default function BrowsePage() {
   const filteredShorts = SHORTS.filter(s => matchSearch(s.title, s.creator, q));
   const filteredReels  = REELS.filter(r  => matchSearch(r.title, r.creator, q));
   const filteredImages = IMAGES.filter(i => matchSearch(i.title, i.creator, q));
+
+  // Feed items — order: shorts/reels first (portrait), then videos, then images
+  const feedItems = useMemo<FeedItem[]>(() => [
+    ...filteredShorts.map(s => ({ id:s.id, title:s.title, creator:s.creator, gi:s.gi, duration:s.duration, kind:'short' as const, views:s.views, likes:s.likes, comments:s.comments, shares:s.shares })),
+    ...filteredReels.map(r  => ({ id:r.id, title:r.title, creator:r.creator, gi:r.gi, duration:r.duration, kind:'reel'  as const, views:r.views, likes:r.likes, comments:r.comments, shares:r.shares })),
+    ...filteredVideos.map(v => ({ id:v.id, title:v.title, creator:v.creator, gi:v.gi, duration:v.duration, kind:'video' as const, views:v.views, likes:v.likes, comments:v.comments, shares:v.shares })),
+    ...filteredImages.map(i => ({ id:i.id, title:i.title, creator:i.creator, gi:i.gi, kind:'image' as const, views:i.views, likes:i.likes })),
+  ], [filteredShorts, filteredReels, filteredVideos, filteredImages]);
+
+  function openFeed(itemId: string, kind: FeedItem['kind']) {
+    const idx = feedItems.findIndex(f => f.id === itemId && f.kind === kind);
+    setFeedStartIdx(idx >= 0 ? idx : 0);
+    setFeedOpen(true);
+  }
 
   const activeLabel = (() => {
     switch (contentType) {
@@ -463,7 +759,7 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen bg-[#f7f7f8] flex flex-col" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      {/* ── Header ────────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm h-14 flex items-center px-4 gap-3">
         {/* Logo */}
         <Link href="/browse" className="flex items-center gap-2 shrink-0">
@@ -482,7 +778,7 @@ export default function BrowsePage() {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Search */}
+        {/* Search + Voice */}
         <form
           className="flex-1 max-w-lg relative"
           onSubmit={e => { e.preventDefault(); saveSearchHistory(search); }}
@@ -491,21 +787,44 @@ export default function BrowsePage() {
           <input
             ref={searchRef}
             type="search"
-            placeholder={`Search ${activeLabel.toLowerCase()}… (press /)`}
+            placeholder={voiceActive ? 'Listening…' : `Search ${activeLabel.toLowerCase()}… (press /)`}
             value={search}
             onChange={e => handleSearch(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') saveSearchHistory(search); }}
-            className="w-full pl-9 pr-9 py-2 text-sm rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 transition-all placeholder:text-gray-400"
+            className={`w-full pl-9 py-2 text-sm rounded-full border bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 transition-all placeholder:text-gray-400 ${voiceActive ? 'border-red-400 bg-red-50' : 'border-gray-200'} ${(search || voiceSupported) ? 'pr-16' : 'pr-4'}`}
           />
+          {/* Clear */}
           {search && (
             <button type="button" onClick={() => handleSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <X className="w-4 h-4" />
+              className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+              aria-label="Clear search">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {/* Voice search */}
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={startVoiceSearch}
+              disabled={voiceActive}
+              className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full transition-all ${voiceActive ? 'text-red-500 bg-red-100' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+              aria-label="Voice search"
+              title="Search by voice"
+            >
+              <Mic className={`w-3.5 h-3.5 ${voiceActive ? 'animate-pulse' : ''}`} />
             </button>
           )}
         </form>
 
-        {/* Right: auth-aware icons */}
+        {/* Voice indicator */}
+        {voiceActive && (
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-[11px] font-semibold text-red-600">Listening…</span>
+          </div>
+        )}
+
+        {/* Right: auth icons */}
         <div className="flex items-center gap-2 shrink-0 ml-auto">
           {isLoggedIn ? (
             <>
@@ -528,9 +847,7 @@ export default function BrowsePage() {
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                       <span className="text-[13px] font-bold text-gray-900">Creator Notifications</span>
                       {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-[11px] font-bold text-gray-700 hover:text-gray-900">
-                          Mark all read
-                        </button>
+                        <button onClick={markAllRead} className="text-[11px] font-bold text-gray-700 hover:text-gray-900">Mark all read</button>
                       )}
                     </div>
                     {notifs.length === 0 ? (
@@ -543,12 +860,8 @@ export default function BrowsePage() {
                         {notifs.map(n => {
                           const Icon = n.icon;
                           return (
-                            <li key={n.id}
-                              className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 ${n.read ? '' : 'bg-gray-50'}`}
-                            >
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                                n.type === 'removed' ? 'bg-red-100' : 'bg-gray-100'
-                              }`}>
+                            <li key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 ${n.read ? '' : 'bg-gray-50'}`}>
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${n.type === 'removed' ? 'bg-red-100' : 'bg-gray-100'}`}>
                                 <Icon className={`w-3.5 h-3.5 ${n.type === 'removed' ? 'text-red-500' : 'text-gray-700'}`} />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -572,19 +885,16 @@ export default function BrowsePage() {
                   className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full hover:bg-gray-100 transition-colors"
                   aria-label="Account menu"
                 >
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-                    style={{ background:'linear-gradient(135deg,#374151,#0891B2)' }}>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0" style={{ background:'linear-gradient(135deg,#374151,#0891B2)' }}>
                     {userName.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <span className="text-[12px] font-semibold text-gray-700 hidden sm:block max-w-[80px] truncate">{userName}</span>
                 </button>
                 {accountOpen && (
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                    {/* User info */}
                     <div className="px-4 py-3.5 border-b border-gray-100">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[14px] font-bold text-white shrink-0"
-                          style={{ background:'linear-gradient(135deg,#374151,#0891B2)' }}>
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[14px] font-bold text-white shrink-0" style={{ background:'linear-gradient(135deg,#374151,#0891B2)' }}>
                           {userName.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -593,22 +903,14 @@ export default function BrowsePage() {
                         </div>
                       </div>
                     </div>
-                    {/* Links */}
                     <div className="p-2">
-                      <Link href="/account"
-                        onClick={() => setAccountOpen(false)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors text-left font-medium"
-                      >
-                        <History className="w-4 h-4 text-gray-400 shrink-0" />
-                        Watch History
+                      <Link href="/account" onClick={() => setAccountOpen(false)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors text-left font-medium">
+                        <History className="w-4 h-4 text-gray-400 shrink-0" />Watch History
                       </Link>
-                      {/* Search History */}
-                      <button
-                        onClick={() => setShowSearchHistory(v => !v)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors text-left font-medium"
-                      >
-                        <Search className="w-4 h-4 text-gray-400 shrink-0" />
-                        Search History
+                      <button onClick={() => setShowSearchHistory(v => !v)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors text-left font-medium">
+                        <Search className="w-4 h-4 text-gray-400 shrink-0" />Search History
                         <ChevronDown className={`w-3.5 h-3.5 text-gray-400 ml-auto transition-transform ${showSearchHistory ? 'rotate-180' : ''}`} />
                       </button>
                       {showSearchHistory && (
@@ -617,11 +919,8 @@ export default function BrowsePage() {
                             <p className="text-[11px] text-gray-400 px-2 py-1">No recent searches</p>
                           ) : (
                             searchHistory.slice(0, 5).map((s, i) => (
-                              <button
-                                key={i}
-                                onClick={() => { handleSearch(s); setAccountOpen(false); }}
-                                className="w-full text-left px-2 py-1 rounded-lg text-[11px] text-gray-600 hover:bg-gray-100 transition-colors truncate"
-                              >
+                              <button key={i} onClick={() => { handleSearch(s); setAccountOpen(false); }}
+                                className="w-full text-left px-2 py-1 rounded-lg text-[11px] text-gray-600 hover:bg-gray-100 transition-colors truncate">
                                 {s}
                               </button>
                             ))
@@ -629,28 +928,20 @@ export default function BrowsePage() {
                         </div>
                       )}
                       <div className="h-px bg-gray-100 my-1.5 mx-2" />
-                      <Link href="/settings"
-                        onClick={() => setAccountOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-                      >
-                        <Settings className="w-4 h-4 text-gray-400 shrink-0" />
-                        Settings
+                      <Link href="/settings" onClick={() => setAccountOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium">
+                        <Settings className="w-4 h-4 text-gray-400 shrink-0" />Settings
                       </Link>
-                      <Link href="/home"
-                        onClick={() => setAccountOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-                      >
+                      <Link href="/home" onClick={() => setAccountOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium">
                         <svg className="w-4 h-4 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                         Creator Dashboard
                       </Link>
                     </div>
                     <div className="p-2 pt-0">
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-red-500 hover:bg-red-50 transition-colors text-left font-medium border-t border-gray-100"
-                      >
-                        <LogOut className="w-4 h-4 shrink-0" />
-                        Sign Out
+                      <button onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-red-500 hover:bg-red-50 transition-colors text-left font-medium border-t border-gray-100">
+                        <LogOut className="w-4 h-4 shrink-0" />Sign Out
                       </button>
                     </div>
                   </div>
@@ -687,7 +978,6 @@ export default function BrowsePage() {
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
           <nav className="p-3 space-y-0.5">
-            {/* Mobile close */}
             <div className="flex items-center justify-between mb-3 lg:hidden">
               <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Browse</span>
               <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
@@ -695,14 +985,13 @@ export default function BrowsePage() {
               </button>
             </div>
 
-            {/* Content Type */}
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-2 pb-1">Content Type</p>
             {([
-              { id:'all',    label:'All Videos', Icon:Grid3X3  },
-              { id:'videos', label:'Videos',     Icon:Play     },
-              { id:'shorts', label:'Shorts',     Icon:Scissors },
-              { id:'reels',  label:'Reels',      Icon:Film     },
-              { id:'images', label:'Images',     Icon:ImageIcon},
+              { id:'all',    label:'All Videos', Icon:Grid3X3   },
+              { id:'videos', label:'Videos',     Icon:Play      },
+              { id:'shorts', label:'Shorts',     Icon:Scissors  },
+              { id:'reels',  label:'Reels',      Icon:Film      },
+              { id:'images', label:'Images',     Icon:ImageIcon },
             ] as { id:ContentType; label:string; Icon:React.ElementType }[]).map(({ id, label, Icon }) => (
               <button
                 key={id}
@@ -718,32 +1007,25 @@ export default function BrowsePage() {
               </button>
             ))}
 
-            {/* My Video Groups — logged-in only */}
             {isLoggedIn && (
               <div className="pt-3">
                 <div className="flex items-center justify-between px-2 pb-1">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">My Video Groups</p>
-                  <button
-                    onClick={() => setShowCreateGroup(v => !v)}
-                    className="text-[10px] font-bold text-gray-700 hover:text-gray-900 flex items-center gap-0.5"
-                  >
+                  <button onClick={() => setShowCreateGroup(v => !v)}
+                    className="text-[10px] font-bold text-gray-700 hover:text-gray-900 flex items-center gap-0.5">
                     <Plus className="w-3 h-3" />New
                   </button>
                 </div>
                 {showCreateGroup && (
                   <div className="mx-2 mb-2 flex gap-1.5">
                     <input
-                      autoFocus
-                      type="text"
-                      value={newGroupName}
+                      autoFocus type="text" value={newGroupName}
                       onChange={e => setNewGroupName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleCreateGroup(); if (e.key === 'Escape') setShowCreateGroup(false); }}
-                      placeholder="e.g. My Favorites, Watch Later…"
+                      placeholder="e.g. My Favorites…"
                       className="flex-1 min-w-0 text-[11px] border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-400/30"
                     />
-                    <button onClick={handleCreateGroup} className="px-2 py-1 rounded-lg bg-gray-800 text-white text-[11px] font-bold shrink-0">
-                      Add
-                    </button>
+                    <button onClick={handleCreateGroup} className="px-2 py-1 rounded-lg bg-gray-800 text-white text-[11px] font-bold shrink-0">Add</button>
                   </div>
                 )}
                 <div className="space-y-0.5">
@@ -752,10 +1034,8 @@ export default function BrowsePage() {
                       Save videos to your first group using the <Bookmark className="w-3 h-3 inline-block" /> on any video.
                     </p>
                   ) : groups.map(g => (
-                    <button
-                      key={g.id}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors text-left"
-                    >
+                    <button key={g.id}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors text-left">
                       <span className="text-base leading-none shrink-0">{g.emoji}</span>
                       <span className="flex-1 truncate font-medium">{g.name}</span>
                       <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
@@ -766,13 +1046,11 @@ export default function BrowsePage() {
                 <Link href="/account"
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[12px] text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors text-left font-medium"
                   onClick={() => setSidebarOpen(false)}>
-                  <History className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                  My Library
+                  <History className="w-3.5 h-3.5 shrink-0 text-gray-400" />My Library
                 </Link>
               </div>
             )}
 
-            {/* Guest CTA */}
             {!isLoggedIn && (
               <div className="mt-4 bg-gray-50 border border-gray-100 rounded-xl p-4">
                 <p className="text-[12px] font-bold text-gray-800 mb-1">Create your space</p>
@@ -790,10 +1068,8 @@ export default function BrowsePage() {
         {/* ── Main ──────────────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-5 space-y-8">
 
-          {/* ── Demo / Featured Projects (from API) ────────────────────────── */}
-          <DemoFeatured projects={demoProjects} onPlay={item => { trackProjectView(item.id); setPlaying(item); }} />
+          <DemoFeatured projects={demoProjects} onOpenFeed={(item) => { const idx = feedItems.findIndex(f => f.id === item.id); setFeedStartIdx(idx >= 0 ? idx : 0); setFeedOpen(true); }} />
 
-          {/* ── Public content grid ────────────────────────────────────────── */}
           <section key={fadeKey} style={{ animation:'fadeIn 0.2s ease-out' }}>
             <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
 
@@ -808,6 +1084,17 @@ export default function BrowsePage() {
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {/* Feed mode toggle */}
+                <button
+                  onClick={() => { setFeedStartIdx(0); setFeedOpen(true); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white transition-all hover:opacity-90 active:scale-95"
+                  style={{ background: 'linear-gradient(135deg,#374151,#1e3a8a)' }}
+                  title="Watch as feed"
+                >
+                  <Play className="w-3 h-3 fill-white" />
+                  Watch Feed
+                </button>
+                {/* Grid/List toggle */}
                 {(contentType === 'all' || contentType === 'videos') && (
                   <div className="flex bg-gray-100 rounded-lg p-0.5">
                     {(['grid','list'] as const).map(mode => (
@@ -818,6 +1105,7 @@ export default function BrowsePage() {
                     ))}
                   </div>
                 )}
+                {/* Sort */}
                 <div ref={sortRef} className="relative">
                   <button onClick={() => setSortOpen(v => !v)}
                     className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:border-gray-300 transition-colors">
@@ -848,24 +1136,21 @@ export default function BrowsePage() {
                     {viewMode === 'grid' ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredVideos.map(v => (
-                          <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative" onClick={() => setPlaying({ id: v.id, title: v.title, creator: v.creator, gi: v.gi, duration: v.duration, kind: 'video', views: v.views, likes: v.likes, comments: v.comments })}>
+                          <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative"
+                            onClick={() => openFeed(v.id, 'video')}>
                             <LandscapeThumb gi={v.gi} duration={v.duration} />
                             {isLoggedIn && v.isOwn && (
-                              <button
-                                onClick={e => { e.stopPropagation(); toggleStats(v.id); }}
+                              <button onClick={e => { e.stopPropagation(); toggleStats(v.id); }}
                                 className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                title={statsHidden[v.id] ? 'Show stats' : 'Hide stats'}
-                              >
+                                title={statsHidden[v.id] ? 'Show stats' : 'Hide stats'}>
                                 {statsHidden[v.id] ? <EyeOff className="w-3.5 h-3.5 text-white" /> : <Eye className="w-3.5 h-3.5 text-white" />}
                               </button>
                             )}
                             {isLoggedIn && (
                               <div className="cf-save-group-panel absolute top-2 right-2 z-10">
-                                <button
-                                  onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(saveToGroupVideoId === v.id ? null : v.id); }}
+                                <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(saveToGroupVideoId === v.id ? null : v.id); }}
                                   className="w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title="Save to Video Group"
-                                >
+                                  title="Save to Video Group">
                                   <Bookmark className="w-3.5 h-3.5 text-white" />
                                 </button>
                                 {saveToGroupVideoId === v.id && (
@@ -899,7 +1184,8 @@ export default function BrowsePage() {
                     ) : (
                       <div className="space-y-2.5">
                         {filteredVideos.map(v => (
-                          <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer" onClick={() => setPlaying({ id: v.id, title: v.title, creator: v.creator, gi: v.gi, duration: v.duration, kind: 'video', views: v.views, likes: v.likes, comments: v.comments })}>
+                          <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer"
+                            onClick={() => openFeed(v.id, 'video')}>
                             <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" /></div>
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                               <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
@@ -916,8 +1202,7 @@ export default function BrowsePage() {
                             {isLoggedIn && (
                               <div className="cf-save-group-panel relative self-start shrink-0">
                                 <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(saveToGroupVideoId === v.id ? null : v.id); }}
-                                  className="p-2 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
-                                  title="Save to Video Group">
+                                  className="p-2 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors" title="Save to Video Group">
                                   <Bookmark className="w-4 h-4" />
                                 </button>
                                 {saveToGroupVideoId === v.id && (
@@ -931,11 +1216,6 @@ export default function BrowsePage() {
                                         <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
                                       </button>
                                     ))}
-                                    <div className="h-px bg-gray-100 mx-2 my-1" />
-                                    <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(null); setShowCreateGroup(true); }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-[12px] font-semibold text-gray-700 transition-colors">
-                                      <Plus className="w-3.5 h-3.5" />New Video Group
-                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -946,12 +1226,13 @@ export default function BrowsePage() {
                     )}
                   </div>
                 )}
+
                 {filteredShorts.length > 0 && (
                   <div>
                     {!search && <h3 className="text-[15px] font-bold text-gray-900 mb-4">Shorts</h3>}
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                       {filteredShorts.map(s => (
-                        <div key={s.id} className="group cursor-pointer relative" onClick={() => setPlaying({ id: s.id, title: s.title, creator: s.creator, gi: s.gi, duration: s.duration, kind: 'short', views: s.views, likes: s.likes, comments: s.comments })}>
+                        <div key={s.id} className="group cursor-pointer relative" onClick={() => openFeed(s.id, 'short')}>
                           <PortraitThumb gi={s.gi} duration={s.duration} />
                           {isLoggedIn && s.isOwn && (
                             <button onClick={e => { e.stopPropagation(); toggleStats(s.id); }}
@@ -959,33 +1240,6 @@ export default function BrowsePage() {
                               title={statsHidden[s.id] ? 'Show stats' : 'Hide stats'}>
                               {statsHidden[s.id] ? <EyeOff className="w-3.5 h-3.5 text-white" /> : <Eye className="w-3.5 h-3.5 text-white" />}
                             </button>
-                          )}
-                          {isLoggedIn && (
-                            <div className="cf-save-group-panel absolute top-2 right-2 z-10">
-                              <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(saveToGroupVideoId === s.id ? null : s.id); }}
-                                className="w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="Save to Video Group">
-                                <Bookmark className="w-3.5 h-3.5 text-white" />
-                              </button>
-                              {saveToGroupVideoId === s.id && (
-                                <div className="cf-save-group-panel absolute right-0 top-8 bg-white rounded-xl shadow-2xl border border-gray-100 w-48 py-1 overflow-hidden">
-                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Add to Video Group</p>
-                                  {groups.map(g => (
-                                    <button key={g.id} onClick={e => { e.stopPropagation(); handleSaveToGroup(g.id); }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left transition-colors">
-                                      <span className="text-sm leading-none">{g.emoji}</span>
-                                      <span className="text-[12px] font-medium text-gray-700 truncate flex-1">{g.name}</span>
-                                      <span className="text-[10px] text-gray-400 shrink-0">{g.count}</span>
-                                    </button>
-                                  ))}
-                                  <div className="h-px bg-gray-100 mx-2 my-1" />
-                                  <button onClick={e => { e.stopPropagation(); setSaveToGroupVideoId(null); setShowCreateGroup(true); }}
-                                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-[12px] font-semibold text-gray-700 transition-colors">
-                                    <Plus className="w-3.5 h-3.5" />New Video Group
-                                  </button>
-                                </div>
-                              )}
-                            </div>
                           )}
                           <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{s.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{s.creator}</p>
@@ -995,12 +1249,13 @@ export default function BrowsePage() {
                     </div>
                   </div>
                 )}
+
                 {filteredReels.length > 0 && (
                   <div>
                     {!search && <h3 className="text-[15px] font-bold text-gray-900 mb-4">Reels</h3>}
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                       {filteredReels.map(r => (
-                        <div key={r.id} className="group cursor-pointer" onClick={() => setPlaying({ id: r.id, title: r.title, creator: r.creator, gi: r.gi, duration: r.duration, kind: 'reel', views: r.views, likes: r.likes, comments: r.comments })}>
+                        <div key={r.id} className="group cursor-pointer" onClick={() => openFeed(r.id, 'reel')}>
                           <PortraitThumb gi={r.gi} duration={r.duration} />
                           <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{r.creator}</p>
@@ -1010,12 +1265,13 @@ export default function BrowsePage() {
                     </div>
                   </div>
                 )}
+
                 {filteredImages.length > 0 && (
                   <div>
                     {!search && <h3 className="text-[15px] font-bold text-gray-900 mb-4">Images</h3>}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       {filteredImages.map(i => (
-                        <div key={i.id} className="group cursor-pointer" onClick={() => setPlaying({ id: i.id, title: i.title, creator: i.creator, gi: i.gi, kind: 'image', views: i.views, likes: i.likes })}>
+                        <div key={i.id} className="group cursor-pointer" onClick={() => openFeed(i.id, 'image')}>
                           <SquareThumb gi={i.gi} />
                           <p className="mt-2 text-[12px] font-semibold text-gray-900 line-clamp-2">{i.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{i.creator}</p>
@@ -1025,65 +1281,53 @@ export default function BrowsePage() {
                     </div>
                   </div>
                 )}
+
                 {filteredVideos.length === 0 && filteredShorts.length === 0 && filteredReels.length === 0 && filteredImages.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                     <Search className="w-10 h-10 mb-3 opacity-25" />
-                    <p className="text-sm font-semibold text-gray-500">No results for &quot;{search}&quot;</p>
-                    <p className="text-xs mt-1">Try a different search term</p>
+                    <p className="text-sm font-semibold text-gray-500">No content found for &quot;{search}&quot;</p>
+                    <button onClick={() => handleSearch('')} className="mt-3 text-[12px] text-gray-500 underline hover:text-gray-700">Clear search</button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* VIDEOS */}
+            {/* VIDEOS only */}
             {contentType === 'videos' && (
-              <div>
-                {filteredVideos.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                    <Search className="w-10 h-10 mb-3 opacity-25" />
-                    <p className="text-sm font-semibold text-gray-500">No videos found</p>
-                  </div>
-                ) : viewMode === 'grid' ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredVideos.map(v => (
-                      <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative" onClick={() => setPlaying({ id: v.id, title: v.title, creator: v.creator, gi: v.gi, duration: v.duration, kind: 'video', views: v.views, likes: v.likes, comments: v.comments })}>
-                        <LandscapeThumb gi={v.gi} duration={v.duration} />
-                        {isLoggedIn && v.isOwn && (
-                          <button onClick={e => { e.stopPropagation(); toggleStats(v.id); }}
-                            className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                            title={statsHidden[v.id] ? 'Show stats' : 'Hide stats'}>
-                            {statsHidden[v.id] ? <EyeOff className="w-3.5 h-3.5 text-white" /> : <Eye className="w-3.5 h-3.5 text-white" />}
-                          </button>
-                        )}
-                        <div className="p-3">
-                          <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug mb-1">{v.title}</p>
-                          <p className="text-[11px] text-gray-500">{v.creator} · {v.time}</p>
-                          <StatsBar views={v.views} likes={v.likes} comments={v.comments} shares={v.shares} hidden={!!statsHidden[v.id]} />
-                        </div>
+              filteredVideos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                  <Search className="w-10 h-10 mb-3 opacity-25" />
+                  <p className="text-sm font-semibold text-gray-500">No Videos found</p>
+                </div>
+              ) : viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredVideos.map(v => (
+                    <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
+                      onClick={() => openFeed(v.id, 'video')}>
+                      <LandscapeThumb gi={v.gi} duration={v.duration} />
+                      <div className="p-3">
+                        <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug mb-1">{v.title}</p>
+                        <p className="text-[11px] text-gray-500">{v.creator} · {v.time}</p>
+                        <StatsBar views={v.views} likes={v.likes} comments={v.comments} shares={v.shares} hidden={!!statsHidden[v.id]} />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    {filteredVideos.map(v => (
-                      <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer" onClick={() => setPlaying({ id: v.id, title: v.title, creator: v.creator, gi: v.gi, duration: v.duration, kind: 'video', views: v.views, likes: v.likes, comments: v.comments })}>
-                        <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" /></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
-                          <p className="text-[11px] text-gray-500 mt-1">{v.creator} · {v.time}</p>
-                          <StatsBar views={v.views} likes={v.likes} comments={v.comments} shares={v.shares} hidden={!!statsHidden[v.id]} />
-                        </div>
-                        {isLoggedIn && v.isOwn && (
-                          <button onClick={e => { e.stopPropagation(); toggleStats(v.id); }}
-                            className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 self-start shrink-0">
-                            {statsHidden[v.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {filteredVideos.map(v => (
+                    <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => openFeed(v.id, 'video')}>
+                      <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" /></div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
+                        <p className="text-[11px] text-gray-500 mt-1">{v.creator} · {v.time}</p>
+                        <StatsBar views={v.views} likes={v.likes} comments={v.comments} shares={v.shares} hidden={!!statsHidden[v.id]} />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
 
             {/* SHORTS */}
@@ -1096,7 +1340,7 @@ export default function BrowsePage() {
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {filteredShorts.map(s => (
-                    <div key={s.id} className="group cursor-pointer relative" onClick={() => setPlaying({ id: s.id, title: s.title, creator: s.creator, gi: s.gi, duration: s.duration, kind: 'short', views: s.views, likes: s.likes, comments: s.comments })}>
+                    <div key={s.id} className="group cursor-pointer relative" onClick={() => openFeed(s.id, 'short')}>
                       <PortraitThumb gi={s.gi} duration={s.duration} />
                       {isLoggedIn && s.isOwn && (
                         <button onClick={e => { e.stopPropagation(); toggleStats(s.id); }}
@@ -1124,7 +1368,7 @@ export default function BrowsePage() {
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {filteredReels.map(r => (
-                    <div key={r.id} className="group cursor-pointer" onClick={() => setPlaying({ id: r.id, title: r.title, creator: r.creator, gi: r.gi, duration: r.duration, kind: 'reel', views: r.views, likes: r.likes, comments: r.comments })}>
+                    <div key={r.id} className="group cursor-pointer" onClick={() => openFeed(r.id, 'reel')}>
                       <PortraitThumb gi={r.gi} duration={r.duration} />
                       <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{r.creator}</p>
@@ -1145,7 +1389,7 @@ export default function BrowsePage() {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredImages.map(i => (
-                    <div key={i.id} className="group cursor-pointer" onClick={() => setPlaying({ id: i.id, title: i.title, creator: i.creator, gi: i.gi, kind: 'image', views: i.views, likes: i.likes })}>
+                    <div key={i.id} className="group cursor-pointer" onClick={() => openFeed(i.id, 'image')}>
                       <SquareThumb gi={i.gi} />
                       <p className="mt-2 text-[12px] font-semibold text-gray-900 line-clamp-2">{i.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{i.creator}</p>
@@ -1159,39 +1403,13 @@ export default function BrowsePage() {
         </main>
       </div>
 
-      {/* ── Player modal ───────────────────────────────────────────────── */}
-      {playing && (
-        <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4" onClick={() => setPlaying(null)}>
-          <div className={`relative rounded-2xl overflow-hidden shadow-2xl bg-white ${playing.kind === 'short' || playing.kind === 'reel' ? 'w-full max-w-xs' : 'w-full max-w-2xl'}`} onClick={e => e.stopPropagation()}>
-            <div className="relative" style={{ background: G[playing.gi % 8], aspectRatio: (playing.kind === 'short' || playing.kind === 'reel') ? '9/16' : playing.kind === 'image' ? '4/3' : '16/9' }}>
-              {playing.kind !== 'image' && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm" style={{ animation:'cfPulse 2s ease-in-out infinite' }}>
-                    <Play className="w-8 h-8 text-white fill-white translate-x-0.5" />
-                  </div>
-                </div>
-              )}
-              {playing.kind === 'image' && <ImageIcon className="absolute inset-0 m-auto w-16 h-16 text-white/20" />}
-              <button onClick={() => setPlaying(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 z-10 transition-colors"><X className="w-4 h-4" /></button>
-              {playing.duration && <span className="absolute bottom-3 right-3 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded">{playing.duration}</span>}
-            </div>
-            <div className="p-4">
-              <p className="font-bold text-gray-900 text-[15px] leading-snug mb-1">{playing.title}</p>
-              <p className="text-[12px] text-gray-500 mb-3">{playing.creator}</p>
-              {(playing.views || playing.likes) && (
-                <div className="flex items-center gap-3 mb-3">
-                  {playing.views && <span className="flex items-center gap-1 text-[11px] text-gray-400"><Eye className="w-3 h-3" />{playing.views}</span>}
-                  {playing.likes && <span className="flex items-center gap-1 text-[11px] text-gray-400"><Heart className="w-3 h-3" />{playing.likes}</span>}
-                  {playing.comments && <span className="flex items-center gap-1 text-[11px] text-gray-400"><MessageCircle className="w-3 h-3" />{playing.comments}</span>}
-                </div>
-              )}
-              <div className="p-3 bg-gray-50 rounded-xl text-[12px] text-gray-500 text-center">
-                Connect your YouTube channel in <strong className="text-gray-700">Settings → Channels</strong> to stream real content.
-              </div>
-            </div>
-          </div>
-          <style>{`@keyframes cfPulse{0%,100%{opacity:0.7;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}`}</style>
-        </div>
+      {/* ── Feed View (TikTok/Reels-style) ──────────────────────────────────── */}
+      {feedOpen && (
+        <FeedView
+          items={feedItems}
+          startIndex={feedStartIdx}
+          onClose={() => setFeedOpen(false)}
+        />
       )}
     </div>
   );
