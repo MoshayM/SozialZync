@@ -56,6 +56,7 @@ model User {
   characters   Character[]
   passkeys     PasskeyCredential[]
   platformConnections PlatformConnection[]
+  withdrawals  Withdrawal[]
 
   @@map("users")
 }
@@ -863,6 +864,9 @@ model Wallet {
   lifetimePurchased  Int      @default(0)
   lifetimeUsed       Int      @default(0)
   updatedAt          DateTime @updatedAt
+
+  /** Total bonus credits ever converted to cash withdrawals (audit field). */
+  withdrawnCredits   Int      @default(0)
 
   user         User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
   org          Organization?       @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -2267,4 +2271,51 @@ model WebAuthnChallenge {
   userId    String?
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+// ── Withdrawal / Monetization Payouts ────────────────────────────────────────
+// Pro/Agency creators convert ad-revenue bonusCredits into real money.
+// Platform fee (env: WITHDRAWAL_PLATFORM_FEE_PCT, default 20%) is credited
+// to the SUPER_ADMIN's bonusCredits wallet before the payout is processed.
+
+enum WithdrawalStatus {
+  PENDING     // request submitted, awaiting admin approval
+  APPROVED    // admin approved, awaiting Stripe transfer
+  PROCESSING  // Stripe transfer initiated
+  PAID        // confirmed delivered to creator
+  REJECTED    // admin rejected — credits returned to creator
+}
+
+model Withdrawal {
+  id                 String           @id @default(cuid())
+  userId             String
+  user               User             @relation(fields: [userId], references: [id])
+
+  /// Credits the creator asked to cash out
+  creditsRequested   Int
+  /// Platform's cut in credits (credited to super-admin wallet)
+  platformFeeCredits Int
+  /// Creator's net credits (creditsRequested - platformFeeCredits)
+  creatorCredits     Int
+  /// Exchange rate (CREDITS_PER_USD) at time of request
+  creditsPerUsd      Int
+
+  /// USD equivalent of creditsRequested
+  amountUsd          Float
+  /// USD kept by platform
+  platformFeeUsd     Float
+  /// USD sent to creator
+  creatorAmountUsd   Float
+
+  status             WithdrawalStatus @default(PENDING)
+  payoutEmail        String?          // creator's PayPal / bank email
+  stripeTransferId   String?
+  adminNotes         String?
+  processedAt        DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("withdrawals")
 }

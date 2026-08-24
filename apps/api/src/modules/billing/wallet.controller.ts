@@ -1,11 +1,26 @@
-import { Body, Controller, Get, Headers, Post, Put, Query, UseGuards, BadRequestException } from '@nestjs/common';
-import { IsBoolean, IsInt, IsOptional, IsString, IsUrl, Max, Min } from 'class-validator';
+import { Body, Controller, Get, Headers, Param, Post, Put, Query, UseGuards, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, IsUrl, Max, Min } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { WalletService } from '../wallet/wallet.service';
 import { BudgetService } from '../wallet/budget.service';
 import { CreditInsightsService } from '../wallet/credit-insights.service';
 import { BillingService } from './billing.service';
+import { WithdrawalService } from './withdrawal.service';
+import { roleHasPermission } from '../../common/rbac';
+
+class WithdrawDto {
+  @IsInt() @Min(1) credits!: number;
+  @IsOptional() @IsEmail() payoutEmail?: string;
+}
+
+class RejectWithdrawalDto {
+  @IsString() notes!: string;
+}
+
+class MarkPaidDto {
+  @IsOptional() @IsString() stripeTransferId?: string;
+}
 
 class RechargeDto {
   /** Custom amount; ignored when packId is set. */
@@ -31,6 +46,7 @@ export class WalletController {
     private readonly billing: BillingService,
     private readonly budgetService: BudgetService,
     private readonly insights: CreditInsightsService,
+    private readonly withdrawals: WithdrawalService,
   ) {}
 
   @Get('balance')
@@ -141,5 +157,71 @@ export class WalletController {
   @Get('recommendations')
   async recommendations(@CurrentUser() user: JwtPayload) {
     return this.insights.recommendations(user.sub);
+  }
+
+  // ── Withdrawal / Monetization Payout ──────────────────────────────────────
+
+  /** GET /wallet/withdrawal/rates — exchange rate, fee %, minimum (public for creator UI). */
+  @Get('withdrawal/rates')
+  getWithdrawalRates() {
+    return this.withdrawals.getRates();
+  }
+
+  /** GET /wallet/withdrawal/estimate?credits=N — preview before requesting. */
+  @Get('withdrawal/estimate')
+  estimateWithdrawal(@Query('credits') credits: string) {
+    const c = parseInt(credits ?? '0', 10);
+    if (!c || c < 1) throw new BadRequestException('credits query param required');
+    return this.withdrawals.estimate(c);
+  }
+
+  /** GET /wallet/withdrawals — creator's own withdrawal history + balance. */
+  @Get('withdrawals')
+  getMyWithdrawals(@CurrentUser() user: JwtPayload) {
+    return this.withdrawals.getCreatorWithdrawals(user.sub);
+  }
+
+  /** POST /wallet/withdraw — creator submits a withdrawal request. */
+  @Post('withdraw')
+  async requestWithdrawal(@Body() dto: WithdrawDto, @CurrentUser() user: JwtPayload) {
+    const plan = ((user as { plan?: string }).plan ?? 'FREE');
+    return this.withdrawals.requestWithdrawal(user.sub, plan, user.role, dto.credits, dto.payoutEmail);
+  }
+
+  // ── Admin withdrawal management ────────────────────────────────────────────
+
+  /** GET /wallet/admin/withdrawals?status=PENDING — admin list withdrawals. */
+  @Get('admin/withdrawals')
+  async adminListWithdrawals(@Query('status') status: string, @CurrentUser() user: JwtPayload) {
+    if (!roleHasPermission(user.role as never, 'admin:revenue')) throw new ForbiddenException('Requires admin:revenue');
+    return this.withdrawals.adminListWithdrawals(status);
+  }
+
+  /** GET /wallet/admin/withdrawals/stats — admin earnings overview. */
+  @Get('admin/withdrawals/stats')
+  async adminWithdrawalStats(@CurrentUser() user: JwtPayload) {
+    if (!roleHasPermission(user.role as never, 'admin:revenue')) throw new ForbiddenException('Requires admin:revenue');
+    return this.withdrawals.adminStats();
+  }
+
+  /** POST /wallet/admin/withdrawals/:id/approve */
+  @Post('admin/withdrawals/:id/approve')
+  async approveWithdrawal(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    if (!roleHasPermission(user.role as never, 'admin:revenue')) throw new ForbiddenException('Requires admin:revenue');
+    return this.withdrawals.approveWithdrawal(id);
+  }
+
+  /** POST /wallet/admin/withdrawals/:id/paid */
+  @Post('admin/withdrawals/:id/paid')
+  async markPaid(@Param('id') id: string, @Body() dto: MarkPaidDto, @CurrentUser() user: JwtPayload) {
+    if (!roleHasPermission(user.role as never, 'admin:revenue')) throw new ForbiddenException('Requires admin:revenue');
+    return this.withdrawals.markPaid(id, dto.stripeTransferId);
+  }
+
+  /** POST /wallet/admin/withdrawals/:id/reject */
+  @Post('admin/withdrawals/:id/reject')
+  async rejectWithdrawal(@Param('id') id: string, @Body() dto: RejectWithdrawalDto, @CurrentUser() user: JwtPayload) {
+    if (!roleHasPermission(user.role as never, 'admin:revenue')) throw new ForbiddenException('Requires admin:revenue');
+    return this.withdrawals.rejectWithdrawal(id, dto.notes);
   }
 }

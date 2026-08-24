@@ -7,11 +7,12 @@ import { BillingJobsService } from './billing-jobs.service';
 import { BillingController } from './billing.controller';
 import { WalletController } from './wallet.controller';
 import { AdminController } from './admin.controller';
+import { WithdrawalService } from './withdrawal.service';
 
 @Module({
   imports: [WalletModule, TrialModule, NotificationsModule],
-  providers: [BillingService, BillingJobsService],
+  providers: [BillingService, BillingJobsService, WithdrawalService],
   controllers: [BillingController, WalletController, AdminController],
-  exports: [BillingService],
+  exports: [BillingService, WithdrawalService],
 })
 export class BillingModule {}
