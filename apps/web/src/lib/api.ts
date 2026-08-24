@@ -12,7 +12,7 @@ import type {
 const BASE =
   typeof window !== 'undefined'
     ? '/api/proxy'
-    : (process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1');
+    : (process.env['NEXT_PUBLIC_API_URL'] ?? 'https://api-production-cf143.up.railway.app/api/v1');
 
 export const apiClient = axios.create({ baseURL: BASE, withCredentials: true, timeout: 30_000 });
 
