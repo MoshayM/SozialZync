@@ -2,7 +2,7 @@
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "sh -c 'cd /app/apps/api && npx prisma migrate deploy && node dist/main'"
+startCommand = "sh -c 'cd /app/apps/api && (npx prisma migrate resolve --rolled-back 20260824000003_fix_publishing_status_enum 2>&1 || true) && npx prisma migrate deploy && node dist/main'"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
