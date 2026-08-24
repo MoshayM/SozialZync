@@ -22,8 +22,8 @@ const CREDITS_PER_USD = Math.max(1, parseInt(process.env['CREDITS_PER_USD'] ?? '
 const PLATFORM_FEE_PCT = Math.max(0, Math.min(50, parseInt(process.env['WITHDRAWAL_PLATFORM_FEE_PCT'] ?? '20', 10)));
 const MIN_WITHDRAWAL_CREDITS = Math.max(1, parseInt(process.env['WITHDRAWAL_MIN_CREDITS'] ?? '1000', 10));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- pending Prisma regen
-const pw = (prisma: PrismaService) => (prisma.withdrawal as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- withdrawal is a generated model, accepts both PrismaService and transaction clients
+const pw = (prisma: { withdrawal: any }) => (prisma.withdrawal as any);
 
 export interface WithdrawalRates {
   creditsPerUsd: number;
