@@ -109,6 +109,12 @@ const IMAGES: ImageItem[] = [
   { id:'i8', title:'AI Character Design — Tutorial',       creator:'@CharacterAI',  views:'167K', gi:7, likes:'2.1K', isOwn:false },
 ];
 
+const AD_VIDEOS: FeedItem[] = [
+  { id:'ad1', title:'Grow your YouTube channel 10x faster with AI',    creator:'SozialZynk Pro',  gi:0, duration:'2:30', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'ForBiggerFun.mp4'             },
+  { id:'ad2', title:'How top creators monetize in 2025 — the playbook',creator:'Creator Academy', gi:1, duration:'8:15', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'WeAreGoingOnBullrun.mp4'      },
+  { id:'ad3', title:'Zero to 100K subscribers: step-by-step blueprint',creator:'CreatorForce',    gi:2, duration:'12:00',kind:'video', views:'Sponsored', likes:'', videoUrl: V+'WhatCarCanYouGetForAGrand.mp4' },
+];
+
 const INITIAL_GROUPS: Group[] = [
   { id:'g1', name:'My Favorites',   count:12, color:'#374151', emoji:'⭐' },
   { id:'g2', name:'Watch Later',    count:8,  color:'#0891B2', emoji:'🕐' },
@@ -682,6 +688,7 @@ export default function BrowsePage() {
 
   // Feed items — order: shorts/reels first (portrait), then videos, then images
   const feedItems = useMemo<FeedItem[]>(() => [
+    ...AD_VIDEOS,
     ...filteredShorts.map(s => ({ id:s.id, title:s.title, creator:s.creator, gi:s.gi, duration:s.duration, kind:'short' as const, views:s.views, likes:s.likes, comments:s.comments, shares:s.shares, videoUrl:s.videoUrl })),
     ...filteredReels.map(r  => ({ id:r.id, title:r.title, creator:r.creator, gi:r.gi, duration:r.duration, kind:'reel'  as const, views:r.views, likes:r.likes, comments:r.comments, shares:r.shares, videoUrl:r.videoUrl })),
     ...filteredVideos.map(v => ({ id:v.id, title:v.title, creator:v.creator, gi:v.gi, duration:v.duration, kind:'video' as const, views:v.views, likes:v.likes, comments:v.comments, shares:v.shares, videoUrl:v.videoUrl })),
@@ -1032,14 +1039,15 @@ export default function BrowsePage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {([
-                { gi:0, title:'Grow your YouTube channel 10x faster with AI', label:'SozialZynk Pro', duration:'2:30', tag:'AI Tools' },
-                { gi:1, title:'How top creators monetize in 2025 — the playbook', label:'Creator Academy', duration:'8:15', tag:'Monetization' },
-                { gi:2, title:'Zero to 100K subscribers: step-by-step blueprint', label:'CreatorForce', duration:'12:00', tag:'Growth' },
-              ] as { gi:number; title:string; label:string; duration:string; tag:string }[]).map((ad, i) => (
-                <Link
+                { id:'ad1', gi:0, title:'Grow your YouTube channel 10x faster with AI', label:'SozialZynk Pro', duration:'2:30', tag:'AI Tools' },
+                { id:'ad2', gi:1, title:'How top creators monetize in 2025 — the playbook', label:'Creator Academy', duration:'8:15', tag:'Monetization' },
+                { id:'ad3', gi:2, title:'Zero to 100K subscribers: step-by-step blueprint', label:'CreatorForce', duration:'12:00', tag:'Growth' },
+              ] as { id:string; gi:number; title:string; label:string; duration:string; tag:string }[]).map((ad, i) => (
+                <button
                   key={i}
-                  href="/become-creator"
-                  className="group relative rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer block"
+                  type="button"
+                  onClick={() => openFeed(ad.id, 'video')}
+                  className="group relative rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer text-left w-full"
                 >
                   <div className="relative h-36" style={{ background: ['linear-gradient(135deg,#0c1445,#1e3a8a)','linear-gradient(135deg,#1a0845,#4c1d95)','linear-gradient(135deg,#0a2a1a,#065f46)'][ad.gi] }}>
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -1055,7 +1063,7 @@ export default function BrowsePage() {
                     <p className="text-[12px] font-semibold text-gray-900 leading-snug mt-0.5 line-clamp-2">{ad.title}</p>
                     <p className="text-[10px] text-gray-400 mt-1">{ad.label}</p>
                   </div>
-                </Link>
+                </button>
               ))}
             </div>
           </section>
