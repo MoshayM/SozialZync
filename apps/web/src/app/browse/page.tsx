@@ -7,8 +7,112 @@ import {
   Search, Bell, Menu, X, ChevronRight, Play, History, Plus, Film, Scissors,
   ImageIcon, Grid3X3, LayoutList, SlidersHorizontal, ChevronDown, MoreVertical,
   Heart, MessageCircle, TrendingUp, Eye, EyeOff, Trash2, Share2, Settings, LogOut,
-  Bookmark,
+  Bookmark, Sparkles, Clock,
 } from 'lucide-react';
+
+// ── Demo projects (from API) ───────────────────────────────────────────────────
+
+interface DemoProject {
+  id: string; title: string; description?: string | null;
+  contentFormat?: string | null; niche?: string | null;
+  updatedAt: string;
+  channel?: { title: string; thumbnailUrl?: string | null } | null;
+  videos?: Array<{ id: string; title?: string | null; duration?: number | null; thumbnailUrl?: string | null; videoUrl?: string | null }>;
+}
+
+function useDemoProjects(): DemoProject[] {
+  const [projects, setProjects] = useState<DemoProject[]>([]);
+  useEffect(() => {
+    const base = typeof window !== 'undefined' ? '/api/proxy' : (process.env['NEXT_PUBLIC_API_URL'] ?? '');
+    fetch(`${base}/projects/browse?limit=6`)
+      .then(r => r.ok ? r.json() as Promise<DemoProject[]> : Promise.resolve([]))
+      .then(data => { if (Array.isArray(data)) setProjects(data); })
+      .catch(() => { /* silently skip — static content still shown */ });
+  }, []);
+  return projects;
+}
+
+function DemoFeatured({ projects, onPlay }: { projects: DemoProject[]; onPlay: (p: { id: string; title: string; creator: string; gi: number; duration?: string; kind: 'video' }) => void }) {
+  if (projects.length === 0) return null;
+
+  const gradients = [
+    'linear-gradient(135deg,#0c1445,#1e3a8a)',
+    'linear-gradient(135deg,#1a0845,#4c1d95)',
+    'linear-gradient(135deg,#0a2a1a,#065f46)',
+  ];
+
+  function fmtDuration(secs?: number | null): string {
+    if (!secs) return '12:00';
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  return (
+    <section className="mb-8">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-white text-[11px] font-bold" style={{ background: 'linear-gradient(135deg,#374151,#111827)' }}>
+          <Sparkles className="w-3 h-3" />
+          Featured by SozialZynk
+        </div>
+        <span className="text-[11px] text-gray-400 font-medium">Platform showcase · Public</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {projects.map((p, i) => {
+          const gi = i % gradients.length;
+          const firstVideo = p.videos?.[0];
+          const duration = fmtDuration(firstVideo?.duration ?? (p.contentFormat === 'DOCUMENTARY' ? 720 : undefined));
+          return (
+            <div
+              key={p.id}
+              className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer"
+              onClick={() => onPlay({ id: p.id, title: p.title, creator: '@SozialZynk', gi, duration, kind: 'video' })}
+            >
+              {/* Thumbnail */}
+              <div className="relative w-full h-44 overflow-hidden" style={{ background: gradients[gi] }}>
+                {firstVideo?.thumbnailUrl ? (
+                  <img src={firstVideo.thumbnailUrl} alt={p.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4">
+                    <div className="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center">
+                      <Play className="w-6 h-6 text-white fill-white translate-x-0.5" />
+                    </div>
+                    <p className="text-white/70 text-[11px] font-medium text-center line-clamp-2">{p.title}</p>
+                  </div>
+                )}
+                {/* Play overlay */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                  <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Play className="w-7 h-7 text-white fill-white translate-x-0.5" />
+                  </div>
+                </div>
+                {/* Duration */}
+                <span className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">{duration}</span>
+                {/* Demo badge */}
+                <span className="absolute top-2 left-2 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />AD
+                </span>
+              </div>
+              <div className="p-3.5">
+                <p className="text-[13px] font-bold text-gray-900 line-clamp-2 leading-snug mb-1.5">{p.title}</p>
+                {p.description && <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed mb-2">{p.description}</p>}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                    <Clock className="w-3 h-3" />{duration}
+                  </span>
+                  {p.niche && (
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">{p.niche}</span>
+                  )}
+                  <span className="text-[10px] text-gray-400 ml-auto">@SozialZynk</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 // ── Gradients ─────────────────────────────────────────────────────────────────
 
@@ -209,6 +313,7 @@ function StatsBar({ views, likes, comments, shares, hidden }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function BrowsePage() {
+  const demoProjects = useDemoProjects();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -679,6 +784,9 @@ export default function BrowsePage() {
 
         {/* ── Main ──────────────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-5 space-y-8">
+
+          {/* ── Demo / Featured Projects (from API) ────────────────────────── */}
+          <DemoFeatured projects={demoProjects} onPlay={item => setPlaying(item)} />
 
           {/* ── Public content grid ────────────────────────────────────────── */}
           <section key={fadeKey} style={{ animation:'fadeIn 0.2s ease-out' }}>

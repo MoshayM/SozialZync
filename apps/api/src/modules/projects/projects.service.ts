@@ -94,14 +94,18 @@ export class ProjectsService {
     return { ...project, jobs: merged };
   }
 
-  async update(userId: string, projectId: string, data: Partial<CreateProjectDto> & { status?: string }) {
-    await this.get(userId, projectId);
-    const { channelId: _channelId, status, billingOrgId, ...rest } = data;
+  async update(userId: string, projectId: string, data: Partial<CreateProjectDto> & { status?: string; publishingStatus?: string }, userRole?: string) {
+    const project = await this.get(userId, projectId);
+    if ((project as Record<string, unknown>)['isDemo'] && userRole !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Demo projects can only be edited by a Super Admin');
+    }
+    const { channelId: _channelId, status, billingOrgId, publishingStatus, ...rest } = data;
     return this.prisma.project.update({
       where: { id: projectId },
       data: {
         ...rest,
         ...(status ? { status: status as import('@prisma/client').ProjectStatus } : {}),
+        ...(publishingStatus ? { publishingStatus: publishingStatus as import('@prisma/client').$Enums.PublishingStatus } : {}),
         // Distinguish "not sent" (leave as-is) from null/'' (clear the org link)
         ...(billingOrgId !== undefined
           ? { billingOrgId: await this.resolveBillingOrgId(userId, billingOrgId) }
@@ -110,8 +114,29 @@ export class ProjectsService {
     });
   }
 
-  async delete(userId: string, projectId: string) {
-    await this.get(userId, projectId);
+  async delete(userId: string, projectId: string, userRole?: string) {
+    const project = await this.get(userId, projectId);
+    if ((project as Record<string, unknown>)['isDemo'] && userRole !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Demo projects can only be deleted by a Super Admin');
+    }
     await this.prisma.project.delete({ where: { id: projectId } });
+  }
+
+  /** Returns public demo/advertisement projects visible to all users (no auth required). */
+  async listPublic(opts: { limit?: number } = {}) {
+    const take = Math.min(opts.limit ?? 20, 50);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- isDemo field pending Prisma client regen after migration
+    return (this.prisma.project as any).findMany({
+      where: { isDemo: true },
+      select: {
+        id: true, title: true, description: true, contentFormat: true,
+        niche: true, platforms: true, publishingStatus: true,
+        createdAt: true, updatedAt: true,
+        channel: { select: { title: true, thumbnailUrl: true } },
+        videos: { take: 1, orderBy: { createdAt: 'desc' }, select: { id: true, title: true, thumbnailUrl: true, youtubeVideoId: true } },
+      },
+      orderBy: [{ updatedAt: 'desc' }],
+      take,
+    });
   }
 }

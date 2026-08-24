@@ -148,6 +148,8 @@ model Project {
   description String?
   status      ProjectStatus @default(DRAFT)
   publishingStatus PublishingStatus @default(NOT_PUBLISHED)
+  /** Demo/advertisement project: read-only for non-admins, seeded on signup */
+  isDemo      Boolean       @default(false)
   niche       String?
   contentFormat String?
   platforms     String[]  @default([])

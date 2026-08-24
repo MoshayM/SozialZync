@@ -3,8 +3,11 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto';
 
 function getEncKey(): Buffer {
-  const raw = process.env['PROVIDER_KEY_SECRET'] ?? 'dev-secret-32bytes-exactly-here!!';
-  return createHash('sha256').update(raw).digest();
+  const raw = process.env['PROVIDER_KEY_SECRET'];
+  if (!raw && process.env['NODE_ENV'] === 'production') {
+    throw new Error('PROVIDER_KEY_SECRET must be set in production — refusing to use insecure fallback');
+  }
+  return createHash('sha256').update(raw ?? 'dev-secret-32bytes-exactly-here!!').digest();
 }
 
 function encrypt(plain: string): string {
@@ -96,19 +99,43 @@ export class ProviderConfigService {
     if (!cfg) return { ok: false, message: 'Provider not configured' };
 
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+      const url = cfg.baseUrl.replace(/\/$/, '');
 
       if (provider === 'ollama') {
-        const r = await fetch(`${cfg.baseUrl}/api/tags`, { headers, signal: AbortSignal.timeout(5000) });
+        const r = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(5000) });
         if (!r.ok) return { ok: false, message: `Ollama returned ${r.status}` };
         const data = await r.json() as { models?: Array<{ name: string }> };
         const models = (data.models ?? []).map((m) => m.name);
         return { ok: true, message: `Connected — ${models.length} model(s)`, models };
       }
 
-      // OpenAI-compatible: try GET /models
-      const url = cfg.baseUrl.replace(/\/$/, '');
+      // Anthropic uses x-api-key header and its own models endpoint
+      if (provider === 'anthropic') {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+          ...(cfg.apiKey ? { 'x-api-key': cfg.apiKey } : {}),
+        };
+        const r = await fetch('https://api.anthropic.com/v1/models', { headers, signal: AbortSignal.timeout(5000) });
+        if (!r.ok) return { ok: false, message: `Anthropic returned ${r.status}` };
+        const data = await r.json() as { data?: Array<{ id: string }> };
+        const models = (data.data ?? []).map((m) => m.id).slice(0, 20);
+        return { ok: true, message: `Connected — ${models.length} model(s)`, models };
+      }
+
+      // Gemini uses key param, not Bearer token
+      if (provider === 'gemini') {
+        const apiKey = cfg.apiKey ?? '';
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`, { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) return { ok: false, message: `Gemini returned ${r.status}` };
+        const data = await r.json() as { models?: Array<{ name: string }> };
+        const models = (data.models ?? []).map((m) => m.name.replace('models/', '')).slice(0, 20);
+        return { ok: true, message: `Connected — ${models.length} model(s)`, models };
+      }
+
+      // OpenAI-compatible (OpenAI, Groq, Mistral, DeepSeek, etc.): GET /models with Bearer token
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
       const r = await fetch(`${url}/models`, { headers, signal: AbortSignal.timeout(5000) });
       if (!r.ok) return { ok: false, message: `Endpoint returned ${r.status}` };
       const data = await r.json() as { data?: Array<{ id: string }> };

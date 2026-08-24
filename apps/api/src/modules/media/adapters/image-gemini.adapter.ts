@@ -1,6 +1,6 @@
 import type { ImageAdapter, ImageRequest, GeneratedMedia } from '../media.types';
 
-const DEFAULT_MODEL = process.env['IMAGE_GEMINI_MODEL'] ?? 'gemini-2.5-flash-image';
+const DEFAULT_MODEL = process.env['IMAGE_GEMINI_MODEL'] ?? 'imagen-3.0-generate-002';
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /** Real image generation via the Gemini API — active whenever GEMINI_API_KEY is set. */

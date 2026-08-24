@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } fro
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString, IsOptional, IsArray } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { ProjectsService } from './projects.service';
 
@@ -24,6 +25,13 @@ class CreateProjectDto {
 export class ProjectsController {
   constructor(private readonly svc: ProjectsService) {}
 
+  /** Public demo/advertisement projects — visible to all users, no auth required. */
+  @Public()
+  @Get('browse')
+  listPublic(@Query('limit') limit?: string) {
+    return this.svc.listPublic({ limit: limit ? parseInt(limit, 10) : undefined });
+  }
+
   @Post()
   create(@Body() dto: CreateProjectDto, @CurrentUser() user: JwtPayload) {
     return this.svc.create(user.sub, dto);
@@ -45,11 +53,11 @@ export class ProjectsController {
 
   @Put(':id')
   update(@Param('id') id: string, @Body() dto: Partial<CreateProjectDto>, @CurrentUser() user: JwtPayload) {
-    return this.svc.update(user.sub, id, dto);
+    return this.svc.update(user.sub, id, dto, user.role);
   }
 
   @Delete(':id')
   delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.svc.delete(user.sub, id);
+    return this.svc.delete(user.sub, id, user.role);
   }
 }

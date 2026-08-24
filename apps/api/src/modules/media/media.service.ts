@@ -12,14 +12,27 @@ import { FishSpeechVoiceAdapter } from './adapters/voice-fish-speech.adapter';
 import { StyleTTS2VoiceAdapter } from './adapters/voice-styletts2.adapter';
 import { KokoroVoiceAdapter } from './adapters/voice-kokoro.adapter';
 import { PiperVoiceAdapter } from './adapters/voice-piper.adapter';
+import { OpenAiVoiceAdapter } from './adapters/voice-openai.adapter';
+import { ElevenLabsVoiceAdapter } from './adapters/voice-elevenlabs.adapter';
 import { OfflineVoiceAdapter } from './adapters/voice-offline.adapter';
 import { OfflineImageAdapter } from './adapters/image-offline.adapter';
 import { OfflineMusicAdapter } from './adapters/music-offline.adapter';
 import { FfmpegSceneVideoAdapter } from './adapters/video-ffmpeg.adapter';
 import { ComfyUIImageAdapter } from './adapters/image-comfyui.adapter';
 import { A1111ImageAdapter } from './adapters/image-a1111.adapter';
+import { OpenAiImageAdapter } from './adapters/image-openai.adapter';
+import { GeminiImageAdapter } from './adapters/image-gemini.adapter';
 import { ComfyUIVideoAdapter } from './adapters/video-comfyui.adapter';
+import { KlingVideoAdapter } from './adapters/video-kling.adapter';
+import { LumaVideoAdapter } from './adapters/video-luma.adapter';
+import { RunwayVideoAdapter } from './adapters/video-runway.adapter';
+import { PikaVideoAdapter } from './adapters/video-pika.adapter';
+import { VeoVideoAdapter } from './adapters/video-veo.adapter';
 import { MusicGenLocalAdapter } from './adapters/music-musicgen.adapter';
+import { SunoMusicAdapter } from './adapters/music-suno.adapter';
+import { ReplicateMusicAdapter } from './adapters/music-replicate.adapter';
+import { StabilityMusicAdapter } from './adapters/music-stability.adapter';
+import { UdioMusicAdapter } from './adapters/music-udio.adapter';
 import { validateMediaBuffer, formatIssues, type MediaValidationKind } from './media-validation.util';
 
 export interface StoredAsset {
@@ -50,22 +63,23 @@ export class MediaService {
 
   private readonly voice: AdapterChain<VoiceAdapter> = {
     configured: process.env['VOICE_PROVIDER'],
-    adapters: [new CoquiVoiceAdapter(), new FishSpeechVoiceAdapter(), new StyleTTS2VoiceAdapter(), new KokoroVoiceAdapter(), new PiperVoiceAdapter(), new OfflineVoiceAdapter()],
+    // Cloud providers first (if key set), then self-hosted, then offline fallback
+    adapters: [new OpenAiVoiceAdapter(), new ElevenLabsVoiceAdapter(), new CoquiVoiceAdapter(), new FishSpeechVoiceAdapter(), new StyleTTS2VoiceAdapter(), new KokoroVoiceAdapter(), new PiperVoiceAdapter(), new OfflineVoiceAdapter()],
   };
   private readonly image: AdapterChain<ImageAdapter> = {
     configured: process.env['IMAGE_PROVIDER'],
-    // Local self-hosted only (free, no rate limits), then placeholder
-    adapters: [new ComfyUIImageAdapter(), new A1111ImageAdapter(), new OfflineImageAdapter()],
+    // Cloud: OpenAI DALL-E 3, Gemini Imagen — then self-hosted — then placeholder
+    adapters: [new OpenAiImageAdapter(), new GeminiImageAdapter(), new ComfyUIImageAdapter(), new A1111ImageAdapter(), new OfflineImageAdapter()],
   };
   private readonly music: AdapterChain<MusicAdapter> = {
     configured: process.env['MUSIC_PROVIDER'],
-    // Local MusicGen only, then synth placeholder
-    adapters: [new MusicGenLocalAdapter(), new OfflineMusicAdapter()],
+    // Cloud: Suno (PiAPI), Udio, Replicate, Stability — then local MusicGen — then synth placeholder
+    adapters: [new SunoMusicAdapter(), new UdioMusicAdapter(), new ReplicateMusicAdapter(), new StabilityMusicAdapter(), new MusicGenLocalAdapter(), new OfflineMusicAdapter()],
   };
   private readonly video: AdapterChain<VideoAdapter> = {
     configured: process.env['VIDEO_PROVIDER'],
-    // Local ComfyUI SVD, then FFmpeg scene builder
-    adapters: [new ComfyUIVideoAdapter(), new FfmpegSceneVideoAdapter()],
+    // Cloud: Kling, Luma, Runway, Pika, Veo — then self-hosted ComfyUI — then FFmpeg scene builder
+    adapters: [new KlingVideoAdapter(), new LumaVideoAdapter(), new RunwayVideoAdapter(), new PikaVideoAdapter(), new VeoVideoAdapter(), new ComfyUIVideoAdapter(), new FfmpegSceneVideoAdapter()],
   };
 
   constructor(
