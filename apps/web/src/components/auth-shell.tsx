@@ -78,12 +78,13 @@ const LOGIN_FEATURES = [
   { icon: '🎭', text: 'Character Studio' },
   { icon: '✅', text: 'Compliance Engine' },
   { icon: '🚀', text: 'Multi-Platform Publishing' },
+  { icon: '💰', text: 'Ad Revenue (Pro)' },
 ];
 
 const LOGIN_STATS = [
-  { value: '100K+', label: 'Creators' },
-  { value: '5M+', label: 'Scripts Generated' },
-  { value: '4.8★', label: 'Rating' },
+  { value: 'Free', label: 'to start' },
+  { value: '$17/mo', label: 'Pro plan' },
+  { value: '15+', label: 'AI Agents' },
 ];
 
 export function LoginShell({

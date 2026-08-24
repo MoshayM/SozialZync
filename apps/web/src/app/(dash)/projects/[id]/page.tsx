@@ -1893,6 +1893,9 @@ function AdRevenuePanel({ projectId }: { projectId: string }) {
     } finally { setToggling(false); }
   };
 
+  const userPlan = usePlanGate();
+  const adRevenueAllowed = isAdminRole() || planAtLeast(userPlan, 'PRO');
+
   if (loading) return null;
 
   return (
@@ -1906,19 +1909,29 @@ function AdRevenuePanel({ projectId }: { projectId: string }) {
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Active</span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => void toggle()}
-          disabled={toggling}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-          style={stats?.adRevenueEnabled
-            ? { background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }
-            : { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }
-          }
-        >
-          {toggling ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-          {stats?.adRevenueEnabled ? 'Disable' : 'Enable for Browse'}
-        </button>
+        {adRevenueAllowed ? (
+          <button
+            type="button"
+            onClick={() => void toggle()}
+            disabled={toggling}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+            style={stats?.adRevenueEnabled
+              ? { background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }
+              : { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }
+            }
+          >
+            {toggling ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+            {stats?.adRevenueEnabled ? 'Disable' : 'Enable for Browse'}
+          </button>
+        ) : (
+          <Link
+            href="/wallet"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+            style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
+          >
+            Pro required
+          </Link>
+        )}
       </div>
 
       {stats && (
@@ -2358,7 +2371,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
           >
-            Upgrade to Starter — $29/mo
+            Upgrade to Pro — $17/mo
           </a>
         </div>
       )}

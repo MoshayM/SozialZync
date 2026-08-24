@@ -67,20 +67,20 @@ const ACCESS_TIERS: AccessTier[] = [
   },
   {
     id: 'PRO',
-    name: 'Pro',
+    name: 'Pro — $17/mo',
     color: '#374151',
-    unlockLabel: 'Top up any amount',
-    unlockSub: 'Credits > 0 → Pro instantly · pay as you go',
-    features: ['Unlimited projects', 'All 6 platforms', 'Priority AI generation', 'Full analytics dashboard', 'Auto-scheduling', 'Short-form editor', 'AI Copilot'],
+    unlockLabel: 'Upgrade to Pro',
+    unlockSub: '$17/month · all AI tools + publish to all platforms',
+    features: ['2,000 AI credits/month', 'Unlimited channels', 'Priority AI generation', 'Full analytics + A/B testing', 'Publish to YouTube & Instagram', 'Export & download files', 'Ad revenue monetization'],
     highlight: true,
   },
   {
     id: 'ENTERPRISE',
-    name: 'Enterprise',
+    name: 'Agency — $149/mo',
     color: '#D97706',
-    unlockLabel: 'Apply for access',
-    unlockSub: 'Reviewed by admin · payment activated on approval',
-    features: ['Everything in Pro', 'Team seats & workspaces', 'White-label dashboard', 'Dedicated account manager', 'Custom AI credit budget', 'SLA guarantee'],
+    unlockLabel: 'Contact sales',
+    unlockSub: '$149/month · team seats, white-label, dedicated SLA',
+    features: ['Everything in Pro', 'Team seats & role management', 'White-label dashboard', 'Shared organisation wallet', 'Custom AI model training', 'Dedicated account manager + SLA'],
   },
 ];
 

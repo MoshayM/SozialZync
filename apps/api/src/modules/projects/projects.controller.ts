@@ -52,10 +52,15 @@ export class ProjectsController {
     return this.adRevenue.getCreatorStats(user.sub);
   }
 
-  /** Creator: opt a project into ad revenue. */
+  /** Creator: opt a project into ad revenue (Pro/Agency/Admin only). */
   @Post(':id/ad-revenue/enable')
   @HttpCode(HttpStatus.NO_CONTENT)
   async enableAdRevenue(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const plan = ((user as { plan?: string }).plan ?? 'FREE').toUpperCase();
+    const isElevated = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
+    if (!isElevated && plan !== 'PRO' && plan !== 'AGENCY') {
+      throw new ForbiddenException('Ad revenue monetization is available on Pro and Agency plans. Upgrade to unlock this feature.');
+    }
     await this.adRevenue.enableAdRevenue(user.sub, id);
   }
 
