@@ -2,15 +2,15 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Sozialzynk — YouTube Content OS',
+    name: 'Sozialzynk — AI Content Creator Platform',
     short_name: 'Sozialzynk',
-    description: 'AI-powered YouTube Content Operating System. Create, grow and publish with AI — research to viral shorts.',
+    description: 'AI-powered content creator platform. Research, script, create and publish across all your channels — from one intelligent workspace.',
     start_url: '/browse',
     scope: '/',
     display: 'standalone',
     display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
-    background_color: '#0e0924',
-    theme_color: '#6D4AE0',
+    background_color: '#111827',
+    theme_color: '#374151',
     orientation: 'portrait-primary',
     lang: 'en',
     dir: 'ltr',
@@ -43,7 +43,7 @@ export default function manifest(): MetadataRoute.Manifest {
     // @reason: Next.js MetadataRoute.Manifest['screenshots'] element type doesn't expose an index signature
     // Cast the whole array so we can include the standard W3C `form_factor` and `label` fields.
     screenshots: ([
-      { src: '/screenshots/home.png',        sizes: '1280x800', type: 'image/png', form_factor: 'wide',   label: 'Sozialzynk dashboard — YouTube Content OS' },
+      { src: '/screenshots/home.png',        sizes: '1280x800', type: 'image/png', form_factor: 'wide',   label: 'Sozialzynk dashboard — AI Content Creator Platform' },
       { src: '/screenshots/copilot.png',     sizes: '1280x800', type: 'image/png', form_factor: 'wide',   label: 'AI Copilot — create content by conversation' },
       { src: '/screenshots/home-mobile.png', sizes: '390x844',  type: 'image/png', form_factor: 'narrow', label: 'Mobile dashboard' },
     ] as unknown) as MetadataRoute.Manifest['screenshots'],

@@ -330,10 +330,11 @@ export function RegisterShell({
 }) {
   return (
     <div className="min-h-screen flex">
+      <style>{`@keyframes sh-grad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}} @keyframes sh-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}} @keyframes sh-spin-r{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}} @keyframes sh-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}`}</style>
       {/* ── Left: Brand panel ──────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[52%] xl:w-[54%] relative overflow-hidden flex-col justify-between px-14 xl:px-18 py-14"
-        style={{ background: 'linear-gradient(145deg, #1f2937 0%, #374151 55%, #4b5563 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #111827 0%, #1f2937 45%, #374151 100%)' }}
       >
         {/* Ambient orbs */}
         <div
@@ -350,13 +351,17 @@ export function RegisterShell({
         />
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" />
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="relative w-12 h-12 shrink-0">
+            <div style={{ animation:'sh-spin 28s linear infinite', position:'absolute', inset:'-8px', borderRadius:'50%', border:'1px solid rgba(156,163,175,.35)' }} />
+            <div style={{ animation:'sh-spin-r 40s linear infinite', position:'absolute', inset:'-16px', borderRadius:'50%', border:'1px solid rgba(255,255,255,.1)' }} />
+            <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
+          </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
               <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
             </div>
-            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Content Creator Platform</div>
           </div>
         </div>
 
@@ -371,22 +376,24 @@ export function RegisterShell({
           </div>
 
           <h1 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.1] mb-4">
-            Launch Your<br />
+            Create &amp; Grow<br />
             <span
               style={{
                 WebkitTextFillColor: 'transparent',
                 WebkitBackgroundClip: 'text',
-                backgroundImage: 'linear-gradient(90deg, #f0c14d 0%, #ffd966 100%)',
+                backgroundImage: 'linear-gradient(90deg, #d1d5db 0%, #ffffff 50%, #d1d5db 100%)',
                 backgroundClip: 'text',
+                backgroundSize: '200% 100%',
+                animation: 'sh-grad 4s ease infinite',
               }}
             >
-              YouTube Channel
+              With AI
             </span>
-            <br />with AI
+            <br />on Every Platform
           </h1>
 
           <p className="text-white/65 text-base leading-relaxed max-w-xs mb-8">
-            Your full YouTube content OS — research, scripts, characters, voice, thumbnails, and publishing in one place.
+            Your complete AI creator platform — research, scripts, characters, voice, thumbnails, and multi-platform publishing in one place.
           </p>
 
           {/* Perks list */}
@@ -508,22 +515,27 @@ export function ForgotPasswordShell({
 }) {
   return (
     <div className="min-h-screen flex">
+      <style>{`@keyframes sh-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}} @keyframes sh-spin-r{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}} @keyframes sh-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}`}</style>
       {/* ── Left panel ─────────────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[52%] xl:w-[54%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'linear-gradient(145deg, #1f2937 0%, #374151 55%, #4b5563 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #111827 0%, #1f2937 45%, #374151 100%)' }}
       >
         <div className="absolute -top-40 -left-28 w-[480px] h-[480px] rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(90px)' }} />
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(70px)' }} />
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" />
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="relative w-12 h-12 shrink-0">
+            <div style={{ animation:'sh-spin 28s linear infinite', position:'absolute', inset:'-8px', borderRadius:'50%', border:'1px solid rgba(156,163,175,.35)' }} />
+            <div style={{ animation:'sh-spin-r 40s linear infinite', position:'absolute', inset:'-16px', borderRadius:'50%', border:'1px solid rgba(255,255,255,.1)' }} />
+            <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
+          </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
               <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
             </div>
-            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Content Creator Platform</div>
           </div>
         </div>
 
@@ -614,22 +626,27 @@ export function ResetPasswordShell({
 }) {
   return (
     <div className="min-h-screen flex">
+      <style>{`@keyframes sh-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}} @keyframes sh-spin-r{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}`}</style>
       {/* ── Left panel ─────────────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[52%] xl:w-[54%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'linear-gradient(145deg, #1f2937 0%, #374151 55%, #4b5563 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #111827 0%, #1f2937 45%, #374151 100%)' }}
       >
         <div className="absolute -top-40 -left-28 w-[480px] h-[480px] rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(90px)' }} />
         <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(70px)' }} />
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" />
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="relative w-12 h-12 shrink-0">
+            <div style={{ animation:'sh-spin 28s linear infinite', position:'absolute', inset:'-8px', borderRadius:'50%', border:'1px solid rgba(156,163,175,.35)' }} />
+            <div style={{ animation:'sh-spin-r 40s linear infinite', position:'absolute', inset:'-16px', borderRadius:'50%', border:'1px solid rgba(255,255,255,.1)' }} />
+            <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
+          </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
               <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
             </div>
-            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Content Creator Platform</div>
           </div>
         </div>
 
@@ -734,23 +751,28 @@ export function OAuthCallbackShell({
 }) {
   return (
     <div className="min-h-screen flex">
+      <style>{`@keyframes sh-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}} @keyframes sh-spin-r{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}`}</style>
       {/* ── Left: Short Studio showcase ────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[55%] xl:w-[56%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'linear-gradient(145deg, #1f2937 0%, #374151 55%, #4b5563 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #111827 0%, #1f2937 45%, #374151 100%)' }}
       >
         {/* Orbs */}
         <div className="absolute -top-40 -left-28 w-[480px] h-[480px] rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(90px)' }} />
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(70px)' }} />
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <LogoMark className="w-12 h-12 shrink-0" />
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="relative w-12 h-12 shrink-0">
+            <div style={{ animation:'sh-spin 28s linear infinite', position:'absolute', inset:'-8px', borderRadius:'50%', border:'1px solid rgba(156,163,175,.35)' }} />
+            <div style={{ animation:'sh-spin-r 40s linear infinite', position:'absolute', inset:'-16px', borderRadius:'50%', border:'1px solid rgba(255,255,255,.1)' }} />
+            <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
+          </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
               <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
             </div>
-            <div className="text-white/50 text-xs mt-0.5">AI YouTube Content OS</div>
+            <div className="text-white/50 text-xs mt-0.5">AI Content Creator Platform</div>
           </div>
         </div>
 
