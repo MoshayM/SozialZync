@@ -110,9 +110,9 @@ const IMAGES: ImageItem[] = [
 ];
 
 const AD_VIDEOS: FeedItem[] = [
-  { id:'ad1', title:'Grow your YouTube channel 10x faster with AI',    creator:'SozialZynk Pro',  gi:0, duration:'2:30', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'ForBiggerFun.mp4'             },
-  { id:'ad2', title:'How top creators monetize in 2025 — the playbook',creator:'Creator Academy', gi:1, duration:'8:15', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'WeAreGoingOnBullrun.mp4'      },
-  { id:'ad3', title:'Zero to 100K subscribers: step-by-step blueprint',creator:'CreatorForce',    gi:2, duration:'12:00',kind:'video', views:'Sponsored', likes:'', videoUrl: V+'WhatCarCanYouGetForAGrand.mp4' },
+  { id:'ad1', title:'Meet your AI Copilot — research, script & publish by voice',     creator:'Sozialzynk',  gi:0, duration:'1:45', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'ForBiggerFun.mp4'             },
+  { id:'ad2', title:'Turn any long video into 10 viral Shorts in minutes',            creator:'Sozialzynk',  gi:1, duration:'2:10', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'WeAreGoingOnBullrun.mp4'      },
+  { id:'ad3', title:'Publish once, reach YouTube, TikTok & Instagram simultaneously', creator:'Sozialzynk',  gi:2, duration:'1:30', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'WhatCarCanYouGetForAGrand.mp4' },
 ];
 
 const INITIAL_GROUPS: Group[] = [
@@ -1039,9 +1039,9 @@ export default function BrowsePage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {([
-                { id:'ad1', gi:0, title:'Grow your YouTube channel 10x faster with AI', label:'SozialZynk Pro', duration:'2:30', tag:'AI Tools' },
-                { id:'ad2', gi:1, title:'How top creators monetize in 2025 — the playbook', label:'Creator Academy', duration:'8:15', tag:'Monetization' },
-                { id:'ad3', gi:2, title:'Zero to 100K subscribers: step-by-step blueprint', label:'CreatorForce', duration:'12:00', tag:'Growth' },
+                { id:'ad1', gi:0, title:'Meet your AI Copilot — research, script & publish by voice',     label:'Sozialzynk', duration:'1:45', tag:'AI Copilot' },
+                { id:'ad2', gi:1, title:'Turn any long video into 10 viral Shorts in minutes',            label:'Sozialzynk', duration:'2:10', tag:'Shorts Studio' },
+                { id:'ad3', gi:2, title:'Publish once, reach YouTube, TikTok & Instagram simultaneously', label:'Sozialzynk', duration:'1:30', tag:'Publishing' },
               ] as { id:string; gi:number; title:string; label:string; duration:string; tag:string }[]).map((ad, i) => (
                 <button
                   key={i}
