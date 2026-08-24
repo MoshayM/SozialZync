@@ -11,7 +11,7 @@ import {
   platformAuthenticatorIsAvailable,
 } from '@simplewebauthn/browser';
 import { api, setTokens } from '@/lib/api';
-import { LoginShell } from '@/components/auth-shell';
+import { LoginShell, SocialRow } from '@/components/auth-shell';
 
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
@@ -107,6 +107,21 @@ export default function LoginPage() {
   const [passkeySupported, setPasskeySupported] = useState(false);
   const [hasPlatformAuth, setHasPlatformAuth] = useState(false);
   const passkeyHandledRef = useRef(false);
+
+  const [googleProviders, setGoogleProviders] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    api.auth.providers().then(r => setGoogleProviders(r.data as unknown as Record<string, boolean>)).catch(() => {});
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    try {
+      const redirectUri = `${window.location.origin}/oauth/callback/google`;
+      const { data } = await api.auth.oauthStart('google', redirectUri, 'login');
+      window.location.href = data.authUrl;
+    } catch {
+      setError('Could not start Google sign-in. Try again.');
+    }
+  };
 
   // Detect device passkey capability
   useEffect(() => {
@@ -314,6 +329,12 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in with password'}
           </PrimaryBtn>
         </form>
+
+        {/* ── Google OAuth ──────────────────────────────────── */}
+        <SocialRow
+          providers={googleProviders}
+          onProviderClick={() => { void handleGoogleLogin(); }}
+        />
 
       </div>
     </LoginShell>

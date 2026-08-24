@@ -504,7 +504,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const tok = localStorage.getItem('cf_token');
     if (!tok) {
-      router.push('/login');
+      // /browse is a public page — show it without auth instead of redirecting
+      if (pathname !== '/browse') router.push('/login');
       return;
     }
     setToken(tok);
@@ -519,7 +520,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [router, fetchNotifications]);
+  }, [router, pathname, fetchNotifications]);
 
   // Authoritative role sync — update name always, update admin state when role is present.
   // Using isAdminUser (computed from meData.role) as the primary visibility gate means
