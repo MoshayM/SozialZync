@@ -92,7 +92,9 @@ test.describe('Browse page — feed mode', () => {
   test('feed has close button', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
-    const closeBtn = page.getByRole('button', { name: /close feed/i });
+    // Wait for the feed overlay to appear
+    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 8_000 });
+    const closeBtn = page.getByRole('button', { name: /close feed/i }).first();
     await expect(closeBtn).toBeVisible({ timeout: 5_000 });
   });
 
@@ -117,38 +119,48 @@ test.describe('Browse page — feed mode', () => {
   test('feed shows item count indicator', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
-    // Counter like "1 / 44"
-    await expect(page.getByText(/1 \/ \d+/)).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 8_000 });
+    // Counter like "1 / 44" — inside the feed overlay
+    await expect(page.locator('[role="dialog"]').getByText(/1 \/ \d+/)).toBeVisible({ timeout: 5_000 });
   });
 
   test('keyboard ArrowDown navigates to next item', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
-    const initialText = await page.getByText(/1 \/ \d+/).textContent();
+    const feed = page.locator('[role="dialog"]');
+    await expect(feed).toBeVisible({ timeout: 8_000 });
+    const counter = feed.getByText(/1 \/ \d+/);
+    await expect(counter).toBeVisible({ timeout: 5_000 });
+    const initialText = await counter.textContent();
     await page.keyboard.press('ArrowDown');
-    await page.waitForTimeout(600); // allow scroll animation
-    const newText = await page.getByText(/\d+ \/ \d+/).textContent();
+    await page.waitForTimeout(800); // allow scroll animation
+    const newText = await feed.getByText(/\d+ \/ \d+/).textContent();
     expect(newText).not.toBe(initialText);
   });
 
   test('feed right-action column has like, comment, share, save buttons', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
-    await expect(page.getByRole('button', { name: /like/i })).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /comments/i })).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /share/i })).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /save/i })).toBeVisible({ timeout: 5_000 });
+    const feed = page.locator('[role="dialog"]');
+    await expect(feed).toBeVisible({ timeout: 8_000 });
+    // Use .first() — multiple slides are in the DOM, each has these buttons
+    await expect(feed.getByRole('button', { name: /^like$/i }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(feed.getByRole('button', { name: /^comments$/i }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(feed.getByRole('button', { name: /^share$/i }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(feed.getByRole('button', { name: /^save$/i }).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('like button toggles state', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
-    const likeBtn = page.getByRole('button', { name: /^like$/i });
+    const feed = page.locator('[role="dialog"]');
+    await expect(feed).toBeVisible({ timeout: 8_000 });
+    // First slide's like button
+    const likeBtn = feed.getByRole('button', { name: /^like$/i }).first();
     await expect(likeBtn).toBeVisible({ timeout: 5_000 });
     await likeBtn.click();
-    // After click aria-label changes to "Unlike"
-    await expect(page.getByRole('button', { name: /^unlike$/i })).toBeVisible({ timeout: 3_000 });
+    // After click the button becomes "Unlike"
+    await expect(feed.getByRole('button', { name: /^unlike$/i }).first()).toBeVisible({ timeout: 3_000 });
   });
 });
 
