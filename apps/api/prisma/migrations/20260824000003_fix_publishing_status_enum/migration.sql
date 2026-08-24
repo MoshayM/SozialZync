@@ -20,18 +20,24 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- Step 3: Convert column from TEXT to enum (safe: all existing values match enum members)
-DO $$ BEGIN
-  IF (
-    SELECT data_type FROM information_schema.columns
-    WHERE table_name = 'projects' AND column_name = 'publishingStatus'
-  ) = 'text' THEN
+-- Step 3: Convert column from TEXT to enum (idempotent: skips if already enum)
+DO $$
+DECLARE
+  col_type text;
+BEGIN
+  SELECT data_type INTO col_type
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'projects'
+    AND column_name = 'publishingStatus';
+
+  IF col_type = 'text' THEN
     ALTER TABLE "projects"
       ALTER COLUMN "publishingStatus" TYPE "PublishingStatus"
       USING "publishingStatus"::"PublishingStatus";
   END IF;
 END $$;
 
--- Step 4: Restore default using the enum type
+-- Step 4: Restore default using the enum type (safe if already set to this value)
 ALTER TABLE "projects"
   ALTER COLUMN "publishingStatus" SET DEFAULT 'NOT_PUBLISHED'::"PublishingStatus";
