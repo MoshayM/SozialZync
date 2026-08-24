@@ -22,24 +22,20 @@ export function middleware(req: NextRequest) {
   const wsOrigin = apiOrigin.replace(/^http/, 'ws');
   const sentryHosts = process.env['SENTRY_DSN'] ? ' https://*.sentry.io' : '';
 
-  // script-src uses a per-request nonce instead of 'unsafe-inline'.
-  // Next.js 14 App Router reads the x-nonce request header and automatically
-  // applies it to its generated inline scripts (__NEXT_DATA__, etc.).
-  // style-src keeps 'unsafe-inline' — inline style="" attributes are needed by
-  // Radix/Framer and Next.js font injection; CSS can't execute JS so the risk
-  // profile is fundamentally different from script-src.
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
     "form-action 'self'",
-    // 'unsafe-inline' is listed for legacy browsers only.
-    // Any browser that supports nonces (Chrome, Firefox, Edge, Safari) will
-    // IGNORE 'unsafe-inline' when a valid nonce is also present (CSP level 2+
-    // spec §8.2). This is belt-and-suspenders: modern browsers get nonce
-    // enforcement; older ones fall back to unsafe-inline as before.
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+    // Next.js 15 generates inline RSC streaming scripts (self.__next_f.push)
+    // that are not nonce-annotated by the framework. CSP L2+ browsers silently
+    // ignore 'unsafe-inline' whenever a nonce is also present in the directive,
+    // so mixing nonce + unsafe-inline still blocks those scripts. Until Next.js
+    // natively annotates its streaming scripts, 'unsafe-inline' without a nonce
+    // is the only working option. The nonce is still generated and forwarded via
+    // x-nonce so explicit <Script nonce={nonce}> components can use it.
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://i.ytimg.com https://yt3.googleusercontent.com",
     "font-src 'self' data:",
