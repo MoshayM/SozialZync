@@ -2075,7 +2075,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
   const searchParams = useSearchParams();
   const userPlan = usePlanGate();
-  const canPublishExternal = isAdminRole() || planAtLeast(userPlan, 'STARTER');
+  const canPublishExternal = isAdminRole() || planAtLeast(userPlan, 'PRO');
   const [open, setOpen] = useState(false);
   const [showMultiPublish, setShowMultiPublish] = useState(false);
   const [showFreeBlocker, setShowFreeBlocker] = useState(false);
@@ -2361,7 +2361,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
             <div>
               <p className="text-sm font-bold text-gray-900">Upgrade to publish to YouTube, Facebook & Instagram</p>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Free accounts can share content on the SozialZynk platform (Browse page). Upgrade to Starter or higher to publish directly to your connected social channels.
+                Free accounts can share content on the SozialZynk platform (Browse page). Upgrade to Pro ($17/mo) to publish directly to YouTube, Facebook, and Instagram.
               </p>
             </div>
             <button type="button" onClick={() => setShowFreeBlocker(false)} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-4 h-4" /></button>
