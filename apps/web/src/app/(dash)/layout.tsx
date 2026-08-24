@@ -1068,6 +1068,31 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   <ShieldCheck style={{ width: '18px', height: '18px', flexShrink: 0, color: '#6b7280' }} />
                   {!sidebarCollapsed && <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>Admin Panel</span>}
                 </Link>
+                <Link
+                  href="/admin/providers"
+                  title={sidebarCollapsed ? 'AI Providers' : undefined}
+                  className="flex items-center"
+                  style={{
+                    gap: '11px',
+                    padding: sidebarCollapsed ? '11px 0' : '10px 12px',
+                    borderRadius: '11px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    letterSpacing: '-.1px',
+                    textDecoration: 'none',
+                    marginTop: '4px',
+                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                    background: pathname === '/admin/providers' ? '#f3f4f6' : '#f9fafb',
+                    color: '#374151',
+                    border: '1px solid #e5e7eb',
+                    transition: 'background 180ms ease',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = pathname === '/admin/providers' ? '#f3f4f6' : '#f9fafb'; }}
+                >
+                  <Zap style={{ width: '18px', height: '18px', flexShrink: 0, color: '#6b7280' }} />
+                  {!sidebarCollapsed && <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>AI Providers</span>}
+                </Link>
               </div>
             )}
           </nav>
@@ -1089,17 +1114,30 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               </Link>
             ))}
             {isAdminUser && (
-              <Link
-                href="/admin"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                style={{ color: '#374151', fontSize: '14px', fontWeight: 700, textDecoration: 'none', background: '#f3f4f6', border: '1px solid #e5e7eb' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
-              >
-                <ShieldCheck style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
-                Admin Panel
-              </Link>
+              <>
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
+                  style={{ color: '#374151', fontSize: '14px', fontWeight: 700, textDecoration: 'none', background: '#f3f4f6', border: '1px solid #e5e7eb' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
+                >
+                  <ShieldCheck style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
+                  Admin Panel
+                </Link>
+                <Link
+                  href="/admin/providers"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
+                  style={{ color: '#374151', fontSize: '14px', fontWeight: 600, textDecoration: 'none', background: '#f9fafb', border: '1px solid #e5e7eb' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f9fafb'; }}
+                >
+                  <Zap style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
+                  AI Providers
+                </Link>
+              </>
             )}
             <button
               type="button"

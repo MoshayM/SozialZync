@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { SystemController } from './system.controller';
 import { SystemService } from './system.service';
 import { StorageService } from './storage.service';
+import { ProviderHealthController } from './provider-health.controller';
 
 @Module({
-  controllers: [SystemController],
+  controllers: [SystemController, ProviderHealthController],
   providers: [SystemService, StorageService],
   exports: [SystemService, StorageService],
 })

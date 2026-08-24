@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query, Req, UseGuards, StreamableFile, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req, UseGuards, StreamableFile, NotFoundException, ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -65,6 +65,7 @@ export class MediaController {
     @CurrentUser() user: JwtPayload,
     @Query('ttl') ttl?: string,
   ) {
+    this.assertExportAllowed(user);
     const version = await this.prisma.assetVersion.findUnique({
       where: { id: versionId },
       select: { r2Key: true, asset: { select: { project: { select: { userId: true } } } } },
@@ -85,6 +86,7 @@ export class MediaController {
   @Post('exports/:projectId/build')
   async buildExports(@Param('projectId') projectId: string, @CurrentUser() user: JwtPayload) {
     await this.assertOwner(projectId, user.sub);
+    this.assertExportAllowed(user);
     const files = await this.exportsSvc.buildPackage(projectId);
     return { files };
   }
@@ -113,6 +115,7 @@ export class MediaController {
     @Query('ttl') ttl?: string,
   ) {
     await this.assertOwner(projectId, user.sub);
+    this.assertExportAllowed(user);
     return this.issueSignedUrl(
       `export:${projectId}/${fileName}`,
       `/media/exports/${projectId}/${fileName}`,
@@ -128,6 +131,15 @@ export class MediaController {
       url: `/api/v1${path}?exp=${exp}&sig=${sig}`,
       expiresAt: new Date(exp * 1000).toISOString(),
     };
+  }
+
+  private assertExportAllowed(user: JwtPayload): void {
+    const isElevated = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
+    if (!isElevated && (user.plan ?? 'FREE') === 'FREE') {
+      throw new ForbiddenException(
+        'Free accounts cannot download or export files. Upgrade to Starter or higher to unlock downloads and exports.',
+      );
+    }
   }
 
   private async assertOwner(projectId: string, userId: string): Promise<void> {

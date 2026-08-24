@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString, IsOptional, IsArray, IsDateString, IsIn, IsInt, Min, Max, IsBoolean } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
@@ -71,6 +71,14 @@ export class PublishingController {
   // 30-day window matches billing page: Starter=5/mo, Pro/Agency=unlimited (9999)
   @TierRateLimit({ bucket: 'publish', windowSecs: 2592000, limits: { FREE: 3, STARTER: 5, PRO: 9999, AGENCY: 9999, default: 3 } })
   publish(@Body() dto: PublishDto, @CurrentUser() user: JwtPayload) {
+    // Free users may only publish to the internal SozialZynk feed (no external channel)
+    const publishPlan = (user.plan ?? 'FREE') as string;
+    const isElevatedPublish = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
+    if (!isElevatedPublish && publishPlan === 'FREE' && dto.channelId) {
+      throw new ForbiddenException(
+        'Free accounts can publish content to the SozialZynk platform. Upgrade to Starter or higher to publish directly to YouTube, Facebook, or Instagram.',
+      );
+    }
     return this.svc.publish(
       {
         videoId: dto.videoId,

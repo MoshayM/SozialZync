@@ -39,7 +39,16 @@ import { DevicePreview } from '@/components/device-preview';
 import { api, apiClient, type AdminProvider, type AdminPublicContent, type AdminUser, type EnterpriseMetrics, type ForecastRow, type ModerationAction } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
-type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation';
+type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation' | 'api-keys';
+
+interface SystemProviderHealth {
+  name: string;
+  envKey: string;
+  configured: boolean;
+  status: 'active' | 'unconfigured';
+  category: 'ai' | 'media' | 'email' | 'payment';
+  note?: string;
+}
 
 // ── Token usage types (platform-wide, admin only) ─────────────────────────────
 interface TokenUsageSummary {
@@ -520,6 +529,9 @@ export default function AdminDashboardPage() {
   const [metrics, setMetrics] = useState<EnterpriseMetrics | null>(null);
   const [forecasts, setForecasts] = useState<ForecastRow[]>([]);
   const [providers, setProviders] = useState<AdminProvider[]>([]);
+  const [systemProviders, setSystemProviders] = useState<SystemProviderHealth[]>([]);
+  const [sysProvidersLoading, setSysProvidersLoading] = useState(false);
+  const [sysProvidersLoaded, setSysProvidersLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [error, setError] = useState('');
@@ -667,6 +679,20 @@ export default function AdminDashboardPage() {
     }
   }, [aiUsageLoaded]);
 
+  const loadSystemProviders = useCallback(async () => {
+    if (sysProvidersLoaded) return;
+    setSysProvidersLoading(true);
+    try {
+      const r = await apiClient.get<SystemProviderHealth[]>('/admin/providers/health');
+      setSystemProviders(r.data);
+    } catch {
+      setSystemProviders([]);
+    } finally {
+      setSysProvidersLoading(false);
+      setSysProvidersLoaded(true);
+    }
+  }, [sysProvidersLoaded]);
+
   const loadModeration = useCallback(async () => {
     setModLoading(true);
     try {
@@ -742,6 +768,7 @@ export default function AdminDashboardPage() {
             { id: 'device-preview',      label: 'Device Preview',       icon: <Monitor className="w-4 h-4" /> },
             { id: 'ad-video',            label: 'Platform Ad',          icon: <Film className="w-4 h-4" /> },
             { id: 'moderation',          label: 'Content Moderation',   icon: <ShieldAlert className="w-4 h-4" /> },
+            { id: 'api-keys',            label: 'API Keys & Providers',  icon: <Cpu className="w-4 h-4" /> },
           ] as { id: AdminTab; label: string; icon: React.ReactNode }[]
         ).map(({ id, label, icon }) => (
           <button
@@ -752,6 +779,7 @@ export default function AdminDashboardPage() {
               if (id === 'users') void loadUsers();
               if (id === 'ai-usage') void loadAiUsage();
               if (id === 'moderation') void loadModeration();
+              if (id === 'api-keys') void loadSystemProviders();
             }}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
             style={adminTab === id
@@ -1890,6 +1918,87 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── API Keys & Providers tab ─────────────────────────────────────────── */}
+      {adminTab === 'api-keys' && (
+        <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-lg font-bold text-[#1a1030]">API Keys &amp; Providers</h2>
+              <p className="text-sm text-gray-500 mt-0.5">System-level provider keys configured via environment variables.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setSysProvidersLoaded(false); void loadSystemProviders(); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#e3ddf8] text-[#374151] hover:bg-[#f3f4f6] transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </button>
+          </div>
+
+          {!sysProvidersLoading && systemProviders.some(p => !p.configured) && (
+            <div className="mb-5 flex items-start gap-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">
+                  {systemProviders.filter(p => !p.configured).length} provider{systemProviders.filter(p => !p.configured).length !== 1 ? 's' : ''} need attention
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">Configure missing keys on Railway to enable these features.</p>
+              </div>
+            </div>
+          )}
+
+          {sysProvidersLoading ? (
+            <div className="flex items-center justify-center py-16 text-gray-400">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Checking providers…
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(['ai', 'media', 'email', 'payment'] as const).map(cat => {
+                const catProviders = systemProviders.filter(p => p.category === cat);
+                if (!catProviders.length) return null;
+                const catLabel = cat === 'ai' ? 'AI Models' : cat === 'media' ? 'Media Generation' : cat === 'email' ? 'Email' : 'Payments';
+                return (
+                  <div key={cat} className="rounded-2xl border border-[#e3ddf8] bg-white p-4">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{catLabel}</h3>
+                    <div className="space-y-2.5">
+                      {catProviders.map(p => (
+                        <div key={p.envKey} className="flex items-start gap-3">
+                          {p.configured
+                            ? <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                            : <XCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                          }
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold text-[#1a1030]">{p.name}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${p.configured ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                                {p.configured ? 'Active' : 'Missing'}
+                              </span>
+                            </div>
+                            <code className="text-[10px] text-gray-400 font-mono">{p.envKey}</code>
+                            {p.note && <p className="text-[11px] text-amber-600 mt-0.5">{p.note}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="mt-6 p-4 rounded-2xl bg-[#f9f8ff] border border-[#e3ddf8]">
+            <h3 className="text-sm font-bold text-[#374151] mb-2">How to update keys</h3>
+            <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+              <li>Go to <strong>railway.com</strong> → Your project → Service → Variables</li>
+              <li>Find the env var (e.g. <code className="font-mono bg-gray-100 px-1 rounded">GROQ_API_KEY</code>) and update its value</li>
+              <li>Railway auto-redeploys — new key is live within ~2 minutes</li>
+              <li>Return here and click <strong>Refresh</strong> to verify status</li>
+            </ol>
+          </div>
         </div>
       )}
     </div>

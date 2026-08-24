@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, BadRequestException, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
 import { IsString, IsArray, IsIn, IsOptional, IsDateString } from 'class-validator';
 import type { ClipType } from '@prisma/client';
 import { ApplyCommandsSchema, AssistCapabilitySchema } from '@cf/shared';
@@ -353,6 +353,10 @@ export class ShortsStudioController {
 
   @Post('clips/:shortClipId/export')
   async exportClip(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
+    const isElevated = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
+    if (!isElevated && (user.plan ?? 'FREE') === 'FREE') {
+      throw new ForbiddenException('Free accounts cannot export videos. Upgrade to Starter or higher to unlock exports and downloads.');
+    }
     const clip = await this.shorts.assertClipOwnership(shortClipId, user.sub);
     const rs = await this.shorts.renderStatus(shortClipId);
     if (rs.timelineStale) {

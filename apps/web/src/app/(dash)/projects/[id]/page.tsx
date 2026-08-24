@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { ProjectPublishReady } from '@/lib/api';
 import { LoadingSteps } from '@/components/loading-steps';
+import { usePlanGate, isAdminRole, planAtLeast } from '@/components/plan-gate';
 
 type PageTab = 'pipeline' | 'script' | 'storyboard' | 'seo' | 'checks';
 
@@ -1954,8 +1955,11 @@ const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api
 function PublishFromRenderPanel({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
   const searchParams = useSearchParams();
+  const userPlan = usePlanGate();
+  const canPublishExternal = isAdminRole() || planAtLeast(userPlan, 'STARTER');
   const [open, setOpen] = useState(false);
   const [showMultiPublish, setShowMultiPublish] = useState(false);
+  const [showFreeBlocker, setShowFreeBlocker] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
   const [error, setError] = useState('');
   const [oauthExpired, setOauthExpired] = useState(false);
@@ -2223,13 +2227,35 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
           </div>
         </div>
         <button
-          onClick={() => setShowMultiPublish(true)}
+          onClick={() => canPublishExternal ? setShowMultiPublish(true) : setShowFreeBlocker(true)}
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
         >
           <Send className="w-4 h-4" />
           Publish to Platform
         </button>
       </div>
+
+      {/* Free plan blocker — shown instead of publish modal for FREE users */}
+      {showFreeBlocker && (
+        <div className="mt-3 rounded-xl px-5 py-4 space-y-2" style={{ background: '#faf9ff', border: '1.5px solid #d4c9f9' }}>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Upgrade to publish to YouTube, Facebook & Instagram</p>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Free accounts can share content on the SozialZynk platform (Browse page). Upgrade to Starter or higher to publish directly to your connected social channels.
+              </p>
+            </div>
+            <button type="button" onClick={() => setShowFreeBlocker(false)} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-4 h-4" /></button>
+          </div>
+          <a
+            href="/wallet"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
+          >
+            Upgrade to Starter — $29/mo
+          </a>
+        </div>
+      )}
 
       {showMultiPublish && (
         <MultiPublishModal
