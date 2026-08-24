@@ -39,7 +39,16 @@ import { DevicePreview } from '@/components/device-preview';
 import { api, apiClient, type AdminProvider, type AdminPublicContent, type AdminUser, type EnterpriseMetrics, type ForecastRow, type ModerationAction } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
-type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation' | 'api-keys';
+type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation' | 'api-keys' | 'ad-revenue';
+
+interface PlatformAdRevenueStats {
+  totalViews: number;
+  totalCreditsEarned: number;
+  totalCreditsPaid: number;
+  activeProjects: number;
+  cpmCredits: number;
+  minPayoutCredits: number;
+}
 
 interface SystemProviderHealth {
   name: string;
@@ -532,6 +541,10 @@ export default function AdminDashboardPage() {
   const [systemProviders, setSystemProviders] = useState<SystemProviderHealth[]>([]);
   const [sysProvidersLoading, setSysProvidersLoading] = useState(false);
   const [sysProvidersLoaded, setSysProvidersLoaded] = useState(false);
+  const [adRevenueStats, setAdRevenueStats] = useState<PlatformAdRevenueStats | null>(null);
+  const [adRevenueLoading, setAdRevenueLoading] = useState(false);
+  const [adRevenueDistributing, setAdRevenueDistributing] = useState(false);
+  const [adRevenueError, setAdRevenueError] = useState('');
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [error, setError] = useState('');
@@ -693,6 +706,34 @@ export default function AdminDashboardPage() {
     }
   }, [sysProvidersLoaded]);
 
+  const loadAdRevenue = useCallback(async () => {
+    setAdRevenueLoading(true);
+    setAdRevenueError('');
+    try {
+      const r = await apiClient.get<PlatformAdRevenueStats>('/projects/ad-revenue/platform-stats');
+      setAdRevenueStats(r.data);
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } } };
+      setAdRevenueError(ax.response?.data?.message ?? 'Failed to load ad revenue stats');
+    } finally {
+      setAdRevenueLoading(false);
+    }
+  }, []);
+
+  const distributeAdRevenue = async () => {
+    setAdRevenueDistributing(true);
+    setAdRevenueError('');
+    try {
+      await apiClient.post<{ paid: number; skipped: number }>('/projects/ad-revenue/distribute');
+      await loadAdRevenue();
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } } };
+      setAdRevenueError(ax.response?.data?.message ?? 'Distribution failed');
+    } finally {
+      setAdRevenueDistributing(false);
+    }
+  };
+
   const loadModeration = useCallback(async () => {
     setModLoading(true);
     try {
@@ -769,6 +810,7 @@ export default function AdminDashboardPage() {
             { id: 'ad-video',            label: 'Platform Ad',          icon: <Film className="w-4 h-4" /> },
             { id: 'moderation',          label: 'Content Moderation',   icon: <ShieldAlert className="w-4 h-4" /> },
             { id: 'api-keys',            label: 'API Keys & Providers',  icon: <Cpu className="w-4 h-4" /> },
+            { id: 'ad-revenue',          label: 'Ad Revenue',            icon: <DollarSign className="w-4 h-4" /> },
           ] as { id: AdminTab; label: string; icon: React.ReactNode }[]
         ).map(({ id, label, icon }) => (
           <button
@@ -780,6 +822,7 @@ export default function AdminDashboardPage() {
               if (id === 'ai-usage') void loadAiUsage();
               if (id === 'moderation') void loadModeration();
               if (id === 'api-keys') void loadSystemProviders();
+              if (id === 'ad-revenue') void loadAdRevenue();
             }}
             className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
             style={adminTab === id
@@ -1999,6 +2042,82 @@ export default function AdminDashboardPage() {
               <li>Return here and click <strong>Refresh</strong> to verify status</li>
             </ol>
           </div>
+        </div>
+      )}
+
+      {/* ── Ad Revenue tab ───────────────────────────────────────────────── */}
+      {adminTab === 'ad-revenue' && (
+        <div className="p-5 lg:p-7 max-w-4xl mx-auto space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Ad Revenue</h1>
+              <p className="text-sm text-gray-600 mt-0.5">Platform-wide Browse content monetisation — CPM-based credit distribution</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void loadAdRevenue()}
+                disabled={adRevenueLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-gray-600 transition-colors"
+                style={{ border: '1.5px solid #e3ddf8' }}
+              >
+                <RefreshCw className={`w-4 h-4 ${adRevenueLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() => void distributeAdRevenue()}
+                disabled={adRevenueDistributing || adRevenueLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-white transition-colors"
+                style={{ background: adRevenueDistributing ? '#d1d5db' : '#374151' }}
+              >
+                {adRevenueDistributing ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
+                Distribute Now
+              </button>
+            </div>
+          </div>
+
+          {adRevenueError && (
+            <div className="bg-red-50 text-red-600 text-sm rounded-2xl px-4 py-3" style={{ border: '1.5px solid #fecaca' }}>{adRevenueError}</div>
+          )}
+
+          {adRevenueLoading && !adRevenueStats ? (
+            <p className="text-sm text-gray-500 py-16 text-center">Loading ad revenue stats…</p>
+          ) : adRevenueStats ? (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatCard tone="lilac" icon={<Eye className="w-5 h-5" />}         label="Total Browse Views"     value={(adRevenueStats.totalViews).toLocaleString()}           sub="across all opted-in projects"    subClassName="text-gray-600" />
+                <StatCard tone="pink"  icon={<DollarSign className="w-5 h-5" />}  label="Credits Earned (total)" value={(adRevenueStats.totalCreditsEarned).toLocaleString()}   sub="earned since launch"             subClassName="text-gray-600" />
+                <StatCard tone="cream" icon={<Activity className="w-5 h-5" />}    label="Credits Paid Out"       value={(adRevenueStats.totalCreditsPaid).toLocaleString()}     sub="distributed to creator wallets"  subClassName="text-gray-600" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-2xl p-5 bg-white" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <p className="text-xs text-gray-500 mb-1">Active Projects</p>
+                  <p className="text-3xl font-extrabold text-gray-900">{adRevenueStats.activeProjects}</p>
+                  <p className="text-xs text-gray-400 mt-1">opted into Browse ad revenue</p>
+                </div>
+                <div className="rounded-2xl p-5 bg-white" style={{ border: '1.5px solid #e3ddf8' }}>
+                  <p className="text-xs text-gray-500 mb-1">CPM Rate</p>
+                  <p className="text-3xl font-extrabold text-[#9d6ff0]">{adRevenueStats.cpmCredits}</p>
+                  <p className="text-xs text-gray-400 mt-1">credits per 1,000 views (env: AD_REVENUE_CPM_CREDITS)</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl p-5 bg-[#f9f8ff]" style={{ border: '1.5px solid #e3ddf8' }}>
+                <h3 className="text-sm font-bold text-gray-800 mb-3">How it works</h3>
+                <ul className="text-xs text-gray-600 space-y-1.5 list-disc list-inside">
+                  <li>Creators opt individual projects into Browse ad revenue from their project page.</li>
+                  <li>Every view on the public Browse page increments that project&apos;s view counter.</li>
+                  <li>Daily payout: <strong>{adRevenueStats.cpmCredits} credits per 1,000 views</strong> is added to the creator&apos;s bonus credit wallet.</li>
+                  <li>Minimum payout threshold: <strong>{adRevenueStats.minPayoutCredits} credits</strong>. Below this, credits accumulate to the next cycle.</li>
+                  <li><strong>Distribute Now</strong> triggers an immediate payout for all eligible projects (admin only).</li>
+                </ul>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500 py-8 text-center">Click Refresh to load platform ad revenue stats.</p>
+          )}
         </div>
       )}
     </div>

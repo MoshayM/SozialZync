@@ -19,6 +19,16 @@ import { usePlanGate, isAdminRole, planAtLeast } from '@/components/plan-gate';
 
 type PageTab = 'pipeline' | 'script' | 'storyboard' | 'seo' | 'checks';
 
+interface AdRevenueProjectStats {
+  projectId: string;
+  title: string;
+  viewCount: number;
+  adRevenueCredits: number;
+  adRevenuePaidOut: number;
+  adRevenueEnabled: boolean;
+  estimatedCpmCredits: number;
+}
+
 // ─── Storyboard Types ─────────────────────────────────────────────────────────
 
 interface Scene {
@@ -1624,6 +1634,8 @@ export default function ProjectDetailPage() {
 
       <PublishFromRenderPanel projectId={id} />
 
+      <AdRevenuePanel projectId={id} />
+
       {/* Full Job History — section collapses to one clickable bar */}
       <div className="bg-white border border-gray-200 rounded-xl">
         <div
@@ -1843,6 +1855,100 @@ export default function ProjectDetailPage() {
         )}
       </div>
       </> /* end pipeline tab */}
+    </div>
+  );
+}
+
+// ─── Ad Revenue Panel ─────────────────────────────────────────────────────────
+
+function AdRevenuePanel({ projectId }: { projectId: string }) {
+  const [stats, setStats] = useState<AdRevenueProjectStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await apiClient.get<AdRevenueProjectStats[]>('/projects/ad-revenue/stats');
+      const found = r.data.find((s) => s.projectId === projectId);
+      if (found) setStats(found);
+    } catch { /* non-critical */ }
+    finally { setLoading(false); }
+  }, [projectId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const toggle = async () => {
+    if (!stats) return;
+    setToggling(true);
+    setError('');
+    try {
+      const action = stats.adRevenueEnabled ? 'disable' : 'enable';
+      await apiClient.post(`/projects/${projectId}/ad-revenue/${action}`);
+      setStats((s) => s ? { ...s, adRevenueEnabled: !s.adRevenueEnabled } : s);
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } } };
+      setError(ax.response?.data?.message ?? 'Toggle failed');
+    } finally { setToggling(false); }
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="mt-4 rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+      <div className="px-5 py-4 flex items-center justify-between"
+           style={{ background: 'linear-gradient(135deg, #faf9ff 0%, #f3f4f6 100%)' }}>
+        <div className="flex items-center gap-2">
+          <Award className="w-4 h-4 text-[#9d6ff0]" />
+          <span className="text-sm font-bold text-gray-900">Ad Revenue</span>
+          {stats?.adRevenueEnabled && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Active</span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => void toggle()}
+          disabled={toggling}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+          style={stats?.adRevenueEnabled
+            ? { background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }
+            : { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }
+          }
+        >
+          {toggling ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+          {stats?.adRevenueEnabled ? 'Disable' : 'Enable for Browse'}
+        </button>
+      </div>
+
+      {stats && (
+        <div className="px-5 py-3 grid grid-cols-3 gap-4 bg-white">
+          <div className="text-center">
+            <p className="text-xs text-gray-500 mb-0.5">Views</p>
+            <p className="text-base font-bold text-gray-900">{(stats.viewCount ?? 0).toLocaleString()}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-500 mb-0.5">Pending Credits</p>
+            <p className="text-base font-bold text-[#9d6ff0]">{(stats.adRevenueCredits ?? 0).toLocaleString()}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-500 mb-0.5">Paid Out</p>
+            <p className="text-base font-bold text-gray-700">{(stats.adRevenuePaidOut ?? 0).toLocaleString()}</p>
+          </div>
+        </div>
+      )}
+
+      {!stats && !loading && (
+        <div className="px-5 py-3 bg-white">
+          <p className="text-xs text-gray-500">
+            Enable ad revenue to earn credits when your content is viewed on the public Browse page. Credits are distributed daily (50 credits per 1,000 views).
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="px-5 py-2 bg-red-50 text-red-600 text-xs">{error}</div>
+      )}
     </div>
   );
 }
