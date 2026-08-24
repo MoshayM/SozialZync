@@ -37,6 +37,7 @@ if (!process.env['REDIS_URL']) {
 }
 
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -79,7 +80,7 @@ async function bootstrap() {
   // signature verification runs over the exact bytes Stripe sent, not a
   // re-serialized JSON body. Without this flag req.rawBody is undefined and
   // every webhook fails verification.
-  const app = await NestFactory.create(AppModule, { logger: new StructuredLogger(), rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: new StructuredLogger(), rawBody: true });
 
   // Trust Railway's reverse proxy (100.64.0.0/10 — RFC 6598 Shared Address Space)
   // so req.ip resolves to the real client IP from X-Forwarded-For rather than the
