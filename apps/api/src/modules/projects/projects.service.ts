@@ -57,16 +57,28 @@ export class ProjectsService {
 
   async list(userId: string, opts: { cursor?: string; limit?: number } = {}) {
     const take = clampLimit(opts.limit, 50, 100);
-    const rows = await this.prisma.project.findMany({
-      where: { userId, ...keysetWhereDesc('updatedAt', decodeCursor(opts.cursor)) },
-      include: {
-        channel: { select: { title: true, thumbnailUrl: true } },
-        _count: { select: { jobs: true, videos: true } },
-      },
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      take: take + 1,
-    });
-    return pageResult(rows, take, (r) => r.updatedAt);
+    const include = {
+      channel: { select: { title: true, thumbnailUrl: true } },
+      _count: { select: { jobs: true, videos: true } },
+    };
+    // Fetch user's own projects (paginated) and demo projects (always shown) in parallel
+    const [userRows, demoRows] = await Promise.all([
+      this.prisma.project.findMany({
+        where: { userId, ...keysetWhereDesc('updatedAt', decodeCursor(opts.cursor)) },
+        include,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        take: take + 1,
+      }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- isDemo pending Prisma client regen after migration
+      (this.prisma.project as any).findMany({
+        where: { isDemo: true },
+        include,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      }) as Promise<typeof userRows>,
+    ]);
+    // Demo projects appear first (pinned), then the user's own projects paginated
+    const merged = [...demoRows, ...userRows];
+    return pageResult(merged.slice(0, take + 1), take, (r) => r.updatedAt);
   }
 
   async get(userId: string, projectId: string) {
