@@ -570,6 +570,7 @@ function FeedView({
 
 export default function BrowsePage() {
   const demoProjects = useDemoProjects();
+  const [authChecked, setAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -614,6 +615,7 @@ export default function BrowsePage() {
       const hist = localStorage.getItem('cf_search_history');
       if (hist) setSearchHistory(JSON.parse(hist) as string[]);
     } catch { /* guest */ }
+    setAuthChecked(true);
     setVoiceSupported(
       typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window),
     );
@@ -948,9 +950,9 @@ export default function BrowsePage() {
                 )}
               </div>
             </>
-          ) : (
+          ) : authChecked ? (
             <>
-              <Link href="/login"
+              <Link href="/login?from=app"
                 className="px-3.5 py-1.5 text-[13px] font-semibold text-gray-700 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors hidden sm:flex">
                 Sign In
               </Link>
@@ -960,6 +962,8 @@ export default function BrowsePage() {
                 Start Creating
               </Link>
             </>
+          ) : (
+            <div className="w-24 h-8" />
           )}
         </div>
       </header>
@@ -1068,7 +1072,9 @@ export default function BrowsePage() {
         {/* ── Main ──────────────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-5 space-y-8">
 
-          <DemoFeatured projects={demoProjects} onOpenFeed={(item) => { const idx = feedItems.findIndex(f => f.id === item.id); setFeedStartIdx(idx >= 0 ? idx : 0); setFeedOpen(true); }} />
+          {authChecked && !isLoggedIn && (
+            <DemoFeatured projects={demoProjects} onOpenFeed={(item) => { const idx = feedItems.findIndex(f => f.id === item.id); setFeedStartIdx(idx >= 0 ? idx : 0); setFeedOpen(true); }} />
+          )}
 
           <section key={fadeKey} style={{ animation:'fadeIn 0.2s ease-out' }}>
             <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
