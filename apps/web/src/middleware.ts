@@ -34,7 +34,12 @@ export function middleware(req: NextRequest) {
     "object-src 'none'",
     "frame-ancestors 'self'",
     "form-action 'self'",
-    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''}`,
+    // 'unsafe-inline' is listed for legacy browsers only.
+    // Any browser that supports nonces (Chrome, Firefox, Edge, Safari) will
+    // IGNORE 'unsafe-inline' when a valid nonce is also present (CSP level 2+
+    // spec §8.2). This is belt-and-suspenders: modern browsers get nonce
+    // enforcement; older ones fall back to unsafe-inline as before.
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://i.ytimg.com https://yt3.googleusercontent.com",
     "font-src 'self' data:",

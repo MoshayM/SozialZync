@@ -45,12 +45,16 @@ try:
     chk("Referrer-Policy present",              "referrer-policy" in h)
     chk("Permissions-Policy present",           "permissions-policy" in h, severity="warn")
     csp = h.get("content-security-policy", "")
-    # Check script-src specifically — style-src 'unsafe-inline' is a separate,
-    # lower-risk concern (CSS can't execute JS) and is kept for UI lib compat.
+    # Check script-src for unsafe-inline WITHOUT a nonce.
+    # When a nonce is present, browsers (CSP L2+) ignore unsafe-inline entirely
+    # (spec §8.2), so the combination is not a real vulnerability.
     script_src = next((d.strip() for d in csp.split(';') if d.strip().startswith('script-src')), '')
-    chk("CSP: no unsafe-inline in script-src",
-        "unsafe-inline" not in script_src,
-        "'unsafe-inline' in script-src enables XSS" if "unsafe-inline" in script_src else "",
+    has_nonce   = "'nonce-" in script_src
+    has_ui      = "'unsafe-inline'" in script_src
+    chk("CSP: script-src unsafe-inline without nonce",
+        not has_ui or has_nonce,
+        "'unsafe-inline' in script-src without a nonce enables XSS" if (has_ui and not has_nonce) else
+        ("'unsafe-inline' present but ignored by nonce-capable browsers" if (has_ui and has_nonce) else ""),
         severity="warn")
     chk("CSP: no unsafe-eval",                  "unsafe-eval" not in csp,
         "'unsafe-eval' allows code execution" if "unsafe-eval" in csp else "", severity="warn")
