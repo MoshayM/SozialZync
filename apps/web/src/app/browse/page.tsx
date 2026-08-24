@@ -1,122 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { LogoMark } from '@/components/logo-mark';
 import {
   Search, Bell, Menu, X, ChevronRight, Play, History, Plus, Film, Scissors,
   ImageIcon, Grid3X3, LayoutList, SlidersHorizontal, ChevronDown, ChevronUp,
   Heart, MessageCircle, TrendingUp, Eye, EyeOff, Trash2, Share2, Settings,
-  LogOut, Bookmark, Sparkles, Clock, Mic,
+  LogOut, Bookmark, Clock, Mic,
 } from 'lucide-react';
-
-// ── Demo projects (from API) ───────────────────────────────────────────────────
-
-interface DemoProject {
-  id: string; title: string; description?: string | null;
-  contentFormat?: string | null; niche?: string | null;
-  updatedAt: string;
-  channel?: { title: string; thumbnailUrl?: string | null } | null;
-  videos?: Array<{ id: string; title?: string | null; duration?: number | null; thumbnailUrl?: string | null; videoUrl?: string | null }>;
-}
-
-function useDemoProjects(): DemoProject[] {
-  const [projects, setProjects] = useState<DemoProject[]>([]);
-  useEffect(() => {
-    const base = typeof window !== 'undefined' ? '/api/proxy' : (process.env['NEXT_PUBLIC_API_URL'] ?? '');
-    fetch(`${base}/projects/browse?limit=6`)
-      .then(r => r.ok ? r.json() as Promise<DemoProject[]> : Promise.resolve([]))
-      .then(data => { if (Array.isArray(data)) setProjects(data); })
-      .catch(() => { /* silently skip */ });
-  }, []);
-  return projects;
-}
-
-function trackProjectView(projectId: string) {
-  fetch('/api/proxy/projects/browse/' + projectId + '/view', { method: 'POST' }).catch(() => undefined);
-}
-
-function DemoFeatured({ projects, onOpenFeed }: {
-  projects: DemoProject[];
-  onOpenFeed: (item: FeedItem) => void;
-}) {
-  if (projects.length === 0) return null;
-
-  const gradients = [
-    'linear-gradient(135deg,#0c1445,#1e3a8a)',
-    'linear-gradient(135deg,#1a0845,#4c1d95)',
-    'linear-gradient(135deg,#0a2a1a,#065f46)',
-  ];
-
-  function fmtDuration(secs?: number | null): string {
-    if (!secs) return '12:00';
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-  }
-
-  return (
-    <section className="mb-8">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-white text-[11px] font-bold" style={{ background: 'linear-gradient(135deg,#374151,#111827)' }}>
-          <Sparkles className="w-3 h-3" />
-          Featured by SozialZynk
-        </div>
-        <span className="text-[11px] text-gray-400 font-medium">Platform showcase · Public</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {projects.map((p, i) => {
-          const gi = i % gradients.length;
-          const firstVideo = p.videos?.[0];
-          const duration = fmtDuration(firstVideo?.duration ?? (p.contentFormat === 'DOCUMENTARY' ? 720 : undefined));
-          const feedItem: FeedItem = { id: p.id, title: p.title, creator: '@SozialZynk', gi, duration, kind: 'video', views: '—', likes: '—' };
-          return (
-            <div
-              key={p.id}
-              className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer"
-              onClick={() => { trackProjectView(p.id); onOpenFeed(feedItem); }}
-            >
-              <div className="relative w-full h-44 overflow-hidden" style={{ background: gradients[gi] }}>
-                {firstVideo?.thumbnailUrl ? (
-                  <img src={firstVideo.thumbnailUrl} alt={p.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4">
-                    <div className="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center">
-                      <Play className="w-6 h-6 text-white fill-white translate-x-0.5" />
-                    </div>
-                    <p className="text-white/70 text-[11px] font-medium text-center line-clamp-2">{p.title}</p>
-                  </div>
-                )}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-                  <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Play className="w-7 h-7 text-white fill-white translate-x-0.5" />
-                  </div>
-                </div>
-                <span className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">{duration}</span>
-                <span className="absolute top-2 left-2 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" />AD
-                </span>
-              </div>
-              <div className="p-3.5">
-                <p className="text-[13px] font-bold text-gray-900 line-clamp-2 leading-snug mb-1.5">{p.title}</p>
-                {p.description && <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed mb-2">{p.description}</p>}
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
-                    <Clock className="w-3 h-3" />{duration}
-                  </span>
-                  {p.niche && (
-                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">{p.niche}</span>
-                  )}
-                  <span className="text-[10px] text-gray-400 ml-auto">@SozialZynk</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
 
 // ── Gradients ─────────────────────────────────────────────────────────────────
 
@@ -569,7 +461,6 @@ function FeedView({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function BrowsePage() {
-  const demoProjects = useDemoProjects();
   const [authChecked, setAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
@@ -603,7 +494,9 @@ export default function BrowsePage() {
   const accountRef = useRef<HTMLDivElement>(null);
   const searchRef  = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  // useLayoutEffect fires synchronously before the browser paints → eliminates
+  // the auth state flash (guest UI briefly visible before logged-in UI) on mobile.
+  useLayoutEffect(() => {
     try {
       const token = localStorage.getItem('cf_token');
       if (token) {
@@ -759,7 +652,7 @@ export default function BrowsePage() {
   })();
 
   return (
-    <div className="min-h-screen bg-[#f7f7f8] flex flex-col" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+    <div className={`min-h-screen bg-[#f7f7f8] flex flex-col${authChecked && !isLoggedIn ? ' pb-14 sm:pb-16' : ''}`} style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
 
       {/* ── Header ────────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm h-14 flex items-center px-4 gap-3">
@@ -950,20 +843,15 @@ export default function BrowsePage() {
                 )}
               </div>
             </>
-          ) : authChecked ? (
-            <>
-              <Link href="/login?from=app"
-                className="px-3.5 py-1.5 text-[13px] font-semibold text-gray-700 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors hidden sm:flex">
-                Sign In
-              </Link>
-              <Link href="/become-creator"
-                className="px-3.5 py-1.5 text-[13px] font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-95"
-                style={{ background:'linear-gradient(135deg,#374151,#111827)' }}>
-                Start Creating
-              </Link>
-            </>
           ) : (
-            <div className="w-24 h-8" />
+            <Link href="/login?from=app"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              aria-label="Sign in"
+            >
+              <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </Link>
           )}
         </div>
       </header>
@@ -1072,9 +960,40 @@ export default function BrowsePage() {
         {/* ── Main ──────────────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-5 space-y-8">
 
-          {authChecked && !isLoggedIn && (
-            <DemoFeatured projects={demoProjects} onOpenFeed={(item) => { const idx = feedItems.findIndex(f => f.id === item.id); setFeedStartIdx(idx >= 0 ? idx : 0); setFeedOpen(true); }} />
-          )}
+          {/* ── Sponsored / Ad Videos ─────────────────────────────────────────── */}
+          <section className="mb-2">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-2 py-0.5 bg-gray-100 rounded-full">Sponsored</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {([
+                { gi:0, title:'Grow your YouTube channel 10x faster with AI', label:'SozialZynk Pro', duration:'2:30', tag:'AI Tools' },
+                { gi:1, title:'How top creators monetize in 2025 — the playbook', label:'Creator Academy', duration:'8:15', tag:'Monetization' },
+                { gi:2, title:'Zero to 100K subscribers: step-by-step blueprint', label:'CreatorForce', duration:'12:00', tag:'Growth' },
+              ] as { gi:number; title:string; label:string; duration:string; tag:string }[]).map((ad, i) => (
+                <Link
+                  key={i}
+                  href="/become-creator"
+                  className="group relative rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer block"
+                >
+                  <div className="relative h-36" style={{ background: ['linear-gradient(135deg,#0c1445,#1e3a8a)','linear-gradient(135deg,#1a0845,#4c1d95)','linear-gradient(135deg,#0a2a1a,#065f46)'][ad.gi] }}>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                      </div>
+                    </div>
+                    <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{ad.duration}</span>
+                    <span className="absolute top-2 left-2 bg-amber-400/90 text-amber-900 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">Ad</span>
+                  </div>
+                  <div className="bg-white p-3">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{ad.tag}</span>
+                    <p className="text-[12px] font-semibold text-gray-900 leading-snug mt-0.5 line-clamp-2">{ad.title}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{ad.label}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           <section key={fadeKey} style={{ animation:'fadeIn 0.2s ease-out' }}>
             <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
@@ -1416,6 +1335,34 @@ export default function BrowsePage() {
           startIndex={feedStartIdx}
           onClose={() => setFeedOpen(false)}
         />
+      )}
+
+      {/* ── Guest bottom CTA bar ─────────────────────────────────────────────── */}
+      {authChecked && !isLoggedIn && (
+        <div
+          className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5"
+          style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-[13px] font-bold leading-tight truncate">Join SozialZynk as a Creator</p>
+            <p className="text-white/50 text-[11px] leading-tight hidden sm:block">Publish, grow & monetize your content with AI.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/login?from=app"
+              className="px-3.5 py-1.5 text-[12px] font-semibold text-white/80 border border-white/20 rounded-full hover:border-white/40 hover:text-white transition-colors"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/become-creator"
+              className="px-3.5 py-1.5 text-[12px] font-bold rounded-full text-gray-900 transition-all hover:opacity-90 active:scale-95"
+              style={{ background: 'linear-gradient(135deg,#f0f9ff,#e0f2fe)' }}
+            >
+              Start Creating
+            </Link>
+          </div>
+        </div>
       )}
     </div>
   );
