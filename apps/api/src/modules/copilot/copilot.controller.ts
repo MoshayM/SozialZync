@@ -3,7 +3,8 @@ import {
   UseInterceptors, UploadedFile, Query, Param, NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CopilotChatRequestSchema } from '@cf/shared';
+import { z } from 'zod';
+import { CopilotChatRequestSchema, CopilotMessageSchema } from '@cf/shared';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
@@ -11,6 +12,13 @@ import { CopilotService } from './copilot.service';
 import { SpeechService } from './speech.service';
 import { PlanExecutorService } from './plan-executor.service';
 import { CopilotHistoryService } from './copilot-history.service';
+
+const SaveHistorySchema = z.object({
+  sessionId: z.string().min(1).max(128),
+  title: z.string().max(120).default(''),
+  // Max 100 messages per session; each message content capped by CopilotMessageSchema (4 000 chars)
+  messages: z.array(CopilotMessageSchema).max(100).default([]),
+});
 
 @Controller('copilot')
 @UseGuards(JwtAuthGuard)
@@ -77,18 +85,15 @@ export class CopilotController {
   /** Upsert a copilot session (called after each assistant turn). */
   @Post('history')
   saveHistory(@Body() body: unknown, @CurrentUser() user: JwtPayload) {
-    const b = body as Record<string, unknown>;
-    const sessionId = b['sessionId'];
-    const title = b['title'];
-    const messages = b['messages'];
-    if (!sessionId || typeof sessionId !== 'string') {
-      throw new BadRequestException('sessionId required');
+    const parsed = SaveHistorySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.issues[0]?.message ?? 'Invalid history payload');
     }
     this.historyService.upsert(
       user.sub,
-      sessionId,
-      String(title ?? '').slice(0, 120),
-      Array.isArray(messages) ? messages : [],
+      parsed.data.sessionId,
+      parsed.data.title,
+      parsed.data.messages,
     );
     return { ok: true };
   }

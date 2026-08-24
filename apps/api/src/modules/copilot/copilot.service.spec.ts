@@ -41,6 +41,7 @@ function makeService(): CopilotService {
     noop, // benchmarkService
     noop, // planExecutor
     noop, // sessionMemory
+    noop, // guardrails
   );
 }
 
