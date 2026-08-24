@@ -652,7 +652,7 @@ export default function BrowsePage() {
   })();
 
   return (
-    <div className={`min-h-screen bg-[#f7f7f8] flex flex-col${authChecked && !isLoggedIn ? ' pb-14 sm:pb-16' : ''}`} style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+    <div className="min-h-screen bg-[#f7f7f8] flex flex-col" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
 
       {/* ── Header ────────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm h-14 flex items-center px-4 gap-3">
@@ -844,14 +844,26 @@ export default function BrowsePage() {
               </div>
             </>
           ) : (
-            <Link href="/login?from=app"
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-              aria-label="Sign in"
-            >
-              <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-            </Link>
+            <>
+              {/* Create icon — opens become-creator flow */}
+              <Link href="/become-creator"
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Start creating"
+                title="Start Creating"
+              >
+                <Plus className="w-[18px] h-[18px] text-gray-600" />
+              </Link>
+              {/* Account / login icon */}
+              <Link href="/login?from=app"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                aria-label="Sign in"
+                title="Sign In"
+              >
+                <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+              </Link>
+            </>
           )}
         </div>
       </header>
@@ -1337,33 +1349,6 @@ export default function BrowsePage() {
         />
       )}
 
-      {/* ── Guest bottom CTA bar ─────────────────────────────────────────────── */}
-      {authChecked && !isLoggedIn && (
-        <div
-          className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5"
-          style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-[13px] font-bold leading-tight truncate">Join SozialZynk as a Creator</p>
-            <p className="text-white/50 text-[11px] leading-tight hidden sm:block">Publish, grow & monetize your content with AI.</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/login?from=app"
-              className="px-3.5 py-1.5 text-[12px] font-semibold text-white/80 border border-white/20 rounded-full hover:border-white/40 hover:text-white transition-colors"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/become-creator"
-              className="px-3.5 py-1.5 text-[12px] font-bold rounded-full text-gray-900 transition-all hover:opacity-90 active:scale-95"
-              style={{ background: 'linear-gradient(135deg,#f0f9ff,#e0f2fe)' }}
-            >
-              Start Creating
-            </Link>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
