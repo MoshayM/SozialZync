@@ -22,7 +22,9 @@ Content You Create: Scripts, captions, thumbnails, AI-generated characters, avat
 
 Platform Connection Data: When you connect your YouTube account or other social accounts, we store OAuth access tokens and refresh tokens to publish content and retrieve analytics on your behalf. We request only the minimum OAuth scopes necessary for the features you use. You can revoke access at any time from your settings.
 
-Payment Data: If you subscribe to a paid plan, payment details are processed and stored by Stripe. We only store your subscription status, plan tier, and Stripe customer ID — never your raw card details.`,
+Payment Data: If you subscribe to a paid plan, payment details are processed and stored by Stripe. We only store your subscription status, plan tier, and Stripe customer ID — never your raw card details.
+
+Browse & Ad Revenue Data: When your project is published to the SozialZynk Browse feed and you have enabled ad revenue, we count page view impressions against your project. View counts are stored per project and are used solely to calculate your ad revenue credit payouts. We do not collect or store visitor identities for Browse views — impression counting is anonymous.`,
   },
   {
     id: 'how-we-use',
@@ -87,9 +89,11 @@ To exercise any of these rights, email privacy@sozialzync.com. We will respond w
 • Session cookies to keep you logged in during a browsing session.
 • Preference cookies to remember settings such as your selected theme or language.
 
-We do not use advertising cookies, third-party tracking pixels, or behavioral analytics tools. We do not serve ads and have no advertising partners.
+We do not use advertising cookies, third-party tracking pixels, or behavioral analytics tools.
 
-You can disable cookies in your browser settings, but this may prevent certain features from working correctly.`,
+You can disable cookies in your browser settings, but this may prevent certain features from working correctly.
+
+SozialZynk operates an internal ad revenue programme for creators (Pro plan). This programme counts anonymous Browse page impressions to calculate creator credit payouts. It does not use tracking cookies, third-party ad networks, or behavioral profiles.`,
   },
   {
     id: 'childrens-privacy',
@@ -155,7 +159,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="text-white/65 text-base">
-            Effective date: <strong className="text-white/85">August 7, 2026</strong>
+            Effective date: <strong className="text-white/85">August 24, 2026</strong>
           </p>
         </div>
       </div>
@@ -167,7 +171,7 @@ export default function PrivacyPage() {
           <p className="text-gray-600 leading-relaxed">
             Sozialzynk (&ldquo;we&rdquo;, &ldquo;our&rdquo;, &ldquo;us&rdquo;) is committed to protecting your privacy.
             This Privacy Policy explains how we collect, use, share, and protect your personal information
-            when you use our AI-powered YouTube Content Operating System. Please read it carefully.
+            when you use our AI-powered social content creation platform. Please read it carefully.
           </p>
         </div>
 
@@ -191,7 +195,7 @@ export default function PrivacyPage() {
 
         {/* Footer */}
         <div className="mt-10 text-center text-sm text-gray-400 space-y-2">
-          <p>Last updated: August 7, 2026</p>
+          <p>Last updated: August 24, 2026</p>
           <p>
             Also read our{' '}
             <Link href="/terms" className="text-[#374151] hover:underline font-medium">

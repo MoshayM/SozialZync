@@ -4,7 +4,7 @@ import {
   Film, Scissors, FolderOpen, HelpCircle, Plus, Wand2,
   CheckCircle2, Zap, Lightbulb, Upload, Link2, Youtube,
   BarChart3, ArrowRight, Bot, Sparkles, Mic, FlaskConical,
-  CalendarClock, Users, Image, Music, ShieldCheck, BookOpen,
+  CalendarClock, Users, Image, Music, ShieldCheck, BookOpen, Award,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -48,12 +48,14 @@ const PUBLISH_STEPS: Step[] = [
   { icon: FlaskConical,  title: 'Run A/B Tests',              desc: 'Select a live video, enter two alternative titles or upload two thumbnail variants, and let the platform split-test them over 48 hours. The winning variant is automatically promoted.', tip: 'A/B Testing is available on Pro and Agency plans.' },
   { icon: Sparkles,      title: 'Enable Autopilot',           desc: 'Toggle Autopilot on to let the AI handle the full publish pipeline — research, script, compliance check, voice, thumbnail, and scheduling — without manual approval steps.' },
   { icon: BarChart3,     title: 'Track performance',          desc: 'After publishing, head to Insights Hub → Analytics to monitor views, watch time, CTR, and subscriber growth. The AI surfaces patterns and suggests your next topic.' },
+  { icon: Award,         title: 'Earn ad revenue (Pro)',      desc: 'On Pro plan, enable Ad Revenue for any published project from the project page. SozialZynk pays 50 credits per 1,000 Browse page views — credited daily to your wallet. Track earnings in Home → Ad Revenue card.', tip: 'Ad revenue is available on Pro and Agency plans. Upgrade in Wallet → Plans.' },
 ];
 
 const PRO_TIPS = [
-  { icon: Zap,          title: 'Weekly planning in seconds',  desc: 'Say "Plan my YouTube content for this week" — Copilot creates a full 7-day schedule, complete with scripts, thumbnails, and voice narrations.' },
+  { icon: Zap,          title: 'Weekly planning in seconds',  desc: 'Say "Plan my content for this week" — Copilot creates a full 7-day schedule, complete with scripts, thumbnails, and voice narrations.' },
   { icon: FlaskConical, title: 'A/B test every new video',    desc: 'Even a 0.5% lift in CTR compounds over a year. Set up an A/B test immediately after publishing — the Publish Hub picks the winner after 48 hours.' },
   { icon: BarChart3,    title: 'Check Insights weekly',       desc: 'The Insights page shows which formats, posting times, and topics drive the most views. Feed this back into your next Copilot planning session.' },
+  { icon: Award,        title: 'Turn views into credits',     desc: 'Enable ad revenue on your best projects. Every 1,000 Browse views earns 50 credits — deposited daily. Check your Home dashboard for the Ad Revenue card.' },
 ];
 
 const QUICK_ACTIONS = [
