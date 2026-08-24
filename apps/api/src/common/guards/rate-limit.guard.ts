@@ -65,13 +65,28 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
   private available = true;
 
   constructor(private readonly reflector: Reflector) {
-    this.redis = new Redis({
-      host: process.env['REDIS_HOST'] ?? '127.0.0.1',
-      port: Number(process.env['REDIS_PORT'] ?? 6379),
-      lazyConnect: true,
-      enableOfflineQueue: false,
-      maxRetriesPerRequest: 1,
-    });
+    // Prefer REDIS_URL (Railway / most PaaS) over individual REDIS_HOST+REDIS_PORT
+    const redisUrl = process.env['REDIS_URL'];
+    if (redisUrl) {
+      const u = new URL(redisUrl);
+      this.redis = new Redis({
+        host: u.hostname,
+        port: u.port ? parseInt(u.port, 10) : 6379,
+        ...(u.password ? { password: u.password } : {}),
+        ...(u.protocol === 'rediss:' ? { tls: {} } : {}),
+        lazyConnect: true,
+        enableOfflineQueue: false,
+        maxRetriesPerRequest: 1,
+      });
+    } else {
+      this.redis = new Redis({
+        host: process.env['REDIS_HOST'] ?? '127.0.0.1',
+        port: Number(process.env['REDIS_PORT'] ?? 6379),
+        lazyConnect: true,
+        enableOfflineQueue: false,
+        maxRetriesPerRequest: 1,
+      });
+    }
     this.redis.on('error', () => { this.available = false; });
     this.redis.on('ready', () => { this.available = true; });
   }
