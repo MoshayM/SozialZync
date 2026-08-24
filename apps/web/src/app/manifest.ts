@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Sozialzynk — YouTube Content OS',
     short_name: 'Sozialzynk',
     description: 'AI-powered YouTube Content Operating System. Create, grow and publish with AI — research to viral shorts.',
-    start_url: '/home',
+    start_url: '/browse',
     scope: '/',
     display: 'standalone',
     display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
