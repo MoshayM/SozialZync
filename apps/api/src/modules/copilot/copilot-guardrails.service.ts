@@ -226,7 +226,7 @@ export class CopilotGuardrailsService {
             snippet: snippet.slice(0, 200),
             violationCount: count,
             escalated,
-          } as never,
+          } as never, // @reason: Prisma Json field requires unknown-typed object; typed object literal is narrower than JsonValue
         },
       });
     } catch (err) {

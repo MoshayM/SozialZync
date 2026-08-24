@@ -1,46 +1,56 @@
-import { Injectable } from '@nestjs/common';
-
-interface SessionEntry {
-  title: string;
-  messages: unknown[];
-  updatedAt: string;
-}
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 const MAX_SESSIONS_PER_USER = 20;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class CopilotHistoryService {
-  private readonly store = new Map<string, Map<string, SessionEntry>>();
+  private readonly logger = new Logger(CopilotHistoryService.name);
 
-  upsert(userId: string, sessionId: string, title: string, messages: unknown[]): void {
-    if (!this.store.has(userId)) this.store.set(userId, new Map());
-    const userSessions = this.store.get(userId)!;
-    userSessions.set(sessionId, { title, messages, updatedAt: new Date().toISOString() });
-    this.prune(userSessions);
+  constructor(private readonly prisma: PrismaService) {}
+
+  async upsert(userId: string, sessionId: string, title: string, messages: unknown[]): Promise<void> {
+    await this.prisma.copilotChatSession.upsert({
+      where: { userId_sessionId: { userId, sessionId } },
+      create: { userId, sessionId, title, messages: messages as never }, // @reason: Prisma Json field
+      update: { title, messages: messages as never }, // @reason: Prisma Json field
+    });
+    await this.pruneOldSessions(userId);
   }
 
-  list(userId: string): { id: string; title: string; messages: unknown[]; updatedAt: string }[] {
-    const userSessions = this.store.get(userId);
-    if (!userSessions) return [];
-    const cutoff = new Date(Date.now() - THIRTY_DAYS_MS).toISOString();
-    return Array.from(userSessions.entries())
-      .filter(([, s]) => s.updatedAt >= cutoff)
-      .map(([id, s]) => ({ id, title: s.title, messages: s.messages, updatedAt: s.updatedAt }))
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      .slice(0, MAX_SESSIONS_PER_USER);
+  async list(userId: string): Promise<{ id: string; title: string; messages: unknown[]; updatedAt: string }[]> {
+    const cutoff = new Date(Date.now() - THIRTY_DAYS_MS);
+    const rows = await this.prisma.copilotChatSession.findMany({
+      where: { userId, updatedAt: { gte: cutoff } },
+      orderBy: { updatedAt: 'desc' },
+      take: MAX_SESSIONS_PER_USER,
+    });
+    return rows.map((r) => ({
+      id: r.sessionId,
+      title: r.title,
+      messages: r.messages as unknown[],
+      updatedAt: r.updatedAt.toISOString(),
+    }));
   }
 
-  private prune(sessions: Map<string, SessionEntry>): void {
-    const cutoff = new Date(Date.now() - THIRTY_DAYS_MS).toISOString();
-    for (const [id, s] of sessions.entries()) {
-      if (s.updatedAt < cutoff) sessions.delete(id);
-    }
-    if (sessions.size > MAX_SESSIONS_PER_USER) {
-      const sorted = Array.from(sessions.entries()).sort((a, b) =>
-        a[1].updatedAt.localeCompare(b[1].updatedAt),
-      );
-      sorted.slice(0, sessions.size - MAX_SESSIONS_PER_USER).forEach(([id]) => sessions.delete(id));
+  private async pruneOldSessions(userId: string): Promise<void> {
+    try {
+      const cutoff = new Date(Date.now() - THIRTY_DAYS_MS);
+      await this.prisma.copilotChatSession.deleteMany({
+        where: { userId, updatedAt: { lt: cutoff } },
+      });
+      const rows = await this.prisma.copilotChatSession.findMany({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true },
+      });
+      if (rows.length > MAX_SESSIONS_PER_USER) {
+        const toDelete = rows.slice(MAX_SESSIONS_PER_USER).map((r) => r.id);
+        await this.prisma.copilotChatSession.deleteMany({ where: { id: { in: toDelete } } });
+      }
+    } catch (err) {
+      this.logger.warn(`[history] prune failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 }

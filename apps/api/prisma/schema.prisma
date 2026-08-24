@@ -1689,6 +1689,21 @@ model CopilotSessionMemory {
   @@map("copilot_sessions")
 }
 
+// Chat session history — persisted via Prisma so data survives restarts/replicas.
+// Max 20 sessions per user enforced at application layer.
+model CopilotChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  sessionId String
+  title     String   @default("")
+  messages  Json     @default("[]")
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, sessionId])
+  @@index([userId, updatedAt])
+  @@map("copilot_chat_sessions")
+}
+
 // Spoken-command history — powers the transcript chips and future undo (§14).
 model VoiceCommand {
   id             String   @id @default(cuid())

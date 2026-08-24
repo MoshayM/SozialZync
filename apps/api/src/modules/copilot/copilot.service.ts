@@ -366,6 +366,9 @@ export class CopilotService {
     const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
     const result = await this.executeRecorded(userId, decision.command, { source, fromCache, tokensUsed, lastUserText });
 
+    // TODO(tech-debt): move multi-step plan execution into a BullMQ job so sequential
+    // AI calls don't block the HTTP response thread (CLAUDE.md §5 — anything >2 s calling
+    // an AI provider must be async). Tracked; safe to leave for now while MAX_PLAN_STEPS ≤ 5.
     // Auto-execute remaining plan steps sequentially (§6 multi-step workflow)
     const stepSummaries: string[] = [result.summary];
     if (planId && decision.plan && decision.plan.steps.length > 1 && decision.plan.steps.length <= MAX_PLAN_STEPS) {

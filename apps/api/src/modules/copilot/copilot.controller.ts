@@ -78,18 +78,18 @@ export class CopilotController {
 
   /** List the user's persisted copilot sessions (up to 20, 30-day window). */
   @Get('history')
-  getHistory(@CurrentUser() user: JwtPayload) {
-    return { sessions: this.historyService.list(user.sub) };
+  async getHistory(@CurrentUser() user: JwtPayload) {
+    return { sessions: await this.historyService.list(user.sub) };
   }
 
   /** Upsert a copilot session (called after each assistant turn). */
   @Post('history')
-  saveHistory(@Body() body: unknown, @CurrentUser() user: JwtPayload) {
+  async saveHistory(@Body() body: unknown, @CurrentUser() user: JwtPayload) {
     const parsed = SaveHistorySchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues[0]?.message ?? 'Invalid history payload');
     }
-    this.historyService.upsert(
+    await this.historyService.upsert(
       user.sub,
       parsed.data.sessionId,
       parsed.data.title,
