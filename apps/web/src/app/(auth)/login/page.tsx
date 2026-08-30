@@ -244,6 +244,14 @@ export default function LoginPage() {
               Create a free account
             </Link>
           </div>
+          <div>
+            <Link
+              href="/browse"
+              className="text-xs text-gray-500 hover:text-[#374151] hover:underline transition-colors"
+            >
+              Browse public feed without signing in →
+            </Link>
+          </div>
           <div className="text-xs text-gray-400">
             By continuing you agree to our{' '}
             <Link href="/terms" className="hover:underline">Terms</Link>
