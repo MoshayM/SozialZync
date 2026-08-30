@@ -222,10 +222,11 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       setError(
+        status === 400                 ? 'Please enter a valid email and password.' :
         status === 401                 ? 'Incorrect email or password.' :
         status === 429                 ? 'Too many attempts — wait a minute and try again.' :
         !status                        ? 'Cannot reach the server. Check your connection.' :
-        status >= 502 && status <= 504 ? 'Server is starting up — try again in a moment.' :
+        status >= 500 && status <= 504 ? 'Server error — try again in a moment.' :
         'Sign in failed. Please try again.'
       );
     } finally {

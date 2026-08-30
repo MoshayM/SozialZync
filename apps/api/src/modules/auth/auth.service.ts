@@ -85,7 +85,8 @@ export class AuthService {
 
     const tokens = await this.issueSessionTokens(user.id, user.email, meta);
 
-    await this.audit(user.id, 'auth.login', { email: user.email });
+    // Non-fatal: a failed audit write must never break a successful login.
+    await this.audit(user.id, 'auth.login', { email: user.email }).catch(() => undefined);
 
     return tokens;
   }
