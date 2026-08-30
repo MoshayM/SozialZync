@@ -1,0 +1,129 @@
+name: sozialzynk
+
+# Full local stack: Postgres + Redis + NestJS API + Prometheus + Grafana + Cloudflare Tunnel
+# Project name "sozialzynk" keeps all containers, volumes, and networks isolated
+# from other Docker projects on this machine.
+#
+# Usage:
+#   docker compose -f docker-compose.full.yml up -d --build
+#
+# Ports (all non-standard to avoid conflicts):
+#   API        → http://localhost:4007
+#   Prometheus → http://localhost:9191
+#   Grafana    → http://localhost:3100  (login: admin / admin)
+#   Postgres   → localhost:5434
+#   Redis      → localhost:6380
+#
+# One-time tunnel setup:
+#   1. Go to https://one.dash.cloudflare.com → Zero Trust → Networks → Tunnels
+#   2. Create tunnel → name "sozialzynk-api" → copy the connector token
+#   3. Add CLOUDFLARE_TUNNEL_TOKEN=<token> to your .env file
+#   4. In tunnel dashboard → Public Hostnames → add:
+#        Subdomain: api   Domain: yourdomain.com   Service: http://api:4007
+#   5. Set API_URL=https://api.yourdomain.com/api/v1 in Vercel environment variables
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sozialzynk_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cf
+      POSTGRES_PASSWORD: cf
+      POSTGRES_DB: creatorforce
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cf']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sozialzynk_redis
+    restart: unless-stopped
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    container_name: sozialzynk_api
+    restart: unless-stopped
+    ports:
+      - '4007:4007'
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://cf:cf@postgres:5432/creatorforce
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      API_PORT: '4007'
+      WEB_URL: https://sozialzynk.vercel.app,https://sozialzync-sozial-zync.vercel.app,https://sozialzync-git-master-sozial-zync.vercel.app
+      SUPER_ADMIN_EMAILS: ${SUPER_ADMIN_EMAILS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sozialzynk_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infra/monitoring/prometheus.docker.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - '9191:9090'
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sozialzynk_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SERVER_HTTP_PORT=3100
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - '3100:3100'
+    depends_on:
+      - prometheus
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: sozialzynk_tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --url http://api:4007
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:

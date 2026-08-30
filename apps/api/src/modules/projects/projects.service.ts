@@ -74,7 +74,7 @@ export class ProjectsService {
         where: { isDemo: true },
         include,
         orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      }) as Promise<typeof userRows>,
+      }) as ReturnType<typeof this.prisma.project.findMany>,
     ]);
     // Demo projects appear first (pinned), then the user's own projects paginated
     const merged = [...demoRows, ...userRows];
