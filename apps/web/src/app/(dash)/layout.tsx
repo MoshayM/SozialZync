@@ -1022,8 +1022,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           } as React.CSSProperties}
         >
           {/* ── Logo header ── */}
-          <div
-            className="flex items-center shrink-0"
+          <Link
+            href="/browse"
+            className="flex items-center shrink-0 hover:opacity-80 transition-opacity"
             style={{
               height: '62px',
               padding: sidebarCollapsed ? '0' : '0 16px',
@@ -1053,7 +1054,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 </button>
               </>
             )}
-          </div>
+          </Link>
 
           {/* ── Nav ── */}
           <nav

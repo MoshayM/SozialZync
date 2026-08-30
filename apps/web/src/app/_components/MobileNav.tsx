@@ -48,12 +48,12 @@ export function MobileNav() {
           >
             {/* Top row: logo + close button */}
             <div className="flex items-center justify-between mb-10 shrink-0">
-              <div className="flex items-center gap-2.5">
+              <Link href="/browse" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                 <LogoMark className="w-9 h-9 shrink-0" />
                 <span className="font-bold text-lg tracking-[-0.4px]">
                   <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
                 </span>
-              </div>
+              </Link>
               <button
                 type="button"
                 aria-label="Close navigation menu"

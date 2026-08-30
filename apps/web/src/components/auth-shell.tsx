@@ -1,5 +1,6 @@
 ﻿'use client';
 import React from 'react';
+import Link from 'next/link';
 import { LogoMark } from '@/components/logo-mark';
 
 // ─── Legacy shell — used by register / forgot-password / reset-password ───────
@@ -254,12 +255,12 @@ export function LoginShell({
       <div className="lf-rp flex-1 flex items-center justify-center px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
           {/* Mobile brand */}
-          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+          <Link href="/browse" className="flex items-center gap-2.5 mb-10 lg:hidden hover:opacity-80 transition-opacity">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
-          </div>
+          </Link>
 
           <div className="mb-8">
             <h2 className="text-[1.9rem] font-extrabold text-gray-900 leading-tight mb-1.5">Welcome back</h2>
@@ -593,12 +594,12 @@ export function ForgotPasswordShell({
       {/* ── Right panel ────────────────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
-          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+          <Link href="/browse" className="flex items-center gap-2.5 mb-10 lg:hidden hover:opacity-80 transition-opacity">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
-          </div>
+          </Link>
           {children}
           <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
         </div>
@@ -693,12 +694,12 @@ export function ResetPasswordShell({
       {/* ── Right panel ────────────────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
-          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+          <Link href="/browse" className="flex items-center gap-2.5 mb-10 lg:hidden hover:opacity-80 transition-opacity">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
-          </div>
+          </Link>
           {children}
           <p className="text-center text-sm text-gray-600 mt-8">{footer}</p>
         </div>
@@ -883,12 +884,12 @@ export function OAuthCallbackShell({
       <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[360px]">
           {/* Mobile brand */}
-          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+          <Link href="/browse" className="flex items-center gap-2.5 mb-10 lg:hidden hover:opacity-80 transition-opacity">
             <LogoMark className="w-9 h-9 shrink-0" />
             <span className="font-bold text-lg tracking-[-0.4px]">
               <span style={{ color: '#1E1B2E' }}>Sozial</span><span style={{ color: '#374151' }}>Z</span><span style={{ color: '#1E1B2E' }}>ynk</span>
             </span>
-          </div>
+          </Link>
 
           {children}
 
