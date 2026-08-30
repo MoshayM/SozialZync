@@ -1022,39 +1022,44 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           } as React.CSSProperties}
         >
           {/* ── Logo header ── */}
-          <Link
-            href="/browse"
-            className="flex items-center shrink-0 hover:opacity-80 transition-opacity"
+          <div
+            className="flex items-center shrink-0"
             style={{
               height: '62px',
               padding: sidebarCollapsed ? '0' : '0 16px',
               justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-              gap: '11px',
               borderBottom: '1px solid #f0f0f0',
             }}
           >
-            <LogoMark className="shrink-0" style={{ width: '34px', height: '34px' }} />
-            {!sidebarCollapsed && (
-              <>
-                <div style={{ overflow: 'hidden', lineHeight: 1.35, flex: '1 1 auto' }}>
+            {/* Only the logo mark + brand name navigate to /browse */}
+            <Link
+              href="/browse"
+              className="flex items-center hover:opacity-80 transition-opacity"
+              style={{ gap: '11px', flex: '1 1 auto', minWidth: 0, textDecoration: 'none' }}
+            >
+              <LogoMark className="shrink-0" style={{ width: '34px', height: '34px' }} />
+              {!sidebarCollapsed && (
+                <div style={{ overflow: 'hidden', lineHeight: 1.35 }}>
                   <div style={{ fontWeight: 800, fontSize: '16px', letterSpacing: '-.5px', whiteSpace: 'nowrap', color: '#111827' }}>
                     SozialZynk
                   </div>
                   <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500, letterSpacing: '.01em', whiteSpace: 'nowrap' }}>AI Creator Platform</div>
                 </div>
-                {/* Close button — only visible on mobile */}
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl shrink-0 touch-manipulation"
-                  style={{ background: '#f3f4f6', color: '#374151', border: 'none' }}
-                  aria-label="Close navigation"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </>
+              )}
+            </Link>
+            {/* Close button — separate from the logo link */}
+            {!sidebarCollapsed && (
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl shrink-0 touch-manipulation ml-2"
+                style={{ background: '#f3f4f6', color: '#374151', border: 'none' }}
+                aria-label="Close navigation"
+              >
+                <X className="w-4 h-4" />
+              </button>
             )}
-          </Link>
+          </div>
 
           {/* ── Nav ── */}
           <nav
