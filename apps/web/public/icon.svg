@@ -1,29 +1,22 @@
 <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <!-- Z: deep indigo → brand purple gradient (top-left to bottom-right) -->
-    <linearGradient id="zg" x1="124" y1="160" x2="256" y2="352" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#3b0764"/>
-      <stop offset="55%" stop-color="#6D28D9"/>
-      <stop offset="100%" stop-color="#7C3AED"/>
-    </linearGradient>
-    <!-- k: brand purple → electric cyan gradient -->
-    <linearGradient id="kg" x1="304" y1="160" x2="388" y2="352" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#7C3AED"/>
-      <stop offset="100%" stop-color="#0891B2"/>
-    </linearGradient>
-  </defs>
+  <!-- Dark background so logo is always visible regardless of OS theme -->
+  <rect width="512" height="512" fill="#111827"/>
 
-  <!-- Z stroke — bold, dark-to-purple gradient, readable on any background -->
-  <path d="M96 148H280L96 364H280"
-        stroke="url(#zg)"
-        stroke-width="38"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
+  <!-- Z — white, same paths, viewBox gives ~22% natural padding on each side -->
+  <g transform="translate(-20, 0)">
+    <path d="M96 148H280L96 364H280"
+          stroke="#F9FAFB"
+          stroke-width="38"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+  </g>
 
-  <!-- k stroke — purple-to-cyan accent -->
-  <path d="M318 148V364M318 256L416 148M318 256L416 364"
-        stroke="url(#kg)"
-        stroke-width="32"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
+  <!-- k — medium gray -->
+  <g transform="translate(-20, 0)">
+    <path d="M318 148V364M318 256L416 148M318 256L416 364"
+          stroke="#9CA3AF"
+          stroke-width="32"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+  </g>
 </svg>
