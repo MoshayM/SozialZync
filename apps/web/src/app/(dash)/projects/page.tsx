@@ -377,13 +377,13 @@ function MockProjectCard({ project }: { project: MockProject }) {
 
         {/* Action buttons */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
+          <Link
+            href={`/editor`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:opacity-80"
             style={{ color: '#7c3aed', background: '#f5f3ff', borderColor: '#ddd6fe' }}
           >
             <Pencil className="w-3 h-3" /> Edit
-          </button>
+          </Link>
           <button
             type="button"
             disabled={!canPublish}
