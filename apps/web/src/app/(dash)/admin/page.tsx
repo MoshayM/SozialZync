@@ -595,9 +595,12 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError('');
     try {
-      const [m, f] = await Promise.all([api.admin.enterpriseMetrics(), api.admin.forecasts()]);
+      const [m, f] = await Promise.all([
+        api.admin.enterpriseMetrics(),
+        api.admin.forecasts().catch(() => ({ data: [] as ForecastRow[] })),
+      ]);
       setMetrics(m.data);
-      setForecasts(f.data);
+      setForecasts(Array.isArray(f.data) ? f.data : []);
       try {
         const p = await api.admin.providers();
         setProviders(p.data);

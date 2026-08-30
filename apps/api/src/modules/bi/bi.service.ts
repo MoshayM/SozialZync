@@ -410,30 +410,34 @@ export class BiService {
    * Retrieve the most recent forecast(s), optionally filtered by metric name.
    */
   async latestForecasts(metric?: string): Promise<unknown[]> {
-    if (metric) {
-      const row = await this.prisma.forecast.findFirst({
-        where: { metric },
-        orderBy: { generatedAt: 'desc' },
-      });
-      return row ? [row] : [];
-    }
-
-    // Return the latest row per metric using a subquery via groupBy
-    const latest = await this.prisma.forecast.groupBy({
-      by: ['metric'],
-      _max: { generatedAt: true },
-    });
-
-    const rows = await Promise.all(
-      latest.map((g) =>
-        this.prisma.forecast.findFirst({
-          where: { metric: g.metric, generatedAt: g._max.generatedAt! },
+    try {
+      if (metric) {
+        const row = await this.prisma.forecast.findFirst({
+          where: { metric },
           orderBy: { generatedAt: 'desc' },
-        }),
-      ),
-    );
+        });
+        return row ? [row] : [];
+      }
 
-    return rows.filter(Boolean);
+      // Return the latest row per metric using a subquery via groupBy
+      const latest = await this.prisma.forecast.groupBy({
+        by: ['metric'],
+        _max: { generatedAt: true },
+      });
+
+      const rows = await Promise.all(
+        latest.map((g) =>
+          this.prisma.forecast.findFirst({
+            where: { metric: g.metric, generatedAt: g._max.generatedAt! },
+            orderBy: { generatedAt: 'desc' },
+          }),
+        ),
+      );
+
+      return rows.filter(Boolean);
+    } catch {
+      return [];
+    }
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────────
