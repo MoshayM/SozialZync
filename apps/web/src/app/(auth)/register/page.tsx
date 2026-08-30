@@ -8,7 +8,6 @@ import { RegisterShell } from '@/components/auth-shell';
 
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 const MOCK_TOKEN = 'mock-jwt-token-for-testing';
-const OWNER_EMAIL = 'ethonanpasumvalki@gmail.com';
 
 // ── Primitives ─────────────────────────────────────────────────────────────────
 
@@ -80,11 +79,6 @@ function RegisterInner() {
     setError('');
 
     if (MOCK_MODE) {
-      if (email === OWNER_EMAIL) {
-        setError('That email is already registered. Sign in instead.');
-        setLoading(false);
-        return;
-      }
       localStorage.setItem('cf_token', MOCK_TOKEN);
       router.push('/home');
       return;
