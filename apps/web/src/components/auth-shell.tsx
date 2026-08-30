@@ -920,7 +920,10 @@ export function SocialRow({
   providers?: Record<string, boolean>;
   onProviderClick?: (provider: OAuthProviderName) => void;
 }) {
-  const googleEnabled = providers ? providers['google'] : false;
+  // Default to enabled — only disable if backend explicitly returns google:false.
+  // If the /auth/providers call fails entirely, we still show the button and
+  // let the click fail with a user-facing error rather than silently hiding it.
+  const googleEnabled = providers?.['google'] !== false;
 
   return (
     <div className="mt-5">
