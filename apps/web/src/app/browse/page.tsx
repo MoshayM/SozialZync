@@ -50,52 +50,53 @@ interface Notif { id: string; type: string; msg: string; time: string; read: boo
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
-// Platform demo video — served from /public, always available
-const V = '/sozialzync-ad-30s.mp4#';
+// Google public sample videos — 13 distinct clips, globally reliable CDN
+const GTV = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/';
+const AD  = '/sozialzync-ad-30s.mp4';
 
 const VIDEOS: VideoItem[] = [
-  { id:'v1',  title:'How to Grow to 100K Followers',        creator:'@CreatorPro',   views:'2.4M', time:'3 days ago',  duration:'0:30', gi:0, likes:'18.2K', comments:'432', shares:'204', isOwn:true,  videoUrl: V+'v1'  },
-  { id:'v2',  title:'Top 10 AI Tools for Creators 2025',   creator:'@AIWeekly',     views:'1.9M', time:'1 week ago',  duration:'0:30', gi:1, likes:'14.1K', comments:'318', shares:'157', isOwn:false, videoUrl: V+'v2'  },
-  { id:'v3',  title:'Social Media Algorithm Breakdown',     creator:'@GrowthHacks',  views:'876K', time:'5 days ago',  duration:'0:30', gi:2, likes:'7.8K',  comments:'189', shares:'93',  isOwn:false, videoUrl: V+'v3'  },
-  { id:'v4',  title:'From 0 to $10K/month as a Creator',   creator:'@Monetize8',    views:'654K', time:'2 weeks ago', duration:'0:30', gi:3, likes:'6.2K',  comments:'274', shares:'112', isOwn:true,  videoUrl: V+'v4'  },
-  { id:'v5',  title:'Social Media SEO Secrets 2025',       creator:'@SEOKing',      views:'432K', time:'4 days ago',  duration:'0:30', gi:4, likes:'4.1K',  comments:'97',  shares:'58',  isOwn:false, videoUrl: V+'v5'  },
-  { id:'v6',  title:'AI Voice Generation — Full Guide',    creator:'@VoiceTech',    views:'328K', time:'6 days ago',  duration:'0:30', gi:5, likes:'3.3K',  comments:'81',  shares:'42',  isOwn:false, videoUrl: V+'v6'  },
-  { id:'v7',  title:'Monetisation Masterclass 2025',       creator:'@MoneyTube',    views:'258K', time:'1 week ago',  duration:'0:30', gi:6, likes:'2.8K',  comments:'64',  shares:'31',  isOwn:false, videoUrl: V+'v7'  },
-  { id:'v8',  title:'Perfect Thumbnail Formula',           creator:'@ClickMaster',  views:'189K', time:'2 weeks ago', duration:'0:30', gi:7, likes:'1.9K',  comments:'47',  shares:'22',  isOwn:false, videoUrl: V+'v8'  },
-  { id:'v9',  title:'YouTube Analytics Deep Dive',         creator:'@DataCreator',  views:'156K', time:'3 days ago',  duration:'0:30', gi:0, likes:'1.5K',  comments:'38',  shares:'19',  isOwn:false, videoUrl: V+'v9'  },
-  { id:'v10', title:'Build Your Brand with AI in 30 Days', creator:'@BrandAI',      views:'134K', time:'1 week ago',  duration:'0:30', gi:1, likes:'1.3K',  comments:'29',  shares:'15',  isOwn:false, videoUrl: V+'v10' },
-  { id:'v11', title:'Gaming Channel Growth Blueprint',     creator:'@GamingGuru',   views:'112K', time:'2 weeks ago', duration:'0:30', gi:2, likes:'1.1K',  comments:'23',  shares:'11',  isOwn:false, videoUrl: V+'v11' },
-  { id:'v12', title:'Creative Direction for YouTube',      creator:'@CreativeHQ',   views:'98K',  time:'4 days ago',  duration:'0:30', gi:3, likes:'980',   comments:'18',  shares:'9',   isOwn:false, videoUrl: V+'v12' },
+  { id:'v1',  title:'How to Grow to 100K Followers',        creator:'@CreatorPro',   views:'2.4M', time:'3 days ago',  duration:'0:54', gi:0, likes:'18.2K', comments:'432', shares:'204', isOwn:true,  videoUrl: GTV+'ForBiggerBlazes.mp4'              },
+  { id:'v2',  title:'Top 10 AI Tools for Creators 2025',   creator:'@AIWeekly',     views:'1.9M', time:'1 week ago',  duration:'1:00', gi:1, likes:'14.1K', comments:'318', shares:'157', isOwn:false, videoUrl: GTV+'ForBiggerFun.mp4'                 },
+  { id:'v3',  title:'Social Media Algorithm Breakdown',     creator:'@GrowthHacks',  views:'876K', time:'5 days ago',  duration:'0:15', gi:2, likes:'7.8K',  comments:'189', shares:'93',  isOwn:false, videoUrl: GTV+'ForBiggerEscapes.mp4'             },
+  { id:'v4',  title:'From 0 to $10K/month as a Creator',   creator:'@Monetize8',    views:'654K', time:'2 weeks ago', duration:'0:15', gi:3, likes:'6.2K',  comments:'274', shares:'112', isOwn:true,  videoUrl: GTV+'ForBiggerJoyrides.mp4'            },
+  { id:'v5',  title:'Social Media SEO Secrets 2025',       creator:'@SEOKing',      views:'432K', time:'4 days ago',  duration:'0:15', gi:4, likes:'4.1K',  comments:'97',  shares:'58',  isOwn:false, videoUrl: GTV+'ForBiggerMeltdowns.mp4'           },
+  { id:'v6',  title:'AI Voice Generation — Full Guide',    creator:'@VoiceTech',    views:'328K', time:'6 days ago',  duration:'1:00', gi:5, likes:'3.3K',  comments:'81',  shares:'42',  isOwn:false, videoUrl: GTV+'SubaruOutbackOnStreetAndDirt.mp4' },
+  { id:'v7',  title:'Monetisation Masterclass 2025',       creator:'@MoneyTube',    views:'258K', time:'1 week ago',  duration:'1:00', gi:6, likes:'2.8K',  comments:'64',  shares:'31',  isOwn:false, videoUrl: GTV+'VolkswagenGTIReview.mp4'          },
+  { id:'v8',  title:'Perfect Thumbnail Formula',           creator:'@ClickMaster',  views:'189K', time:'2 weeks ago', duration:'1:00', gi:7, likes:'1.9K',  comments:'47',  shares:'22',  isOwn:false, videoUrl: GTV+'WeAreGoingOnBullrun.mp4'          },
+  { id:'v9',  title:'YouTube Analytics Deep Dive',         creator:'@DataCreator',  views:'156K', time:'3 days ago',  duration:'1:00', gi:0, likes:'1.5K',  comments:'38',  shares:'19',  isOwn:false, videoUrl: GTV+'WhatCarCanYouGetForAGrand.mp4'    },
+  { id:'v10', title:'Build Your Brand with AI in 30 Days', creator:'@BrandAI',      views:'134K', time:'1 week ago',  duration:'9:56', gi:1, likes:'1.3K',  comments:'29',  shares:'15',  isOwn:false, videoUrl: GTV+'BigBuckBunny.mp4'                 },
+  { id:'v11', title:'Gaming Channel Growth Blueprint',     creator:'@GamingGuru',   views:'112K', time:'2 weeks ago', duration:'10:54',gi:2, likes:'1.1K',  comments:'23',  shares:'11',  isOwn:false, videoUrl: GTV+'ElephantsDream.mp4'               },
+  { id:'v12', title:'Creative Direction for YouTube',      creator:'@CreativeHQ',   views:'98K',  time:'4 days ago',  duration:'14:48',gi:3, likes:'980',   comments:'18',  shares:'9',   isOwn:false, videoUrl: GTV+'Sintel.mp4'                       },
 ];
 
 const SHORTS: ShortItem[] = [
-  { id:'s1', title:'3 AI Tools That Changed My Life',       creator:'@TechDaily',    views:'4.2M', duration:'0:30', gi:4, likes:'32.1K', comments:'891', shares:'445', isOwn:true,  videoUrl: V+'s1'  },
-  { id:'s2', title:'Content Hack That Works Every Time',    creator:'@GrowthPro',    views:'3.1M', duration:'0:30', gi:5, likes:'24.3K', comments:'634', shares:'312', isOwn:false, videoUrl: V+'s2'  },
-  { id:'s3', title:'How I Made $1000 This Week',            creator:'@MoneyMind',    views:'2.8M', duration:'0:30', gi:6, likes:'20.1K', comments:'512', shares:'256', isOwn:false, videoUrl: V+'s3'  },
-  { id:'s4', title:'YouTube Formula Nobody Talks About',    creator:'@TubeSecrets',  views:'2.1M', duration:'0:30', gi:7, likes:'17.2K', comments:'421', shares:'211', isOwn:false, videoUrl: V+'s4'  },
-  { id:'s5', title:'My Viral Thumbnail Secret',             creator:'@ClickRate',    views:'1.9M', duration:'0:30', gi:0, likes:'14.8K', comments:'367', shares:'184', isOwn:false, videoUrl: V+'s5'  },
-  { id:'s6', title:'Stop Making These Mistakes',            creator:'@CreatorCoach', views:'1.7M', duration:'0:30', gi:1, likes:'12.9K', comments:'318', shares:'159', isOwn:false, videoUrl: V+'s6'  },
-  { id:'s7', title:'ChatGPT Prompt That Writes Scripts',    creator:'@PromptKing',   views:'1.5M', duration:'0:30', gi:2, likes:'11.4K', comments:'284', shares:'142', isOwn:false, videoUrl: V+'s7'  },
-  { id:'s8', title:'Editing Trick Gets 10× Watch Time',     creator:'@EditPro',      views:'1.3M', duration:'0:30', gi:3, likes:'9.8K',  comments:'241', shares:'121', isOwn:false, videoUrl: V+'s8'  },
-  { id:'s9', title:'AI Thumbnail in 60 Seconds',            creator:'@ThumbAI',      views:'1.1M', duration:'0:30', gi:4, likes:'8.2K',  comments:'204', shares:'102', isOwn:false, videoUrl: V+'s9'  },
-  { id:'s10',title:'Script Any Video With One Prompt',      creator:'@ScriptBot',    views:'980K', duration:'0:30', gi:5, likes:'7.1K',  comments:'178', shares:'89',  isOwn:false, videoUrl: V+'s10' },
-  { id:'s11',title:'This Hook Formula Went Viral',          creator:'@HookLab',      views:'870K', duration:'0:30', gi:6, likes:'6.3K',  comments:'156', shares:'78',  isOwn:false, videoUrl: V+'s11' },
-  { id:'s12',title:'Fix Your CTR in Under 1 Minute',        creator:'@CTRGenius',    views:'760K', duration:'0:30', gi:7, likes:'5.4K',  comments:'134', shares:'67',  isOwn:false, videoUrl: V+'s12' },
+  { id:'s1', title:'3 AI Tools That Changed My Life',       creator:'@TechDaily',    views:'4.2M', duration:'0:15', gi:4, likes:'32.1K', comments:'891', shares:'445', isOwn:true,  videoUrl: GTV+'ForBiggerBlazes.mp4'              },
+  { id:'s2', title:'Content Hack That Works Every Time',    creator:'@GrowthPro',    views:'3.1M', duration:'0:15', gi:5, likes:'24.3K', comments:'634', shares:'312', isOwn:false, videoUrl: GTV+'ForBiggerJoyrides.mp4'            },
+  { id:'s3', title:'How I Made $1000 This Week',            creator:'@MoneyMind',    views:'2.8M', duration:'0:15', gi:6, likes:'20.1K', comments:'512', shares:'256', isOwn:false, videoUrl: GTV+'ForBiggerMeltdowns.mp4'           },
+  { id:'s4', title:'YouTube Formula Nobody Talks About',    creator:'@TubeSecrets',  views:'2.1M', duration:'0:15', gi:7, likes:'17.2K', comments:'421', shares:'211', isOwn:false, videoUrl: GTV+'ForBiggerEscapes.mp4'             },
+  { id:'s5', title:'My Viral Thumbnail Secret',             creator:'@ClickRate',    views:'1.9M', duration:'1:00', gi:0, likes:'14.8K', comments:'367', shares:'184', isOwn:false, videoUrl: GTV+'ForBiggerFun.mp4'                 },
+  { id:'s6', title:'Stop Making These Mistakes',            creator:'@CreatorCoach', views:'1.7M', duration:'1:00', gi:1, likes:'12.9K', comments:'318', shares:'159', isOwn:false, videoUrl: GTV+'SubaruOutbackOnStreetAndDirt.mp4' },
+  { id:'s7', title:'ChatGPT Prompt That Writes Scripts',    creator:'@PromptKing',   views:'1.5M', duration:'1:00', gi:2, likes:'11.4K', comments:'284', shares:'142', isOwn:false, videoUrl: GTV+'VolkswagenGTIReview.mp4'          },
+  { id:'s8', title:'Editing Trick Gets 10× Watch Time',     creator:'@EditPro',      views:'1.3M', duration:'1:00', gi:3, likes:'9.8K',  comments:'241', shares:'121', isOwn:false, videoUrl: GTV+'WeAreGoingOnBullrun.mp4'          },
+  { id:'s9', title:'AI Thumbnail in 60 Seconds',            creator:'@ThumbAI',      views:'1.1M', duration:'1:00', gi:4, likes:'8.2K',  comments:'204', shares:'102', isOwn:false, videoUrl: GTV+'WhatCarCanYouGetForAGrand.mp4'    },
+  { id:'s10',title:'Script Any Video With One Prompt',      creator:'@ScriptBot',    views:'980K', duration:'9:56', gi:5, likes:'7.1K',  comments:'178', shares:'89',  isOwn:false, videoUrl: GTV+'BigBuckBunny.mp4'                 },
+  { id:'s11',title:'This Hook Formula Went Viral',          creator:'@HookLab',      views:'870K', duration:'10:54',gi:6, likes:'6.3K',  comments:'156', shares:'78',  isOwn:false, videoUrl: GTV+'ElephantsDream.mp4'               },
+  { id:'s12',title:'Fix Your CTR in Under 1 Minute',        creator:'@CTRGenius',    views:'760K', duration:'14:48',gi:7, likes:'5.4K',  comments:'134', shares:'67',  isOwn:false, videoUrl: GTV+'Sintel.mp4'                       },
 ];
 
 const REELS: ShortItem[] = [
-  { id:'r1', title:'Brand Storytelling in 30 Seconds',     creator:'@BrandReel',    views:'3.8M', duration:'0:30', gi:3, likes:'28.4K', comments:'712', shares:'356', isOwn:false, videoUrl: V+'r1'  },
-  { id:'r2', title:'Cinematic Travel Reel — AI Edit',      creator:'@WanderAI',     views:'2.9M', duration:'0:30', gi:4, likes:'22.1K', comments:'541', shares:'271', isOwn:false, videoUrl: V+'r2'  },
-  { id:'r3', title:'Day in the Life of an AI Creator',     creator:'@CreatorDay',   views:'2.1M', duration:'0:30', gi:5, likes:'15.8K', comments:'389', shares:'195', isOwn:false, videoUrl: V+'r3'  },
-  { id:'r4', title:'AI Voice Cover — Sounds Real',         creator:'@VoiceClone',   views:'1.8M', duration:'0:30', gi:6, likes:'13.2K', comments:'324', shares:'162', isOwn:false, videoUrl: V+'r4'  },
-  { id:'r5', title:'Behind the Scenes: Video Production',  creator:'@BehindCam',    views:'1.4M', duration:'0:30', gi:7, likes:'10.1K', comments:'249', shares:'125', isOwn:false, videoUrl: V+'r5'  },
-  { id:'r6', title:'Trending Sound + AI Clips = Viral',    creator:'@ViralMix',     views:'1.2M', duration:'0:30', gi:0, likes:'8.7K',  comments:'214', shares:'107', isOwn:false, videoUrl: V+'r6'  },
-  { id:'r7', title:'5-Second Hook Formula',                creator:'@HookReel',     views:'1.0M', duration:'0:30', gi:1, likes:'7.4K',  comments:'183', shares:'92',  isOwn:false, videoUrl: V+'r7'  },
-  { id:'r8', title:'Colour Grade That Hits Every Time',    creator:'@GradeAI',      views:'870K', duration:'0:30', gi:2, likes:'6.2K',  comments:'153', shares:'77',  isOwn:false, videoUrl: V+'r8'  },
-  { id:'r9', title:'Comment Reply Strategy That Works',    creator:'@EngagePro',    views:'760K', duration:'0:30', gi:3, likes:'5.4K',  comments:'134', shares:'67',  isOwn:false, videoUrl: V+'r9'  },
-  { id:'r10',title:'AI Subtitles in Under 60s',            creator:'@SubsBot',      views:'650K', duration:'0:30', gi:4, likes:'4.7K',  comments:'116', shares:'58',  isOwn:false, videoUrl: V+'r10' },
-  { id:'r11',title:'Transition Trick Everyone is Copying', creator:'@TransitionKing',views:'580K',duration:'0:30', gi:5, likes:'4.1K',  comments:'101', shares:'51',  isOwn:false, videoUrl: V+'r11' },
-  { id:'r12',title:'Lighting Setup for Phone Creators',    creator:'@LightUp',      views:'490K', duration:'0:30', gi:6, likes:'3.5K',  comments:'86',  shares:'43',  isOwn:false, videoUrl: V+'r12' },
+  { id:'r1', title:'Brand Storytelling in 30 Seconds',     creator:'@BrandReel',    views:'3.8M', duration:'1:00', gi:3, likes:'28.4K', comments:'712', shares:'356', isOwn:false, videoUrl: GTV+'ForBiggerFun.mp4'                 },
+  { id:'r2', title:'Cinematic Travel Reel — AI Edit',      creator:'@WanderAI',     views:'2.9M', duration:'0:15', gi:4, likes:'22.1K', comments:'541', shares:'271', isOwn:false, videoUrl: GTV+'ForBiggerBlazes.mp4'              },
+  { id:'r3', title:'Day in the Life of an AI Creator',     creator:'@CreatorDay',   views:'2.1M', duration:'0:15', gi:5, likes:'15.8K', comments:'389', shares:'195', isOwn:false, videoUrl: GTV+'ForBiggerJoyrides.mp4'            },
+  { id:'r4', title:'AI Voice Cover — Sounds Real',         creator:'@VoiceClone',   views:'1.8M', duration:'0:15', gi:6, likes:'13.2K', comments:'324', shares:'162', isOwn:false, videoUrl: GTV+'ForBiggerMeltdowns.mp4'           },
+  { id:'r5', title:'Behind the Scenes: Video Production',  creator:'@BehindCam',    views:'1.4M', duration:'0:15', gi:7, likes:'10.1K', comments:'249', shares:'125', isOwn:false, videoUrl: GTV+'ForBiggerEscapes.mp4'             },
+  { id:'r6', title:'Trending Sound + AI Clips = Viral',    creator:'@ViralMix',     views:'1.2M', duration:'1:00', gi:0, likes:'8.7K',  comments:'214', shares:'107', isOwn:false, videoUrl: GTV+'SubaruOutbackOnStreetAndDirt.mp4' },
+  { id:'r7', title:'5-Second Hook Formula',                creator:'@HookReel',     views:'1.0M', duration:'1:00', gi:1, likes:'7.4K',  comments:'183', shares:'92',  isOwn:false, videoUrl: GTV+'VolkswagenGTIReview.mp4'          },
+  { id:'r8', title:'Colour Grade That Hits Every Time',    creator:'@GradeAI',      views:'870K', duration:'1:00', gi:2, likes:'6.2K',  comments:'153', shares:'77',  isOwn:false, videoUrl: GTV+'WeAreGoingOnBullrun.mp4'          },
+  { id:'r9', title:'Comment Reply Strategy That Works',    creator:'@EngagePro',    views:'760K', duration:'1:00', gi:3, likes:'5.4K',  comments:'134', shares:'67',  isOwn:false, videoUrl: GTV+'WhatCarCanYouGetForAGrand.mp4'    },
+  { id:'r10',title:'AI Subtitles in Under 60s',            creator:'@SubsBot',      views:'650K', duration:'9:56', gi:4, likes:'4.7K',  comments:'116', shares:'58',  isOwn:false, videoUrl: GTV+'BigBuckBunny.mp4'                 },
+  { id:'r11',title:'Transition Trick Everyone is Copying', creator:'@TransitionKing',views:'580K',duration:'10:54',gi:5, likes:'4.1K',  comments:'101', shares:'51',  isOwn:false, videoUrl: GTV+'ElephantsDream.mp4'               },
+  { id:'r12',title:'Lighting Setup for Phone Creators',    creator:'@LightUp',      views:'490K', duration:'14:48',gi:6, likes:'3.5K',  comments:'86',  shares:'43',  isOwn:false, videoUrl: GTV+'Sintel.mp4'                       },
 ];
 
 const IMAGES: ImageItem[] = [
@@ -110,9 +111,9 @@ const IMAGES: ImageItem[] = [
 ];
 
 const AD_VIDEOS: FeedItem[] = [
-  { id:'ad1', title:'Meet your AI Copilot — research, script & publish by voice',     creator:'Sozialzynk',  gi:0, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'ad1' },
-  { id:'ad2', title:'Turn any long video into 10 viral Shorts in minutes',            creator:'Sozialzynk',  gi:1, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'ad2' },
-  { id:'ad3', title:'Publish once, reach YouTube, TikTok & Instagram simultaneously', creator:'Sozialzynk',  gi:2, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: V+'ad3' },
+  { id:'ad1', title:'Meet your AI Copilot — research, script & publish by voice',     creator:'Sozialzynk',  gi:0, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: AD },
+  { id:'ad2', title:'Turn any long video into 10 viral Shorts in minutes',            creator:'Sozialzynk',  gi:1, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: AD },
+  { id:'ad3', title:'Publish once, reach YouTube, TikTok & Instagram simultaneously', creator:'Sozialzynk',  gi:2, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: AD },
 ];
 
 const INITIAL_GROUPS: Group[] = [
@@ -288,7 +289,7 @@ function FeedSlide({
               <video
                 ref={videoRef}
                 key={item.videoUrl}
-                src={item.videoUrl.split('#')[0]}
+                src={item.videoUrl}
                 className="absolute inset-0 w-full h-full object-cover"
                 loop
                 muted={muted}
@@ -316,7 +317,7 @@ function FeedSlide({
               <video
                 ref={videoRef}
                 key={item.videoUrl}
-                src={item.videoUrl.split('#')[0]}
+                src={item.videoUrl}
                 className="absolute inset-0 w-full h-full object-cover"
                 loop
                 muted={muted}
@@ -525,8 +526,12 @@ function FeedView({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(startIndex);
-  const [likedKeys, setLikedKeys] = useState<Set<string>>(new Set());
-  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const [likedKeys, setLikedKeys] = useState<Set<string>>(() => {
+    try { const s = localStorage.getItem('sz_liked'); return s ? new Set(JSON.parse(s) as string[]) : new Set(); } catch { return new Set(); }
+  });
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(() => {
+    try { const s = localStorage.getItem('sz_saved'); return s ? new Set(JSON.parse(s) as string[]) : new Set(); } catch { return new Set(); }
+  });
 
   // Scroll to start on mount (instant)
   useEffect(() => {
@@ -582,12 +587,20 @@ function FeedView({
 
   function toggleLike(id: string, kind: string) {
     const k = `${id}-${kind}`;
-    setLikedKeys(prev => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
+    setLikedKeys(prev => {
+      const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k);
+      try { localStorage.setItem('sz_liked', JSON.stringify([...n])); } catch {}
+      return n;
+    });
   }
 
   function toggleSave(id: string, kind: string) {
     const k = `${id}-${kind}`;
-    setSavedKeys(prev => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
+    setSavedKeys(prev => {
+      const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k);
+      try { localStorage.setItem('sz_saved', JSON.stringify([...n])); } catch {}
+      return n;
+    });
   }
 
   if (items.length === 0) {

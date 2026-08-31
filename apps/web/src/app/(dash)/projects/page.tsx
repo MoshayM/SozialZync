@@ -305,6 +305,12 @@ function MockProjectCard({ project }: { project: MockProject }) {
     >
       {/* Gradient thumbnail */}
       <div className="relative h-32 flex items-end p-3" style={{ background: gradient }}>
+        {/* Real thumbnail image (self-hosted SVG) */}
+        <img
+          src={`/api/thumb?seed=${encodeURIComponent(project.title)}&w=640&h=256`}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover opacity-70"
+        />
         {/* Radial glow overlay */}
         <div
           className="absolute inset-0 opacity-20"
