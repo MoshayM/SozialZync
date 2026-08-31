@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   const seed = searchParams.get('seed') ?? 'default';
   const w = Math.min(Math.max(parseInt(searchParams.get('w') ?? '640', 10), 16), 1920);
   const h = Math.min(Math.max(parseInt(searchParams.get('h') ?? '360', 10), 16), 1920);
+  const showPlay = searchParams.get('kind') !== 'image';
 
   const hash = seedHash(seed);
   const [c1, c2, c3] = PALETTES[hash % 8];
@@ -82,12 +83,12 @@ export async function GET(req: NextRequest) {
     `<line x1="0" y1="${lineY}" x2="${w}" y2="${lineY}" stroke="${c3}" stroke-width="1" opacity="0.08"/>`,
     // Vignette overlay
     `<rect width="${w}" height="${h}" fill="url(#vignette)"/>`,
-    // Play button shadow circle
-    `<circle cx="${pcx + 2}" cy="${pcy + 2}" r="${pbr}" fill="rgba(0,0,0,0.35)"/>`,
-    // Play button bg circle
-    `<circle cx="${pcx}" cy="${pcy}" r="${pbr}" fill="rgba(0,0,0,0.30)" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>`,
-    // Play triangle
-    `<polygon points="${tx1},${ty1} ${tx2},${ty2} ${tx3},${ty3}" fill="rgba(255,255,255,0.82)" transform="translate(${Math.round(pt * 0.15)},0)"/>`,
+    // Play button (video only)
+    ...(showPlay ? [
+      `<circle cx="${pcx + 2}" cy="${pcy + 2}" r="${pbr}" fill="rgba(0,0,0,0.35)"/>`,
+      `<circle cx="${pcx}" cy="${pcy}" r="${pbr}" fill="rgba(0,0,0,0.30)" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>`,
+      `<polygon points="${tx1},${ty1} ${tx2},${ty2} ${tx3},${ty3}" fill="rgba(255,255,255,0.82)" transform="translate(${Math.round(pt * 0.15)},0)"/>`,
+    ] : []),
     `</svg>`,
   ].join('');
 

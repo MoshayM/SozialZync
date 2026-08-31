@@ -326,7 +326,7 @@ function FeedSlide({
               />
             ) : item.kind === 'image' ? (
               <img
-                src={`/api/thumb?seed=${item.id}&w=640&h=480`}
+                src={`/api/thumb?seed=${item.id}&w=640&h=480&kind=image`}
                 alt={item.title}
                 className="absolute inset-0 w-full h-full object-cover"
               />
@@ -1397,7 +1397,7 @@ export default function BrowsePage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       {filteredImages.map(i => (
                         <div key={i.id} className="group cursor-pointer" onClick={() => openFeed(i.id, 'image')}>
-                          <SquareThumb gi={i.gi} thumbnailUrl={`/api/thumb?seed=${i.id}&w=640&h=480`} />
+                          <SquareThumb gi={i.gi} thumbnailUrl={`/api/thumb?seed=${i.id}&w=640&h=480&kind=image`} />
                           <p className="mt-2 text-[12px] font-semibold text-gray-900 line-clamp-2">{i.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{i.creator}</p>
                           <StatsBar views={i.views} likes={i.likes} comments="—" hidden={!!statsHidden[i.id]} />
@@ -1515,7 +1515,7 @@ export default function BrowsePage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredImages.map(i => (
                     <div key={i.id} className="group cursor-pointer" onClick={() => openFeed(i.id, 'image')}>
-                      <SquareThumb gi={i.gi} thumbnailUrl={`/api/thumb?seed=${i.id}&w=640&h=480`} />
+                      <SquareThumb gi={i.gi} thumbnailUrl={`/api/thumb?seed=${i.id}&w=640&h=480&kind=image`} />
                       <p className="mt-2 text-[12px] font-semibold text-gray-900 line-clamp-2">{i.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{i.creator}</p>
                       <StatsBar views={i.views} likes={i.likes} comments="—" hidden={!!statsHidden[i.id]} />

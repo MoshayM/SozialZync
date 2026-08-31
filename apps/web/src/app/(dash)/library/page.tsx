@@ -766,7 +766,7 @@ export default function LibraryPage() {
                         />
                       </>
                     ) : (
-                      <img src={`/api/thumb?seed=${asset.id}&w=640&h=360`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <img src={`/api/thumb?seed=${asset.id}&w=640&h=360${asset.type === 'Image' ? '&kind=image' : ''}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
                     )}
                     {asset.type !== 'Audio' && assetIcon(asset.type)}
                     {/* Type badge */}
