@@ -1158,6 +1158,7 @@ export default function BrowsePage() {
                   className="group relative rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer text-left w-full"
                 >
                   <div className="relative h-36" style={{ background: ['linear-gradient(135deg,#0c1445,#1e3a8a)','linear-gradient(135deg,#1a0845,#4c1d95)','linear-gradient(135deg,#0a2a1a,#065f46)'][ad.gi] }}>
+                    <img src={`https://picsum.photos/seed/${ad.id}/640/360`} alt="" className="absolute inset-0 w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                         <Play className="w-5 h-5 text-white fill-white ml-0.5" />
