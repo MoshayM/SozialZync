@@ -323,16 +323,18 @@ function FeedSlide({
                 playsInline
                 onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
               />
+            ) : item.kind === 'image' ? (
+              <img
+                src={`/api/thumb?seed=${item.id}&w=640&h=480`}
+                alt={item.title}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                {item.kind !== 'image' ? (
-                  <div className={`w-20 h-20 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm transition-all duration-500 ${isActive ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}
-                    style={isActive ? { animation: 'cfPulse 2.5s ease-in-out infinite' } : {}}>
-                    <Play className="w-10 h-10 text-white fill-white translate-x-1" />
-                  </div>
-                ) : (
-                  <ImageIcon className="w-16 h-16 text-white/30" />
-                )}
+                <div className={`w-20 h-20 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm transition-all duration-500 ${isActive ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}
+                  style={isActive ? { animation: 'cfPulse 2.5s ease-in-out infinite' } : {}}>
+                  <Play className="w-10 h-10 text-white fill-white translate-x-1" />
+                </div>
               </div>
             )}
             {item.duration && (
