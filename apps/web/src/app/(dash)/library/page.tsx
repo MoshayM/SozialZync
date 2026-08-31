@@ -517,7 +517,8 @@ export default function LibraryPage() {
                     className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all cursor-pointer"
                   >
                     {/* Thumbnail */}
-                    <div className="aspect-video relative" style={{ background: video.gradient }}>
+                    <div className="aspect-video relative overflow-hidden" style={{ background: video.gradient }}>
+                      <img src={`/api/thumb?seed=${video.id}&w=640&h=360`} alt="" className="absolute inset-0 w-full h-full object-cover" />
                       {/* Duration badge */}
                       <span className="absolute bottom-2 right-2 z-10 bg-black/70 text-white text-[11px] font-medium px-2 py-0.5 rounded">
                         {video.duration}
@@ -743,20 +744,43 @@ export default function LibraryPage() {
                 >
                   {/* Preview */}
                   <div
-                    className="aspect-video relative flex items-center justify-center"
+                    className="aspect-video relative flex items-center justify-center overflow-hidden"
                     style={{ background: asset.gradient }}
                   >
-                    {assetIcon(asset.type)}
+                    {asset.type === 'Audio' ? (
+                      <>
+                        {/* Waveform visual */}
+                        <div className="absolute inset-0 flex items-center justify-center gap-[3px] px-6 opacity-40">
+                          {Array.from({ length: 28 }, (_, i) => (
+                            <div key={i} className="flex-1 rounded-full bg-white"
+                              style={{ height: `${20 + Math.sin(i * 1.3) * 14 + Math.cos(i * 0.7) * 10}%` }} />
+                          ))}
+                        </div>
+                        {/* Inline audio player */}
+                        <audio
+                          controls
+                          src={`https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${(parseInt(asset.id.replace(/\D/g, '')) % 5) + 1}.mp3`}
+                          className="absolute bottom-0 left-0 right-0 w-full"
+                          style={{ height: '32px' }}
+                          preload="none"
+                        />
+                      </>
+                    ) : (
+                      <img src={`/api/thumb?seed=${asset.id}&w=640&h=360`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    )}
+                    {asset.type !== 'Audio' && assetIcon(asset.type)}
                     {/* Type badge */}
                     <span
                       className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${assetBadge(asset.type)}`}
                     >
                       {asset.type}
                     </span>
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <ListVideo className="w-5 h-5 text-white" />
-                    </div>
+                    {/* Hover overlay — only for non-audio */}
+                    {asset.type !== 'Audio' && (
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <ListVideo className="w-5 h-5 text-white" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Meta */}

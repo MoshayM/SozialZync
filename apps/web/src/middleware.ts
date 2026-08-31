@@ -40,7 +40,7 @@ export function middleware(req: NextRequest) {
     "img-src 'self' data: blob: https://i.ytimg.com https://yt3.googleusercontent.com https://picsum.photos https://fastly.picsum.photos",
     "font-src 'self' data:",
     "worker-src 'self' blob:",
-    `media-src 'self' blob: ${apiOrigin} https://commondatastorage.googleapis.com`,
+    `media-src 'self' blob: ${apiOrigin} https://commondatastorage.googleapis.com https://www.soundhelix.com`,
     `connect-src 'self' ${apiOrigin} ${wsOrigin}${sentryHosts}`,
   ].join('; ');
 
