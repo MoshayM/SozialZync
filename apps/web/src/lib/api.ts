@@ -105,8 +105,8 @@ apiClient.interceptors.response.use(
         };
         return apiClient.request(retryConfig);
       }
-      // Refresh failed — send to login
-      window.location.href = '/login';
+      // Refresh failed — send to login (mode=expired so the page shows a helpful message)
+      window.location.href = '/login?mode=expired';
     }
 
     return Promise.reject(err);

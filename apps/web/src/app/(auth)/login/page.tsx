@@ -126,6 +126,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'expired') setSessionExpired(true);
+  }, []);
 
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyLabel, setPasskeyLabel] = useState('Passkey');
@@ -225,8 +231,8 @@ export default function LoginPage() {
         status === 400                 ? 'Please enter a valid email and password.' :
         status === 401                 ? 'Incorrect email or password.' :
         status === 429                 ? 'Too many attempts — wait a minute and try again.' :
-        !status                        ? 'Cannot reach the server. Check your connection.' :
-        status >= 500 && status <= 504 ? 'Server error — try again in a moment.' :
+        !status                        ? 'Cannot reach the server — check your connection or use Demo access below.' :
+        status >= 500 && status <= 504 ? 'Server unavailable — try again in a moment, or use Demo access below.' :
         'Sign in failed. Please try again.'
       );
     } finally {
@@ -262,6 +268,14 @@ export default function LoginPage() {
       }
     >
       <div className="space-y-5">
+
+        {/* ── Session-expired banner ────────────────────────── */}
+        {sessionExpired && (
+          <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-amber-50 border border-amber-100">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
+            <p className="text-amber-700 text-xs font-medium leading-relaxed">Your session expired. Please sign in again.</p>
+          </div>
+        )}
 
         {/* ── Passkey (primary) ────────────────────────────── */}
         {passkeySupported && (
@@ -371,6 +385,21 @@ export default function LoginPage() {
           providers={googleProviders}
           onProviderClick={() => { void handleGoogleLogin(); }}
         />
+
+        {/* ── Demo access ───────────────────────────────────── */}
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.setItem('cf_token', 'mock-jwt-token-for-testing');
+              localStorage.setItem('cf.refreshToken', 'mock-refresh-token');
+              router.push('/home');
+            }}
+            className="w-full py-2.5 text-gray-400 text-xs font-medium rounded-xl border border-dashed border-gray-200 hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300 transition-all"
+          >
+            Try demo — no account needed
+          </button>
+        </div>
 
       </div>
     </LoginShell>
