@@ -7,7 +7,7 @@ import {
   Search, Bell, Menu, X, ChevronRight, Play, History, Plus, Film, Scissors,
   ImageIcon, Grid3X3, LayoutList, SlidersHorizontal, ChevronDown, ChevronUp,
   Heart, MessageCircle, TrendingUp, Eye, EyeOff, Trash2, Share2, Settings,
-  LogOut, Bookmark, Clock, Mic, Volume2, VolumeX,
+  LogOut, Bookmark, Clock, Mic, Volume2, VolumeX, Pencil,
 } from 'lucide-react';
 
 // ── Gradients ─────────────────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ interface FeedItem {
   id: string; title: string; creator: string; gi: number; duration?: string;
   kind: 'video' | 'short' | 'reel' | 'image';
   views: string; likes: string; comments?: string; shares?: string;
-  videoUrl?: string;
+  videoUrl?: string; isOwn?: boolean;
 }
 interface Group { id: string; name: string; count: number; color: string; emoji: string; }
 interface HistoryItem { id: string; title: string; creator: string; progress: number; duration: string; time: string; gi: number; }
@@ -130,6 +130,19 @@ const INITIAL_NOTIFS: Notif[] = [
   { id:'n5', type:'removed',    icon: Trash2,        msg:'Admin removed "Content Title" for policy violation',   time:'1d ago',  read:true  },
 ];
 
+const MOCK_COMMENT_POOL = [
+  { user: '@CreatorPro',   text: 'This is exactly what I needed! 🔥',                          time: '2h ago',  likes: '234' },
+  { user: '@TechDaily',    text: 'Mind blown 🤯 Sharing this with my whole team',               time: '4h ago',  likes: '189' },
+  { user: '@GrowthHacks',  text: 'I grew 10K followers using this exact method last month',     time: '6h ago',  likes: '156' },
+  { user: '@AIWeekly',     text: 'Great content as always 👏',                                  time: '8h ago',  likes: '134' },
+  { user: '@MoneyMind',    text: 'The tip at 0:12 is absolutely insane, total game changer',    time: '12h ago', likes: '98'  },
+  { user: '@ViralMix',     text: 'Just subscribed after this one, not missing anything more',   time: '1d ago',  likes: '87'  },
+  { user: '@BrandKit',     text: 'Clean breakdown, zero fluff. Love it ❤️',                     time: '1d ago',  likes: '76'  },
+  { user: '@AlgoViz',      text: 'Why is nobody talking about this?? 👀',                       time: '2d ago',  likes: '54'  },
+  { user: '@SizeGuide',    text: 'Shared this with my creator group, everyone loved it',        time: '2d ago',  likes: '43'  },
+  { user: '@CharacterAI',  text: 'More content like this please 🙏',                            time: '3d ago',  likes: '31'  },
+];
+
 const SORT_OPTIONS = ['Trending', 'Latest', 'Most Viewed', 'Top Rated'] as const;
 type SortOption = typeof SORT_OPTIONS[number];
 type ContentType = 'all' | 'videos' | 'shorts' | 'reels' | 'images';
@@ -213,10 +226,10 @@ function StatsBar({ views, likes, comments, shares, hidden }: {
 
 function FeedSlide({
   item, isActive, isLiked, isSaved, currentIdx, totalCount,
-  onClose, onLike, onSave, onNext, onPrev,
+  isLoggedIn, onClose, onLike, onSave, onNext, onPrev,
 }: {
   item: FeedItem; isActive: boolean; isLiked: boolean; isSaved: boolean;
-  currentIdx: number; totalCount: number;
+  currentIdx: number; totalCount: number; isLoggedIn: boolean;
   onClose: () => void; onLike: (id: string, kind: string) => void;
   onSave: (id: string, kind: string) => void;
   onNext: () => void; onPrev: () => void;
@@ -224,6 +237,23 @@ function FeedSlide({
   const isPortrait = item.kind === 'short' || item.kind === 'reel';
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [shareToast, setShareToast] = useState(false);
+  const itemComments = useMemo(() => {
+    const seed = item.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return Array.from({ length: 5 }, (_, i) => MOCK_COMMENT_POOL[(seed + i) % MOCK_COMMENT_POOL.length]);
+  }, [item.id]);
+  function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: item.title, url }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(url).catch(() => {});
+    }
+    setShareToast(true);
+    setTimeout(() => setShareToast(false), 2000);
+  }
 
   useEffect(() => {
     const vid = videoRef.current;
@@ -348,14 +378,14 @@ function FeedSlide({
           <span className="text-white text-[10px] font-bold drop-shadow-md">{item.likes}</span>
         </button>
 
-        <button className="flex flex-col items-center gap-1" aria-label="Comments">
+        <button onClick={() => setCommentsOpen(true)} className="flex flex-col items-center gap-1" aria-label="Comments">
           <div className="w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center backdrop-blur-sm transition-colors">
             <MessageCircle className="w-5 h-5 text-white" />
           </div>
           <span className="text-white text-[10px] font-bold drop-shadow-md">{item.comments ?? '—'}</span>
         </button>
 
-        <button className="flex flex-col items-center gap-1" aria-label="Share">
+        <button onClick={handleShare} className="flex flex-col items-center gap-1" aria-label="Share">
           <div className="w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center backdrop-blur-sm transition-colors">
             <Share2 className="w-5 h-5 text-white" />
           </div>
@@ -368,6 +398,15 @@ function FeedSlide({
           </div>
           <span className="text-white text-[10px] font-bold drop-shadow-md">{isSaved ? 'Saved' : 'Save'}</span>
         </button>
+
+        {isLoggedIn && item.isOwn && (
+          <Link href="/editor" onClick={onClose} className="flex flex-col items-center gap-1" aria-label="Edit">
+            <div className="w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center backdrop-blur-sm transition-colors">
+              <Pencil className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-white text-[10px] font-bold drop-shadow-md">Edit</span>
+          </Link>
+        )}
       </div>
 
       {/* Bottom info overlay */}
@@ -413,6 +452,61 @@ function FeedSlide({
         @keyframes cfPulse{0%,100%{opacity:0.75;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
         @keyframes cfBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-4px)}}
       `}</style>
+
+      {/* Share toast */}
+      {shareToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[310] bg-black/80 text-white text-[13px] font-semibold px-4 py-2 rounded-full backdrop-blur-sm pointer-events-none">
+          Link copied!
+        </div>
+      )}
+
+      {/* Comments panel */}
+      {commentsOpen && (
+        <div className="fixed inset-0 z-[310] flex flex-col justify-end" onClick={() => setCommentsOpen(false)}>
+          <div className="bg-white rounded-t-2xl shadow-2xl max-h-[72dvh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <h3 className="text-[15px] font-bold text-gray-900">Comments ({item.comments ?? '0'})</h3>
+              <button onClick={() => setCommentsOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+            <div className="overflow-y-auto px-4 py-3 space-y-4 flex-1">
+              {itemComments.map((c, idx) => (
+                <div key={idx} className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-[11px] font-bold text-purple-700 shrink-0">
+                    {c.user.charAt(1).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[12px] font-bold text-gray-900">{c.user}</span>
+                      <span className="text-[10px] text-gray-400">{c.time}</span>
+                    </div>
+                    <p className="text-[13px] text-gray-700 mt-0.5 leading-snug">{c.text}</p>
+                    <button className="flex items-center gap-1 mt-1 text-[10px] text-gray-400 hover:text-red-400 transition-colors">
+                      <Heart className="w-3 h-3" />{c.likes}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-4 py-3 border-t border-gray-100 flex gap-2">
+              <input
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && commentText.trim()) setCommentText(''); }}
+                placeholder="Add a comment..."
+                className="flex-1 text-[13px] bg-gray-100 rounded-xl px-3 py-2 outline-none placeholder:text-gray-400"
+              />
+              <button
+                onClick={() => setCommentText('')}
+                disabled={!commentText.trim()}
+                className="px-4 py-2 rounded-xl text-[12px] font-bold text-white disabled:opacity-40 transition-opacity"
+                style={{ background: '#7c3aed' }}
+              >Post</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -420,9 +514,9 @@ function FeedSlide({
 // ── FeedView component ────────────────────────────────────────────────────────
 
 function FeedView({
-  items, startIndex, onClose,
+  items, startIndex, onClose, isLoggedIn,
 }: {
-  items: FeedItem[]; startIndex: number; onClose: () => void;
+  items: FeedItem[]; startIndex: number; onClose: () => void; isLoggedIn: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(startIndex);
@@ -518,6 +612,7 @@ function FeedView({
             isSaved={savedKeys.has(`${item.id}-${item.kind}`)}
             currentIdx={idx}
             totalCount={items.length}
+            isLoggedIn={isLoggedIn}
             onClose={onClose}
             onLike={toggleLike}
             onSave={toggleSave}
@@ -702,10 +797,10 @@ export default function BrowsePage() {
   // Feed items — order: shorts/reels first (portrait), then videos, then images
   const feedItems = useMemo<FeedItem[]>(() => [
     ...AD_VIDEOS,
-    ...filteredShorts.map(s => ({ id:s.id, title:s.title, creator:s.creator, gi:s.gi, duration:s.duration, kind:'short' as const, views:s.views, likes:s.likes, comments:s.comments, shares:s.shares, videoUrl:s.videoUrl })),
-    ...filteredReels.map(r  => ({ id:r.id, title:r.title, creator:r.creator, gi:r.gi, duration:r.duration, kind:'reel'  as const, views:r.views, likes:r.likes, comments:r.comments, shares:r.shares, videoUrl:r.videoUrl })),
-    ...filteredVideos.map(v => ({ id:v.id, title:v.title, creator:v.creator, gi:v.gi, duration:v.duration, kind:'video' as const, views:v.views, likes:v.likes, comments:v.comments, shares:v.shares, videoUrl:v.videoUrl })),
-    ...filteredImages.map(i => ({ id:i.id, title:i.title, creator:i.creator, gi:i.gi, kind:'image' as const, views:i.views, likes:i.likes })),
+    ...filteredShorts.map(s => ({ id:s.id, title:s.title, creator:s.creator, gi:s.gi, duration:s.duration, kind:'short' as const, views:s.views, likes:s.likes, comments:s.comments, shares:s.shares, videoUrl:s.videoUrl, isOwn:s.isOwn })),
+    ...filteredReels.map(r  => ({ id:r.id, title:r.title, creator:r.creator, gi:r.gi, duration:r.duration, kind:'reel'  as const, views:r.views, likes:r.likes, comments:r.comments, shares:r.shares, videoUrl:r.videoUrl, isOwn:r.isOwn })),
+    ...filteredVideos.map(v => ({ id:v.id, title:v.title, creator:v.creator, gi:v.gi, duration:v.duration, kind:'video' as const, views:v.views, likes:v.likes, comments:v.comments, shares:v.shares, videoUrl:v.videoUrl, isOwn:v.isOwn })),
+    ...filteredImages.map(i => ({ id:i.id, title:i.title, creator:i.creator, gi:i.gi, kind:'image' as const, views:i.views, likes:i.likes, isOwn:i.isOwn })),
   ], [filteredShorts, filteredReels, filteredVideos, filteredImages]);
 
   function openFeed(itemId: string, kind: FeedItem['kind']) {
@@ -1419,6 +1514,7 @@ export default function BrowsePage() {
         <FeedView
           items={feedItems}
           startIndex={feedStartIdx}
+          isLoggedIn={isLoggedIn}
           onClose={() => setFeedOpen(false)}
         />
       )}

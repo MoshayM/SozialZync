@@ -37,7 +37,7 @@ export function middleware(req: NextRequest) {
     // x-nonce so explicit <Script nonce={nonce}> components can use it.
     `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://i.ytimg.com https://yt3.googleusercontent.com",
+    "img-src 'self' data: blob: https://i.ytimg.com https://yt3.googleusercontent.com https://picsum.photos https://fastly.picsum.photos",
     "font-src 'self' data:",
     "worker-src 'self' blob:",
     `media-src 'self' blob: ${apiOrigin}`,
