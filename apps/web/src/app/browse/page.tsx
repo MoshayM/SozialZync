@@ -144,10 +144,14 @@ function matchSearch(title: string, creator: string, q: string): boolean {
 
 // ── Thumbnail components ──────────────────────────────────────────────────────
 
-function LandscapeThumb({ gi, duration, size = 'md' }: { gi: number; duration: string; size?: 'md' | 'sm' }) {
+function LandscapeThumb({ gi, duration, size = 'md', thumbnailUrl }: { gi: number; duration: string; size?: 'md' | 'sm'; thumbnailUrl?: string }) {
   return (
     <div className={`relative w-full ${size === 'sm' ? 'h-20' : 'h-40'} rounded-xl overflow-hidden`}
       style={{ background: G[gi % 8] }}>
+      {thumbnailUrl && (
+        <img src={thumbnailUrl} alt="" className="absolute inset-0 w-full h-full object-cover"
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+      )}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-9 h-9 rounded-full bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Play className="w-4 h-4 text-white fill-white translate-x-0.5" />
@@ -160,9 +164,13 @@ function LandscapeThumb({ gi, duration, size = 'md' }: { gi: number; duration: s
   );
 }
 
-function PortraitThumb({ gi, duration }: { gi: number; duration: string }) {
+function PortraitThumb({ gi, duration, thumbnailUrl }: { gi: number; duration: string; thumbnailUrl?: string }) {
   return (
     <div className="relative w-full rounded-xl overflow-hidden" style={{ background: G[gi % 8], aspectRatio: '9/16' }}>
+      {thumbnailUrl && (
+        <img src={thumbnailUrl} alt="" className="absolute inset-0 w-full h-full object-cover"
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+      )}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-8 h-8 rounded-full bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Play className="w-4 h-4 text-white fill-white translate-x-0.5" />
@@ -175,11 +183,14 @@ function PortraitThumb({ gi, duration }: { gi: number; duration: string }) {
   );
 }
 
-function SquareThumb({ gi }: { gi: number }) {
+function SquareThumb({ gi, thumbnailUrl }: { gi: number; thumbnailUrl?: string }) {
   return (
     <div className="relative w-full rounded-xl overflow-hidden group-hover:brightness-90 transition-all"
       style={{ background: G[gi % 8], aspectRatio: '4/3' }}>
-      <ImageIcon className="absolute inset-0 m-auto w-8 h-8 text-white/20" />
+      {thumbnailUrl && (
+        <img src={thumbnailUrl} alt="" className="absolute inset-0 w-full h-full object-cover"
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+      )}
     </div>
   );
 }
@@ -1138,7 +1149,7 @@ export default function BrowsePage() {
                         {filteredVideos.map(v => (
                           <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative"
                             onClick={() => openFeed(v.id, 'video')}>
-                            <LandscapeThumb gi={v.gi} duration={v.duration} />
+                            <LandscapeThumb gi={v.gi} duration={v.duration} thumbnailUrl={`https://picsum.photos/seed/${v.id}/640/360`} />
                             {isLoggedIn && v.isOwn && (
                               <button onClick={e => { e.stopPropagation(); toggleStats(v.id); }}
                                 className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -1186,7 +1197,7 @@ export default function BrowsePage() {
                         {filteredVideos.map(v => (
                           <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer"
                             onClick={() => openFeed(v.id, 'video')}>
-                            <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" /></div>
+                            <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" thumbnailUrl={`https://picsum.photos/seed/${v.id}/640/360`} /></div>
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                               <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
                               <p className="text-[11px] text-gray-500 mt-1">{v.creator} · {v.time}</p>
@@ -1233,7 +1244,7 @@ export default function BrowsePage() {
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                       {filteredShorts.map(s => (
                         <div key={s.id} className="group cursor-pointer relative" onClick={() => openFeed(s.id, 'short')}>
-                          <PortraitThumb gi={s.gi} duration={s.duration} />
+                          <PortraitThumb gi={s.gi} duration={s.duration} thumbnailUrl={`https://picsum.photos/seed/${s.id}/360/640`} />
                           {isLoggedIn && s.isOwn && (
                             <button onClick={e => { e.stopPropagation(); toggleStats(s.id); }}
                               className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -1256,7 +1267,7 @@ export default function BrowsePage() {
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                       {filteredReels.map(r => (
                         <div key={r.id} className="group cursor-pointer" onClick={() => openFeed(r.id, 'reel')}>
-                          <PortraitThumb gi={r.gi} duration={r.duration} />
+                          <PortraitThumb gi={r.gi} duration={r.duration} thumbnailUrl={`https://picsum.photos/seed/${r.id}/360/640`} />
                           <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{r.creator}</p>
                           <StatsBar views={r.views} likes={r.likes} comments={r.comments} hidden={!!statsHidden[r.id]} />
@@ -1272,7 +1283,7 @@ export default function BrowsePage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       {filteredImages.map(i => (
                         <div key={i.id} className="group cursor-pointer" onClick={() => openFeed(i.id, 'image')}>
-                          <SquareThumb gi={i.gi} />
+                          <SquareThumb gi={i.gi} thumbnailUrl={`https://picsum.photos/seed/${i.id}/640/480`} />
                           <p className="mt-2 text-[12px] font-semibold text-gray-900 line-clamp-2">{i.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{i.creator}</p>
                           <StatsBar views={i.views} likes={i.likes} comments="—" hidden={!!statsHidden[i.id]} />
@@ -1304,7 +1315,7 @@ export default function BrowsePage() {
                   {filteredVideos.map(v => (
                     <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
                       onClick={() => openFeed(v.id, 'video')}>
-                      <LandscapeThumb gi={v.gi} duration={v.duration} />
+                      <LandscapeThumb gi={v.gi} duration={v.duration} thumbnailUrl={`https://picsum.photos/seed/${v.id}/640/360`} />
                       <div className="p-3">
                         <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug mb-1">{v.title}</p>
                         <p className="text-[11px] text-gray-500">{v.creator} · {v.time}</p>
@@ -1318,7 +1329,7 @@ export default function BrowsePage() {
                   {filteredVideos.map(v => (
                     <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer"
                       onClick={() => openFeed(v.id, 'video')}>
-                      <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" /></div>
+                      <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" thumbnailUrl={`https://picsum.photos/seed/${v.id}/640/360`} /></div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
                         <p className="text-[11px] text-gray-500 mt-1">{v.creator} · {v.time}</p>
@@ -1341,7 +1352,7 @@ export default function BrowsePage() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {filteredShorts.map(s => (
                     <div key={s.id} className="group cursor-pointer relative" onClick={() => openFeed(s.id, 'short')}>
-                      <PortraitThumb gi={s.gi} duration={s.duration} />
+                      <PortraitThumb gi={s.gi} duration={s.duration} thumbnailUrl={`https://picsum.photos/seed/${s.id}/360/640`} />
                       {isLoggedIn && s.isOwn && (
                         <button onClick={e => { e.stopPropagation(); toggleStats(s.id); }}
                           className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -1369,7 +1380,7 @@ export default function BrowsePage() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {filteredReels.map(r => (
                     <div key={r.id} className="group cursor-pointer" onClick={() => openFeed(r.id, 'reel')}>
-                      <PortraitThumb gi={r.gi} duration={r.duration} />
+                      <PortraitThumb gi={r.gi} duration={r.duration} thumbnailUrl={`https://picsum.photos/seed/${r.id}/360/640`} />
                       <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{r.creator}</p>
                       <StatsBar views={r.views} likes={r.likes} comments={r.comments} hidden={!!statsHidden[r.id]} />
@@ -1390,7 +1401,7 @@ export default function BrowsePage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredImages.map(i => (
                     <div key={i.id} className="group cursor-pointer" onClick={() => openFeed(i.id, 'image')}>
-                      <SquareThumb gi={i.gi} />
+                      <SquareThumb gi={i.gi} thumbnailUrl={`https://picsum.photos/seed/${i.id}/640/480`} />
                       <p className="mt-2 text-[12px] font-semibold text-gray-900 line-clamp-2">{i.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{i.creator}</p>
                       <StatsBar views={i.views} likes={i.likes} comments="—" hidden={!!statsHidden[i.id]} />
