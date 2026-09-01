@@ -386,20 +386,6 @@ export default function LoginPage() {
           onProviderClick={() => { void handleGoogleLogin(); }}
         />
 
-        {/* ── Demo access ───────────────────────────────────── */}
-        <div className="pt-1">
-          <button
-            type="button"
-            onClick={() => {
-              localStorage.setItem('cf_token', 'mock-jwt-token-for-testing');
-              localStorage.setItem('cf.refreshToken', 'mock-refresh-token');
-              router.push('/home');
-            }}
-            className="w-full py-2.5 text-gray-400 text-xs font-medium rounded-xl border border-dashed border-gray-200 hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300 transition-all"
-          >
-            Try demo — no account needed
-          </button>
-        </div>
 
       </div>
     </LoginShell>
