@@ -13,6 +13,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  // Run in demo/mock mode — no Railway backend required
+  env: {
+    NEXT_PUBLIC_USE_MOCK: 'true',
+  },
   // ZAP baseline rule 10037: don't advertise the framework.
   poweredByHeader: false,
   devIndicators: false,
