@@ -1,10 +1,94 @@
 import axios from 'axios';
+import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
 } from '@simplewebauthn/browser';
+
+const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
+
+// ── Mock data (active when NEXT_PUBLIC_USE_MOCK=true) ────────────────────────
+
+const _MOCK_NOW = () => new Date().toISOString();
+const _MOCK_DAY = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+
+const MOCK_PROJECTS_LIST = [
+  { id: 'mock-p1', title: 'AI Content Strategy 2026', niche: 'Artificial Intelligence', targetLang: 'en', status: 'ACTIVE', publishingStatus: 'DRAFT', channel: { title: 'My Creator Channel', thumbnailUrl: null }, _count: { jobs: 5, videos: 2 }, updatedAt: _MOCK_DAY(1) },
+  { id: 'mock-p2', title: '10 Productivity Tips for Creators', niche: 'Productivity', targetLang: 'en', status: 'ACTIVE', publishingStatus: 'READY', channel: { title: 'My Creator Channel', thumbnailUrl: null }, _count: { jobs: 8, videos: 1 }, updatedAt: _MOCK_DAY(2) },
+  { id: 'mock-p3', title: 'Morning Routine Vlog Series', niche: 'Lifestyle', targetLang: 'en', status: 'DRAFT', publishingStatus: 'DRAFT', channel: null, _count: { jobs: 1, videos: 0 }, updatedAt: _MOCK_DAY(5) },
+  { id: 'mock-p4', title: 'YouTube SEO Masterclass', niche: 'YouTube Growth', targetLang: 'en', status: 'ACTIVE', publishingStatus: 'PUBLISHED', channel: { title: 'My Creator Channel', thumbnailUrl: null }, _count: { jobs: 12, videos: 4 }, updatedAt: _MOCK_DAY(3) },
+  { id: 'mock-p5', title: 'Crypto & Finance Weekly', niche: 'Finance', targetLang: 'en', status: 'ACTIVE', publishingStatus: 'SCHEDULED', channel: { title: 'My Creator Channel', thumbnailUrl: null }, _count: { jobs: 6, videos: 3 }, updatedAt: _MOCK_DAY(0) },
+];
+
+const MOCK_USER = {
+  id: 'mock-user-1',
+  email: 'ethonanpasumvalki@gmail.com',
+  name: 'Ethonan P',
+  role: 'USER',
+  phone: null,
+  avatarUrl: null,
+};
+
+const MOCK_CHANNEL = [
+  { id: 'mock-ch-1', title: 'My Creator Channel', platform: 'YOUTUBE', thumbnailUrl: null, active: true },
+];
+
+function _mockResp<T>(data: T, config: InternalAxiosRequestConfig): AxiosResponse<T> {
+  return { data, status: 200, statusText: 'OK', headers: {}, config };
+}
+
+// Custom axios adapter that short-circuits network calls in mock mode.
+// Add new URL patterns here whenever a page needs mock data.
+async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
+  const url = config.url ?? '';
+  const method = (config.method ?? 'get').toLowerCase();
+
+  if (url.startsWith('/projects') && method === 'get' && !url.includes('/projects/')) {
+    return _mockResp({ data: MOCK_PROJECTS_LIST, total: MOCK_PROJECTS_LIST.length, take: 20, skip: 0 }, config);
+  }
+  if (url.match(/^\/projects\/mock-p\d+$/) && method === 'get') {
+    const id = url.split('/').pop()!;
+    const p = MOCK_PROJECTS_LIST.find(x => x.id === id) ?? MOCK_PROJECTS_LIST[0]!;
+    return _mockResp(p, config);
+  }
+  if (url === '/auth/me') {
+    return _mockResp(MOCK_USER, config);
+  }
+  if (url === '/channels' && method === 'get') {
+    return _mockResp(MOCK_CHANNEL, config);
+  }
+  if (url === '/auth/providers') {
+    return _mockResp({ google: true }, config);
+  }
+  if (url === '/billing/subscription') {
+    return _mockResp({ plan: 'FREE', status: 'active', currentPeriodEnd: null }, config);
+  }
+  if (url.startsWith('/wallet')) {
+    return _mockResp({ balance: 250, currency: 'credits' }, config);
+  }
+  if (url.startsWith('/automation') || url.startsWith('/autonomy')) {
+    return _mockResp({}, config);
+  }
+  if (url.startsWith('/trial')) {
+    return _mockResp({ active: false, daysLeft: 0 }, config);
+  }
+  if (url.startsWith('/approvals')) {
+    return _mockResp({ data: [], total: 0 }, config);
+  }
+  if (url.startsWith('/analytics')) {
+    return _mockResp({}, config);
+  }
+  if (url === '/channels/status') {
+    return _mockResp({ connected: true }, config);
+  }
+  if (url.startsWith('/jobs/project/')) {
+    return _mockResp([], config);
+  }
+  // Default: return empty success for any unmapped endpoint
+  return _mockResp({}, config);
+}
 
 // Browser requests go through the Next.js server-side proxy at /api/proxy so
 // the real backend URL is never exposed to the client and CORS is not needed.
@@ -14,7 +98,12 @@ const BASE =
     ? '/api/proxy'
     : (process.env['NEXT_PUBLIC_API_URL'] ?? 'https://api-production-cf143.up.railway.app/api/v1');
 
-export const apiClient = axios.create({ baseURL: BASE, withCredentials: true, timeout: 30_000 });
+export const apiClient = axios.create({
+  baseURL: BASE,
+  withCredentials: true,
+  timeout: 30_000,
+  ...(MOCK_MODE ? { adapter: mockAdapter } : {}),
+});
 
 // ── Token storage helpers ────────────────────────────────────────────────────
 
