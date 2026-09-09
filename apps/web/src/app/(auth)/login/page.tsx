@@ -146,6 +146,12 @@ export default function LoginPage() {
   }, []);
 
   const handleGoogleLogin = async () => {
+    if (MOCK_MODE) {
+      localStorage.setItem('cf_token', MOCK_TOKEN);
+      localStorage.setItem('cf.refreshToken', 'mock-refresh-token');
+      router.push('/home');
+      return;
+    }
     try {
       const redirectUri = `${window.location.origin}/oauth/callback/google`;
       const { data } = await api.auth.oauthStart('google', redirectUri, 'login');

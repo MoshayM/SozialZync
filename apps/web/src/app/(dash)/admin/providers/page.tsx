@@ -1,5 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+
+const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 import {
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Cpu, Music2, Mail, CreditCard,
   Globe, ShieldAlert, ExternalLink, Zap, Video, Mic2, Image as ImageIcon,
@@ -48,6 +50,26 @@ const CATEGORY_COLOR: Record<string, string> = {
   payment: '#059669',
   storage: '#d97706',
 };
+
+// Shown in mock/demo mode — reflects the keys known to be configured on Railway
+const MOCK_PROVIDERS: ProviderHealth[] = [
+  { name: 'Anthropic (Claude)', envKey: 'ANTHROPIC_API_KEY', configured: true,  status: 'active',        category: 'ai' },
+  { name: 'OpenAI (GPT-4)',     envKey: 'OPENAI_API_KEY',    configured: false, status: 'unconfigured',  category: 'ai' },
+  { name: 'Google Gemini',      envKey: 'GEMINI_API_KEY',    configured: true,  status: 'active',        category: 'ai' },
+  { name: 'Groq',               envKey: 'GROQ_API_KEY',      configured: true,  status: 'active',        category: 'ai' },
+  { name: 'Google OAuth',       envKey: 'GOOGLE_CLIENT_ID',  configured: true,  status: 'active',        category: 'ai' },
+  { name: 'ElevenLabs (Voice)', envKey: 'ELEVENLABS_API_KEY',configured: true,  status: 'active',        category: 'media' },
+  { name: 'PiAPI (Kling/Suno)', envKey: 'PIAPI_API_KEY',     configured: true,  status: 'active',        category: 'media' },
+  { name: 'Runway ML',          envKey: 'RUNWAYML_API_SECRET',configured: true, status: 'active',        category: 'media' },
+  { name: 'Replicate',          envKey: 'REPLICATE_API_TOKEN',configured: false,status: 'unconfigured',  category: 'media' },
+  { name: 'Stability AI',       envKey: 'STABILITY_API_KEY', configured: false, status: 'unconfigured',  category: 'media' },
+  { name: 'Pexels (Stock)',      envKey: 'PEXELS_API_KEY',    configured: true,  status: 'active',        category: 'media' },
+  { name: 'Pixabay (Stock)',     envKey: 'PIXABAY_API_KEY',   configured: true,  status: 'active',        category: 'media' },
+  { name: 'YouTube Data API',   envKey: 'YOUTUBE_API_KEY',   configured: false, status: 'unconfigured',  category: 'media' },
+  { name: 'Facebook / Meta',    envKey: 'FACEBOOK_APP_ID',   configured: false, status: 'unconfigured',  category: 'media' },
+  { name: 'Resend (Email)',      envKey: 'RESEND_API_KEY',    configured: true,  status: 'active',        category: 'email' },
+  { name: 'Stripe (Payments)',   envKey: 'STRIPE_SECRET_KEY', configured: true,  status: 'active',        category: 'payment' },
+];
 
 function StatusBadge({ status }: { status: ProviderHealth['status'] }) {
   if (status === 'active') {
@@ -132,6 +154,11 @@ export default function AdminProvidersPage() {
     setLoading(true);
     setError('');
     try {
+      if (MOCK_MODE) {
+        setProviders(MOCK_PROVIDERS);
+        setLastRefreshed(new Date());
+        return;
+      }
       const res = await fetch('/api/proxy/admin/providers/health', {
         headers: { Authorization: `Bearer ${localStorage.getItem('cf_token') ?? ''}` },
       });
