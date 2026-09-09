@@ -10,10 +10,14 @@ export default function DashError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Auto-recover from ChunkLoadError (happens when a new deploy replaces old JS chunks)
-    if (error.name === 'ChunkLoadError' || error.message?.includes('Loading chunk')) {
-      window.location.reload();
-    }
+    const msg = error.message ?? '';
+    const isChunkError =
+      error.name === 'ChunkLoadError' ||
+      msg.includes('Loading chunk') ||
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('error loading dynamically imported module');
+    if (isChunkError) window.location.reload();
   }, [error]);
 
   return (
