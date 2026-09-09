@@ -149,6 +149,7 @@ export default function LoginPage() {
     if (MOCK_MODE) {
       localStorage.setItem('cf_token', MOCK_TOKEN);
       localStorage.setItem('cf.refreshToken', 'mock-refresh-token');
+      localStorage.setItem('cf_user_role', 'USER');
       router.push('/home');
       return;
     }
@@ -223,8 +224,11 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     if (MOCK_MODE) {
-      if (email && password) { localStorage.setItem('cf_token', MOCK_TOKEN); router.push('/home'); }
-      else { setError('Invalid email or password'); setLoading(false); }
+      if (email && password) {
+        localStorage.setItem('cf_token', MOCK_TOKEN);
+        localStorage.setItem('cf_user_role', 'USER');
+        router.push('/home');
+      } else { setError('Invalid email or password'); setLoading(false); }
       return;
     }
     try {
