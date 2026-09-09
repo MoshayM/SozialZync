@@ -133,9 +133,11 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     if (MOCK_MODE) {
+      const mockEmail = email || 'demo@sozialzynk.com';
       localStorage.setItem('cf_token', MOCK_TOKEN);
       localStorage.setItem('cf.refreshToken', 'mock-refresh-token');
       localStorage.setItem('cf_user_role', 'USER');
+      localStorage.setItem('cf_mock_email', mockEmail);
       router.push('/home');
       return;
     }
@@ -213,6 +215,7 @@ export default function LoginPage() {
       if (email && password) {
         localStorage.setItem('cf_token', MOCK_TOKEN);
         localStorage.setItem('cf_user_role', 'USER');
+        localStorage.setItem('cf_mock_email', email);
         router.push('/home');
       } else { setError('Invalid email or password'); setLoading(false); }
       return;

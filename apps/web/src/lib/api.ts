@@ -58,7 +58,12 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   if (url === '/auth/me') {
-    return _mockResp(MOCK_USER, config);
+    const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('cf_mock_email') : null;
+    const email = storedEmail ?? MOCK_USER.email;
+    const name = storedEmail
+      ? (storedEmail.split('@')[0]?.replace(/[._-]/g, ' ') ?? 'Demo User')
+      : MOCK_USER.name;
+    return _mockResp({ ...MOCK_USER, email, name }, config);
   }
   if (url === '/auth/providers') {
     return _mockResp({ google: true }, config);
