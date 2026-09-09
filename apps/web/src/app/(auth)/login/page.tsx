@@ -132,18 +132,19 @@ export default function LoginPage() {
   }, []);
 
   const handleGoogleLogin = async () => {
-    if (MOCK_MODE) {
-      const mockEmail = email || 'demo@sozialzynk.com';
-      localStorage.setItem('cf_token', MOCK_TOKEN);
-      localStorage.setItem('cf.refreshToken', 'mock-refresh-token');
-      localStorage.setItem('cf_user_role', 'USER');
-      localStorage.setItem('cf_mock_email', mockEmail);
-      router.push('/home');
-      return;
-    }
     try {
       const redirectUri = `${window.location.origin}/oauth/callback/google`;
-      const { data } = await api.auth.oauthStart('google', redirectUri, 'login');
+      // Use fetch directly — apiClient has the mock adapter in MOCK_MODE which
+      // would intercept this and return {} instead of the real OAuth URL.
+      const res = await fetch('/api/proxy/auth/google/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ redirectUri, mode: 'login' }),
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json() as { authUrl: string; state: string };
+      // Store state for CSRF verification in the callback page
+      sessionStorage.setItem('cf.oauth.state', data.state);
       window.location.href = data.authUrl;
     } catch {
       setError('Could not start Google sign-in. Try again.');

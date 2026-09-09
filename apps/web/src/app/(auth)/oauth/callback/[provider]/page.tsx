@@ -3,7 +3,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { api, setTokens, type OAuthProvider } from '@/lib/api';
+import { setTokens } from '@/lib/api';
 import { OAuthCallbackShell } from '@/components/auth-shell';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -279,7 +279,23 @@ function OAuthCallbackInner() {
       }
 
       try {
-        const { data } = await api.auth.oauthCallback(provider as OAuthProvider, code, stateFromUrl);
+        // Use fetch directly — apiClient has the mock adapter which intercepts
+        // this URL and returns {} instead of the real JWT from Railway.
+        const res = await fetch(`/api/proxy/auth/${provider}/callback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, state: stateFromUrl }),
+        });
+        const data = await res.json() as { accessToken?: string; refreshToken?: string; linked?: boolean; error?: string; email?: string; message?: string };
+
+        if (!res.ok) {
+          if (res.status === 409 && data.error === 'LINK_REQUIRED') {
+            setState({ phase: 'link_required', email: data.email ?? '', provider });
+            return;
+          }
+          setState({ phase: 'error', message: typeof data.message === 'string' ? data.message : 'Sign-in failed. Please try again.' });
+          return;
+        }
 
         if (data.linked === true) {
           setState({ phase: 'linked', provider });
@@ -290,18 +306,12 @@ function OAuthCallbackInner() {
         }
         if (data.accessToken && data.refreshToken) {
           setTokens(data.accessToken, data.refreshToken);
-          router.replace('/projects');
+          router.replace('/home');
           return;
         }
         setState({ phase: 'error', message: 'Unexpected response from the server. Please try again.' });
-      } catch (err: unknown) {
-        const axiosErr = err as { response?: { status?: number; data?: { error?: string; email?: string; message?: string } } };
-        if (axiosErr?.response?.status === 409 && axiosErr.response.data?.error === 'LINK_REQUIRED') {
-          setState({ phase: 'link_required', email: axiosErr.response.data.email ?? '', provider });
-          return;
-        }
-        const msg = axiosErr?.response?.data?.message;
-        setState({ phase: 'error', message: typeof msg === 'string' ? msg : 'Sign-in failed. Please try again.' });
+      } catch {
+        setState({ phase: 'error', message: 'Sign-in failed. Please try again.' });
       }
     }
 

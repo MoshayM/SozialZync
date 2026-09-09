@@ -58,12 +58,27 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   if (url === '/auth/me') {
-    const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('cf_mock_email') : null;
-    const email = storedEmail ?? MOCK_USER.email;
-    const name = storedEmail
-      ? (storedEmail.split('@')[0]?.replace(/[._-]/g, ' ') ?? 'Demo User')
-      : MOCK_USER.name;
-    return _mockResp({ ...MOCK_USER, email, name }, config);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
+    const isMockToken = token === 'mock-jwt-token-for-testing' || !token;
+    if (isMockToken) {
+      // Mock session (password or demo login) — return mock user with stored email
+      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('cf_mock_email') : null;
+      const meEmail = storedEmail ?? MOCK_USER.email;
+      const meName = storedEmail
+        ? (storedEmail.split('@')[0]?.replace(/[._-]/g, ' ') ?? 'Demo User')
+        : MOCK_USER.name;
+      return _mockResp({ ...MOCK_USER, email: meEmail, name: meName }, config);
+    }
+    // Real JWT (after real Google OAuth) — forward to Railway via Next.js proxy
+    const res = await fetch(`${BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const meData = await res.json() as Record<string, unknown>;
+    if (!res.ok) {
+      const err = Object.assign(new Error('Unauthorized'), { response: { status: res.status, data: meData, headers: {}, config } });
+      return Promise.reject(err);
+    }
+    return _mockResp(meData, config);
   }
   if (url === '/auth/providers') {
     return _mockResp({ google: true }, config);
