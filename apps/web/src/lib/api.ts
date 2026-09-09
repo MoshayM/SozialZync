@@ -40,11 +40,13 @@ function _mockResp<T>(data: T, config: InternalAxiosRequestConfig): AxiosRespons
 }
 
 // Custom axios adapter that short-circuits network calls in mock mode.
-// Add new URL patterns here whenever a page needs mock data.
+// Every pattern must return the exact shape the consuming page expects — returning {}
+// for array endpoints causes slice/map calls to throw and triggers the error boundary.
 async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
   const url = config.url ?? '';
   const method = (config.method ?? 'get').toLowerCase();
 
+  // ── Projects ────────────────────────────────────────────────────────────────
   if (url.startsWith('/projects') && method === 'get' && !url.includes('/projects/')) {
     return _mockResp({ data: MOCK_PROJECTS_LIST, total: MOCK_PROJECTS_LIST.length, take: 20, skip: 0 }, config);
   }
@@ -53,40 +55,183 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
     const p = MOCK_PROJECTS_LIST.find(x => x.id === id) ?? MOCK_PROJECTS_LIST[0]!;
     return _mockResp(p, config);
   }
+
+  // ── Auth ────────────────────────────────────────────────────────────────────
   if (url === '/auth/me') {
     return _mockResp(MOCK_USER, config);
-  }
-  if (url === '/channels' && method === 'get') {
-    return _mockResp(MOCK_CHANNEL, config);
   }
   if (url === '/auth/providers') {
     return _mockResp({ google: true }, config);
   }
-  if (url === '/billing/subscription') {
-    return _mockResp({ plan: 'FREE', status: 'active', currentPeriodEnd: null }, config);
+  if (url === '/auth/sessions' && method === 'get') {
+    return _mockResp([], config);
   }
-  if (url.startsWith('/wallet')) {
-    return _mockResp({ balance: 250, currency: 'credits' }, config);
+  if (url === '/auth/links' && method === 'get') {
+    return _mockResp({ password: true, links: [] }, config);
   }
-  if (url.startsWith('/automation') || url.startsWith('/autonomy')) {
-    return _mockResp({}, config);
+  if (url === '/auth/webauthn/credentials' && method === 'get') {
+    return _mockResp([], config);
   }
-  if (url.startsWith('/trial')) {
-    return _mockResp({ active: false, daysLeft: 0 }, config);
-  }
-  if (url.startsWith('/approvals')) {
-    return _mockResp({ data: [], total: 0 }, config);
-  }
-  if (url.startsWith('/analytics')) {
-    return _mockResp({}, config);
+
+  // ── Channels ────────────────────────────────────────────────────────────────
+  if (url === '/channels' && method === 'get') {
+    return _mockResp(MOCK_CHANNEL, config);
   }
   if (url === '/channels/status') {
     return _mockResp({ connected: true }, config);
   }
+  if (url.startsWith('/channels/auth-url')) {
+    return _mockResp({ url: '' }, config);
+  }
+  // Channel automation: GET /channels/{id}/automation
+  if (url.includes('/automation') && method === 'get') {
+    return _mockResp({ enabled: false, autoImport: false, autoAnalyze: false, autoPublish: false, chapterSyncEnabled: false, autoPlan: false, autoResearch: false, publishIntervalMinutes: 60, maxPublishesPerDay: 1, maxImportsPerDay: 10, lastTickAt: null }, config);
+  }
+
+  // ── Billing ─────────────────────────────────────────────────────────────────
+  if (url === '/billing/subscription') {
+    return _mockResp({ plan: 'FREE', status: 'active', currentPeriodEnd: null }, config);
+  }
+
+  // ── Wallet (each sub-route needs its own shape) ───────────────────────────
+  if (url === '/wallet/balance') {
+    return _mockResp({ balanceCredits: 250, buckets: {}, lifetimePurchased: 0, lifetimeUsed: 0 }, config);
+  }
+  if (url === '/wallet/budget') {
+    return _mockResp({ status: 'NONE', monthlyLimit: 0, spent: 0, remaining: 250, willExceed: false, blocked: false, alertThreshold: 0.8, hardCap: false }, config);
+  }
+  if (url.startsWith('/wallet/forecast')) {
+    return _mockResp({ windowDays: 30, totalDebited: 0, dailyBurn: 0, balance: 250, daysToEmpty: null, emptyOn: null, projectedMonthEndSpend: 0 }, config);
+  }
+  if (url.startsWith('/wallet/usage-summary')) {
+    return _mockResp({ totalSpent: 0, byAction: [] }, config);
+  }
+  if (url.startsWith('/wallet/transactions')) {
+    return _mockResp([], config);
+  }
+  if (url === '/wallet/lots') {
+    return _mockResp([], config);
+  }
+  if (url === '/wallet/recommendations') {
+    return _mockResp([], config);
+  }
+
+  // ── Autonomy: calendar endpoints return arrays, not objects ───────────────
+  if (url.startsWith('/autonomy')) {
+    if (url.includes('/calendar/stats')) {
+      return _mockResp({ total: 0, proposed: 0, approved: 0, upcoming7d: 0, approvalRate: 0 }, config);
+    }
+    if (url.includes('/calendar')) {
+      return _mockResp([], config);
+    }
+    return _mockResp({}, config);
+  }
+
+  // ── Trial ───────────────────────────────────────────────────────────────────
+  if (url.startsWith('/trial')) {
+    return _mockResp({ hasTrial: false, active: false, daysLeft: 0 }, config);
+  }
+
+  // ── Approvals ───────────────────────────────────────────────────────────────
+  if (url.startsWith('/approvals')) {
+    return _mockResp({ data: [], total: 0 }, config);
+  }
+
+  // ── Analytics ───────────────────────────────────────────────────────────────
+  if (url.startsWith('/analytics')) {
+    return _mockResp({}, config);
+  }
+
+  // ── Notifications ───────────────────────────────────────────────────────────
+  if (url.startsWith('/notifications')) {
+    return _mockResp({ items: [], unreadCount: 0, nextCursor: null }, config);
+  }
+
+  // ── Copilot ─────────────────────────────────────────────────────────────────
+  if (url === '/copilot/history' && method === 'get') {
+    return _mockResp({ sessions: [] }, config);
+  }
+  if (url.startsWith('/copilot/plan/') && method === 'get') {
+    return _mockResp({ planId: '', steps: [], currentStepIndex: 0, status: 'done' }, config);
+  }
+  if (url === '/copilot/chat' && method === 'post') {
+    return _mockResp({ reply: 'Demo mode — connect to Railway to enable live AI responses.' }, config);
+  }
+
+  // ── Jobs ────────────────────────────────────────────────────────────────────
   if (url.startsWith('/jobs/project/')) {
     return _mockResp([], config);
   }
-  // Default: return empty success for any unmapped endpoint
+
+  // ── Marketplace ─────────────────────────────────────────────────────────────
+  if (url.startsWith('/marketplace/packs')) {
+    return _mockResp([], config);
+  }
+
+  // ── Orgs ────────────────────────────────────────────────────────────────────
+  if (url === '/orgs/mine') {
+    return _mockResp([], config);
+  }
+  if (url.startsWith('/orgs/') && url.endsWith('/members')) {
+    return _mockResp([], config);
+  }
+  if (url.startsWith('/orgs/') && url.endsWith('/teams')) {
+    return _mockResp([], config);
+  }
+
+  // ── Settings ────────────────────────────────────────────────────────────────
+  if (url === '/settings/api-keys' && method === 'get') {
+    return _mockResp([], config);
+  }
+
+  // ── Developer ───────────────────────────────────────────────────────────────
+  if (url === '/dev/webhooks' && method === 'get') {
+    return _mockResp({ webhooks: [] }, config);
+  }
+
+  // ── Publishing ──────────────────────────────────────────────────────────────
+  if (url.startsWith('/publishing/videos/summary')) {
+    return _mockResp({ scheduled: 0, upcoming7d: 0, published: 0, publishedThisMonth: 0, failed: 0, totalVideos: 0 }, config);
+  }
+  if (url.startsWith('/publishing/videos')) {
+    return _mockResp({ data: [], total: 0, take: 20, skip: 0 }, config);
+  }
+
+  // ── Trends ──────────────────────────────────────────────────────────────────
+  if (url.startsWith('/trends/gaps')) {
+    return _mockResp({ gaps: [] }, config);
+  }
+  if (url.startsWith('/trends/analyze') || url.startsWith('/trends/')) {
+    return _mockResp({ trending: [], keywords: [] }, config);
+  }
+
+  // ── Token usage ─────────────────────────────────────────────────────────────
+  if (url.startsWith('/token-usage')) {
+    return _mockResp({ sinceDays: 7, totals: { calls: 0, tokensIn: 0, tokensOut: 0, costUsd: 0 }, byModel: [], copilot: { turns: 0, cacheHits: 0, cacheHitRate: null }, byVideo: [], byDay: [] }, config);
+  }
+
+  // ── Growth ──────────────────────────────────────────────────────────────────
+  if (url.startsWith('/growth')) {
+    return _mockResp({ summary: '', nextTopics: [], optimizationActions: [] }, config);
+  }
+
+  // ── Referral / Leaderboard ──────────────────────────────────────────────────
+  if (url.startsWith('/referral')) {
+    return _mockResp({ code: '', totalCredits: 0, qualifiedCount: 0, pendingCount: 0, flaggedCount: 0, referrals: [] }, config);
+  }
+  if (url.startsWith('/leaderboard')) {
+    return _mockResp([], config);
+  }
+
+  // ── Editor / Shorts Studio ──────────────────────────────────────────────────
+  if (url.startsWith('/editor/mine')) {
+    return _mockResp([], config);
+  }
+  if (url.startsWith('/shorts-studio/channels/') && url.endsWith('/imported')) {
+    return _mockResp([], config);
+  }
+
+  // ── Default: return safe empty object ───────────────────────────────────────
   return _mockResp({}, config);
 }
 
