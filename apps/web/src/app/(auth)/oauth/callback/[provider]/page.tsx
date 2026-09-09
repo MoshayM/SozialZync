@@ -279,33 +279,34 @@ function OAuthCallbackInner() {
       }
 
       try {
-        // Use fetch directly — apiClient has the mock adapter which intercepts
-        // this URL and returns {} instead of the real JWT from Railway.
-        const res = await fetch(`/api/proxy/auth/${provider}/callback`, {
+        const redirectUri = `${window.location.origin}/oauth/callback/${provider}`;
+        // Call the Vercel-native API route (no Railway needed)
+        const res = await fetch(`/api/auth/${provider}/callback`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, state: stateFromUrl }),
+          body: JSON.stringify({ code, state: stateFromUrl, redirectUri }),
         });
-        const data = await res.json() as { accessToken?: string; refreshToken?: string; linked?: boolean; error?: string; email?: string; message?: string };
+        const data = await res.json() as {
+          accessToken?: string; refreshToken?: string;
+          user?: { id: string; email: string; name: string; avatarUrl?: string | null; role?: string };
+          linked?: boolean; error?: string; email?: string; message?: string;
+        };
 
         if (!res.ok) {
-          if (res.status === 409 && data.error === 'LINK_REQUIRED') {
-            setState({ phase: 'link_required', email: data.email ?? '', provider });
-            return;
-          }
           setState({ phase: 'error', message: typeof data.message === 'string' ? data.message : 'Sign-in failed. Please try again.' });
           return;
         }
 
-        if (data.linked === true) {
-          setState({ phase: 'linked', provider });
-          const returnUrl = sessionStorage.getItem('cf.oauth.returnUrl');
-          sessionStorage.removeItem('cf.oauth.returnUrl');
-          router.replace(returnUrl ?? `/settings?linked=${encodeURIComponent(provider)}`);
-          return;
-        }
         if (data.accessToken && data.refreshToken) {
           setTokens(data.accessToken, data.refreshToken);
+          // Persist real user info so /auth/me mock returns it in the dashboard
+          if (data.user) {
+            localStorage.setItem('cf_mock_email',   data.user.email);
+            localStorage.setItem('cf_user_name',    data.user.name);
+            localStorage.setItem('cf_user_id',      data.user.id);
+            localStorage.setItem('cf_user_avatar',  data.user.avatarUrl ?? '');
+            localStorage.setItem('cf_user_role',    data.user.role ?? 'USER');
+          }
           router.replace('/home');
           return;
         }

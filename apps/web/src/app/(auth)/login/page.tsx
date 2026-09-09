@@ -136,7 +136,7 @@ export default function LoginPage() {
       const redirectUri = `${window.location.origin}/oauth/callback/google`;
       // Use fetch directly — apiClient has the mock adapter in MOCK_MODE which
       // would intercept this and return {} instead of the real OAuth URL.
-      const res = await fetch('/api/proxy/auth/google/start', {
+      const res = await fetch('/api/auth/google/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ redirectUri, mode: 'login' }),

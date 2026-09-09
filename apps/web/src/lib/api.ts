@@ -58,27 +58,15 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   if (url === '/auth/me') {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
-    const isMockToken = token === 'mock-jwt-token-for-testing' || !token;
-    if (isMockToken) {
-      // Mock session (password or demo login) — return mock user with stored email
-      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('cf_mock_email') : null;
-      const meEmail = storedEmail ?? MOCK_USER.email;
-      const meName = storedEmail
-        ? (storedEmail.split('@')[0]?.replace(/[._-]/g, ' ') ?? 'Demo User')
-        : MOCK_USER.name;
-      return _mockResp({ ...MOCK_USER, email: meEmail, name: meName }, config);
-    }
-    // Real JWT (after real Google OAuth) — forward to Railway via Next.js proxy
-    const res = await fetch(`${BASE}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const meData = await res.json() as Record<string, unknown>;
-    if (!res.ok) {
-      const err = Object.assign(new Error('Unauthorized'), { response: { status: res.status, data: meData, headers: {}, config } });
-      return Promise.reject(err);
-    }
-    return _mockResp(meData, config);
+    // Always return from localStorage — works for both mock sessions and real
+    // Google OAuth (callback stores real user info in cf_mock_email / cf_user_name etc.)
+    const ls = typeof window !== 'undefined' ? localStorage : null;
+    const meEmail  = ls?.getItem('cf_mock_email')  ?? MOCK_USER.email;
+    const meName   = ls?.getItem('cf_user_name')   ?? (meEmail.split('@')[0]?.replace(/[._-]/g, ' ') ?? 'Demo User');
+    const meId     = ls?.getItem('cf_user_id')     ?? MOCK_USER.id;
+    const meAvatar = ls?.getItem('cf_user_avatar') ?? null;
+    const meRole   = ls?.getItem('cf_user_role')   ?? 'USER';
+    return _mockResp({ id: meId, email: meEmail, name: meName, avatarUrl: meAvatar || null, role: meRole, phone: null }, config);
   }
   if (url === '/auth/providers') {
     return _mockResp({ google: true }, config);
