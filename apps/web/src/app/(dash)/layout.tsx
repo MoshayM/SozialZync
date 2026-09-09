@@ -78,12 +78,12 @@ const BOTTOM_ITEMS: NavItem[] = [
   { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];
 
-/* Mobile bottom nav — 1 left + Create CTA + 2 right + More */
+/* Mobile bottom nav — 2 left + Create CTA (true centre) + 1 right + More */
 const MOBILE_NAV_LEFT = [
   { href: '/home',     icon: Home,       label: 'Home' },
+  { href: '/content',  icon: Compass,    label: 'Studio' },
 ];
 const MOBILE_NAV_RIGHT = [
-  { href: '/content',  icon: Compass,    label: 'Studio' },
   { href: '/publish',  icon: Upload,     label: 'Publish' },
 ];
 
