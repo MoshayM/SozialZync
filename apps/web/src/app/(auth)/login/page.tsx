@@ -105,20 +105,6 @@ export default function LoginPage() {
   useEffect(() => {
     const tok = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
     if (tok) { router.replace('/home'); return; }
-
-    // Cold-open guard: if the user landed here directly (PWA restore, bookmark,
-    // typed URL) with no query context and no in-app referrer, send them to the
-    // public feed instead of showing an empty login wall.
-    const params = new URLSearchParams(window.location.search);
-    const hasContext = params.has('from') || params.has('redirect') || params.has('mode');
-    if (!hasContext) {
-      try {
-        const fromSameOrigin = document.referrer && new URL(document.referrer).origin === window.location.origin;
-        if (!fromSameOrigin) router.replace('/browse');
-      } catch {
-        router.replace('/browse');
-      }
-    }
   }, [router]);
 
   const [email, setEmail] = useState('');
