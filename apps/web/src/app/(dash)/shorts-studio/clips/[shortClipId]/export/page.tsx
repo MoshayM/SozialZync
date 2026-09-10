@@ -4,12 +4,13 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Loader2, Clapperboard, Download, Star, RefreshCw, CheckCircle2, Upload,
+  ArrowLeft, Loader2, Clapperboard, Download, Lock, Star, RefreshCw, CheckCircle2, Upload,
   ShieldCheck, Package, ExternalLink, AlertTriangle, CalendarClock, XCircle, X,
   CheckCheck, Clock, ShieldAlert, Wifi,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
+import { PlanGate, usePlanGate, planAtLeast, useIsAdmin } from '@/components/plan-gate';
 
 interface RenderStatus {
   clipStatus: string | null;
@@ -197,6 +198,10 @@ export default function ClipExportPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
+  const userPlan = usePlanGate();
+  const isAdmin = useIsAdmin();
+  const canExternalPublish = isAdmin || planAtLeast(userPlan, 'PRO');
+
   const handleReconnectYouTube = () => {
     sessionStorage.setItem('cf.oauth.returnUrl', `/shorts-studio/clips/${shortClipId}/export`);
     router.push('/library?tab=channels');
@@ -332,9 +337,15 @@ export default function ClipExportPage() {
               {status.render.durationMs ? ` · ${Math.round(status.render.durationMs / 1000)}s` : ''}
               {timelineStale && <span className="ml-2 text-amber-600 font-medium">(outdated — re-render needed)</span>}
             </p>
-            <button onClick={() => { void download(); }} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-brand-200 text-brand-700 rounded-lg text-sm hover:bg-brand-50">
-              <Download className="w-4 h-4" /> Download
-            </button>
+            {canExternalPublish ? (
+              <button onClick={() => { void download(); }} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-brand-200 text-brand-700 rounded-lg text-sm hover:bg-brand-50">
+                <Download className="w-4 h-4" /> Download
+              </button>
+            ) : (
+              <Link href="/wallet" className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-sm hover:bg-gray-50" title="Pro plan required to download">
+                <Lock className="w-4 h-4" /> Pro only
+              </Link>
+            )}
           </>
         ) : (
           <p className="text-sm text-gray-500">Not rendered yet — click "Render clip" to start.</p>
@@ -343,7 +354,9 @@ export default function ClipExportPage() {
 
       {/* ── Publish to YouTube — integrated 3-step flow ── */}
       {status?.render && (
-        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm mb-6">
+        <div className="mb-6">
+        <PlanGate requiredPlan="PRO" featureLabel="Publishing to YouTube" preview={false}>
+        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-5 flex items-center gap-1.5">
             <Upload className="w-4 h-4" /> Publish to YouTube
           </h2>
@@ -553,6 +566,8 @@ export default function ClipExportPage() {
           <p className="text-[11px] text-gray-400 mt-4 border-t border-gray-50 pt-3">
             Publishing runs a compliance audit and requires your review — no clip is uploaded without both.
           </p>
+        </div>
+        </PlanGate>
         </div>
       )}
 

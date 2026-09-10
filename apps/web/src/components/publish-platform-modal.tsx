@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { api } from '@/lib/api';
+import { PlanGate } from '@/components/plan-gate';
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
 
@@ -82,55 +83,57 @@ export function PublishPlatformModal({
           </p>
         </div>
 
-        <ul className="space-y-3">
-          {PLATFORMS.map((platform) => {
-            const isConnected = connected.has(platform.id);
-            return (
-              <li
-                key={platform.id}
-                className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
-                    style={{ backgroundColor: platform.color + '18' }}
-                    aria-hidden="true"
-                  >
-                    {platform.emoji}
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-800">
-                      {platform.label}
-                    </span>
+        <PlanGate requiredPlan="PRO" featureLabel="Publishing to external platforms">
+          <ul className="space-y-3">
+            {PLATFORMS.map((platform) => {
+              const isConnected = connected.has(platform.id);
+              return (
+                <li
+                  key={platform.id}
+                  className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
                     <span
-                      className={`text-xs font-medium ${
-                        isConnected ? 'text-green-600' : 'text-gray-400'
-                      }`}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
+                      style={{ backgroundColor: platform.color + '18' }}
+                      aria-hidden="true"
                     >
-                      {isConnected ? 'Connected' : 'Not Connected'}
+                      {platform.emoji}
                     </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-800">
+                        {platform.label}
+                      </span>
+                      <span
+                        className={`text-xs font-medium ${
+                          isConnected ? 'text-green-600' : 'text-gray-400'
+                        }`}
+                      >
+                        {isConnected ? 'Connected' : 'Not Connected'}
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {isConnected ? (
-                  <button
-                    onClick={handlePublish}
-                    className="rounded-lg bg-[#374151] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#5a3bc7] transition-colors"
-                  >
-                    Publish
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => void handleConnect(platform.id)}
-                    className="rounded-lg border border-[#374151] px-4 py-1.5 text-sm font-medium text-[#374151] hover:bg-[#374151]/5 transition-colors"
-                  >
-                    Connect
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  {isConnected ? (
+                    <button
+                      onClick={handlePublish}
+                      className="rounded-lg bg-[#374151] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#5a3bc7] transition-colors"
+                    >
+                      Publish
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => void handleConnect(platform.id)}
+                      className="rounded-lg border border-[#374151] px-4 py-1.5 text-sm font-medium text-[#374151] hover:bg-[#374151]/5 transition-colors"
+                    >
+                      Connect
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </PlanGate>
       </div>
     </div>
   );

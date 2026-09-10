@@ -16,14 +16,15 @@ const OVERRIDABLE_TYPES: ReadonlySet<string> = new Set(['SCRIPT', 'TREND_ANALYSI
 
 /**
  * Job types available on the Free plan.
- * Free users get: Shorts Studio (all types) + compliance/system internals.
- * All other AI pipeline agents (research, script, publish, etc.) require Pro.
+ * Free users get: Shorts Studio creation/render/export + compliance/system internals.
+ * Publishing to external platforms (YouTube, etc.) and all AI pipeline agents require Pro.
  */
 const FREE_JOB_TYPES: ReadonlySet<JobType> = new Set<JobType>([
-  // Shorts Studio — free for all users (unlimited)
+  // Shorts Studio — creation, rendering, and export free for all users
   'SHORTS_ANALYZE', 'VIDEO_IMPORT', 'TRANSCRIPT_ANALYSIS', 'SCENE_DETECTION',
   'TOPIC_SEGMENTATION', 'HIGHLIGHT_DETECTION', 'SHORTS_GENERATION',
-  'AUTO_EDIT', 'CAPTION_GENERATION', 'SHORTS_RENDER', 'SHORTS_EXPORT', 'SHORTS_PUBLISH',
+  'AUTO_EDIT', 'CAPTION_GENERATION', 'SHORTS_RENDER', 'SHORTS_EXPORT',
+  // SHORTS_PUBLISH intentionally excluded — publishing to YouTube is an external platform action (Pro+)
   // Always-internal compliance (not user-triggered, but permitted to run)
   'COMPLIANCE', 'FACT_CHECK',
   // System heartbeat jobs
@@ -111,8 +112,11 @@ export class JobsController {
 
     if (!isElevated) {
       if (plan === 'FREE' && !FREE_JOB_TYPES.has(dto.type as JobType)) {
+        const isPublish = dto.type === 'SHORTS_PUBLISH' || dto.type === 'PUBLISH';
         throw new ForbiddenException(
-          `The "${dto.type}" agent requires a Pro plan. Upgrade to Pro ($17/mo) to unlock all AI agents.`,
+          isPublish
+            ? 'Publishing to external platforms requires a Pro plan. Upgrade to Pro ($17/mo) to unlock publishing.'
+            : `The "${dto.type}" agent requires a Pro plan. Upgrade to Pro ($17/mo) to unlock all AI agents.`,
         );
       }
       if (plan === 'STARTER' && !STARTER_JOB_TYPES.has(dto.type as JobType)) {
