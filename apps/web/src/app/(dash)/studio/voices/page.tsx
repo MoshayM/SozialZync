@@ -137,7 +137,12 @@ export default function VoiceLibraryPage() {
       const res = await fetch(`/api/proxy/voice/library?${params}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(
+        res.status >= 500 ? 'Server temporarily unavailable — please try again.' :
+        res.status === 401 ? 'Session expired — please sign in again.' :
+        res.status === 403 ? 'Access denied.' :
+        'Failed to load voices.'
+      );
       const data = await res.json() as VoiceLibraryResponse;
       setVoices(data.voices ?? []);
     } catch (err) {

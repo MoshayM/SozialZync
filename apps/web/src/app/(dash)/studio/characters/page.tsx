@@ -207,7 +207,12 @@ function CharacterForm({ initial, onSave, onCancel }: {
         headers: { ...headers(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), description: description.trim(), personality: personality.trim(), voiceProvider, voiceId, voicePitch, voiceSpeed, voiceEffect, videoStyle, avatarStyle }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(
+        res.status >= 500 ? 'Server temporarily unavailable — please try again.' :
+        res.status === 401 ? 'Session expired — please sign in again.' :
+        res.status === 403 ? 'Access denied.' :
+        'Save failed — please try again.'
+      );
       onSave();
     } catch (err) { setError(err instanceof Error ? err.message : 'Save failed'); }
     finally { setSaving(false); }
@@ -376,7 +381,12 @@ export default function CharactersPage() {
     setLoading(true); setError(null);
     try {
       const res = await fetch('/api/proxy/characters', { headers: headers() });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(
+        res.status >= 500 ? 'Server temporarily unavailable — please try again.' :
+        res.status === 401 ? 'Session expired — please sign in again.' :
+        res.status === 403 ? 'Access denied.' :
+        'Failed to load characters.'
+      );
       setCharacters(await res.json() as Character[]);
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load characters'); }
     finally { setLoading(false); }
@@ -454,7 +464,10 @@ export default function CharactersPage() {
             {loading ? (
               <div className="flex items-center justify-center gap-2 py-16 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /><span className="text-sm">Loading...</span></div>
             ) : error ? (
-              <div className="py-12 text-center"><p className="text-sm text-red-500">{error}</p></div>
+              <div className="py-14 text-center">
+                <p className="text-sm text-red-500 mb-3">{error}</p>
+                <button onClick={() => void fetchCharacters()} className="text-xs font-semibold underline" style={{ color: '#374151' }}>Retry</button>
+              </div>
             ) : characters.length === 0 ? (
               <div className="py-16 text-center">
                 <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: '#374151', opacity: 0.3 }} />

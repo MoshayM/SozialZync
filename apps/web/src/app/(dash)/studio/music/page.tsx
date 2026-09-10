@@ -198,7 +198,12 @@ export default function MusicLibraryPage() {
       if (minDuration != null) p.set('minDuration', String(minDuration));
       if (maxDuration != null) p.set('maxDuration', String(maxDuration));
       const res = await fetch(`/api/proxy/music?${p}`, { headers: { Authorization: `Bearer ${getToken()}` } });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(
+        res.status >= 500 ? 'Server temporarily unavailable — please try again.' :
+        res.status === 401 ? 'Session expired — please sign in again.' :
+        res.status === 403 ? 'Access denied.' :
+        'Failed to load tracks.'
+      );
       const data = await res.json() as TrackListResponse;
       setTracks(data.tracks); setTotal(data.total);
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load tracks'); }
@@ -229,7 +234,12 @@ export default function MusicLibraryPage() {
         ? '/api/proxy/music/browse/trending'
         : `/api/proxy/music/browse/search?${p}`;
       const res = await fetch(endpoint, { headers: { Authorization: `Bearer ${getToken()}` } });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(
+        res.status >= 500 ? 'Server temporarily unavailable — please try again.' :
+        res.status === 401 ? 'Session expired — please sign in again.' :
+        res.status === 403 ? 'Access denied.' :
+        'Failed to load music.'
+      );
       setDiscoverResults(await res.json() as ExternalTrack[]);
     } catch (err) { setDiscoverError(err instanceof Error ? err.message : 'Failed to load'); }
     finally { setDiscoverLoading(false); }
@@ -246,7 +256,10 @@ export default function MusicLibraryPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify(track),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(
+        res.status >= 500 ? 'Server temporarily unavailable — please try again.' :
+        'Import failed — please try again.'
+      );
       setImportedIds(prev => new Set([...prev, track.externalId]));
     } catch {
       /* non-fatal */
@@ -279,7 +292,7 @@ export default function MusicLibraryPage() {
           tags: [],
         }),
       });
-      if (!res.ok) { const d = await res.json().catch(() => ({})) as { message?: string }; throw new Error(d.message ?? `HTTP ${res.status}`); }
+      if (!res.ok) { const d = await res.json().catch(() => ({})) as { message?: string }; throw new Error(d.message ?? (res.status >= 500 ? 'Server temporarily unavailable — please try again.' : 'Save failed — please try again.')); }
       setForm({ title: '', artist: '', fileUrl: '', duration: '', license: 'cc0', source: '', attribution: '', mood: '', genre: '' });
       setShowAddForm(false); void fetchTracks(); void fetchMoods();
     } catch (err) { setAddError(err instanceof Error ? err.message : 'Failed to add track'); }

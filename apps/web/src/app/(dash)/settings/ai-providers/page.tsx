@@ -539,7 +539,7 @@ function ImageProviderCard({ provider }: { provider: ImageProviderDef }) {
       if (resp.ok) {
         setTestState({ status: 'success', message: 'Connected ✓' });
       } else {
-        setTestState({ status: 'error', message: `HTTP ${resp.status} ✗` });
+        setTestState({ status: 'error', message: resp.status >= 500 ? 'Server error ✗' : resp.status === 401 || resp.status === 403 ? 'Auth failed ✗' : 'Connection failed ✗' });
       }
     } catch {
       setTestState({ status: 'error', message: 'Unreachable ✗' });

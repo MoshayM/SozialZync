@@ -233,7 +233,7 @@ export default function AdminProvidersPage() {
       });
       if (!res.ok) {
         if (res.status === 403) { setError('Admin access required (admin:providers permission).'); return; }
-        throw new Error(`HTTP ${res.status}`);
+        throw new Error(res.status >= 500 ? 'Server temporarily unavailable — please try again.' : 'Failed to load provider health.');
       }
       const data = (await res.json()) as ProviderHealth[];
       setProviders(Array.isArray(data) ? data : []);
