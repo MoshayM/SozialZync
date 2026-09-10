@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Delete, Query, Body, Headers, RawBodyRequest, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
@@ -10,6 +10,11 @@ class CheckoutDto {
   @IsString() plan!: string;
   @IsString() successUrl!: string;
   @IsString() cancelUrl!: string;
+}
+
+class ConnectOnboardDto {
+  @IsString() returnUrl!: string;
+  @IsOptional() @IsString() refreshUrl?: string;
 }
 
 @ApiTags('billing')
@@ -53,5 +58,22 @@ export class BillingController {
     @Headers('stripe-signature') sig: string,
   ) {
     return this.svc.handleWebhook(req.rawBody, sig);
+  }
+
+  // ── Stripe Connect (creator payout onboarding) ────────────────────────────
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('connect/status')
+  getConnectStatus(@CurrentUser() user: JwtPayload) {
+    return this.svc.getConnectStatus(user.sub);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('connect/onboard')
+  createConnectOnboardingLink(@Body() dto: ConnectOnboardDto, @CurrentUser() user: JwtPayload) {
+    const refreshUrl = dto.refreshUrl ?? dto.returnUrl;
+    return this.svc.createConnectOnboardingLink(user.sub, user.email, dto.returnUrl, refreshUrl);
   }
 }

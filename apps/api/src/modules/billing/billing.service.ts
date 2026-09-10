@@ -304,6 +304,13 @@ export class BillingService {
         data: { status: 'CANCELLED', plan: 'FREE', cancelAtPeriodEnd: false },
       });
     }
+
+    // Stripe Connect: update creator's account verification status
+    if (event.type === 'account.updated') {
+      const account = event.data.object as Stripe.Account;
+      await this.handleConnectAccountUpdated({ id: account.id, charges_enabled: account.charges_enabled });
+      this.logger.log(`[connect] account ${account.id} updated — charges_enabled: ${account.charges_enabled}`);
+    }
   }
 
   /** §5.2 steps 5–8: mark the payment succeeded and grant credits, each idempotent. */
@@ -492,5 +499,81 @@ export class BillingService {
       return_url: returnUrl,
     });
     return { url: session.url };
+  }
+
+  // ── Stripe Connect (creator payout onboarding) ────────────────────────────
+
+  async getConnectStatus(userId: string): Promise<{ connected: boolean; chargesEnabled: boolean; accountId: string | null }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { stripeConnectAccountId: true, stripeConnectEnabled: true },
+    });
+    return {
+      connected: !!user?.stripeConnectAccountId,
+      chargesEnabled: user?.stripeConnectEnabled ?? false,
+      accountId: user?.stripeConnectAccountId ?? null,
+    };
+  }
+
+  async createConnectOnboardingLink(userId: string, email: string, returnUrl: string, refreshUrl: string): Promise<{ url: string }> {
+    let user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { stripeConnectAccountId: true },
+    });
+
+    let accountId = user?.stripeConnectAccountId ?? null;
+    if (!accountId) {
+      const account = await this.stripe.accounts.create({
+        type: 'express',
+        email,
+        capabilities: { transfers: { requested: true } },
+        metadata: { userId },
+      });
+      accountId = account.id;
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { stripeConnectAccountId: accountId },
+      });
+    }
+
+    const link = await this.stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: 'account_onboarding',
+    });
+    return { url: link.url };
+  }
+
+  async handleConnectAccountUpdated(account: { id: string; charges_enabled: boolean }): Promise<void> {
+    await this.prisma.user.updateMany({
+      where: { stripeConnectAccountId: account.id },
+      data: { stripeConnectEnabled: account.charges_enabled },
+    });
+  }
+
+  async transferToCreator(withdrawalId: string, userId: string, amountUsd: number): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { stripeConnectAccountId: true, stripeConnectEnabled: true },
+    });
+    if (!user?.stripeConnectAccountId) {
+      throw new BadRequestException('Creator has not completed Stripe Connect onboarding');
+    }
+    if (!user.stripeConnectEnabled) {
+      throw new BadRequestException('Creator\'s Stripe Connect account is not yet verified');
+    }
+    const amountCents = Math.round(amountUsd * 100);
+    if (amountCents < 100) {
+      throw new BadRequestException('Transfer amount must be at least $1.00');
+    }
+    const transfer = await this.stripe.transfers.create({
+      amount: amountCents,
+      currency: 'usd',
+      destination: user.stripeConnectAccountId,
+      metadata: { withdrawalId, userId },
+    });
+    this.logger.log(`Stripe transfer ${transfer.id} → ${user.stripeConnectAccountId} for $${amountUsd.toFixed(2)} (withdrawal ${withdrawalId})`);
+    return transfer.id;
   }
 }

@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { BillingService } from './billing.service';
 
 /**
  * Monetization payout system.
@@ -45,7 +46,10 @@ export interface WithdrawalEstimate extends WithdrawalRates {
 export class WithdrawalService {
   private readonly logger = new Logger(WithdrawalService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly billing: BillingService,
+  ) {}
 
   getRates(): WithdrawalRates {
     return {
@@ -223,16 +227,40 @@ export class WithdrawalService {
     });
   }
 
-  /** Admin marks as PAID (manual bank transfer confirmed, or Stripe confirmed). */
+  /**
+   * Admin marks as PAID.
+   * If the creator has completed Stripe Connect onboarding, a real Stripe Transfer
+   * is created automatically. Otherwise falls back to manual confirmation.
+   */
   async markPaid(withdrawalId: string, stripeTransferId?: string) {
-    const w = await pw(this.prisma).findUnique({ where: { id: withdrawalId } });
+    const w = await pw(this.prisma).findUnique({
+      where: { id: withdrawalId },
+      include: { user: { select: { id: true, stripeConnectAccountId: true, stripeConnectEnabled: true } } },
+    });
     if (!w) throw new NotFoundException('Withdrawal not found');
     if (w.status !== 'APPROVED' && w.status !== 'PROCESSING') {
       throw new BadRequestException(`Cannot mark paid — status is ${w.status}`);
     }
+
+    let resolvedTransferId = stripeTransferId ?? w.stripeTransferId ?? null;
+
+    // Auto-transfer via Stripe Connect when the creator is onboarded
+    if (!resolvedTransferId && w.user?.stripeConnectAccountId && w.user?.stripeConnectEnabled) {
+      await pw(this.prisma).update({ where: { id: withdrawalId }, data: { status: 'PROCESSING' } });
+      try {
+        resolvedTransferId = await this.billing.transferToCreator(withdrawalId, w.userId, w.creatorAmountUsd);
+        this.logger.log(`Auto-transfer ${resolvedTransferId} completed for withdrawal ${withdrawalId}`);
+      } catch (err) {
+        this.logger.error(`Stripe transfer failed for withdrawal ${withdrawalId}: ${err instanceof Error ? err.message : String(err)}`);
+        throw new BadRequestException(
+          `Stripe transfer failed: ${err instanceof Error ? err.message : 'Unknown error'}. The creator may need to re-verify their Connect account.`,
+        );
+      }
+    }
+
     return pw(this.prisma).update({
       where: { id: withdrawalId },
-      data: { status: 'PAID', processedAt: new Date(), stripeTransferId: stripeTransferId ?? w.stripeTransferId },
+      data: { status: 'PAID', processedAt: new Date(), stripeTransferId: resolvedTransferId },
     });
   }
 

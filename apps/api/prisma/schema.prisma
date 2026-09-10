@@ -32,6 +32,10 @@ model User {
   role          UserRole  @default(OWNER)
   /** §7: set by dispute webhooks — blocks new recharges pending fraud review. */
   rechargesFrozen Boolean @default(false)
+  /** Stripe Connect Express account for creator payouts (acct_xxx). Set after onboarding. */
+  stripeConnectAccountId String?
+  /** True once the Connect account has completed verification and charges_enabled = true. */
+  stripeConnectEnabled   Boolean  @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

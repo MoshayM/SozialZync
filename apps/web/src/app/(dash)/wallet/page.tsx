@@ -1585,6 +1585,12 @@ const W_STATUS_STYLES: Record<string, React.CSSProperties> = {
   REJECTED:   { background: '#fef2f2', color: '#b91c1c' },
 };
 
+interface ConnectStatus {
+  connected: boolean;
+  chargesEnabled: boolean;
+  accountId: string | null;
+}
+
 function WithdrawTab() {
   const [data, setData] = useState<WithdrawPageData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -1593,14 +1599,34 @@ function WithdrawTab() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
 
   async function loadData() {
     setDataLoading(true);
     try {
-      const r = await apiClient.get<WithdrawPageData>('/wallet/withdrawals');
-      setData(r.data);
+      const [withdrawRes, connectRes] = await Promise.allSettled([
+        apiClient.get<WithdrawPageData>('/wallet/withdrawals'),
+        apiClient.get<ConnectStatus>('/billing/connect/status'),
+      ]);
+      if (withdrawRes.status === 'fulfilled') setData(withdrawRes.value.data);
+      if (connectRes.status === 'fulfilled') setConnectStatus(connectRes.value.data);
     } catch { /* non-fatal */ }
     finally { setDataLoading(false); }
+  }
+
+  async function startConnectOnboarding() {
+    setConnectLoading(true);
+    try {
+      const returnUrl = `${window.location.origin}/wallet?tab=withdraw&connect=return`;
+      const res = await apiClient.post<{ url: string }>('/billing/connect/onboard', { returnUrl });
+      window.location.href = res.data.url;
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } } };
+      setSubmitError(ax.response?.data?.message ?? 'Could not start payout setup. Please try again.');
+    } finally {
+      setConnectLoading(false);
+    }
   }
 
   useEffect(() => { void loadData(); }, []);
@@ -1667,6 +1693,57 @@ function WithdrawTab() {
         </div>
       </div>
 
+      {/* Stripe Connect payout account status */}
+      {connectStatus && (
+        connectStatus.chargesEnabled ? (
+          <div className="flex items-center gap-3 rounded-2xl px-5 py-3" style={{ background: '#ecfdf5', border: '1.5px solid #6ee7b7' }}>
+            <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-emerald-800">Payout account connected</p>
+              <p className="text-xs text-emerald-700 mt-0.5">Payouts will be sent directly to your bank via Stripe when approved.</p>
+            </div>
+          </div>
+        ) : connectStatus.connected ? (
+          <div className="flex items-center gap-3 rounded-2xl px-5 py-3" style={{ background: '#fffbeb', border: '1.5px solid #fde68a' }}>
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">Payout account verification pending</p>
+              <p className="text-xs text-amber-700 mt-0.5">Complete your Stripe verification to enable automatic payouts.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void startConnectOnboarding()}
+              disabled={connectLoading}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 transition-colors"
+            >
+              {connectLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
+              Continue setup
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 rounded-2xl px-5 py-4" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
+            <DollarSign className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Set up automatic payouts</p>
+              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                Connect your bank account via Stripe to receive automatic payouts when your withdrawal is approved.
+                Takes about 2 minutes.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void startConnectOnboarding()}
+              disabled={connectLoading}
+              className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
+            >
+              {connectLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
+              Connect bank
+            </button>
+          </div>
+        )
+      )}
+
       {/* Calculator + form */}
       <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
         <div className="flex items-center gap-2">
@@ -1713,7 +1790,9 @@ function WithdrawTab() {
         )}
 
         <div>
-          <label className="text-xs font-semibold text-gray-600 block mb-1.5">Payout email (PayPal or bank transfer)</label>
+          <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+            Payout email {connectStatus?.chargesEnabled ? '(optional — Stripe Connect is set up)' : '(PayPal or bank transfer if not using Stripe Connect)'}
+          </label>
           <input
             type="email"
             value={payoutEmail}
@@ -1758,7 +1837,7 @@ function WithdrawTab() {
             `${rates?.creditsPerUsd ?? 100} credits = $1.00`,
             `${rates?.platformFeePct ?? 20}% platform fee applies`,
             'Admin reviews within 1–3 business days',
-            'Payouts via bank transfer or PayPal',
+            'Auto-paid via Stripe Connect (connect your bank above)',
             `Minimum: ${(rates?.minWithdrawalCredits ?? 1000).toLocaleString()} credits ($${rates?.minWithdrawalUsd?.toFixed(0) ?? '10'})`,
             'Pro accounts only',
           ].map((item) => (
