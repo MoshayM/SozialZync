@@ -142,10 +142,11 @@ function MediaLibraryTab() {
   }
 
   // Per-platform channel selection
-  const [platformChannelIds, setPlatformChannelIds] = useState<Partial<Record<MediaPlatformId, string>>>(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(CHANNEL_LS_KEY) : null;
-    return stored ? { YOUTUBE: stored } : {};
-  });
+  const [platformChannelIds, setPlatformChannelIds] = useState<Partial<Record<MediaPlatformId, string>>>({});
+  useEffect(() => {
+    const stored = localStorage.getItem(CHANNEL_LS_KEY);
+    if (stored) setPlatformChannelIds(prev => ({ ...prev, YOUTUBE: stored }));
+  }, []);
   function getChannelForPlatform(platId: MediaPlatformId): string {
     return platformChannelIds[platId] ?? '';
   }
@@ -560,7 +561,9 @@ function ChannelsPageInner() {
             <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#a78bdb' }}>Channel Media</span>
             <div className="h-px flex-1" style={{ background: '#e3ddf8' }} />
           </div>
-          <MediaLibraryTab />
+          <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
+            <MediaLibraryTab />
+          </Suspense>
         </div>
       </div>
     </div>
