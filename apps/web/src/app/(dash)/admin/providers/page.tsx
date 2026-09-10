@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 const MOCK_MODE = process.env['NEXT_PUBLIC_USE_MOCK'] === 'true';
 import {
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Cpu, Music2, Mail, CreditCard,
-  Globe, ShieldAlert, ExternalLink, Zap, Video, Mic2, Image as ImageIcon,
+  Globe, ShieldAlert, ExternalLink, Zap, Video, Mic2, Loader2, Wifi,
 } from 'lucide-react';
 
 interface ProviderHealth {
@@ -15,6 +15,8 @@ interface ProviderHealth {
   category: 'ai' | 'media' | 'email' | 'payment' | 'storage';
   note?: string;
 }
+
+type TestState = 'idle' | 'testing' | 'ok' | 'failed';
 
 const PROVIDER_GUIDES: Record<string, string> = {
   ANTHROPIC_API_KEY:   'console.anthropic.com → API Keys',
@@ -93,11 +95,55 @@ function StatusBadge({ status }: { status: ProviderHealth['status'] }) {
   );
 }
 
+function TestBadge({ state, message }: { state: TestState; message: string }) {
+  if (state === 'idle') return null;
+  if (state === 'testing') {
+    return (
+      <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: '#eff6ff', color: '#1e40af' }}>
+        <Loader2 className="w-3 h-3 animate-spin" /> Testing…
+      </span>
+    );
+  }
+  if (state === 'ok') {
+    return (
+      <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: '#ecfdf5', color: '#065f46' }} title={message}>
+        <Wifi className="w-3 h-3" /> Live OK
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: '#fff1f2', color: '#9f1239' }} title={message}>
+      <XCircle className="w-3 h-3" /> Failed
+    </span>
+  );
+}
+
 function ProviderCard({ p }: { p: ProviderHealth }) {
   const [expanded, setExpanded] = useState(false);
+  const [testState, setTestState] = useState<TestState>('idle');
+  const [testMsg, setTestMsg] = useState('');
   const guide = PROVIDER_GUIDES[p.envKey];
   const catColor = CATEGORY_COLOR[p.category] ?? '#374151';
   const catIcon = CATEGORY_ICON[p.category];
+
+  const runTest = async () => {
+    setTestState('testing');
+    setTestMsg('');
+    try {
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('cf_token') ?? '') : '';
+      const res = await fetch('/api/proxy/admin/providers/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ envKey: p.envKey }),
+      });
+      const data = await res.json() as { ok: boolean; message: string };
+      setTestState(data.ok ? 'ok' : 'failed');
+      setTestMsg(data.message ?? '');
+    } catch (e) {
+      setTestState('failed');
+      setTestMsg(e instanceof Error ? e.message : 'Request failed');
+    }
+  };
 
   return (
     <div
@@ -115,12 +161,23 @@ function ProviderCard({ p }: { p: ProviderHealth }) {
             <p className="text-[11px] font-mono text-gray-400 mt-0.5 truncate">{p.envKey}</p>
           </div>
         </div>
-        <StatusBadge status={p.status} />
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <StatusBadge status={p.status} />
+          {testState !== 'idle' && <TestBadge state={testState} message={testMsg} />}
+        </div>
       </div>
 
       {/* Note */}
       {p.note && (
         <p className="text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl">{p.note}</p>
+      )}
+
+      {/* Test result message */}
+      {testState === 'failed' && testMsg && (
+        <p className="text-xs text-red-600 bg-red-50 px-3 py-1.5 rounded-xl">{testMsg}</p>
+      )}
+      {testState === 'ok' && testMsg && (
+        <p className="text-xs text-green-700 bg-green-50 px-3 py-1.5 rounded-xl">{testMsg}</p>
       )}
 
       {/* Guide for unconfigured */}
@@ -140,6 +197,18 @@ function ProviderCard({ p }: { p: ProviderHealth }) {
           )}
         </div>
       )}
+
+      {/* Test button */}
+      <button
+        type="button"
+        onClick={() => { void runTest(); }}
+        disabled={testState === 'testing'}
+        className="self-start flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+        style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}
+      >
+        {testState === 'testing' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}
+        {testState === 'testing' ? 'Testing…' : 'Test connection'}
+      </button>
     </div>
   );
 }
@@ -200,7 +269,7 @@ export default function AdminProvidersPage() {
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">AI Provider Keys</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              Monitor and manage platform API integrations
+              Monitor and test platform API integrations
               {lastRefreshed && (
                 <span className="text-gray-400"> · Checked {lastRefreshed.toLocaleTimeString()}</span>
               )}
@@ -294,7 +363,7 @@ export default function AdminProvidersPage() {
               >
                 Railway dashboard
               </a>
-              {' '}→ Variables tab, then redeploy (railway up). Keys are never stored in the frontend — they live only in the Railway environment.
+              {' '}→ Variables tab, then redeploy. Keys are never stored in the frontend — they live only in the Railway environment.
             </p>
           </div>
         </div>
