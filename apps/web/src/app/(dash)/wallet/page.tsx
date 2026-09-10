@@ -863,7 +863,7 @@ function PlansGrid() {
               disabled={!enterpriseForm.company || !enterpriseForm.useCase || enterpriseSubmitting}
               onClick={() => {
                 setEnterpriseSubmitting(true);
-                const existing = JSON.parse(localStorage.getItem('cf_enterprise_requests') ?? '[]') as unknown[];
+                const existing = (() => { try { return JSON.parse(localStorage.getItem('cf_enterprise_requests') ?? '[]') as unknown[]; } catch { return [] as unknown[]; } })();
                 existing.push({
                   id: Date.now().toString(),
                   userId: localStorage.getItem('cf_user_id') ?? 'anonymous',

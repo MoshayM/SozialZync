@@ -2,6 +2,19 @@
 
 import { useEffect } from 'react';
 
+function isChunkError(error: Error): boolean {
+  const msg = error.message ?? '';
+  return (
+    error.name === 'ChunkLoadError' ||
+    msg.includes('Loading chunk') ||
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Importing a module script failed') ||
+    msg.includes('error loading dynamically imported module') ||
+    msg.includes('dynamically imported module') ||
+    msg.includes('Unable to preload CSS')
+  );
+}
+
 export default function RootError({
   error,
   reset,
@@ -9,16 +22,23 @@ export default function RootError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const chunk = isChunkError(error);
+
   useEffect(() => {
-    const msg = error.message ?? '';
-    const isChunkError =
-      error.name === 'ChunkLoadError' ||
-      msg.includes('Loading chunk') ||
-      msg.includes('Failed to fetch dynamically imported module') ||
-      msg.includes('Importing a module script failed') ||
-      msg.includes('error loading dynamically imported module');
-    if (isChunkError) window.location.reload();
-  }, [error]);
+    if (chunk) window.location.reload();
+  }, [chunk]);
+
+  if (chunk) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50">
+        <div
+          className="w-7 h-7 rounded-full border-[3px] animate-spin"
+          style={{ borderColor: '#e5e7eb', borderTopColor: '#374151' }}
+        />
+        <p className="text-sm text-gray-400">Refreshing…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4 text-center bg-gray-50">
