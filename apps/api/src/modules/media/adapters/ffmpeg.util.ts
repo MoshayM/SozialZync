@@ -350,6 +350,21 @@ export interface ComposeOptions {
   audioSampleRate?: number;
   /** Output audio channels. 1=mono, 2=stereo. Default 2. */
   audioChannels?: number;
+  /**
+   * Overlay subtle cinematic film grain on the final video (ffmpeg noise filter).
+   * Adds organic texture and reduces the "AI-generated" look. Default true.
+   */
+  filmGrain?: boolean;
+  /**
+   * Apply a soft vignette (corner darkening) to the final video.
+   * Focuses viewer attention and adds cinematic depth. Default true.
+   */
+  vignette?: boolean;
+  /**
+   * Fade the voice/narration track in (0.3s) and out (0.8s).
+   * Prevents abrupt audio starts/stops for a more polished delivery. Default true.
+   */
+  audioFade?: boolean;
 }
 
 /**
@@ -357,9 +372,21 @@ export interface ComposeOptions {
  * music mixed, subtitles burned in. Deterministic infrastructure work — no
  * LLM involved (docs1/media-pipeline.md §8).
  */
+// Ken Burns motion variants — cycle per scene for naturalistic still-image motion.
+// Variables: zoom (current zoom), on (output frame number), d (total frames), iw/ih.
+const KB_VARIANTS = [
+  (d: number) => `z='min(zoom+0.0006,1.15)'`,                                          // zoom in (center)
+  (d: number) => `z='max(1.0,1.15-on*0.15/${d})'`,                                    // zoom out (center)
+  (d: number) => `z='min(zoom+0.0004,1.08)':x='iw/2-(iw/zoom/2)+iw*0.03*on/${d}'`,   // pan right + zoom
+  (d: number) => `z='min(zoom+0.0004,1.08)':x='max(0,iw/2-(iw/zoom/2)-iw*0.03*on/${d})'`, // pan left + zoom
+];
+
 export async function composeVideo(opts: ComposeOptions): Promise<void> {
   const { scenes, voicePath, musicPath, subtitlePath, outPath, width, height, fps } = opts;
   if (scenes.length === 0) throw new Error('composeVideo: no scenes provided');
+
+  // Compute totalSecs early — needed for audio fade offsets.
+  const totalSecs = scenes.reduce((s, sc) => s + sc.durationSecs, 0);
 
   const args: string[] = [];
   const filters: string[] = [];
@@ -369,11 +396,12 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
       args.push('-i', s.videoPath);
       filters.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},trim=duration=${s.durationSecs},setpts=PTS-STARTPTS[v${i}]`);
     } else if (s.imagePath) {
-      // Single still in; zoompan generates durationSecs*fps frames from it
-      // (d = output frames per input frame — the input must not be looped)
+      // Still image: zoompan generates durationSecs*fps frames.
+      // Cycle 4 KB variants per scene for naturalistic motion variety.
       args.push('-i', s.imagePath);
       const frames = Math.max(1, Math.round(s.durationSecs * fps));
-      filters.push(`[${i}:v]scale=${Math.round(width * 1.5)}:${Math.round(height * 1.5)},zoompan=z='min(zoom+0.0006,1.15)':d=${frames}:s=${width}x${height}:fps=${fps},setsar=1[v${i}]`);
+      const kbExpr = KB_VARIANTS[i % KB_VARIANTS.length]!(frames);
+      filters.push(`[${i}:v]scale=${Math.round(width * 1.5)}:${Math.round(height * 1.5)},zoompan=${kbExpr}:d=${frames}:s=${width}x${height}:fps=${fps},setsar=1[v${i}]`);
     } else {
       throw new Error(`composeVideo: scene ${i} has neither videoPath nor imagePath`);
     }
@@ -383,7 +411,14 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
   let audioIdx = scenes.length;
   if (voicePath) {
     args.push('-i', voicePath);
-    audioInputs.push(`[${audioIdx}:a]`);
+    // Fade voice in (0.3s) and out (0.8s) for polished, human-sounding delivery.
+    if ((opts.audioFade ?? true) && totalSecs > 1.5) {
+      const fadeOutStart = Math.max(0, totalSecs - 0.8);
+      filters.push(`[${audioIdx}:a]afade=t=in:st=0:d=0.3,afade=t=out:st=${fadeOutStart}:d=0.8[voice_faded]`);
+      audioInputs.push('[voice_faded]');
+    } else {
+      audioInputs.push(`[${audioIdx}:a]`);
+    }
     audioIdx++;
   }
   if (musicPath) {
@@ -413,11 +448,19 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
   }
 
   const concatIn = scenes.map((_, i) => `[v${i}]`).join('');
-  const videoOut = subtitlePath ? '[vc]' : '[vout]';
+  const videoOut = subtitlePath ? '[vc]' : '[vpre]';
   filters.push(`${concatIn}concat=n=${scenes.length}:v=1:a=0${videoOut}`);
   if (subtitlePath) {
-    filters.push(`[vc]subtitles='${escapeFilterPath(subtitlePath)}'[vout]`);
+    filters.push(`[vc]subtitles='${escapeFilterPath(subtitlePath)}'[vpre]`);
   }
+
+  // Post-processing: film grain + vignette chain on the composed video.
+  // Both are purely cosmetic, CPU-only, zero extra API cost.
+  const postChain: string[] = [];
+  if (opts.filmGrain ?? true) postChain.push('noise=c0s=6:c0f=t');
+  if (opts.vignette ?? true) postChain.push('vignette=PI/4');
+  // Always produce [vout]; use null passthrough when no post-processing is active.
+  filters.push(`[vpre]${postChain.length > 0 ? postChain.join(',') : 'null'}[vout]`);
 
   // Merge SFX labels into the audio input list before deciding mix strategy
   const allAudioInputs = [...audioInputs, ...sfxLabels];
@@ -434,7 +477,6 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
   }
 
   await fs.mkdir(path.dirname(outPath), { recursive: true });
-  const totalSecs = scenes.reduce((s, sc) => s + sc.durationSecs, 0);
 
   // ── Video quality args ────────────────────────────────────────────────────
   // CRF mode: constant perceptual quality. Pair with -maxrate/-bufsize for
