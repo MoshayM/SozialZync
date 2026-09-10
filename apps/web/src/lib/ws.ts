@@ -1,6 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 
-const WS_URL = process.env['NEXT_PUBLIC_WS_URL'] ?? 'https://api-production-cf143.up.railway.app';
+const WS_URL = process.env['NEXT_PUBLIC_WS_URL'] ?? 'https://sozialzync-api-production.up.railway.app';
 
 let socket: Socket | null = null;
 
