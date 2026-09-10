@@ -516,7 +516,7 @@ export default function AnalyticsPage() {
                 {/* Publishing KPIs */}
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Publishing</p>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <StatCard tone="lilac" icon={<Video className="w-5 h-5" />} label="Published" value={scorecard.publishing?.published ?? '—'} sub="videos uploaded" subClassName="text-gray-600" />
                     <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Scheduled" value={scorecard.publishing?.scheduled ?? '—'} sub="queued for publish" subClassName="text-gray-600" />
                     <StatCard tone="pink" icon={<AlertTriangle className="w-5 h-5" />} label="Failed" value={scorecard.publishing?.failed ?? '—'} sub="publish errors" subClassName={scorecard.publishing?.failed ? 'text-red-500' : 'text-gray-600'} />
@@ -526,7 +526,7 @@ export default function AnalyticsPage() {
                 {/* Autonomy KPIs */}
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI Autonomy</p>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <StatCard tone="periwinkle" icon={<BarChart2 className="w-5 h-5" />} label="Proposals" value={scorecard.calendar?.total ?? '—'} sub="calendar entries" subClassName="text-gray-600" />
                     <StatCard tone="lilac" icon={<TrendingUp className="w-5 h-5" />} label="Approval Rate" value={scorecard.calendar ? `${Math.round(scorecard.calendar.approvalRate)}%` : '—'} sub="of proposals approved" subClassName={scorecard.calendar && scorecard.calendar.approvalRate >= 50 ? 'text-green-600' : 'text-amber-500'} />
                     <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Upcoming (7d)" value={scorecard.calendar?.upcoming7d ?? '—'} sub="approved slots" subClassName="text-gray-600" />

@@ -658,7 +658,7 @@ function MusicStudio() {
         <textarea value={prompt} onChange={e => setPrompt(e.target.value)} rows={2}
           placeholder="Describe the mood and style… e.g. 'upbeat background music for a tech tutorial'"
           className="w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:border-gray-400 bg-[#f9fafb] resize-none" />
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="text-xs font-semibold text-gray-500 block mb-1">Genre</label>
             <select value={genre} onChange={e => setGenre(e.target.value)}

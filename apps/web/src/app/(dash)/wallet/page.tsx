@@ -473,7 +473,7 @@ function SmartTopUp() {
       <p className="text-xs text-gray-600">~{CREDITS_PER_DOLLAR.toLocaleString()} credits per $1 USD</p>
 
       {/* Amount pills */}
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {conf.amounts.map((amount, i) => {
           const usdEq = amount / conf.usdRate;
           const isBest = i === midIndex;

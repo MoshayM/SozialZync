@@ -989,7 +989,7 @@ function ProjectsTab({
                 <div className="px-7 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
                   <div>
                     <p className="text-xs font-semibold text-gray-600 mb-3">Platform</p>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {PLATFORMS.map((pd) => {
                         const isLocked = isFreeTier && pd.platform !== 'YOUTUBE';
                         return (
@@ -1017,7 +1017,7 @@ function ProjectsTab({
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-600 mb-3">Content format</p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {selPlatform.formats.map(fd => (
                         <button
                           key={fd.type} type="button"
