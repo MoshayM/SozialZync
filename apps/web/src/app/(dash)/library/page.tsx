@@ -380,22 +380,22 @@ export default function LibraryPage() {
       <div className="p-4 sm:p-6 pb-24 lg:pb-8">
 
         {/* ── Header row ── */}
-        <div className="flex flex-wrap items-start gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-5">
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-gray-900">My Library</h1>
             <p className="text-sm text-gray-500 mt-0.5">All your content, assets, and drafts in one place.</p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             {/* Search */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 w-40 transition"
+                className="pl-8 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 w-full sm:w-40 transition"
               />
             </div>
 

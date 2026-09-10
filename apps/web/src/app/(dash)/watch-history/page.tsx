@@ -140,7 +140,7 @@ export default function WatchHistoryPage() {
       <div className="p-4 sm:p-6 pb-24 lg:pb-8 max-w-4xl">
 
         {/* ── Header ── */}
-        <div className="flex flex-wrap items-start gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-5">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <History className="w-5 h-5 text-gray-700" />
@@ -149,23 +149,23 @@ export default function WatchHistoryPage() {
             <p className="text-sm text-gray-500">Videos you&apos;ve watched recently.</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Search */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search history…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 w-44 transition"
+                className="pl-8 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 w-full sm:w-44 transition"
               />
             </div>
 
             {/* Clear all */}
             <button
               onClick={() => setDismissed(new Set(HISTORY.map((v) => v.id)))}
-              className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-red-600 bg-white border border-red-100 rounded-xl hover:bg-red-50 transition"
+              className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-red-600 bg-white border border-red-100 rounded-xl hover:bg-red-50 transition shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Clear all
