@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { callAIStructured } from '@cf/shared';
 import { ImageBriefOutputSchema, type ImageBriefOutput } from '@cf/shared';
 import type { ScriptOutput } from '@cf/shared';
+import { enhanceImagePrompt, mergeNegativePrompts } from '@cf/shared';
 
 const IMAGE_SYSTEM = `You are a visual content director for YouTube. Create detailed image generation briefs. No real people, no copyrighted IP. Respond only with valid JSON.`;
 
@@ -18,7 +19,7 @@ export class ImageService {
         script.sections.map((s, i) => ({ id: `scene-${i}`, heading: s.heading, content: s.content.slice(0, 150) })),
       );
 
-      return await callAIStructured(
+      const raw = await callAIStructured(
         [{
           role: 'user',
           content: `Create image briefs for YouTube video "${script.title}"\nBrand: ${JSON.stringify(brand)}\nSections: ${sectionsJson}\nProject: ${projectId}\n\nFor each section, include: sceneId, sectionHeading, prompt (descriptive, no people/IP), negativePrompt, style, aspectRatio ("16:9"), count (2), purpose ("b-roll").`,
@@ -26,6 +27,20 @@ export class ImageService {
         ImageBriefOutputSchema,
         { systemPrompt: IMAGE_SYSTEM, maxTokens: 4096 },
       ) as ImageBriefOutput;
+
+      // Enhance each brief with cinematic/realism directives before the prompts
+      // reach image generation APIs — improves visual authenticity at zero extra cost.
+      return {
+        ...raw,
+        briefs: raw.briefs.map(brief => {
+          const { prompt, negativePrompt } = enhanceImagePrompt(brief.prompt, { style: brief.style });
+          return {
+            ...brief,
+            prompt,
+            negativePrompt: mergeNegativePrompts(brief.negativePrompt, negativePrompt),
+          };
+        }),
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Image briefs failed — ${msg}`);

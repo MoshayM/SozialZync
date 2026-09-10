@@ -49,6 +49,7 @@ import { EventsGateway } from '../gateway/events.gateway';
 import { AGENT_QUEUE } from '../modules/jobs/jobs.module';
 import { callAIStructured } from '@cf/shared';
 import { VideoScenePlanOutputSchema, SubtitleOutputSchema, EditPlanOutputSchema } from '@cf/shared';
+import { enhanceImagePrompt, enhanceVideoPrompt, mergeNegativePrompts, buildVoiceNarration } from '@cf/shared';
 import type {
   JobType, ResearchOutput, ScriptOutput, AnalyticsOutput,
   VoiceSpecOutput, ImageBriefOutput, MusicBriefOutput, VideoScenePlanOutput, SubtitleOutput,
@@ -727,15 +728,31 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           };
         });
 
+        // Enhance each scene's prompts with cinematic/realism directives before
+        // they reach video/image generation APIs — improves human communicativeness.
+        const enhancedScenes = scenes.map(scene => {
+          const { prompt: videoPrompt, negativePrompt: videoNeg } = enhanceVideoPrompt(scene.videoPrompt, scene);
+          const { prompt: imagePrompt } = enhanceImagePrompt(
+            scene.imagePrompt || scene.videoPrompt,
+            { emotion: scene.emotion, shotType: scene.shotType },
+          );
+          return {
+            ...scene,
+            videoPrompt,
+            imagePrompt,
+            negativePrompt: mergeNegativePrompts(scene.negativePrompt, videoNeg),
+          };
+        });
+
         const result = {
           ...raw,
           totalDurationSecs: Math.round(totalSecs),
           semanticMethod: 'cinematic-director',
-          sceneCount: scenes.length,
-          scenes,
+          sceneCount: enhancedScenes.length,
+          scenes: enhancedScenes,
         };
 
-        this.log(jobId, projectId, 'Storyboard ready ✓', `${scenes.length} scene(s) · semantic-director`);
+        this.log(jobId, projectId, 'Storyboard ready ✓', `${enhancedScenes.length} scene(s) · semantic-director`);
         await this.jobs.logStep(jobId, 'VideoAgent', 'storyboard', { scenes: scenes.length, method: 'cinematic-director' }, result, 0, 0, Date.now() - t0);
         this.events.emitJobUpdate(jobId, { step: 'VIDEO_SCENE_PLAN', status: 'COMPLETED' }, projectId);
         return result;
@@ -869,14 +886,18 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const spec = (payload['voiceSpec'] as VoiceSpecOutput | undefined)
           ?? await this.lastResult<VoiceSpecOutput>(projectId, 'VOICE_SPEC');
 
-        const narration = [
+        const rawNarration = [
           script.hook,
           ...script.sections.map((s) => s.content),
           script.callToAction,
         ].filter(Boolean).join('\n\n');
 
+        // Use SSML-enriched narration for ElevenLabs (human pauses, cadence, inflection);
+        // fall back to plain text for providers that do not support SSML (e.g. OpenAI TTS).
+        const narration = buildVoiceNarration(spec, rawNarration);
+
         const t0 = Date.now();
-        this.log(jobId, projectId, 'Generating voice-over narration…', `${narration.split(/\s+/).length} words`);
+        this.log(jobId, projectId, 'Generating voice-over narration…', `${rawNarration.split(/\s+/).length} words`);
         const stored = await this.media.generateVoice(projectId, 'Narration', {
           text: narration,
           voiceId: spec?.sections?.[0]?.voiceId,

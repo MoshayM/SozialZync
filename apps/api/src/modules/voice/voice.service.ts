@@ -2,9 +2,12 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { callAIStructured } from '@cf/shared';
 import { VoiceSpecOutputSchema, type VoiceSpecOutput } from '@cf/shared';
 import type { ScriptOutput } from '@cf/shared';
+import { buildEnhancedVoiceSystemPrompt } from '@cf/shared';
 import { z } from 'zod';
 
-const VOICE_SYSTEM = `You are a professional voice direction specialist for YouTube narration. Create detailed TTS specifications. Respond only with valid JSON.`;
+const VOICE_SYSTEM = buildEnhancedVoiceSystemPrompt(
+  `You are a professional voice direction specialist for YouTube narration. Create detailed TTS specifications. Respond only with valid JSON.`,
+);
 
 @Injectable()
 export class VoiceService {

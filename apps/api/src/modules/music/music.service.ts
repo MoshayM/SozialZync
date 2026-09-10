@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { callAIStructured } from '@cf/shared';
 import { MusicBriefOutputSchema, type MusicBriefOutput } from '@cf/shared';
 import type { ScriptOutput } from '@cf/shared';
+import { enhanceMusicPrompt } from '@cf/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { MusicExternalService } from './music-external.service';
 
@@ -53,7 +54,7 @@ export class MusicService {
     const durationSecs = Math.round(script.estimatedDurationMins * 60);
 
     try {
-      return await callAIStructured(
+      const raw = await callAIStructured(
         [{
           role: 'user',
           content: `Create a music generation brief for YouTube video "${script.title}"\nDuration: ${durationSecs}s\nMood: ${mood ?? 'professional and engaging'}\nGenre: ${genre ?? 'electronic/ambient'}\nHook: "${script.hook.slice(0, 150)}"\n\nGenerate: mood, genre, bpm (60-160), instruments (array), energy (low/medium/high/dynamic), durationSecs, structure, prompt, provider ("suno").`,
@@ -61,6 +62,11 @@ export class MusicService {
         MusicBriefOutputSchema,
         { systemPrompt: MUSIC_SYSTEM, maxTokens: 2048 },
       ) as MusicBriefOutput;
+
+      // Rebuild the prompt with organic/human-feel directives before it reaches
+      // Suno/MusicGen/Replicate — improves realism and emotional alignment.
+      const { prompt } = enhanceMusicPrompt(raw);
+      return { ...raw, prompt };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Music brief failed — ${msg}`);
