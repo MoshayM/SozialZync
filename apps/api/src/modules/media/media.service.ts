@@ -63,8 +63,8 @@ export class MediaService {
 
   private readonly voice: AdapterChain<VoiceAdapter> = {
     configured: process.env['VOICE_PROVIDER'],
-    // Cloud providers first (if key set), then self-hosted, then offline fallback
-    adapters: [new OpenAiVoiceAdapter(), new ElevenLabsVoiceAdapter(), new CoquiVoiceAdapter(), new FishSpeechVoiceAdapter(), new StyleTTS2VoiceAdapter(), new KokoroVoiceAdapter(), new PiperVoiceAdapter(), new OfflineVoiceAdapter()],
+    // ElevenLabs first (highest quality), then OpenAI TTS, then self-hosted, then offline
+    adapters: [new ElevenLabsVoiceAdapter(), new OpenAiVoiceAdapter(), new CoquiVoiceAdapter(), new FishSpeechVoiceAdapter(), new StyleTTS2VoiceAdapter(), new KokoroVoiceAdapter(), new PiperVoiceAdapter(), new OfflineVoiceAdapter()],
   };
   private readonly image: AdapterChain<ImageAdapter> = {
     configured: process.env['IMAGE_PROVIDER'],
@@ -86,6 +86,33 @@ export class MediaService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
   ) {}
+
+  getProviderStatus(): {
+    voice: { name: string; available: boolean }[];
+    image: { name: string; available: boolean }[];
+    music: { name: string; available: boolean }[];
+    video: { name: string; available: boolean }[];
+    active: { voice: string | null; image: string | null; music: string | null; video: string | null };
+  } {
+    const status = <T extends { name: string; available(): boolean }>(chain: AdapterChain<T>) =>
+      chain.adapters.map((a) => ({ name: a.name, available: a.available() }));
+
+    const first = <T extends { name: string; available(): boolean }>(chain: AdapterChain<T>) =>
+      chain.adapters.find((a) => a.available())?.name ?? null;
+
+    return {
+      voice: status(this.voice),
+      image: status(this.image),
+      music: status(this.music),
+      video: status(this.video),
+      active: {
+        voice: first(this.voice),
+        image: first(this.image),
+        music: first(this.music),
+        video: first(this.video),
+      },
+    };
+  }
 
   generateVoice(projectId: string, label: string, req: VoiceRequest): Promise<StoredAsset> {
     return this.generate(projectId, 'VOICE', label, req, this.orderedAdapters(this.voice), (a, r) => a.synthesize(r));

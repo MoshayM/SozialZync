@@ -1,11 +1,12 @@
-import { Controller, Get, Param, Post, Query, Req, UseGuards, StreamableFile, NotFoundException, ForbiddenException } from '@nestjs/common';
-import type { Request } from 'express';
+import { Controller, Get, Param, Post, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from './storage.service';
 import { ExportsService } from './exports.service';
+import { MediaService } from './media.service';
 import { SignedMediaOrJwtGuard } from './signed-media.guard';
 import { clampTtl, signMedia, signingSecret } from './signed-url.util';
 
@@ -28,7 +29,40 @@ export class MediaController {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly exportsSvc: ExportsService,
+    private readonly mediaSvc: MediaService,
   ) {}
+
+  /** Returns which image/voice/music/video providers are currently active. */
+  @Get('providers/status')
+  getProviderStatus() {
+    return this.mediaSvc.getProviderStatus();
+  }
+
+  /** Synthesise a short test phrase with the active voice provider. Returns MP3 audio. */
+  @Post('providers/test-voice')
+  async testVoice(@Res() res: Response): Promise<void> {
+    const TEST_PROJECT = '__provider_test__';
+    const stored = await this.mediaSvc.generateVoice(TEST_PROJECT, 'provider-test', {
+      text: 'Hello, this is a test of your voice provider configuration.',
+    });
+    const stream = this.storage.stream(stored.key);
+    res.set({ 'Content-Type': 'audio/mpeg', 'X-Provider': stored.provider });
+    stream.pipe(res);
+  }
+
+  /** Generate a small test image with the active image provider. Returns PNG. */
+  @Post('providers/test-image')
+  async testImage(@Res() res: Response): Promise<void> {
+    const TEST_PROJECT = '__provider_test__';
+    const stored = await this.mediaSvc.generateImage(TEST_PROJECT, 'provider-test', {
+      prompt: 'A simple test image: a bright orange circle on a white background.',
+      width: 512,
+      height: 512,
+    });
+    const stream = this.storage.stream(stored.key);
+    res.set({ 'Content-Type': 'image/png', 'X-Provider': stored.provider });
+    stream.pipe(res);
+  }
 
   // Signed access (docs4/09): file routes accept `?exp=&sig=` OR a JWT.
   // @Public neutralises the controller-level JWT guard; SignedMediaOrJwtGuard

@@ -860,6 +860,15 @@ export const api = {
     deletePasskey: (id: string) =>
       apiClient.delete(`/auth/webauthn/credentials/${id}`),
   },
+  mediaProviders: {
+    status: () => apiClient.get<{
+      active: { voice: string | null; image: string | null; music: string | null; video: string | null };
+      voice: { name: string; available: boolean }[];
+      image: { name: string; available: boolean }[];
+    }>('/media/providers/status'),
+    testVoice: () => apiClient.post('/media/providers/test-voice', {}, { responseType: 'blob' as const }),
+    testImage: () => apiClient.post('/media/providers/test-image', {}, { responseType: 'blob' as const }),
+  },
   channels: {
     list: () => apiClient.get('/channels'),
     status: () => apiClient.get('/channels/status'),

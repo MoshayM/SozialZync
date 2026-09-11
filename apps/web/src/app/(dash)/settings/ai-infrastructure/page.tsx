@@ -6,6 +6,7 @@ import {
   Key, Save, RotateCcw, Eye, EyeOff, Play, RefreshCw,
   Zap, BarChart3, GitBranch, SlidersHorizontal, Gauge,
   Shield, Loader2, CheckCircle2, XCircle, TrendingUp,
+  Mic, Image as ImageIcon, Volume2,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -394,6 +395,164 @@ function SpendChart({ data }: { data: { date: string; cost: number }[] }) {
           y={H - 4} textAnchor="middle" fontSize="9" fill="#9ca3af">{label}</text>
       ))}
     </svg>
+  );
+}
+
+// ── Media Providers section ───────────────────────────────────────────────────
+
+function MediaProvidersSection() {
+  const { data: status, isLoading, refetch } = useQuery({
+    queryKey: ['media-providers-status'],
+    queryFn: () => api.mediaProviders.status().then((r) => r.data),
+    retry: false,
+  });
+
+  const [voiceTest, setVoiceTest] = React.useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
+  const [imageTest, setImageTest] = React.useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
+  const [imageUrl, setImageUrl] = React.useState<string | null>(null);
+
+  async function handleVoiceTest() {
+    setVoiceTest('loading');
+    try {
+      const res = await api.mediaProviders.testVoice();
+      const blob = new Blob([res.data as BlobPart], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play().catch(() => null);
+      setVoiceTest('ok');
+    } catch {
+      setVoiceTest('err');
+    }
+    setTimeout(() => setVoiceTest('idle'), 5000);
+  }
+
+  async function handleImageTest() {
+    setImageTest('loading');
+    setImageUrl(null);
+    try {
+      const res = await api.mediaProviders.testImage();
+      const blob = new Blob([res.data as BlobPart], { type: 'image/png' });
+      setImageUrl(URL.createObjectURL(blob));
+      setImageTest('ok');
+    } catch {
+      setImageTest('err');
+    }
+    setTimeout(() => { setImageTest('idle'); }, 8000);
+  }
+
+  const PROVIDER_LABELS: Record<string, string> = {
+    'elevenlabs': 'ElevenLabs',
+    'openai-voice': 'OpenAI TTS',
+    'openai-image': 'OpenAI DALL·E 3',
+    'offline-gradient-image': 'Offline placeholder',
+    'offline-synth-voice': 'Offline placeholder',
+  };
+
+  const activeVoice = status?.active.voice;
+  const activeImage = status?.active.image;
+  const voiceOk = !!activeVoice && !activeVoice.startsWith('offline');
+  const imageOk = !!activeImage && !activeImage.startsWith('offline');
+
+  return (
+    <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+      <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#f3e8ff' }}>
+          <Volume2 className="w-4 h-4" style={{ color: '#7c3aed' }} />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-gray-800">Media Generation Providers</p>
+          <p className="text-xs text-gray-400 mt-0.5">Voice narration (ElevenLabs) and scene images (OpenAI DALL·E 3) for your project pipeline</p>
+        </div>
+        <button type="button" onClick={() => void refetch()} className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+          <RefreshCw className="w-4 h-4 text-gray-400" />
+        </button>
+      </div>
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+        </div>
+      )}
+
+      {!isLoading && (
+        <div className="p-5 space-y-4">
+          {/* Voice */}
+          <div className="rounded-xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8', background: voiceOk ? '#f0fdf4' : '#fafafa' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: voiceOk ? '#dcfce7' : '#f3f4f6' }}>
+                <Mic className="w-4 h-4" style={{ color: voiceOk ? '#16a34a' : '#9ca3af' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800">Voice Narration</p>
+                <p className="text-xs" style={{ color: voiceOk ? '#15803d' : '#6b7280' }}>
+                  {activeVoice ? (PROVIDER_LABELS[activeVoice] ?? activeVoice) : 'No provider configured'}
+                  {!activeVoice && ' — set ELEVENLABS_API_KEY on Railway'}
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold shrink-0"
+                style={voiceOk ? { background: '#ecfdf5', color: '#15803d' } : { background: '#f3f4f6', color: '#6b7280' }}>
+                {voiceOk ? 'Active' : 'Not set'}
+              </span>
+            </div>
+            {!voiceOk && (
+              <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: '#f8f4ff', border: '1px solid #e9d5ff', color: '#7c3aed' }}>
+                Railway → Variables → Add: <strong>ELEVENLABS_API_KEY</strong> = your key from elevenlabs.io
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => void handleVoiceTest()}
+              disabled={voiceTest === 'loading' || !activeVoice}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40"
+              style={{ background: '#374151', color: '#fff' }}
+            >
+              {voiceTest === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              {voiceTest === 'loading' ? 'Synthesising…' : voiceTest === 'ok' ? 'Playing ✓' : voiceTest === 'err' ? 'Failed ✗' : 'Test Voice'}
+            </button>
+          </div>
+
+          {/* Image */}
+          <div className="rounded-xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8', background: imageOk ? '#f0fdf4' : '#fafafa' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: imageOk ? '#dcfce7' : '#f3f4f6' }}>
+                <ImageIcon className="w-4 h-4" style={{ color: imageOk ? '#16a34a' : '#9ca3af' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800">Scene Images</p>
+                <p className="text-xs" style={{ color: imageOk ? '#15803d' : '#6b7280' }}>
+                  {activeImage ? (PROVIDER_LABELS[activeImage] ?? activeImage) : 'No provider configured'}
+                  {!activeImage && ' — set OPENAI_API_KEY on Railway'}
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold shrink-0"
+                style={imageOk ? { background: '#ecfdf5', color: '#15803d' } : { background: '#f3f4f6', color: '#6b7280' }}>
+                {imageOk ? 'Active' : 'Not set'}
+              </span>
+            </div>
+            {!imageOk && (
+              <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: '#f8f4ff', border: '1px solid #e9d5ff', color: '#7c3aed' }}>
+                Railway → Variables → Add: <strong>OPENAI_API_KEY</strong> = your key from platform.openai.com
+              </div>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => void handleImageTest()}
+                disabled={imageTest === 'loading' || !activeImage}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40"
+                style={{ background: '#374151', color: '#fff' }}
+              >
+                {imageTest === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                {imageTest === 'loading' ? 'Generating…' : imageTest === 'ok' ? 'Generated ✓' : imageTest === 'err' ? 'Failed ✗' : 'Test Image'}
+              </button>
+              {imageUrl && (
+                <img src={imageUrl} alt="Test generation" className="w-16 h-16 rounded-lg object-cover" style={{ border: '1px solid #e3ddf8' }} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -935,6 +1094,9 @@ export default function AiInfrastructurePage() {
             </div>
           </div>
         </section>
+
+        {/* ── Media Providers: Voice + Image ──────────────────────────────── */}
+        <MediaProvidersSection />
 
         {/* ── Section 8: AI Usage ──────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
