@@ -26,7 +26,8 @@ export function middleware(req: NextRequest) {
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    "frame-ancestors 'self'",
+    // A05 — Deny framing from all origins (clickjacking). next.config.ts also sets X-Frame-Options.
+    "frame-ancestors 'none'",
     "form-action 'self'",
     // Next.js 15 generates inline RSC streaming scripts (self.__next_f.push)
     // that are not nonce-annotated by the framework. CSP L2+ browsers silently
@@ -37,11 +38,15 @@ export function middleware(req: NextRequest) {
     // x-nonce so explicit <Script nonce={nonce}> components can use it.
     `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
+    // A08 — Restrict image sources to known-good domains only
     "img-src 'self' data: blob: https://i.ytimg.com https://yt3.googleusercontent.com https://picsum.photos https://fastly.picsum.photos",
     "font-src 'self' data:",
     "worker-src 'self' blob:",
+    "manifest-src 'self'",
     `media-src 'self' blob: ${apiOrigin} https://commondatastorage.googleapis.com https://www.soundhelix.com`,
     `connect-src 'self' ${apiOrigin} ${wsOrigin}${sentryHosts}`,
+    // A02 — Force upgrade of any inadvertent http:// sub-resource requests in production
+    ...(isDev ? [] : ['upgrade-insecure-requests']),
   ].join('; ');
 
   // Forward nonce to RSC / root layout via request header

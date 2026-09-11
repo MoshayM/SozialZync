@@ -87,7 +87,82 @@ async function bootstrap() {
   // proxy hop IP. Required for rate limiting to key per real client, not per proxy.
   app.set('trust proxy', true);
 
-  app.use(helmet());
+  // ── OWASP A05: Security misconfiguration — hardened Helmet options ──────────
+  app.use(
+    helmet({
+      // Full API CSP in production; disabled in dev so Swagger UI (unsafe-* scripts) works
+      contentSecurityPolicy:
+        process.env['NODE_ENV'] === 'production'
+          ? {
+              directives: {
+                defaultSrc: ["'self'"],
+                baseUri: ["'self'"],
+                fontSrc: ["'self'", 'https:', 'data:'],
+                formAction: ["'self'"],
+                frameAncestors: ["'none'"],
+                imgSrc: ["'self'", 'data:'],
+                objectSrc: ["'none'"],
+                scriptSrc: ["'self'"],
+                styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+                upgradeInsecureRequests: [],
+              },
+            }
+          : false,
+      // 2-year HSTS + preload in production (localhost breaks with HSTS active)
+      hsts:
+        process.env['NODE_ENV'] === 'production'
+          ? { maxAge: 63_072_000, includeSubDomains: true, preload: true }
+          : false,
+      // API responses must be readable by the cross-origin frontend
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      // COEP would block cross-origin AI/media CDN responses
+      crossOriginEmbedderPolicy: false,
+      // API should never be embedded in a frame
+      frameguard: { action: 'deny' },
+      // Don't leak API paths to third-party servers via Referer
+      referrerPolicy: { policy: 'no-referrer' },
+    }),
+  );
+
+  // ── OWASP A07: Auth brute-force — in-memory gate (Redis guard is primary) ──
+  // Limits auth-path requests to 20 per IP per 15-min window without any extra
+  // dependency. Works across restarts only via the Redis-backed rate-limit guard.
+  {
+    const authMap = new Map<string, { count: number; resetAt: number }>();
+    const AUTH_MAX = 20;
+    const AUTH_WINDOW_MS = 15 * 60 * 1_000;
+    app.use(
+      (
+        req: import('express').Request,
+        res: import('express').Response,
+        next: import('express').NextFunction,
+      ) => {
+        if (!req.path.includes('/auth/')) return next();
+        const ip = (req.ip ?? '0.0.0.0').replace(/^::ffff:/, '');
+        const now = Date.now();
+        const slot = authMap.get(ip);
+        if (slot && now < slot.resetAt) {
+          if (slot.count >= AUTH_MAX) {
+            res.status(429).json({
+              statusCode: 429,
+              message: 'Too many authentication requests — try again later',
+              retryAfter: Math.ceil((slot.resetAt - now) / 1000),
+            });
+            return;
+          }
+          slot.count++;
+        } else {
+          authMap.set(ip, { count: 1, resetAt: now + AUTH_WINDOW_MS });
+          // Evict stale entries to prevent unbounded memory growth
+          if (authMap.size > 50_000) {
+            for (const [k, v] of authMap) if (v.resetAt < now) authMap.delete(k);
+          }
+        }
+        next();
+      },
+    );
+  }
+
   // First in the chain so every downstream log, error envelope, and Sentry
   // event carries the request's correlation ID.
   app.use(correlationMiddleware);

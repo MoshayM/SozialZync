@@ -2,12 +2,25 @@ import type { NextConfig } from 'next';
 
 // Non-CSP security headers. CSP is set per-request in middleware.ts so it can
 // carry a unique nonce — static headers() here can't generate per-request values.
+//
+// OWASP A05 — Security misconfiguration: headers hardened beyond Next.js defaults.
 const securityHeaders = [
+  // A05 — Prevent MIME-type sniffing (e.g. serving a script as text/plain)
   { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  // A05 — Deny all framing (clickjacking). middleware.ts also sets frame-ancestors in CSP.
+  { key: 'X-Frame-Options', value: 'DENY' },
+  // A02 — Don't leak the full URL when navigating to external sites
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
-  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+  // A05 — Restrict browser feature access; microphone=(self) for voice recording feature
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()' },
+  // A02 — HSTS: 2 years + subdomains + preload (browsers cache this and force HTTPS)
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+  // A05 — Prevent this page from being opened by cross-origin windows (tabnapping)
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  // A05 — Resources (fonts, images) served from this origin require explicit cross-origin allow
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+  // A05 — Prevent DNS prefetching (minor info leak for internal routes)
+  { key: 'X-DNS-Prefetch-Control', value: 'off' },
 ];
 
 const nextConfig: NextConfig = {
