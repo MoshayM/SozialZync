@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Http
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString, IsOptional, IsArray } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { ProjectsService } from './projects.service';
@@ -21,6 +22,7 @@ class CreateProjectDto {
   @IsOptional() @IsArray() @IsString({ each: true }) platforms?: string[];
 }
 
+@TierRateLimit({ bucket: 'projects', windowSecs: 3600, limits: { FREE: 50, STARTER: 150, PRO: 500, AGENCY: 2000, default: 50 } })
 @ApiTags('projects')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)

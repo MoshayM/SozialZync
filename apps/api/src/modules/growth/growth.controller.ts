@@ -1,12 +1,14 @@
 import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { GrowthService } from './growth.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import type { Request } from 'express';
 
 interface AuthReq extends Request {
   user: { id: string; email: string };
 }
 
+@TierRateLimit({ bucket: 'growth', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
 @Controller('growth')
 @UseGuards(JwtAuthGuard)
 export class GrowthController {

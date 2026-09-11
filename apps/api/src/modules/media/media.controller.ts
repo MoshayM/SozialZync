@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createHash } from 'crypto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -24,6 +25,7 @@ function mimeFor(name: string): string {
 
 type MediaRequest = Request & { signedMediaAccess?: boolean; user?: JwtPayload };
 
+@TierRateLimit({ bucket: 'media-upload', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
 @Controller('media')
 @UseGuards(JwtAuthGuard)
 export class MediaController {

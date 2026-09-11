@@ -98,7 +98,9 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<Request & { user?: JwtPayload }>();
+    const http = context.switchToHttp();
+    const req = http.getRequest<Request & { user?: JwtPayload }>();
+    const res = http.getResponse<import('express').Response>();
 
     const opts = this.reflector.getAllAndOverride<RateLimitOptions>(RATE_LIMIT_KEY, [
       context.getHandler(),
@@ -108,8 +110,7 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
     if (opts) {
       if (!this.available) return true;
       const ip = (req.ip ?? req.socket?.remoteAddress ?? 'unknown').replace(/[^\w.:]/g, '_');
-      const key = `ratelimit:${opts.bucket}:${ip}`;
-      await this.enforceWindow(key, opts.limit, opts.windowSecs);
+      await this.enforceWindow(`ratelimit:${opts.bucket}:${ip}`, opts.limit, opts.windowSecs, res);
     }
 
     const tierOpts = this.reflector.getAllAndOverride<TierLimits>(TIER_RATE_LIMIT_KEY, [
@@ -129,13 +130,29 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
       const keyId = user?.sub
         ? `tierratelimit:${tierOpts.bucket}:${user.sub}`
         : `tierratelimit:${tierOpts.bucket}:${(req.ip ?? req.socket?.remoteAddress ?? 'unknown').replace(/[^\w.:]/g, '_')}`;
-      await this.enforceWindow(keyId, limit, tierOpts.windowSecs);
+      await this.enforceWindow(keyId, limit, tierOpts.windowSecs, res);
+    }
+
+    // Global fallback: any route without an explicit decorator gets 300 req/min per IP.
+    // Health probes and webhook delivery are excluded to avoid operational false positives.
+    if (!opts && !tierOpts && this.available) {
+      const path = req.path ?? '';
+      const bypass = path === '/health' || path === '/ready' || path === '/metrics' || path.includes('/webhook');
+      if (!bypass) {
+        const ip = (req.ip ?? req.socket?.remoteAddress ?? 'unknown').replace(/[^\w.:]/g, '_');
+        await this.enforceWindow(`ratelimit:global:${ip}`, 300, 60, res);
+      }
     }
 
     return true;
   }
 
-  private async enforceWindow(key: string, limit: number, windowSecs: number): Promise<void> {
+  private async enforceWindow(
+    key: string,
+    limit: number,
+    windowSecs: number,
+    res?: import('express').Response,
+  ): Promise<void> {
     try {
       const count = await this.redis.incr(key);
       if (count === 1) {
@@ -143,11 +160,17 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
       }
       if (count > limit) {
         const ttl = await this.redis.ttl(key);
+        const retryAfter = ttl > 0 ? ttl : windowSecs;
+        // RFC 6585 §4 — Retry-After tells clients exactly when to retry
+        res?.setHeader('Retry-After', String(retryAfter));
+        res?.setHeader('X-RateLimit-Limit', String(limit));
+        res?.setHeader('X-RateLimit-Reset', String(Math.floor(Date.now() / 1000) + retryAfter));
         throw new HttpException(
           {
-            message: `Too many requests — try again in ${ttl > 0 ? ttl : windowSecs}s.`,
+            message: `Too many requests — try again in ${retryAfter}s.`,
             code: 'RATE_LIMITED',
             retryable: true,
+            retryAfter,
           },
           HttpStatus.TOO_MANY_REQUESTS,
         );

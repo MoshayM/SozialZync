@@ -5,6 +5,7 @@ import {
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { ChannelsService, isAccessLevel } from './channels.service';
@@ -25,6 +26,7 @@ class RefreshDto {
 const WEB_URL = process.env['WEB_URL'] ?? 'http://localhost:3007';
 const API_URL = process.env['API_URL'] ?? 'http://localhost:4007';
 
+@TierRateLimit({ bucket: 'channels', windowSecs: 3600, limits: { FREE: 10, STARTER: 30, PRO: 100, AGENCY: 300, default: 10 } })
 @ApiTags('channels')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)

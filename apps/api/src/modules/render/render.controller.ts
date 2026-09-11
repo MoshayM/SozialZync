@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Query, Body, UseGuards, Req } from '@nestjs/common';
 import { RenderService } from './render.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import type { Request } from 'express';
 import type { RenderPreset } from '@prisma/client';
 
@@ -8,6 +9,7 @@ interface AuthReq extends Request {
   user: { id: string; email: string };
 }
 
+@TierRateLimit({ bucket: 'render', windowSecs: 3600, limits: { FREE: 2, STARTER: 5, PRO: 20, AGENCY: 50, default: 2 } })
 @Controller('render')
 @UseGuards(JwtAuthGuard)
 export class RenderController {
