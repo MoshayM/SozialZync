@@ -33,6 +33,12 @@ export class BiController {
     return this.bi.enterpriseMetrics();
   }
 
+  @Get('analytics/subscription')
+  @RequirePermissions('admin:revenue')
+  async subscriptionAnalytics() {
+    return this.bi.subscriptionAnalyticsMetrics();
+  }
+
   @Get('forecasts')
   @RequirePermissions('admin:revenue')
   async forecasts(@Query('metric') metric?: string) {

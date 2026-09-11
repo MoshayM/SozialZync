@@ -35,11 +35,12 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { StatCard, PastelBars, PastelDonut } from '@/components/stat-card';
+import { AdminSubscriptionAnalytics } from '@/components/admin-subscription-analytics';
 import { DevicePreview } from '@/components/device-preview';
 import { api, apiClient, type AdminProvider, type AdminPublicContent, type AdminUser, type EnterpriseMetrics, type ForecastRow, type ModerationAction } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
-type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation' | 'api-keys' | 'ad-revenue' | 'withdrawals';
+type AdminTab = 'dashboard' | 'device-preview' | 'page-views' | 'users' | 'enterprise-requests' | 'ai-usage' | 'ad-video' | 'moderation' | 'api-keys' | 'ad-revenue' | 'withdrawals' | 'sub-analytics';
 
 interface PlatformAdRevenueStats {
   totalViews: number;
@@ -836,6 +837,7 @@ export default function AdminDashboardPage() {
             { id: 'api-keys',            label: 'API Keys & Providers',  icon: <Cpu className="w-4 h-4" /> },
             { id: 'ad-revenue',          label: 'Ad Revenue',            icon: <DollarSign className="w-4 h-4" /> },
             { id: 'withdrawals',         label: 'Withdrawals',           icon: <PiggyBank className="w-4 h-4" /> },
+            { id: 'sub-analytics',       label: 'Subscription Analytics', icon: <TrendingUp className="w-4 h-4" /> },
           ] as { id: AdminTab; label: string; icon: React.ReactNode }[]
         ).map(({ id, label, icon }) => (
           <button
@@ -2341,6 +2343,9 @@ export default function AdminDashboardPage() {
           )}
         </div>
       )}
+
+      {/* ── Subscription Analytics ───────────────────────────────────────────── */}
+      {adminTab === 'sub-analytics' && <AdminSubscriptionAnalytics />}
     </div>
   );
 }

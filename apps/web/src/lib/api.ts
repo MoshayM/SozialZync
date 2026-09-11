@@ -1247,6 +1247,7 @@ export const api = {
   },
   admin: {
     enterpriseMetrics: () => apiClient.get<EnterpriseMetrics>('/admin/analytics/enterprise'),
+    subscriptionAnalytics: () => apiClient.get<SubAnalyticsMetrics>('/admin/analytics/subscription'),
     forecasts: (metric?: string) =>
       apiClient.get<ForecastRow[]>(`/admin/forecasts${metric ? `?metric=${encodeURIComponent(metric)}` : ''}`),
     generateForecasts: () => apiClient.post<{ ok: boolean; message: string }>('/admin/forecasts/generate'),
@@ -1348,6 +1349,25 @@ export const api = {
 };
 
 // ── Enterprise admin dashboard (Phase 5 §9) ──────────────────────────────────
+
+export interface SubAnalyticsMetrics {
+  mrr: number; arr: number; acv: number; tcv: number;
+  runRate: number; arpu: number; arpa: number; ltv: number;
+  revenueByMonth: number[];
+  planDistribution: Array<{ plan: string; count: number; mrr: number }>;
+  totalUsers: number; payingUsers: number; freeUsers: number;
+  newCustomers30d: number; lostCustomers30d: number;
+  monthlyChurnRate: number; annualChurnRate: number;
+  revenueChurnRate: number; nrr: number; grr: number;
+  customerRetentionRate: number; avgCustomerLifespanMonths: number;
+  cohortRetention: Array<{ cohortMonth: string; initialCount: number; activeCount: number; retentionRate: number }>;
+  newMrr: number; churnedMrr: number; expansionMrr: number; contractionMrr: number;
+  netMrrGrowthRate: number;
+  cac: number | null; cacPaybackPeriodMonths: number | null; ltvCacRatio: number | null;
+  marketingSpendConfigured: boolean;
+  aiCostUsd: number; burnRateUsd: number;
+  generatedAt: string; dataWindow: string;
+}
 
 export interface EnterpriseMetrics {
   /**

@@ -440,6 +440,204 @@ export class BiService {
     }
   }
 
+  /**
+   * Full SaaS analytics suite: subscription & revenue KPIs, retention & churn
+   * metrics, marketing efficiency (CAC / LTV:CAC), and cashflow indicators.
+   *
+   * All monetary values returned in minor units (cents) unless the field name
+   * ends in `Usd`. Rates are 0..1 decimals (multiply by 100 for %).
+   *
+   * Marketing metrics (CAC, payback) require MONTHLY_MARKETING_SPEND_USD env
+   * var — they return null when unconfigured rather than silently computing
+   * with a zero denominator.
+   */
+  async subscriptionAnalyticsMetrics(): Promise<Record<string, unknown>> {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo  = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const sixMonthsAgo  = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
+    const prices = planPriceMap();
+
+    const [
+      activeSubscriptions,
+      cancelledByPlan30d,
+      newPayingCount30d,
+      totalUserCount,
+      totalPayingCount,
+      revenue30d,
+      prevRevenue30d,
+      payingUsersDistinct30d,
+      aiCost30d,
+      revenueRows6m,
+      cohortRows,
+    ] = await Promise.all([
+      // Active subscriptions by plan → MRR/ARR
+      this.prisma.subscription.groupBy({ by: ['plan'], where: { status: 'ACTIVE' }, _count: true })
+        .catch(() => [] as Array<{ plan: string; _count: number }>),
+
+      // Cancelled by plan last 30d → churned MRR
+      this.prisma.subscription.groupBy({ by: ['plan'], where: { status: 'CANCELLED', updatedAt: { gte: thirtyDaysAgo } }, _count: true })
+        .catch(() => [] as Array<{ plan: string; _count: number }>),
+
+      // New paying subscriptions last 30d
+      this.prisma.subscription.count({ where: { status: 'ACTIVE', createdAt: { gte: thirtyDaysAgo }, plan: { not: 'FREE' } } })
+        .catch(() => 0),
+
+      // Total registered users
+      this.prisma.user.count().catch(() => 0),
+
+      // Currently paying (non-free active)
+      this.prisma.subscription.count({ where: { status: 'ACTIVE', plan: { not: 'FREE' } } })
+        .catch(() => 0),
+
+      // Revenue last 30d
+      this.prisma.payment.aggregate({ where: { status: 'SUCCEEDED', createdAt: { gte: thirtyDaysAgo } }, _sum: { amount: true } })
+        .catch(() => ({ _sum: { amount: 0 } })),
+
+      // Revenue 30–60d ago (prior period for growth / NRR baseline)
+      this.prisma.payment.aggregate({ where: { status: 'SUCCEEDED', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { amount: true } })
+        .catch(() => ({ _sum: { amount: 0 } })),
+
+      // Distinct paying users last 30d (ARPU denominator)
+      this.prisma.payment.groupBy({ by: ['userId'], where: { status: 'SUCCEEDED', createdAt: { gte: thirtyDaysAgo } } })
+        .catch(() => [] as Array<{ userId: string }>),
+
+      // AI cost last 30d (variable burn rate proxy)
+      this.prisma.tokenUsage.aggregate({ where: { fromCache: false, createdAt: { gte: thirtyDaysAgo } }, _sum: { costUsd: true } })
+        .catch(() => ({ _sum: { costUsd: 0 } })),
+
+      // Raw payment rows for 6-month revenue buckets
+      this.prisma.payment.findMany({ where: { status: 'SUCCEEDED', createdAt: { gte: sixMonthsAgo } }, select: { createdAt: true, amount: true } })
+        .catch(() => [] as Array<{ createdAt: Date; amount: number }>),
+
+      // Subscriptions from last 6 months for cohort retention analysis
+      this.prisma.subscription.findMany({
+        where: { plan: { not: 'FREE' }, createdAt: { gte: sixMonthsAgo } },
+        select: { createdAt: true, status: true, plan: true },
+        orderBy: { createdAt: 'asc' },
+      }).catch(() => [] as Array<{ createdAt: Date; status: string; plan: string }>),
+    ]);
+
+    // ── Revenue KPIs ───────────────────────────────────────────────────────────
+    let mrrMinor = 0;
+    for (const g of activeSubscriptions) mrrMinor += g._count * (prices[g.plan] ?? 0);
+    const arrMinor = mrrMinor * 12;
+
+    const payingCount = totalPayingCount || activeSubscriptions.filter(g => g.plan !== 'FREE').reduce((s, g) => s + g._count, 0);
+    const acvMinor = payingCount > 0 ? arrMinor / payingCount : 0;   // Annual Contract Value per customer
+    const tcvMinor = acvMinor;                                         // TCV ≈ ACV for month-to-month plans
+
+    const revenue30dMinor    = revenue30d._sum.amount     ?? 0;
+    const prevRevenue30dMinor = prevRevenue30d._sum.amount ?? 0;
+    const distinctPaying     = payingUsersDistinct30d.length;
+    const arpu  = distinctPaying > 0 ? revenue30dMinor / distinctPaying : 0;
+    const arpa  = arpu; // one account = one user in current model
+
+    const revenueByMonth = bucketByPeriod(
+      revenueRows6m.map(p => ({ at: p.createdAt, amount: p.amount })),
+      30, 6, now,
+    );
+
+    const planDistribution = activeSubscriptions.map(g => ({
+      plan: g.plan,
+      count: g._count,
+      mrr: g._count * (prices[g.plan] ?? 0),
+    }));
+
+    // ── Customer Counts ────────────────────────────────────────────────────────
+    const cancelledCount30d = cancelledByPlan30d.reduce((s, g) => s + g._count, 0);
+    const freeUsers = Math.max(0, totalUserCount - payingCount);
+
+    // ── Churn & Retention ──────────────────────────────────────────────────────
+    const activeNow       = activeSubscriptions.reduce((s, g) => s + g._count, 0);
+    const churnDenom      = activeNow + cancelledCount30d;
+    const monthlyChurn    = churnRate(churnDenom, cancelledCount30d);
+    const annualChurn     = 1 - Math.pow(1 - monthlyChurn, 12);
+
+    let churnedMrrMinor = 0;
+    for (const g of cancelledByPlan30d) churnedMrrMinor += g._count * (prices[g.plan] ?? 0);
+
+    // New MRR: average plan price × new subscribers
+    const avgPlanPrice    = payingCount > 0 ? mrrMinor / payingCount : 0;
+    const newMrrMinor     = newPayingCount30d * avgPlanPrice;
+
+    // Revenue Churn = churned MRR / previous period MRR
+    const prevMrr         = prevRevenue30dMinor || mrrMinor;
+    const revenueChurn    = prevMrr > 0 ? Math.min(1, churnedMrrMinor / prevMrr) : 0;
+
+    // NRR ≈ current MRR / prior MRR (expansion/contraction not tracked without change log)
+    const nrr = prevMrr > 0 ? mrrMinor / prevMrr : 1;
+    // GRR = (MRR - churnedMRR) / prior MRR — no expansion credit (gross = before upsell)
+    const grr = prevMrr > 0 ? Math.max(0, Math.min(1, (mrrMinor - churnedMrrMinor) / prevMrr)) : 1;
+
+    const retentionRate   = 1 - monthlyChurn;
+    const lifespanMonths  = monthlyChurn > 0 ? 1 / monthlyChurn : 120;
+    const ltv             = arpu / Math.max(monthlyChurn, 0.01);
+    const netMrrGrowth    = prevMrr > 0 ? (mrrMinor - prevMrr) / prevMrr : 0;
+
+    // ── Cohort Retention ───────────────────────────────────────────────────────
+    const cohortMap = new Map<string, { total: number; active: number }>();
+    for (const sub of cohortRows) {
+      const key = `${sub.createdAt.getFullYear()}-${String(sub.createdAt.getMonth() + 1).padStart(2, '0')}`;
+      const c   = cohortMap.get(key) ?? { total: 0, active: 0 };
+      c.total++;
+      if (sub.status === 'ACTIVE') c.active++;
+      cohortMap.set(key, c);
+    }
+    const cohortRetention = Array.from(cohortMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([cohortMonth, d]) => ({
+        cohortMonth,
+        initialCount: d.total,
+        activeCount: d.active,
+        retentionRate: d.total > 0 ? d.active / d.total : 0,
+      }));
+
+    // ── Marketing & Acquisition ────────────────────────────────────────────────
+    const marketingSpendUsd = parseFloat(process.env['MONTHLY_MARKETING_SPEND_USD'] ?? '0');
+    const grossMarginRate   = parseFloat(process.env['GROSS_MARGIN_PCT'] ?? '0.8');
+    const marketingConfigured = marketingSpendUsd > 0;
+
+    const cac = marketingConfigured && newPayingCount30d > 0
+      ? marketingSpendUsd / newPayingCount30d
+      : null;
+    // ARPU in USD for payback calc
+    const arpuUsd = arpu / 100;
+    const cacPaybackMonths = cac && arpuUsd > 0
+      ? cac / (arpuUsd * grossMarginRate)
+      : null;
+    const ltvUsd      = ltv / 100;
+    const ltvCacRatio = cac && ltvUsd > 0 ? ltvUsd / cac : null;
+
+    // ── Cashflow ──────────────────────────────────────────────────────────────
+    const aiCostUsd     = aiCost30d._sum.costUsd ?? 0;
+    const burnRateUsd   = aiCostUsd; // variable AI burn component; infra cost needs env input
+
+    return {
+      // Revenue
+      mrr: mrrMinor, arr: arrMinor, acv: acvMinor, tcv: tcvMinor,
+      runRate: arrMinor, arpu, arpa, ltv, revenueByMonth, planDistribution,
+      // Customers
+      totalUsers: totalUserCount, payingUsers: payingCount, freeUsers,
+      newCustomers30d: newPayingCount30d, lostCustomers30d: cancelledCount30d,
+      // Retention
+      monthlyChurnRate: monthlyChurn, annualChurnRate: annualChurn,
+      revenueChurnRate: revenueChurn, nrr, grr,
+      customerRetentionRate: retentionRate, avgCustomerLifespanMonths: lifespanMonths,
+      cohortRetention,
+      // MRR movements
+      newMrr: newMrrMinor, churnedMrr: churnedMrrMinor, expansionMrr: 0, contractionMrr: 0,
+      netMrrGrowthRate: netMrrGrowth,
+      // Acquisition
+      cac, cacPaybackPeriodMonths: cacPaybackMonths, ltvCacRatio,
+      marketingSpendConfigured: marketingConfigured,
+      // Cashflow
+      aiCostUsd, burnRateUsd,
+      // Meta
+      generatedAt: now.toISOString(), dataWindow: 'Last 30 days',
+    };
+  }
+
   // ── Private helpers ──────────────────────────────────────────────────────────
 
   /**
