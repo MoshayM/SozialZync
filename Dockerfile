@@ -1,6 +1,6 @@
 # build-buster: 20260911-v1
 FROM node:22-slim AS base
-RUN npm install -g pnpm@latest && apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl libatomic1 && rm -rf /var/lib/apt/lists/* && npm install -g pnpm@10
 
 WORKDIR /app
 
