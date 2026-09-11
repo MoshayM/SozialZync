@@ -569,7 +569,7 @@ function ChannelAccessContent() {
                   {ch.customUrl && (
                     <p className="text-xs text-gray-500 truncate">{ch.customUrl.startsWith('@') ? ch.customUrl : `@${ch.customUrl}`}</p>
                   )}
-                  <p className="text-sm text-gray-500">{ch.subscriberCount.toLocaleString()} subscribers</p>
+                  <p className="text-sm text-gray-500">{(ch.subscriberCount ?? 0).toLocaleString()} subscribers</p>
                   {ch.lastSyncedAt && (
                     <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                       <Clock className="w-3 h-3" />
@@ -725,7 +725,7 @@ function ChannelAccessContent() {
                     )}
                   </div>
                   <p className="text-sm text-gray-500">
-                    {ch.subscriberCount.toLocaleString()} subscribers ·{' '}
+                    {(ch.subscriberCount ?? 0).toLocaleString()} subscribers ·{' '}
                     {ch.tokenExpired ? 'Re-authorize to restore access' : 'Signed out'}
                   </p>
                 </div>
