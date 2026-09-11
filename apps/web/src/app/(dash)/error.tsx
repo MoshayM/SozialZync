@@ -51,6 +51,9 @@ export default function DashError({
         <p className="text-sm text-gray-600 max-w-xs">
           This can happen after a new update is deployed. Reloading usually fixes it.
         </p>
+        <p className="mt-2 text-xs text-red-500 font-mono max-w-sm break-all">
+          {error.message}{error.digest ? ` [${error.digest}]` : ''}
+        </p>
       </div>
       <div className="flex gap-3">
         <button
