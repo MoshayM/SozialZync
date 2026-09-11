@@ -10,12 +10,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
  *
  * CPM_CREDITS: credits per 1000 views (env: AD_REVENUE_CPM_CREDITS, default 50).
  * At CREDITS_PER_USD=100 that is $0.50 CPM — typical mobile/social CPM range.
- *
- * Fields on Project model (pending Prisma client regen after migration):
- *   viewCount        Int  — cumulative public Browse page views
- *   adRevenueCredits Int  — credits earned, awaiting payout
- *   adRevenuePaidOut Int  — total credits ever paid out
- *   adRevenueEnabled Bool — creator opt-in flag
  */
 const CPM_CREDITS = parseInt(process.env['AD_REVENUE_CPM_CREDITS'] ?? '50', 10);
 const MIN_PAYOUT_CREDITS = parseInt(process.env['AD_REVENUE_MIN_PAYOUT'] ?? '10', 10);
@@ -30,11 +24,6 @@ export interface AdRevenueStats {
   adRevenueEnabled: boolean;
   estimatedCpmCredits: number;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields pending Prisma client regen after migration
-type AnyProject = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- new fields pending Prisma client regen after migration
-const prismaProject = (prisma: PrismaService) => (prisma.project as AnyProject);
 
 @Injectable()
 export class AdRevenueService implements OnApplicationBootstrap {
@@ -52,7 +41,7 @@ export class AdRevenueService implements OnApplicationBootstrap {
 
   /** Atomically increment view count for a published project. */
   async trackView(projectId: string): Promise<void> {
-    await prismaProject(this.prisma).updateMany({
+    await this.prisma.project.updateMany({
       where: { id: projectId, publishingStatus: 'PUBLISHED' },
       data: { viewCount: { increment: 1 } },
     });
@@ -60,7 +49,7 @@ export class AdRevenueService implements OnApplicationBootstrap {
 
   /** Creator opts their project into the ad revenue programme. */
   async enableAdRevenue(userId: string, projectId: string): Promise<void> {
-    await prismaProject(this.prisma).updateMany({
+    await this.prisma.project.updateMany({
       where: { id: projectId, userId },
       data: { adRevenueEnabled: true },
     });
@@ -68,7 +57,7 @@ export class AdRevenueService implements OnApplicationBootstrap {
 
   /** Creator opts their project out. */
   async disableAdRevenue(userId: string, projectId: string): Promise<void> {
-    await prismaProject(this.prisma).updateMany({
+    await this.prisma.project.updateMany({
       where: { id: projectId, userId },
       data: { adRevenueEnabled: false },
     });
@@ -76,14 +65,14 @@ export class AdRevenueService implements OnApplicationBootstrap {
 
   /** Return ad revenue stats for all of a creator's projects. */
   async getCreatorStats(userId: string): Promise<AdRevenueStats[]> {
-    const projects: AnyProject[] = await prismaProject(this.prisma).findMany({
+    const projects = await this.prisma.project.findMany({
       where: { userId },
       select: {
         id: true, title: true, viewCount: true,
         adRevenueCredits: true, adRevenuePaidOut: true, adRevenueEnabled: true,
       },
     });
-    return projects.map((p: AnyProject) => ({
+    return projects.map((p) => ({
       projectId: p.id,
       title: p.title,
       viewCount: p.viewCount ?? 0,
@@ -96,13 +85,13 @@ export class AdRevenueService implements OnApplicationBootstrap {
 
   /** Admin: platform-wide ad revenue summary. */
   async getPlatformStats() {
-    const rows: AnyProject[] = await prismaProject(this.prisma).findMany({
+    const rows = await this.prisma.project.findMany({
       where: { adRevenueEnabled: true },
       select: { viewCount: true, adRevenueCredits: true, adRevenuePaidOut: true },
     });
-    const totalViews = rows.reduce((s: number, r: AnyProject) => s + (r.viewCount ?? 0), 0);
-    const totalPending = rows.reduce((s: number, r: AnyProject) => s + (r.adRevenueCredits ?? 0), 0);
-    const totalPaid = rows.reduce((s: number, r: AnyProject) => s + (r.adRevenuePaidOut ?? 0), 0);
+    const totalViews = rows.reduce((s, r) => s + (r.viewCount ?? 0), 0);
+    const totalPending = rows.reduce((s, r) => s + (r.adRevenueCredits ?? 0), 0);
+    const totalPaid = rows.reduce((s, r) => s + (r.adRevenuePaidOut ?? 0), 0);
     return {
       totalViews,
       totalCreditsEarned: totalPending + totalPaid,
@@ -118,7 +107,7 @@ export class AdRevenueService implements OnApplicationBootstrap {
     this.logger.log('Ad revenue distribution: starting');
     let paid = 0; let skipped = 0;
     try {
-      const projects: AnyProject[] = await prismaProject(this.prisma).findMany({
+      const projects = await this.prisma.project.findMany({
         where: { adRevenueEnabled: true, viewCount: { gt: 0 } },
         select: { id: true, userId: true, viewCount: true, adRevenueCredits: true },
       });
@@ -134,7 +123,7 @@ export class AdRevenueService implements OnApplicationBootstrap {
             create: { userId: project.userId, bonusCredits: pending },
             update: { bonusCredits: { increment: pending } },
           }),
-          prismaProject(this.prisma).update({
+          this.prisma.project.update({
             where: { id: project.id },
             data: { adRevenueCredits: 0, adRevenuePaidOut: { increment: pending } },
           }),
