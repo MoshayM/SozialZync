@@ -46,6 +46,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { correlationMiddleware } from './common/correlation.context';
 import { StructuredLogger } from './common/structured-logger';
 
+const authBruteLogger = new Logger('AuthBruteForce');
+
 // Prisma BigInt columns (Asset sizes, video statistics) must survive
 // res.json() — JSON.stringify throws on BigInt without this.
 (BigInt.prototype as unknown as { toJSON: () => number }).toJSON = function (this: bigint) {
@@ -143,10 +145,12 @@ async function bootstrap() {
         const slot = authMap.get(ip);
         if (slot && now < slot.resetAt) {
           if (slot.count >= AUTH_MAX) {
+            const retryAfter = Math.ceil((slot.resetAt - now) / 1000);
+            authBruteLogger.warn(`Auth brute-force blocked: ip=${ip} count=${slot.count} retryAfter=${retryAfter}s path=${req.path}`);
             res.status(429).json({
               statusCode: 429,
               message: 'Too many authentication requests — try again later',
-              retryAfter: Math.ceil((slot.resetAt - now) / 1000),
+              retryAfter,
             });
             return;
           }

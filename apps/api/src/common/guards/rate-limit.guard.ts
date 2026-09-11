@@ -165,6 +165,8 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
         res?.setHeader('Retry-After', String(retryAfter));
         res?.setHeader('X-RateLimit-Limit', String(limit));
         res?.setHeader('X-RateLimit-Reset', String(Math.floor(Date.now() / 1000) + retryAfter));
+        // Security event: emit structured log so Grafana/Sentry can alert on spikes
+        this.logger.warn(`Rate limit exceeded: key=${key} count=${count} limit=${limit} retryAfter=${retryAfter}s`);
         throw new HttpException(
           {
             message: `Too many requests — try again in ${retryAfter}s.`,
