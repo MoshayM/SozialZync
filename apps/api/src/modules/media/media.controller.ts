@@ -5,6 +5,7 @@ import { createHash } from 'crypto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
+import { sanitizeFilename, validateAudioFile } from '../../common/sanitize';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from './storage.service';
@@ -87,6 +88,11 @@ export class MediaController {
       throw new BadRequestException('projectId query param is required');
     }
 
+    // OWASP A03 — validate MIME type and magic bytes before touching the buffer
+    validateAudioFile(file);
+    // Sanitise filename to prevent path traversal in storage keys
+    const safeFilename = sanitizeFilename(file.originalname ?? 'recording');
+
     // Verify project ownership
     const project = await this.prisma.project.findFirst({
       where: { id: projectId, userId: user.sub },
@@ -100,7 +106,7 @@ export class MediaController {
       : 'webm';
 
     const asset = await this.prisma.asset.create({
-      data: { projectId, kind: 'VOICE', label: 'user-recording', status: 'READY' },
+      data: { projectId, kind: 'VOICE', label: safeFilename, status: 'READY' },
     });
 
     const key = `assets/${projectId}/${asset.id}/v1/media.${ext}`;

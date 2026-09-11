@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { SanitizePipe } from './common/sanitize.pipe';
 import { AppController } from './app.controller';
 import { BullModule } from '@nestjs/bullmq';
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
@@ -148,6 +149,10 @@ import { CalendarModule } from './modules/calendar/calendar.module';
   // Global guard so any route can opt into rate limiting with @RateLimit(...).
   // No-op on routes without the decorator; fails open if Redis is down.
   controllers: [AppController],
-  providers: [{ provide: APP_GUARD, useClass: RateLimitGuard }],
+  providers: [
+    // Sanitise before ValidationPipe (APP_PIPE / module runs before useGlobalPipes in main.ts)
+    { provide: APP_PIPE, useClass: SanitizePipe },
+    { provide: APP_GUARD, useClass: RateLimitGuard },
+  ],
 })
 export class AppModule {}
