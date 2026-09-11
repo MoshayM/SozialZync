@@ -132,7 +132,7 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
         </p>
 
         <Link
-          href="/wallet"
+          href="/plans"
           className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
           style={{
             background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)',

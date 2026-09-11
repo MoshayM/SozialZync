@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  FolderOpen, Settings, LogOut, Palette, Wallet,
+  FolderOpen, Settings, LogOut, Palette, Wallet, Crown,
   Bell, ShieldCheck, Building2, ChevronDown, Film, Menu, X, Home, Bot,
   Upload, BarChart2, Search, Zap, HelpCircle,
   WifiOff, Layers, Link2, Plus, Sparkles, Compass,
@@ -73,7 +73,8 @@ const NAV_SECTIONS: NavSection[] = [
 const BOTTOM_ITEMS: NavItem[] = [
   { href: '/settings',  icon: Settings,   label: 'Settings' },
   { href: '/brand-kit', icon: Palette,    label: 'Brand Kit' },
-  { href: '/wallet',    icon: Wallet,     label: 'Billing' },
+  { href: '/wallet',    icon: Wallet,     label: 'Wallet' },
+  { href: '/plans',     icon: Crown,      label: 'Plans' },
   { href: '/orgs',      icon: Building2,  label: 'Organization' },
   { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];

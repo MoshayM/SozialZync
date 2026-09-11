@@ -929,12 +929,14 @@ export const api = {
     createCheckout: (plan: string) =>
       apiClient.post('/billing/checkout', {
         plan,
-        successUrl: `${window.location.origin}/wallet?upgraded=true`,
-        cancelUrl: `${window.location.origin}/wallet`,
+        successUrl: `${window.location.origin}/plans?upgraded=true`,
+        cancelUrl: `${window.location.origin}/plans`,
       }),
+    changePlan: (plan: string) => apiClient.patch('/billing/subscription/change', { plan }),
     cancelSubscription: () => apiClient.delete('/billing/subscription'),
+    resumeSubscription: () => apiClient.post('/billing/subscription/resume', {}),
     getBillingPortal: () =>
-      apiClient.get<{ url: string }>(`/billing/portal?returnUrl=${encodeURIComponent(window.location.origin + '/wallet')}`),
+      apiClient.get<{ url: string }>(`/billing/portal?returnUrl=${encodeURIComponent(window.location.origin + '/plans')}`),
   },
   wallet: {
     balance: () => apiClient.get('/wallet/balance'),
