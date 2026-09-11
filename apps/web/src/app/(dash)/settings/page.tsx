@@ -46,6 +46,17 @@ function SettingsContent() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Phone ───────────────────────────────────────────────────────────────────
+  const [phoneValue, setPhoneValue] = useState('');
+  const [phoneSaved, setPhoneSaved] = useState(false);
+
+  // ── Password ────────────────────────────────────────────────────────────────
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+
   // ── Push notifications ──────────────────────────────────────────────────────
   const {
     supported: pushSupported,
@@ -91,7 +102,8 @@ function SettingsContent() {
   useEffect(() => {
     if (me?.name != null) setProfileName(me.name ?? '');
     if (me?.avatarUrl != null) setProfileAvatar(me.avatarUrl ?? '');
-  }, [me?.name, me?.avatarUrl]);
+    if (me?.phone != null) setPhoneValue(me.phone ?? '');
+  }, [me?.name, me?.avatarUrl, me?.phone]);
 
   // ── Sign-in & security queries ──────────────────────────────────────────────
 
@@ -260,6 +272,36 @@ function SettingsContent() {
     reader.onerror = () => setAvatarUploading(false);
     reader.readAsDataURL(file);
   }
+
+  const updatePhoneMutation = useMutation({
+    mutationFn: () => api.auth.updatePhone(phoneValue.trim() || null),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['me'] });
+      setPhoneSaved(true);
+      setBanner({ type: 'success', message: 'Phone number updated.' });
+      setTimeout(() => setPhoneSaved(false), 3000);
+    },
+    onError: () => setBanner({ type: 'error', message: 'Failed to update phone number.' }),
+  });
+
+  const setPasswordMutation = useMutation({
+    mutationFn: () => {
+      if (newPassword !== confirmPassword) throw new Error('Passwords do not match');
+      if (newPassword.length < 8) throw new Error('Password must be at least 8 characters');
+      return api.auth.setPassword(newPassword, authLinks?.password ? currentPassword : undefined);
+    },
+    onSuccess: () => {
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+      void qc.invalidateQueries({ queryKey: ['auth-links'] });
+      setBanner({ type: 'success', message: authLinks?.password ? 'Password changed.' : 'Password set.' });
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { message?: string; response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? (e as { message?: string })?.message
+        ?? 'Failed to update password.';
+      setBanner({ type: 'error', message: msg });
+    },
+  });
 
   const updateProfileMutation = useMutation({
     mutationFn: () => api.auth.updateProfile({ name: profileName, avatarUrl: profileAvatar }),
@@ -626,8 +668,8 @@ function SettingsContent() {
             </div>
           </div>
 
-          {/* Active sessions — OWNER / SUPER_ADMIN only */}
-          {isOwner && <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
+          {/* Active sessions */}
+          {<div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
             <div className="px-4 py-3 flex items-center justify-between gap-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
               <div>
                 <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
@@ -714,6 +756,129 @@ function SettingsContent() {
               );
             })}
           </div>}
+        </section>
+
+        {/* ── Password ─────────────────────────────────────────────────── */}
+        <section>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Password</p>
+          <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e5e7eb' }}>
+            <div className="flex items-center gap-2">
+              <Key className="w-5 h-5" style={{ color: '#6b7280' }} />
+              <div>
+                <span className="text-sm font-semibold text-gray-800">{authLinks?.password ? 'Change password' : 'Set a password'}</span>
+                {!authLinks?.password && (
+                  <p className="text-xs text-gray-500 mt-0.5">You signed up with a social account. Optionally add a password for direct sign-in.</p>
+                )}
+              </div>
+            </div>
+
+            {authLinks?.password && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Current password</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPw ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Current password"
+                    className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 transition-all pr-10"
+                    style={{ border: '1.5px solid #e3e0f0' }}
+                  />
+                  <button type="button" onClick={() => setShowCurrentPw((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">New password</label>
+              <div className="relative">
+                <input
+                  type={showNewPw ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 transition-all pr-10"
+                  style={{ border: '1.5px solid #e3e0f0' }}
+                />
+                <button type="button" onClick={() => setShowNewPw((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Confirm new password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repeat new password"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 transition-all"
+                style={{ border: '1.5px solid #e3e0f0' }}
+              />
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-xs text-red-500 mt-1">Passwords do not match.</p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                onClick={() => setPasswordMutation.mutate()}
+                disabled={
+                  setPasswordMutation.isPending ||
+                  !newPassword ||
+                  newPassword !== confirmPassword ||
+                  (authLinks?.password ? !currentPassword : false)
+                }
+                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
+              >
+                {setPasswordMutation.isPending
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Save className="w-3.5 h-3.5" />}
+                {authLinks?.password ? 'Change password' : 'Set password'}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Phone number ──────────────────────────────────────────────── */}
+        <section>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Phone Number</p>
+          <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e5e7eb' }}>
+            <p className="text-xs text-gray-500">Used for account recovery and two-factor authentication via OTP.</p>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Phone number</label>
+              <input
+                type="tel"
+                value={phoneValue}
+                onChange={(e) => setPhoneValue(e.target.value)}
+                placeholder="+1 555 000 0000"
+                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 transition-all"
+                style={{ border: '1.5px solid #e3e0f0' }}
+              />
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-gray-400">Include country code (e.g. +44)</p>
+              <button
+                onClick={() => updatePhoneMutation.mutate()}
+                disabled={updatePhoneMutation.isPending}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
+              >
+                {updatePhoneMutation.isPending
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : phoneSaved
+                  ? <CheckCircle className="w-3.5 h-3.5" />
+                  : <Save className="w-3.5 h-3.5" />}
+                {phoneSaved ? 'Saved!' : 'Save'}
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* ── Developer Webhooks — OWNER / SUPER_ADMIN only ───────────── */}
