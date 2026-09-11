@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Query, Body, Headers, RawBodyRequest, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Query, Body, Headers, RawBodyRequest, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString, IsOptional } from 'class-validator';
 import type { Request } from 'express';
@@ -10,6 +10,10 @@ class CheckoutDto {
   @IsString() plan!: string;
   @IsString() successUrl!: string;
   @IsString() cancelUrl!: string;
+}
+
+class ChangePlanDto {
+  @IsString() plan!: string;
 }
 
 class ConnectOnboardDto {
@@ -43,6 +47,20 @@ export class BillingController {
   @Delete('subscription')
   cancelSubscription(@CurrentUser() user: JwtPayload) {
     return this.svc.cancelSubscription(user.sub);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('subscription/change')
+  changePlan(@Body() dto: ChangePlanDto, @CurrentUser() user: JwtPayload) {
+    return this.svc.changePlan(user.sub, dto.plan);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('subscription/resume')
+  resumeSubscription(@CurrentUser() user: JwtPayload) {
+    return this.svc.resumeSubscription(user.sub);
   }
 
   @ApiBearerAuth()

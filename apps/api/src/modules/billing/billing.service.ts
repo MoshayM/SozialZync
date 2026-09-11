@@ -491,6 +491,32 @@ export class BillingService {
     return { cancelAtPeriodEnd: true, currentPeriodEnd: sub.currentPeriodEnd };
   }
 
+  async changePlan(userId: string, newPlan: string) {
+    const priceId = PLAN_PRICE_IDS[newPlan];
+    if (!priceId) throw new BadRequestException('Invalid plan');
+    const sub = await this.prisma.subscription.findUnique({ where: { userId } });
+    if (!sub?.stripeSubscriptionId) throw new BadRequestException('No active subscription found');
+
+    const stripeSub = await this.stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+    const itemId = stripeSub.items.data[0]?.id;
+    if (!itemId) throw new BadRequestException('Subscription has no items');
+
+    await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {
+      items: [{ id: itemId, price: priceId }],
+      proration_behavior: 'create_prorations',
+    });
+    await this.prisma.subscription.update({ where: { userId }, data: { plan: newPlan } });
+    return { plan: newPlan };
+  }
+
+  async resumeSubscription(userId: string) {
+    const sub = await this.prisma.subscription.findUnique({ where: { userId } });
+    if (!sub?.stripeSubscriptionId) throw new BadRequestException('No active subscription found');
+    await this.stripe.subscriptions.update(sub.stripeSubscriptionId, { cancel_at_period_end: false });
+    await this.prisma.subscription.update({ where: { userId }, data: { cancelAtPeriodEnd: false } });
+    return { cancelAtPeriodEnd: false };
+  }
+
   async getBillingPortalUrl(userId: string, returnUrl: string): Promise<{ url: string }> {
     const sub = await this.prisma.subscription.findUnique({ where: { userId } });
     if (!sub?.stripeCustomerId) throw new BadRequestException('No billing record found');
