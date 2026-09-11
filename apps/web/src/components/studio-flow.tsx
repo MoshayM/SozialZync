@@ -1,10 +1,11 @@
 ﻿'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Youtube, BarChart2, Lightbulb, FileText, Mic, Music, Clapperboard,
   Play, RefreshCw, Loader2, CheckCircle, ChevronDown, ChevronUp, Save, Pencil, AlertTriangle, X,
   KeyRound, Sparkles, Download, FileVideo, FileAudio, FileImage, FileText as FileTextIcon, ShieldCheck,
+  Square, Volume2, Upload,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ElapsedBadge, formatElapsed } from '@/components/ai-activity';
@@ -334,6 +335,15 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
   const [voiceKey, setVoiceKey] = useState('');
   const [voiceKeySaved, setVoiceKeySaved] = useState(false);
+  // Voice recorder state
+  const [voiceTab, setVoiceTab] = useState<'ai' | 'record' | 'preview'>('ai');
+  const [recording, setRecording] = useState(false);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordingError, setRecordingError] = useState('');
+  const [browserPreviewActive, setBrowserPreviewActive] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobEvent['data'][]>([]);
+  const recordedAudioRef = useRef<HTMLAudioElement | null>(null);
   // Pre-render settings dialog
   const [showRenderDialog, setShowRenderDialog] = useState(false);
   const [renderPlatform, setRenderPlatform] = useState<RenderPlatformValue>(() =>
@@ -381,6 +391,55 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     onSuccess: () => { setVoiceKeySaved(true); setVoiceKey(''); },
     onError: (err: unknown) => setError(getErrorMessage(err) || 'Failed to save the voice key'),
   });
+
+  const uploadRecording = useMutation({
+    mutationFn: (blob: Blob) => api.media.uploadVoice(projectId, blob),
+    onError: (err: unknown) => setRecordingError(getErrorMessage(err) || 'Upload failed'),
+  });
+
+  const startRecording = useCallback(async () => {
+    setRecordingError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mr.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setRecordedBlob(blob);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setRecording(true);
+    } catch {
+      setRecordingError('Microphone access denied — please allow microphone in your browser settings.');
+    }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  }, []);
+
+  const previewRecording = useCallback(() => {
+    if (!recordedBlob) return;
+    const url = URL.createObjectURL(recordedBlob);
+    const audio = new Audio(url);
+    recordedAudioRef.current = audio;
+    audio.play();
+  }, [recordedBlob]);
+
+  const speakPreview = useCallback((text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    if (browserPreviewActive) { setBrowserPreviewActive(false); return; }
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.onend = () => setBrowserPreviewActive(false);
+    utt.onerror = () => setBrowserPreviewActive(false);
+    setBrowserPreviewActive(true);
+    window.speechSynthesis.speak(utt);
+  }, [browserPreviewActive]);
 
   function chooseTopic(t: string) {
     setTopic(t);
@@ -875,39 +934,68 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     );
   })();
 
-  const voiceDetail = voiceResult?.versionId ? (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <MediaPlayer versionId={voiceResult.versionId} kind="audio" />
-        <button
-          onClick={async () => {
-            const res = await api.media.versionFile(voiceResult.versionId!);
-            await downloadBlob(res, 'voice-narration');
-          }}
-          className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
-          title="Download narration"
-        >
-          <Download className="w-3 h-3" />
-        </button>
+  // Script text for browser speech preview
+  const scriptText = script
+    ? [script.hook, ...script.sections.map((s) => s.content), script.callToAction].join(' ')
+    : '';
+
+  const voiceDetail = (
+    <div className="space-y-3">
+      {/* Tab bar */}
+      <div className="flex gap-1 rounded-xl bg-gray-100 p-1">
+        {([['ai', Sparkles, 'AI Voice'], ['record', Mic, 'Record Yourself'], ['preview', Volume2, 'Browser Preview']] as const).map(
+          ([tab, Icon, label]) => (
+            <button
+              key={tab}
+              onClick={() => setVoiceTab(tab)}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold py-1.5 rounded-lg transition-colors ${
+                voiceTab === tab ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Icon className="w-3 h-3" />
+              {label}
+            </button>
+          ),
+        )}
       </div>
-      {voiceResult.notes && <p className="text-xs text-amber-600">{voiceResult.notes}</p>}
-      {(voiceResult.provider === 'offline-synth-voice' || voiceKeySaved) && (
-        <div className="border border-brand-200 bg-brand-50 rounded-xl p-3 space-y-2">
-          <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-            {voiceKeySaved ? 'Real voice enabled — regenerate to hear it' : 'Enable real voice narration'}
-          </p>
-          {!voiceKeySaved && (
-            <>
-              <p className="text-[11px] text-gray-500">
-                Paste your ElevenLabs API key (from elevenlabs.io → profile → API Keys). It activates instantly and is stored securely — also available in Settings → API Keys.
-              </p>
+
+      {/* AI Voice tab */}
+      {voiceTab === 'ai' && (
+        <div className="space-y-2">
+          {voiceResult?.versionId && (
+            <div className="flex items-center gap-2">
+              <MediaPlayer versionId={voiceResult.versionId} kind="audio" />
+              <button
+                onClick={async () => {
+                  const res = await api.media.versionFile(voiceResult.versionId!);
+                  await downloadBlob(res, 'voice-narration');
+                }}
+                className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
+                title="Download narration"
+              >
+                <Download className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          {voiceResult?.notes && <p className="text-xs text-amber-600">{voiceResult.notes}</p>}
+          {!voiceResult?.versionId && (
+            <p className="text-sm text-gray-500">Run the pipeline to generate AI narration from your script.</p>
+          )}
+          <div className="border border-brand-200 bg-brand-50 rounded-xl p-3 space-y-2">
+            <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-brand-600" />
+              {voiceKeySaved ? 'ElevenLabs enabled — regenerate to use it' : 'AI voice options'}
+            </p>
+            <p className="text-[11px] text-gray-500">
+              Paid: ElevenLabs (highest quality) · OpenAI TTS · Free self-hosted: Kokoro (<code>KOKORO_URL</code>) · Piper (<code>PIPER_URL</code>)
+            </p>
+            {!voiceKeySaved && (
               <div className="flex gap-2">
                 <input
                   type="password"
                   value={voiceKey}
                   onChange={(e) => setVoiceKey(e.target.value)}
-                  placeholder="ElevenLabs API key"
+                  placeholder="ElevenLabs API key (optional)"
                   aria-label="ElevenLabs API key"
                   className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400"
                 />
@@ -920,66 +1008,109 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   Save
                 </button>
               </div>
-            </>
-          )}
-          {voiceKeySaved && (
-            <button
-              onClick={() => enqueue.mutate({ type: 'FULL_PRODUCTION', payload: { scope: 'VOICE', regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } })}
-              disabled={busy}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-full disabled:opacity-40"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Regenerate with real voice
-            </button>
+            )}
+            {(voiceKeySaved || voiceResult?.versionId) && (
+              <button
+                onClick={() => enqueue.mutate({ type: 'FULL_PRODUCTION', payload: { scope: 'VOICE', regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } })}
+                disabled={busy}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-full disabled:opacity-40"
+              >
+                <RefreshCw className="w-3 h-3" />
+                {voiceKeySaved ? 'Regenerate with ElevenLabs' : 'Regenerate narration'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Record Yourself tab */}
+      {voiceTab === 'record' && (
+        <div className="space-y-3">
+          <p className="text-[11px] text-gray-500">
+            Record yourself reading the script. Your voice will be used as the narration track.
+          </p>
+          <div className="flex items-center gap-2">
+            {!recording ? (
+              <button
+                onClick={startRecording}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-red-500 text-white rounded-full hover:bg-red-600"
+              >
+                <Mic className="w-3.5 h-3.5" />
+                Start Recording
+              </button>
+            ) : (
+              <button
+                onClick={stopRecording}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-gray-800 text-white rounded-full animate-pulse"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                Stop Recording
+              </button>
+            )}
+            {recordedBlob && !recording && (
+              <button
+                onClick={previewRecording}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-brand-700 border border-brand-200 rounded-full hover:bg-brand-50"
+              >
+                <Play className="w-3.5 h-3.5" />
+                Preview
+              </button>
+            )}
+          </div>
+          {recordingError && <p className="text-xs text-red-500">{recordingError}</p>}
+          {recordedBlob && !recording && (
+            <div className="space-y-2">
+              <p className="text-[11px] text-gray-500">
+                Recording ready ({(recordedBlob.size / 1024).toFixed(0)} KB). Upload to use as your narration.
+              </p>
+              <button
+                onClick={() => uploadRecording.mutate(recordedBlob)}
+                disabled={uploadRecording.isPending}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-brand-600 text-white rounded-full disabled:opacity-40"
+              >
+                {uploadRecording.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                Use as Narration
+              </button>
+              {uploadRecording.isSuccess && (
+                <p className="text-xs text-green-600 font-medium">
+                  Uploaded — your recording is now the voice track for this project.
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
+
+      {/* Browser Preview tab */}
+      {voiceTab === 'preview' && (
+        <div className="space-y-3">
+          <p className="text-[11px] text-gray-500">
+            Free browser TTS preview — uses your device&apos;s built-in voices. Not for export, just to hear how the script sounds.
+          </p>
+          {scriptText ? (
+            <button
+              onClick={() => speakPreview(scriptText)}
+              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full ${
+                browserPreviewActive
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-brand-600 text-white hover:bg-brand-700'
+              }`}
+            >
+              {browserPreviewActive ? (
+                <><Square className="w-3.5 h-3.5 fill-current" />Stop Preview</>
+              ) : (
+                <><Volume2 className="w-3.5 h-3.5" />Preview Script (Browser Voice)</>
+              )}
+            </button>
+          ) : (
+            <p className="text-xs text-amber-600">Generate a script first to enable preview.</p>
+          )}
+          <p className="text-[11px] text-gray-400">
+            Free self-hosted options: Kokoro TTS (set <code>KOKORO_URL</code>) · Piper TTS (set <code>PIPER_URL</code>) in your Railway environment.
+          </p>
+        </div>
+      )}
     </div>
-  ) : (
-    <>
-      <p className="text-sm text-gray-500">Run to generate the narration from your (edited) script.</p>
-      <div className="border border-brand-200 bg-brand-50 rounded-xl p-3 space-y-2">
-        <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-          {voiceKeySaved ? 'Real voice enabled — regenerate to hear it' : 'Enable real voice narration'}
-        </p>
-        {!voiceKeySaved && (
-          <>
-            <p className="text-[11px] text-gray-500">
-              Paste your ElevenLabs API key (from elevenlabs.io → profile → API Keys). It activates instantly and is stored securely — also available in Settings → API Keys.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="password"
-                value={voiceKey}
-                onChange={(e) => setVoiceKey(e.target.value)}
-                placeholder="ElevenLabs API key"
-                aria-label="ElevenLabs API key"
-                className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400"
-              />
-              <button
-                onClick={() => saveVoiceKey.mutate(voiceKey)}
-                disabled={!voiceKey.trim() || saveVoiceKey.isPending}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-xl disabled:opacity-40"
-              >
-                {saveVoiceKey.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
-                Save
-              </button>
-            </div>
-          </>
-        )}
-        {voiceKeySaved && (
-          <button
-            onClick={() => enqueue.mutate({ type: 'FULL_PRODUCTION', payload: { scope: 'VOICE', regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } })}
-            disabled={busy}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-full disabled:opacity-40"
-          >
-            <RefreshCw className="w-3 h-3" />
-            Regenerate with real voice
-          </button>
-        )}
-      </div>
-    </>
   );
 
   const musicDetail = (

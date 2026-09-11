@@ -1,5 +1,7 @@
-import { Controller, Get, Param, Post, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { createHash } from 'crypto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
@@ -62,6 +64,75 @@ export class MediaController {
     const stream = this.storage.stream(stored.key);
     res.set({ 'Content-Type': 'image/png', 'X-Provider': stored.provider });
     stream.pipe(res);
+  }
+
+  /**
+   * Accept a user-recorded voice clip (webm/mp4/ogg/wav) and store it as a
+   * VOICE asset so downstream pipeline stages can use it as the narration
+   * track instead of TTS. Max 100 MB.
+   */
+  @Post('voice/upload')
+  @UseInterceptors(FileInterceptor('audio', { limits: { fileSize: 100 * 1024 * 1024 } }))
+  async uploadVoice(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('projectId') projectId: string | undefined,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<{ versionId: string; assetId: string; provider: string; sizeBytes: number }> {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Missing audio file — send as multipart field "audio"');
+    }
+    if (!projectId) {
+      throw new BadRequestException('projectId query param is required');
+    }
+
+    // Verify project ownership
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, userId: user.sub },
+      select: { id: true },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    const ext = file.mimetype?.includes('wav') ? 'wav'
+      : file.mimetype?.includes('ogg') ? 'ogg'
+      : file.mimetype?.includes('mp4') ? 'mp4'
+      : 'webm';
+
+    const asset = await this.prisma.asset.create({
+      data: { projectId, kind: 'VOICE', label: 'user-recording', status: 'READY' },
+    });
+
+    const key = `assets/${projectId}/${asset.id}/v1/media.${ext}`;
+    const { sizeBytes } = await this.storage.put(key, file.buffer);
+    const contentHash = createHash('sha256').update(file.buffer).digest('hex');
+
+    const version = await this.prisma.assetVersion.create({
+      data: {
+        assetId: asset.id,
+        version: 1,
+        r2Key: key,
+        contentHash,
+        provider: 'user-recording',
+        model: null,
+        prompt: {} as never,
+        params: {} as never,
+        provenance: {
+          provider: 'user-recording',
+          model: null,
+          generatedAt: new Date().toISOString(),
+          license: 'user-owned',
+          notes: 'Recorded by user via browser microphone',
+        } as never,
+        sizeBytes: BigInt(sizeBytes),
+        durationMs: null,
+      },
+    });
+
+    await this.prisma.asset.update({
+      where: { id: asset.id },
+      data: { currentVersionId: version.id },
+    });
+
+    return { versionId: version.id, assetId: asset.id, provider: 'user-recording', sizeBytes };
   }
 
   // Signed access (docs4/09): file routes accept `?exp=&sig=` OR a JWT.

@@ -999,6 +999,15 @@ export const api = {
       apiClient.get<{ url: string; expiresAt: string }>(
         `/media/versions/${versionId}/signed-url${ttl ? `?ttl=${ttl}` : ''}`,
       ),
+    uploadVoice: (projectId: string, blob: Blob) => {
+      const form = new FormData();
+      form.append('audio', blob, 'recording.webm');
+      return apiClient.post<{ versionId: string; assetId: string; provider: string; sizeBytes: number }>(
+        `/media/voice/upload?projectId=${encodeURIComponent(projectId)}`,
+        form,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+    },
   },
   settings: {
     getApiKeys: () =>
