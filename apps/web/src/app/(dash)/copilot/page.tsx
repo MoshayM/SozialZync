@@ -192,20 +192,62 @@ export default function CopilotPage() {
   const [activeAction, setActiveAction]   = useState<string | null>(null);
   const [actionInput, setActionInput]     = useState('');
   const [speakingId, setSpeakingId]       = useState<string | null>(null);
+  const [autoSpeakFailed, setAutoSpeakFailed] = useState(false);
   const [pendingCommand, setPendingCommand] = useState<CopilotCommand | null>(null);
   const [activePlanId, setActivePlanId]   = useState<string | null>(null);
   const [activePlanMsgId, setActivePlanMsgId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<{ id: string; title: string; updatedAt: string }[]>([]);
   const [convSearch, setConvSearch] = useState('');
-  const bottomRef      = useRef<HTMLDivElement>(null);
-  const textareaRef    = useRef<HTMLTextAreaElement>(null);
-  const planPollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
-  const planDeadlineRef = useRef<number>(0);
-  const sessionIdRef   = useRef<string>(uid());
+  const bottomRef        = useRef<HTMLDivElement>(null);
+  const textareaRef      = useRef<HTMLTextAreaElement>(null);
+  const planPollRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const planDeadlineRef  = useRef<number>(0);
+  const sessionIdRef     = useRef<string>(uid());
+  // TTS refs — survive renders without causing re-renders
+  const ttsUnlockedRef   = useRef(false);
+  const lastBotMsgRef    = useRef<Message | null>(null);
+  const pendingAutoSpeak = useRef<Message | null>(null);
 
-  // Read a message aloud. Must be called synchronously from a click handler
-  // (no await before speak()) so iOS Safari accepts it as a user-gesture.
-  function readAloud(msg: Message) {
+  // ── TTS helpers ─────────────────────────────────────────────────────────────
+
+  // Step 1 — one-time unlock: call synchronously from ANY first user tap.
+  // Primes the AudioContext and loads voices so subsequent async speak() calls
+  // are accepted by mobile browsers.
+  function unlockTTS() {
+    if (ttsUnlockedRef.current || typeof window === 'undefined') return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const AC: typeof AudioContext = (window as any).AudioContext ?? (window as any).webkitAudioContext;
+      if (AC) { const ctx = new AC(); void ctx.resume(); }
+    } catch { /* ignore */ }
+    if (!window.speechSynthesis) return;
+    try {
+      const silent = new SpeechSynthesisUtterance('​'); // zero-width space
+      silent.volume = 0; silent.rate = 10;
+      window.speechSynthesis.speak(silent);
+    } catch { /* ignore */ }
+    try { window.speechSynthesis.getVoices(); } catch { /* ignore */ }
+    ttsUnlockedRef.current = true;
+  }
+
+  // Step 2 — re-prime before each send (synchronous, within user gesture).
+  // iOS Safari invalidates the speech session after an async API round-trip;
+  // calling this before `await` keeps the session alive.
+  function primeSpeechSession() {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance('​');
+      u.volume = 0; u.rate = 10;
+      window.speechSynthesis.speak(u);
+    } catch { /* ignore */ }
+  }
+
+  // Step 3 — the actual speech engine.
+  // isManual=true: user clicked the 🔊 button (always within a gesture).
+  // isManual=false: auto-speak after a bot reply (may fail on iOS with
+  //   'not-allowed' → we surface the fallback button instead of crashing).
+  function doSpeak(msg: Message, isManual = false) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     if (speakingId === msg.id) {
       window.speechSynthesis.cancel();
@@ -213,42 +255,72 @@ export default function CopilotPage() {
       return;
     }
     window.speechSynthesis.cancel();
-    // Strip ⚠️ / emoji prefix and limit length for mobile reliability
     const text = msg.content.replace(/^[⚠️🔴🟡✅\s]+/, '').slice(0, 600);
     if (!text) return;
 
-    const doSpeak = () => {
+    let keepAlive: ReturnType<typeof setInterval> | null = null;
+
+    const attemptSpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const eng = voices.find((v) => v.lang.startsWith('en') && v.localService)
+                ?? voices.find((v) => v.lang.startsWith('en'));
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 0.94; u.pitch = 1.0; u.volume = 1.0;
-      // Pick best available voice
-      const voices = window.speechSynthesis.getVoices();
-      const eng = voices.find(v => v.lang.startsWith('en') && v.localService) ?? voices.find(v => v.lang.startsWith('en'));
       if (eng) u.voice = eng;
-      u.onend = () => setSpeakingId(null);
-      u.onerror = (e) => {
+      u.onend = () => {
+        if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
         setSpeakingId(null);
-        // canceled/interrupted are normal — user stopped or new message started
-        if (e.error !== 'canceled' && e.error !== 'interrupted') {
+      };
+      u.onerror = (e) => {
+        if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
+        setSpeakingId(null);
+        if (e.error === 'not-allowed') {
+          // Mobile: speech blocked because we're outside a user gesture.
+          if (!isManual) setAutoSpeakFailed(true);
+        } else if (e.error !== 'canceled' && e.error !== 'interrupted') {
           console.warn('[TTS] voice error:', e.error);
         }
       };
+      // Android/iOS: OS can pause synthesis mid-utterance — nudge it every 250 ms.
+      keepAlive = setInterval(() => {
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      }, 250);
       window.speechSynthesis.speak(u);
       setSpeakingId(msg.id);
     };
 
-    // Android Chrome: voices may not be loaded yet — wait for them
+    // Android Chrome: voices load asynchronously — poll until ready.
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
-      doSpeak();
+      attemptSpeak();
     } else {
-      let done = false;
+      let fired = false;
       window.speechSynthesis.onvoiceschanged = () => {
         window.speechSynthesis.onvoiceschanged = null;
-        if (!done) { done = true; doSpeak(); }
+        if (!fired) { fired = true; attemptSpeak(); }
       };
-      // Fallback: speak anyway after 400ms even if voices never fire
-      setTimeout(() => { if (!done) { done = true; doSpeak(); } }, 400);
+      let attempts = 0;
+      const poll = setInterval(() => {
+        if (fired) { clearInterval(poll); return; }
+        if (window.speechSynthesis.getVoices().length > 0) {
+          clearInterval(poll);
+          window.speechSynthesis.onvoiceschanged = null;
+          if (!fired) { fired = true; attemptSpeak(); }
+          return;
+        }
+        if (++attempts > 20) {
+          clearInterval(poll);
+          window.speechSynthesis.onvoiceschanged = null;
+          if (!fired) { fired = true; attemptSpeak(); }
+        }
+      }, 150);
     }
+  }
+
+  // Public wrapper for the 🔊 button (always a user gesture, never shows fallback).
+  function readAloud(msg: Message) {
+    setAutoSpeakFailed(false);
+    doSpeak(msg, /* isManual= */ true);
   }
 
   useEffect(() => {
@@ -282,6 +354,31 @@ export default function CopilotPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // iOS Safari pauses speech synthesis when the page loses focus — resume it.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    function handleVisibility() {
+      if (!document.hidden && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  // Auto-speak the latest bot reply once it arrives (if TTS was unlocked by a prior gesture).
+  // pendingAutoSpeak is set synchronously inside sendMessage before the await, so the message
+  // is guaranteed to exist when this effect fires.
+  useEffect(() => {
+    const msg = pendingAutoSpeak.current;
+    if (!msg || !ttsUnlockedRef.current) return;
+    pendingAutoSpeak.current = null; // consume so we don't double-speak
+    lastBotMsgRef.current = msg;
+    setAutoSpeakFailed(false);
+    doSpeak(msg, /* isManual= */ false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   // Plan step live polling — runs whenever a new plan becomes active
   useEffect(() => {
@@ -337,6 +434,13 @@ export default function CopilotPage() {
   }, [activePlanId, activePlanMsgId]);
 
   const sendMessage = useCallback(async (text: string) => {
+    // These two calls are synchronous and must stay BEFORE the first `await`
+    // so they execute within the browser's user-gesture call stack.
+    // unlockTTS() is a no-op after the first call; primeSpeechSession() re-arms
+    // iOS's TTS session so the speak() that fires after the API response is allowed.
+    unlockTTS();
+    primeSpeechSession();
+
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
@@ -406,6 +510,10 @@ export default function CopilotPage() {
         setActivePlanId(data.planId);
         setActivePlanMsgId(newMsgId);
       }
+
+      // Signal the auto-speak effect BEFORE setMessages so it's available
+      // when the [messages] effect fires after the re-render.
+      pendingAutoSpeak.current = assistantMsg;
 
       setMessages((prev) => {
         const next = [...prev, assistantMsg];
@@ -875,17 +983,31 @@ export default function CopilotPage() {
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-[11px] text-gray-400">{relTime(msg.ts)}</span>
                   {msg.role === 'assistant' && !msg.error && (
-                    <button
-                      type="button"
-                      onClick={() => readAloud(msg)}
-                      title={speakingId === msg.id ? 'Stop' : 'Read aloud'}
-                      className="flex items-center justify-center w-6 h-6 rounded-full transition-colors hover:bg-[#f0edfb]"
-                      style={{ color: speakingId === msg.id ? '#374151' : '#d1d5db' }}
-                    >
-                      {speakingId === msg.id
-                        ? <VolumeX className="w-3.5 h-3.5" />
-                        : <Volume2 className="w-3.5 h-3.5" />}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => readAloud(msg)}
+                        title={speakingId === msg.id ? 'Stop' : 'Read aloud'}
+                        className="flex items-center justify-center w-6 h-6 rounded-full transition-colors hover:bg-[#f0edfb]"
+                        style={{ color: speakingId === msg.id ? '#374151' : '#d1d5db' }}
+                      >
+                        {speakingId === msg.id
+                          ? <VolumeX className="w-3.5 h-3.5" />
+                          : <Volume2 className="w-3.5 h-3.5" />}
+                      </button>
+                      {/* Fallback button: shown when auto-speak was blocked by mobile gesture policy */}
+                      {autoSpeakFailed && lastBotMsgRef.current?.id === msg.id && (
+                        <button
+                          type="button"
+                          onClick={() => { setAutoSpeakFailed(false); readAloud(msg); }}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold text-white transition-all active:scale-95"
+                          style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
+                          title="Tap to hear reply"
+                        >
+                          🔊 Play reply
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
