@@ -1,12 +1,8 @@
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { GrowthService } from './growth.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
-import type { Request } from 'express';
-
-interface AuthReq extends Request {
-  user: { id: string; email: string };
-}
+import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 
 @TierRateLimit({ bucket: 'growth', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
 @Controller('growth')
@@ -17,8 +13,8 @@ export class GrowthController {
   @Post('report')
   async report(
     @Body() body: { channelId: string; analyticsReport: unknown },
-    @Req() req: AuthReq,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.growth.generateRecommendations(body.channelId, body.analyticsReport as never, req.user.id);
+    return this.growth.generateRecommendations(body.channelId, body.analyticsReport as never, user.sub);
   }
 }

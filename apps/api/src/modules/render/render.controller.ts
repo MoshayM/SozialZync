@@ -1,13 +1,9 @@
-import { Controller, Get, Post, Param, Query, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { RenderService } from './render.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
-import type { Request } from 'express';
+import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import type { RenderPreset } from '@prisma/client';
-
-interface AuthReq extends Request {
-  user: { id: string; email: string };
-}
 
 @TierRateLimit({ bucket: 'render', windowSecs: 3600, limits: { FREE: 2, STARTER: 5, PRO: 20, AGENCY: 50, default: 2 } })
 @Controller('render')
@@ -18,18 +14,18 @@ export class RenderController {
   @Post()
   async queue(
     @Body() body: { projectId: string; timelineVersion: number; preset: RenderPreset },
-    @Req() req: AuthReq,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.render.queueRender(body.projectId, body.timelineVersion, body.preset, req.user.id);
+    return this.render.queueRender(body.projectId, body.timelineVersion, body.preset, user.sub);
   }
 
   @Get(':id')
-  async get(@Param('id') id: string, @Req() req: AuthReq) {
-    return this.render.getRender(id, req.user.id);
+  async get(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.render.getRender(id, user.sub);
   }
 
   @Get()
-  async list(@Query('projectId') projectId: string, @Req() req: AuthReq) {
-    return this.render.listForProject(projectId, req.user.id);
+  async list(@Query('projectId') projectId: string, @CurrentUser() user: JwtPayload) {
+    return this.render.listForProject(projectId, user.sub);
   }
 }
