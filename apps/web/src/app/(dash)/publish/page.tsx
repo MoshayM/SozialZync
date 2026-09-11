@@ -1,7 +1,7 @@
 'use client';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CalendarClock, Sparkles, FlaskConical, Plus } from 'lucide-react';
+import { CalendarClock, Sparkles, FlaskConical, Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import ApprovalsPage from '../approvals/page';
 import AutonomyPage from '../autonomy/page';
@@ -170,7 +170,7 @@ function PublishContent() {
 
 export default function PublishPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="flex justify-center items-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
       <PublishContent />
     </Suspense>
   );

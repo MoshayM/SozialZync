@@ -1192,7 +1192,11 @@ function ProjectsTab({
 }
 
 export default function ProjectsPage() {
-  return <Suspense fallback={null}><ProjectsInner /></Suspense>;
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
+      <ProjectsInner />
+    </Suspense>
+  );
 }
 
 const _WIZARD_API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';

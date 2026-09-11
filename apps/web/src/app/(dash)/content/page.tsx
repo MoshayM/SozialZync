@@ -1343,9 +1343,17 @@ function ContentStudioInner() {
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
+function PageLoader() {
+  return (
+    <div className="flex justify-center items-center py-20">
+      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+    </div>
+  );
+}
+
 export default function ContentPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PageLoader />}>
       <ContentStudioInner />
     </Suspense>
   );

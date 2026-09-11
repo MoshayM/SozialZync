@@ -2063,7 +2063,7 @@ function WalletContent() {
 
 export default function WalletPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="flex justify-center items-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
       <WalletContent />
     </Suspense>
   );

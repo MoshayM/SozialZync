@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -1632,7 +1632,9 @@ export default function ProjectDetailPage() {
         }
       />
 
-      <PublishFromRenderPanel projectId={id} />
+      <Suspense fallback={null}>
+        <PublishFromRenderPanel projectId={id} />
+      </Suspense>
 
       <AdRevenuePanel projectId={id} />
 

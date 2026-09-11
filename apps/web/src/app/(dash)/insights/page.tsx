@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   BarChart2, Gift, Activity, Lightbulb,
   Clock, Flame, FileText, Download, ChevronDown,
-  TrendingUp, Calendar, Sparkles,
+  TrendingUp, Calendar, Sparkles, Loader2,
 } from 'lucide-react';
 import AnalyticsPage from '../analytics/page';
 import GrowthPage from '../growth/page';
@@ -291,7 +291,7 @@ function InsightsContent() {
 
 export default function InsightsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="flex justify-center items-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
       <InsightsContent />
     </Suspense>
   );
