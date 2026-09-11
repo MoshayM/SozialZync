@@ -9,7 +9,7 @@ import {
   Upload, BarChart2, Search, Zap, HelpCircle,
   WifiOff, Layers, Link2, Plus, Sparkles, Compass,
   Calendar, FlaskConical, Shield, Scissors,
-  ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity, Globe,
+  ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity, Globe, History,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
@@ -65,7 +65,8 @@ const NAV_SECTIONS: NavSection[] = [
   {
     category: 'Discover',
     items: [
-      { href: '/browse',       icon: Globe,       label: 'Public Feed' },
+      { href: '/browse',         icon: Globe,       label: 'Public Feed' },
+      { href: '/watch-history',  icon: History,     label: 'Watch History' },
     ],
   },
 ];
