@@ -551,7 +551,9 @@ function ChannelsPageInner() {
 
         {/* Channel connections */}
         <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-          <ChannelAccessPanel />
+          <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
+            <ChannelAccessPanel />
+          </Suspense>
         </div>
 
         {/* Media library */}
