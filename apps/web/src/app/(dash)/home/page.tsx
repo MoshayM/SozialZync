@@ -301,7 +301,13 @@ function AdRevenueCard() {
 export default function HomePage() {
   const router = useRouter();
   const [onboardingDone, setOnboardingDone] = useState(false);
-  const [wizardStep, setWizardStep] = useState(1);
+  const [wizardStep, setWizardStep] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('_wizardStep');
+      if (p) return Math.min(Math.max(parseInt(p, 10), 1), 3);
+    }
+    return 1;
+  });
   const [insightDismissed, setInsightDismissed] = useState(false);
   // greeting uses local time — must be client-only to avoid SSR/client hydration mismatch
   const [greeting, setGreeting] = useState('');
