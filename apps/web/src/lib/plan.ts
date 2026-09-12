@@ -63,7 +63,7 @@ export function usePlan() {
     : 'free';
 
   // True when user topped up before but credits are now gone and no subscription.
-  const creditsExhausted = storedPlan !== 'pro' && credits !== null && credits === 0 && creditProWasActive;
+  const creditsExhausted = !isAdmin && storedPlan !== 'pro' && credits !== null && credits === 0 && creditProWasActive;
 
   const lowCredits = !isAdmin && hasCreditBalance && credits !== null && credits < LOW_CREDIT_THRESHOLD;
 
