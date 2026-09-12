@@ -454,6 +454,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   /* Desktop sidebar collapsed to icon-only rail */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState('');
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
@@ -606,6 +607,74 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   /* Sidebar nav link renderer (shared by desktop sidebar + mobile drawer) */
   function renderNavSections(opts: { collapsed: boolean; onNavClick?: () => void }) {
+    const q = sidebarSearch.trim().toLowerCase();
+
+    // ── Filtered view when search is active ──────────────────────────────────
+    if (q && !opts.collapsed) {
+      const allItems = NAV_SECTIONS.flatMap(s => s.items);
+      const matches = allItems.filter(i => i.label.toLowerCase().includes(q));
+      if (matches.length === 0) {
+        return (
+          <div style={{ padding: '20px 12px', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>
+            No results for &ldquo;{sidebarSearch}&rdquo;
+          </div>
+        );
+      }
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {matches.map(({ href, icon: Icon, label, badge, action }) => {
+            const isActive = !action && (
+              href === '/studio'
+                ? (pathname === '/studio' || pathname.startsWith('/studio/') || pathname.startsWith('/shorts-studio'))
+                : (pathname === href || pathname.startsWith(href + '/'))
+            );
+            const itemStyle: React.CSSProperties = {
+              gap: '11px', padding: '10px 12px', borderRadius: '11px',
+              fontSize: '14px', fontWeight: isActive ? 600 : 500,
+              letterSpacing: isActive ? '-.15px' : '-.05px',
+              textDecoration: 'none', justifyContent: 'flex-start',
+              background: isActive ? '#f3f4f6' : 'transparent',
+              color: isActive ? '#111827' : '#374151',
+              transition: 'background 180ms ease, color 180ms ease',
+            };
+            // Highlight matching portion of label
+            const idx = label.toLowerCase().indexOf(q);
+            const labelNode = idx >= 0 ? (
+              <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {label.slice(0, idx)}
+                <mark style={{ background: '#fef08a', color: '#111827', borderRadius: '2px', padding: '0 1px' }}>
+                  {label.slice(idx, idx + q.length)}
+                </mark>
+                {label.slice(idx + q.length)}
+              </span>
+            ) : (
+              <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>{label}</span>
+            );
+            const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = '#f3f4f6'; } };
+            const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; } };
+            return action ? (
+              <button key={href} type="button" onClick={() => { action(); opts.onNavClick?.(); setSidebarSearch(''); }}
+                className="flex items-center w-full border-none cursor-pointer"
+                style={{ ...itemStyle, fontFamily: 'inherit' }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+                <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#111827' : '#9ca3af' }} />
+                {labelNode}
+                {badge && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '99px', color: '#fff', background: badge === 'NEW' ? 'linear-gradient(135deg,#10B981,#059669)' : badge === 'AI' ? 'rgba(55,65,81,.18)' : 'linear-gradient(135deg,#F59E0B,#D97706)' }}>{badge}</span>}
+              </button>
+            ) : (
+              <Link key={href} href={href} className="flex items-center" style={itemStyle}
+                onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                onClick={() => { opts.onNavClick?.(); setSidebarSearch(''); }}>
+                <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#111827' : '#9ca3af' }} />
+                {labelNode}
+                {badge && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '99px', color: '#fff', background: badge === 'NEW' ? 'linear-gradient(135deg,#10B981,#059669)' : badge === 'AI' ? 'rgba(55,65,81,.18)' : 'linear-gradient(135deg,#F59E0B,#D97706)' }}>{badge}</span>}
+              </Link>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ── Normal (unfiltered) view ──────────────────────────────────────────────
     return NAV_SECTIONS.map(({ category, items }, si) => {
       const isCollapsible = !!category && category !== 'Studio';
       const isOpen = !isCollapsible || opts.collapsed || openSections.has(category!);
@@ -1063,6 +1132,54 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             className="flex-1 overflow-y-auto overflow-x-hidden"
             style={{ padding: '10px 10px' }}
           >
+            {/* Sidebar search — hidden when collapsed */}
+            {!sidebarCollapsed && (
+              <div style={{ padding: '2px 2px 8px', position: 'relative' }}>
+                <Search style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '13px', height: '13px', color: '#9ca3af', pointerEvents: 'none' }} />
+                <input
+                  type="search"
+                  value={sidebarSearch}
+                  onChange={e => setSidebarSearch(e.target.value)}
+                  placeholder="Quick search…"
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    paddingLeft: '30px', paddingRight: sidebarSearch ? '28px' : '42px',
+                    paddingTop: '7.5px', paddingBottom: '7.5px',
+                    border: '1px solid #e5e7eb', borderRadius: '9px',
+                    fontSize: '13px', color: '#374151', background: '#f3f4f6',
+                    outline: 'none', fontFamily: 'inherit',
+                    transition: 'border-color 150ms ease, background 150ms ease, box-shadow 150ms ease',
+                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#6b7280'; e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(55,65,81,.07)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.boxShadow = 'none'; }}
+                  aria-label="Search navigation"
+                />
+                {sidebarSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => setSidebarSearch('')}
+                    aria-label="Clear search"
+                    style={{
+                      position: 'absolute', right: '7px', top: '50%', transform: 'translateY(-50%)',
+                      background: '#e5e7eb', border: 'none', cursor: 'pointer', padding: '3px',
+                      color: '#6b7280', display: 'flex', alignItems: 'center', borderRadius: '5px',
+                    }}
+                  >
+                    <X style={{ width: '12px', height: '12px' }} />
+                  </button>
+                ) : (
+                  <kbd style={{
+                    position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                    fontSize: '10px', fontWeight: 600, color: '#9ca3af',
+                    background: '#e5e7eb', border: '1px solid #d1d5db',
+                    borderRadius: '5px', padding: '2px 5px', lineHeight: 1.4,
+                    pointerEvents: 'none', userSelect: 'none',
+                  }}>
+                    ⌘K
+                  </kbd>
+                )}
+              </div>
+            )}
             {renderNavSections({
               collapsed: sidebarCollapsed,
               onNavClick: () => setMobileMenuOpen(false),
