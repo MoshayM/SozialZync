@@ -148,9 +148,26 @@ function StepIcon({ status }: { status: PlanStep['status'] }) {
   return <Circle style={{ width:14,height:14,color:'rgba(255,255,255,.2)',flexShrink:0 }} />;
 }
 
-function JobDot({ status }: { status: string }) {
-  const c: Record<string,string> = { COMPLETED:'#4ADE80',RUNNING:'#9ca3af',PENDING:'#FBBF24',QUEUED:'#FBBF24',FAILED:'#F87171',CANCELLED:'#d1d5db' };
-  return <span style={{ display:'inline-block',width:7,height:7,borderRadius:'50%',background:c[status]??'#d1d5db',flexShrink:0 }} />;
+function JobStatusIcon({ status }: { status: string }) {
+  if (status === 'RUNNING')
+    return <Loader2 style={{ width:13,height:13,color:'#60A5FA',flexShrink:0,animation:'cfSpinSimple 1s linear infinite' }} />;
+  if (status === 'COMPLETED')
+    return <CheckCircle2 style={{ width:13,height:13,color:'#4ADE80',flexShrink:0 }} />;
+  if (status === 'FAILED')
+    return <AlertCircle style={{ width:13,height:13,color:'#F87171',flexShrink:0 }} />;
+  if (status === 'PENDING' || status === 'QUEUED')
+    return <span style={{ width:8,height:8,borderRadius:'50%',background:'#FBBF24',flexShrink:0,display:'inline-block',animation:'cfPulse 1.4s ease-in-out infinite' }} />;
+  return <Circle style={{ width:13,height:13,color:'rgba(255,255,255,0.25)',flexShrink:0 }} />;
+}
+
+function timeAgo(iso: string): string {
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 // ── TTS helpers ────────────────────────────────────────────────────────────────
@@ -560,6 +577,7 @@ export function CopilotPanel() {
 
   // jobs
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([]);
+  const activeJobCount = recentJobs.filter(j => ['RUNNING','PENDING','QUEUED'].includes(j.status)).length;
 
   // history (kept in state for future use)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1153,8 +1171,18 @@ export function CopilotPanel() {
           }}>
             {/* Panel header */}
             <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
-              <span style={{ flex:'1 1 auto', fontSize:13, fontWeight:700, color:'#fff', letterSpacing:'-.1px' }}>
+              <span style={{ flex:'1 1 auto', fontSize:13, fontWeight:700, color:'#fff', letterSpacing:'-.1px', display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                 {activePanel === 'chat' ? '💬 Chat' : activePanel === 'actions' ? '⚡ Quick Actions' : '✅ Recent Tasks'}
+                {activePanel === 'jobs' && recentJobs.length > 0 && (
+                  <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:99, background:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)' }}>
+                    {recentJobs.length}
+                  </span>
+                )}
+                {activePanel === 'jobs' && activeJobCount > 0 && (
+                  <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:99, background:'rgba(251,191,36,0.15)', color:'#FBBF24', border:'1px solid rgba(251,191,36,0.3)', animation:'cfPulse 2s ease-in-out infinite' }}>
+                    {activeJobCount} active
+                  </span>
+                )}
               </span>
               <div style={{ display:'flex', alignItems:'center', gap:5 }}>
                 <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, transition:'background .3s' }} />
@@ -1403,23 +1431,45 @@ export function CopilotPanel() {
 
               {/* ── TASKS ── */}
               {activePanel === 'jobs' && (
-                <div style={{ padding:'8px 10px 10px', maxHeight:300, overflowY:'auto', display:'flex', flexDirection:'column', gap:6 }}>
+                <div style={{ padding:'6px 8px 10px', maxHeight:300, overflowY:'auto', display:'flex', flexDirection:'column', gap:5 }}>
                   {recentJobs.length === 0 ? (
-                    <div style={{ textAlign:'center', padding:'20px 0' }}>
-                      <Zap style={{ width:24, height:24, color:'#d1d5db', margin:'0 auto 8px' }} />
-                      <p style={{ fontSize:12.5, color:'rgba(255,255,255,0.45)' }}>No tasks yet</p>
-                    </div>
-                  ) : recentJobs.map(j => (
-                    <div key={j.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 11px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10 }}>
-                      <JobDot status={j.status} />
-                      <div style={{ flex:'1 1 auto', minWidth:0 }}>
-                        <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.9)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{j.type.replace(/_/g,' ')}</div>
-                        <div style={{ fontSize:10.5, color:'rgba(255,255,255,0.45)', marginTop:1 }}>{j.project.title.slice(0,32)}</div>
-                        {j.error && <div style={{ fontSize:10, color:'#F87171', marginTop:1 }}>{j.error.slice(0,45)}</div>}
+                    <div style={{ textAlign:'center', padding:'24px 0 16px' }}>
+                      <div style={{ width:40, height:40, borderRadius:14, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
+                        <ListChecks style={{ width:20, height:20, color:'rgba(255,255,255,0.2)' }} />
                       </div>
-                      <span style={{ fontSize:10.5, fontWeight:600, color:'rgba(255,255,255,0.45)', flexShrink:0, textTransform:'capitalize' }}>{j.status.toLowerCase()}</span>
+                      <p style={{ fontSize:12.5, fontWeight:600, color:'rgba(255,255,255,0.38)', margin:'0 0 4px' }}>No tasks yet</p>
+                      <p style={{ fontSize:11, color:'rgba(255,255,255,0.22)', margin:0 }}>AI tasks will appear here as they run</p>
                     </div>
-                  ))}
+                  ) : recentJobs.map(j => {
+                    const sColor: Record<string,string> = { COMPLETED:'#4ADE80', RUNNING:'#60A5FA', PENDING:'#FBBF24', QUEUED:'#FBBF24', FAILED:'#F87171', CANCELLED:'rgba(255,255,255,0.2)' };
+                    const sBg: Record<string,string>    = { COMPLETED:'rgba(74,222,128,0.1)', RUNNING:'rgba(96,165,250,0.1)', PENDING:'rgba(251,191,36,0.1)', QUEUED:'rgba(251,191,36,0.1)', FAILED:'rgba(248,113,113,0.1)', CANCELLED:'rgba(255,255,255,0.05)' };
+                    const sLabel: Record<string,string> = { COMPLETED:'Done', RUNNING:'Active', PENDING:'Queued', QUEUED:'Queued', FAILED:'Failed', CANCELLED:'Skipped' };
+                    const bc  = sColor[j.status] ?? 'rgba(255,255,255,0.15)';
+                    const bbg = sBg[j.status]    ?? 'rgba(255,255,255,0.05)';
+                    const bl  = sLabel[j.status]  ?? j.status.toLowerCase();
+                    return (
+                      <div key={j.id} style={{ display:'flex', alignItems:'flex-start', gap:9, padding:'9px 10px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.07)', borderLeft:`2.5px solid ${bc}`, borderRadius:10 }}>
+                        <div style={{ paddingTop:1, flexShrink:0 }}><JobStatusIcon status={j.status} /></div>
+                        <div style={{ flex:'1 1 auto', minWidth:0 }}>
+                          <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.88)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textTransform:'capitalize' }}>
+                            {j.type.replace(/_/g,' ').toLowerCase()}
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3 }}>
+                            <span style={{ fontSize:10.5, color:'rgba(255,255,255,0.38)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:'1 1 auto' }}>{j.project.title.slice(0,26)}</span>
+                            <span style={{ fontSize:10, color:'rgba(255,255,255,0.25)', flexShrink:0 }}>{timeAgo(j.createdAt)}</span>
+                          </div>
+                          {j.error && (
+                            <div style={{ marginTop:4, padding:'3px 8px', background:'rgba(248,113,113,0.08)', border:'1px solid rgba(248,113,113,0.18)', borderRadius:5, fontSize:10.5, color:'#FCA5A5', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {j.error.slice(0,52)}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{ fontSize:9.5, fontWeight:700, color:bc, flexShrink:0, letterSpacing:'.3px', padding:'2px 7px', background:bbg, borderRadius:5, alignSelf:'flex-start', marginTop:1 }}>
+                          {bl}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -1440,21 +1490,27 @@ export function CopilotPanel() {
               { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks' },
             ] as const).map(({ id, Icon, label }) => {
               const isA = activePanel === id;
+              const hasBadge = id === 'jobs' && activeJobCount > 0 && !isA;
               return (
                 <button key={id} type="button" className="cf-topic-btn"
                   onClick={() => setActivePanel(isA ? null : id)}
                   style={{
-                    display:'flex', alignItems:'center', gap:5,
+                    display:'flex', alignItems:'center', gap:5, position:'relative',
                     padding:'8px 14px', borderRadius:999,
                     background: isA ? 'rgba(255,255,255,0.16)' : 'rgba(14,10,28,0.85)',
-                    border: `1.5px solid ${isA ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                    border: `1.5px solid ${isA ? 'rgba(255,255,255,0.4)' : hasBadge ? 'rgba(251,191,36,0.45)' : 'rgba(255,255,255,0.12)'}`,
                     backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
                     color: isA ? '#ffffff' : 'rgba(255,255,255,0.7)',
                     fontSize:12, fontWeight:600, cursor:'pointer',
-                    boxShadow: isA ? '0 0 14px rgba(255,255,255,0.1)' : '0 4px 14px rgba(0,0,0,0.35)',
+                    boxShadow: isA ? '0 0 14px rgba(255,255,255,0.1)' : hasBadge ? '0 0 10px rgba(251,191,36,0.15),0 4px 14px rgba(0,0,0,0.35)' : '0 4px 14px rgba(0,0,0,0.35)',
                     transition:'all 0.17s',
                   }}>
                   <Icon style={{ width:12, height:12 }} />{label}
+                  {hasBadge && (
+                    <span style={{ position:'absolute', top:-6, right:-6, minWidth:16, height:16, borderRadius:99, background:'#F59E0B', color:'#000', fontSize:9, fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 4px', lineHeight:1, boxShadow:'0 0 8px rgba(245,158,11,0.55)' }}>
+                      {activeJobCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
