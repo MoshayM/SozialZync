@@ -10,8 +10,7 @@ test.describe('Public browse page', () => {
 
   test('has search or content visible', async ({ page }) => {
     await page.goto('/browse');
-    const hasContent = await page.locator('input[type="search"], [role="search"], video, img, h1, h2').first().isVisible();
-    expect(hasContent).toBeTruthy();
+    await expect(page.locator('input[type="search"], [role="search"], video, img, h1, h2').first()).toBeVisible();
   });
 });
 
