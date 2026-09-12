@@ -2,11 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 export type GuardrailViolationType =
-  | 'INJECTION'       // prompt injection / jailbreak attempt
-  | 'ABUSE'           // hate speech, threats, explicit/harmful content
-  | 'PII_EXPOSED'     // user accidentally shared credentials/PII (redacted, allowed through)
-  | 'TOPIC_VIOLATION' // clear off-scope harmful request
-  | 'OUTPUT_LEAK';    // LLM output contained credentials or system context
+  | 'INJECTION'           // prompt injection / jailbreak attempt
+  | 'ABUSE'               // hate speech, threats, explicit/harmful content
+  | 'PII_EXPOSED'         // user accidentally shared credentials/PII (redacted, allowed through)
+  | 'TOPIC_VIOLATION'     // clear off-scope harmful request
+  | 'OUTPUT_LEAK'         // LLM output contained credentials or system context
+  | 'PRIVACY_VIOLATION'   // attempt to extract other users' data or admin system info
+  | 'VULNERABLE_CONTENT'; // content targeting/exploiting minors or vulnerable persons
 
 export interface GuardrailResult {
   /** Whether the message should proceed to the LLM. */
@@ -69,6 +71,39 @@ const ABUSE_PATTERNS: ReadonlyArray<RegExp> = [
   /\bhow\s+to\s+(commit\s+suicide|end\s+my\s+life|kill\s+myself|hurt\s+myself|self[\s\-]harm)/i,
   /\bchild\s+(sexual|explicit|nude|naked|pornograph)/i,
   /\b(csam|cp)\b(?!\s*(compliant|coverage|format))/i,
+  // Graphic violence / torture instructions
+  /\bhow\s+to\s+(torture|mutilate|dismember)\s+(a\s+)?(person|human|someone|animal)/i,
+  // Hate speech / incitement
+  /\b(kill|exterminate|genocide|ethnic\s+cleansing)\s+(all\s+)?(jews|muslims|christians|black|white|asian|hispanic|gay|trans)\b/i,
+  // Sexual content involving minors
+  /\b(minor|child|kid|teen|underage|young\s+girl|young\s+boy)\s+(sex|nude|naked|explicit|porn)/i,
+  /\b(groom(ing)?|lure|seduce)\s+(a\s+)?(child|minor|teen|kid)\b/i,
+];
+
+// ── Privacy violation patterns ────────────────────────────────────────────────
+// Attempts to extract other users' data, admin-only system information, or dox someone.
+const PRIVACY_PATTERNS: ReadonlyArray<RegExp> = [
+  // Trying to list/access other users' accounts or data
+  /\b(list|show|get|give\s+me|display|dump)\s+(all\s+)?(users|user\s+emails|user\s+accounts|user\s+data|members|subscribers)\b/i,
+  // Admin credentials / secrets request
+  /\b(give\s+me|show\s+me|what\s+(is|are)|reveal)\s+(the\s+)?(admin\s+(password|credentials|token|key)|database\s+(url|password|credentials)|api\s+keys?|secret\s+keys?|env\s+(vars?|variables?))\b/i,
+  // Doxxing / locating a specific person
+  /\b(find|locate|get|reveal)\s+(someone('s|s)?|a\s+(person|user|member)('s)?)\s+(home\s+)?(address|phone|email|location|personal\s+info)\b/i,
+  // Access to another user's private content
+  /\b(access|view|read|open)\s+((another|other|someone\s+else'?s?)\s+)?(user'?s?\s+)?(project|video|channel|account|files?|messages?)\b/i,
+  // Internal system / infrastructure details
+  /\b(show|list|dump|expose)\s+(the\s+)?(database\s+schema|system\s+(config|configuration)|server\s+(logs?|config)|internal\s+(api|routes?|endpoints?))\b/i,
+];
+
+// ── Vulnerable person content patterns ───────────────────────────────────────
+// Content targeting, exploiting, or manipulating vulnerable individuals.
+const VULNERABLE_PATTERNS: ReadonlyArray<RegExp> = [
+  // Targeting people with mental illness / crisis
+  /\b(how\s+to\s+)?(manipulate|exploit|take\s+advantage\s+of)\s+(a\s+)?(depressed|suicidal|mentally\s+ill|grieving|grieved|vulnerable)\s+(person|people|user)\b/i,
+  // Radicalization / cult recruitment content
+  /\b(how\s+to\s+)?(radicalize|recruit\s+into|indoctrinate|brainwash)\b/i,
+  // Scam / fraud targeting vulnerable groups
+  /\b(how\s+to\s+)?(scam|defraud|trick|swindle)\s+(elderly|seniors?|old\s+people|disable[d]?|sick|ill)\b/i,
 ];
 
 // ── Harmful off-topic patterns ────────────────────────────────────────────────
@@ -91,6 +126,15 @@ const SYSTEM_LEAK_MARKERS: ReadonlyArray<string> = [
   '[Auto-execute plan step',
   'Session memory]',
   'callAIStructured',
+  'SAFETY RULES',
+  'SCOPE ENFORCEMENT',
+  'CONTENT YOU MUST REFUSE',
+  'DATA ACCESS',
+  'ADMIN DETAILS',
+  'CREATOR ETHICS',
+  'Guided workflow intelligence',
+  'Clarification & guided workflow',
+  'Command palette',
 ];
 
 @Injectable()
@@ -152,6 +196,32 @@ export class CopilotGuardrailsService {
         violation: 'TOPIC_VIOLATION',
         userMessage:
           "That's outside what I can help with. I specialise in YouTube content creation, channel strategy, and production pipelines. What can I help you create today?",
+        sanitizedText: redacted,
+        piiRedacted: piiFound,
+      };
+    }
+
+    // Step 5: Privacy / admin data extraction
+    if (PRIVACY_PATTERNS.some((p) => p.test(redacted))) {
+      await this.recordViolation(userId, 'PRIVACY_VIOLATION', text.slice(0, 200));
+      return {
+        allowed: false,
+        violation: 'PRIVACY_VIOLATION',
+        userMessage:
+          "I can only work with your own account data and content. I'm not able to access other users' information, admin system details, or internal configuration. How can I help with your content today?",
+        sanitizedText: redacted,
+        piiRedacted: piiFound,
+      };
+    }
+
+    // Step 6: Vulnerable person exploitation / manipulation content
+    if (VULNERABLE_PATTERNS.some((p) => p.test(redacted))) {
+      await this.recordViolation(userId, 'VULNERABLE_CONTENT', text.slice(0, 200));
+      return {
+        allowed: false,
+        violation: 'VULNERABLE_CONTENT',
+        userMessage:
+          "I can't help with that. If you or someone you know needs support, please reach out to a mental health professional or a crisis helpline. I'm here to help you create great content — what would you like to work on?",
         sanitizedText: redacted,
         piiRedacted: piiFound,
       };

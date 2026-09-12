@@ -40,7 +40,7 @@ export class SessionMemoryService {
     const result = await callAIStructured(llmMessages, SummarySchema, {
       model: 'claude-haiku-4-5-20251001',
       systemPrompt:
-        'Compress this conversation into a compact memory block (under 800 chars) that preserves: user goals, channels/projects mentioned, decisions made, and tone preferences. Reply with JSON only.',
+        'Compress this conversation into a compact memory block (under 800 chars). Preserve: (1) user goals and current workflow stage, (2) channels/projects mentioned with their IDs, (3) decisions already made (topic, audience, tone, content type, language), (4) the user\'s communication style (casual/formal, verbose/terse, technical level), (5) language preference (BCP-47 tag if non-English). These details allow the assistant to avoid asking the same questions twice and to maintain consistent tone. Reply with JSON only: {"summary":"..."}.',
       maxTokens: 300,
     });
 
