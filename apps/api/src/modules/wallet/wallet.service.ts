@@ -351,6 +351,10 @@ export class WalletService {
 
   /** Spend credits in §5.4 priority order. Fails closed on insufficient funds. Idempotent. */
   async debit(userId: string, write: LedgerWrite) {
+    // SUPER_ADMIN / OWNER never have credits deducted — unlimited access.
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER') return null;
+
     const wallet = await this.ensureWallet(userId);
     return this.withIdempotency(write.idempotencyKey, () =>
       this.prisma.$transaction(async (tx) => {

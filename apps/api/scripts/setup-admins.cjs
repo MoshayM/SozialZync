@@ -14,6 +14,11 @@
 
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+
+function identityKeyFor(email) {
+  return crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+}
 
 const ADMINS = [
   {
@@ -110,6 +115,7 @@ async function main() {
         update: { status: 'CONVERTED' },
         create: {
           userId:         user.id,
+          identityKey:    identityKeyFor(admin.email),
           creditsGranted: 0,
           status:         'CONVERTED',
           expiresAt:      now,
