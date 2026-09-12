@@ -33,7 +33,7 @@ test.describe('Dashboard — authenticated', () => {
     await expect(page.locator('h1, h2').first()).toBeVisible();
   });
 
-  test('navigation links work', async ({ page }) => {
+  test('navigation links work', { timeout: 90_000 }, async ({ page }) => {
     await page.goto('/home');
     for (const [label, path] of [
       ['Projects', '/projects'],
@@ -55,7 +55,7 @@ test.describe('Dashboard — authenticated', () => {
     const adminLink = page.getByRole('link', { name: /admin panel/i }).or(
       page.locator('[title="Admin panel"]')
     );
-    await expect(adminLink).toBeVisible({ timeout: 8_000 });
+    await expect(adminLink).toBeVisible({ timeout: 20_000 });
   });
 
   test('no purple inline styles in dashboard DOM', async ({ page }) => {

@@ -527,9 +527,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const tok = localStorage.getItem('cf_token');
     if (!tok) {
-      // Unauthenticated users land on the public feed (/browse) rather than /login.
-      // /browse has Sign In + Start Creating buttons in the header.
-      router.push('/browse');
+      router.push('/login');
       return;
     }
     setToken(tok);
@@ -851,6 +849,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/admin"
             title="Admin panel"
+            aria-label="Admin panel"
             className="flex w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] items-center justify-center transition-all shrink-0 touch-manipulation"
             style={{ border: '1.5px solid #e5e7eb', background: '#f9fafb', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.88'; }}

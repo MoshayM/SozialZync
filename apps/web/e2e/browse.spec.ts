@@ -45,10 +45,12 @@ test.describe('Browse page — public access', () => {
 
   test('sidebar has content type filters', async ({ page }) => {
     await page.goto('/browse');
-    await expect(page.getByRole('button', { name: /all videos/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /shorts/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /reels/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /images/i })).toBeVisible();
+    // Use aside scope + .first() — ad cards contain "Shorts"/"Reels" in their text
+    // which also resolves as role=button, causing strict-mode violations.
+    await expect(page.locator('aside').getByRole('button', { name: /all videos/i }).first()).toBeVisible();
+    await expect(page.locator('aside').getByRole('button', { name: /shorts/i }).first()).toBeVisible();
+    await expect(page.locator('aside').getByRole('button', { name: /reels/i }).first()).toBeVisible();
+    await expect(page.locator('aside').getByRole('button', { name: /images/i }).first()).toBeVisible();
   });
 
   test('videos section renders thumbnail cards', async ({ page }) => {
