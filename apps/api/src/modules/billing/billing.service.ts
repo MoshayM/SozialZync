@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import Stripe from 'stripe';
+import { Plan } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { OffersService } from '../trial/offers.service';
@@ -505,7 +506,7 @@ export class BillingService {
       items: [{ id: itemId, price: priceId }],
       proration_behavior: 'create_prorations',
     });
-    await this.prisma.subscription.update({ where: { userId }, data: { plan: newPlan } });
+    await this.prisma.subscription.update({ where: { userId }, data: { plan: newPlan as Plan } });
     return { plan: newPlan };
   }
 
