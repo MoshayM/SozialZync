@@ -31,10 +31,12 @@ test.describe('Login page', () => {
   });
 
   test('rejects wrong credentials', async ({ page }) => {
-    // Navigate to a public page first so we can clear any leftover auth from
-    // parallel tests that share this browser context
+    // Clear ALL auth state (localStorage, sessionStorage, cookies) because parallel
+    // tests on the same Playwright worker share a browser context — a prior login
+    // may have set an HTTP-only session cookie that survives localStorage.clear()
     await page.goto('/browse');
-    await page.evaluate(() => localStorage.removeItem('cf_token'));
+    await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+    await page.context().clearCookies();
     await page.goto('/login');
     // Use an email+pass that cannot possibly be a real account
     await emailInput(page).fill('no-such-user-xyzzy123@pw-test-invalid.test');
