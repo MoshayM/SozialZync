@@ -593,6 +593,7 @@ export default function AdminDashboardPage() {
   const [modActionLoading, setModActionLoading] = useState(false);
 
   const load = useCallback(async () => {
+    if (!localStorage.getItem('cf_token')) return; // unauthenticated — layout handles redirect
     setLoading(true);
     setError('');
     try {

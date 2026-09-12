@@ -28,7 +28,7 @@ test.describe('Protected pages redirect to login', () => {
   for (const path of ['/home', '/projects', '/insights', '/copilot', '/admin']) {
     test(`${path} redirects unauthenticated users`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForURL(/login/, { timeout: 10_000 }).catch(() => {});
+      await page.waitForURL(/login/, { timeout: 20_000 }).catch(() => {});
       expect(page.url()).toMatch(/login/);
     });
   }

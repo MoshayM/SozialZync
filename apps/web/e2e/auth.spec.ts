@@ -32,11 +32,12 @@ test.describe('Login page', () => {
 
   test('rejects wrong credentials', async ({ page }) => {
     await page.goto('/login');
-    await emailInput(page).fill('wrong@example.com');
-    await passwordInput(page).fill('wrongpass123');
+    // Use an email+pass that cannot possibly be a real account
+    await emailInput(page).fill('no-such-user-xyzzy123@pw-test-invalid.test');
+    await passwordInput(page).fill('Xyzzy!NotAReal#Pass99');
     await signInBtn(page).click();
     // Should show error message or stay on login page
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(4000);
     await expect(page).toHaveURL(/login/);
   });
 

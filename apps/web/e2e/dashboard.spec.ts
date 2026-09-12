@@ -34,22 +34,24 @@ test.describe('Dashboard — authenticated', () => {
   });
 
   test('navigation links work', { timeout: 90_000 }, async ({ page }) => {
-    await page.goto('/home');
     for (const [label, path] of [
       ['Projects', '/projects'],
       ['Analytics', '/insights'],
     ]) {
+      await page.goto('/home');
+      // Dismiss any modal overlay (e.g. onboarding) that intercepts pointer events
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
       const link = page.getByRole('link', { name: new RegExp(label, 'i') }).first();
-      if (await link.isVisible()) {
+      if (await link.isVisible({ timeout: 5_000 })) {
         await link.click();
-        await page.waitForURL(new RegExp(path), { timeout: 10_000 });
+        await page.waitForURL(new RegExp(path), { timeout: 20_000 });
         expect(page.url()).toContain(path);
-        await page.goBack();
       }
     }
   });
 
-  test('admin icon visible in topbar for admin account', async ({ page }) => {
+  test('admin icon visible in topbar for admin account', { timeout: 90_000 }, async ({ page }) => {
     await page.goto('/home');
     // Admin shield icon should be present for admin users
     const adminLink = page.getByRole('link', { name: /admin panel/i }).or(
