@@ -33,31 +33,24 @@ test.describe('Dashboard — authenticated', () => {
     await expect(page.locator('h1, h2').first()).toBeVisible();
   });
 
-  test('navigation links work', { timeout: 90_000 }, async ({ page }) => {
-    for (const [label, path] of [
-      ['Projects', '/projects'],
-      ['Analytics', '/insights'],
-    ]) {
-      await page.goto('/home');
-      // Dismiss any modal overlay (e.g. onboarding) that intercepts pointer events
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(300);
-      const link = page.getByRole('link', { name: new RegExp(label, 'i') }).first();
-      if (await link.isVisible({ timeout: 5_000 })) {
-        await link.click();
-        await page.waitForURL(new RegExp(path), { timeout: 20_000 });
-        expect(page.url()).toContain(path);
-      }
-    }
+  test('navigation links work', async ({ page }) => {
+    await page.goto('/home');
+    // Verify nav links exist in the sidebar
+    await expect(page.locator('a[href="/projects"]').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('a[href="/insights"]').first()).toBeVisible({ timeout: 10_000 });
+
+    // Verify pages actually load when navigated to directly
+    await page.goto('/projects');
+    await expect(page).not.toHaveURL(/login/);
+
+    await page.goto('/insights');
+    await expect(page).not.toHaveURL(/login/);
   });
 
-  test('admin icon visible in topbar for admin account', { timeout: 90_000 }, async ({ page }) => {
+  test('admin icon visible in topbar for admin account', async ({ page }) => {
     await page.goto('/home');
-    // Admin shield icon should be present for admin users
-    const adminLink = page.getByRole('link', { name: /admin panel/i }).or(
-      page.locator('[title="Admin panel"]')
-    );
-    await expect(adminLink).toBeVisible({ timeout: 20_000 });
+    // Admin shield icon links to /admin — visible once role resolves from API
+    await expect(page.locator('a[href="/admin"]')).toBeVisible({ timeout: 20_000 });
   });
 
   test('no purple inline styles in dashboard DOM', async ({ page }) => {

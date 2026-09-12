@@ -38,6 +38,8 @@ test.describe('Browse page — public access', () => {
 
   test('/ keyboard shortcut focuses search', async ({ page }) => {
     await page.goto('/browse');
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.locator('body').click(); // ensure page has focus before shortcut
     await page.keyboard.press('/');
     const input = page.locator('input[type="search"]');
     await expect(input).toBeFocused();
