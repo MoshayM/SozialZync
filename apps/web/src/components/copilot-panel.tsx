@@ -1487,10 +1487,8 @@ export function CopilotPanel() {
             {([
               { id:'chat'    as PanelId, Icon:MessageSquare, label:'Chat' },
               { id:'actions' as PanelId, Icon:Zap,           label:'Actions' },
-              { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks' },
             ] as const).map(({ id, Icon, label }) => {
               const isA = activePanel === id;
-              const hasBadge = id === 'jobs' && activeJobCount > 0 && !isA;
               return (
                 <button key={id} type="button" className="cf-topic-btn"
                   onClick={() => setActivePanel(isA ? null : id)}
@@ -1498,22 +1496,41 @@ export function CopilotPanel() {
                     display:'flex', alignItems:'center', gap:5, position:'relative',
                     padding:'8px 14px', borderRadius:999,
                     background: isA ? 'rgba(255,255,255,0.16)' : 'rgba(14,10,28,0.85)',
-                    border: `1.5px solid ${isA ? 'rgba(255,255,255,0.4)' : hasBadge ? 'rgba(251,191,36,0.45)' : 'rgba(255,255,255,0.12)'}`,
+                    border: `1.5px solid ${isA ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.12)'}`,
                     backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
                     color: isA ? '#ffffff' : 'rgba(255,255,255,0.7)',
                     fontSize:12, fontWeight:600, cursor:'pointer',
-                    boxShadow: isA ? '0 0 14px rgba(255,255,255,0.1)' : hasBadge ? '0 0 10px rgba(251,191,36,0.15),0 4px 14px rgba(0,0,0,0.35)' : '0 4px 14px rgba(0,0,0,0.35)',
+                    boxShadow: isA ? '0 0 14px rgba(255,255,255,0.1)' : '0 4px 14px rgba(0,0,0,0.35)',
                     transition:'all 0.17s',
                   }}>
                   <Icon style={{ width:12, height:12 }} />{label}
-                  {hasBadge && (
-                    <span style={{ position:'absolute', top:-6, right:-6, minWidth:16, height:16, borderRadius:99, background:'#F59E0B', color:'#000', fontSize:9, fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 4px', lineHeight:1, boxShadow:'0 0 8px rgba(245,158,11,0.55)' }}>
-                      {activeJobCount}
-                    </span>
-                  )}
                 </button>
               );
             })}
+            {/* Tasks button — separate from the main pills */}
+            <button
+              type="button"
+              className="cf-topic-btn"
+              onClick={() => setActivePanel(activePanel === 'jobs' ? null : 'jobs')}
+              style={{
+                display:'flex', alignItems:'center', gap:5, position:'relative',
+                padding:'8px 14px', borderRadius:999,
+                background: activePanel === 'jobs' ? 'rgba(255,255,255,0.16)' : 'rgba(14,10,28,0.85)',
+                border: `1.5px solid ${activePanel === 'jobs' ? 'rgba(255,255,255,0.4)' : activeJobCount > 0 ? 'rgba(251,191,36,0.45)' : 'rgba(255,255,255,0.12)'}`,
+                backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+                color: activePanel === 'jobs' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                fontSize:12, fontWeight:600, cursor:'pointer',
+                boxShadow: activePanel === 'jobs' ? '0 0 14px rgba(255,255,255,0.1)' : activeJobCount > 0 ? '0 0 10px rgba(251,191,36,0.15),0 4px 14px rgba(0,0,0,0.35)' : '0 4px 14px rgba(0,0,0,0.35)',
+                transition:'all 0.17s',
+              }}
+            >
+              <ListChecks style={{ width:12, height:12 }} />Tasks
+              {activeJobCount > 0 && activePanel !== 'jobs' && (
+                <span style={{ position:'absolute', top:-6, right:-6, minWidth:16, height:16, borderRadius:99, background:'#F59E0B', color:'#000', fontSize:9, fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 4px', lineHeight:1, boxShadow:'0 0 8px rgba(245,158,11,0.55)' }}>
+                  {activeJobCount}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* ── Greeting ticker — shown when idle: no messages, or history minimized ── */}
