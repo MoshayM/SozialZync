@@ -936,8 +936,37 @@ export function CopilotPanel() {
       // Voice replies show in speech bubble; only auto-open chat panel for text interactions
       if (!isVoiceSend) setActivePanel(prev => prev ?? 'chat');
       if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); }
-      if (data.plan)     setCurrentPlan(data.plan);
-      if (data.navigate) router.push(data.navigate);
+      if (data.plan) setCurrentPlan(data.plan);
+
+      // ── Command execution: route to specific resource when backend executes an intent ──
+      if (data.executed) {
+        const { action, result } = data.executed as { action: string; result: Record<string, unknown> };
+        switch (action) {
+          case 'create_project': {
+            const pid = result?.projectId as string | undefined;
+            router.push(pid ? `/projects/${pid}` : '/projects');
+            break;
+          }
+          case 'run_production':
+          case 'render_clip':
+          case 'analyze_video':
+          case 'generate_calendar':
+          case 'benchmark_channel': {
+            // Show the Jobs tab so user sees the running job immediately
+            setActivePanel('jobs');
+            if (data.navigate) router.push(data.navigate);
+            break;
+          }
+          case 'approve_content': {
+            router.push('/approvals');
+            break;
+          }
+          default:
+            if (data.navigate) router.push(data.navigate);
+        }
+      } else if (data.navigate) {
+        router.push(data.navigate);
+      }
       const wasVoiceInput = conversationRef.current;
       if (voiceEnabled || wasVoiceInput) {
         conversationRef.current = true;
