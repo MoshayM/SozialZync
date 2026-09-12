@@ -469,6 +469,14 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
+  /* Track copilot panel open state so topbar button reflects it */
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  useEffect(() => {
+    const handler = () => setCopilotOpen(o => !o);
+    window.addEventListener('cf:open-copilot', handler);
+    return () => window.removeEventListener('cf:open-copilot', handler);
+  }, []);
+
   /* Mobile drawer overlay open */
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -859,28 +867,39 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           </Link>
         )}
 
-        {/* Copilot button */}
+        {/* Copilot button — highlighted only when panel is open */}
         <button
           type="button"
           title="Ask Copilot"
           onClick={() => window.dispatchEvent(new CustomEvent('cf:open-copilot'))}
-          className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center hover:opacity-90 active:opacity-75 transition-opacity shrink-0 touch-manipulation"
-          style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#6b7280' }}
+          className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
+          style={{
+            border: `1px solid ${copilotOpen ? '#c4b5fd' : '#ECECF3'}`,
+            background: copilotOpen ? '#ede9fe' : '#fff',
+            color: copilotOpen ? '#6d28d9' : '#5b5772',
+          }}
         >
           <Bot className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
         </button>
 
-        {/* Channel Access shortcut */}
-        <Link
-          href="/settings/channels"
-          title="Channel Access"
-          className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
-          style={{ border: '1px solid #ECECF3', background: '#fff', color: '#5b5772' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; }}
-        >
-          <Link2 className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
-        </Link>
+        {/* Channel Access shortcut — highlighted when on /settings/channels */}
+        {(() => {
+          const isChannelsActive = pathname.startsWith('/settings/channels');
+          return (
+            <Link
+              href="/settings/channels"
+              title="Channel Access"
+              className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
+              style={{
+                border: `1px solid ${isChannelsActive ? '#c4b5fd' : '#ECECF3'}`,
+                background: isChannelsActive ? '#ede9fe' : '#fff',
+                color: isChannelsActive ? '#6d28d9' : '#5b5772',
+              }}
+            >
+              <Link2 className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
+            </Link>
+          );
+        })()}
 
         {/* Notification bell */}
         <div className="relative shrink-0" ref={bellRef}>
