@@ -461,7 +461,7 @@ function ChannelsInner() {
   const allVideos = videosData?.pages.flatMap(p => (p as { data: unknown[] }).data) ?? [];
   const handleNextPage = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage) void fetchNextPage();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -786,9 +786,9 @@ function ChannelsInner() {
                     ) : (
                       <VirtualVideoGrid
                         videos={allVideos as Parameters<typeof VirtualVideoGrid>[0]['videos']}
-                        onLoadMore={handleNextPage}
-                        hasMore={hasNextPage ?? false}
-                        isLoadingMore={isFetchingNextPage}
+                        fetchNextPage={handleNextPage}
+                        hasNextPage={hasNextPage ?? false}
+                        isFetchingNextPage={isFetchingNextPage}
                       />
                     )}
                   </div>
