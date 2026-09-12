@@ -570,6 +570,8 @@ export function CopilotPanel() {
   const [speakingIdx, setSpeakingIdx]     = useState<number|null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ttsAvailable, setTtsAvailable]   = useState<boolean|null>(null);
+  // true when iOS/Android blocked auto-speak — makes the 🔊 button more prominent
+  const [ttsBlocked, setTtsBlocked]       = useState(false);
 
   // quick actions
   const [activeAction, setActiveAction] = useState<string|null>(null);
@@ -609,6 +611,14 @@ export function CopilotPanel() {
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
   const speechPrimedRef  = useRef(false);
   const busyRef          = useRef(false);
+  // iOS bridge: text waiting for the bridge to pick up
+  const pendingTTSRef    = useRef<{ text: string; lang?: string; onDone?: () => void; msgIdx?: number } | null>(null);
+  // true while silent-utterance bridge is pumping
+  const ttsBridgeActiveRef = useRef(false);
+  // voices cached on first prime so doSpeak() runs synchronously from bridge onend
+  const cachedVoicesRef  = useRef<SpeechSynthesisVoice[]>([]);
+  // stable ref to speak() — lets primeSpeechSession call speak without a forward reference
+  const speakRef = useRef<(text: string, replyLang?: string, onDone?: () => void, msgIdx?: number) => void>(() => {});
 
   // Persist chat messages to localStorage whenever they change
   useEffect(() => {
@@ -732,20 +742,59 @@ export function CopilotPanel() {
       window.speechSynthesis.speak(silent);
     } catch {}
     try { window.speechSynthesis.getVoices(); } catch {}
+    // Pre-cache voices so doSpeak() can run synchronously from the bridge onend.
+    // voiceschanged fires asynchronously, so we set the cache whenever it resolves.
+    try {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) { cachedVoicesRef.current = v; }
+      else if (cachedVoicesRef.current.length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.speechSynthesis.onvoiceschanged = null;
+          const vv = window.speechSynthesis.getVoices();
+          if (vv.length > 0) cachedVoicesRef.current = vv;
+        };
+      }
+    } catch {}
   }, []);
 
   // iOS requires speechSynthesis.speak() to be called synchronously within a
-  // user-gesture handler. This re-primes the session on every send so that
-  // the TTS that fires after the async API response is still allowed by iOS.
+  // user-gesture handler. We keep the session alive with a chain of silent
+  // utterances (the "bridge"). Each onend checks pendingTTSRef; when real text
+  // arrives, the bridge speaks it from speech-event context — which iOS allows.
   const primeSpeechSession = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance('​');
+    if (ttsBridgeActiveRef.current) return; // bridge already running
+
+    window.speechSynthesis.cancel();
+    ttsBridgeActiveRef.current = true;
+
+    function pumpBridge() {
+      if (!ttsBridgeActiveRef.current) return;
+
+      if (pendingTTSRef.current) {
+        // Real text arrived — speak from this speech-event context (iOS-safe).
+        // Use speakRef to avoid a forward-reference to speak().
+        ttsBridgeActiveRef.current = false;
+        const { text: t, lang: l, onDone: d, msgIdx: idx } = pendingTTSRef.current;
+        pendingTTSRef.current = null;
+        speakRef.current(t, l, d, idx);
+        return;
+      }
+
+      // Keep bridge alive with another zero-width silent utterance (~10 ms each)
+      const u = new SpeechSynthesisUtterance(' ');
       u.volume = 0; u.rate = 10;
-      window.speechSynthesis.speak(u);
-    } catch {}
-  }, []);
+      u.onend = pumpBridge;
+      u.onerror = (e) => {
+        if ((e as SpeechSynthesisErrorEvent).error !== 'canceled') {
+          ttsBridgeActiveRef.current = false;
+        }
+      };
+      try { window.speechSynthesis.speak(u); } catch { ttsBridgeActiveRef.current = false; }
+    }
+
+    pumpBridge();
+  }, []); // no deps — uses speakRef (a stable ref updated each render)
 
   // ── TTS ────────────────────────────────────────────────────────────────────
 
@@ -754,6 +803,16 @@ export function CopilotPanel() {
   const speak = useCallback((text: string, replyLang?: string, onDone?: () => void, msgIdx?: number) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) { onDone?.(); return; }
     if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
+    setTtsBlocked(false);
+
+    // Bridge is active — store text in the ref so the bridge picks it up from
+    // its own onend (speech-event context). Do NOT call speak() directly here;
+    // that would be an async call blocked by iOS/Android gesture guard.
+    if (ttsBridgeActiveRef.current) {
+      pendingTTSRef.current = { text, lang: replyLang, onDone, msgIdx };
+      return;
+    }
+
     const target = replyLang ?? lang;
     window.speechSynthesis.cancel();
     const cleaned = cleanForTTS(text);
@@ -763,7 +822,12 @@ export function CopilotPanel() {
     let keepAlive: ReturnType<typeof setInterval> | null = null;
 
     const doSpeak = () => {
-      const voices = window.speechSynthesis.getVoices();
+      // Use cached voices for synchronous access (avoids async voiceschanged path
+      // from bridge onend which would break iOS gesture guard again).
+      const voices = cachedVoicesRef.current.length > 0
+        ? cachedVoicesRef.current
+        : window.speechSynthesis.getVoices();
+      if (voices.length > 0) cachedVoicesRef.current = voices;
       const bestVoice = pickBestVoice(voices, target);
       function next() {
         if (chunkIdx >= chunks.length) {
@@ -782,7 +846,9 @@ export function CopilotPanel() {
           if (keepAlive) clearInterval(keepAlive);
           setSpeaking(false); setSpeakingIdx(null);
           if (e.error === 'not-allowed') {
-            // Android Chrome blocks speech from async context — open chat so user can tap 🔊 Hear
+            // Gesture guard fired — bridge didn't reach us in time (very slow API response).
+            // Show the 🔊 Play reply button prominently so the user can tap to hear.
+            setTtsBlocked(true);
             setActivePanel('chat');
             return;
           }
@@ -795,19 +861,31 @@ export function CopilotPanel() {
       next();
     };
 
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) { doSpeak(); }
+    const voices = cachedVoicesRef.current.length > 0
+      ? cachedVoicesRef.current
+      : window.speechSynthesis.getVoices();
+    if (voices.length > 0) { cachedVoicesRef.current = voices; doSpeak(); }
     else {
       let fired = false;
-      window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } };
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        const v = window.speechSynthesis.getVoices();
+        if (v.length > 0) cachedVoicesRef.current = v;
+        if (!fired) { fired = true; doSpeak(); }
+      };
       let attempts = 0;
       const poll = setInterval(() => {
         if (fired) { clearInterval(poll); return; }
-        if (window.speechSynthesis.getVoices().length > 0) { clearInterval(poll); window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } return; }
+        const v = window.speechSynthesis.getVoices();
+        if (v.length > 0) { clearInterval(poll); cachedVoicesRef.current = v; window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } return; }
         if (++attempts > 20) { clearInterval(poll); window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } }
       }, 150);
     }
   }, [lang]);
+
+  // Keep speakRef in sync so primeSpeechSession's bridge can call the latest speak()
+  // without a forward-reference or stale closure.
+  useEffect(() => { speakRef.current = speak; }, [speak]);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
@@ -864,7 +942,10 @@ export function CopilotPanel() {
       if (voiceEnabled || wasVoiceInput) {
         conversationRef.current = true;
         const newIdx = nextMessages.length;
-        primeSpeechSession(); // re-prime iOS — async API round-trip can expire the speech session
+        // primeSpeechSession() is intentionally NOT called here — we are in async context
+        // (after API await). The bridge was started synchronously in the gesture handler
+        // (toggleMic / send before the first await). speak() deposits text into pendingTTSRef
+        // and the bridge speaks it from its own onend (gesture-context-safe).
         speak(data.reply, data.language, () => { if (voiceEnabled) startListeningRef.current(); }, newIdx);
       } else {
         conversationRef.current = false;
@@ -996,6 +1077,9 @@ export function CopilotPanel() {
   const toggleMic = useCallback(() => {
     primeAudio();
     if (listening || recording) {
+      // Stop: kill bridge and any pending speech
+      ttsBridgeActiveRef.current = false;
+      pendingTTSRef.current = null;
       conversationRef.current = false;
       stopVoiceAnalyser();
       if (mediaRecorderRef.current) stopServerSTT();
@@ -1004,8 +1088,11 @@ export function CopilotPanel() {
       return;
     }
     setListening(true); setMicError(null); conversationRef.current = true;
+    // Start the iOS bridge NOW — we are inside a user-gesture handler so
+    // subsequent speechSynthesis.speak() calls from the bridge's onend are allowed.
+    primeSpeechSession();
     startListening();
-  }, [listening, recording, startListening, stopServerSTT, stopVoiceAnalyser, primeAudio]);
+  }, [listening, recording, startListening, stopServerSTT, stopVoiceAnalyser, primeAudio, primeSpeechSession]);
 
   function toggleVoice() {
     primeAudio();
@@ -1021,6 +1108,8 @@ export function CopilotPanel() {
       setTimeout(() => startListeningRef.current(), 150);
     } else {
       conversationRef.current = false;
+      ttsBridgeActiveRef.current = false;
+      pendingTTSRef.current = null;
       if (mediaRecorderRef.current) stopServerSTT();
       recognitionRef.current?.stop();
       window.speechSynthesis?.cancel();
@@ -1237,19 +1326,35 @@ export function CopilotPanel() {
                               type="button"
                               onClick={() => {
                                 if (speakingIdx === i) {
+                                  // Stop — kill bridge and current speech
+                                  ttsBridgeActiveRef.current = false;
+                                  pendingTTSRef.current = null;
                                   window.speechSynthesis.cancel();
                                   setSpeakingIdx(null);
                                   setSpeaking(false);
                                   return;
                                 }
-                                primeSpeechSession();
+                                // This tap IS a user gesture — force direct mode (bypass bridge)
+                                // so speak() doesn't queue into pendingTTSRef.
+                                ttsBridgeActiveRef.current = false;
+                                pendingTTSRef.current = null;
+                                setTtsBlocked(false);
                                 speak(m.content, undefined, undefined, i);
                               }}
-                              style={{ background:'none', border:'none', cursor:'pointer', padding:'2px 0 0', marginTop:3, display:'block', fontSize:11, opacity:speakingIdx===i?1:0.45, color:speakingIdx===i?'#d1d5db':'rgba(255,255,255,0.7)', transition:'opacity 0.2s' }}
-                              title={speakingIdx===i?'Stop':'Tap to hear'}
-                              aria-label={speakingIdx===i?'Stop speaking':'Read aloud'}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                padding: '2px 0 0', marginTop: 3, display: 'block', fontSize: 11,
+                                opacity: speakingIdx === i ? 1 : ttsBlocked && i === messages.length - 1 ? 0.95 : 0.45,
+                                color: speakingIdx === i ? '#d1d5db' : ttsBlocked && i === messages.length - 1 ? '#fbbf24' : 'rgba(255,255,255,0.7)',
+                                fontWeight: ttsBlocked && i === messages.length - 1 && speakingIdx !== i ? 600 : 400,
+                                transition: 'opacity 0.2s, color 0.2s',
+                              }}
+                              title={speakingIdx === i ? 'Stop' : 'Tap to hear'}
+                              aria-label={speakingIdx === i ? 'Stop speaking' : 'Read aloud'}
                             >
-                              {speakingIdx===i?'⏹ Stop':'🔊 Hear'}
+                              {speakingIdx === i ? '⏹ Stop'
+                                : ttsBlocked && i === messages.length - 1 ? '🔊 Play reply'
+                                : '🔊 Hear'}
                             </button>
                           )}
                         </div>
