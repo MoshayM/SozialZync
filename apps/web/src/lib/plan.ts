@@ -65,7 +65,7 @@ export function usePlan() {
   // True when user topped up before but credits are now gone and no subscription.
   const creditsExhausted = storedPlan !== 'pro' && credits !== null && credits === 0 && creditProWasActive;
 
-  const lowCredits = hasCreditBalance && credits !== null && credits < LOW_CREDIT_THRESHOLD;
+  const lowCredits = !isAdmin && hasCreditBalance && credits !== null && credits < LOW_CREDIT_THRESHOLD;
 
   // Pro access granted specifically via credits (not a paid subscription).
   const hasCreditsPro = hasCreditBalance && storedPlan !== 'pro';

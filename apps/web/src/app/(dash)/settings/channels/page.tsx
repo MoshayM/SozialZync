@@ -458,7 +458,7 @@ function ChannelsInner() {
     enabled: !!libChannelId && tab === 'library' && libTab === 'videos',
   });
 
-  const allVideos = videosData?.pages.flatMap(p => (p as { data: unknown[] }).data) ?? [];
+  const allVideos = videosData?.pages.flatMap(p => (p as { data: unknown[] }).data ?? []) ?? [];
   const handleNextPage = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage) void fetchNextPage();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]); // eslint-disable-line react-hooks/exhaustive-deps
