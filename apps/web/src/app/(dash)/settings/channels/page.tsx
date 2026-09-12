@@ -53,13 +53,22 @@ const ACCESS_LABEL: Record<AccessLevel, string> = {
 };
 
 const OAUTH_ERRORS: Record<string, string> = {
-  access_denied:   'Connection cancelled.',
-  no_channel:      'No YouTube channel found on that Google account.',
-  invalid_grant:   'Auth code expired — please try connecting again.',
-  redirect_mismatch: 'Redirect URI mismatch. Check OAuth app settings.',
-  invalid_client:  'Invalid OAuth credentials.',
-  missing_params:  'OAuth callback missing required parameters.',
-  oauth_failed:    'Authentication failed. Please try again.',
+  access_denied:                   'Connection cancelled.',
+  no_channel:                      'No YouTube channel found on that Google account.',
+  invalid_grant:                   'Auth code expired — please try connecting again.',
+  redirect_mismatch:               'Redirect URI mismatch. Check OAuth app settings.',
+  invalid_client:                  'Invalid OAuth credentials.',
+  missing_params:                  'OAuth callback missing required parameters.',
+  oauth_failed:                    'Authentication failed. Please try again.',
+  invalid_state:                   'OAuth session expired — please try again.',
+  instagram_auth_failed:           'Instagram connection failed. Please try again.',
+  facebook_auth_failed:            'Facebook connection failed. Please try again.',
+  tiktok_auth_failed:              'TikTok connection failed. Please try again.',
+  linkedin_auth_failed:            'LinkedIn connection failed. Please try again.',
+  pages_permission_denied:         'Instagram requires access to your Facebook Pages. Please re-authorise and allow Pages access.',
+  no_instagram_business_account:   'No Instagram Business account linked to your Facebook Page. Switch your Instagram to a Professional account first.',
+  wrong_facebook_account:          'No Facebook Pages found. Make sure you logged in with the Facebook account that manages your Page.',
+  no_facebook_pages:               'No Facebook Pages found on this account.',
 };
 
 // ─── Inline SVG icons (TikTok / X / LinkedIn not in lucide) ──────────────────
@@ -347,13 +356,24 @@ function ChannelsInner() {
 
   // ── OAuth callback handlers ───────────────────────────────────────────────
 
+  const SOCIAL_PLATFORM_NAMES: Record<string, string> = {
+    instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', linkedin: 'LinkedIn', x: 'X / Twitter',
+  };
+
   useEffect(() => {
     if (connected === 'true') {
+      // YouTube callback
       pendingVerify.current = true;
       window.history.replaceState({}, '', '/settings/channels?tab=connections');
       void qc.invalidateQueries({ queryKey: ['channels'] });
+    } else if (connected && SOCIAL_PLATFORM_NAMES[connected]) {
+      // Social platform callback (instagram / facebook / tiktok / linkedin)
+      const name = SOCIAL_PLATFORM_NAMES[connected]!;
+      window.history.replaceState({}, '', '/settings/channels?tab=connections');
+      void qc.invalidateQueries({ queryKey: ['platform-connection-status'] });
+      setBanner({ type: 'success', msg: `${name} connected successfully!` });
     }
-  }, [connected, qc]);
+  }, [connected, qc]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!pendingVerify.current || chLoading) return;

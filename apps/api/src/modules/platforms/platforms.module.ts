@@ -3,6 +3,8 @@ import { PlatformRegistryService } from './platform-registry.service';
 import { PlatformsController } from './platforms.controller';
 import { InstagramOAuthController } from './instagram-oauth.controller';
 import { FacebookOAuthController } from './facebook-oauth.controller';
+import { TikTokOAuthController } from './tiktok-oauth.controller';
+import { LinkedInOAuthController } from './linkedin-oauth.controller';
 import { PlatformMediaController } from './platform-media.controller';
 import { PlatformMediaService } from './services/platform-media.service';
 import { YouTubePlatformProvider } from './providers/youtube.platform.provider';
@@ -26,7 +28,7 @@ import { PrismaModule } from '../../common/prisma/prisma.module';
     LinkedInPlatformProvider,
     XPlatformProvider,
   ],
-  controllers: [PlatformsController, InstagramOAuthController, FacebookOAuthController, PlatformMediaController],
+  controllers: [PlatformsController, InstagramOAuthController, FacebookOAuthController, TikTokOAuthController, LinkedInOAuthController, PlatformMediaController],
   exports: [PlatformRegistryService],
 })
 export class PlatformsModule {}
