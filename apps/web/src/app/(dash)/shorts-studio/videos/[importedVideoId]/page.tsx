@@ -3,9 +3,10 @@ import { useCallback, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ShieldCheck, ExternalLink, XCircle, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ShieldCheck, ExternalLink, XCircle, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
+import { usePlanGate, useIsAdmin, planAtLeast } from '@/components/plan-gate';
 
 interface Topic {
   id: string;
@@ -228,6 +229,9 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
   const [types, setTypes] = useState<string[]>(['YOUTUBE_SHORTS']);
   const [generated, setGenerated] = useState(false);
   const { phase, run } = usePublishFlow(h.id, qc);
+  const userPlan = usePlanGate();
+  const isAdmin = useIsAdmin();
+  const canPublish = isAdmin || planAtLeast(userPlan, 'PRO');
 
   const generate = useMutation({
     mutationFn: () => api.shortsStudio.generateClips(h.id, types),
@@ -295,15 +299,25 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
             : <Scissors className="w-3.5 h-3.5" />}
           {generated ? 'Clips created' : 'Generate clips'}
         </button>
-        <button
-          onClick={() => void run()}
-          disabled={phase.step === 'working' || phase.step === 'awaiting-approval' || phase.step === 'published'}
-          title="Clip → captions → render → export, then publishes automatically after your approval"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 disabled:opacity-50"
-        >
-          {phase.step === 'working' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-          Publish
-        </button>
+        {canPublish ? (
+          <button
+            onClick={() => void run()}
+            disabled={phase.step === 'working' || phase.step === 'awaiting-approval' || phase.step === 'published'}
+            title="Clip → captions → render → export, then publishes automatically after your approval"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 disabled:opacity-50"
+          >
+            {phase.step === 'working' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            Publish
+          </button>
+        ) : (
+          <Link
+            href="/wallet"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50"
+            title="Pro plan required to publish to external platforms"
+          >
+            <Lock className="w-3.5 h-3.5" /> Pro only
+          </Link>
+        )}
       </div>
 
       {phase.step === 'working' && (

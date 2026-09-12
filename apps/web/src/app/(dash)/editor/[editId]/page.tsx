@@ -8,7 +8,7 @@ import {
   Volume2, Zap, Type, Image, X,
   ZoomIn, ZoomOut, Plus, Maximize2,
   SlidersHorizontal, ChevronDown, ChevronRight, Clapperboard, Sparkles, KeyRound,
-  Music, CheckCircle2, HelpCircle, Mic, ListMusic,
+  Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock,
 } from 'lucide-react';
 import {
   api,
@@ -33,6 +33,7 @@ import {
   type MusicTrack,
 } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
+import { usePlanGate, useIsAdmin, planAtLeast } from '@/components/plan-gate';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1661,6 +1662,9 @@ export default function EditorWorkspacePage() {
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [showExport, setShowExport] = useState(false);
   const [showAiEdit, setShowAiEdit] = useState(false);
+  const userPlan = usePlanGate();
+  const isAdmin = useIsAdmin();
+  const canExport = isAdmin || planAtLeast(userPlan, 'PRO');
   const [aiAutoSuggest, setAiAutoSuggest] = useState(false);
   // Mobile panel visibility
   const [mobileBinOpen, setMobileBinOpen] = useState(false);
@@ -1991,12 +1995,22 @@ export default function EditorWorkspacePage() {
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
           Save
         </button>
-        <button
-          onClick={() => setShowExport(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 min-h-[44px]"
-        >
-          <Download className="w-3.5 h-3.5" /> Export
-        </button>
+        {canExport ? (
+          <button
+            onClick={() => setShowExport(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 min-h-[44px]"
+          >
+            <Download className="w-3.5 h-3.5" /> Export
+          </button>
+        ) : (
+          <Link
+            href="/wallet"
+            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50 min-h-[44px]"
+            title="Pro plan required to export videos"
+          >
+            <Lock className="w-3.5 h-3.5" /> Export (Pro)
+          </Link>
+        )}
       </div>
 
       {saveError && (
