@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   X, Send, Mic, MicOff, ShieldCheck, Trash2,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
   BookOpen, FileText, Calendar, Search, Sparkles,
-  MessageSquare, ListChecks, type LucideIcon,
+  MessageSquare, ListChecks, ChevronDown, ChevronUp, type LucideIcon,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
@@ -90,6 +90,10 @@ function loadHistory(): { text: string; ts: number }[] {
 function saveToHistory(text: string) {
   const existing = loadHistory().filter(h => h.text !== text);
   localStorage.setItem(HISTORY_KEY, JSON.stringify([{ text, ts: Date.now() }, ...existing].slice(0, MAX_HISTORY)));
+}
+
+function removeFromHistory(text: string) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(loadHistory().filter(h => h.text !== text)));
 }
 
 function relTime(ts: number): string {
@@ -210,6 +214,26 @@ function chunkForTTS(text: string, maxChars = 160): string[] {
   return chunks.filter(Boolean);
 }
 
+// ── Robot types ───────────────────────────────────────────────────────────────
+
+type RobotState = 'idle' | 'listening' | 'thinking' | 'speaking';
+type PanelId = 'chat' | 'actions' | 'jobs';
+
+// ── Robot Avatar — CSS 3D, zero deps, works on all devices + offline ─────────────
+
+// Replaced R3F / WebGL canvas with pure CSS because WebGL in a position:fixed
+// overlay fails silently on many mobile browsers (iOS Safari, Android WebView).
+
+// Greetings the robot cycles through when idle
+const GREETINGS = [
+  "Hey! Ready to create something amazing? 🚀",
+  "What shall we build today?",
+  "I'm your AI creative partner — ask me anything! ✨",
+  "Let's make your next video go viral 🎯",
+  "Scripts, ideas, SEO — I've got you covered!",
+  "Your channel growth starts here 📈",
+];
+
 function detectEmotion(text: string): 'excited' | 'error' | 'neutral' {
   const t = text.toLowerCase();
   if (/error|fail|sorry|unable|can't|cannot|problem|issue/.test(t)) return 'error';
@@ -217,7 +241,285 @@ function detectEmotion(text: string): 'excited' | 'error' | 'neutral' {
   return 'neutral';
 }
 
-type PanelId = 'chat' | 'actions' | 'jobs';
+// CSS plastic robot body with SVG camera-lens eyes (matching Capture.PNG style)
+function RobotSvgBody({ state, excited, onMicToggle, voiceEnabled, volumeBars }: { state: RobotState; excited: boolean; onMicToggle?: () => void; voiceEnabled?: boolean; volumeBars?: number[] }) {
+  const [pupilOff, setPupilOff] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (state !== 'idle') { setPupilOff({ x: 0, y: 0 }); return undefined; }
+    const POS: [number, number][] = [[0,0],[0,0],[0,0],[-2,0],[2,0],[0,-1.5],[1.5,1],[-1.5,0.8]];
+    const interval = setInterval(() => {
+      const p = POS[Math.floor(Math.random() * POS.length)]!;
+      setPupilOff({ x: p[0], y: p[1] });
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [state]);
+
+  const isSpeaking = state === 'speaking';
+  const isListening = state === 'listening';
+  const isThinking = state === 'thinking';
+
+  // Vibrant purple-lavender body colors
+  const W = '#ede8ff';
+  const S = '#b0a4e8';
+  const grad = `linear-gradient(155deg,#f2efff 20%,${W} 50%,${S})`;
+
+  const eyeCol = isThinking ? '#FBBF24' : isListening ? '#4ADE80' : '#60A5FA';
+
+
+  const armWaving = isSpeaking || excited;
+
+  // Eye blink animation per state
+  const blinkL: React.CSSProperties = {
+    transformOrigin: '15px 11px', transformBox: 'fill-box',
+    animation: isThinking ? 'cfEyeBlinkThink 2.4s ease-in-out infinite' : 'cfBlink 4.5s ease-in-out 0.3s infinite',
+  };
+  const blinkR: React.CSSProperties = {
+    transformOrigin: '45px 11px', transformBox: 'fill-box',
+    animation: isThinking ? 'cfEyeBlinkThink 2.4s ease-in-out 0.25s infinite' : 'cfBlink 4.5s ease-in-out 0.55s infinite',
+  };
+
+  return (
+    <div style={{ position:'relative', display:'inline-block', userSelect:'none', pointerEvents:'none' }}>
+      {/* State rings */}
+      {isThinking && (
+        <div style={{ position:'absolute', inset:-12, borderRadius:'50%', border:'2.5px solid transparent', borderTopColor:'#FBBF24', borderRightColor:'rgba(251,191,36,0.3)', animation:'cfSpinSimple 1.2s linear infinite', pointerEvents:'none' }} />
+      )}
+      {isListening && (<>
+        <div style={{ position:'absolute', inset:-12, borderRadius:'50%', border:'1.5px solid rgba(74,222,128,0.45)', animation:'cfRipple 1.5s ease-out infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', inset:-12, borderRadius:'50%', border:'1.5px solid rgba(74,222,128,0.22)', animation:'cfRipple 1.5s ease-out 0.75s infinite', pointerEvents:'none' }} />
+      </>)}
+      {isSpeaking && (
+        <div style={{ position:'absolute', inset:-10, borderRadius:'50%', border:'1.5px solid rgba(0,200,255,0.3)', animation:'cfPulse 0.7s ease-in-out infinite', pointerEvents:'none' }} />
+      )}
+
+      {/* ── CSS plastic robot body ── */}
+      <div>
+        {/* Head */}
+        <div style={{ marginTop:5, width:76, height:58, borderRadius:14, background:grad, boxShadow:'3px 4px 14px rgba(0,0,0,0.28),-1px -1px 5px rgba(255,255,255,0.4)', position:'relative' }}>
+          {/* Antenna */}
+          <div style={{ position:'absolute', top:-24, left:'50%', transform:'translateX(-50%)', display:'flex', flexDirection:'column', alignItems:'center', zIndex:2, pointerEvents:'none' }}>
+            <div style={{ width:12, height:12, borderRadius:'50%', background:eyeCol, boxShadow:`0 0 10px 5px ${eyeCol}66`, animation:'cfPulse 1.5s ease-in-out infinite' }} />
+            <div style={{ width:4, height:16, background:`linear-gradient(180deg,${eyeCol}aa,${S})`, borderRadius:'2px 2px 0 0' }} />
+          </div>
+          {/* Visor strip with SVG camera-lens eyes */}
+          <div style={{ position:'absolute', top:'26%', left:'8%', right:'8%', height:'40%', background:'linear-gradient(180deg,#090920,#0d0d26)', borderRadius:9, boxShadow:'inset 0 2px 10px rgba(0,0,0,0.92)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+            <svg width="60" height="22" viewBox="0 0 60 22" fill="none">
+              <defs>
+                <radialGradient id="cfEyeLG" cx="35%" cy="30%" r="65%" gradientUnits="objectBoundingBox">
+                  <stop offset="0%" stopColor="#7EEEFF" />
+                  <stop offset="40%" stopColor={eyeCol} />
+                  <stop offset="100%" stopColor="#001824" />
+                </radialGradient>
+              </defs>
+              {/* Left eye — camera lens with blink */}
+              <g style={blinkL}>
+                <circle cx="15" cy="11" r="9.5" fill="#0C1A38" />
+                <circle cx="15" cy="11" r="8.5" fill="url(#cfEyeLG)" />
+                <circle cx="15" cy="11" r="6.5" fill="none" stroke="rgba(120,210,255,0.25)" strokeWidth={1} />
+                <circle cx="15" cy="11" r="3.5" fill="#040C20" style={{ transform:`translate(${pupilOff.x}px,${pupilOff.y}px)`, transition:'transform 0.45s cubic-bezier(.4,0,.2,1)', transformOrigin:'15px 11px', transformBox:'fill-box' }} />
+                <circle cx="11.5" cy="7.5" r="3" fill="rgba(255,255,255,0.92)" />
+                <circle cx="17.5" cy="13.5" r="1.5" fill="rgba(255,255,255,0.5)" />
+                {isSpeaking && <circle cx="15" cy="11" r="8" fill="none" stroke="rgba(0,200,216,0.45)" strokeWidth={1} style={{ animation:'cfPulse 0.42s ease-in-out infinite' }} />}
+              </g>
+              {/* Right eye */}
+              <g style={blinkR}>
+                <circle cx="45" cy="11" r="9.5" fill="#0C1A38" />
+                <circle cx="45" cy="11" r="8.5" fill="url(#cfEyeLG)" />
+                <circle cx="45" cy="11" r="6.5" fill="none" stroke="rgba(120,210,255,0.25)" strokeWidth={1} />
+                <circle cx="45" cy="11" r="3.5" fill="#040C20" style={{ transform:`translate(${pupilOff.x}px,${pupilOff.y}px)`, transition:'transform 0.45s cubic-bezier(.4,0,.2,1)', transformOrigin:'45px 11px', transformBox:'fill-box' }} />
+                <circle cx="41.5" cy="7.5" r="3" fill="rgba(255,255,255,0.92)" />
+                <circle cx="47.5" cy="13.5" r="1.5" fill="rgba(255,255,255,0.5)" />
+                {isSpeaking && <circle cx="45" cy="11" r="8" fill="none" stroke="rgba(0,200,216,0.45)" strokeWidth={1} style={{ animation:'cfPulse 0.42s ease-in-out 0.21s infinite' }} />}
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        {/* Neck */}
+        <div style={{ margin:'0 auto', width:20, height:8, background:`linear-gradient(160deg,${S},#8878c8)`, borderRadius:'0 0 4px 4px' }} />
+
+        {/* Body + arms wrapper */}
+        <div style={{ position:'relative' }}>
+          {/* Left arm — single piece, free swing from body edge */}
+          <div style={{ position:'absolute', top:8, left:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(10deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out infinite':'cfArmSway 3s ease-in-out 0.2s infinite', transition:'transform 0.6s ease-in-out' }} />
+          {/* Right arm — single piece, free swing from body edge */}
+          <div style={{ position:'absolute', top:8, right:-20, width:18, height:68, borderRadius:9, background:grad, boxShadow:'2px 3px 12px rgba(80,60,180,0.28)', transformOrigin:'top center', transform:armWaving?undefined:'rotate(-10deg)', animation:armWaving?'cfArmWave 0.7s ease-in-out 0.35s infinite':'cfArmSwayR 3s ease-in-out 1.5s infinite', transition:'transform 0.6s ease-in-out' }} />
+
+          {/* Body */}
+          <div style={{ width:86, height:86, borderRadius:14, background:grad, boxShadow:'4px 5px 18px rgba(0,0,0,0.26),-2px -2px 6px rgba(255,255,255,0.33)', position:'relative', overflow:'hidden' }}>
+            {/* Chest panel — prominent mic toggle */}
+            <div
+              onClick={onMicToggle}
+              title={voiceEnabled ? 'Mic ON — tap to mute' : 'Tap to activate voice'}
+              style={{
+                position:'absolute', top:'12%', left:'10%', right:'10%', bottom:'12%',
+                borderRadius:10,
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4,
+                pointerEvents: onMicToggle ? 'auto' : 'none',
+                cursor: onMicToggle ? 'pointer' : 'default',
+                overflow:'hidden',
+                transition:'background 0.3s, box-shadow 0.3s',
+                background: isListening
+                  ? 'rgba(74,222,128,0.18)'
+                  : isSpeaking
+                  ? 'rgba(0,200,255,0.15)'
+                  : isThinking
+                  ? 'rgba(251,191,36,0.13)'
+                  : voiceEnabled
+                  ? 'rgba(74,222,128,0.10)'
+                  : 'rgba(4,6,20,0.88)',
+                boxShadow: isListening
+                  ? 'inset 0 0 14px rgba(74,222,128,0.55), 0 0 12px rgba(74,222,128,0.4)'
+                  : isSpeaking
+                  ? 'inset 0 0 14px rgba(0,200,255,0.45), 0 0 12px rgba(0,200,255,0.3)'
+                  : isThinking
+                  ? 'inset 0 0 12px rgba(251,191,36,0.35)'
+                  : voiceEnabled
+                  ? 'inset 0 0 10px rgba(74,222,128,0.25)'
+                  : 'inset 0 2px 10px rgba(0,0,0,0.9)',
+              }}
+            >
+              {/* Listening — amplitude-driven green bars */}
+              {isListening && (
+                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3.5, width:'100%', paddingBottom:4, paddingTop:4, height:'65%' }}>
+                  {[0,1,2,3,4].map(i => {
+                    const amp = volumeBars ? Math.max(0.08, Math.min(1, volumeBars[i] ?? 0.15)) : null;
+                    return (
+                      <div key={i} style={{
+                        width:6, height:'100%', borderRadius:3, transformOrigin:'bottom',
+                        background:'#4ADE80', boxShadow:`0 0 7px #4ADE80${amp ? Math.round(amp * 255).toString(16).padStart(2,'0') : 'cc'}`,
+                        transform: amp !== null ? `scaleY(${amp})` : undefined,
+                        animation: amp === null ? `cfVoiceBar 0.38s ease-in-out ${i*0.11}s infinite` : 'none',
+                        transition: amp !== null ? 'transform 0.06s ease-out, box-shadow 0.06s ease-out' : 'none',
+                      }} />
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Speaking — big cyan bars */}
+              {isSpeaking && !isListening && (
+                <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:3.5, width:'100%', paddingBottom:4, paddingTop:4 }}>
+                  {[0,1,2,3,4].map(i => (
+                    <div key={i} style={{ width:6, height:'65%', borderRadius:3, transformOrigin:'bottom', background:'#00C8FF', boxShadow:'0 0 7px #00C8FFcc', animation:`cfVoiceBar 0.55s ease-in-out ${i*0.11}s infinite` }} />
+                  ))}
+                </div>
+              )}
+
+              {/* Thinking — amber pulse ring */}
+              {isThinking && !isListening && !isSpeaking && (
+                <div style={{ position:'relative', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:'2px solid #FBBF24', animation:'cfPulse 0.9s ease-in-out infinite' }} />
+                  <div style={{ width:10, height:10, borderRadius:'50%', background:'#FBBF24', boxShadow:'0 0 8px #FBBF24' }} />
+                </div>
+              )}
+
+              {/* Idle — big mic icon */}
+              {!isListening && !isSpeaking && !isThinking && (
+                <>
+                  <div style={{
+                    width:34, height:34, borderRadius:10,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    background: voiceEnabled ? 'rgba(74,222,128,0.22)' : 'rgba(255,255,255,0.07)',
+                    border: `1.5px solid ${voiceEnabled ? 'rgba(74,222,128,0.6)' : 'rgba(255,255,255,0.15)'}`,
+                    color: voiceEnabled ? '#4ADE80' : 'rgba(255,255,255,0.4)',
+                    boxShadow: voiceEnabled ? '0 0 14px rgba(74,222,128,0.5)' : 'none',
+                    animation: voiceEnabled ? 'cfPulse 2s ease-in-out infinite' : 'none',
+                    transition:'all 0.35s',
+                  }}>
+                    {voiceEnabled
+                      ? <Mic style={{ width:17, height:17 }} />
+                      : <MicOff style={{ width:17, height:17 }} />
+                    }
+                  </div>
+                  <div style={{
+                    fontSize: 7, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase',
+                    color: voiceEnabled ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.22)',
+                    transition: 'color 0.35s',
+                  }}>
+                    {voiceEnabled ? 'ON' : 'TAP'}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Feet (no legs) */}
+        <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:4 }}>
+          {[0,1].map(i => (
+            <div key={i} style={{ width:26, height:11, borderRadius:'3px 3px 8px 8px', background:`linear-gradient(160deg,${W},${S})`, boxShadow:'2px 2px 6px rgba(80,60,180,0.22)' }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RobotAvatar({ state, excited = false, compact = false, onMicToggle, voiceEnabled, volumeBars }: { state: RobotState; excited?: boolean; compact?: boolean; onMicToggle?: () => void; voiceEnabled?: boolean; volumeBars?: number[] }) {
+  const robotAnim: React.CSSProperties['animation'] = excited
+    ? 'cfExcite 0.65s cubic-bezier(.36,0,.66,1.5) both'
+    : state === 'speaking' ? 'cfHeadBob 0.9s ease-in-out infinite'
+    : state === 'idle'     ? 'cfFloat 3s ease-in-out infinite'
+    : 'none';
+
+  const sparkleColors = ['#00CCFF','#9ca3af','#34D399','#FBBF24','#F472B6'];
+
+  if (compact) {
+    return (
+      <div style={{ position:'relative', width:76, height:90, flexShrink:0, animation:robotAnim }}>
+        <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-52%) scale(0.72)', transformOrigin:'center center' }}>
+          <RobotSvgBody state={state} excited={excited} onMicToggle={onMicToggle} voiceEnabled={voiceEnabled} volumeBars={volumeBars} />
+        </div>
+        {excited && [{dx:'-20px',dy:'-18px'},{dx:'20px',dy:'-18px'},{dx:'-24px',dy:'4px'},{dx:'24px',dy:'4px'}].map((s, i) => (
+          <span key={i} style={{ position:'absolute', top:28, left:38, width:4, height:4, borderRadius:'50%',
+            background:sparkleColors[i % sparkleColors.length], '--dx':s.dx, '--dy':s.dy,
+            animation:`cfSparkle 0.6s ease-out ${i*0.08}s forwards`, pointerEvents:'none', zIndex:20,
+          } as React.CSSProperties} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display:'inline-block', position:'relative', animation:robotAnim }}>
+      <RobotSvgBody state={state} excited={excited} onMicToggle={onMicToggle} voiceEnabled={voiceEnabled} />
+      {excited && [{dx:'-32px',dy:'-30px'},{dx:'32px',dy:'-30px'},{dx:'-42px',dy:'4px'},{dx:'42px',dy:'4px'},{dx:'-22px',dy:'34px'},{dx:'22px',dy:'34px'}].map((s, i) => (
+        <span key={i} style={{ position:'absolute', top:50, left:48, width:5, height:5, borderRadius:'50%',
+          background:sparkleColors[i % sparkleColors.length], '--dx':s.dx, '--dy':s.dy,
+          animation:`cfSparkle 0.6s ease-out ${i*0.07}s forwards`, pointerEvents:'none', zIndex:20,
+        } as React.CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
+// ── Speech Bubble ─────────────────────────────────────────────────────────────
+
+function SpeechBubble({ text, state }: { text: string; state: RobotState }) {
+  const color = state === 'listening' ? '#4ADE80' : state === 'thinking' ? '#FBBF24' : state === 'speaking' ? '#d1d5db' : 'rgba(255,255,255,0.88)';
+  const isLong = text.length > 38;
+  return (
+    <div style={{ textAlign:'center', marginBottom:6, width:224, overflow:'hidden' }}>
+      <div style={{
+        display:'inline-block', background:'rgba(8,4,20,0.52)', backdropFilter:'blur(16px)',
+        WebkitBackdropFilter:'blur(16px)', borderRadius:99, padding:'6px 16px',
+        fontSize:12, color, fontWeight:500, lineHeight:1.4,
+        border:'1px solid rgba(255,255,255,0.10)', boxShadow:'0 4px 24px rgba(0,0,0,0.32)',
+        animation:'cfSlideUp 0.28s ease-out both',
+        maxWidth:224, overflow:'hidden', whiteSpace:'nowrap',
+        fontStyle: state === 'thinking' ? 'italic' : 'normal',
+      }}>
+        {isLong ? (
+          <span style={{ display:'inline-block', animation:'cfTicker 10s linear infinite', whiteSpace:'nowrap', paddingRight:32 }}>
+            {text}&nbsp;&nbsp;&nbsp;{text}
+          </span>
+        ) : text}
+      </div>
+    </div>
+  );
+}
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
@@ -226,6 +528,7 @@ export function CopilotPanel() {
 
   // panel
   const [activePanel, setActivePanel] = useState<PanelId | null>(null);
+  const [greetingIdx, setGreetingIdx] = useState(0);
 
   // chat — persisted across page loads
   const [messages, setMessages]     = useState<ChatMessage[]>(() => {
@@ -248,6 +551,7 @@ export function CopilotPanel() {
   const [serverStt, setServerStt]         = useState<boolean|null>(null);
   const [lang]                            = useState<string>('en-US');
   const [speakingIdx, setSpeakingIdx]     = useState<number|null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ttsAvailable, setTtsAvailable]   = useState<boolean|null>(null);
 
   // quick actions
@@ -257,11 +561,20 @@ export function CopilotPanel() {
   // jobs
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([]);
 
+  // history (kept in state for future use)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [history, setHistory] = useState<{ text:string; ts:number }[]>([]);
+
   // misc
   const [currentPlan, setCurrentPlan] = useState<TaskPlan|null>(null);
 
   // widget collapsed/expanded
   const [widgetOpen, setWidgetOpen] = useState(false);
+  const [historyMinimized, setHistoryMinimized] = useState(false);
+
+  // bubble show/hide
+  const [showBubble, setShowBubble]   = useState(false);
+  const bubbleTimerRef = useRef<ReturnType<typeof setTimeout>|null>(null);
 
   // real-time voice amplitude (5 bars, 0–1)
   const [volumeBars, setVolumeBars] = useState<number[]>([0.15, 0.15, 0.15, 0.15, 0.15]);
@@ -289,7 +602,7 @@ export function CopilotPanel() {
   useEffect(() => {
     const handler = () => {
       setWidgetOpen(open => {
-        if (!open) setActivePanel(prev => prev ?? 'chat');
+        if (open) setActivePanel(null); // close any open panel on widget close
         return !open;
       });
     };
@@ -300,14 +613,32 @@ export function CopilotPanel() {
   useEffect(() => {
     setVoiceEnabled(localStorage.getItem('cf_copilot_voice') === 'true');
     setTtsAvailable('speechSynthesis' in window);
+    setHistory(loadHistory());
     apiClient.get('/copilot/stt-status')
       .then(r => setServerStt((r.data as { available: boolean }).available))
       .catch(() => setServerStt(false));
   }, []);
 
+  // Cycle greeting when idle (robot visible, no panel open)
+  useEffect(() => {
+    if (!widgetOpen || activePanel !== null) return;
+    const t = setInterval(() => setGreetingIdx(i => (i + 1) % GREETINGS.length), 4000);
+    return () => clearInterval(t);
+  }, [widgetOpen, activePanel]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior:'smooth' });
   }, [messages, busy, pending, currentPlan]);
+
+  // Show bubble for 8s after new assistant message
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === 'assistant') {
+      setShowBubble(true);
+      if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+      bubbleTimerRef.current = setTimeout(() => setShowBubble(false), 8000);
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (activePanel !== 'jobs') return;
@@ -385,6 +716,9 @@ export function CopilotPanel() {
     try { window.speechSynthesis.getVoices(); } catch {}
   }, []);
 
+  // iOS requires speechSynthesis.speak() to be called synchronously within a
+  // user-gesture handler. This re-primes the session on every send so that
+  // the TTS that fires after the async API response is still allowed by iOS.
   const primeSpeechSession = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     try {
@@ -430,6 +764,7 @@ export function CopilotPanel() {
           if (keepAlive) clearInterval(keepAlive);
           setSpeaking(false); setSpeakingIdx(null);
           if (e.error === 'not-allowed') {
+            // Android Chrome blocks speech from async context — open chat so user can tap 🔊 Hear
             setActivePanel('chat');
             return;
           }
@@ -437,6 +772,7 @@ export function CopilotPanel() {
         };
         window.speechSynthesis.speak(utt);
       }
+      // 250 ms keeps Android from stalling when the OS pauses synthesis mid-utterance
       keepAlive = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 250);
       next();
     };
@@ -458,6 +794,8 @@ export function CopilotPanel() {
   // ── Send ───────────────────────────────────────────────────────────────────
 
   const send = useCallback(async (text: string, confirmedCommand?: Record<string, unknown>) => {
+    // Prime iOS speech session synchronously before any await — iOS blocks
+    // speechSynthesis.speak() called from async context (after fetch resolves).
     if (voiceEnabled || conversationRef.current) primeSpeechSession();
     const isVoiceSend = conversationRef.current;
 
@@ -467,6 +805,7 @@ export function CopilotPanel() {
     if (text) {
       setMessages(nextMessages);
       saveToHistory(text);
+      setHistory(loadHistory());
     }
     setInput('');
     setLiveTranscript('');
@@ -498,6 +837,7 @@ export function CopilotPanel() {
       setMessages(m => [...m, { role:'assistant', content:data.reply, fromCache:data.fromCache }]);
       const emotion = detectEmotion(data.reply);
       if (emotion === 'excited') { setExcited(true); setTimeout(() => setExcited(false), 700); }
+      // Voice replies show in speech bubble; only auto-open chat panel for text interactions
       if (!isVoiceSend) setActivePanel(prev => prev ?? 'chat');
       if (data.needsConfirmation) { setPending(data.needsConfirmation); setPendingEst(data.estimatedCredits ?? null); }
       if (data.plan)     setCurrentPlan(data.plan);
@@ -506,7 +846,7 @@ export function CopilotPanel() {
       if (voiceEnabled || wasVoiceInput) {
         conversationRef.current = true;
         const newIdx = nextMessages.length;
-        primeSpeechSession();
+        primeSpeechSession(); // re-prime iOS — async API round-trip can expire the speech session
         speak(data.reply, data.language, () => { if (voiceEnabled) startListeningRef.current(); }, newIdx);
       } else {
         conversationRef.current = false;
@@ -577,33 +917,35 @@ export function CopilotPanel() {
         setMicError(msg);
         conversationRef.current = false;
       }
-      setLiveTranscript('');
     };
-    recorder.start(1000);
-  }, [send, startVoiceAnalyser, stopVoiceAnalyser]);
+    recorder.start(250);
+    window.speechSynthesis?.cancel();
+  }, [lang, send, startVoiceAnalyser, stopVoiceAnalyser]);
 
   const startBrowserSTT = useCallback(async () => {
     const rec = getBrowserRecognition();
-    if (!rec) { setMicError('Speech recognition not supported in this browser'); return; }
-    recognitionRef.current = rec;
-    let stream: MediaStream | null = null;
+    if (!rec) { setListening(false); setMicError('Voice not supported — use Chrome or Edge'); return; }
     let analyserStream: MediaStream | null = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      analyserStream = stream;
-      startVoiceAnalyser(stream);
-    } catch { /* no amplitude */ }
-    rec.lang = lang;
-    rec.interimResults = true;
-    rec.continuous = false;
+      analyserStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      startVoiceAnalyser(analyserStream); // keep stream open for amplitude analysis
+    } catch (err) {
+      setListening(false); conversationRef.current = false;
+      const name = (err as { name?: string }).name;
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') setMicError('Mic blocked — allow microphone in your browser settings');
+      else if (name === 'NotFoundError') setMicError('No microphone found');
+      else setMicError('Could not access microphone');
+      return;
+    }
+    recognitionRef.current = rec;
+    rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false;
     let finalText = '';
     rec.onresult = e => {
       let interim = '';
-      for (let i = 0; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (!r) continue;
-        if (r.isFinal) finalText += r[0]?.transcript ?? '';
-        else interim += r[0]?.transcript ?? '';
+      for (let i = 0; i < (e.results as unknown as { length: number }).length; i++) {
+        const r = e.results[i]!;
+        if ((r as { isFinal: boolean }).isFinal) finalText += r[0]!.transcript;
+        else interim += r[0]!.transcript;
       }
       setLiveTranscript(finalText + interim);
       setInput(finalText + interim);
@@ -653,9 +995,11 @@ export function CopilotPanel() {
     setVoiceEnabled(next);
     localStorage.setItem('cf_copilot_voice', String(next));
     if (next) {
+      // Voice ON → immediately enter listening mode
       conversationRef.current = true;
       setListening(true);
       setMicError(null);
+      // Small delay: iOS needs the silent utterance from primeAudio() to settle
       setTimeout(() => startListeningRef.current(), 150);
     } else {
       conversationRef.current = false;
@@ -687,8 +1031,18 @@ export function CopilotPanel() {
   const statusLabel     = micError ? micError : listening ? 'Listening…' : speaking ? 'Speaking…' : busy ? 'Thinking…' : 'Ready';
   const statusColor     = micError ? '#F87171' : listening ? '#4ADE80' : speaking ? '#9ca3af' : busy ? '#FBBF24' : '#4ADE80';
 
-  // suppress unused-var lint for states set by voice analyser but not displayed
-  void excited; void volumeBars; void relTime;
+  const robotState: RobotState = isVoiceActive ? 'listening' : busy ? 'thinking' : speaking ? 'speaking' : 'idle';
+
+  const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+  const bubbleText =
+    micError ? micError :
+    isVoiceActive ? (liveTranscript || "I'm all ears, go ahead…") :
+    busy ? "Let me think on that…" :
+    speaking ? (lastAssistant?.content ?? "Speaking…") :
+    lastAssistant ? (lastAssistant.content.length > 68 ? lastAssistant.content.slice(0, 68) + '…' : lastAssistant.content) :
+    "Scripts, SEO, ideas — just say the word!";
+
+  const shouldShowBubble = showBubble || robotState !== 'idle';
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -702,8 +1056,10 @@ export function CopilotPanel() {
           border-color: rgba(107,114,128,0.5) !important;
           box-shadow: 0 0 0 3px rgba(75,85,99,0.12) !important;
         }
-        .cf-tab-btn { transition: all 0.15s; }
-        .cf-tab-btn:hover { color: rgba(255,255,255,0.9) !important; background: rgba(255,255,255,0.1) !important; }
+        .cf-foot-btn { transition: all 0.17s; }
+        .cf-foot-btn:hover { background: rgba(255,255,255,0.14) !important; }
+        .cf-topic-btn { transition: all 0.17s; }
+        .cf-topic-btn:hover { background: rgba(255,255,255,0.14) !important; border-color: rgba(255,255,255,0.28) !important; transform: translateY(-1px); }
         .cf-act-card { transition: background 0.17s, border-color 0.17s, transform 0.15s; }
         .cf-act-card:hover:not(.cf-act-active) {
           background: rgba(255,255,255,0.1) !important;
@@ -711,96 +1067,120 @@ export function CopilotPanel() {
           transform: translateY(-2px);
         }
         .cf-msg-row:hover .cf-msg-assistant { background: rgba(255,255,255,0.13) !important; }
-        .cf-trigger-btn { transition: transform 0.2s, box-shadow 0.2s; }
-        .cf-trigger-btn:hover { transform: scale(1.07); }
         @media (max-width: 768px) {
           .cf-copilot-widget { bottom: 82px !important; right: 10px !important; }
         }
+        @keyframes cfVoiceBar   { 0%,100%{transform:scaleY(0.25);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
+        @keyframes cfRipple     { 0%{transform:scale(1);opacity:0.65} 100%{transform:scale(1.9);opacity:0} }
+        @keyframes cfPulse      { 0%,100%{opacity:1} 50%{opacity:0.45} }
+        @keyframes cfEyeBlinkIdle  { 0%,91%,95%,100%{transform:scaleY(0)} 93%{transform:scaleY(1)} }
+        @keyframes cfEyeBlinkAlert { 0%,97%,100%{transform:scaleY(0)} 98.5%{transform:scaleY(0.18)} }
+        @keyframes cfEyeBlinkThink { 0%,18%,68%,100%{transform:scaleY(0)} 38%,54%{transform:scaleY(0.68)} }
+        @keyframes cfEyeBlinkSpeak { 0%,28%,72%,100%{transform:scaleY(0)} 50%{transform:scaleY(0.8)} }
+        @keyframes cfSlideUp    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes cfTicker     { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+        @keyframes cfFloat      { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+        @keyframes cfSpin       { from{transform:translate(-50%,-50%) rotate(0deg)} to{transform:translate(-50%,-50%) rotate(360deg)} }
+        @keyframes cfSpinSimple { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes cfPanelIn    { from{opacity:0;transform:translateY(14px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes cfBlink      { 0%,88%,92%,100%{transform:scaleY(1)} 90%{transform:scaleY(0.04)} }
+        @keyframes cfHeadBob    { 0%,100%{transform:translateY(0) rotate(0deg)} 30%{transform:translateY(-4px) rotate(-1.5deg)} 70%{transform:translateY(-1px) rotate(1deg)} }
+        @keyframes cfMouthTalk  { 0%,100%{transform:scaleY(0.3)} 50%{transform:scaleY(1)} }
+        @keyframes cfExcite     { 0%{transform:translateY(0) scale(1)} 25%{transform:translateY(-7px) scale(1.04)} 55%{transform:translateY(2px) scale(0.98)} 80%{transform:translateY(-4px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
+        @keyframes cfArmWave    { 0%{transform:rotate(0deg)} 35%{transform:rotate(-28deg)} 65%{transform:rotate(10deg)} 100%{transform:rotate(0deg)} }
+        @keyframes cfHandDangle { 0%,100%{transform:translateX(-50%) rotate(-8deg)} 50%{transform:translateX(-50%) rotate(8deg)} }
+        @keyframes cfArmSway    { 0%,100%{transform:rotate(10deg)} 50%{transform:rotate(-6deg)} }
+        @keyframes cfArmSwayR   { 0%,100%{transform:rotate(-10deg)} 50%{transform:rotate(6deg)} }
+        @keyframes cfHandSwing  { 0%,100%{transform:translateX(-50%) rotate(-16deg)} 50%{transform:translateX(-50%) rotate(16deg)} }
+        @keyframes cfSparkle    { 0%{transform:translate(0,0) scale(0);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0} }
+        @keyframes cfScan       { 0%{r:4;opacity:0.85} 100%{r:14;opacity:0} }
+        @keyframes cfScanRing   { 0%{transform:scale(0.4);opacity:0.85} 100%{transform:scale(1.4);opacity:0} }
         @media (max-width: 480px) {
           .cf-copilot-widget { bottom: 86px !important; right: 8px !important; }
         }
-        @keyframes cfVoiceBar   { 0%,100%{transform:scaleY(0.25);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
-        @keyframes cfPulse      { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        @keyframes cfSlideUp    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes cfSpinSimple { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes cfPanelIn    { from{opacity:0;transform:translateY(12px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
       `}</style>
 
-      <div className="cf-copilot-widget" style={{ position:'fixed', bottom:24, right:24, zIndex:9999 }}>
+      {/* ── Floating widget ── */}
+      <div
+        className="cf-copilot-widget"
+        style={{ position:'fixed', bottom:24, right:24, zIndex:9999 }}
+      >
 
-        {/* ── Panel ── */}
+        {/* ── OPEN WIDGET ── */}
         {widgetOpen && (
-          <div style={{
-            position:'absolute', bottom:68, right:0,
-            width:360, maxWidth:'calc(100vw - 20px)',
-            maxHeight:'min(520px, calc(100svh - 110px))',
-            background:'rgba(9,6,24,0.97)',
-            backdropFilter:'blur(60px) saturate(180%)',
-            WebkitBackdropFilter:'blur(60px) saturate(180%)',
-            borderRadius:20, border:'1px solid rgba(255,255,255,0.1)',
-            boxShadow:'0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03)',
-            overflow:'hidden', display:'flex', flexDirection:'column',
-            animation:'cfPanelIn 0.22s cubic-bezier(.22,1,.36,1) both',
-          }}>
+        <div style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
 
-            {/* Header */}
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 14px 12px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
-              <div style={{ width:32, height:32, borderRadius:10, background:'linear-gradient(135deg,#1f2937,#111827)', border:'1px solid rgba(255,255,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                <Zap style={{ width:15, height:15, color:'#d1d5db' }} />
-              </div>
-              <div style={{ flex:'1 1 auto', minWidth:0 }}>
-                <div style={{ fontSize:14, fontWeight:700, color:'#fff', letterSpacing:'-.2px' }}>Sozialzynk Copilot</div>
-                <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:1 }}>
-                  <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, transition:'background .3s', flexShrink:0 }} />
-                  <span style={{ fontSize:10.5, color:'rgba(255,255,255,.4)', fontWeight:500 }}>{statusLabel}</span>
-                </div>
+          {/* ── Close button — top-right corner of the widget ── */}
+          <button
+            type="button"
+            title="Close Copilot"
+            onClick={() => { setWidgetOpen(false); setActivePanel(null); window.speechSynthesis?.cancel(); }}
+            style={{
+              position: 'absolute', top: -10, right: -10, zIndex: 30,
+              width: 26, height: 26, borderRadius: '50%',
+              background: 'rgba(30,20,50,0.92)', backdropFilter: 'blur(12px)',
+              border: '1.5px solid rgba(255,255,255,0.18)',
+              color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.8)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(30,20,50,0.92)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)'; }}
+          >
+            <X style={{ width: 12, height: 12 }} />
+          </button>
+
+          {/* ── PANEL (absolute, overlays robot from above) ── */}
+          {activePanel && (
+          <div style={{
+            position:'absolute',
+            bottom: 96,
+            right: 0,
+            width: 340,
+            maxWidth: 'calc(100vw - 24px)',
+            maxHeight: 'min(460px, calc(100svh - 180px))',
+            zIndex: 10,
+            background:'rgba(10,7,28,0.96)',
+            backdropFilter:'blur(60px) saturate(200%)',
+            WebkitBackdropFilter:'blur(60px) saturate(200%)',
+            borderRadius:18,
+            border:'1px solid rgba(139,92,246,0.32)',
+            boxShadow:'0 -8px 50px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.04)',
+            overflow:'hidden',
+            animation:'cfPanelIn 0.24s cubic-bezier(.22,1,.36,1) both',
+            display:'flex', flexDirection:'column',
+          }}>
+            {/* Panel header */}
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
+              <span style={{ flex:'1 1 auto', fontSize:13, fontWeight:700, color:'#fff', letterSpacing:'-.1px' }}>
+                {activePanel === 'chat' ? '💬 Chat' : activePanel === 'actions' ? '⚡ Quick Actions' : '✅ Recent Tasks'}
+              </span>
+              <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                <span style={{ width:5, height:5, borderRadius:'50%', background:statusColor, transition:'background .3s' }} />
+                <span style={{ fontSize:10.5, color:'rgba(255,255,255,.45)', fontWeight:500 }}>{statusLabel}</span>
               </div>
               {activePanel === 'chat' && messages.length > 0 && (
-                <button type="button" title="Clear chat"
+                <button type="button"
+                  title="Clear chat history"
                   onClick={() => { setMessages([]); localStorage.removeItem(CHAT_KEY); }}
-                  style={{ width:28, height:28, borderRadius:8, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.10)', color:'rgba(248,113,113,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-                  <Trash2 style={{ width:13, height:13 }} />
+                  style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.10)', color:'rgba(248,113,113,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <Trash2 style={{ width:12, height:12 }} />
                 </button>
               )}
-              <button type="button"
-                onClick={() => { setWidgetOpen(false); window.speechSynthesis?.cancel(); }}
-                style={{ width:28, height:28, borderRadius:8, background:'rgba(255,255,255,.07)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-                <X style={{ width:14, height:14 }} />
+              <button type="button" onClick={() => setActivePanel(null)}
+                style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                <X style={{ width:13, height:13 }} />
               </button>
             </div>
 
-            {/* Tab bar */}
-            <div style={{ display:'flex', gap:2, padding:'8px 10px 0', borderBottom:'1px solid rgba(255,255,255,0.06)', paddingBottom:0, flexShrink:0 }}>
-              {([
-                { id:'chat'    as PanelId, Icon:MessageSquare, label:'Chat'    },
-                { id:'actions' as PanelId, Icon:Zap,           label:'Actions' },
-                { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks'   },
-              ] as const).map(({ id, Icon, label }) => {
-                const isA = activePanel === id;
-                return (
-                  <button key={id} type="button" className="cf-tab-btn"
-                    onClick={() => setActivePanel(id)}
-                    style={{
-                      display:'flex', alignItems:'center', gap:5,
-                      padding:'7px 12px 9px', borderRadius:'8px 8px 0 0',
-                      background: isA ? 'rgba(255,255,255,0.08)' : 'transparent',
-                      borderBottom: isA ? '2px solid rgba(255,255,255,0.5)' : '2px solid transparent',
-                      color: isA ? '#fff' : 'rgba(255,255,255,0.4)',
-                      fontSize:12, fontWeight: isA ? 700 : 500, cursor:'pointer', border:'none',
-                    }}>
-                    <Icon style={{ width:12, height:12 }} />{label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Content */}
-            <div style={{ flex:'1 1 auto', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+          {/* panel content */}
+          <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', flex:'1 1 auto' }}>
 
               {/* ── CHAT ── */}
-              {(activePanel === 'chat' || activePanel === null) && (
+              {activePanel === 'chat' && (
                 <>
-                  <div style={{ flex:'1 1 auto', overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:9 }}>
+                  <div style={{ maxHeight:280, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:9 }}>
                     {messages.length === 0 && !busy && (
                       <div style={{ padding:'6px 0 4px' }}>
                         <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginBottom:10, lineHeight:1.5 }}>
@@ -808,8 +1188,7 @@ export function CopilotPanel() {
                         </div>
                         <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                           {PROMPT_CHIPS.map(chip => (
-                            <button key={chip} onClick={() => void send(chip)}
-                              style={{ padding:'5px 10px', borderRadius:99, fontSize:11, fontWeight:500, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.72)', cursor:'pointer' }}>
+                            <button key={chip} onClick={() => void send(chip)} style={{ padding:'5px 10px', borderRadius:99, fontSize:11, fontWeight:500, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.72)', cursor:'pointer' }}>
                               {chip}
                             </button>
                           ))}
@@ -822,13 +1201,19 @@ export function CopilotPanel() {
                         <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:m.role==='user'?'rgba(255,255,255,0.12)':'linear-gradient(135deg,#374151,#111827)', border:m.role==='user'?'1px solid rgba(255,255,255,0.2)':'none', color:'#fff', fontSize:9, fontWeight:700 }}>
                           {m.role==='user' ? 'U' : <Zap style={{ width:10, height:10 }} />}
                         </div>
-                        <div className={m.role==='assistant'?'cf-msg-assistant':''} style={{ maxWidth:'82%', padding:'8px 11px', borderRadius:m.role==='user'?'12px 12px 3px 12px':'3px 12px 12px 12px', fontSize:12.5, lineHeight:1.55, whiteSpace:'pre-wrap', background:m.role==='user'?'linear-gradient(135deg,#374151,#111827)':'rgba(255,255,255,0.09)', color:'#fff', border:m.role==='assistant'?'1px solid rgba(255,255,255,0.09)':'1px solid rgba(255,255,255,0.15)', boxShadow:m.role==='user'?'0 4px 14px -4px rgba(55,65,81,.5)':'none', animation:'cfSlideUp 0.2s ease-out both' }}>
+                        <div className={m.role==='assistant'?'cf-msg-assistant':''} style={{ maxWidth:'82%', padding:'8px 11px', borderRadius:m.role==='user'?'12px 12px 3px 12px':'3px 12px 12px 12px', fontSize:12.5, lineHeight:1.55, whiteSpace:'pre-wrap', background:m.role==='user'?'linear-gradient(135deg,#374151,#111827)':'rgba(255,255,255,0.09)', color:'#fff', border:m.role==='assistant'?'1px solid rgba(255,255,255,0.09)':'1px solid rgba(255,255,255,0.15)', boxShadow:m.role==='user'?'0 4px 14px -4px rgba(55,65,81,.5)':'none', animation:'cfSlideUp 0.2s ease-out both', transition:'background 0.2s' }}>
                           {m.content}
                           {m.fromCache && <span style={{ fontSize:9, color:'rgba(255,255,255,.4)', marginLeft:5 }}>cached</span>}
                           {m.role === 'assistant' && ttsAvailable && (
-                            <button type="button"
+                            <button
+                              type="button"
                               onClick={() => {
-                                if (speakingIdx === i) { window.speechSynthesis.cancel(); setSpeakingIdx(null); setSpeaking(false); return; }
+                                if (speakingIdx === i) {
+                                  window.speechSynthesis.cancel();
+                                  setSpeakingIdx(null);
+                                  setSpeaking(false);
+                                  return;
+                                }
                                 primeSpeechSession();
                                 speak(m.content, undefined, undefined, i);
                               }}
@@ -845,22 +1230,22 @@ export function CopilotPanel() {
 
                     {busy && (
                       <div style={{ display:'flex', gap:7, alignItems:'flex-end' }}>
-                        <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#374151,#111827)' }}>
-                          <Zap style={{ width:10, height:10, color:'#d1d5db' }} />
+                        <div style={{ width:22, height:22, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#374151,#4b5563)' }}>
+                          <Zap style={{ width:10, height:10, color:'#fff' }} />
                         </div>
-                        <div style={{ padding:'8px 12px', borderRadius:'3px 12px 12px 12px', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.07)' }}>
+                        <div style={{ padding:'8px 12px', borderRadius:'3px 12px 12px 12px', background:'linear-gradient(160deg,#1f2937,#374151)', border:'1px solid rgba(107,114,128,.2)' }}>
                           <div style={{ display:'flex', alignItems:'center', gap:2, height:14 }}>
-                            {['5px','9px','13px','9px','5px'].map((h,j) => (
-                              <span key={j} style={{ display:'inline-block', width:2.5, borderRadius:3, background:'rgba(255,255,255,.6)', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][j]}s infinite` }} />
+                            {['5px','9px','13px','9px','5px'].map((h,i) => (
+                              <span key={i} style={{ display:'inline-block', width:2.5, borderRadius:3, background:'rgba(233,213,255,.85)', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
                             ))}
                           </div>
-                          <div style={{ fontSize:9.5, fontWeight:600, color:'rgba(255,255,255,.4)', marginTop:2 }}>Thinking…</div>
+                          <div style={{ fontSize:9.5, fontWeight:600, color:'rgba(233,213,255,.5)', marginTop:2 }}>Thinking…</div>
                         </div>
                       </div>
                     )}
 
                     {currentPlan && (
-                      <div style={{ background:'rgba(30,27,46,0.9)', borderRadius:12, padding:'10px 12px', border:'1px solid rgba(107,114,128,.3)' }}>
+                      <div style={{ background:'#1E1B2E', borderRadius:12, padding:'10px 12px', border:'1px solid rgba(107,114,128,.3)' }}>
                         <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
                           <BrainCircuit style={{ width:12, height:12, color:'#9ca3af' }} />
                           <span style={{ fontSize:10, fontWeight:700, color:'#9ca3af', letterSpacing:'.5px' }}>TASK PLAN</span>
@@ -888,7 +1273,7 @@ export function CopilotPanel() {
                           {pendingEst !== null ? `Est. ${pendingEst.toLocaleString()} credits` : 'Cost varies'}
                         </p>
                         <div style={{ display:'flex', gap:6 }}>
-                          <button onClick={() => void send('', pending)} style={{ padding:'6px 12px', background:'rgba(55,65,81,0.8)', color:'#fff', borderRadius:8, fontSize:11.5, fontWeight:600, border:'1px solid rgba(255,255,255,0.15)', cursor:'pointer' }}>Confirm</button>
+                          <button onClick={() => void send('', pending)} style={{ padding:'6px 12px', background:'linear-gradient(135deg,#374151,#4b5563)', color:'#fff', borderRadius:8, fontSize:11.5, fontWeight:600, border:'none', cursor:'pointer' }}>Confirm</button>
                           <button onClick={() => { setPending(null); setPendingEst(null); }} style={{ padding:'6px 12px', background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.65)', borderRadius:8, fontSize:11.5, fontWeight:600, border:'1px solid rgba(255,255,255,0.12)', cursor:'pointer' }}>Cancel</button>
                         </div>
                       </div>
@@ -898,16 +1283,16 @@ export function CopilotPanel() {
                   </div>
 
                   {/* Input bar */}
-                  <div style={{ padding:'8px 10px 10px', background:'rgba(0,0,0,0.2)', borderTop:'1px solid rgba(255,255,255,0.06)', flexShrink:0 }}>
+                  <div style={{ padding:'8px 10px 10px', background:'rgba(0,0,0,0.25)', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
                     {isVoiceActive ? (
-                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(55,65,81,0.5)', borderRadius:12, padding:'8px 12px', border:'1px solid rgba(74,222,128,0.3)' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'linear-gradient(135deg,#374151,#4b5563)', borderRadius:12, padding:'8px 12px' }}>
                         <div style={{ display:'flex', alignItems:'center', gap:2 }}>
                           {['8px','14px','18px','14px','8px'].map((h,i) => (
-                            <span key={i} style={{ display:'inline-block', width:2.5, borderRadius:2, background:'#4ADE80', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                            <span key={i} style={{ display:'inline-block', width:2.5, borderRadius:2, background:'rgba(255,255,255,.9)', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
                           ))}
                         </div>
                         <span style={{ flex:'1 1 auto', fontSize:12.5, fontWeight:500, color:'rgba(255,255,255,.85)' }}>Listening…</span>
-                        <button type="button" onClick={toggleMic} style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:9, background:'rgba(255,255,255,.15)', border:'1px solid rgba(255,255,255,.2)', color:'#fff', fontSize:11.5, fontWeight:600, cursor:'pointer' }}>
+                        <button type="button" onClick={toggleMic} style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:9, background:'rgba(255,255,255,.18)', border:'1px solid rgba(255,255,255,.3)', color:'#fff', fontSize:11.5, fontWeight:600, cursor:'pointer' }}>
                           <span style={{ width:7, height:7, borderRadius:1.5, background:'#fff' }} /> Stop
                         </button>
                       </div>
@@ -923,7 +1308,7 @@ export function CopilotPanel() {
                         <button type="button" onClick={() => setMicError(null)} style={{ background:'none', border:'none', color:'#F87171', cursor:'pointer', padding:0 }}><X style={{ width:12, height:12 }} /></button>
                       </div>
                     ) : (
-                      <div className="cf-popup-input" style={{ display:'flex', alignItems:'flex-end', gap:6, background:'rgba(255,255,255,0.07)', border:'1.5px solid rgba(255,255,255,0.10)', borderRadius:12, padding:'6px 6px 6px 12px', transition:'border-color .2s' }}>
+                      <div className="cf-popup-input" style={{ display:'flex', alignItems:'flex-end', gap:6, background:'rgba(255,255,255,0.07)', border:'1.5px solid rgba(255,255,255,0.10)', borderRadius:12, padding:'6px 6px 6px 12px', transition:'border-color .2s, box-shadow .2s' }}>
                         <textarea
                           ref={textareaRef}
                           value={input}
@@ -934,29 +1319,21 @@ export function CopilotPanel() {
                           rows={1}
                           style={{ flex:'1 1 auto', background:'none', border:'none', outline:'none', resize:'none', fontSize:13, color:'#fff', fontFamily:'inherit', maxHeight:80, lineHeight:1.5, paddingTop:2 }}
                         />
-                        <button type="button" onClick={toggleMic}
-                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:voiceEnabled?'rgba(74,222,128,0.2)':'rgba(255,255,255,0.09)', border:`1px solid ${voiceEnabled?'rgba(74,222,128,0.4)':'rgba(255,255,255,0.14)'}`, color:voiceEnabled?'#4ADE80':'rgba(255,255,255,0.55)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                        <button
+                          type="button"
+                          onClick={toggleMic}
+                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:voiceEnabled?'rgba(74,222,128,0.2)':'rgba(255,255,255,0.09)', border:`1px solid ${voiceEnabled?'rgba(74,222,128,0.4)':'rgba(255,255,255,0.14)'}`, color:voiceEnabled?'#4ADE80':'rgba(255,255,255,0.55)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}
+                        >
                           <Mic style={{ width:13, height:13 }} />
                         </button>
-                        <button type="button"
+                        <button
+                          type="button"
                           onClick={() => { if (input.trim()) void send(input.trim()); }}
                           disabled={!input.trim() || busy}
-                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:'rgba(55,65,81,0.8)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,0.15)', cursor:'pointer', opacity:(!input.trim()||busy)?0.4:1, transition:'opacity .15s' }}>
+                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:'linear-gradient(135deg,#374151,#4b5563)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', opacity:(!input.trim()||busy)?0.4:1, transition:'opacity .15s' }}
+                        >
                           <Send style={{ width:13, height:13 }} />
                         </button>
-                      </div>
-                    )}
-                    {/* Voice mode toggle */}
-                    {!isVoiceActive && !isTranscribing && (
-                      <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
-                        <button type="button" onClick={toggleVoice}
-                          style={{ display:'flex', alignItems:'center', gap:4, padding:'3px 9px', borderRadius:99, fontSize:10.5, fontWeight:600, cursor:'pointer', border:'1px solid', background: voiceEnabled?'rgba(74,222,128,0.12)':'transparent', borderColor: voiceEnabled?'rgba(74,222,128,0.4)':'rgba(255,255,255,0.12)', color: voiceEnabled?'#4ADE80':'rgba(255,255,255,0.35)', transition:'all .2s' }}>
-                          {voiceEnabled ? <Mic style={{ width:10, height:10 }} /> : <MicOff style={{ width:10, height:10 }} />}
-                          {voiceEnabled ? 'Voice on' : 'Voice off'}
-                        </button>
-                        {voiceEnabled && (
-                          <VoiceBars active={speaking} color="#4ADE80" compact />
-                        )}
                       </div>
                     )}
                   </div>
@@ -965,16 +1342,19 @@ export function CopilotPanel() {
 
               {/* ── ACTIONS ── */}
               {activePanel === 'actions' && (
-                <div style={{ padding:'10px', overflowY:'auto', flex:'1 1 auto' }}>
+                <div style={{ padding:'10px', maxHeight:380, overflowY:'auto' }}>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:currentAction?10:0 }}>
                     {QUICK_ACTIONS.map(action => {
                       const Icon = action.icon;
                       const isAct = activeAction === action.id;
                       return (
-                        <button key={action.id} type="button"
+                        <button
+                          key={action.id}
+                          type="button"
                           onClick={() => { setActiveAction(isAct ? null : action.id); setActionInput(''); }}
                           className={`cf-act-card${isAct?' cf-act-active':''}`}
-                          style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:7, padding:'11px', borderRadius:12, textAlign:'left', cursor:'pointer', background:isAct?`${action.color}18`:'rgba(255,255,255,0.06)', border:`1.5px solid ${isAct?action.color+'55':'rgba(255,255,255,0.09)'}` }}>
+                          style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:7, padding:'11px', borderRadius:12, textAlign:'left', cursor:'pointer', background:isAct?`${action.color}18`:'rgba(255,255,255,0.06)', border:`1.5px solid ${isAct?action.color+'55':'rgba(255,255,255,0.09)'}` }}
+                        >
                           <div style={{ width:28, height:28, borderRadius:9, background:`${action.color}22`, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${action.color}33` }}>
                             <Icon style={{ width:14, height:14, color:action.color }} />
                           </div>
@@ -986,22 +1366,33 @@ export function CopilotPanel() {
                       );
                     })}
                   </div>
+
                   {currentAction && (
                     <div style={{ background:`${currentAction.color}12`, border:`1.5px solid ${currentAction.color}44`, borderRadius:12, padding:'11px', marginTop:2 }}>
                       <p style={{ fontSize:11.5, fontWeight:600, color:currentAction.color, marginBottom:8 }}>{currentAction.description}</p>
-                      <input autoFocus value={actionInput} onChange={e => setActionInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && actionInput.trim()) { void send(currentAction.template(actionInput.trim())); setActiveAction(null); setActionInput(''); } }}
+                      <input
+                        autoFocus
+                        value={actionInput}
+                        onChange={e => setActionInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && actionInput.trim()) {
+                            void send(currentAction.template(actionInput.trim()));
+                            setActiveAction(null); setActionInput('');
+                          }
+                        }}
                         placeholder={currentAction.placeholder}
-                        style={{ width:'100%', padding:'8px 11px', borderRadius:9, border:`1px solid ${currentAction.color}44`, fontSize:13, outline:'none', background:'rgba(0,0,0,0.3)', color:'#fff', fontFamily:'inherit', boxSizing:'border-box' as const }} />
+                        style={{ width:'100%', padding:'8px 11px', borderRadius:9, border:`1px solid ${currentAction.color}44`, fontSize:13, outline:'none', background:'rgba(0,0,0,0.3)', color:'#fff', fontFamily:'inherit', boxSizing:'border-box' }}
+                      />
                       <div style={{ display:'flex', gap:6, marginTop:8 }}>
-                        <button type="button"
-                          onClick={() => { if (actionInput.trim()) { void send(currentAction.template(actionInput.trim())); setActivePanel('chat'); setActiveAction(null); setActionInput(''); } }}
+                        <button
+                          type="button"
+                          onClick={() => { if (actionInput.trim()) { void send(currentAction.template(actionInput.trim())); setActiveAction(null); setActionInput(''); } }}
                           disabled={!actionInput.trim()}
-                          style={{ flex:'1 1 auto', padding:'8px', borderRadius:9, fontSize:12.5, fontWeight:600, color:'#fff', background:`linear-gradient(135deg,${currentAction.color},${currentAction.color}cc)`, border:'none', cursor:'pointer', opacity:actionInput.trim()?1:0.4 }}>
+                          style={{ flex:'1 1 auto', padding:'8px', borderRadius:9, fontSize:12.5, fontWeight:600, color:'#fff', background:`linear-gradient(135deg,${currentAction.color},${currentAction.color}cc)`, border:'none', cursor:'pointer', opacity:actionInput.trim()?1:0.4 }}
+                        >
                           Ask Copilot →
                         </button>
-                        <button type="button" onClick={() => { setActiveAction(null); setActionInput(''); }}
-                          style={{ width:34, borderRadius:9, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                        <button type="button" onClick={() => { setActiveAction(null); setActionInput(''); }} style={{ width:34, borderRadius:9, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
                           <X style={{ width:13, height:13 }} />
                         </button>
                       </div>
@@ -1012,11 +1403,11 @@ export function CopilotPanel() {
 
               {/* ── TASKS ── */}
               {activePanel === 'jobs' && (
-                <div style={{ padding:'8px 10px 10px', overflowY:'auto', flex:'1 1 auto', display:'flex', flexDirection:'column', gap:6 }}>
+                <div style={{ padding:'8px 10px 10px', maxHeight:300, overflowY:'auto', display:'flex', flexDirection:'column', gap:6 }}>
                   {recentJobs.length === 0 ? (
-                    <div style={{ textAlign:'center', padding:'30px 0' }}>
-                      <ListChecks style={{ width:24, height:24, color:'rgba(255,255,255,0.15)', margin:'0 auto 8px', display:'block' }} />
-                      <p style={{ fontSize:12.5, color:'rgba(255,255,255,0.35)' }}>No tasks yet</p>
+                    <div style={{ textAlign:'center', padding:'20px 0' }}>
+                      <Zap style={{ width:24, height:24, color:'#d1d5db', margin:'0 auto 8px' }} />
+                      <p style={{ fontSize:12.5, color:'rgba(255,255,255,0.45)' }}>No tasks yet</p>
                     </div>
                   ) : recentJobs.map(j => (
                     <div key={j.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 11px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10 }}>
@@ -1026,55 +1417,197 @@ export function CopilotPanel() {
                         <div style={{ fontSize:10.5, color:'rgba(255,255,255,0.45)', marginTop:1 }}>{j.project.title.slice(0,32)}</div>
                         {j.error && <div style={{ fontSize:10, color:'#F87171', marginTop:1 }}>{j.error.slice(0,45)}</div>}
                       </div>
-                      <span style={{ fontSize:10.5, fontWeight:600, color:'rgba(255,255,255,0.45)', flexShrink:0, textTransform:'capitalize' as const }}>{j.status.toLowerCase()}</span>
+                      <span style={{ fontSize:10.5, fontWeight:600, color:'rgba(255,255,255,0.45)', flexShrink:0, textTransform:'capitalize' }}>{j.status.toLowerCase()}</span>
                     </div>
                   ))}
                 </div>
               )}
+
             </div>
+
+          </div>)} {/* end panel absolute */}
+
+          {/* ── Robot — full size, behind panel ── */}
+          <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
+            <RobotAvatar state={robotState} excited={excited} onMicToggle={toggleVoice} voiceEnabled={voiceEnabled} volumeBars={volumeBars} />
           </div>
-        )}
 
-        {/* ── Trigger button ── */}
-        <button
-          type="button"
-          className="cf-trigger-btn"
-          onClick={() => {
-            const opening = !widgetOpen;
-            setWidgetOpen(opening);
-            if (opening) { setActivePanel(prev => prev ?? 'chat'); primeAudio(); }
-            else window.speechSynthesis?.cancel();
-          }}
-          title={widgetOpen ? 'Close Copilot' : 'Open Copilot'}
-          aria-label={widgetOpen ? 'Close Copilot' : 'Open Copilot'}
-          style={{
-            width:56, height:56, borderRadius:'50%',
-            background: widgetOpen
-              ? 'rgba(40,30,60,0.96)'
-              : 'linear-gradient(145deg,#1f2937,#0f172a)',
-            border:`1.5px solid ${widgetOpen ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'}`,
-            boxShadow: widgetOpen
-              ? '0 8px 24px rgba(0,0,0,0.5)'
-              : '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            cursor:'pointer', position:'relative',
-          }}
-        >
-          {widgetOpen
-            ? <X style={{ width:20, height:20, color:'rgba(255,255,255,0.75)' }} />
-            : <Zap style={{ width:22, height:22, color:'#d1d5db' }} />
-          }
-          {/* Notification dot when there are messages and widget is closed */}
-          {!widgetOpen && messages.length > 0 && (
-            <span style={{
-              position:'absolute', top:3, right:3,
-              width:11, height:11, borderRadius:'50%',
-              background:'#60A5FA', border:'2px solid #0f172a',
-              animation:'cfPulse 2s ease-in-out infinite',
-            }} />
+          {/* ── Topic pills — bottom of robot ── */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, position:'relative', zIndex:5 }}>
+            {([
+              { id:'chat'    as PanelId, Icon:MessageSquare, label:'Chat' },
+              { id:'actions' as PanelId, Icon:Zap,           label:'Actions' },
+              { id:'jobs'    as PanelId, Icon:ListChecks,    label:'Tasks' },
+            ] as const).map(({ id, Icon, label }) => {
+              const isA = activePanel === id;
+              return (
+                <button key={id} type="button" className="cf-topic-btn"
+                  onClick={() => setActivePanel(isA ? null : id)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:5,
+                    padding:'8px 14px', borderRadius:999,
+                    background: isA ? 'rgba(255,255,255,0.16)' : 'rgba(14,10,28,0.85)',
+                    border: `1.5px solid ${isA ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                    backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+                    color: isA ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                    fontSize:12, fontWeight:600, cursor:'pointer',
+                    boxShadow: isA ? '0 0 14px rgba(255,255,255,0.1)' : '0 4px 14px rgba(0,0,0,0.35)',
+                    transition:'all 0.17s',
+                  }}>
+                  <Icon style={{ width:12, height:12 }} />{label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Greeting ticker — shown when idle: no messages, or history minimized ── */}
+          {!activePanel && robotState === 'idle' && (messages.length === 0 || historyMinimized) && (
+            <div style={{
+              width: 248,
+              overflow: 'hidden',
+              borderRadius: 99,
+              background: 'rgba(17,24,39,0.92)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              padding: '7px 16px',
+              animation: 'cfSlideUp 0.3s ease-out both',
+              position: 'relative', zIndex: 5,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              {/* Pulsing AI dot */}
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                background: '#9ca3af',
+                boxShadow: '0 0 8px rgba(156,163,175,0.5)',
+                animation: 'cfPulse 1.8s ease-in-out infinite',
+              }} />
+              {/* Ticker text */}
+              <div style={{ flex: '1 1 auto', overflow: 'hidden', minWidth: 0 }}>
+                <span style={{
+                  display: 'inline-block',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  whiteSpace: 'nowrap',
+                  animation: GREETINGS[greetingIdx]!.length > 32
+                    ? 'cfTicker 9s linear infinite'
+                    : 'none',
+                  paddingRight: GREETINGS[greetingIdx]!.length > 32 ? 32 : 0,
+                }}>
+                  {GREETINGS[greetingIdx]}
+                  {GREETINGS[greetingIdx]!.length > 32 && (
+                    <>&nbsp;&nbsp;&nbsp;&nbsp;{GREETINGS[greetingIdx]}</>
+                  )}
+                </span>
+              </div>
+            </div>
           )}
-        </button>
 
+          {/* ── Chat history strip — minimize/maximize, shown when no panel ── */}
+          {!activePanel && (isVoiceActive || busy || speaking || messages.length > 0) && (
+            <div style={{
+              width: 248,
+              borderRadius: 14,
+              background: 'rgba(8,4,20,0.82)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              boxShadow: '0 6px 24px rgba(0,0,0,0.4)',
+              animation: 'cfSlideUp 0.22s ease-out both',
+              position: 'relative', zIndex: 5,
+              overflow: 'hidden',
+            }}>
+              {/* Strip header — always visible */}
+              <div style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 10px', borderBottom: historyMinimized ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:'.5px', color:'rgba(255,255,255,0.45)', textTransform:'uppercase', flex:'1 1 auto' }}>
+                  {isVoiceActive ? '🎙 Listening' : busy ? '💭 Thinking' : speaking ? '🔊 Speaking' : `💬 Chat${messages.length > 0 ? ` · ${messages.length}` : ''}`}
+                </span>
+                {/* Clear chat */}
+                {messages.length > 0 && (
+                  <button
+                    type="button"
+                    title="Clear chat history"
+                    onClick={() => { setMessages([]); localStorage.removeItem(CHAT_KEY); }}
+                    style={{ width:20, height:20, borderRadius:6, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.10)', color:'rgba(248,113,113,0.6)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}
+                  >
+                    <Trash2 style={{ width:10, height:10 }} />
+                  </button>
+                )}
+                {/* Minimize / Maximize */}
+                <button
+                  type="button"
+                  title={historyMinimized ? 'Expand chat history' : 'Collapse chat history'}
+                  onClick={() => setHistoryMinimized(v => !v)}
+                  style={{ width:20, height:20, borderRadius:6, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}
+                >
+                  {historyMinimized
+                    ? <ChevronUp style={{ width:11, height:11 }} />
+                    : <ChevronDown style={{ width:11, height:11 }} />}
+                </button>
+              </div>
+
+              {/* Strip body — hidden when minimized */}
+              {!historyMinimized && (
+                <div style={{ maxHeight: 120, overflowY: 'auto', display:'flex', flexDirection:'column', gap:5, padding:'7px 10px 8px' }}>
+                  {/* Last 3 messages */}
+                  {messages.slice(-3).map((m, i) => (
+                    <div key={i} style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
+                      <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color: m.role === 'user' ? 'rgba(156,163,175,0.7)' : 'rgba(96,165,250,0.7)' }}>
+                        {m.role === 'user' ? 'YOU' : 'AI'}
+                      </span>
+                      <p style={{ margin:0, fontSize:11, lineHeight:1.45, color: m.role === 'user' ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.78)', textAlign: m.role === 'user' ? 'right' : 'left', wordBreak:'break-word' }}>
+                        {m.content.length > 90 ? m.content.slice(0, 90) + '…' : m.content}
+                      </p>
+                    </div>
+                  ))}
+
+                  {/* Live transcript while listening */}
+                  {isVoiceActive && liveTranscript && liveTranscript !== 'Transcribing…' && (
+                    <div style={{ display:'flex', gap:5, alignItems:'flex-start', flexDirection:'row-reverse' }}>
+                      <span style={{ fontSize:9, fontWeight:700, flexShrink:0, marginTop:2, color:'rgba(74,222,128,0.7)' }}>YOU</span>
+                      <p style={{ margin:0, fontSize:11, lineHeight:1.45, color:'#4ADE80', fontStyle:'italic', textAlign:'right' }}>{liveTranscript}</p>
+                    </div>
+                  )}
+
+                  {/* Transcribing */}
+                  {liveTranscript === 'Transcribing…' && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <Loader2 style={{ width:10, height:10, color:'#9ca3af', animation:'cfSpinSimple 1s linear infinite', flexShrink:0 }} />
+                      <span style={{ fontSize:11, color:'#9ca3af', fontStyle:'italic' }}>Transcribing…</span>
+                    </div>
+                  )}
+
+                  {/* Thinking */}
+                  {busy && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
+                        {['5px','8px','11px','8px','5px'].map((h, i) => (
+                          <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#FBBF24', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize:11, color:'#FBBF24', fontStyle:'italic' }}>Thinking…</span>
+                    </div>
+                  )}
+
+                  {/* Speaking */}
+                  {speaking && !busy && (
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
+                        {['5px','8px','11px','8px','5px'].map((h, i) => (
+                          <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#00C8FF', height:h, animation:`cfVoiceBar .55s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize:11, color:'#60A5FA', fontStyle:'italic' }}>Speaking…</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+        )} {/* end widgetOpen */}
       </div>
     </>
   );
