@@ -1258,60 +1258,33 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
             )}
           </nav>
 
-          {/* ── Mobile-only bottom links inside drawer ── */}
-          <div className="lg:hidden shrink-0 p-3 space-y-1" style={{ borderTop: '1px solid #f0f0f0' }}>
-            {BOTTOM_ITEMS.map(({ href, icon: Icon, label }) => (
+          {/* ── Mobile-only bottom links inside drawer (admin only) ── */}
+          {isAdminUser && (
+            <div className="lg:hidden shrink-0 p-3 space-y-1" style={{ borderTop: '1px solid #f0f0f0' }}>
               <Link
-                key={href}
-                href={href}
+                href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                style={{ color: '#374151', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#374151'; }}
+                style={{ color: '#374151', fontSize: '14px', fontWeight: 700, textDecoration: 'none', background: '#f3f4f6', border: '1px solid #e5e7eb' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
               >
-                <Icon style={{ width: '17px', height: '17px', flexShrink: 0, color: '#9ca3af' }} />
-                {label}
+                <ShieldCheck style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
+                Admin Panel
               </Link>
-            ))}
-            {isAdminUser && (
-              <>
-                <Link
-                  href="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                  style={{ color: '#374151', fontSize: '14px', fontWeight: 700, textDecoration: 'none', background: '#f3f4f6', border: '1px solid #e5e7eb' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
-                >
-                  <ShieldCheck style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
-                  Admin Panel
-                </Link>
-                <Link
-                  href="/admin/providers"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                  style={{ color: '#374151', fontSize: '14px', fontWeight: 600, textDecoration: 'none', background: '#f9fafb', border: '1px solid #e5e7eb' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f9fafb'; }}
-                >
-                  <Zap style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
-                  AI Providers
-                </Link>
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => { setMobileMenuOpen(false); void handleLogout(); }}
-              className="flex items-center gap-3 w-full border-none cursor-pointer px-3 py-2.5 rounded-xl transition-colors touch-manipulation"
-              style={{ color: '#ef4444', fontSize: '14px', fontWeight: 500, background: 'transparent', fontFamily: 'inherit' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fef2f2'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-            >
-              <LogOut style={{ width: '17px', height: '17px', flexShrink: 0 }} />
-              Sign Out
-            </button>
-          </div>
+              <Link
+                href="/admin/providers"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
+                style={{ color: '#374151', fontSize: '14px', fontWeight: 600, textDecoration: 'none', background: '#f9fafb', border: '1px solid #e5e7eb' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e5e7eb'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f9fafb'; }}
+              >
+                <Zap style={{ width: '17px', height: '17px', flexShrink: 0, color: '#6b7280' }} />
+                AI Providers
+              </Link>
+            </div>
+          )}
         </aside>
 
         {/* ── MAIN ─────────────────────────────────────────────────────────── */}
