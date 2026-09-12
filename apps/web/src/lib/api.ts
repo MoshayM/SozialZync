@@ -156,14 +156,26 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
   }
 
   // ── Copilot ─────────────────────────────────────────────────────────────────
+  if (url === '/copilot/stt-status' && method === 'get') {
+    return _mockResp({ available: false, provider: null }, config);
+  }
   if (url === '/copilot/history' && method === 'get') {
     return _mockResp({ sessions: [] }, config);
+  }
+  if (url === '/copilot/history' && method === 'post') {
+    return _mockResp({ ok: true }, config);
   }
   if (url.startsWith('/copilot/plan/') && method === 'get') {
     return _mockResp({ planId: '', steps: [], currentStepIndex: 0, status: 'done' }, config);
   }
   if (url === '/copilot/chat' && method === 'post') {
     return _mockResp({ reply: 'Demo mode — connect to Railway to enable live AI responses.' }, config);
+  }
+  if (url.startsWith('/copilot/jobs') && method === 'get') {
+    return _mockResp({ data: [], total: 0 }, config);
+  }
+  if (url === '/copilot/transcribe' && method === 'post') {
+    return _mockResp({ text: '' }, config);
   }
 
   // ── Jobs ────────────────────────────────────────────────────────────────────
