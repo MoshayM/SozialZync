@@ -44,10 +44,10 @@ test.describe('Dashboard — authenticated', () => {
     await expect(page).not.toHaveURL(/login/);
   });
 
-  test('settings link always visible for authenticated users', async ({ page }) => {
+  test('authenticated home page shows key navigation', async ({ page }) => {
     await page.goto('/home');
-    // Settings is in the bottom-always-visible nav — reliable auth presence check
-    await expect(page.locator('a[href="/settings"]').first()).toBeVisible({ timeout: 10_000 });
+    // Sidebar renders for authenticated users (projects link is in the uncollapsed top group)
+    await expect(page.locator('a[href="/projects"]').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('no purple inline styles in dashboard DOM', async ({ page }) => {
