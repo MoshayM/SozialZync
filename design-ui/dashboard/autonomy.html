@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Autopilot Mode — Sozialzync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            primary: '#7C3AED',
+            'primary-light': '#a78bfa',
+            'page-bg': '#F4F3FB',
+            'card-border': '#ECECF3',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #F4F3FB; }
+    .sidebar-gradient { background: linear-gradient(185deg, #7C3AED, #5B21B6); }
+    .primary-gradient { background: linear-gradient(135deg, #a78bfa, #7C3AED); }
+    .nav-active { background: rgba(255,255,255,0.15); color: white; }
+    .nav-inactive { color: rgba(255,255,255,0.7); }
+    .nav-inactive:hover { background: rgba(255,255,255,0.08); color: white; }
+    .topbar-shadow { box-shadow: 0 1px 0 #ECECF3; }
+    .card-shadow { box-shadow: 0 1px 4px rgba(124,58,237,0.06); }
+    .input-focus:focus { outline: none; border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 99px; }
+
+    /* Master toggle */
+    .master-toggle-track {
+      width: 56px; height: 30px;
+      background: #D1D5DB;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.25s ease;
+      position: relative;
+      display: inline-block;
+    }
+    .master-toggle-track.on {
+      background: linear-gradient(135deg, #a78bfa, #7C3AED);
+    }
+    .master-toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 24px; height: 24px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+      transition: transform 0.25s ease;
+    }
+    .master-toggle-track.on::after {
+      transform: translateX(26px);
+    }
+
+    /* Stage toggles */
+    .stage-toggle-track {
+      width: 38px; height: 22px;
+      background: #D1D5DB;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .stage-toggle-track.on-green { background: #22C55E; }
+    .stage-toggle-track.on-amber { background: #F59E0B; }
+    .stage-toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 16px; height: 16px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease;
+    }
+    .stage-toggle-track.on-green::after,
+    .stage-toggle-track.on-amber::after {
+      transform: translateX(16px);
+    }
+
+    /* Quality slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #E5E7EB;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      background: #7C3AED;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      background: linear-gradient(to right, #a78bfa 0%, #7C3AED var(--val), #E5E7EB var(--val));
+      border-radius: 999px;
+      height: 6px;
+    }
+
+    /* Stage connector line */
+    .stage-connector { position: relative; }
+    .stage-connector:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 17px;
+      top: 42px;
+      bottom: -16px;
+      width: 2px;
+      background: #E5E7EB;
+      z-index: 0;
+    }
+
+    /* Freq button */
+    .freq-btn {
+      padding: 5px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1.5px solid #E5E7EB;
+      color: #6B7280;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+    }
+    .freq-btn.active {
+      background: #7C3AED;
+      border-color: #7C3AED;
+      color: white;
+    }
+    .freq-btn:hover:not(.active) { border-color: #a78bfa; color: #7C3AED; }
+
+    /* Day checkbox */
+    .day-check input[type="checkbox"] { display: none; }
+    .day-check label {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: 1.5px solid #E5E7EB;
+      font-size: 11px;
+      font-weight: 600;
+      color: #9CA3AF;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .day-check input[type="checkbox"]:checked + label {
+      background: #7C3AED;
+      border-color: #7C3AED;
+      color: white;
+    }
+    .day-check label:hover { border-color: #a78bfa; color: #7C3AED; }
+    .day-check input[type="checkbox"]:checked + label:hover { opacity: 0.85; }
+
+    /* Table row hover */
+    tbody tr:hover { background: #FAFAFA; }
+
+    /* Status badges */
+    .badge-published { background: #DCFCE7; color: #16A34A; }
+    .badge-review    { background: #FEF3C7; color: #B45309; }
+    .badge-failed    { background: #FEE2E2; color: #DC2626; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ═══════════════════════════════════════════════════════════ SIDEBAR -->
+  <aside class="sidebar-gradient fixed left-0 top-0 bottom-0 w-[244px] flex flex-col z-40 hidden lg:flex">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-3 px-5 py-5 border-b border-white/10">
+      <div class="w-8 h-8 rounded-lg primary-gradient flex items-center justify-center shadow-lg">
+        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="text-white font-bold text-[15px] tracking-tight">Sozialzync</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <a href="home.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="house" class="w-4 h-4 shrink-0"></i>
+        Home
+      </a>
+      <a href="projects.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="folder" class="w-4 h-4 shrink-0"></i>
+        Projects
+      </a>
+      <a href="editor.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="film" class="w-4 h-4 shrink-0"></i>
+        Video Editor
+      </a>
+      <a href="studio.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="sparkles" class="w-4 h-4 shrink-0"></i>
+        Creative Studio
+      </a>
+      <a href="calendar.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="calendar" class="w-4 h-4 shrink-0"></i>
+        Content Calendar
+      </a>
+      <a href="publish.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
+        Publish Hub
+      </a>
+      <a href="insights.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="bar-chart-2" class="w-4 h-4 shrink-0"></i>
+        Analytics
+      </a>
+
+      <div class="my-3 border-t border-white/10"></div>
+
+      <a href="copilot.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="bot" class="w-4 h-4 shrink-0"></i>
+        AI Copilot
+      </a>
+      <a href="shorts-studio.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="zap" class="w-4 h-4 shrink-0"></i>
+        Shorts Studio
+      </a>
+      <a href="library.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="library" class="w-4 h-4 shrink-0"></i>
+        Library
+      </a>
+      <a href="channel-access.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="shield-check" class="w-4 h-4 shrink-0"></i>
+        Channel Access
+      </a>
+    </nav>
+
+    <!-- Bottom links -->
+    <div class="px-3 pb-5 border-t border-white/10 pt-3 space-y-0.5">
+      <a href="../settings/settings.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="settings" class="w-4 h-4 shrink-0"></i>
+        Settings
+      </a>
+      <a href="../settings/brand-kit.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="palette" class="w-4 h-4 shrink-0"></i>
+        Brand Kit
+      </a>
+      <a href="../settings/wallet.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="credit-card" class="w-4 h-4 shrink-0"></i>
+        Billing
+      </a>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════ TOPBAR -->
+  <header class="fixed top-0 left-0 lg:left-[244px] right-0 h-[62px] bg-white topbar-shadow z-30 flex items-center px-5 gap-4">
+
+    <!-- Mobile logo -->
+    <div class="flex items-center gap-2 lg:hidden mr-1">
+      <div class="w-7 h-7 rounded-md primary-gradient flex items-center justify-center">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-white"></i>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="flex-1 max-w-[420px] relative">
+      <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+      <input
+        type="text"
+        placeholder="Search projects, scripts, insights…"
+        class="w-full pl-9 pr-4 py-2 bg-[#F4F3FB] border border-[#ECECF3] rounded-lg text-[13px] text-gray-700 placeholder-gray-400 input-focus transition-all"
+      />
+    </div>
+
+    <div class="flex-1"></div>
+
+    <!-- Copilot button -->
+    <button class="primary-gradient hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg text-white text-[13px] font-semibold shadow-sm hover:opacity-90 transition-opacity">
+      <i data-lucide="bot" class="w-4 h-4"></i>
+      AI Copilot
+    </button>
+
+    <!-- Bell -->
+    <button class="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F4F3FB] transition-colors">
+      <i data-lucide="bell" class="w-[18px] h-[18px] text-gray-500"></i>
+      <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+    </button>
+
+    <!-- Avatar -->
+    <button class="w-8 h-8 rounded-full primary-gradient flex items-center justify-center text-white text-[12px] font-bold shadow">
+      CF
+    </button>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ MAIN -->
+  <main class="lg:ml-[244px] pt-[62px] p-5 lg:p-6 pb-24 lg:pb-8">
+
+    <!-- ─── 1. HEADER ROW ────────────────────────────────────────── -->
+    <div class="flex items-start justify-between gap-4 mb-5">
+      <div>
+        <h1 class="text-2xl lg:text-[26px] font-extrabold text-gray-900 leading-tight">Autopilot Mode</h1>
+        <p class="text-[13.5px] text-gray-500 mt-0.5">Automate your full content pipeline</p>
+      </div>
+      <!-- Master toggle -->
+      <div class="flex items-center gap-3 mt-1 shrink-0">
+        <span id="master-label" class="text-[13px] font-semibold text-gray-400">OFF</span>
+        <div
+          id="master-toggle"
+          class="master-toggle-track"
+          role="switch"
+          aria-checked="false"
+          tabindex="0"
+          title="Toggle Autopilot"
+        ></div>
+      </div>
+    </div>
+
+    <!-- ─── 2. WARNING BANNER ─────────────────────────────────────── -->
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 flex gap-3 items-start">
+      <div class="shrink-0 mt-0.5">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500"></i>
+      </div>
+      <p class="text-[13px] text-amber-800 leading-relaxed">
+        <strong class="font-semibold">When Autopilot is enabled,</strong> AI will automatically create and publish content according to your schedule. The <strong class="font-semibold">Compliance Engine always runs</strong> — no content can bypass it. Human review is configurable per stage.
+      </p>
+    </div>
+
+    <!-- ─── 3. TWO-COLUMN LAYOUT ──────────────────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- LEFT: Pipeline Stages (col-span-2) -->
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-2xl border border-[#ECECF3] p-6 card-shadow">
+          <h2 class="text-[15px] font-bold text-gray-900 mb-6">Pipeline Stages</h2>
+
+          <div class="space-y-0">
+
+            <!-- Stage 1: Research -->
+            <div class="stage-connector flex items-start gap-4 pb-6">
+              <div class="shrink-0 w-9 h-9 rounded-full bg-green-100 flex items-center justify-center z-10 relative">
+                <i data-lucide="search" class="w-4 h-4 text-green-600"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <p class="text-[13.5px] font-semibold text-gray-900">Research</p>
+                    <p class="text-[12px] text-gray-500 mt-0.5">Find trending topics and gather sources</p>
+                  </div>
+                  <div class="stage-toggle-track on-green" data-color="green" title="Toggle Research"></div>
+                </div>
+                <div class="mt-2.5 flex flex-wrap gap-x-5 gap-y-1">
+                  <span class="text-[11.5px] text-gray-500">Niche: <span class="font-semibold text-gray-700">Technology</span></span>
+                  <span class="text-[11.5px] text-gray-500">Sources: <span class="font-semibold text-gray-700">YouTube, News, Blogs</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 2: Script Generation -->
+            <div class="stage-connector flex items-start gap-4 pb-6">
+              <div class="shrink-0 w-9 h-9 rounded-full bg-green-100 flex items-center justify-center z-10 relative">
+                <i data-lucide="pen-tool" class="w-4 h-4 text-green-600"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <p class="text-[13.5px] font-semibold text-gray-900">Script Generation</p>
+                    <p class="text-[12px] text-gray-500 mt-0.5">AI writes a full script from research</p>
+                  </div>
+                  <div class="stage-toggle-track on-green" data-color="green" title="Toggle Script Generation"></div>
+                </div>
+                <div class="mt-2.5 flex flex-wrap gap-x-5 gap-y-1">
+                  <span class="text-[11.5px] text-gray-500">Length: <span class="font-semibold text-gray-700">10-15 min</span></span>
+                  <span class="text-[11.5px] text-gray-500">Style: <span class="font-semibold text-gray-700">Educational</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 3: Video Production -->
+            <div class="stage-connector flex items-start gap-4 pb-6">
+              <div class="shrink-0 w-9 h-9 rounded-full bg-green-100 flex items-center justify-center z-10 relative">
+                <i data-lucide="film" class="w-4 h-4 text-green-600"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <p class="text-[13.5px] font-semibold text-gray-900">Video Production</p>
+                    <p class="text-[12px] text-gray-500 mt-0.5">Render visuals, voiceover, and assembly</p>
+                  </div>
+                  <div class="stage-toggle-track on-green" data-color="green" title="Toggle Video Production"></div>
+                </div>
+                <div class="mt-2.5 flex flex-wrap gap-x-5 gap-y-1">
+                  <span class="text-[11.5px] text-gray-500">Resolution: <span class="font-semibold text-gray-700">1080p</span></span>
+                  <span class="text-[11.5px] text-gray-500">Voice: <span class="font-semibold text-gray-700">Alex (Neural)</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 4: Compliance Check (LOCKED) -->
+            <div class="stage-connector flex items-start gap-4 pb-6">
+              <div class="shrink-0 w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center z-10 relative">
+                <i data-lucide="shield-check" class="w-4 h-4 text-purple-700"></i>
+              </div>
+              <div class="flex-1 min-w-0 bg-purple-50 rounded-xl p-3 -mt-1">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <p class="text-[13.5px] font-semibold text-purple-900">Compliance Check</p>
+                    <p class="text-[12px] text-purple-600 mt-0.5">Always runs — cannot be disabled</p>
+                  </div>
+                  <div class="flex items-center gap-1.5 bg-purple-100 border border-purple-200 rounded-lg px-2.5 py-1">
+                    <i data-lucide="lock" class="w-3.5 h-3.5 text-purple-700"></i>
+                    <span class="text-[11.5px] font-semibold text-purple-700">Required</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 5: Human Review -->
+            <div class="stage-connector flex items-start gap-4 pb-6">
+              <div class="shrink-0 w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center z-10 relative">
+                <i data-lucide="user-check" class="w-4 h-4 text-amber-600"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <p class="text-[13.5px] font-semibold text-gray-900">Human Review</p>
+                    <p class="text-[12px] text-gray-500 mt-0.5">Reviewer approves before publishing</p>
+                  </div>
+                  <div class="stage-toggle-track on-amber" data-color="amber" title="Toggle Human Review"></div>
+                </div>
+                <div class="mt-2.5 flex flex-wrap gap-x-5 gap-y-1">
+                  <span class="text-[11.5px] text-gray-500">Reviewer: <span class="font-semibold text-gray-700">You</span></span>
+                  <span class="text-[11.5px] text-gray-500">Timeout: <span class="font-semibold text-gray-700">24 hours</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 6: Auto-Publish (last, no connector line below) -->
+            <div class="flex items-start gap-4">
+              <div class="shrink-0 w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center z-10 relative">
+                <i data-lucide="send" class="w-4 h-4 text-gray-400"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <p class="text-[13.5px] font-semibold text-gray-900">Auto-Publish</p>
+                    <p class="text-[12px] text-gray-500 mt-0.5">Upload to platform after approval</p>
+                  </div>
+                  <div class="stage-toggle-track" data-color="green" title="Toggle Auto-Publish"></div>
+                </div>
+                <div class="mt-2.5 flex flex-wrap gap-x-5 gap-y-1">
+                  <span class="text-[11.5px] text-gray-500">Platform: <span class="font-semibold text-gray-700">YouTube</span></span>
+                  <span class="text-[11.5px] text-gray-500">Optimal Time: <span class="font-semibold text-gray-700">Auto-detect</span></span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Config cards -->
+      <div class="space-y-4">
+
+        <!-- a) Schedule Config -->
+        <div class="bg-white rounded-2xl border border-[#ECECF3] p-5 card-shadow">
+          <h3 class="text-[14px] font-bold text-gray-900 mb-4">Schedule Config</h3>
+
+          <!-- Frequency -->
+          <p class="text-[11.5px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Frequency</p>
+          <div class="flex gap-2 mb-4">
+            <button class="freq-btn" id="freq-daily">Daily</button>
+            <button class="freq-btn active" id="freq-weekly">Weekly</button>
+            <button class="freq-btn" id="freq-custom">Custom</button>
+          </div>
+
+          <!-- Days -->
+          <p class="text-[11.5px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Day</p>
+          <div class="flex gap-1.5 flex-wrap mb-4">
+            <div class="day-check"><input type="checkbox" id="d-mon"><label for="d-mon">M</label></div>
+            <div class="day-check"><input type="checkbox" id="d-tue"><label for="d-tue">T</label></div>
+            <div class="day-check"><input type="checkbox" id="d-wed" checked><label for="d-wed">W</label></div>
+            <div class="day-check"><input type="checkbox" id="d-thu"><label for="d-thu">T</label></div>
+            <div class="day-check"><input type="checkbox" id="d-fri" checked><label for="d-fri">F</label></div>
+            <div class="day-check"><input type="checkbox" id="d-sat"><label for="d-sat">S</label></div>
+            <div class="day-check"><input type="checkbox" id="d-sun"><label for="d-sun">S</label></div>
+          </div>
+
+          <!-- Time -->
+          <p class="text-[11.5px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Time</p>
+          <input
+            type="time"
+            value="10:00"
+            class="w-full border border-[#ECECF3] rounded-lg px-3 py-2 text-[13px] text-gray-700 input-focus mb-3"
+          />
+
+          <!-- Channel -->
+          <p class="text-[11.5px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Channel</p>
+          <select class="w-full border border-[#ECECF3] rounded-lg px-3 py-2 text-[13px] text-gray-700 input-focus bg-white">
+            <option>My Tech Channel</option>
+            <option>Vlog Channel</option>
+          </select>
+        </div>
+
+        <!-- b) AI Config -->
+        <div class="bg-white rounded-2xl border border-[#ECECF3] p-5 card-shadow">
+          <h3 class="text-[14px] font-bold text-gray-900 mb-4">AI Config</h3>
+
+          <!-- Model -->
+          <p class="text-[11.5px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Model</p>
+          <select class="w-full border border-[#ECECF3] rounded-lg px-3 py-2 text-[13px] text-gray-700 input-focus bg-white mb-4">
+            <option>Claude Sonnet 4.6</option>
+            <option>Claude Opus 4</option>
+            <option>GPT-4o</option>
+          </select>
+
+          <!-- Quality threshold -->
+          <div class="flex items-center justify-between mb-1.5">
+            <p class="text-[11.5px] font-semibold text-gray-400 uppercase tracking-wide">Quality Threshold</p>
+            <span id="quality-val" class="text-[13px] font-bold text-purple-700">80%</span>
+          </div>
+          <input
+            type="range"
+            id="quality-slider"
+            min="0" max="100" value="80"
+            class="mb-4"
+            style="--val:80%"
+          />
+
+          <!-- Max cost -->
+          <p class="text-[11.5px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Max Cost per Video</p>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400 font-semibold">$</span>
+            <input
+              type="number"
+              value="5.00"
+              step="0.50"
+              min="0"
+              class="w-full border border-[#ECECF3] rounded-lg pl-7 pr-3 py-2 text-[13px] text-gray-700 input-focus"
+            />
+          </div>
+        </div>
+
+        <!-- c) Stats -->
+        <div class="bg-white rounded-2xl border border-[#ECECF3] p-5 card-shadow">
+          <h3 class="text-[14px] font-bold text-gray-900 mb-4">Stats</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[13px] text-gray-500">Videos auto-created</span>
+              <span class="text-[14px] font-bold text-gray-900">12</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[13px] text-gray-500">Avg compliance score</span>
+              <span class="text-[14px] font-bold text-green-600">94/100</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[13px] text-gray-500">Total cost</span>
+              <span class="text-[14px] font-bold text-gray-900">$47.80</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── 4. RECENT RUNS TABLE ──────────────────────────────────── -->
+    <div class="bg-white rounded-2xl border border-[#ECECF3] mt-6 card-shadow overflow-hidden">
+      <div class="px-6 py-4 border-b border-[#ECECF3]">
+        <h2 class="text-[15px] font-bold text-gray-900">Recent Autopilot Runs</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-[13px]">
+          <thead>
+            <tr class="bg-[#F9F9FC] border-b border-[#ECECF3]">
+              <th class="text-left px-5 py-3 font-semibold text-gray-500 text-[12px] uppercase tracking-wide">Status</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-500 text-[12px] uppercase tracking-wide">Video Title</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-500 text-[12px] uppercase tracking-wide">Published</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-500 text-[12px] uppercase tracking-wide">Cost</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-500 text-[12px] uppercase tracking-wide">Compliance</th>
+              <th class="text-left px-5 py-3 font-semibold text-gray-500 text-[12px] uppercase tracking-wide">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#ECECF3]">
+            <!-- Row 1 -->
+            <tr class="transition-colors">
+              <td class="px-5 py-3.5">
+                <span class="badge-published inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>Published
+                </span>
+              </td>
+              <td class="px-5 py-3.5 font-medium text-gray-900">AI Tools 2026</td>
+              <td class="px-5 py-3.5 text-gray-500">Aug 19, 10:00</td>
+              <td class="px-5 py-3.5 text-gray-700 font-medium">$3.20</td>
+              <td class="px-5 py-3.5">
+                <span class="text-green-600 font-semibold">98/100</span>
+              </td>
+              <td class="px-5 py-3.5">
+                <button class="text-[12px] font-semibold text-primary hover:text-purple-800 transition-colors">View</button>
+              </td>
+            </tr>
+            <!-- Row 2 -->
+            <tr class="transition-colors">
+              <td class="px-5 py-3.5">
+                <span class="badge-published inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>Published
+                </span>
+              </td>
+              <td class="px-5 py-3.5 font-medium text-gray-900">Tech Weekly #23</td>
+              <td class="px-5 py-3.5 text-gray-500">Aug 12</td>
+              <td class="px-5 py-3.5 text-gray-700 font-medium">$4.10</td>
+              <td class="px-5 py-3.5">
+                <span class="text-green-600 font-semibold">91/100</span>
+              </td>
+              <td class="px-5 py-3.5">
+                <button class="text-[12px] font-semibold text-primary hover:text-purple-800 transition-colors">View</button>
+              </td>
+            </tr>
+            <!-- Row 3 -->
+            <tr class="transition-colors">
+              <td class="px-5 py-3.5">
+                <span class="badge-review inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold">
+                  <i data-lucide="clock" class="w-3.5 h-3.5"></i>In Review
+                </span>
+              </td>
+              <td class="px-5 py-3.5 font-medium text-gray-900">Morning Routine</td>
+              <td class="px-5 py-3.5 text-gray-400 italic">Pending</td>
+              <td class="px-5 py-3.5 text-gray-700 font-medium">$2.80</td>
+              <td class="px-5 py-3.5">
+                <span class="text-green-600 font-semibold">95/100</span>
+              </td>
+              <td class="px-5 py-3.5">
+                <button class="text-[12px] font-semibold text-amber-600 hover:text-amber-800 transition-colors">Review</button>
+              </td>
+            </tr>
+            <!-- Row 4 -->
+            <tr class="transition-colors">
+              <td class="px-5 py-3.5">
+                <span class="badge-failed inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold">
+                  <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>Failed
+                </span>
+              </td>
+              <td class="px-5 py-3.5 font-medium text-gray-900">Clickbait Test</td>
+              <td class="px-5 py-3.5 text-gray-400">—</td>
+              <td class="px-5 py-3.5 text-gray-700 font-medium">$1.20</td>
+              <td class="px-5 py-3.5">
+                <span class="text-red-500 font-semibold">42/100</span>
+              </td>
+              <td class="px-5 py-3.5 flex items-center gap-2">
+                <button class="text-[12px] font-semibold text-primary hover:text-purple-800 transition-colors">View</button>
+                <span class="text-gray-300">·</span>
+                <button class="text-[12px] font-semibold text-gray-500 hover:text-gray-800 transition-colors">Retry</button>
+              </td>
+            </tr>
+            <!-- Row 5 -->
+            <tr class="transition-colors">
+              <td class="px-5 py-3.5">
+                <span class="badge-published inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>Published
+                </span>
+              </td>
+              <td class="px-5 py-3.5 font-medium text-gray-900">ChatGPT Tips</td>
+              <td class="px-5 py-3.5 text-gray-500">Aug 5</td>
+              <td class="px-5 py-3.5 text-gray-700 font-medium">$3.90</td>
+              <td class="px-5 py-3.5">
+                <span class="text-green-600 font-semibold">96/100</span>
+              </td>
+              <td class="px-5 py-3.5">
+                <button class="text-[12px] font-semibold text-primary hover:text-purple-800 transition-colors">View</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════ MOBILE BOTTOM NAV -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#ECECF3] z-40 flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
+    <a href="home.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors text-gray-400 hover:text-primary">
+      <i data-lucide="house" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Home</span>
+    </a>
+    <a href="projects.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors text-gray-400 hover:text-primary">
+      <i data-lucide="folder" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Projects</span>
+    </a>
+    <a href="calendar.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors text-gray-400 hover:text-primary">
+      <i data-lucide="calendar" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Calendar</span>
+    </a>
+    <a href="publish.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors text-gray-400 hover:text-primary">
+      <i data-lucide="send" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Publish</span>
+    </a>
+    <a href="insights.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors text-gray-400 hover:text-primary">
+      <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Analytics</span>
+    </a>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════ JS -->
+  <script>
+    // ── Master toggle ─────────────────────────────────────────────
+    const masterTrack = document.getElementById('master-toggle');
+    const masterLabel = document.getElementById('master-label');
+    let masterOn = false;
+
+    masterTrack.addEventListener('click', () => {
+      masterOn = !masterOn;
+      masterTrack.classList.toggle('on', masterOn);
+      masterTrack.setAttribute('aria-checked', String(masterOn));
+      masterLabel.textContent = masterOn ? 'ON' : 'OFF';
+      masterLabel.className = masterOn
+        ? 'text-[13px] font-semibold text-purple-600'
+        : 'text-[13px] font-semibold text-gray-400';
+    });
+
+    masterTrack.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); masterTrack.click(); }
+    });
+
+    // ── Stage toggles ─────────────────────────────────────────────
+    document.querySelectorAll('.stage-toggle-track').forEach(track => {
+      const color = track.dataset.color || 'green';
+      const onClass = `on-${color}`;
+      const isOn = track.classList.contains(onClass);
+
+      // update icon color of parent stage based on toggle state
+      const updateStageIcon = (on) => {
+        const stageRow = track.closest('.flex');
+        if (!stageRow) return;
+        const iconWrap = stageRow.querySelector('.rounded-full');
+        if (!iconWrap) return;
+        if (on) {
+          if (color === 'green') {
+            iconWrap.className = iconWrap.className.replace(/bg-\w+-\d+/, 'bg-green-100');
+            iconWrap.querySelector('i').className = iconWrap.querySelector('i').className.replace(/text-\w+-\d+/, 'text-green-600');
+          } else if (color === 'amber') {
+            iconWrap.className = iconWrap.className.replace(/bg-\w+-\d+/, 'bg-amber-100');
+            iconWrap.querySelector('i').className = iconWrap.querySelector('i').className.replace(/text-\w+-\d+/, 'text-amber-600');
+          }
+        } else {
+          iconWrap.className = iconWrap.className.replace(/bg-\w+-\d+/, 'bg-gray-100');
+          iconWrap.querySelector('i').className = iconWrap.querySelector('i').className.replace(/text-\w+-\d+/, 'text-gray-400');
+        }
+      };
+
+      track.addEventListener('click', () => {
+        const nowOn = !track.classList.contains(onClass);
+        track.classList.toggle(onClass, nowOn);
+        updateStageIcon(nowOn);
+      });
+    });
+
+    // ── Frequency buttons ─────────────────────────────────────────
+    document.querySelectorAll('.freq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // ── Quality slider ────────────────────────────────────────────
+    const slider = document.getElementById('quality-slider');
+    const qualVal = document.getElementById('quality-val');
+    slider.addEventListener('input', () => {
+      const v = slider.value;
+      qualVal.textContent = v + '%';
+      slider.style.setProperty('--val', v + '%');
+    });
+
+    // ── Lucide icons ──────────────────────────────────────────────
+    lucide.createIcons();
+  </script>
+</body>
+</html>

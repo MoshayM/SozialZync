@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Calendar — Sozialzync</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            primary: '#7C3AED',
+            'primary-light': '#EDE9FE',
+            bg: '#F4F3FB',
+          },
+          width: { sidebar: '244px' },
+          marginLeft: { sidebar: '244px' },
+          height: { topbar: '62px' },
+          paddingTop: { topbar: '62px' },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #F4F3FB; }
+
+    /* Sidebar gradient */
+    .sidebar-gradient {
+      background: linear-gradient(180deg, #1E0A3C 0%, #2D1060 40%, #3B1A7A 100%);
+    }
+
+    /* Active nav item */
+    .nav-active {
+      background: rgba(124, 58, 237, 0.35);
+      border-left: 3px solid #A78BFA;
+    }
+    .nav-active span { color: #EDE9FE; }
+    .nav-active i { color: #A78BFA; }
+
+    /* Nav hover */
+    .nav-item:hover:not(.nav-active) {
+      background: rgba(255,255,255,0.07);
+    }
+
+    /* Gradient button */
+    .btn-gradient {
+      background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+    }
+    .btn-gradient:hover {
+      background: linear-gradient(135deg, #6D28D9 0%, #4C1D95 100%);
+    }
+
+    /* Calendar cell border handling */
+    .cal-cell:nth-child(7n) { border-right: none; }
+    .cal-row:last-child .cal-cell { border-bottom: none; }
+
+    /* Chip styles */
+    .chip { display: flex; align-items: center; height: 20px; border-radius: 4px; padding: 0 6px; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; cursor: pointer; }
+    .chip:hover { opacity: 0.85; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #C4B5FD; border-radius: 10px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ═══════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════ -->
+  <aside class="fixed top-0 left-0 h-full w-[244px] sidebar-gradient flex flex-col z-30 overflow-hidden">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2.5 px-5 py-4 border-b border-white/10">
+      <div class="w-8 h-8 rounded-lg btn-gradient flex items-center justify-center flex-shrink-0">
+        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="text-white font-bold text-[15px] tracking-tight">Sozialzync</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 py-3 overflow-y-auto space-y-0.5 px-2">
+
+      <a href="home.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="house" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Home</span>
+      </a>
+
+      <a href="projects.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="folder" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Projects</span>
+      </a>
+
+      <a href="editor.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="film" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Video Editor</span>
+      </a>
+
+      <a href="studio.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="sparkles" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Creative Studio</span>
+      </a>
+
+      <a href="calendar.html" class="nav-item nav-active flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="calendar" class="w-[18px] h-[18px] flex-shrink-0"></i>
+        <span class="font-semibold text-[13.5px]">Content Calendar</span>
+      </a>
+
+      <a href="publish.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="send" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Publish Hub</span>
+      </a>
+
+      <a href="insights.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="bar-chart-2" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Analytics</span>
+      </a>
+
+      <!-- Separator -->
+      <div class="my-2 mx-1 border-t border-white/10"></div>
+
+      <a href="copilot.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="bot" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">AI Copilot</span>
+      </a>
+
+      <a href="shorts-studio.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="zap" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Shorts Studio</span>
+      </a>
+
+      <a href="library.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="library" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Library</span>
+      </a>
+
+      <a href="channel-access.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="shield-check" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Channel Access</span>
+      </a>
+
+    </nav>
+
+    <!-- Bottom links -->
+    <div class="px-2 py-3 border-t border-white/10 space-y-0.5">
+      <a href="../settings/settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="settings" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Settings</span>
+      </a>
+      <a href="../settings/brand-kit.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="palette" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Brand Kit</span>
+      </a>
+      <a href="../settings/wallet.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all">
+        <i data-lucide="credit-card" class="w-[18px] h-[18px] text-white/50 flex-shrink-0"></i>
+        <span class="text-white/60 font-medium text-[13.5px]">Billing</span>
+      </a>
+    </div>
+
+    <!-- User -->
+    <div class="px-4 py-3 border-t border-white/10 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full btn-gradient flex items-center justify-center flex-shrink-0">
+        <span class="text-white font-bold text-xs">CK</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-white font-semibold text-[12px] truncate">Creator King</p>
+        <p class="text-white/40 text-[11px] truncate">Pro Plan</p>
+      </div>
+      <i data-lucide="chevron-up-down" class="w-4 h-4 text-white/30 flex-shrink-0"></i>
+    </div>
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════════
+       TOPBAR
+  ═══════════════════════════════════════════ -->
+  <header class="fixed top-0 left-[244px] right-0 h-[62px] bg-white border-b border-[#ECECF3] flex items-center px-6 z-20 gap-4">
+    <div class="flex-1">
+      <p class="text-[13px] text-gray-400 font-medium">Dashboard <span class="text-gray-300 mx-1">/</span> <span class="text-gray-700">Content Calendar</span></p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="relative p-2 rounded-lg hover:bg-gray-50 transition-colors">
+        <i data-lucide="bell" class="w-[18px] h-[18px] text-gray-500"></i>
+        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full"></span>
+      </button>
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center cursor-pointer">
+        <span class="text-white font-bold text-xs">CK</span>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ═══════════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════════ -->
+  <main class="ml-[244px] pt-[62px] p-6 min-h-screen">
+
+    <!-- 1. HEADER ROW -->
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <!-- Left: Title -->
+      <h1 class="text-[22px] font-bold text-gray-900">Content Calendar</h1>
+
+      <!-- Right: Controls -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Month nav -->
+        <div class="flex items-center gap-1 bg-white border border-[#ECECF3] rounded-xl px-1 py-1">
+          <button class="p-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+            <i data-lucide="chevron-left" class="w-4 h-4 text-gray-500"></i>
+          </button>
+          <span class="text-[13.5px] font-semibold text-gray-800 px-2 min-w-[90px] text-center">Aug 2026</span>
+          <button class="p-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+            <i data-lucide="chevron-right" class="w-4 h-4 text-gray-500"></i>
+          </button>
+        </div>
+
+        <!-- Today button -->
+        <button class="px-3.5 py-2 bg-white border border-[#ECECF3] rounded-xl text-[13px] font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          Today
+        </button>
+
+        <!-- Schedule Post -->
+        <button class="btn-gradient flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[13px] font-semibold shadow-sm transition-colors">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          Schedule Post
+        </button>
+
+        <!-- View toggle -->
+        <div class="flex items-center bg-white border border-[#ECECF3] rounded-xl p-1 gap-0.5">
+          <button class="px-3 py-1.5 rounded-lg bg-primary text-white text-[12px] font-semibold">Month</button>
+          <button class="px-3 py-1.5 rounded-lg hover:bg-gray-50 text-gray-500 text-[12px] font-medium transition-colors">Week</button>
+          <button class="px-3 py-1.5 rounded-lg hover:bg-gray-50 text-gray-500 text-[12px] font-medium transition-colors">Day</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. LEGEND BAR -->
+    <div class="flex items-center gap-5 mb-4 flex-wrap">
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0"></span>
+        <span class="text-[12.5px] font-medium text-gray-600">YouTube</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-pink-500 flex-shrink-0"></span>
+        <span class="text-[12.5px] font-medium text-gray-600">Instagram</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-sky-500 flex-shrink-0"></span>
+        <span class="text-[12.5px] font-medium text-gray-600">TikTok</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-gray-400 flex-shrink-0"></span>
+        <span class="text-[12.5px] font-medium text-gray-600">Scheduled</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+        <span class="text-[12.5px] font-medium text-gray-600">Published</span>
+      </div>
+    </div>
+
+    <!-- 3. MAIN LAYOUT: Calendar + Right Sidebar -->
+    <div class="grid grid-cols-4 gap-5">
+
+      <!-- LEFT: Calendar (col-span-3) -->
+      <div class="col-span-3 bg-white rounded-2xl border border-[#ECECF3] overflow-hidden">
+
+        <!-- Day headers -->
+        <div class="grid grid-cols-7 bg-gray-50 border-b border-[#ECECF3]">
+          <div class="py-2.5 text-center text-[12px] font-semibold text-gray-500 tracking-wide">Sun</div>
+          <div class="py-2.5 text-center text-[12px] font-semibold text-gray-500 tracking-wide">Mon</div>
+          <div class="py-2.5 text-center text-[12px] font-semibold text-gray-500 tracking-wide">Tue</div>
+          <div class="py-2.5 text-center text-[12px] font-semibold text-gray-500 tracking-wide">Wed</div>
+          <div class="py-2.5 text-center text-[12px] font-semibold text-gray-500 tracking-wide">Thu</div>
+          <div class="py-2.5 text-center text-[12px] font-semibold text-gray-500 tracking-wide">Fri</div>
+          <div class="py-2.5 text-center text-[12px] font-semibold text-gray-500 tracking-wide">Sat</div>
+        </div>
+
+        <!-- Calendar grid — Aug 2026: Aug 1 = Saturday -->
+        <!-- Row 1: empty × 6, then 1 -->
+        <div class="grid grid-cols-7 cal-row">
+          <!-- Sun -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-300 mb-1"></span>
+          </div>
+          <!-- Mon -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-300 mb-1"></span>
+          </div>
+          <!-- Tue -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-300 mb-1"></span>
+          </div>
+          <!-- Wed -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-300 mb-1"></span>
+          </div>
+          <!-- Thu -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-300 mb-1"></span>
+          </div>
+          <!-- Fri -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-300 mb-1"></span>
+          </div>
+          <!-- Sat = 1 -->
+          <div class="cal-cell min-h-[90px] border-b border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">1</span>
+          </div>
+        </div>
+
+        <!-- Row 2: 2–8 -->
+        <div class="grid grid-cols-7 cal-row">
+          <!-- Sun 2 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">2</span>
+          </div>
+          <!-- Mon 3 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">3</span>
+          </div>
+          <!-- Tue 4 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">4</span>
+          </div>
+          <!-- Wed 5 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">5</span>
+            <span class="chip bg-red-100 text-red-700 mt-0.5">AI Tools Video</span>
+          </div>
+          <!-- Thu 6 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">6</span>
+          </div>
+          <!-- Fri 7 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">7</span>
+          </div>
+          <!-- Sat 8 -->
+          <div class="cal-cell min-h-[90px] border-b border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">8</span>
+            <span class="chip bg-pink-100 text-pink-700 mt-0.5">Reel #24</span>
+          </div>
+        </div>
+
+        <!-- Row 3: 9–15 -->
+        <div class="grid grid-cols-7 cal-row">
+          <!-- Sun 9 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">9</span>
+          </div>
+          <!-- Mon 10 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">10</span>
+          </div>
+          <!-- Tue 11 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">11</span>
+          </div>
+          <!-- Wed 12 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">12</span>
+            <span class="chip bg-red-100 text-red-700 mt-0.5">Tech Review</span>
+            <span class="chip bg-sky-100 text-sky-700 mt-0.5">Tips Short</span>
+          </div>
+          <!-- Thu 13 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">13</span>
+          </div>
+          <!-- Fri 14 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">14</span>
+          </div>
+          <!-- Sat 15 -->
+          <div class="cal-cell min-h-[90px] border-b border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">15</span>
+            <span class="chip bg-red-100 text-red-700 mt-0.5">Weekly News</span>
+          </div>
+        </div>
+
+        <!-- Row 4: 16–22 (today = 19) -->
+        <div class="grid grid-cols-7 cal-row">
+          <!-- Sun 16 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">16</span>
+          </div>
+          <!-- Mon 17 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">17</span>
+          </div>
+          <!-- Tue 18 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">18</span>
+          </div>
+          <!-- Wed 19 — TODAY -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5 bg-purple-50/60">
+            <div class="flex justify-end mb-1">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[11px] font-bold">19</span>
+            </div>
+            <span class="chip bg-red-100 text-red-700 mt-0.5">Morning Vlog</span>
+          </div>
+          <!-- Thu 20 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">20</span>
+            <span class="chip bg-amber-100 text-amber-700 mt-0.5">Scheduled</span>
+          </div>
+          <!-- Fri 21 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">21</span>
+          </div>
+          <!-- Sat 22 -->
+          <div class="cal-cell min-h-[90px] border-b border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">22</span>
+            <span class="chip bg-pink-100 text-pink-700 mt-0.5">Brand Collab</span>
+          </div>
+        </div>
+
+        <!-- Row 5: 23–29 -->
+        <div class="grid grid-cols-7 cal-row">
+          <!-- Sun 23 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">23</span>
+          </div>
+          <!-- Mon 24 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">24</span>
+          </div>
+          <!-- Tue 25 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">25</span>
+          </div>
+          <!-- Wed 26 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">26</span>
+            <span class="chip bg-red-100 text-red-700 mt-0.5">Deep Dive</span>
+          </div>
+          <!-- Thu 27 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">27</span>
+          </div>
+          <!-- Fri 28 -->
+          <div class="cal-cell min-h-[90px] border-b border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">28</span>
+          </div>
+          <!-- Sat 29 -->
+          <div class="cal-cell min-h-[90px] border-b border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">29</span>
+            <span class="chip bg-sky-100 text-sky-700 mt-0.5">Trend React</span>
+          </div>
+        </div>
+
+        <!-- Row 6: 30–31 + empties -->
+        <div class="grid grid-cols-7 cal-row">
+          <!-- Sun 30 -->
+          <div class="cal-cell min-h-[90px] border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">30</span>
+          </div>
+          <!-- Mon 31 -->
+          <div class="cal-cell min-h-[90px] border-r border-[#ECECF3] p-1.5">
+            <span class="block text-right text-[11px] font-medium text-gray-500 mb-1">31</span>
+          </div>
+          <!-- Tue empty -->
+          <div class="cal-cell min-h-[90px] border-r border-[#ECECF3] p-1.5 bg-gray-50/40">
+            <span class="block text-right text-[11px] font-medium text-gray-200 mb-1"></span>
+          </div>
+          <!-- Wed empty -->
+          <div class="cal-cell min-h-[90px] border-r border-[#ECECF3] p-1.5 bg-gray-50/40">
+            <span class="block text-right text-[11px] font-medium text-gray-200 mb-1"></span>
+          </div>
+          <!-- Thu empty -->
+          <div class="cal-cell min-h-[90px] border-r border-[#ECECF3] p-1.5 bg-gray-50/40">
+            <span class="block text-right text-[11px] font-medium text-gray-200 mb-1"></span>
+          </div>
+          <!-- Fri empty -->
+          <div class="cal-cell min-h-[90px] border-r border-[#ECECF3] p-1.5 bg-gray-50/40">
+            <span class="block text-right text-[11px] font-medium text-gray-200 mb-1"></span>
+          </div>
+          <!-- Sat empty -->
+          <div class="cal-cell min-h-[90px] p-1.5 bg-gray-50/40">
+            <span class="block text-right text-[11px] font-medium text-gray-200 mb-1"></span>
+          </div>
+        </div>
+
+      </div><!-- /calendar -->
+
+
+      <!-- RIGHT SIDEBAR (col-span-1) -->
+      <div class="col-span-1 space-y-4">
+
+        <!-- a) This Week card -->
+        <div class="bg-white rounded-2xl border border-[#ECECF3] p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-[13.5px] font-bold text-gray-800">This Week</h3>
+            <span class="text-[11px] text-primary font-semibold cursor-pointer hover:underline">View all</span>
+          </div>
+
+          <div class="flex flex-col gap-3">
+
+            <!-- Item 1 — Today -->
+            <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-purple-50/60 border border-purple-100">
+              <span class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-1.5"></span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
+                  <span class="text-[11px] font-bold text-gray-700 truncate">Morning Vlog Creator Life</span>
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary text-white text-[9px] font-bold tracking-wide flex-shrink-0">TODAY</span>
+                </div>
+                <p class="text-[10.5px] text-gray-400 font-medium">Aug 19 &middot; YouTube</p>
+              </div>
+              <button class="text-[10px] text-primary font-semibold hover:underline flex-shrink-0">Edit</button>
+            </div>
+
+            <!-- Item 2 — Scheduled -->
+            <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/60 border border-amber-100">
+              <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 mt-1.5"></span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
+                  <span class="text-[11px] font-bold text-gray-700 truncate">AI Tools Deep Dive</span>
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[9px] font-bold tracking-wide flex-shrink-0">SCHED</span>
+                </div>
+                <p class="text-[10.5px] text-gray-400 font-medium">Aug 20 &middot; YouTube</p>
+              </div>
+              <button class="text-[10px] text-primary font-semibold hover:underline flex-shrink-0">Edit</button>
+            </div>
+
+            <!-- Item 3 -->
+            <div class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-[#ECECF3] transition-all">
+              <span class="w-2 h-2 rounded-full bg-pink-500 flex-shrink-0 mt-1.5"></span>
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] font-bold text-gray-700 truncate mb-0.5">Brand Partnership Reel</p>
+                <p class="text-[10.5px] text-gray-400 font-medium">Aug 22 &middot; Instagram</p>
+              </div>
+              <button class="text-[10px] text-primary font-semibold hover:underline flex-shrink-0">Edit</button>
+            </div>
+
+          </div>
+        </div><!-- /This Week -->
+
+        <!-- b) Quick Schedule card -->
+        <div class="bg-white rounded-2xl border border-[#ECECF3] p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-primary"></i>
+            </div>
+            <h3 class="text-[13.5px] font-bold text-gray-800">Quick Schedule</h3>
+          </div>
+
+          <div class="space-y-2.5">
+            <!-- Title input -->
+            <div>
+              <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Title</label>
+              <input
+                type="text"
+                placeholder="Post title..."
+                class="w-full px-3 py-2 text-[12.5px] border border-[#ECECF3] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 placeholder-gray-300 text-gray-700 transition-all"
+              />
+            </div>
+
+            <!-- Platform select -->
+            <div>
+              <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Platform</label>
+              <select class="w-full px-3 py-2 text-[12.5px] border border-[#ECECF3] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 text-gray-700 bg-white transition-all appearance-none cursor-pointer">
+                <option value="youtube">YouTube</option>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+              </select>
+            </div>
+
+            <!-- Date/time input -->
+            <div>
+              <label class="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Date &amp; Time</label>
+              <input
+                type="datetime-local"
+                class="w-full px-3 py-2 text-[12.5px] border border-[#ECECF3] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 text-gray-700 transition-all"
+              />
+            </div>
+
+            <!-- Schedule button -->
+            <button class="btn-gradient w-full py-2.5 rounded-xl text-white text-[13px] font-semibold shadow-sm mt-1 transition-colors flex items-center justify-center gap-2">
+              <i data-lucide="calendar-check" class="w-4 h-4"></i>
+              Schedule
+            </button>
+          </div>
+        </div><!-- /Quick Schedule -->
+
+      </div><!-- /right sidebar -->
+
+    </div><!-- /grid -->
+
+
+    <!-- 4. STATS BAR -->
+    <div class="bg-white rounded-2xl border border-[#ECECF3] p-4 mt-5">
+      <div class="flex items-center gap-8 flex-wrap">
+
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="layout-grid" class="w-4.5 h-4.5 text-primary"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">This Month</p>
+            <p class="text-[18px] font-bold text-gray-900 leading-tight">12 <span class="text-[13px] text-gray-500 font-medium">posts</span></p>
+          </div>
+        </div>
+
+        <div class="w-px h-10 bg-[#ECECF3] flex-shrink-0 hidden sm:block"></div>
+
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="trending-up" class="w-4.5 h-4.5 text-emerald-500"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Avg Frequency</p>
+            <p class="text-[18px] font-bold text-gray-900 leading-tight">3<span class="text-[13px] text-gray-500 font-medium">/week</span></p>
+          </div>
+        </div>
+
+        <div class="w-px h-10 bg-[#ECECF3] flex-shrink-0 hidden sm:block"></div>
+
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="youtube" class="w-4.5 h-4.5 text-red-500"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Most Active</p>
+            <p class="text-[18px] font-bold text-gray-900 leading-tight">YouTube <span class="text-[13px] text-gray-500 font-medium">(8)</span></p>
+          </div>
+        </div>
+
+        <div class="w-px h-10 bg-[#ECECF3] flex-shrink-0 hidden sm:block"></div>
+
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="clock" class="w-4.5 h-4.5 text-primary"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Next Post</p>
+            <p class="text-[18px] font-bold text-gray-900 leading-tight">Tomorrow</p>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /stats bar -->
+
+  </main><!-- /main -->
+
+
+  <!-- ═══════════════════════════════════════════
+       MOBILE BOTTOM NAV (lg:hidden)
+  ═══════════════════════════════════════════ -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#ECECF3] z-40 flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
+    <a href="home.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
+      <i data-lucide="house" class="w-5 h-5 text-gray-400"></i>
+      <span class="text-[9.5px] font-medium text-gray-400">Home</span>
+    </a>
+    <a href="projects.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
+      <i data-lucide="folder" class="w-5 h-5 text-gray-400"></i>
+      <span class="text-[9.5px] font-medium text-gray-400">Projects</span>
+    </a>
+    <a href="calendar.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl bg-primary/10 transition-colors">
+      <i data-lucide="calendar" class="w-5 h-5 text-primary"></i>
+      <span class="text-[9.5px] font-semibold text-primary">Calendar</span>
+    </a>
+    <a href="publish.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
+      <i data-lucide="send" class="w-5 h-5 text-gray-400"></i>
+      <span class="text-[9.5px] font-medium text-gray-400">Publish</span>
+    </a>
+    <a href="insights.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
+      <i data-lucide="bar-chart-2" class="w-5 h-5 text-gray-400"></i>
+      <span class="text-[9.5px] font-medium text-gray-400">Analytics</span>
+    </a>
+  </nav>
+
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

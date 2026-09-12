@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Publish Hub — Sozialzync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            primary: '#7C3AED',
+            'primary-light': '#a78bfa',
+            'page-bg': '#F4F3FB',
+            'card-border': '#ECECF3',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #F4F3FB; }
+    .sidebar-gradient { background: linear-gradient(185deg, #7C3AED, #5B21B6); }
+    .primary-gradient { background: linear-gradient(135deg, #a78bfa, #7C3AED); }
+    .nav-active { background: rgba(255,255,255,0.15); color: white; }
+    .nav-inactive { color: rgba(255,255,255,0.7); }
+    .nav-inactive:hover { background: rgba(255,255,255,0.08); color: white; }
+    .topbar-shadow { box-shadow: 0 1px 0 #ECECF3; }
+    .card-shadow { box-shadow: 0 1px 4px rgba(124,58,237,0.06); }
+    .post-card:hover { box-shadow: 0 4px 20px rgba(124,58,237,0.10); }
+    .post-card { transition: box-shadow 0.15s ease; }
+    .tab-active {
+      color: #7C3AED;
+      border-bottom: 2px solid #7C3AED;
+    }
+    .tab-inactive {
+      color: #6B7280;
+      border-bottom: 2px solid transparent;
+    }
+    .tab-inactive:hover { color: #374151; }
+    .chip-active { background: #7C3AED; color: white; }
+    .chip-inactive { background: white; color: #6B7280; border: 1px solid #ECECF3; }
+    .chip-inactive:hover { border-color: #a78bfa; color: #7C3AED; }
+    .thumb-grad { background: linear-gradient(135deg, #1e1b4b, #312e81); }
+    .thumb-grad-2 { background: linear-gradient(135deg, #1a1a2e, #0f172a); }
+    .thumb-grad-3 { background: linear-gradient(135deg, #2d1b4e, #1e1035); }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 99px; }
+    .input-focus:focus { outline: none; border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+    /* Mobile bottom nav */
+    .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #6B7280; font-size: 10px; font-weight: 500; padding: 6px 4px; flex: 1; }
+    .mobile-nav-item.active { color: #7C3AED; }
+    .mobile-nav-item i { width: 20px; height: 20px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ═══════════════════════════════════════════════════════════ SIDEBAR -->
+  <aside class="sidebar-gradient fixed left-0 top-0 bottom-0 w-[244px] flex flex-col z-40 hidden lg:flex">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-3 px-5 py-5 border-b border-white/10">
+      <div class="w-8 h-8 rounded-lg primary-gradient flex items-center justify-center shadow-lg">
+        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="text-white font-bold text-[15px] tracking-tight">Sozialzync</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <a href="home.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="house" class="w-4 h-4 shrink-0"></i>
+        Home
+      </a>
+      <a href="projects.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="folder" class="w-4 h-4 shrink-0"></i>
+        Projects
+      </a>
+      <a href="editor.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="film" class="w-4 h-4 shrink-0"></i>
+        Video Editor
+      </a>
+      <a href="studio.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="sparkles" class="w-4 h-4 shrink-0"></i>
+        Creative Studio
+      </a>
+      <a href="calendar.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="calendar" class="w-4 h-4 shrink-0"></i>
+        Content Calendar
+      </a>
+      <a href="publish.html" class="nav-active flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all">
+        <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
+        Publish Hub
+      </a>
+      <a href="insights.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="bar-chart-2" class="w-4 h-4 shrink-0"></i>
+        Analytics
+      </a>
+
+      <!-- Separator -->
+      <div class="my-3 border-t border-white/10"></div>
+
+      <a href="copilot.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="bot" class="w-4 h-4 shrink-0"></i>
+        AI Copilot
+      </a>
+      <a href="shorts-studio.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="zap" class="w-4 h-4 shrink-0"></i>
+        Shorts Studio
+      </a>
+      <a href="library.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="library" class="w-4 h-4 shrink-0"></i>
+        Library
+      </a>
+      <a href="channel-access.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="shield-check" class="w-4 h-4 shrink-0"></i>
+        Channel Access
+      </a>
+    </nav>
+
+    <!-- Bottom links -->
+    <div class="px-3 pb-5 border-t border-white/10 pt-3 space-y-0.5">
+      <a href="../settings/settings.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="settings" class="w-4 h-4 shrink-0"></i>
+        Settings
+      </a>
+      <a href="../settings/brand-kit.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="palette" class="w-4 h-4 shrink-0"></i>
+        Brand Kit
+      </a>
+      <a href="../settings/wallet.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="credit-card" class="w-4 h-4 shrink-0"></i>
+        Billing
+      </a>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════ TOPBAR -->
+  <header class="fixed top-0 left-0 lg:left-[244px] right-0 h-[62px] bg-white topbar-shadow z-30 flex items-center px-5 gap-4">
+
+    <!-- Mobile logo -->
+    <div class="flex items-center gap-2 lg:hidden mr-1">
+      <div class="w-7 h-7 rounded-md primary-gradient flex items-center justify-center">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-white"></i>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="flex-1 max-w-[420px] relative">
+      <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+      <input
+        type="text"
+        placeholder="Search posts, schedules, campaigns…"
+        class="w-full pl-9 pr-4 py-2 bg-[#F4F3FB] border border-[#ECECF3] rounded-lg text-[13px] text-gray-700 placeholder-gray-400 input-focus transition-all"
+      />
+    </div>
+
+    <div class="flex-1"></div>
+
+    <!-- Copilot button -->
+    <button class="primary-gradient hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg text-white text-[13px] font-semibold shadow-sm hover:opacity-90 transition-opacity">
+      <i data-lucide="bot" class="w-4 h-4"></i>
+      AI Copilot
+    </button>
+
+    <!-- Bell -->
+    <button class="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F4F3FB] transition-colors">
+      <i data-lucide="bell" class="w-[18px] h-[18px] text-gray-500"></i>
+      <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+    </button>
+
+    <!-- Avatar -->
+    <button class="w-8 h-8 rounded-full primary-gradient flex items-center justify-center text-white text-[12px] font-bold shadow">
+      CF
+    </button>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ MAIN -->
+  <main class="lg:ml-[244px] pt-[62px] p-5 lg:p-6 pb-24 lg:pb-6">
+
+    <!-- ─── 1. HEADER ROW ─────────────────────────────────────── -->
+    <div class="flex items-center justify-between mb-5">
+      <h1 class="text-2xl lg:text-[26px] font-extrabold text-gray-900 leading-tight">Publish Hub</h1>
+      <button class="primary-gradient flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-[13.5px] font-semibold shadow-sm hover:opacity-90 transition-opacity">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        Create Post
+      </button>
+    </div>
+
+    <!-- ─── 2. CONNECTED ACCOUNTS BAR ─────────────────────────── -->
+    <div class="bg-white rounded-2xl border border-[#ECECF3] p-4 mb-4 card-shadow">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-[13px] font-semibold text-gray-500 shrink-0">Connected Platforms:</span>
+
+        <!-- YouTube chip -->
+        <div class="flex items-center gap-2 bg-[#F4F3FB] border border-[#ECECF3] rounded-full px-3 py-1.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5V8.5l6.25 3.5-6.25 3.5z"/></svg>
+          <span class="text-[12.5px] font-medium text-gray-700">My Channel</span>
+          <span class="flex items-center gap-1 text-[11.5px] font-semibold text-emerald-600">
+            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block"></span>Connected
+          </span>
+        </div>
+
+        <!-- Instagram chip -->
+        <div class="flex items-center gap-2 bg-[#F4F3FB] border border-[#ECECF3] rounded-full px-3 py-1.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <radialGradient id="ig1" cx="30%" cy="107%" r="150%">
+                <stop offset="0%" stop-color="#fdf497"/>
+                <stop offset="5%" stop-color="#fdf497"/>
+                <stop offset="45%" stop-color="#fd5949"/>
+                <stop offset="60%" stop-color="#d6249f"/>
+                <stop offset="90%" stop-color="#285AEB"/>
+              </radialGradient>
+            </defs>
+            <rect width="24" height="24" rx="6" fill="url(#ig1)"/>
+            <circle cx="12" cy="12" r="4" stroke="white" stroke-width="1.6" fill="none"/>
+            <circle cx="17.5" cy="6.5" r="1" fill="white"/>
+          </svg>
+          <span class="text-[12.5px] font-medium text-gray-700">sozialzync_</span>
+          <span class="flex items-center gap-1 text-[11.5px] font-semibold text-emerald-600">
+            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block"></span>Connected
+          </span>
+        </div>
+
+        <!-- TikTok chip -->
+        <div class="flex items-center gap-2 bg-[#F4F3FB] border border-[#ECECF3] rounded-full px-3 py-1.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#000000"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.16 8.16 0 0 0 4.77 1.52V6.77a4.85 4.85 0 0 1-1-.08z"/></svg>
+          <span class="text-[12.5px] font-medium text-gray-500">Not connected</span>
+          <button class="text-[11.5px] font-semibold text-primary border border-primary rounded-full px-2 py-0.5 hover:bg-primary hover:text-white transition-colors">
+            Connect
+          </button>
+        </div>
+
+        <div class="flex-1"></div>
+        <button class="text-[13px] font-semibold text-primary hover:underline ml-auto shrink-0">Manage Accounts</button>
+      </div>
+    </div>
+
+    <!-- ─── 3. TABS ────────────────────────────────────────────── -->
+    <div class="flex border-b border-[#ECECF3] mb-5 gap-1 overflow-x-auto">
+      <button class="tab-active pb-3 px-4 text-[13.5px] font-semibold whitespace-nowrap transition-all">
+        Publishing Queue
+      </button>
+      <button class="tab-inactive pb-3 px-4 text-[13.5px] font-medium whitespace-nowrap transition-all flex items-center gap-1.5">
+        Approvals
+        <span class="bg-amber-100 text-amber-700 text-[11px] font-bold rounded-full px-1.5 py-0.5 leading-none">2</span>
+      </button>
+      <button class="tab-inactive pb-3 px-4 text-[13.5px] font-medium whitespace-nowrap transition-all">
+        Scheduler
+      </button>
+      <button class="tab-inactive pb-3 px-4 text-[13.5px] font-medium whitespace-nowrap transition-all">
+        A/B Testing
+      </button>
+    </div>
+
+    <!-- ─── 4. PLATFORM FILTER CHIPS ──────────────────────────── -->
+    <div class="flex flex-wrap gap-2 mb-5">
+      <button class="chip-active text-[12.5px] font-semibold px-3.5 py-1.5 rounded-full transition-all">All</button>
+      <button class="chip-inactive text-[12.5px] font-medium px-3.5 py-1.5 rounded-full transition-all">YouTube</button>
+      <button class="chip-inactive text-[12.5px] font-medium px-3.5 py-1.5 rounded-full transition-all">Instagram</button>
+      <button class="chip-inactive text-[12.5px] font-medium px-3.5 py-1.5 rounded-full transition-all">TikTok</button>
+      <button class="chip-inactive text-[12.5px] font-medium px-3.5 py-1.5 rounded-full transition-all">Scheduled</button>
+      <button class="chip-inactive text-[12.5px] font-medium px-3.5 py-1.5 rounded-full transition-all">Draft</button>
+    </div>
+
+    <!-- ─── 5. PUBLISHING QUEUE ───────────────────────────────── -->
+    <div class="space-y-4 mb-8">
+
+      <!-- Card 1: Scheduled -->
+      <div class="post-card bg-white rounded-2xl border border-[#ECECF3] p-5 flex gap-4 card-shadow">
+        <!-- Thumbnail -->
+        <div class="thumb-grad w-32 h-20 rounded-xl flex-shrink-0 flex items-center justify-center relative overflow-hidden">
+          <div class="absolute inset-0 opacity-30" style="background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.05) 8px, rgba(255,255,255,0.05) 9px);"></div>
+          <div class="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <i data-lucide="play" class="w-4 h-4 text-white fill-white ml-0.5"></i>
+          </div>
+          <span class="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">14:32</span>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-start gap-2 mb-1.5">
+            <h3 class="text-[14.5px] font-bold text-gray-900 leading-snug">10 AI Tools That Will Replace Your Entire Team</h3>
+            <span class="flex-shrink-0 flex items-center gap-1 bg-red-50 text-red-600 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5V8.5l6.25 3.5-6.25 3.5z"/></svg>
+              YouTube
+            </span>
+            <span class="flex-shrink-0 flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              <i data-lucide="clock" class="w-3 h-3"></i>
+              Scheduled
+            </span>
+          </div>
+          <p class="text-[12.5px] text-gray-500 leading-relaxed line-clamp-2 mb-2">
+            Discover the cutting-edge AI tools revolutionizing how teams work in 2026. From autonomous agents to AI-powered workflows — your team might look very different next year.
+          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="flex items-center gap-1 text-[12px] text-gray-400">
+              <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+              Aug 20, 2026 · 10:00 AM
+            </span>
+            <span class="flex items-center gap-1 text-[12px] text-gray-400">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+              Public
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-2 shrink-0 items-end justify-start">
+          <button class="primary-gradient text-white text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg hover:opacity-90 transition-opacity shadow-sm whitespace-nowrap">
+            Publish Now
+          </button>
+          <div class="flex gap-1.5">
+            <button class="text-[12px] font-medium text-gray-500 border border-[#ECECF3] bg-white px-2.5 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap">
+              Reschedule
+            </button>
+            <button class="text-[12px] font-medium text-gray-500 border border-[#ECECF3] bg-white px-2.5 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors">
+              Edit
+            </button>
+            <button class="w-8 h-8 flex items-center justify-center border border-[#ECECF3] bg-white rounded-lg hover:border-primary hover:text-primary text-gray-400 transition-colors">
+              <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Ready to Publish -->
+      <div class="post-card bg-white rounded-2xl border border-[#ECECF3] p-5 flex gap-4 card-shadow">
+        <!-- Thumbnail -->
+        <div class="thumb-grad-2 w-32 h-20 rounded-xl flex-shrink-0 flex items-center justify-center relative overflow-hidden">
+          <div class="absolute inset-0 opacity-20" style="background: radial-gradient(circle at 30% 70%, #f59e0b33, transparent 60%);"></div>
+          <div class="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <i data-lucide="play" class="w-4 h-4 text-white fill-white ml-0.5"></i>
+          </div>
+          <span class="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">#Shorts</span>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-start gap-2 mb-1.5">
+            <h3 class="text-[14.5px] font-bold text-gray-900 leading-snug">Morning Routine for Creators</h3>
+            <span class="flex-shrink-0 flex items-center gap-1 bg-red-50 text-red-600 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5V8.5l6.25 3.5-6.25 3.5z"/></svg>
+              YouTube Shorts
+            </span>
+            <span class="flex-shrink-0 flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              <i data-lucide="check-circle" class="w-3 h-3"></i>
+              Ready to Publish
+            </span>
+          </div>
+          <p class="text-[12.5px] text-gray-500 leading-relaxed line-clamp-2 mb-2">
+            A 60-second breakdown of the exact morning routine top YouTube creators use to stay consistent, creative, and focused — backed by AI productivity insights.
+          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="flex items-center gap-1 text-[12px] text-gray-400">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+              Ready now
+            </span>
+            <span class="flex items-center gap-1 text-[12px] text-emerald-500 font-medium">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+              Compliance passed
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-2 shrink-0 items-end justify-start">
+          <button class="primary-gradient text-white text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg hover:opacity-90 transition-opacity shadow-sm whitespace-nowrap">
+            Publish Now
+          </button>
+          <div class="flex gap-1.5">
+            <button class="text-[12px] font-medium text-gray-500 border border-[#ECECF3] bg-white px-2.5 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors">
+              Schedule
+            </button>
+            <button class="text-[12px] font-medium text-gray-500 border border-[#ECECF3] bg-white px-2.5 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors">
+              Edit
+            </button>
+            <button class="w-8 h-8 flex items-center justify-center border border-[#ECECF3] bg-white rounded-lg hover:border-primary hover:text-primary text-gray-400 transition-colors">
+              <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Pending Approval -->
+      <div class="post-card bg-white rounded-2xl border border-[#ECECF3] p-5 flex gap-4 card-shadow">
+        <!-- Thumbnail -->
+        <div class="thumb-grad-3 w-32 h-20 rounded-xl flex-shrink-0 flex items-center justify-center relative overflow-hidden">
+          <div class="absolute inset-0 opacity-25" style="background: radial-gradient(circle at 70% 30%, #ec489920, transparent 55%);"></div>
+          <div class="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="white"><rect width="24" height="24" rx="6" fill="url(#ig-thumb)"/><defs><radialGradient id="ig-thumb" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><circle cx="12" cy="12" r="5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.5" cy="6.5" r="1.2" fill="white"/></svg>
+          </div>
+          <span class="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">Reel</span>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-start gap-2 mb-1.5">
+            <h3 class="text-[14.5px] font-bold text-gray-900 leading-snug">Tech News Weekly #24</h3>
+            <span class="flex-shrink-0 flex items-center gap-1 bg-pink-50 text-pink-600 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig2" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect width="24" height="24" rx="5" fill="url(#ig2)"/><circle cx="12" cy="12" r="4" stroke="white" stroke-width="1.6" fill="none"/><circle cx="17.5" cy="6.5" r="1" fill="white"/></svg>
+              Instagram
+            </span>
+            <span class="flex-shrink-0 flex items-center gap-1 bg-orange-50 text-orange-600 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              <i data-lucide="alert-circle" class="w-3 h-3"></i>
+              Pending Approval
+            </span>
+          </div>
+          <p class="text-[12.5px] text-gray-500 leading-relaxed line-clamp-2 mb-2">
+            This week's roundup: Apple Vision Pro 2 rumors, OpenAI's new reasoning model, and why every creator needs to understand AI video generation in 2026.
+          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="flex items-center gap-1 text-[12px] text-gray-400">
+              <i data-lucide="user" class="w-3.5 h-3.5"></i>
+              Awaiting review
+            </span>
+            <span class="flex items-center gap-1 text-[12px] text-orange-500 font-medium">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+              2h pending
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-2 shrink-0 items-end justify-start">
+          <button disabled class="cursor-not-allowed bg-gray-100 text-gray-400 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg whitespace-nowrap select-none">
+            Publish Now
+          </button>
+          <div class="flex gap-1.5">
+            <button class="text-[12px] font-medium text-gray-600 border border-[#ECECF3] bg-white px-2.5 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors">
+              View
+            </button>
+            <button class="text-[12px] font-medium text-gray-600 border border-[#ECECF3] bg-white px-2.5 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors">
+              Edit
+            </button>
+            <button class="w-8 h-8 flex items-center justify-center border border-[#ECECF3] bg-white rounded-lg hover:border-primary hover:text-primary text-gray-400 transition-colors">
+              <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 6. APPROVAL QUEUE ──────────────────────────────────── -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <h2 class="text-[17px] font-bold text-gray-900">Approval Queue</h2>
+          <span class="bg-amber-100 text-amber-700 text-[12px] font-bold rounded-full px-2 py-0.5">2 pending</span>
+        </div>
+        <button class="text-[13px] font-semibold text-primary hover:underline">View all</button>
+      </div>
+
+      <div class="space-y-3">
+
+        <!-- Approval Card 1 -->
+        <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-4">
+          <!-- Small thumbnail -->
+          <div class="thumb-grad w-16 h-11 rounded-lg flex-shrink-0 flex items-center justify-center">
+            <i data-lucide="play" class="w-3.5 h-3.5 text-white fill-white ml-0.5"></i>
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <p class="text-[13.5px] font-bold text-gray-900 leading-snug truncate">How to Script a Viral YouTube Video (AI Method)</p>
+            <p class="text-[12px] text-gray-500 mt-0.5 flex items-center gap-1.5">
+              <span class="flex items-center gap-1">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5V8.5l6.25 3.5-6.25 3.5z"/></svg>
+                YouTube
+              </span>
+              <span class="text-gray-300">·</span>
+              <i data-lucide="user-check" class="w-3 h-3"></i>
+              Assigned to: <span class="font-semibold text-gray-700">You</span>
+              <span class="text-gray-300">·</span>
+              Submitted 1h ago
+            </p>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="flex items-center gap-2 shrink-0">
+            <button class="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors shadow-sm">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              Approve
+            </button>
+            <button class="flex items-center gap-1.5 bg-white hover:bg-red-50 text-red-500 border border-red-200 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              Reject
+            </button>
+          </div>
+        </div>
+
+        <!-- Approval Card 2 -->
+        <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-4">
+          <!-- Small thumbnail -->
+          <div class="thumb-grad-3 w-16 h-11 rounded-lg flex-shrink-0 flex items-center justify-center">
+            <i data-lucide="play" class="w-3.5 h-3.5 text-white fill-white ml-0.5"></i>
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <p class="text-[13.5px] font-bold text-gray-900 leading-snug truncate">Tech News Weekly #24</p>
+            <p class="text-[12px] text-gray-500 mt-0.5 flex items-center gap-1.5">
+              <span class="flex items-center gap-1">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig3" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect width="24" height="24" rx="5" fill="url(#ig3)"/><circle cx="12" cy="12" r="4" stroke="white" stroke-width="1.6" fill="none"/><circle cx="17.5" cy="6.5" r="1" fill="white"/></svg>
+                Instagram
+              </span>
+              <span class="text-gray-300">·</span>
+              <i data-lucide="user-check" class="w-3 h-3"></i>
+              Assigned to: <span class="font-semibold text-gray-700">You</span>
+              <span class="text-gray-300">·</span>
+              Submitted 2h ago
+            </p>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="flex items-center gap-2 shrink-0">
+            <button class="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors shadow-sm">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              Approve
+            </button>
+            <button class="flex items-center gap-1.5 bg-white hover:bg-red-50 text-red-500 border border-red-200 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              Reject
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════ MOBILE BOTTOM NAV -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#ECECF3] z-40 flex items-stretch px-1 pb-safe" style="padding-bottom: max(8px, env(safe-area-inset-bottom));">
+    <a href="home.html" class="mobile-nav-item">
+      <i data-lucide="house"></i>
+      <span>Home</span>
+    </a>
+    <a href="projects.html" class="mobile-nav-item">
+      <i data-lucide="folder"></i>
+      <span>Projects</span>
+    </a>
+    <a href="calendar.html" class="mobile-nav-item">
+      <i data-lucide="calendar"></i>
+      <span>Calendar</span>
+    </a>
+    <a href="publish.html" class="mobile-nav-item active">
+      <i data-lucide="send"></i>
+      <span>Publish</span>
+    </a>
+    <a href="insights.html" class="mobile-nav-item">
+      <i data-lucide="bar-chart-2"></i>
+      <span>Analytics</span>
+    </a>
+    <a href="copilot.html" class="mobile-nav-item">
+      <i data-lucide="bot"></i>
+      <span>Copilot</span>
+    </a>
+  </nav>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

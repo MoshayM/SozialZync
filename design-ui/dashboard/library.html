@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Library — Sozialzync</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            primary: '#7C3AED',
+            'primary-dark': '#6D28D9',
+            'primary-light': '#EDE9FE',
+            bg: '#F4F3FB',
+          },
+          width: { sidebar: '244px' },
+          marginLeft: { sidebar: '244px' },
+          paddingTop: { topbar: '62px' },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #F4F3FB; }
+
+    /* Sidebar */
+    .sidebar {
+      background: linear-gradient(180deg, #7C3AED 0%, #5B21B6 60%, #4C1D95 100%);
+      width: 244px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; border-radius: 10px;
+      font-size: 13.5px; font-weight: 500;
+      color: rgba(255,255,255,0.72);
+      transition: background 0.15s, color 0.15s;
+      text-decoration: none; cursor: pointer;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; }
+    .nav-item .icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .nav-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.40); text-transform: uppercase;
+      padding: 14px 14px 4px;
+    }
+
+    /* Topbar */
+    .topbar { height: 62px; border-bottom: 1px solid #E9E7F5; }
+
+    /* Thumbnail placeholder */
+    .thumb-gradient-1 { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #3730a3 100%); }
+    .thumb-gradient-2 { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%); }
+    .thumb-gradient-3 { background: linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%); }
+    .thumb-gradient-4 { background: linear-gradient(135deg, #1c1917 0%, #292524 50%, #44403c 100%); }
+    .thumb-gradient-5 { background: linear-gradient(135deg, #4a1d96 0%, #6d28d9 50%, #7c3aed 100%); }
+    .thumb-gradient-6 { background: linear-gradient(135deg, #7c2d12 0%, #9a3412 50%, #c2410c 100%); }
+
+    /* Thumb overlay on hover */
+    .video-card:hover .thumb-overlay { opacity: 1; }
+    .thumb-overlay { opacity: 0; transition: opacity 0.2s; }
+
+    /* Tab underline */
+    .tab-btn { position: relative; padding-bottom: 12px; }
+    .tab-btn.active { color: #7C3AED; font-weight: 600; }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+      height: 2px; background: #7C3AED; border-radius: 2px 2px 0 0;
+    }
+
+    /* Action btn */
+    .btn-action {
+      font-size: 11px; font-weight: 600; padding: 4px 10px;
+      border-radius: 7px; border: 1.5px solid #E5E7EB;
+      color: #374151; background: #fff;
+      transition: background 0.15s, border-color 0.15s;
+      cursor: pointer;
+    }
+    .btn-action:hover { background: #F9FAFB; border-color: #D1D5DB; }
+
+    /* Playlist stack */
+    .playlist-stack { position: relative; width: 80px; height: 56px; flex-shrink: 0; }
+    .playlist-stack .layer {
+      position: absolute; border-radius: 6px; overflow: hidden;
+    }
+    .playlist-stack .layer-3 { inset: 0; transform: rotate(-4deg) translateX(-4px); opacity: 0.4; }
+    .playlist-stack .layer-2 { inset: 0; transform: rotate(-2deg) translateX(-2px); opacity: 0.65; }
+    .playlist-stack .layer-1 { inset: 0; }
+
+    /* Mobile nav */
+    .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; padding: 8px 4px; color: #6B7280; text-decoration: none; }
+    .mobile-nav-item.active { color: #7C3AED; }
+    .mobile-nav-item span { font-size: 10px; font-weight: 500; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.25); border-radius: 10px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ═══════════════════════════════════════════════════════ SIDEBAR -->
+  <aside class="sidebar fixed top-0 left-0 h-full z-40 flex flex-col hidden lg:flex overflow-y-auto">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2.5 px-5 py-4 border-b border-white/10 flex-shrink-0">
+      <div class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="text-white font-bold text-base tracking-tight">Sozialzync</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-3 space-y-0.5">
+
+      <div class="nav-section-label">Main</div>
+
+      <a href="./index.html" class="nav-item">
+        <i data-lucide="layout-dashboard" class="icon"></i> Dashboard
+      </a>
+      <a href="./research.html" class="nav-item">
+        <i data-lucide="search" class="icon"></i> Research
+      </a>
+      <a href="./library.html" class="nav-item active">
+        <i data-lucide="library" class="icon"></i> Library
+      </a>
+      <a href="./studio.html" class="nav-item">
+        <i data-lucide="video" class="icon"></i> Studio
+      </a>
+      <a href="./publish.html" class="nav-item">
+        <i data-lucide="send" class="icon"></i> Publish
+      </a>
+      <a href="./analytics.html" class="nav-item">
+        <i data-lucide="bar-chart-2" class="icon"></i> Analytics
+      </a>
+
+      <div class="nav-section-label mt-2">Tools</div>
+
+      <a href="./copilot.html" class="nav-item">
+        <i data-lucide="bot" class="icon"></i> AI Copilot
+      </a>
+      <a href="./thumbnails.html" class="nav-item">
+        <i data-lucide="image" class="icon"></i> Thumbnails
+      </a>
+      <a href="./scripts.html" class="nav-item">
+        <i data-lucide="file-text" class="icon"></i> Scripts
+      </a>
+      <a href="./seo.html" class="nav-item">
+        <i data-lucide="trending-up" class="icon"></i> SEO Optimizer
+      </a>
+      <a href="./calendar.html" class="nav-item">
+        <i data-lucide="calendar" class="icon"></i> Calendar
+      </a>
+
+      <div class="nav-section-label mt-2">Team</div>
+
+      <a href="./team.html" class="nav-item">
+        <i data-lucide="users" class="icon"></i> Team
+      </a>
+      <a href="./billing.html" class="nav-item">
+        <i data-lucide="credit-card" class="icon"></i> Billing
+      </a>
+
+    </nav>
+
+    <!-- Bottom settings -->
+    <div class="px-3 pb-4 border-t border-white/10 pt-3 space-y-0.5 flex-shrink-0">
+      <a href="../settings/index.html" class="nav-item">
+        <i data-lucide="settings" class="icon"></i> Settings
+      </a>
+      <a href="../settings/profile.html" class="nav-item">
+        <i data-lucide="user-circle" class="icon"></i> Profile
+      </a>
+      <a href="../settings/integrations.html" class="nav-item">
+        <i data-lucide="plug" class="icon"></i> Integrations
+      </a>
+      <div class="nav-item mt-2 cursor-pointer">
+        <div class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">M</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-white text-xs font-semibold truncate">My Channel</div>
+          <div class="text-white/50 text-[10px] truncate">Creator Pro</div>
+        </div>
+        <i data-lucide="chevron-up" class="icon opacity-60"></i>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════ TOPBAR -->
+  <header class="topbar fixed top-0 left-0 lg:left-[244px] right-0 z-30 bg-white flex items-center px-5 gap-4">
+    <!-- Mobile menu btn -->
+    <button class="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+      <i data-lucide="menu" class="w-5 h-5"></i>
+    </button>
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-sm text-gray-400 hidden sm:flex">
+      <span>Sozialzync</span>
+      <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+      <span class="text-gray-700 font-semibold">Content Library</span>
+    </div>
+
+    <div class="flex-1"></div>
+
+    <!-- Topbar right -->
+    <div class="flex items-center gap-2.5">
+      <button class="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-3 h-8 hover:bg-gray-100 transition">
+        <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+        <span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+      </button>
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-800 flex items-center justify-center text-white text-xs font-bold cursor-pointer">M</div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════ MAIN -->
+  <main class="lg:ml-[244px] pt-[62px] p-6 pb-24 lg:pb-6 min-h-screen">
+
+    <!-- 1. HEADER ROW -->
+    <div class="flex flex-wrap items-center gap-3 mb-5">
+      <h1 class="text-xl font-bold text-gray-900 flex-1 min-w-0">Content Library</h1>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Search -->
+        <div class="relative">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <input
+            type="text"
+            placeholder="Search videos…"
+            class="pl-8 pr-3 h-8 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 w-44 transition"
+          />
+        </div>
+
+        <!-- Filter dropdown -->
+        <div class="relative">
+          <button class="flex items-center gap-1.5 h-8 px-3 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+            <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i>
+            Filter
+            <i data-lucide="chevron-down" class="w-3 h-3 text-gray-400"></i>
+          </button>
+        </div>
+
+        <!-- Sync button -->
+        <button class="flex items-center gap-1.5 h-8 px-3 text-sm font-semibold text-primary border-2 border-primary rounded-xl bg-white hover:bg-primary-light transition">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          Sync with YouTube
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. CHANNEL SELECTOR BAR -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-4 mb-4 flex items-center gap-3 shadow-sm">
+      <!-- Avatar -->
+      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-800 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+        MT
+      </div>
+
+      <!-- Channel name + dropdown -->
+      <div class="flex items-center gap-1.5 cursor-pointer group">
+        <span class="font-semibold text-gray-900 text-sm">My Tech Channel</span>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-hover:text-primary transition"></i>
+      </div>
+
+      <!-- Subscriber count -->
+      <div class="flex items-center gap-1 text-xs text-gray-500">
+        <i data-lucide="users" class="w-3.5 h-3.5"></i>
+        <span>24,830 subscribers</span>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <!-- Last synced -->
+      <div class="flex items-center gap-2 text-xs text-gray-400">
+        <span>Last synced: 2 min ago</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-sm shadow-emerald-300"></span>
+      </div>
+    </div>
+
+    <!-- 3. TABS -->
+    <div class="border-b border-gray-200 mb-5 flex gap-1" id="tabs">
+      <button class="tab-btn active text-sm text-gray-500 px-1 mr-4 transition" onclick="switchTab('videos', this)">
+        Videos <span class="ml-1 text-[11px] font-medium bg-primary-light text-primary px-1.5 py-0.5 rounded-full">47</span>
+      </button>
+      <button class="tab-btn text-sm text-gray-500 px-1 mr-4 transition" onclick="switchTab('playlists', this)">
+        Playlists <span class="ml-1 text-[11px] font-medium bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">8</span>
+      </button>
+      <button class="tab-btn text-sm text-gray-500 px-1 mr-4 transition" onclick="switchTab('drafts', this)">
+        Drafts <span class="ml-1 text-[11px] font-medium bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">5</span>
+      </button>
+      <button class="tab-btn text-sm text-gray-500 px-1 transition" onclick="switchTab('assets', this)">
+        Assets
+      </button>
+    </div>
+
+    <!-- ──────────────── VIDEOS TAB ──────────────── -->
+    <div id="tab-videos">
+
+      <!-- 4. VIDEO GRID -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+
+        <!-- Card 1 -->
+        <div class="video-card bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group">
+          <div class="thumb-gradient-1 aspect-video relative">
+            <!-- Duration badge -->
+            <span class="absolute top-2 right-2 bg-black/70 text-white text-[11px] font-medium px-2 py-0.5 rounded z-10">18:42</span>
+            <!-- Title overlay -->
+            <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <p class="text-white text-xs font-semibold leading-snug">Top 5 AI Tools for Content Creators</p>
+            </div>
+            <!-- Hover play -->
+            <div class="thumb-overlay absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <i data-lucide="play" class="w-4 h-4 text-gray-900 ml-0.5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="p-3">
+            <p class="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug">Top 5 AI Tools for Content Creators</p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+              <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i>34.8K</span>
+              <span class="flex items-center gap-1"><i data-lucide="thumbs-up" class="w-3 h-3"></i>2.1K</span>
+              <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>342</span>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">Published Aug 5, 2026</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <button class="btn-action">Edit</button>
+              <button class="btn-action text-primary border-primary/30 bg-primary-light hover:bg-purple-100">Repurpose</button>
+              <button class="btn-action ml-auto px-2">
+                <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="video-card bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group">
+          <div class="thumb-gradient-2 aspect-video relative">
+            <span class="absolute top-2 right-2 bg-black/70 text-white text-[11px] font-medium px-2 py-0.5 rounded z-10">14:28</span>
+            <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <p class="text-white text-xs font-semibold leading-snug">ChatGPT vs Claude: Honest Review</p>
+            </div>
+            <div class="thumb-overlay absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <i data-lucide="play" class="w-4 h-4 text-gray-900 ml-0.5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="p-3">
+            <p class="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug">ChatGPT vs Claude: Honest Review</p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+              <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i>28.3K</span>
+              <span class="flex items-center gap-1"><i data-lucide="thumbs-up" class="w-3 h-3"></i>1.8K</span>
+              <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>219</span>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">Published Jul 28, 2026</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <button class="btn-action">Edit</button>
+              <button class="btn-action text-primary border-primary/30 bg-primary-light hover:bg-purple-100">Repurpose</button>
+              <button class="btn-action ml-auto px-2">
+                <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="video-card bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group">
+          <div class="thumb-gradient-3 aspect-video relative">
+            <span class="absolute top-2 right-2 bg-black/70 text-white text-[11px] font-medium px-2 py-0.5 rounded z-10">9:15</span>
+            <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <p class="text-white text-xs font-semibold leading-snug">Morning Routine for YouTubers</p>
+            </div>
+            <div class="thumb-overlay absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <i data-lucide="play" class="w-4 h-4 text-gray-900 ml-0.5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="p-3">
+            <p class="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug">Morning Routine for YouTubers</p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+              <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i>21.1K</span>
+              <span class="flex items-center gap-1"><i data-lucide="thumbs-up" class="w-3 h-3"></i>1.4K</span>
+              <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>178</span>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">Published Jul 21, 2026</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <button class="btn-action">Edit</button>
+              <button class="btn-action text-primary border-primary/30 bg-primary-light hover:bg-purple-100">Repurpose</button>
+              <button class="btn-action ml-auto px-2">
+                <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="video-card bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group">
+          <div class="thumb-gradient-4 aspect-video relative">
+            <span class="absolute top-2 right-2 bg-black/70 text-white text-[11px] font-medium px-2 py-0.5 rounded z-10">22:10</span>
+            <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <p class="text-white text-xs font-semibold leading-snug">Tech Review: M4 MacBook Pro</p>
+            </div>
+            <div class="thumb-overlay absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <i data-lucide="play" class="w-4 h-4 text-gray-900 ml-0.5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="p-3">
+            <p class="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug">Tech Review: M4 MacBook Pro</p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+              <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i>18.2K</span>
+              <span class="flex items-center gap-1"><i data-lucide="thumbs-up" class="w-3 h-3"></i>1.1K</span>
+              <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>143</span>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">Published Jul 14, 2026</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <button class="btn-action">Edit</button>
+              <button class="btn-action text-primary border-primary/30 bg-primary-light hover:bg-purple-100">Repurpose</button>
+              <button class="btn-action ml-auto px-2">
+                <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="video-card bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group">
+          <div class="thumb-gradient-5 aspect-video relative">
+            <span class="absolute top-2 right-2 bg-black/70 text-white text-[11px] font-medium px-2 py-0.5 rounded z-10">16:55</span>
+            <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <p class="text-white text-xs font-semibold leading-snug">YouTube SEO Guide 2026</p>
+            </div>
+            <div class="thumb-overlay absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <i data-lucide="play" class="w-4 h-4 text-gray-900 ml-0.5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="p-3">
+            <p class="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug">YouTube SEO Guide 2026</p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+              <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i>14.1K</span>
+              <span class="flex items-center gap-1"><i data-lucide="thumbs-up" class="w-3 h-3"></i>987</span>
+              <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>96</span>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">Published Jul 7, 2026</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <button class="btn-action">Edit</button>
+              <button class="btn-action text-primary border-primary/30 bg-primary-light hover:bg-purple-100">Repurpose</button>
+              <button class="btn-action ml-auto px-2">
+                <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="video-card bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group">
+          <div class="thumb-gradient-6 aspect-video relative">
+            <span class="absolute top-2 right-2 bg-black/70 text-white text-[11px] font-medium px-2 py-0.5 rounded z-10">11:30</span>
+            <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <p class="text-white text-xs font-semibold leading-snug">Beginner's Guide to AI Content</p>
+            </div>
+            <div class="thumb-overlay absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <i data-lucide="play" class="w-4 h-4 text-gray-900 ml-0.5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="p-3">
+            <p class="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug">Beginner's Guide to AI Content</p>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+              <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i>11.4K</span>
+              <span class="flex items-center gap-1"><i data-lucide="thumbs-up" class="w-3 h-3"></i>823</span>
+              <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>74</span>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">Published Jun 30, 2026</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <button class="btn-action">Edit</button>
+              <button class="btn-action text-primary border-primary/30 bg-primary-light hover:bg-purple-100">Repurpose</button>
+              <button class="btn-action ml-auto px-2">
+                <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 5. LOAD MORE -->
+      <div class="flex justify-center mt-6">
+        <button class="flex items-center gap-2 px-6 py-2 text-sm font-semibold text-gray-600 border-2 border-gray-200 rounded-xl hover:border-primary hover:text-primary bg-white transition">
+          <i data-lucide="loader" class="w-4 h-4"></i>
+          Load more videos
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ──────────────── PLAYLISTS TAB (hidden by default) ──────────────── -->
+    <div id="tab-playlists" class="hidden">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+
+        <!-- Playlist card 1 -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group">
+          <!-- Stacked thumbnail -->
+          <div class="playlist-stack flex-shrink-0">
+            <div class="layer layer-3 thumb-gradient-2 w-20 h-14"></div>
+            <div class="layer layer-2 thumb-gradient-1 w-20 h-14"></div>
+            <div class="layer layer-1 thumb-gradient-5 w-20 h-14 flex items-end justify-end p-1">
+              <span class="bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">12</span>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-gray-900 truncate">AI & Machine Learning Series</p>
+            <p class="text-xs text-gray-400 mt-0.5">12 videos · 184.3K total views</p>
+            <div class="flex items-center gap-2 mt-2">
+              <button class="btn-action text-xs py-1">Manage</button>
+              <button class="btn-action text-xs py-1 text-primary border-primary/30 bg-primary-light">Add Video</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playlist card 2 -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group">
+          <div class="playlist-stack flex-shrink-0">
+            <div class="layer layer-3 thumb-gradient-3 w-20 h-14"></div>
+            <div class="layer layer-2 thumb-gradient-4 w-20 h-14"></div>
+            <div class="layer layer-1 thumb-gradient-6 w-20 h-14 flex items-end justify-end p-1">
+              <span class="bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">8</span>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-gray-900 truncate">Creator Productivity Hacks</p>
+            <p class="text-xs text-gray-400 mt-0.5">8 videos · 97.6K total views</p>
+            <div class="flex items-center gap-2 mt-2">
+              <button class="btn-action text-xs py-1">Manage</button>
+              <button class="btn-action text-xs py-1 text-primary border-primary/30 bg-primary-light">Add Video</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playlist card 3 -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group">
+          <div class="playlist-stack flex-shrink-0">
+            <div class="layer layer-3 thumb-gradient-5 w-20 h-14"></div>
+            <div class="layer layer-2 thumb-gradient-2 w-20 h-14"></div>
+            <div class="layer layer-1 thumb-gradient-1 w-20 h-14 flex items-end justify-end p-1">
+              <span class="bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">15</span>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-gray-900 truncate">Tech Reviews & Unboxings</p>
+            <p class="text-xs text-gray-400 mt-0.5">15 videos · 241.8K total views</p>
+            <div class="flex items-center gap-2 mt-2">
+              <button class="btn-action text-xs py-1">Manage</button>
+              <button class="btn-action text-xs py-1 text-primary border-primary/30 bg-primary-light">Add Video</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ──────────────── DRAFTS TAB ──────────────── -->
+    <div id="tab-drafts" class="hidden">
+      <div class="flex flex-col gap-3">
+        <!-- Draft item -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="file-edit" class="w-5 h-5 text-amber-500"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-gray-900 truncate">How to Build a YouTube Automation System</p>
+            <p class="text-xs text-gray-400 mt-0.5">Script draft · Last edited 3 hours ago</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-[11px] font-medium text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">Draft</span>
+            <button class="btn-action text-xs py-1">Continue</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="video" class="w-5 h-5 text-blue-500"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-gray-900 truncate">Top 10 Productivity Apps 2026</p>
+            <p class="text-xs text-gray-400 mt-0.5">Video production · Last edited 1 day ago</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-[11px] font-medium text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">In Progress</span>
+            <button class="btn-action text-xs py-1">Continue</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="file-edit" class="w-5 h-5 text-amber-500"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-gray-900 truncate">Why Every Creator Needs AI in 2026</p>
+            <p class="text-xs text-gray-400 mt-0.5">Script draft · Last edited 2 days ago</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-[11px] font-medium text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">Draft</span>
+            <button class="btn-action text-xs py-1">Continue</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition">
+          <div class="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="image" class="w-5 h-5 text-primary"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-gray-900 truncate">Thumbnail Batch — Tech Review Series</p>
+            <p class="text-xs text-gray-400 mt-0.5">Thumbnail draft · Last edited 3 days ago</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-[11px] font-medium text-primary bg-primary-light border border-primary/20 px-2 py-0.5 rounded-full">Review</span>
+            <button class="btn-action text-xs py-1">Continue</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="file-edit" class="w-5 h-5 text-amber-500"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-gray-900 truncate">Beginner Investing with AI Tools</p>
+            <p class="text-xs text-gray-400 mt-0.5">Script draft · Last edited 5 days ago</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-[11px] font-medium text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">Draft</span>
+            <button class="btn-action text-xs py-1">Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────── ASSETS TAB ──────────────── -->
+    <div id="tab-assets" class="hidden">
+      <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+        <!-- Asset thumbnails -->
+        <div class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-sm transition cursor-pointer group">
+          <div class="aspect-video thumb-gradient-1 relative flex items-center justify-center">
+            <i data-lucide="image" class="w-8 h-8 text-white/40"></i>
+          </div>
+          <div class="p-2.5">
+            <p class="text-xs font-semibold text-gray-800 truncate">channel-banner-v3.png</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">2560×1440 · 1.2 MB</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-sm transition cursor-pointer group">
+          <div class="aspect-video thumb-gradient-5 relative flex items-center justify-center">
+            <i data-lucide="music" class="w-8 h-8 text-white/40"></i>
+          </div>
+          <div class="p-2.5">
+            <p class="text-xs font-semibold text-gray-800 truncate">intro-music-upbeat.mp3</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">Audio · 2:34 · 4.8 MB</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-sm transition cursor-pointer group">
+          <div class="aspect-video thumb-gradient-3 relative flex items-center justify-center">
+            <i data-lucide="file-video" class="w-8 h-8 text-white/40"></i>
+          </div>
+          <div class="p-2.5">
+            <p class="text-xs font-semibold text-gray-800 truncate">outro-animation-v2.mp4</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">Video · 0:10 · 18.4 MB</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-sm transition cursor-pointer group">
+          <div class="aspect-video thumb-gradient-4 relative flex items-center justify-center">
+            <i data-lucide="image" class="w-8 h-8 text-white/40"></i>
+          </div>
+          <div class="p-2.5">
+            <p class="text-xs font-semibold text-gray-800 truncate">logo-transparent.png</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">1024×1024 · 340 KB</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════ MOBILE BOTTOM NAV -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex items-center px-2 h-16 shadow-lg">
+    <a href="./index.html" class="mobile-nav-item">
+      <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+      <span>Dashboard</span>
+    </a>
+    <a href="./research.html" class="mobile-nav-item">
+      <i data-lucide="search" class="w-5 h-5"></i>
+      <span>Research</span>
+    </a>
+    <a href="./library.html" class="mobile-nav-item active">
+      <i data-lucide="library" class="w-5 h-5"></i>
+      <span>Library</span>
+    </a>
+    <a href="./studio.html" class="mobile-nav-item">
+      <i data-lucide="video" class="w-5 h-5"></i>
+      <span>Studio</span>
+    </a>
+    <a href="./publish.html" class="mobile-nav-item">
+      <i data-lucide="send" class="w-5 h-5"></i>
+      <span>Publish</span>
+    </a>
+    <a href="./analytics.html" class="mobile-nav-item">
+      <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+      <span>Analytics</span>
+    </a>
+  </nav>
+
+  <script>
+    lucide.createIcons();
+
+    // Tab switcher
+    function switchTab(name, btn) {
+      // Hide all tab panels
+      ['videos', 'playlists', 'drafts', 'assets'].forEach(function(t) {
+        document.getElementById('tab-' + t).classList.add('hidden');
+      });
+      // Show selected
+      document.getElementById('tab-' + name).classList.remove('hidden');
+      // Update tab button styles
+      document.querySelectorAll('.tab-btn').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+    }
+  </script>
+</body>
+</html>

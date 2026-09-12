@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — Sozialzync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            primary: '#7C3AED',
+            'primary-light': '#a78bfa',
+            'page-bg': '#F4F3FB',
+            'card-border': '#ECECF3',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #F4F3FB; }
+    .sidebar-gradient { background: linear-gradient(185deg, #7C3AED, #5B21B6); }
+    .primary-gradient { background: linear-gradient(135deg, #a78bfa, #7C3AED); }
+    .nav-inactive { color: rgba(255,255,255,0.7); }
+    .nav-inactive:hover { background: rgba(255,255,255,0.08); color: white; }
+    .topbar-shadow { box-shadow: 0 1px 0 #ECECF3; }
+    .card-shadow { box-shadow: 0 1px 4px rgba(124,58,237,0.06); }
+    .input-focus:focus { outline: none; border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+    .stat-card:hover { box-shadow: 0 4px 20px rgba(124,58,237,0.10); transform: translateY(-1px); }
+    .stat-card { transition: all 0.15s ease; }
+    .tab-active { background: white; color: #7C3AED; box-shadow: 0 1px 4px rgba(124,58,237,0.10); font-weight: 600; }
+    .tab-inactive { color: #6b7280; }
+    .tab-inactive:hover { color: #374151; background: white/50; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 99px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ═══════════════════════════════════════════════════════════ SIDEBAR -->
+  <aside class="sidebar-gradient fixed left-0 top-0 bottom-0 w-[244px] flex flex-col z-40 hidden lg:flex">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-3 px-5 py-5 border-b border-white/10">
+      <div class="w-8 h-8 rounded-lg primary-gradient flex items-center justify-center shadow-lg">
+        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="text-white font-bold text-[15px] tracking-tight">Sozialzync</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <a href="home.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="house" class="w-4 h-4 shrink-0"></i>
+        Home
+      </a>
+      <a href="projects.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="folder" class="w-4 h-4 shrink-0"></i>
+        Projects
+      </a>
+      <a href="editor.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="film" class="w-4 h-4 shrink-0"></i>
+        Video Editor
+      </a>
+      <a href="studio.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="sparkles" class="w-4 h-4 shrink-0"></i>
+        Creative Studio
+      </a>
+      <a href="calendar.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="calendar" class="w-4 h-4 shrink-0"></i>
+        Content Calendar
+      </a>
+      <a href="publish.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
+        Publish Hub
+      </a>
+      <a href="insights.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="bar-chart-2" class="w-4 h-4 shrink-0"></i>
+        Analytics
+      </a>
+
+      <div class="my-3 border-t border-white/10"></div>
+
+      <a href="copilot.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="bot" class="w-4 h-4 shrink-0"></i>
+        AI Copilot
+      </a>
+      <a href="shorts-studio.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="zap" class="w-4 h-4 shrink-0"></i>
+        Shorts Studio
+      </a>
+      <a href="library.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="library" class="w-4 h-4 shrink-0"></i>
+        Library
+      </a>
+      <a href="channel-access.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="shield-check" class="w-4 h-4 shrink-0"></i>
+        Channel Access
+      </a>
+    </nav>
+
+    <!-- Bottom section: user info + admin badge + settings -->
+    <div class="px-3 pb-5 border-t border-white/10 pt-3 space-y-0.5">
+      <!-- User info with Admin badge -->
+      <div class="flex items-center gap-2.5 px-3 py-2.5 mb-1">
+        <div class="w-8 h-8 rounded-full primary-gradient flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow">
+          CF
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-white text-[12.5px] font-semibold truncate leading-tight">Creator Force</span>
+            <span class="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none shrink-0">Admin</span>
+          </div>
+          <span class="text-white/50 text-[11px] truncate block leading-tight">superadmin</span>
+        </div>
+      </div>
+
+      <a href="../settings/settings.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="settings" class="w-4 h-4 shrink-0"></i>
+        Settings
+      </a>
+      <a href="../settings/brand-kit.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="palette" class="w-4 h-4 shrink-0"></i>
+        Brand Kit
+      </a>
+      <a href="../settings/wallet.html" class="nav-inactive flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all">
+        <i data-lucide="credit-card" class="w-4 h-4 shrink-0"></i>
+        Billing
+      </a>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════ TOPBAR -->
+  <header class="fixed top-0 left-0 lg:left-[244px] right-0 h-[62px] bg-white topbar-shadow z-30 flex items-center px-5 gap-4">
+
+    <!-- Mobile logo -->
+    <div class="flex items-center gap-2 lg:hidden mr-1">
+      <div class="w-7 h-7 rounded-md primary-gradient flex items-center justify-center">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-white"></i>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="flex-1 max-w-[420px] relative">
+      <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+      <input
+        type="text"
+        placeholder="Search users, logs, events…"
+        class="w-full pl-9 pr-4 py-2 bg-[#F4F3FB] border border-[#ECECF3] rounded-lg text-[13px] text-gray-700 placeholder-gray-400 input-focus transition-all"
+      />
+    </div>
+
+    <div class="flex-1"></div>
+
+    <!-- Bell -->
+    <button class="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F4F3FB] transition-colors">
+      <i data-lucide="bell" class="w-[18px] h-[18px] text-gray-500"></i>
+      <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+    </button>
+
+    <!-- Avatar + Admin badge -->
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-full primary-gradient flex items-center justify-center text-white text-[12px] font-bold shadow">
+        CF
+      </div>
+      <span class="hidden sm:inline-block bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full leading-none">Super Admin</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ MAIN -->
+  <main class="lg:ml-[244px] pt-[62px] p-5 lg:p-6 pb-24 lg:pb-6">
+
+    <!-- ─── 1. HEADER ROW ──────────────────────────────────────────── -->
+    <div class="flex flex-wrap items-center gap-3 mb-6">
+      <div class="flex items-center gap-3 flex-1 min-w-0">
+        <h1 class="text-[24px] lg:text-[28px] font-extrabold text-gray-900 leading-tight">Admin Panel</h1>
+        <span class="bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-full leading-none shrink-0">Super Admin</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button class="flex items-center gap-2 px-4 py-2 bg-white border border-[#ECECF3] rounded-lg text-[13px] font-semibold text-gray-700 hover:border-primary hover:text-primary transition-all card-shadow">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          Refresh
+        </button>
+        <button class="flex items-center gap-2 px-4 py-2 primary-gradient rounded-lg text-[13px] font-semibold text-white shadow hover:opacity-90 transition-opacity">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          Export Data
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── 2. STATS ROW ───────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+      <!-- Total Users -->
+      <div class="stat-card bg-white rounded-2xl border border-[#ECECF3] p-5 card-shadow">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+            <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+          </div>
+          <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+124</span>
+        </div>
+        <div class="text-[26px] font-extrabold text-gray-900 leading-none mb-1">2,847</div>
+        <div class="text-[12.5px] font-semibold text-gray-600 mb-0.5">Total Users</div>
+        <div class="text-[11.5px] text-gray-400">+124 this week</div>
+      </div>
+
+      <!-- Active Projects -->
+      <div class="stat-card bg-white rounded-2xl border border-[#ECECF3] p-5 card-shadow">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+            <i data-lucide="folder-open" class="w-5 h-5 text-purple-600"></i>
+          </div>
+          <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+891</span>
+        </div>
+        <div class="text-[26px] font-extrabold text-gray-900 leading-none mb-1">12,403</div>
+        <div class="text-[12.5px] font-semibold text-gray-600 mb-0.5">Active Projects</div>
+        <div class="text-[11.5px] text-gray-400">+891 this week</div>
+      </div>
+
+      <!-- AI Tokens Used -->
+      <div class="stat-card bg-white rounded-2xl border border-[#ECECF3] p-5 card-shadow">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+            <i data-lucide="cpu" class="w-5 h-5 text-amber-600"></i>
+          </div>
+          <span class="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Aug</span>
+        </div>
+        <div class="text-[26px] font-extrabold text-gray-900 leading-none mb-1">48.2M</div>
+        <div class="text-[12.5px] font-semibold text-gray-600 mb-0.5">AI Tokens Used</div>
+        <div class="text-[11.5px] text-gray-400">This month</div>
+      </div>
+
+      <!-- Monthly Revenue -->
+      <div class="stat-card bg-white rounded-2xl border border-[#ECECF3] p-5 card-shadow">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <i data-lucide="dollar-sign" class="w-5 h-5 text-emerald-600"></i>
+          </div>
+          <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+12.4%</span>
+        </div>
+        <div class="text-[26px] font-extrabold text-gray-900 leading-none mb-1">$94,320</div>
+        <div class="text-[12.5px] font-semibold text-gray-600 mb-0.5">Monthly Revenue</div>
+        <div class="text-[11.5px] text-gray-400">+12.4% vs last month</div>
+      </div>
+    </div>
+
+    <!-- ─── 3. TABS ────────────────────────────────────────────────── -->
+    <div class="bg-[#ECECF3] rounded-xl p-1 inline-flex gap-1 mb-5">
+      <button id="tab-users" onclick="switchTab('users')" class="tab-active px-4 py-2 rounded-lg text-[13px] transition-all">
+        Users
+      </button>
+      <button id="tab-ai" onclick="switchTab('ai')" class="tab-inactive px-4 py-2 rounded-lg text-[13px] font-medium transition-all">
+        AI Usage
+      </button>
+      <button id="tab-health" onclick="switchTab('health')" class="tab-inactive px-4 py-2 rounded-lg text-[13px] font-medium transition-all">
+        System Health
+      </button>
+      <button id="tab-audit" onclick="switchTab('audit')" class="tab-inactive px-4 py-2 rounded-lg text-[13px] font-medium transition-all">
+        Audit Log
+      </button>
+    </div>
+
+    <!-- ─── 4. FILTER ROW ─────────────────────────────────────────── -->
+    <div class="flex flex-wrap gap-3 mb-4">
+      <div class="relative flex-1 min-w-[200px] max-w-xs">
+        <i data-lucide="search" class="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        <input
+          type="text"
+          placeholder="Search users…"
+          class="w-full pl-8 pr-4 py-2 bg-white border border-[#ECECF3] rounded-lg text-[12.5px] text-gray-700 placeholder-gray-400 input-focus transition-all card-shadow"
+        />
+      </div>
+      <select class="px-3 py-2 bg-white border border-[#ECECF3] rounded-lg text-[12.5px] text-gray-700 input-focus card-shadow appearance-none pr-8 cursor-pointer" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236B7280\' stroke-width=\'2\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E'); background-repeat:no-repeat; background-position: right 10px center;">
+        <option>All Plans</option>
+        <option>Free</option>
+        <option>Starter</option>
+        <option>Pro</option>
+        <option>Agency</option>
+      </select>
+      <select class="px-3 py-2 bg-white border border-[#ECECF3] rounded-lg text-[12.5px] text-gray-700 input-focus card-shadow appearance-none pr-8 cursor-pointer" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236B7280\' stroke-width=\'2\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E'); background-repeat:no-repeat; background-position: right 10px center;">
+        <option>All Status</option>
+        <option>Active</option>
+        <option>Suspended</option>
+      </select>
+      <button class="flex items-center gap-2 px-4 py-2 bg-white border border-[#ECECF3] rounded-lg text-[12.5px] font-semibold text-gray-700 hover:border-primary hover:text-primary transition-all card-shadow shrink-0">
+        <i data-lucide="file-down" class="w-3.5 h-3.5"></i>
+        Export CSV
+      </button>
+    </div>
+
+    <!-- ─── 5. USERS TABLE ────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl border border-[#ECECF3] overflow-hidden card-shadow mb-6">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px]">
+          <thead>
+            <tr class="bg-gray-50 border-b border-[#ECECF3]">
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-5 py-3.5 w-10">#</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-4 py-3.5">User</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-4 py-3.5">Email</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-4 py-3.5">Plan</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-4 py-3.5">Status</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-4 py-3.5">Last Active</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-5 py-3.5">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#F4F3FB]">
+
+            <!-- Row 1 -->
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3.5 text-[12.5px] text-gray-400 font-medium">1</td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full primary-gradient flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm">CF</div>
+                  <span class="text-[13px] font-semibold text-gray-800">Creator One</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">creator1@gmail.com</td>
+              <td class="px-4 py-3.5">
+                <span class="bg-purple-100 text-purple-700 text-[11px] font-bold px-2.5 py-1 rounded-full">Pro</span>
+              </td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                  <span class="text-[12.5px] text-gray-700">Active</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">Just now</td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-2">
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-purple-100 hover:text-purple-600 text-gray-500 transition-colors">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">
+                    <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 2 -->
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3.5 text-[12.5px] text-gray-400 font-medium">2</td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm">MW</div>
+                  <span class="text-[13px] font-semibold text-gray-800">Tech Wizard</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">techwiz@email.com</td>
+              <td class="px-4 py-3.5">
+                <span class="bg-amber-100 text-amber-700 text-[11px] font-bold px-2.5 py-1 rounded-full">Agency</span>
+              </td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                  <span class="text-[12.5px] text-gray-700">Active</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">2h ago</td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-2">
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-purple-100 hover:text-purple-600 text-gray-500 transition-colors">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">
+                    <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 3 -->
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3.5 text-[12.5px] text-gray-400 font-medium">3</td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm">SJ</div>
+                  <span class="text-[13px] font-semibold text-gray-800">Sarah J</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">sarah@creator.io</td>
+              <td class="px-4 py-3.5">
+                <span class="bg-blue-100 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-full">Starter</span>
+              </td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                  <span class="text-[12.5px] text-gray-700">Active</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">Yesterday</td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-2">
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-purple-100 hover:text-purple-600 text-gray-500 transition-colors">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">
+                    <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 4 — Suspended -->
+            <tr class="hover:bg-[#FAFAFA] transition-colors bg-red-50/30">
+              <td class="px-5 py-3.5 text-[12.5px] text-gray-400 font-medium">4</td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm">RK</div>
+                  <span class="text-[13px] font-semibold text-gray-800">Rahul K</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">rahul@gmail.com</td>
+              <td class="px-4 py-3.5">
+                <span class="bg-gray-100 text-gray-600 text-[11px] font-bold px-2.5 py-1 rounded-full">Free</span>
+              </td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span class="text-[12.5px] text-red-600 font-medium">Suspended</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">3 days ago</td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-2">
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-purple-100 hover:text-purple-600 text-gray-500 transition-colors">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11.5px] font-semibold border border-emerald-200 transition-colors">
+                    <i data-lucide="user-check" class="w-3 h-3"></i>
+                    Unsuspend
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 5 -->
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3.5 text-[12.5px] text-gray-400 font-medium">5</td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm">PM</div>
+                  <span class="text-[13px] font-semibold text-gray-800">Pro Maker</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">promaker@yt.com</td>
+              <td class="px-4 py-3.5">
+                <span class="bg-purple-100 text-purple-700 text-[11px] font-bold px-2.5 py-1 rounded-full">Pro</span>
+              </td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                  <span class="text-[12.5px] text-gray-700">Active</span>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-[12.5px] text-gray-500">1h ago</td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-2">
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-purple-100 hover:text-purple-600 text-gray-500 transition-colors">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">
+                    <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+      <!-- Table footer -->
+      <div class="px-5 py-3 border-t border-[#ECECF3] flex items-center justify-between bg-gray-50">
+        <span class="text-[12px] text-gray-500">Showing 5 of 2,847 users</span>
+        <div class="flex items-center gap-1">
+          <button class="w-7 h-7 flex items-center justify-center rounded-lg border border-[#ECECF3] bg-white text-gray-400 hover:text-primary hover:border-primary transition-colors text-xs">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+          </button>
+          <button class="w-7 h-7 flex items-center justify-center rounded-lg bg-primary text-white text-[12px] font-semibold">1</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded-lg border border-[#ECECF3] bg-white text-gray-500 hover:text-primary hover:border-primary transition-colors text-[12px]">2</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded-lg border border-[#ECECF3] bg-white text-gray-400 hover:text-primary hover:border-primary transition-colors">
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 6. AI USAGE SECTION ───────────────────────────────────── -->
+    <div class="bg-white rounded-2xl border border-[#ECECF3] p-5 card-shadow mb-6">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h2 class="text-[15px] font-bold text-gray-900">AI Provider Usage</h2>
+          <p class="text-[12px] text-gray-400 mt-0.5">August 2026 — 48.2M tokens total</p>
+        </div>
+        <div class="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center">
+          <i data-lucide="cpu" class="w-4.5 h-[18px] text-purple-600"></i>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+
+        <!-- Claude -->
+        <div class="flex items-center gap-3">
+          <div class="w-28 shrink-0">
+            <div class="text-[12.5px] font-semibold text-gray-800">Claude</div>
+            <div class="text-[11px] text-gray-400">Anthropic</div>
+          </div>
+          <div class="flex-1 relative">
+            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-end pr-3 transition-all" style="width: 68%">
+                <span class="text-white text-[11px] font-bold">68%</span>
+              </div>
+            </div>
+          </div>
+          <div class="w-20 shrink-0 text-right">
+            <span class="text-[12.5px] font-semibold text-gray-800">32.8M</span>
+            <span class="text-[11px] text-gray-400 block">tokens</span>
+          </div>
+        </div>
+
+        <!-- OpenAI -->
+        <div class="flex items-center gap-3">
+          <div class="w-28 shrink-0">
+            <div class="text-[12.5px] font-semibold text-gray-800">OpenAI</div>
+            <div class="text-[11px] text-gray-400">GPT-4</div>
+          </div>
+          <div class="flex-1 relative">
+            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-end pr-3 transition-all" style="width: 21%">
+                <span class="text-white text-[11px] font-bold">21%</span>
+              </div>
+            </div>
+          </div>
+          <div class="w-20 shrink-0 text-right">
+            <span class="text-[12.5px] font-semibold text-gray-800">10.1M</span>
+            <span class="text-[11px] text-gray-400 block">tokens</span>
+          </div>
+        </div>
+
+        <!-- Gemini -->
+        <div class="flex items-center gap-3">
+          <div class="w-28 shrink-0">
+            <div class="text-[12.5px] font-semibold text-gray-800">Gemini</div>
+            <div class="text-[11px] text-gray-400">Google</div>
+          </div>
+          <div class="flex-1 relative">
+            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-blue-400 to-sky-500 flex items-center justify-end pr-3 transition-all" style="width: 11%">
+                <span class="text-white text-[11px] font-bold">11%</span>
+              </div>
+            </div>
+          </div>
+          <div class="w-20 shrink-0 text-right">
+            <span class="text-[12.5px] font-semibold text-gray-800">5.3M</span>
+            <span class="text-[11px] text-gray-400 block">tokens</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── 7. SYSTEM HEALTH ───────────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+
+      <!-- API Server -->
+      <div class="bg-white rounded-xl border border-[#ECECF3] p-4 text-center card-shadow">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+          <i data-lucide="server" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="text-[12.5px] font-semibold text-gray-700 mb-1">API Server</div>
+        <div class="flex items-center justify-center gap-1.5 mb-1">
+          <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+          <span class="text-[12px] text-emerald-600 font-semibold">Healthy</span>
+        </div>
+        <div class="text-[11px] text-gray-400">12ms</div>
+      </div>
+
+      <!-- Database -->
+      <div class="bg-white rounded-xl border border-[#ECECF3] p-4 text-center card-shadow">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+          <i data-lucide="database" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="text-[12.5px] font-semibold text-gray-700 mb-1">Database</div>
+        <div class="flex items-center justify-center gap-1.5 mb-1">
+          <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+          <span class="text-[12px] text-emerald-600 font-semibold">Healthy</span>
+        </div>
+        <div class="text-[11px] text-gray-400">4ms</div>
+      </div>
+
+      <!-- Queue -->
+      <div class="bg-white rounded-xl border border-[#ECECF3] p-4 text-center card-shadow">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+          <i data-lucide="list-todo" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="text-[12.5px] font-semibold text-gray-700 mb-1">Queue (BullMQ)</div>
+        <div class="flex items-center justify-center gap-1.5 mb-1">
+          <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+          <span class="text-[12px] text-emerald-600 font-semibold">Healthy</span>
+        </div>
+        <div class="text-[11px] text-gray-400">8ms</div>
+      </div>
+
+      <!-- Storage -->
+      <div class="bg-white rounded-xl border border-[#ECECF3] p-4 text-center card-shadow">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+          <i data-lucide="hard-drive" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="text-[12.5px] font-semibold text-gray-700 mb-1">Storage</div>
+        <div class="flex items-center justify-center gap-1.5 mb-1">
+          <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+          <span class="text-[12px] text-emerald-600 font-semibold">Healthy</span>
+        </div>
+        <div class="text-[11px] text-gray-400">22ms</div>
+      </div>
+
+      <!-- AI Providers — Degraded -->
+      <div class="bg-amber-50 rounded-xl border border-amber-200 p-4 text-center card-shadow">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center mx-auto mb-2">
+          <i data-lucide="cpu" class="w-5 h-5 text-amber-600"></i>
+        </div>
+        <div class="text-[12.5px] font-semibold text-gray-700 mb-1">AI Providers</div>
+        <div class="flex items-center justify-center gap-1.5 mb-1">
+          <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+          <span class="text-[12px] text-amber-600 font-semibold">Degraded</span>
+        </div>
+        <div class="text-[11px] text-amber-500 font-medium">1 provider degraded</div>
+      </div>
+
+    </div>
+
+    <!-- ─── 8. AUDIT LOG ───────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl border border-[#ECECF3] overflow-hidden card-shadow">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-[#ECECF3]">
+        <div>
+          <h2 class="text-[15px] font-bold text-gray-900">Audit Log</h2>
+          <p class="text-[12px] text-gray-400 mt-0.5">Recent admin actions</p>
+        </div>
+        <button class="flex items-center gap-1.5 px-3 py-1.5 border border-[#ECECF3] rounded-lg text-[12px] font-medium text-gray-600 hover:border-primary hover:text-primary transition-all">
+          <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+          Filter
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[640px]">
+          <thead>
+            <tr class="bg-gray-50 border-b border-[#ECECF3]">
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-5 py-3">User</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-4 py-3">Action</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-4 py-3">Target</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-4 py-3">Timestamp</th>
+              <th class="text-left text-[11.5px] font-semibold text-gray-500 px-5 py-3">IP Address</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#F4F3FB]">
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full primary-gradient flex items-center justify-center text-white text-[9px] font-bold shrink-0">CF</div>
+                  <span class="text-[12.5px] font-semibold text-gray-700">Admin CF</span>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="bg-red-50 text-red-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">Suspended user</span>
+              </td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">rahul@gmail.com</td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">Aug 19, 09:15</td>
+              <td class="px-5 py-3 text-[12px] text-gray-400 font-mono">103.x.x.x</td>
+            </tr>
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full primary-gradient flex items-center justify-center text-white text-[9px] font-bold shrink-0">CF</div>
+                  <span class="text-[12.5px] font-semibold text-gray-700">Admin CF</span>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="bg-blue-50 text-blue-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">Updated plan</span>
+              </td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">techwiz@email.com</td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">Aug 19, 08:42</td>
+              <td class="px-5 py-3 text-[12px] text-gray-400 font-mono">103.x.x.x</td>
+            </tr>
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-[9px] font-bold shrink-0">MA</div>
+                  <span class="text-[12.5px] font-semibold text-gray-700">Admin Mosha</span>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="bg-emerald-50 text-emerald-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">Exported data</span>
+              </td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">users_report.csv</td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">Aug 19, 07:30</td>
+              <td class="px-5 py-3 text-[12px] text-gray-400 font-mono">49.x.x.x</td>
+            </tr>
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full primary-gradient flex items-center justify-center text-white text-[9px] font-bold shrink-0">CF</div>
+                  <span class="text-[12.5px] font-semibold text-gray-700">Admin CF</span>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="bg-purple-50 text-purple-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">System config</span>
+              </td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">AI token limits</td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">Aug 18, 22:10</td>
+              <td class="px-5 py-3 text-[12px] text-gray-400 font-mono">103.x.x.x</td>
+            </tr>
+            <tr class="hover:bg-[#FAFAFA] transition-colors">
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-[9px] font-bold shrink-0">MA</div>
+                  <span class="text-[12.5px] font-semibold text-gray-700">Admin Mosha</span>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="bg-gray-100 text-gray-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">Login</span>
+              </td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">Admin panel</td>
+              <td class="px-4 py-3 text-[12.5px] text-gray-500">Aug 18, 21:05</td>
+              <td class="px-5 py-3 text-[12px] text-gray-400 font-mono">49.x.x.x</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════ MOBILE BOTTOM NAV -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#ECECF3] z-30 flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
+    <a href="home.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-gray-400 hover:text-primary transition-colors">
+      <i data-lucide="house" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Home</span>
+    </a>
+    <a href="projects.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-gray-400 hover:text-primary transition-colors">
+      <i data-lucide="folder" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Projects</span>
+    </a>
+    <a href="copilot.html" class="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors">
+      <div class="w-10 h-10 rounded-xl primary-gradient flex items-center justify-center shadow-lg -mt-5">
+        <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+      </div>
+      <span class="text-[10px] font-medium text-primary mt-0.5">Copilot</span>
+    </a>
+    <a href="insights.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-gray-400 hover:text-primary transition-colors">
+      <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Analytics</span>
+    </a>
+    <a href="admin.html" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-primary transition-colors">
+      <i data-lucide="shield" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold">Admin</span>
+    </a>
+  </nav>
+
+  <script>
+    // Tab switching
+    function switchTab(name) {
+      const tabs = ['users', 'ai', 'health', 'audit'];
+      tabs.forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        if (t === name) {
+          el.className = 'tab-active px-4 py-2 rounded-lg text-[13px] transition-all';
+        } else {
+          el.className = 'tab-inactive px-4 py-2 rounded-lg text-[13px] font-medium transition-all';
+        }
+      });
+    }
+
+    // Init Lucide icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>
