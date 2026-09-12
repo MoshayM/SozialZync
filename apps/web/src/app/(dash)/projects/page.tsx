@@ -1219,8 +1219,12 @@ function ProjectsInner() {
   const { isFreeTier, limits } = usePlan();
   const [showCreate, setShowCreate] = useState(false);
 
-  // Pre-fill from Research page "Start project from this topic"
+  // Auto-open modal from ?new=1 (mobile Create button) or Research page topic
   useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setShowCreate(true);
+      return;
+    }
     try {
       const topic = localStorage.getItem('cf_new_project_topic');
       if (topic) {

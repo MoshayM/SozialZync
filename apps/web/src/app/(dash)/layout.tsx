@@ -1358,8 +1358,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           {/* Centre — Create CTA */}
           <div className="flex-1 flex flex-col items-center justify-center h-full">
             <Link
-              href="/content"
-              aria-label="Create new content"
+              href="/projects?new=1"
+              aria-label="Create new project"
               className="flex flex-col items-center gap-[3px] touch-manipulation active:scale-95 transition-transform"
             >
               <span
