@@ -1121,7 +1121,7 @@ export function CopilotPanel() {
       {/* ── Floating widget ── */}
       <div
         className="cf-copilot-widget"
-        style={{ position:'fixed', bottom:24, right:24, zIndex:9999 }}
+        style={{ position:'fixed', bottom:24, right:24, zIndex:99999 }}
       >
 
         {/* ── OPEN WIDGET ── */}
