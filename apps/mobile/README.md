@@ -2,6 +2,8 @@
 
 Native Android and iOS wrapper for the Sozialzynk web app, built with [Capacitor](https://capacitorjs.com/).
 
+<!-- CI: node 22, pnpm 11 -->
+
 ## Architecture
 
 ```
