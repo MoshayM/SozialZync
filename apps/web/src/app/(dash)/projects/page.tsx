@@ -105,21 +105,55 @@ const PLATFORMS: PlatformDef[] = [
 ];
 
 const LANGUAGES = [
-  { code: 'en', name: 'English',    flag: '🇺🇸' },
-  { code: 'es', name: 'Spanish',    flag: '🇪🇸' },
-  { code: 'fr', name: 'French',     flag: '🇫🇷' },
-  { code: 'de', name: 'German',     flag: '🇩🇪' },
-  { code: 'pt', name: 'Portuguese', flag: '🇧🇷' },
-  { code: 'hi', name: 'Hindi',      flag: '🇮🇳' },
-  { code: 'ar', name: 'Arabic',     flag: '🇸🇦' },
-  { code: 'ja', name: 'Japanese',   flag: '🇯🇵' },
-  { code: 'ko', name: 'Korean',     flag: '🇰🇷' },
-  { code: 'zh', name: 'Chinese',    flag: '🇨🇳' },
-  { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
-  { code: 'tr', name: 'Turkish',    flag: '🇹🇷' },
-  { code: 'ru', name: 'Russian',    flag: '🇷🇺' },
-  { code: 'it', name: 'Italian',    flag: '🇮🇹' },
-  { code: 'nl', name: 'Dutch',      flag: '🇳🇱' },
+  { code: 'en',    name: 'English',             flag: '🇺🇸' },
+  { code: 'es',    name: 'Spanish',             flag: '🇪🇸' },
+  { code: 'fr',    name: 'French',              flag: '🇫🇷' },
+  { code: 'de',    name: 'German',              flag: '🇩🇪' },
+  { code: 'pt',    name: 'Portuguese',          flag: '🇧🇷' },
+  { code: 'hi',    name: 'Hindi',               flag: '🇮🇳' },
+  { code: 'ar',    name: 'Arabic',              flag: '🇸🇦' },
+  { code: 'ja',    name: 'Japanese',            flag: '🇯🇵' },
+  { code: 'ko',    name: 'Korean',              flag: '🇰🇷' },
+  { code: 'zh',    name: 'Chinese (Simplified)',flag: '🇨🇳' },
+  { code: 'zh-TW', name: 'Chinese (Traditional)', flag: '🇹🇼' },
+  { code: 'id',    name: 'Indonesian',          flag: '🇮🇩' },
+  { code: 'tr',    name: 'Turkish',             flag: '🇹🇷' },
+  { code: 'ru',    name: 'Russian',             flag: '🇷🇺' },
+  { code: 'it',    name: 'Italian',             flag: '🇮🇹' },
+  { code: 'nl',    name: 'Dutch',               flag: '🇳🇱' },
+  { code: 'bn',    name: 'Bengali',             flag: '🇧🇩' },
+  { code: 'ta',    name: 'Tamil',               flag: '🇮🇳' },
+  { code: 'te',    name: 'Telugu',              flag: '🇮🇳' },
+  { code: 'kn',    name: 'Kannada',             flag: '🇮🇳' },
+  { code: 'ml',    name: 'Malayalam',           flag: '🇮🇳' },
+  { code: 'mr',    name: 'Marathi',             flag: '🇮🇳' },
+  { code: 'gu',    name: 'Gujarati',            flag: '🇮🇳' },
+  { code: 'pa',    name: 'Punjabi',             flag: '🇮🇳' },
+  { code: 'ur',    name: 'Urdu',                flag: '🇵🇰' },
+  { code: 'ms',    name: 'Malay',               flag: '🇲🇾' },
+  { code: 'vi',    name: 'Vietnamese',          flag: '🇻🇳' },
+  { code: 'th',    name: 'Thai',                flag: '🇹🇭' },
+  { code: 'tl',    name: 'Filipino (Tagalog)',  flag: '🇵🇭' },
+  { code: 'pl',    name: 'Polish',              flag: '🇵🇱' },
+  { code: 'sv',    name: 'Swedish',             flag: '🇸🇪' },
+  { code: 'no',    name: 'Norwegian',           flag: '🇳🇴' },
+  { code: 'da',    name: 'Danish',              flag: '🇩🇰' },
+  { code: 'fi',    name: 'Finnish',             flag: '🇫🇮' },
+  { code: 'el',    name: 'Greek',               flag: '🇬🇷' },
+  { code: 'cs',    name: 'Czech',               flag: '🇨🇿' },
+  { code: 'ro',    name: 'Romanian',            flag: '🇷🇴' },
+  { code: 'hu',    name: 'Hungarian',           flag: '🇭🇺' },
+  { code: 'uk',    name: 'Ukrainian',           flag: '🇺🇦' },
+  { code: 'he',    name: 'Hebrew',              flag: '🇮🇱' },
+  { code: 'sw',    name: 'Swahili',             flag: '🇰🇪' },
+  { code: 'af',    name: 'Afrikaans',           flag: '🇿🇦' },
+  { code: 'hr',    name: 'Croatian',            flag: '🇭🇷' },
+  { code: 'sk',    name: 'Slovak',              flag: '🇸🇰' },
+  { code: 'bg',    name: 'Bulgarian',           flag: '🇧🇬' },
+  { code: 'lt',    name: 'Lithuanian',          flag: '🇱🇹' },
+  { code: 'lv',    name: 'Latvian',             flag: '🇱🇻' },
+  { code: 'et',    name: 'Estonian',            flag: '🇪🇪' },
+  { code: 'ca',    name: 'Catalan',             flag: '🏴󠁥󠁳󠁣󠁴󠁿' },
 ];
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; dot: string }> = {
@@ -724,6 +758,17 @@ function ProjectsTab({
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>('All Status');
   const [sortBy, setSortBy] = useState<string>('Latest');
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!langMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) setLangMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [langMenuOpen]);
 
   const displayProjects = (() => {
     let list = filteredProjects;
@@ -879,11 +924,11 @@ function ProjectsTab({
                         <h3 className="font-extrabold text-gray-900 text-sm leading-tight truncate">{p.title}</h3>
                         {p.targetLang && p.targetLang !== 'en' && (() => {
                           const lang = LANGUAGES.find(l => l.code === p.targetLang);
-                          return lang ? (
+                          return (
                             <span className="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e3ddf8' }}>
-                              {lang.flag} {lang.code.toUpperCase()}
+                              {lang ? `${lang.flag} ${lang.code.toUpperCase()}` : `🌐 ${p.targetLang}`}
                             </span>
-                          ) : null;
+                          );
                         })()}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-gray-600">
@@ -1152,18 +1197,53 @@ function ProjectsTab({
                   </Field>
 
                   <Field label="Content Language" hint="AI will generate scripts and research in this language">
-                    <div className="relative">
-                      <select
-                        value={form.targetLang}
-                        onChange={(e) => setForm(f => ({ ...f, targetLang: e.target.value }))}
-                        className={`${inputCls} pr-10 appearance-none cursor-pointer`}
+                    <div className="relative" ref={langMenuRef}>
+                      <button
+                        type="button"
+                        onClick={() => { setLangMenuOpen(o => !o); setLangSearch(''); }}
+                        className={`${inputCls} pr-10 text-left cursor-pointer flex items-center gap-2`}
                         style={inputStyle}
                       >
-                        {LANGUAGES.map(l => (
-                          <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
+                        {(() => { const l = LANGUAGES.find(x => x.code === form.targetLang); return l ? <><span>{l.flag}</span><span>{l.name}</span></> : <span className="text-gray-400">Select language…</span>; })()}
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                      </button>
+                      {langMenuOpen && (
+                        <div className="absolute z-50 mt-1 w-full rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden" style={{ maxHeight: 300 }}>
+                          <div className="p-2 border-b border-gray-100">
+                            <input
+                              autoFocus
+                              type="text"
+                              placeholder="Search or type any language…"
+                              value={langSearch}
+                              onChange={e => setLangSearch(e.target.value)}
+                              className="w-full px-3 py-1.5 text-sm rounded-xl border border-gray-200 outline-none focus:border-violet-400"
+                            />
+                          </div>
+                          <div className="overflow-y-auto" style={{ maxHeight: 230 }}>
+                            {LANGUAGES.filter(l => l.name.toLowerCase().includes(langSearch.toLowerCase())).map(l => (
+                              <button
+                                key={l.code} type="button"
+                                onClick={() => { setForm(f => ({ ...f, targetLang: l.code })); setLangMenuOpen(false); setLangSearch(''); }}
+                                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-violet-50 transition-colors ${form.targetLang === l.code ? 'bg-violet-50 font-semibold text-violet-700' : 'text-gray-700'}`}
+                              >
+                                <span className="text-base">{l.flag}</span>{l.name}
+                              </button>
+                            ))}
+                            {langSearch && !LANGUAGES.some(l => l.name.toLowerCase() === langSearch.toLowerCase()) && (
+                              <button
+                                type="button"
+                                onClick={() => { setForm(f => ({ ...f, targetLang: langSearch.trim() })); setLangMenuOpen(false); setLangSearch(''); }}
+                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-violet-600 hover:bg-violet-50 border-t border-gray-100"
+                              >
+                                <span className="text-base">🌐</span>Use &ldquo;{langSearch.trim()}&rdquo;
+                              </button>
+                            )}
+                            {LANGUAGES.filter(l => l.name.toLowerCase().includes(langSearch.toLowerCase())).length === 0 && !langSearch && (
+                              <p className="px-4 py-3 text-sm text-gray-400">No languages found</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </Field>
                 </div>
