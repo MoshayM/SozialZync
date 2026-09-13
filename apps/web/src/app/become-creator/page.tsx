@@ -592,6 +592,15 @@ export default function BecomeCreatorPage() {
                   <span className="text-sm font-bold">Web App</span>
                 </span>
               </a>
+              <a href="https://github.com/MoshayM/SozialZync/releases/download/android-latest/app-debug.apk" className="flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#166534,#15803d)',border:'1px solid rgba(52,168,83,.35)',minWidth:200,boxShadow:'0 8px 24px -6px rgba(22,101,52,.5)'}}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span className="flex flex-col text-left leading-tight">
+                  <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider">Android APK</span>
+                  <span className="text-sm font-bold">Download Direct</span>
+                </span>
+              </a>
               <a href="https://play.google.com/store/apps/details?id=app.sozialzynk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,.12)',minWidth:200,boxShadow:'0 8px 24px -6px rgba(0,0,0,.5)'}}>
                 <svg width="28" height="28" viewBox="0 0 48 48" fill="none" aria-hidden="true">
                   <path d="M8.8 4.3C7.6 5 6.9 6.3 6.9 8v32c0 1.7.7 3 1.9 3.7l.2.1L27.5 24v-.5L9 4.2l-.2.1z" fill="#4FC3F7"/>
@@ -628,16 +637,22 @@ export default function BecomeCreatorPage() {
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(52,168,83,.15)'}}>🤖</div>
                 <div>
                   <p className="text-white font-bold text-base mb-1">Android</p>
-                  <p className="text-white/45 text-sm leading-relaxed">Download from Google Play or open in Chrome and tap <strong className="text-white/70">Add to Home Screen</strong>.</p>
+                  <p className="text-white/45 text-sm leading-relaxed">Download the APK directly or get it on Google Play.</p>
                 </div>
-                <a href="https://play.google.com/store/apps/details?id=app.sozialzynk" target="_blank" rel="noopener noreferrer" className="mt-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 w-full" style={{background:'rgba(52,168,83,.12)',border:'1px solid rgba(52,168,83,.28)',color:'rgba(134,239,172,.9)'}}>
+                <a href="https://github.com/MoshayM/SozialZync/releases/download/android-latest/app-debug.apk" className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 w-full" style={{background:'rgba(52,168,83,.2)',border:'1px solid rgba(52,168,83,.4)',color:'rgba(134,239,172,1)'}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download APK (Latest)
+                </a>
+                <a href="https://play.google.com/store/apps/details?id=app.sozialzynk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 w-full" style={{background:'rgba(52,168,83,.08)',border:'1px solid rgba(52,168,83,.2)',color:'rgba(134,239,172,.6)'}}>
                   <svg width="16" height="16" viewBox="0 0 48 48" fill="none" aria-hidden="true">
                     <path d="M8.8 4.3C7.6 5 6.9 6.3 6.9 8v32c0 1.7.7 3 1.9 3.7l.2.1L27.5 24v-.5L9 4.2l-.2.1z" fill="#4FC3F7"/>
                     <path d="M33.8 30.3l-6.3-6.3v-.5l6.3-6.3.1.1 7.5 4.3c2.1 1.2 2.1 3.2 0 4.4l-7.5 4.3h-.1z" fill="#FFCA28"/>
                     <path d="M34 30.2L27.5 24 9 42.7c.7.7 1.8.8 3 .1l22-12.6" fill="#F44336"/>
                     <path d="M34 17.8L12 5.2C10.8 4.5 9.7 4.6 9 5.3L27.5 24 34 17.8z" fill="#4CAF50"/>
                   </svg>
-                  Get on Google Play
+                  Google Play (coming soon)
                 </a>
               </div>
               <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
