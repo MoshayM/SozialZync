@@ -163,3 +163,4 @@ For deep links (e.g. `sozialzync://auth/callback`), configure in:
 See `.github/workflows/mobile-android.yml` for the automated Android debug build. The workflow triggers on pushes to `apps/mobile/**` and uploads the APK as an artifact.
 
 For production releases, use [Fastlane](https://fastlane.tools/) or [Bitrise](https://bitrise.io/) with the keystore stored as a GitHub secret.
+
