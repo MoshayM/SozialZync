@@ -23,6 +23,8 @@ jobs:
   android-debug:
     name: Build Android debug APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
