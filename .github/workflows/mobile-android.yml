@@ -50,8 +50,8 @@ jobs:
         run: pnpm add:android
         working-directory: apps/mobile
 
-      - name: Sync Capacitor
-        run: pnpm sync
+      - name: Create dist placeholder
+        run: mkdir -p dist
         working-directory: apps/mobile
 
       - name: Build debug APK
@@ -101,8 +101,8 @@ jobs:
         run: pnpm add:android
         working-directory: apps/mobile
 
-      - name: Sync Capacitor
-        run: pnpm sync
+      - name: Create dist placeholder
+        run: mkdir -p dist
         working-directory: apps/mobile
 
       - name: Decode release keystore
