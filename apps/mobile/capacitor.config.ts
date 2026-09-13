@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     // Live server mode: loads the Vercel deployment inside the native WebView.
     // Remove this block to switch to bundled/offline mode (requires static export).
-    url: 'https://sozialzync.vercel.app',
+    url: 'https://sozialzynk.vercel.app',
     cleartext: false,
     androidScheme: 'https',
   },

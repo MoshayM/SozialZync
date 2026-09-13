@@ -21,7 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!MOCK_MODE) return;
-    if (navigator.webdriver) {
+    if (navigator.webdriver || (window as { Capacitor?: unknown }).Capacitor) {
       setMockReady(true);
       return;
     }
