@@ -592,7 +592,7 @@ export default function BecomeCreatorPage() {
                   <span className="text-sm font-bold">Web App</span>
                 </span>
               </a>
-              <a href="https://github.com/MoshayM/SozialZync/releases/download/android-latest/app-debug.apk" className="flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#166534,#15803d)',border:'1px solid rgba(52,168,83,.35)',minWidth:200,boxShadow:'0 8px 24px -6px rgba(22,101,52,.5)'}}>
+              <a href="https://github.com/MoshayM/SozialZync/releases/download/android-latest/sozialzynk.apk" className="flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#166534,#15803d)',border:'1px solid rgba(52,168,83,.35)',minWidth:200,boxShadow:'0 8px 24px -6px rgba(22,101,52,.5)'}}>
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
@@ -639,7 +639,7 @@ export default function BecomeCreatorPage() {
                   <p className="text-white font-bold text-base mb-1">Android</p>
                   <p className="text-white/45 text-sm leading-relaxed">Download the APK directly or get it on Google Play.</p>
                 </div>
-                <a href="https://github.com/MoshayM/SozialZync/releases/download/android-latest/app-debug.apk" className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 w-full" style={{background:'rgba(52,168,83,.2)',border:'1px solid rgba(52,168,83,.4)',color:'rgba(134,239,172,1)'}}>
+                <a href="https://github.com/MoshayM/SozialZync/releases/download/android-latest/sozialzynk.apk" className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 w-full" style={{background:'rgba(52,168,83,.2)',border:'1px solid rgba(52,168,83,.4)',color:'rgba(134,239,172,1)'}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
