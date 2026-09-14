@@ -6,7 +6,7 @@ Native Android and iOS wrapper for the Sozialzynk web app, built with [Capacitor
 
 Get the latest APK from [GitHub Releases](https://github.com/MoshayM/SozialZync/releases/tag/android-latest) — download `sozialzynk.apk`.
 
-<!-- CI: node 22, pnpm 11 -->
+<!-- CI: node 22, pnpm 11 | build trigger -->
 
 ## Architecture
 
