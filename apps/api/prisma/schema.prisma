@@ -1257,6 +1257,19 @@ model UserProviderConfig {
   @@map("user_provider_configs")
 }
 
+// System-level provider API keys managed by SUPER_ADMIN from the admin UI.
+// Encrypted with PROVIDER_KEY_SECRET (same scheme as UserProviderConfig).
+// At runtime, services resolve: DB value → process.env fallback.
+model SystemProviderKey {
+  id             String   @id @default(cuid())
+  envKey         String   @unique
+  encryptedValue String
+  updatedBy      String?
+  updatedAt      DateTime @updatedAt
+
+  @@map("system_provider_keys")
+}
+
 enum PaymentGateway {
   STRIPE
   RAZORPAY

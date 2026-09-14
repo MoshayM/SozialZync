@@ -1,49 +1,42 @@
-import { Body, Controller, Get, Post, UseGuards, ForbiddenException } from '@nestjs/common';
-import { IsString } from 'class-validator';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, UseGuards, ForbiddenException } from '@nestjs/common';
+import { IsString, MinLength } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { roleHasPermission } from '../../common/rbac';
+import { SystemKeyService } from './system-key.service';
 
 interface ProviderStatus {
   name: string;
   envKey: string;
   configured: boolean;
+  /** Where the key comes from: 'db' = admin-saved, 'env' = Railway env var, 'none' = not set */
+  source: 'db' | 'env' | 'none';
   status: 'active' | 'unconfigured';
   category: 'ai' | 'media' | 'email' | 'payment';
   note?: string;
 }
 
-const SYSTEM_PROVIDERS: Array<Omit<ProviderStatus, 'configured' | 'status' | 'note'>> = [
-  { name: 'Anthropic (Claude)', envKey: 'ANTHROPIC_API_KEY', category: 'ai' },
-  { name: 'OpenAI (GPT-4)', envKey: 'OPENAI_API_KEY', category: 'ai' },
-  { name: 'Google Gemini', envKey: 'GEMINI_API_KEY', category: 'ai' },
-  { name: 'Groq', envKey: 'GROQ_API_KEY', category: 'ai' },
-  { name: 'Google OAuth', envKey: 'GOOGLE_CLIENT_ID', category: 'ai' },
-  { name: 'ElevenLabs (Voice)', envKey: 'ELEVENLABS_API_KEY', category: 'media' },
-  { name: 'PiAPI (Kling / Suno / Udio)', envKey: 'PIAPI_API_KEY', category: 'media' },
-  { name: 'Runway ML', envKey: 'RUNWAYML_API_SECRET', category: 'media' },
-  { name: 'Replicate', envKey: 'REPLICATE_API_TOKEN', category: 'media' },
-  { name: 'Stability AI', envKey: 'STABILITY_API_KEY', category: 'media' },
-  { name: 'Pexels (Stock)', envKey: 'PEXELS_API_KEY', category: 'media' },
-  { name: 'Pixabay (Stock)', envKey: 'PIXABAY_API_KEY', category: 'media' },
-  { name: 'YouTube Data API', envKey: 'YOUTUBE_API_KEY', category: 'media' },
-  { name: 'Facebook / Meta App', envKey: 'FACEBOOK_APP_ID', category: 'media' },
-  { name: 'Resend (Email)', envKey: 'RESEND_API_KEY', category: 'email' },
-  { name: 'Stripe (Payments)', envKey: 'STRIPE_SECRET_KEY', category: 'payment' },
+const SYSTEM_PROVIDERS: Array<Omit<ProviderStatus, 'configured' | 'status' | 'source' | 'note'>> = [
+  { name: 'Anthropic (Claude)',        envKey: 'ANTHROPIC_API_KEY',    category: 'ai' },
+  { name: 'OpenAI (GPT-4)',            envKey: 'OPENAI_API_KEY',       category: 'ai' },
+  { name: 'Google Gemini',             envKey: 'GEMINI_API_KEY',       category: 'ai' },
+  { name: 'Groq',                      envKey: 'GROQ_API_KEY',         category: 'ai' },
+  { name: 'Google OAuth',              envKey: 'GOOGLE_CLIENT_ID',     category: 'ai' },
+  { name: 'ElevenLabs (Voice)',        envKey: 'ELEVENLABS_API_KEY',   category: 'media' },
+  { name: 'PiAPI (Kling / Suno / Udio)', envKey: 'PIAPI_API_KEY',     category: 'media' },
+  { name: 'Runway ML',                 envKey: 'RUNWAYML_API_SECRET',  category: 'media' },
+  { name: 'Replicate',                 envKey: 'REPLICATE_API_TOKEN',  category: 'media' },
+  { name: 'Stability AI',              envKey: 'STABILITY_API_KEY',    category: 'media' },
+  { name: 'Pexels (Stock)',            envKey: 'PEXELS_API_KEY',       category: 'media' },
+  { name: 'Pixabay (Stock)',           envKey: 'PIXABAY_API_KEY',      category: 'media' },
+  { name: 'YouTube Data API',          envKey: 'YOUTUBE_API_KEY',      category: 'media' },
+  { name: 'Facebook / Meta App',       envKey: 'FACEBOOK_APP_ID',      category: 'media' },
+  { name: 'Resend (Email)',            envKey: 'RESEND_API_KEY',       category: 'email' },
+  { name: 'Stripe (Payments)',         envKey: 'STRIPE_SECRET_KEY',    category: 'payment' },
 ];
 
-// Placeholder keys set during dev — flagged as unconfigured in production health check
-const PLACEHOLDER_VALS = new Set(['sk_test_cflocalstripe', 'pk_test_cflocalstripe', 'whsec_cf_local_test_secret']);
-
-class TestProviderDto {
-  @IsString() envKey!: string;
-}
-
-async function liveTest(envKey: string): Promise<{ ok: boolean; message: string }> {
-  const key = process.env[envKey] ?? '';
-  if (!key || PLACEHOLDER_VALS.has(key)) {
-    return { ok: false, message: 'Key not configured' };
-  }
+async function liveTest(key: string, envKey: string): Promise<{ ok: boolean; message: string }> {
+  if (!key) return { ok: false, message: 'Key not configured' };
 
   try {
     switch (envKey) {
@@ -138,25 +131,51 @@ async function liveTest(envKey: string): Promise<{ ok: boolean; message: string 
   }
 }
 
+class UpsertKeyDto {
+  @IsString() envKey!: string;
+  @IsString() @MinLength(1) value!: string;
+}
+
+class TestKeyDto {
+  @IsString() envKey!: string;
+}
+
 @Controller('admin/providers')
 @UseGuards(JwtAuthGuard)
 export class ProviderHealthController {
-  @Get('health')
-  getProviderHealth(@CurrentUser() user: JwtPayload): ProviderStatus[] {
+  constructor(private readonly systemKey: SystemKeyService) {}
+
+  private assertAdmin(user: JwtPayload): void {
     if (!roleHasPermission(user.role as never, 'admin:providers')) {
       throw new ForbiddenException('Requires admin:providers permission');
     }
+  }
+
+  @Get('health')
+  async getProviderHealth(@CurrentUser() user: JwtPayload): Promise<ProviderStatus[]> {
+    this.assertAdmin(user);
+
+    const dbKeys = await this.systemKey.listStoredKeys();
+    const dbSet = new Set(dbKeys);
 
     return SYSTEM_PROVIDERS.map((p) => {
-      const val = process.env[p.envKey] ?? '';
-      const hasValue = val.length > 0;
-      const isPlaceholder = PLACEHOLDER_VALS.has(val);
-      const configured = hasValue && !isPlaceholder;
+      const envVal = process.env[p.envKey] ?? '';
+      const inDb = dbSet.has(p.envKey);
+      const inEnv = envVal.length > 0 && !this.systemKey.isPlaceholder(envVal);
+
+      const configured = inDb || inEnv;
+      const source: ProviderStatus['source'] = inDb ? 'db' : inEnv ? 'env' : 'none';
+
+      const note = envVal.length > 0 && this.systemKey.isPlaceholder(envVal)
+        ? 'Placeholder value — replace with a real key'
+        : undefined;
+
       return {
         ...p,
         configured,
         status: configured ? 'active' : 'unconfigured',
-        ...(isPlaceholder ? { note: 'Placeholder value — replace with a real key' } : {}),
+        source,
+        ...(note ? { note } : {}),
       } satisfies ProviderStatus;
     });
   }
@@ -164,11 +183,36 @@ export class ProviderHealthController {
   @Post('test')
   async testProvider(
     @CurrentUser() user: JwtPayload,
-    @Body() dto: TestProviderDto,
+    @Body() dto: TestKeyDto,
   ): Promise<{ ok: boolean; message: string }> {
-    if (!roleHasPermission(user.role as never, 'admin:providers')) {
-      throw new ForbiddenException('Requires admin:providers permission');
-    }
-    return liveTest(dto.envKey);
+    this.assertAdmin(user);
+    const key = await this.systemKey.resolve(dto.envKey);
+    return liveTest(key, dto.envKey);
+  }
+
+  /** Upsert a provider key into the database (encrypted). */
+  @Post('key')
+  @HttpCode(HttpStatus.OK)
+  async upsertKey(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpsertKeyDto,
+  ): Promise<{ ok: boolean; message: string }> {
+    this.assertAdmin(user);
+    const valid = SYSTEM_PROVIDERS.some((p) => p.envKey === dto.envKey);
+    if (!valid) throw new ForbiddenException(`Unknown provider key: ${dto.envKey}`);
+    await this.systemKey.upsert(dto.envKey, dto.value.trim(), user.sub);
+    return { ok: true, message: 'Key saved. Run "Test connection" to verify it works.' };
+  }
+
+  /** Remove the DB override — key falls back to Railway env var. */
+  @Delete('key/:envKey')
+  @HttpCode(HttpStatus.OK)
+  async deleteKey(
+    @CurrentUser() user: JwtPayload,
+    @Param('envKey') envKey: string,
+  ): Promise<{ ok: boolean; message: string }> {
+    this.assertAdmin(user);
+    await this.systemKey.delete(envKey);
+    return { ok: true, message: 'DB override removed — key now reads from Railway env vars.' };
   }
 }

@@ -1266,6 +1266,10 @@ export const api = {
       apiClient.get<ForecastRow[]>(`/admin/forecasts${metric ? `?metric=${encodeURIComponent(metric)}` : ''}`),
     generateForecasts: () => apiClient.post<{ ok: boolean; message: string }>('/admin/forecasts/generate'),
     providers: () => apiClient.get<AdminProvider[]>('/admin/providers'),
+    providerHealth: () => apiClient.get<AdminProviderHealth[]>('/admin/providers/health'),
+    testProvider: (envKey: string) => apiClient.post<{ ok: boolean; message: string }>('/admin/providers/test', { envKey }),
+    upsertProviderKey: (envKey: string, value: string) => apiClient.post<{ ok: boolean; message: string }>('/admin/providers/key', { envKey, value }),
+    deleteProviderKey: (envKey: string) => apiClient.delete<{ ok: boolean; message: string }>(`/admin/providers/key/${envKey}`),
     users: () => apiClient.get<AdminUser[]>('/admin/users'),
     setRechargesFrozen: (userId: string, frozen: boolean, reason?: string) =>
       apiClient.post<{ id: string; email: string; rechargesFrozen: boolean }>(`/admin/users/${userId}/recharges-frozen`, { frozen, reason }),
@@ -1464,6 +1468,16 @@ export interface ModerationAction {
   note: string;
   performedAt: string;
   adminEmail: string;
+}
+
+export interface AdminProviderHealth {
+  name: string;
+  envKey: string;
+  configured: boolean;
+  source: 'db' | 'env' | 'none';
+  status: 'active' | 'unconfigured';
+  category: 'ai' | 'media' | 'email' | 'payment';
+  note?: string;
 }
 
 export interface AdminProvider {
