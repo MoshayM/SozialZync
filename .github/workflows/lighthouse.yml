@@ -54,18 +54,26 @@ jobs:
 
       - name: Start web app
         run: |
-          node apps/web/.next/standalone/server.js &
+          node apps/web/.next/standalone/server.js > /tmp/web-server.log 2>&1 &
+          disown
+          up=0
           for i in $(seq 1 30); do
             if curl -sf http://localhost:3007/ > /dev/null 2>&1; then
-              echo "Web is up"; exit 0
+              echo "Web is up after ${i}s"; up=1; break
             fi
             echo "Waiting for web... ($i/30)"
             sleep 1
           done
-          echo "Web app failed to start in 30 seconds" && exit 1
+          if [ "$up" != "1" ]; then
+            echo "=== Server failed to start — logs ==="
+            cat /tmp/web-server.log
+            exit 1
+          fi
         env:
           PORT: 3007
           HOSTNAME: '0.0.0.0'
+          NODE_ENV: production
+          SKIP_ENV_VALIDATION: 'true'
 
       - name: Install Lighthouse CI
         run: npm install -g @lhci/cli@0.14.x
