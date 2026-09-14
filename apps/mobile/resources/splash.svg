@@ -1,0 +1,24 @@
+<svg viewBox="0 0 2732 2732" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Purple background matching SplashScreen backgroundColor in capacitor.config.ts -->
+  <rect width="2732" height="2732" fill="#7C3AED"/>
+
+  <!-- Zk lettermark centred, scaled for splash -->
+  <g transform="translate(1366, 1366) scale(3) translate(-256, -256)">
+    <!-- Z — white -->
+    <g transform="translate(-20, 0)">
+      <path d="M96 148H280L96 364H280"
+            stroke="#F9FAFB"
+            stroke-width="38"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+    </g>
+    <!-- k — light (slightly more visible on purple) -->
+    <g transform="translate(-20, 0)">
+      <path d="M318 148V364M318 256L416 148M318 256L416 364"
+            stroke="#DDD6FE"
+            stroke-width="32"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

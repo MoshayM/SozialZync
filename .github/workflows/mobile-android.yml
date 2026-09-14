@@ -52,6 +52,10 @@ jobs:
         run: pnpm add:android
         working-directory: apps/mobile
 
+      - name: Generate launcher icons
+        run: pnpm generate:icons
+        working-directory: apps/mobile
+
       - name: Create dist placeholder
         run: mkdir -p dist
         working-directory: apps/mobile
@@ -114,6 +118,10 @@ jobs:
 
       - name: Add Android platform
         run: pnpm add:android
+        working-directory: apps/mobile
+
+      - name: Generate launcher icons
+        run: pnpm generate:icons
         working-directory: apps/mobile
 
       - name: Create dist placeholder

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "generate:icons": "capacitor-assets generate",
     "build:android": "cap sync android && cd android && ./gradlew assembleDebug",
     "build:android:release": "cap sync android && cd android && ./gradlew assembleRelease",
     "build:ios": "cap sync ios && cd ios/App && pod install --repo-update && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath App.xcarchive archive",
@@ -25,6 +26,7 @@
     "@capacitor/keyboard": "^6.0.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.0.0"
   }
 }
