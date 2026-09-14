@@ -78,10 +78,8 @@ jobs:
           path: apps/mobile/android/app/build/outputs/apk/debug/sozialzynk.apk
           retention-days: 14
 
-      - name: Clean old assets from release
-        run: |
-          gh release delete-asset android-latest app-debug.apk --yes 2>/dev/null || true
-          gh release delete-asset android-latest sozialzynk.apk --yes 2>/dev/null || true
+      - name: Remove app-debug.apk from release
+        run: gh release delete-asset android-latest app-debug.apk --yes 2>/dev/null || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
