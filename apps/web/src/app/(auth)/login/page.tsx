@@ -188,12 +188,15 @@ export default function LoginPage() {
 
   const handlePasskeyLogin = useCallback(async () => {
     if (passkeyHandledRef.current) return;
-    passkeyHandledRef.current = true;
     setPasskeyLoading(true);
     setError('');
     try {
       const { data: opts } = await api.auth.webauthnAuthOptions();
+      // startAuthentication internally aborts any pending conditional (autofill) credentials.get()
+      // via simplewebauthn's WebAuthnAbortService, so only one browser prompt is ever active.
       const cred = await startAuthentication({ optionsJSON: opts });
+      if (passkeyHandledRef.current) return;
+      passkeyHandledRef.current = true;
       const { data } = await api.auth.webauthnAuthVerify(cred);
       setTokens(data.accessToken, data.refreshToken);
       router.push('/home');
