@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Logger,
+  OnModuleInit,
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
@@ -54,11 +56,26 @@ function origins(): string[] {
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 @Injectable()
-export class WebAuthnService {
+export class WebAuthnService implements OnModuleInit {
+  private readonly logger = new Logger(WebAuthnService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
   ) {}
+
+  onModuleInit(): void {
+    const isProduction = process.env['NODE_ENV'] === 'production';
+    if (rpId() === 'localhost' && isProduction) {
+      throw new Error(
+        'WEBAUTHN_RP_ID is not set. All passkey operations will fail in production. ' +
+        'Set WEBAUTHN_RP_ID to your domain (e.g. sozialzynk.com).',
+      );
+    }
+    if (rpId() === 'localhost') {
+      this.logger.warn('WEBAUTHN_RP_ID unset — using "localhost" (fine for local dev only)');
+    }
+  }
 
   // ── Registration ─────────────────────────────────────────────────────────────
 
