@@ -18,7 +18,10 @@ const MOCK_TOKEN = 'mock-jwt-token-for-testing';
 
 function isMobileDevice(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod|Android|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if (/iPhone|iPad|iPod|Android|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) return true;
+  // iPadOS 13+ sends "Macintosh" UA but exposes touch points — treat it as mobile so the passkey button shows
+  if (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1) return true;
+  return false;
 }
 
 function detectPasskeyLabel(): string {
@@ -185,13 +188,12 @@ export default function LoginPage() {
 
   const handlePasskeyLogin = useCallback(async () => {
     if (passkeyHandledRef.current) return;
+    passkeyHandledRef.current = true;
     setPasskeyLoading(true);
     setError('');
     try {
       const { data: opts } = await api.auth.webauthnAuthOptions();
       const cred = await startAuthentication({ optionsJSON: opts });
-      if (passkeyHandledRef.current) return;
-      passkeyHandledRef.current = true;
       const { data } = await api.auth.webauthnAuthVerify(cred);
       setTokens(data.accessToken, data.refreshToken);
       router.push('/home');

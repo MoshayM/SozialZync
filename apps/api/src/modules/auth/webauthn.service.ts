@@ -33,8 +33,21 @@ function rpName(): string {
   return process.env['WEBAUTHN_RP_NAME'] ?? 'Sozialzynk';
 }
 
-function origin(): string {
-  return process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3007';
+/** Returns all accepted origins. Includes www/non-www variants so mobile browsers hitting either host don't get rejected. */
+function origins(): string[] {
+  const base = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3007';
+  try {
+    const u = new URL(base);
+    const variants = new Set([base]);
+    if (u.hostname.startsWith('www.')) {
+      variants.add(`${u.protocol}//${u.hostname.slice(4)}${u.port ? `:${u.port}` : ''}${u.pathname === '/' ? '' : u.pathname}`);
+    } else if (!u.hostname.includes('localhost') && !u.hostname.match(/^\d/)) {
+      variants.add(`${u.protocol}//www.${u.hostname}${u.port ? `:${u.port}` : ''}${u.pathname === '/' ? '' : u.pathname}`);
+    }
+    return [...variants];
+  } catch {
+    return [base];
+  }
 }
 
 /** Challenge TTL: 5 minutes. */
@@ -112,7 +125,7 @@ export class WebAuthnService {
     const verification = await verifyRegistrationResponse({
       response: credential,
       expectedChallenge: challengeRow.challenge,
-      expectedOrigin: origin(),
+      expectedOrigin: origins(),
       expectedRPID: rpId(),
     });
 
@@ -198,7 +211,7 @@ export class WebAuthnService {
     const verification = await verifyAuthenticationResponse({
       response: credential,
       expectedChallenge: challengeRow.challenge,
-      expectedOrigin: origin(),
+      expectedOrigin: origins(),
       expectedRPID: rpId(),
       credential: {
         id: storedCredential.credentialId,
