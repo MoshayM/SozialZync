@@ -218,6 +218,14 @@ export class BillingService {
       );
     }
 
+    // §6.3: route account.updated to the Connect handler (belt-and-suspenders if both endpoints receive it)
+    if (event.type === 'account.updated') {
+      const account = event.data.object as Stripe.Account;
+      await this.handleConnectAccountUpdated({ id: account.id, charges_enabled: account.charges_enabled });
+      this.logger.log(`[connect/main] account ${account.id} updated — charges_enabled: ${account.charges_enabled}`);
+      return;
+    }
+
     // §6.2: dedupe on the gateway's event id — duplicate deliveries are no-ops
     try {
       await this.prisma.webhookEvent.create({
@@ -306,12 +314,6 @@ export class BillingService {
       });
     }
 
-    // Stripe Connect: update creator's account verification status
-    if (event.type === 'account.updated') {
-      const account = event.data.object as Stripe.Account;
-      await this.handleConnectAccountUpdated({ id: account.id, charges_enabled: account.charges_enabled });
-      this.logger.log(`[connect] account ${account.id} updated — charges_enabled: ${account.charges_enabled}`);
-    }
   }
 
   /** §5.2 steps 5–8: mark the payment succeeded and grant credits, each idempotent. */
@@ -570,6 +572,26 @@ export class BillingService {
       type: 'account_onboarding',
     });
     return { url: link.url };
+  }
+
+  /** Verifies and dispatches Stripe Connect platform webhook events.
+   *  Registered in Stripe Dashboard → Connect → Webhooks with STRIPE_CONNECT_WEBHOOK_SECRET. */
+  async handleConnectWebhook(payload: Buffer | undefined, signature: string): Promise<void> {
+    const secret = process.env['STRIPE_CONNECT_WEBHOOK_SECRET'] ?? '';
+    if (!payload) throw new BadRequestException('Webhook raw body unavailable');
+    let event: Stripe.Event;
+    try {
+      event = this.stripe.webhooks.constructEvent(payload, signature, secret);
+    } catch (err) {
+      throw new BadRequestException(
+        `Connect webhook signature verification failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    if (event.type === 'account.updated') {
+      const account = event.data.object as Stripe.Account;
+      await this.handleConnectAccountUpdated({ id: account.id, charges_enabled: account.charges_enabled });
+      this.logger.log(`[connect] account ${account.id} updated — charges_enabled: ${account.charges_enabled}`);
+    }
   }
 
   async handleConnectAccountUpdated(account: { id: string; charges_enabled: boolean }): Promise<void> {

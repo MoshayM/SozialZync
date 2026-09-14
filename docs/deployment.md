@@ -143,7 +143,8 @@ On violation: hard failure, CI blocks merge. Artifact `bundle-budget-report.json
 | `OPENAI_API_KEY` | Fallback LLM provider |
 | `GEMINI_API_KEY` | Fallback LLM provider |
 | `STRIPE_SECRET_KEY` | Billing |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature verification |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature verification (main account events) |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | Stripe Connect platform webhook (account.updated — register endpoint `POST /billing/connect/webhook` in Stripe Dashboard → Connect → Webhooks) |
 | `SUPER_ADMIN_EMAILS` | RBAC: comma-separated super-admin email list |
 | `OWNER_EMAILS` | RBAC: comma-separated owner email list |
 | `SENTRY_DSN` | Optional — enables Sentry error tracking |

@@ -22,7 +22,7 @@ const PROVIDER_GUIDES: Record<string, string> = {
   PEXELS_API_KEY:      'pexels.com/api → Your API Key',
   PIXABAY_API_KEY:     'pixabay.com/api/docs → API Key',
   RESEND_API_KEY:      'resend.com → API Keys',
-  STRIPE_SECRET_KEY:   'stripe.com → Developers → API Keys. Also need: STRIPE_WEBHOOK_SECRET, STRIPE_STARTER_PRICE_ID, STRIPE_PRO_PRICE_ID, STRIPE_AGENCY_PRICE_ID',
+  STRIPE_SECRET_KEY:   'stripe.com → Developers → API Keys. Also need: STRIPE_WEBHOOK_SECRET (main webhook), STRIPE_CONNECT_WEBHOOK_SECRET (Connect → Webhooks → platform endpoint at /billing/connect/webhook), STRIPE_STARTER_PRICE_ID, STRIPE_PRO_PRICE_ID, STRIPE_AGENCY_PRICE_ID',
   GOOGLE_CLIENT_ID:    'console.cloud.google.com → Credentials → OAuth 2.0',
   FACEBOOK_APP_ID:     'developers.facebook.com → Your App → Settings → Basic',
   YOUTUBE_API_KEY:     'console.cloud.google.com → APIs → YouTube Data API v3 → Credentials',

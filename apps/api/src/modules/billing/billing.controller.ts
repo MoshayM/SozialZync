@@ -78,6 +78,16 @@ export class BillingController {
     return this.svc.handleWebhook(req.rawBody, sig);
   }
 
+  /** Separate endpoint for Stripe Connect platform webhooks (account.updated, etc.).
+   *  Registered in Stripe Dashboard → Connect → Webhooks with STRIPE_CONNECT_WEBHOOK_SECRET. */
+  @Post('connect/webhook')
+  connectWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') sig: string,
+  ) {
+    return this.svc.handleConnectWebhook(req.rawBody, sig);
+  }
+
   // ── Stripe Connect (creator payout onboarding) ────────────────────────────
 
   @ApiBearerAuth()

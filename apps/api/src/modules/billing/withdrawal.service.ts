@@ -179,7 +179,7 @@ export class WithdrawalService {
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, stripeConnectAccountId: true, stripeConnectEnabled: true } },
       },
     });
   }

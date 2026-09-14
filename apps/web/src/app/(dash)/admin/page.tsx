@@ -2219,7 +2219,7 @@ export default function AdminDashboardPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      {['Creator', 'Credits', 'You Receive', 'Platform Fee', 'Status', 'Payout Email', 'Date', 'Actions'].map((h) => (
+                      {['Creator', 'Credits', 'You Receive', 'Platform Fee', 'Status', 'Payout', 'Date', 'Actions'].map((h) => (
                         <th key={h} className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{h}</th>
                       ))}
                     </tr>
@@ -2248,7 +2248,24 @@ export default function AdminDashboardPage() {
                                 {w.status}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-xs text-gray-600">{w.payoutEmail ?? '—'}</td>
+                            <td className="px-4 py-3 text-xs">
+                              {w.user?.stripeConnectEnabled ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: '#ecfdf5', color: '#065f46' }}>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                                  Auto-transfer
+                                </span>
+                              ) : w.user?.stripeConnectAccountId ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: '#fffbeb', color: '#b45309' }}>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                                  Pending verify
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: '#f3f4f6', color: '#6b7280' }}>
+                                  Manual
+                                </span>
+                              )}
+                              {w.payoutEmail && <p className="mt-0.5 text-gray-500">{w.payoutEmail}</p>}
+                            </td>
                             <td className="px-4 py-3 text-xs text-gray-600">{new Date(w.createdAt).toLocaleDateString()}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
@@ -2277,16 +2294,21 @@ export default function AdminDashboardPage() {
                                   </>
                                 )}
                                 {w.status === 'APPROVED' && (
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      await apiClient.post(`/wallet/admin/withdrawals/${w.id}/paid`, {});
-                                      void loadWithdrawals();
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                                  >
-                                    Mark Paid
-                                  </button>
+                                  <div className="flex flex-col gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        await apiClient.post(`/wallet/admin/withdrawals/${w.id}/paid`, {});
+                                        void loadWithdrawals();
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                                    >
+                                      Mark Paid
+                                    </button>
+                                    <p className="text-[10px] text-gray-400 text-center">
+                                      {w.user?.stripeConnectEnabled ? '→ auto-transfer' : 'manual payout'}
+                                    </p>
+                                  </div>
                                 )}
                               </div>
                             </td>
