@@ -47,6 +47,11 @@ jobs:
           SKIP_ENV_VALIDATION: 'true'
           NEXT_TELEMETRY_DISABLED: '1'
 
+      - name: Copy static assets into standalone
+        run: |
+          cp -r apps/web/.next/static apps/web/.next/standalone/.next/static
+          cp -r apps/web/public apps/web/.next/standalone/public
+
       - name: Start web app
         run: |
           node apps/web/.next/standalone/server.js &
