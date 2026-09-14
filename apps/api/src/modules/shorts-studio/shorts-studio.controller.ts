@@ -383,6 +383,10 @@ export class ShortsStudioController {
     @CurrentUser() user: JwtPayload,
     @Body() body: SchedulePublishDto,
   ) {
+    const isElevated = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
+    if (!isElevated && (user.plan ?? 'FREE') === 'FREE') {
+      throw new ForbiddenException('Publishing to external platforms requires a Pro plan. Upgrade to Pro ($17/mo) to unlock publishing.');
+    }
     const clip = await this.shorts.assertClipOwnership(shortClipId, user.sub);
     // Approval is validated here AND re-validated inside the publish job/connector
     const { approvalId, exportId } = await this.exports.assertPublishable(shortClipId);
