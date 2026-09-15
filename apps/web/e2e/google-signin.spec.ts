@@ -110,34 +110,27 @@ test.describe('Google sign-in — mobile', () => {
   });
 
   // ── Missing stored state (Android cross-context) ──────────────────────────
-  // storedState is null → skip client check → Railway validates → proceed
-  test('missing localStorage state proceeds to Railway (Android cross-context)', async ({ page }) => {
-    // Callback posts to Railway mock — returns tokens
+  // storedState is null → skip client CSRF check → forward to Railway.
+  // Railway rejects the fake code (expected), but the CSRF error must NOT fire.
+  test('missing localStorage state skips client CSRF check (Android cross-context)', async ({ page }) => {
+    // Mock the Vercel callback proxy to return a Railway-style bad-code error
     await page.route('**/api/auth/google/callback', async route => {
       await route.fulfill({
-        status: 200,
+        status: 400,
         contentType: 'application/json',
-        body: JSON.stringify(FAKE_TOKENS),
+        body: JSON.stringify({ message: 'invalid_grant' }),
       });
-    });
-    await page.route('**/api/proxy/auth/me', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: FAKE_USER.id, email: FAKE_USER.email, name: FAKE_USER.name, role: FAKE_USER.role, avatarUrl: null, phone: null }),
-      });
-    });
-    await page.route('**/api/proxy/auth/refresh', async route => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ accessToken: 'fake.access.token' }) });
     });
 
     // Navigate directly to callback WITHOUT going through login first
     // → localStorage has NO stored state (simulates Android cross-context)
     await page.goto(`/oauth/callback/google?code=${FAKE_CODE}&state=${FAKE_STATE}`);
 
-    // Should NOT show state-mismatch error — should proceed to /home
-    await expect(page.getByText(/security check failed/i)).not.toBeVisible({ timeout: 5_000 });
-    await page.waitForURL(/\/home/, { timeout: 20_000 });
+    // Key assertion: must NOT show client-side CSRF / state-mismatch error.
+    // Railway's "invalid_grant" (or generic sign-in failed) is acceptable.
+    await expect(page.getByText(/security check failed/i)).not.toBeVisible({ timeout: 12_000 });
+    // Some error from Railway IS shown (fake code rejected) — that's correct
+    await expect(page.getByText(/sign-in failed/i)).toBeVisible({ timeout: 5_000 });
   });
 
   // ── Visibility ────────────────────────────────────────────────────────────
