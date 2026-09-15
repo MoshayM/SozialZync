@@ -10,8 +10,8 @@ export class FacebookPlatformProvider implements IPlatformProvider {
   constructor(private readonly prisma: PrismaService) {}
 
   async getConnectionStatus(userId: string): Promise<ConnectionStatus> {
-    const conn = await this.prisma.platformConnection.findUnique({
-      where: { userId_platformId: { userId, platformId: 'facebook' } },
+    const conn = await this.prisma.platformConnection.findFirst({
+      where: { userId, platformId: 'facebook', readOnly: false },
       select: { accountName: true, accountId: true },
     });
     if (!conn) return { connected: false };

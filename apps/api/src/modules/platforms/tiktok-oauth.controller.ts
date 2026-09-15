@@ -121,7 +121,7 @@ export class TikTokOAuthController {
       );
 
       await this.prisma.platformConnection.upsert({
-        where: { userId_platformId: { userId, platformId: 'tiktok' } },
+        where: { userId_platformId_accountId: { userId, platformId: 'tiktok', accountId: open_id } },
         create: { userId, platformId: 'tiktok', accountId: open_id, accountName: user.display_name, encryptedTokens, scopes: TT_SCOPES },
         update: { accountId: open_id, accountName: user.display_name, encryptedTokens, scopes: TT_SCOPES },
       });
@@ -138,8 +138,8 @@ export class TikTokOAuthController {
   @Get('refresh')
   @UseGuards(JwtAuthGuard)
   async refreshToken(@CurrentUser() user: JwtPayload, @Res() res: Response) {
-    const conn = await this.prisma.platformConnection.findUnique({
-      where: { userId_platformId: { userId: user.sub, platformId: 'tiktok' } },
+    const conn = await this.prisma.platformConnection.findFirst({
+      where: { userId: user.sub, platformId: 'tiktok', readOnly: false },
     });
     if (!conn) return res.status(404).json({ error: 'TikTok not connected' });
 
@@ -164,7 +164,7 @@ export class TikTokOAuthController {
         refreshExpiresAt: new Date(Date.now() + refresh_expires_in * 1000).toISOString(),
       };
       await this.prisma.platformConnection.update({
-        where: { userId_platformId: { userId: user.sub, platformId: 'tiktok' } },
+        where: { id: conn.id },
         data: { encryptedTokens: this.enc.encrypt(JSON.stringify(updated)) },
       });
       return res.json({ ok: true });

@@ -157,7 +157,7 @@ export class FacebookOAuthController {
       );
 
       await this.prisma.platformConnection.upsert({
-        where: { userId_platformId: { userId, platformId: 'facebook' } },
+        where: { userId_platformId_accountId: { userId, platformId: 'facebook', accountId: page.id } },
         create: {
           userId,
           platformId: 'facebook',

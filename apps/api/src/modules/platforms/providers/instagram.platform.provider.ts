@@ -25,8 +25,8 @@ export class InstagramPlatformProvider implements IPlatformProvider {
   ) {}
 
   private async getTokens(userId: string): Promise<StoredTokens | null> {
-    const conn = await this.prisma.platformConnection.findUnique({
-      where: { userId_platformId: { userId, platformId: 'instagram' } },
+    const conn = await this.prisma.platformConnection.findFirst({
+      where: { userId, platformId: 'instagram', readOnly: false },
     });
     if (!conn) return null;
     try {
@@ -37,8 +37,8 @@ export class InstagramPlatformProvider implements IPlatformProvider {
   }
 
   async getConnectionStatus(userId: string): Promise<ConnectionStatus> {
-    const conn = await this.prisma.platformConnection.findUnique({
-      where: { userId_platformId: { userId, platformId: 'instagram' } },
+    const conn = await this.prisma.platformConnection.findFirst({
+      where: { userId, platformId: 'instagram', readOnly: false },
       select: { accountName: true, accountId: true },
     });
     if (!conn) return { connected: false };

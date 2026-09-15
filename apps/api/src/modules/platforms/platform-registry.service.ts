@@ -6,6 +6,7 @@ import { TikTokPlatformProvider } from './providers/tiktok.platform.provider';
 import { FacebookPlatformProvider } from './providers/facebook.platform.provider';
 import { LinkedInPlatformProvider } from './providers/linkedin.platform.provider';
 import { XPlatformProvider } from './providers/x.platform.provider';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Injectable()
 export class PlatformRegistryService {
@@ -19,6 +20,7 @@ export class PlatformRegistryService {
     private readonly facebook: FacebookPlatformProvider,
     private readonly linkedin: LinkedInPlatformProvider,
     private readonly x: XPlatformProvider,
+    private readonly prisma: PrismaService,
   ) {
     [youtube, instagram, tiktok, facebook, linkedin, x].forEach(p => this.register(p));
   }
@@ -37,16 +39,36 @@ export class PlatformRegistryService {
   }
 
   async getAllConnectionStatuses(userId: string): Promise<Record<string, ConnectionStatus>> {
-    const result: Record<string, ConnectionStatus> = {};
-    await Promise.all(
-      Array.from(this.providers.values()).map(async p => {
-        try {
-          result[p.platformId] = await p.getConnectionStatus(userId);
-        } catch {
-          result[p.platformId] = { connected: false };
-        }
+    const [statusEntries, watchRows] = await Promise.all([
+      Promise.all(
+        Array.from(this.providers.values()).map(async p => {
+          try {
+            return [p.platformId, await p.getConnectionStatus(userId)] as const;
+          } catch {
+            return [p.platformId, { connected: false }] as const;
+          }
+        }),
+      ),
+      this.prisma.platformConnection.findMany({
+        where: { userId, readOnly: true },
+        select: { id: true, platformId: true, accountId: true, accountName: true, createdAt: true },
       }),
-    );
+    ]);
+
+    const result: Record<string, ConnectionStatus> = {};
+    for (const [platformId, status] of statusEntries) {
+      result[platformId] = status;
+    }
+
+    for (const row of watchRows) {
+      const entry = result[row.platformId] ?? { connected: false };
+      entry.watches = [
+        ...(entry.watches ?? []),
+        { id: row.id, handle: row.accountId, accountName: row.accountName ?? undefined, addedAt: row.createdAt },
+      ];
+      result[row.platformId] = entry;
+    }
+
     return result;
   }
 }

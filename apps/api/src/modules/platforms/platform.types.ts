@@ -14,11 +14,19 @@ export interface PublishResult {
   publishedAt: Date;
 }
 
+export interface WatchAccount {
+  id: string;
+  handle: string;
+  accountName?: string;
+  addedAt: Date;
+}
+
 export interface ConnectionStatus {
   connected: boolean;
   accountName?: string;
   accountId?: string;
   expiresAt?: Date;
+  watches?: WatchAccount[];
 }
 
 export interface IPlatformProvider {

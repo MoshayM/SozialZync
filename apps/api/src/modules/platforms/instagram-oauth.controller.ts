@@ -204,7 +204,7 @@ export class InstagramOAuthController {
       );
 
       await this.prisma.platformConnection.upsert({
-        where: { userId_platformId: { userId, platformId: 'instagram' } },
+        where: { userId_platformId_accountId: { userId, platformId: 'instagram', accountId: igUserId } },
         create: {
           userId,
           platformId: 'instagram',

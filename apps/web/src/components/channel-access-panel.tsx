@@ -77,10 +77,18 @@ const OAUTH_ERRORS: Record<string, string> = {
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
 
+interface WatchAccount {
+  id: string;
+  handle: string;
+  accountName?: string;
+  addedAt: string;
+}
+
 interface ConnectionStatus {
   connected: boolean;
   accountName?: string;
   accountId?: string;
+  watches?: WatchAccount[];
 }
 
 // Inline SVG icons for platforms not in Lucide
@@ -287,6 +295,8 @@ function ChannelAccessContent() {
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [showUrlForm, setShowUrlForm] = useState(false);
+  const [watchInputs, setWatchInputs] = useState<Record<string, string>>({});
+  const [watchExpanded, setWatchExpanded] = useState<Record<string, boolean>>({});
   // Access level for new Google connections; per-channel changes use changeAccessMutation
   const [connectAccess, setConnectAccess] = useState<AccessLevel>('PUBLISH');
   const [accessDrafts, setAccessDrafts] = useState<Record<string, AccessLevel>>({});
@@ -311,6 +321,23 @@ function ChannelAccessContent() {
       setBanner({ type: 'info', message: `${platformKey.charAt(0).toUpperCase() + platformKey.slice(1)} disconnected.` });
     },
     onError: () => setBanner({ type: 'error', message: 'Failed to disconnect. Please try again.' }),
+  });
+
+  const watchMutation = useMutation({
+    mutationFn: ({ platform, handle }: { platform: string; handle: string }) =>
+      apiClient.post(`/platforms/${platform}/watch`, { handle }),
+    onSuccess: (_data, { platform }) => {
+      setWatchInputs(prev => ({ ...prev, [platform]: '' }));
+      void refetchPlatformStatuses();
+    },
+    onError: () => setBanner({ type: 'error', message: 'Could not add watch account. Try again.' }),
+  });
+
+  const unwatchMutation = useMutation({
+    mutationFn: ({ platform, id }: { platform: string; id: string }) =>
+      apiClient.delete(`/platforms/${platform}/watch/${id}`),
+    onSuccess: () => void refetchPlatformStatuses(),
+    onError: () => setBanner({ type: 'error', message: 'Could not remove watch account. Try again.' }),
   });
 
   // Step 1 — detect ?connected=true from OAuth callback, clean URL, trigger channel refresh
@@ -920,67 +947,135 @@ function ChannelAccessContent() {
           {SOCIAL_PLATFORMS.map((p) => {
             const status = platformStatuses[p.key];
             const isConnected = status?.connected === true;
+            const watches = status?.watches ?? [];
+            const isWatchOpen = watchExpanded[p.key] ?? false;
 
             return (
-              <div key={p.key} className="flex items-center gap-4 p-4">
-                <div className={`w-10 h-10 rounded-full ${p.tile} flex items-center justify-center shrink-0`}>
-                  <p.icon className={`w-5 h-5 ${p.color}`} />
+              <div key={p.key} className="p-4 space-y-3">
+                {/* Top row */}
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-full ${p.tile} flex items-center justify-center shrink-0`}>
+                    <p.icon className={`w-5 h-5 ${p.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900">{p.name}</p>
+                    {isConnected && status?.accountName ? (
+                      <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                        <CheckCircle className="w-3 h-3" /> Connected · {status.accountName}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500">{p.note}</p>
+                    )}
+                    {watches.length > 0 && !isWatchOpen && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {watches.length} watched account{watches.length > 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {/* Watch toggle */}
+                    <button
+                      onClick={() => setWatchExpanded(prev => ({ ...prev, [p.key]: !isWatchOpen }))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                        isWatchOpen || watches.length > 0
+                          ? 'border-brand-300 text-brand-700 bg-brand-50'
+                          : 'border-gray-200 text-gray-500 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'
+                      }`}
+                    >
+                      <Eye className="w-4 h-4" />
+                      Watch
+                      {watches.length > 0 && (
+                        <span className="bg-brand-600 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                          {watches.length}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* OAuth connect/disconnect */}
+                    {!p.available && !isConnected && (
+                      <span className="text-xs text-gray-400 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                        OAuth soon
+                      </span>
+                    )}
+                    {isConnected ? (
+                      <button
+                        onClick={() => disconnectPlatformMutation.mutate(p.key)}
+                        disabled={disconnectPlatformMutation.isPending}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        {disconnectPlatformMutation.isPending
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <LogOut className="w-4 h-4" />}
+                        Disconnect
+                      </button>
+                    ) : p.available ? (
+                      <button
+                        onClick={() => {
+                          if (PLATFORM_GUIDE[p.key]) setGuideForPlatform(p.key);
+                          else startPlatformOAuth(p.key);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        Connect
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{p.name}</p>
-                  {isConnected && status?.accountName ? (
-                    <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
-                      <CheckCircle className="w-3 h-3" /> Connected · {status.accountName}
+
+                {/* Watch section (expandable) */}
+                {isWatchOpen && (
+                  <div className="ml-14 space-y-2 pt-2 border-t border-gray-100">
+                    <p className="text-xs text-gray-500">
+                      Watch public {p.name} accounts to browse their content inside Sozialzynk — no login required.
                     </p>
-                  ) : (
-                    <p className="text-sm text-gray-500">{p.note}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {!p.available && !isConnected && (
-                    <span className="text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
-                      Coming soon
-                    </span>
-                  )}
-                  {isConnected ? (
-                    <button
-                      onClick={() => disconnectPlatformMutation.mutate(p.key)}
-                      disabled={disconnectPlatformMutation.isPending}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-                    >
-                      {disconnectPlatformMutation.isPending
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : <LogOut className="w-4 h-4" />}
-                      Disconnect
-                    </button>
-                  ) : p.available ? (
-                    <button
-                      onClick={() => {
-                        if (PLATFORM_GUIDE[p.key]) setGuideForPlatform(p.key);
-                        else startPlatformOAuth(p.key);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
-                    >
-                      <PlusCircle className="w-4 h-4" />
-                      Connect
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      title={`${p.name} coming soon`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-sm rounded-lg cursor-not-allowed"
-                    >
-                      <PlusCircle className="w-4 h-4" />
-                      Connect
-                    </button>
-                  )}
-                </div>
+                    {watches.map((w) => (
+                      <div key={w.id} className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                        <span className="text-sm font-medium text-gray-700 flex-1 truncate">{w.handle}</span>
+                        <button
+                          onClick={() => unwatchMutation.mutate({ platform: p.key, id: w.id })}
+                          disabled={unwatchMutation.isPending}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 shrink-0"
+                        >
+                          {unwatchMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          Unwatch
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex gap-2 pt-1">
+                      <input
+                        type="text"
+                        value={watchInputs[p.key] ?? ''}
+                        onChange={(e) => setWatchInputs(prev => ({ ...prev, [p.key]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const h = (watchInputs[p.key] ?? '').trim();
+                            if (h) watchMutation.mutate({ platform: p.key, handle: h });
+                          }
+                        }}
+                        placeholder={`@handle or ${p.name.toLowerCase()} username`}
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                      />
+                      <button
+                        onClick={() => {
+                          const h = (watchInputs[p.key] ?? '').trim();
+                          if (h) watchMutation.mutate({ platform: p.key, handle: h });
+                        }}
+                        disabled={!(watchInputs[p.key] ?? '').trim() || watchMutation.isPending}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white text-sm rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0"
+                      >
+                        {watchMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
         <p className="text-xs text-gray-500 mt-3">
-          Connect your social accounts to browse posts, reels, and videos — and publish directly from Sozialzynk.
+          Connect via OAuth to publish directly, or use Watch to track any public account without signing in.
         </p>
       </section>
 

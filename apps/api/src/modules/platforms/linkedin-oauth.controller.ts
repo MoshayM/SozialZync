@@ -133,7 +133,7 @@ export class LinkedInOAuthController {
       );
 
       await this.prisma.platformConnection.upsert({
-        where: { userId_platformId: { userId, platformId: 'linkedin' } },
+        where: { userId_platformId_accountId: { userId, platformId: 'linkedin', accountId: linkedInId } },
         create: { userId, platformId: 'linkedin', accountId: linkedInId, accountName: displayName, encryptedTokens, scopes: LI_SCOPES },
         update: { accountId: linkedInId, accountName: displayName, encryptedTokens, scopes: LI_SCOPES },
       });
@@ -150,8 +150,8 @@ export class LinkedInOAuthController {
   @Get('refresh')
   @UseGuards(JwtAuthGuard)
   async refreshToken(@CurrentUser() user: JwtPayload, @Res() res: Response) {
-    const conn = await this.prisma.platformConnection.findUnique({
-      where: { userId_platformId: { userId: user.sub, platformId: 'linkedin' } },
+    const conn = await this.prisma.platformConnection.findFirst({
+      where: { userId: user.sub, platformId: 'linkedin', readOnly: false },
     });
     if (!conn) return res.status(404).json({ error: 'LinkedIn not connected' });
 
@@ -180,7 +180,7 @@ export class LinkedInOAuthController {
         ...(refresh_token_expires_in ? { refreshExpiresAt: new Date(Date.now() + refresh_token_expires_in * 1000).toISOString() } : {}),
       };
       await this.prisma.platformConnection.update({
-        where: { userId_platformId: { userId: user.sub, platformId: 'linkedin' } },
+        where: { id: conn.id },
         data: { encryptedTokens: this.enc.encrypt(JSON.stringify(updated)) },
       });
       return res.json({ ok: true });

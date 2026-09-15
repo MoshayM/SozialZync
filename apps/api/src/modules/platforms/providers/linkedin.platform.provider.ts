@@ -10,8 +10,8 @@ export class LinkedInPlatformProvider implements IPlatformProvider {
   constructor(private readonly prisma: PrismaService) {}
 
   async getConnectionStatus(userId: string): Promise<ConnectionStatus> {
-    const conn = await this.prisma.platformConnection.findUnique({
-      where: { userId_platformId: { userId, platformId: 'linkedin' } },
+    const conn = await this.prisma.platformConnection.findFirst({
+      where: { userId, platformId: 'linkedin', readOnly: false },
       select: { accountName: true, accountId: true },
     });
     if (!conn) return { connected: false };

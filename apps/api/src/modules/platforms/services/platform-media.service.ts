@@ -37,8 +37,8 @@ export class PlatformMediaService {
     platformId: string,
     opts: { type: string; limit: number; cursor?: string },
   ): Promise<MediaPage> {
-    const conn = await this.prisma.platformConnection.findUnique({
-      where: { userId_platformId: { userId, platformId } },
+    const conn = await this.prisma.platformConnection.findFirst({
+      where: { userId, platformId, readOnly: false },
     });
     if (!conn) throw new NotFoundException(`No ${platformId} connection found`);
 
