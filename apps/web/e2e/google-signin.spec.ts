@@ -86,8 +86,12 @@ test.describe('Google sign-in — mobile', () => {
     await page.screenshot({ path: 'e2e/google-signin-success.png' });
   });
 
-  // ── State mismatch ────────────────────────────────────────────────────────
-  test('state mismatch shows error (not session-expired redirect)', async ({ page }) => {
+  // ── State mismatch (stored state exists AND differs) ─────────────────────
+  // If storedState is null (Android cross-context), we skip the check — Railway
+  // validates server-side. We only block when we positively have a wrong state.
+  test('positive state mismatch shows error', async ({ page }) => {
+    // Start returns FAKE_STATE → stored in localStorage
+    // But authUrl has WRONG_STATE → positive mismatch → error
     await page.route('**/api/auth/google/start', async route => {
       await route.fulfill({
         status: 200,
@@ -103,6 +107,37 @@ test.describe('Google sign-in — mobile', () => {
     await expect(page.getByText(/sign-in failed/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/security check failed/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(/your session expired/i)).not.toBeVisible();
+  });
+
+  // ── Missing stored state (Android cross-context) ──────────────────────────
+  // storedState is null → skip client check → Railway validates → proceed
+  test('missing localStorage state proceeds to Railway (Android cross-context)', async ({ page }) => {
+    // Callback posts to Railway mock — returns tokens
+    await page.route('**/api/auth/google/callback', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(FAKE_TOKENS),
+      });
+    });
+    await page.route('**/api/proxy/auth/me', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: FAKE_USER.id, email: FAKE_USER.email, name: FAKE_USER.name, role: FAKE_USER.role, avatarUrl: null, phone: null }),
+      });
+    });
+    await page.route('**/api/proxy/auth/refresh', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ accessToken: 'fake.access.token' }) });
+    });
+
+    // Navigate directly to callback WITHOUT going through login first
+    // → localStorage has NO stored state (simulates Android cross-context)
+    await page.goto(`/oauth/callback/google?code=${FAKE_CODE}&state=${FAKE_STATE}`);
+
+    // Should NOT show state-mismatch error — should proceed to /home
+    await expect(page.getByText(/security check failed/i)).not.toBeVisible({ timeout: 5_000 });
+    await page.waitForURL(/\/home/, { timeout: 20_000 });
   });
 
   // ── Visibility ────────────────────────────────────────────────────────────

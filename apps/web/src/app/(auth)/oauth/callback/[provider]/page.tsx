@@ -273,7 +273,10 @@ function OAuthCallbackInner() {
         setState({ phase: 'error', message: 'Missing code or state from OAuth provider. Please try signing in again.' });
         return;
       }
-      if (!storedState || storedState !== stateFromUrl) {
+      // Only hard-fail on a positive mismatch (stored state exists AND doesn't match).
+      // If storedState is null the browser lost it across app/tab contexts (common on
+      // Android); Railway's OAuthState DB is the authoritative CSRF gate in that case.
+      if (storedState && storedState !== stateFromUrl) {
         setState({ phase: 'error', message: 'Security check failed (state mismatch). This may indicate a CSRF attempt. Please start the sign-in again.' });
         return;
       }
