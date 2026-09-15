@@ -162,12 +162,19 @@ export default function LoginPage() {
     }
   };
 
-  // Detect device passkey capability — mobile/iOS/Android only, skip on desktop
+  // Detect device passkey capability — mobile/iOS/Android only, skip on desktop.
+  // Show the button on ANY mobile device; WebAuthn availability is checked inside the handler
+  // so the button is visible even in Capacitor WebView where PublicKeyCredential may be absent.
   useEffect(() => {
-    if (typeof PublicKeyCredential === 'undefined') return;
     if (!isMobileDevice()) return;
     setPasskeySupported(true);
     setPasskeyLabel(detectPasskeyLabel());
+    if (typeof PublicKeyCredential === 'undefined') {
+      // WebAuthn API not available (e.g. older Android WebView) — show setup card so user
+      // can still register via password first, and try again in Chrome
+      setSetupOffer(true);
+      return;
+    }
     platformAuthenticatorIsAvailable().then((available) => {
       setHasPlatformAuth(available);
       // No platform authenticator → user almost certainly has no passkey; offer setup immediately
@@ -183,6 +190,11 @@ export default function LoginPage() {
 
   const handlePasskeyLogin = useCallback(async () => {
     if (passkeyHandledRef.current) return;
+    if (typeof PublicKeyCredential === 'undefined') {
+      setError('Passkey sign-in is not supported in this browser. Use password or Google sign-in, then set up a passkey in Settings.');
+      setSetupOffer(true);
+      return;
+    }
     setPasskeyLoading(true);
     setError('');
     // Track whether the browser successfully returned a credential.
