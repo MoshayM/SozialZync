@@ -456,7 +456,7 @@ export default function LoginPage() {
             placeholder="Email address"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setSetupEmail(e.target.value); }}
-            autoComplete={passkeySupported ? 'username webauthn' : 'email'}
+            autoComplete={passkeySupported ? 'username webauthn' : 'off'}
             autoFocus={!passkeySupported}
             required
           />

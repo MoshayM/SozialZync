@@ -25,9 +25,10 @@ test.describe('Laptop UI — passkey hidden + no layout shift', () => {
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(500);
 
-    // On desktop passkeySupported=false → autoComplete="email" (no webauthn hint)
+    // On desktop passkeySupported=false → autoComplete="off" (no credential picker at all)
     const emailInput = page.locator('input[type="email"]').first();
     const autoComplete = await emailInput.getAttribute('autocomplete');
+    expect(autoComplete).toBe('off');
     expect(autoComplete).not.toContain('webauthn');
 
     await page.screenshot({ path: 'e2e/laptop-login-autocomplete.png' });
