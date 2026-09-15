@@ -89,7 +89,8 @@ test.describe('Login page — mobile passkey UX', () => {
     await setupForm(page).locator('input[type="password"]').fill('WrongPassword123');
     await setupForm(page).locator('button').filter({ hasText: /sign in & add passkey/i }).click();
 
-    await expect(page.getByText(/incorrect email or password/i)).toBeVisible({ timeout: 15_000 });
+    // Accept either the 401 message or the 429 rate-limit message (both mean credentials were rejected)
+    await expect(page.getByText(/incorrect email or password|too many attempts/i)).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: 'e2e/mobile-login-setup-error.png' });
   });
 

@@ -241,6 +241,8 @@ export default function LoginPage() {
       setSetupError(
         httpStatus === 401 || httpStatus === 400
           ? 'Incorrect email or password.' :
+        httpStatus === 429
+          ? 'Too many attempts — wait a minute and try again.' :
         name === 'InvalidStateError'
           ? 'A passkey is already registered on this device — tap "Sign in instantly" to use it.' :
         name === 'NotAllowedError' || name === 'AbortError' || name === 'NotSupportedError'
