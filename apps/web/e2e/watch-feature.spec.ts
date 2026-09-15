@@ -61,6 +61,9 @@ test.describe('Watch feature — live smoke test', () => {
 
     await page.goto('/channel-access');
     await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 15_000 });
+    // Wait for the initial connection-status fetch to complete so our interceptor only
+    // catches the post-add refetch, not the page-load request.
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
 
     // Instagram is the 2nd platform (index 1)
     const watchBtns = page.getByRole('button', { name: /watch/i });
@@ -91,8 +94,8 @@ test.describe('Watch feature — live smoke test', () => {
     const statusBody = await statusRes.text();
     console.log(`CONNECTION-STATUS GET status=${statusRes.status()} body=${statusBody.slice(0, 600)}`);
 
-    // Fail early with diagnostics if the API returned an error
-    expect(watchRes.status(), `Watch POST failed — body: ${watchBody}`).toBe(200);
+    // Fail early with diagnostics if the API returned an error (201 Created is correct for POST)
+    expect(watchRes.status(), `Watch POST failed — body: ${watchBody}`).toBeLessThan(300);
 
     // Confirm the refetch response contains the new handle
     expect(statusBody, 'connection-status refetch should contain @pw_testhandle').toContain('@pw_testhandle');
@@ -122,6 +125,7 @@ test.describe('Watch feature — live smoke test', () => {
 
     await page.goto('/channel-access');
     await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 15_000 });
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
 
     // X is the 4th platform (index 3)
     const watchBtns = page.getByRole('button', { name: /watch/i });
@@ -129,6 +133,17 @@ test.describe('Watch feature — live smoke test', () => {
 
     const handleInput = page.locator('input[placeholder*="handle"]').first();
     await expect(handleInput).toBeVisible({ timeout: 8_000 });
+
+    // Remove any watches left over from prior test runs so we start from a clean slate
+    const existingUnwatches = page.getByRole('button', { name: /unwatch/i });
+    while ((await existingUnwatches.count()) > 0) {
+      const preDelPromise = page.waitForResponse(
+        (r) => r.url().includes('/platforms') && r.request().method() === 'DELETE',
+        { timeout: 10_000 },
+      );
+      await existingUnwatches.first().click();
+      await preDelPromise;
+    }
 
     // Add first account
     await handleInput.fill('@x_user_one');
@@ -139,7 +154,7 @@ test.describe('Watch feature — live smoke test', () => {
     await page.getByRole('button', { name: /^add$/i }).first().click();
     const res1 = await res1Promise;
     console.log(`ADD @x_user_one status=${res1.status()} body=${await res1.text()}`);
-    expect(res1.status(), 'First watch POST should succeed').toBe(200);
+    expect(res1.status(), 'First watch POST should succeed').toBeLessThan(300);
     await expect(page.getByText('@x_user_one')).toBeVisible({ timeout: 10_000 });
 
     // Add second account
@@ -151,7 +166,7 @@ test.describe('Watch feature — live smoke test', () => {
     await page.getByRole('button', { name: /^add$/i }).first().click();
     const res2 = await res2Promise;
     console.log(`ADD @x_user_two status=${res2.status()} body=${await res2.text()}`);
-    expect(res2.status(), 'Second watch POST should succeed').toBe(200);
+    expect(res2.status(), 'Second watch POST should succeed').toBeLessThan(300);
     await expect(page.getByText('@x_user_two')).toBeVisible({ timeout: 10_000 });
 
     // Badge should show 2
@@ -159,12 +174,24 @@ test.describe('Watch feature — live smoke test', () => {
     await expect(badge.first()).toBeVisible({ timeout: 5_000 });
     await page.screenshot({ path: 'e2e/pw-watch-5-badge.png', fullPage: false });
 
-    // Clean up
-    await page.getByRole('button', { name: /unwatch/i }).first().click();
-    await page.waitForTimeout(800);
-    await page.getByRole('button', { name: /unwatch/i }).first().click();
-    await expect(page.getByText('@x_user_one')).not.toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText('@x_user_two')).not.toBeVisible({ timeout: 8_000 });
+    // Clean up — after each DELETE, wait for networkidle so the UI refetch completes
+    // before clicking the next Unwatch. Without this, the second click targets the
+    // same (already-deleted) item still visible in the stale pre-refetch list.
+    const unwatchBtns = page.getByRole('button', { name: /unwatch/i });
+    let remaining = await unwatchBtns.count();
+    while (remaining > 0) {
+      const delPromise = page.waitForResponse(
+        (r) => r.url().includes('/platforms') && r.request().method() === 'DELETE',
+        { timeout: 15_000 },
+      );
+      await unwatchBtns.first().click();
+      await delPromise;
+      await page.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => {});
+      remaining = await unwatchBtns.count();
+    }
+
+    await expect(page.getByText('@x_user_one')).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('@x_user_two')).not.toBeVisible({ timeout: 5_000 });
 
     if (networkLog.length) console.log('Network log:\n' + networkLog.join('\n'));
   });
