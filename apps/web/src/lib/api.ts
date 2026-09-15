@@ -55,6 +55,12 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
     const p = MOCK_PROJECTS_LIST.find(x => x.id === id) ?? MOCK_PROJECTS_LIST[0]!;
     return _mockResp(p, config);
   }
+  if (url === '/projects' && method === 'post') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock adapter parses any body
+    const body: Record<string, any> = typeof config.data === 'string' ? JSON.parse(config.data) : (config.data ?? {});
+    const mockId = `mock-p${String(MOCK_PROJECTS_LIST.length + 1).padStart(2, '0')}x`;
+    return _mockResp({ id: mockId, title: body['title'] ?? 'New Project', niche: body['niche'] ?? null, targetLang: body['targetLang'] ?? 'en', status: 'DRAFT', publishingStatus: 'NOT_PUBLISHED', channel: null, _count: { jobs: 0, videos: 0 }, updatedAt: _MOCK_NOW(), createdAt: _MOCK_NOW() }, config);
+  }
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   if (url === '/auth/me') {

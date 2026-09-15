@@ -1365,7 +1365,11 @@ function ProjectsInner() {
         ],
       }),
     onSuccess: (res) => {
-      const newId: string = (res.data as { id: string }).id;
+      const newId = ((res.data as { id?: string })?.id ?? (res.data as { data?: { id?: string } })?.data?.id) as string | undefined;
+      if (!newId) {
+        setCreateError('Project created but could not get its ID — please refresh and try again.');
+        return;
+      }
       localStorage.setItem(`cf_ct_${newId}`, form.contentFormat);
       localStorage.setItem(`cf_platform_${newId}`, form.platform);
       if (form.crossPostChannelIds.length > 0) {
