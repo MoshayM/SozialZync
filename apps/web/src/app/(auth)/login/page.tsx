@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import {
   startAuthentication,
-  browserSupportsWebAuthnAutofill,
   platformAuthenticatorIsAvailable,
 } from '@simplewebauthn/browser';
 import { api, setTokens } from '@/lib/api';
@@ -163,28 +162,11 @@ export default function LoginPage() {
     platformAuthenticatorIsAvailable().then(setHasPlatformAuth).catch(() => {});
   }, []);
 
-  // Arm browser autofill passkey — mobile only (passkeySupported already guards desktop)
-  useEffect(() => {
-    if (!passkeySupported) return;
-    let cancelled = false;
-    async function arm() {
-      try {
-        const supported = await browserSupportsWebAuthnAutofill();
-        if (!supported || cancelled) return;
-        const { data: opts } = await api.auth.webauthnAuthOptions();
-        if (cancelled) return;
-        const cred = await startAuthentication({ optionsJSON: opts, useBrowserAutofill: true });
-        if (cancelled || passkeyHandledRef.current) return;
-        passkeyHandledRef.current = true;
-        const { data } = await api.auth.webauthnAuthVerify(cred);
-        setTokens(data.accessToken, data.refreshToken);
-        router.push('/home');
-      } catch { /* user dismissed autocomplete — normal */ }
-    }
-    void arm();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [passkeySupported]);
+  // NOTE: The conditional (autofill) passkey arm is intentionally omitted for mobile.
+  // On mobile the "Sign in instantly" button is the primary passkey entry point.
+  // Running a concurrent conditional credentials.get() races with the button tap on
+  // Android/Brave — the abort can leak an AbortError into the button's startAuthentication
+  // call, showing a spurious "Passkey sign-in failed" error to the user.
 
   const handlePasskeyLogin = useCallback(async () => {
     if (passkeyHandledRef.current) return;
@@ -203,9 +185,14 @@ export default function LoginPage() {
     } catch (err: unknown) {
       passkeyHandledRef.current = false;
       const name = (err as { name?: string })?.name;
+      const httpStatus = (err as { response?: { status?: number } })?.response?.status;
       setError(
-        name === 'NotAllowedError'   ? 'Sign-in was cancelled.' :
-        name === 'InvalidStateError' ? 'No passkey found on this device. Use your password to sign in, then add a passkey in Settings.' :
+        name === 'NotAllowedError' || name === 'AbortError'
+          ? 'Sign-in was cancelled.' :
+        name === 'InvalidStateError'
+          ? 'No passkey found on this device. Use your password to sign in, then add a passkey in Settings.' :
+        httpStatus === 401
+          ? 'Passkey not recognised — sign in with your password first, then re-register your passkey in Settings.' :
         'Passkey sign-in failed. Please try your password.'
       );
     } finally {
