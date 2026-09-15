@@ -450,7 +450,7 @@ export default function LoginPage() {
         </div>
 
         {/* ── Password form (secondary) ─────────────────────── */}
-        <form onSubmit={(e) => { void handlePasswordSubmit(e); }} className="space-y-3" noValidate>
+        <form onSubmit={(e) => { void handlePasswordSubmit(e); }} className="space-y-3" noValidate autoComplete={passkeySupported ? undefined : 'off'}>
           <Input
             type="email"
             placeholder="Email address"
@@ -467,7 +467,7 @@ export default function LoginPage() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete={passkeySupported ? 'current-password' : 'off'}
               required
               rightElement={
                 <button

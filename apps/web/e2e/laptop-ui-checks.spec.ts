@@ -20,16 +20,21 @@ test.describe('Laptop UI — passkey hidden + no layout shift', () => {
     await page.screenshot({ path: 'e2e/laptop-login.png' });
   });
 
-  test('login page: email input does NOT have "webauthn" in autocomplete on desktop', async ({ page }) => {
+  test('login page: email and password inputs have autocomplete=off on desktop (no Chrome credential picker)', async ({ page }) => {
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(500);
 
-    // On desktop passkeySupported=false → autoComplete="off" (no credential picker at all)
+    // On desktop passkeySupported=false → both fields get autocomplete="off"
+    // This prevents Chrome from showing its native passkey/credential picker
     const emailInput = page.locator('input[type="email"]').first();
-    const autoComplete = await emailInput.getAttribute('autocomplete');
-    expect(autoComplete).toBe('off');
-    expect(autoComplete).not.toContain('webauthn');
+    const emailAC = await emailInput.getAttribute('autocomplete');
+    expect(emailAC).toBe('off');
+    expect(emailAC).not.toContain('webauthn');
+
+    const passwordInput = page.locator('input[type="password"]').first();
+    const passwordAC = await passwordInput.getAttribute('autocomplete');
+    expect(passwordAC).toBe('off');
 
     await page.screenshot({ path: 'e2e/laptop-login-autocomplete.png' });
   });
