@@ -172,11 +172,14 @@ export default function LoginPage() {
     if (passkeyHandledRef.current) return;
     setPasskeyLoading(true);
     setError('');
+    // Track whether the browser successfully returned a credential.
+    // Any throw before this point is a browser/device issue → cancellation message.
+    // Any throw after is a server error → server message.
+    let credentialRetrieved = false;
     try {
       const { data: opts } = await api.auth.webauthnAuthOptions();
-      // startAuthentication internally aborts any pending conditional (autofill) credentials.get()
-      // via simplewebauthn's WebAuthnAbortService, so only one browser prompt is ever active.
       const cred = await startAuthentication({ optionsJSON: opts });
+      credentialRetrieved = true;
       if (passkeyHandledRef.current) return;
       passkeyHandledRef.current = true;
       const { data } = await api.auth.webauthnAuthVerify(cred);
@@ -187,13 +190,17 @@ export default function LoginPage() {
       const name = (err as { name?: string })?.name;
       const httpStatus = (err as { response?: { status?: number } })?.response?.status;
       setError(
-        name === 'NotAllowedError' || name === 'AbortError'
-          ? 'Sign-in was cancelled.' :
-        name === 'InvalidStateError'
-          ? 'No passkey found on this device. Use your password to sign in, then add a passkey in Settings.' :
-        httpStatus === 401
-          ? 'Passkey not recognised — sign in with your password first, then re-register your passkey in Settings.' :
-        'Passkey sign-in failed. Please try your password.'
+        !credentialRetrieved
+          // Browser/device threw before we got a credential — treat as cancellation
+          // regardless of the specific error name (NotAllowedError, AbortError,
+          // NotSupportedError, SecurityError, etc.).
+          ? (name === 'InvalidStateError'
+              ? 'No passkey found on this device. Use your password to sign in, then add a passkey in Settings.'
+              : 'Sign-in was cancelled.')
+          // Credential was returned but server rejected it
+          : httpStatus === 401
+            ? 'Passkey not recognised — sign in with your password first, then re-register your passkey in Settings.'
+            : 'Passkey sign-in failed. Please try your password.'
       );
     } finally {
       setPasskeyLoading(false);
