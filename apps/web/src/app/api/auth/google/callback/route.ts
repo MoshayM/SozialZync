@@ -17,7 +17,8 @@ export async function POST(req: Request) {
         'x-forwarded-for': req.headers.get('x-forwarded-for') ?? '',
         'user-agent':      req.headers.get('user-agent') ?? '',
       },
-      body: JSON.stringify(body),
+      // Railway DTO only accepts code + state — strip redirectUri
+      body: JSON.stringify({ code: body.code, state: body.state }),
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
