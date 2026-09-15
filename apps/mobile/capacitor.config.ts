@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-// v1.1 — includes RECORD_AUDIO manifest patch for Copilot voice
+// v1.2 — fixed CI to use pre-installed Android SDK (no android-actions/setup-android)
 const config: CapacitorConfig = {
   appId: 'com.sozialzync.app',
   appName: 'Sozialzynk',
