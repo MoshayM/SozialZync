@@ -31,6 +31,7 @@ const config: CapacitorConfig = {
     },
   },
   android: {
+    allowMixedContent: false,
     buildOptions: {
       keystorePath: 'release.keystore',
       keystoreAlias: 'sozialzync',
