@@ -26,9 +26,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  // Run in demo/mock mode — no Railway backend required
   env: {
-    NEXT_PUBLIC_USE_MOCK: 'true',
+    // Default to real API; set NEXT_PUBLIC_USE_MOCK=true in Vercel dashboard for demo/preview deployments
+    NEXT_PUBLIC_USE_MOCK: process.env['NEXT_PUBLIC_USE_MOCK'] ?? 'false',
   },
   // ZAP baseline rule 10037: don't advertise the framework.
   poweredByHeader: false,
