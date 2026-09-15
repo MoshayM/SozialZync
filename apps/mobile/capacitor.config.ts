@@ -1,5 +1,6 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+// v1.1 — includes RECORD_AUDIO manifest patch for Copilot voice
 const config: CapacitorConfig = {
   appId: 'com.sozialzync.app',
   appName: 'Sozialzynk',
