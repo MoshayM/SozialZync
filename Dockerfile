@@ -1,4 +1,4 @@
-# build-buster: 20260915-v2
+# build-buster: 20260915-v3
 FROM node:22-slim AS base
 RUN apt-get update && apt-get install -y openssl libatomic1 && rm -rf /var/lib/apt/lists/* && npm install -g pnpm@10
 
@@ -26,4 +26,4 @@ ENV NODE_ENV=production
 EXPOSE 4007
 
 # Sync schema then start (db push is idempotent and ignores migration history state)
-CMD ["sh", "-c", "cd apps/api && npx prisma db push --accept-data-loss --skip-generate && node dist/main"]
+CMD ["sh", "-c", "cd apps/api && npx prisma migrate resolve --applied 20260824000003_fix_publishing_status_enum 2>&1 || true && npx prisma migrate resolve --applied 20260915000001_add_platform_watch_readonly 2>&1 || true && npx prisma migrate deploy && node dist/main"]
