@@ -2,7 +2,7 @@
 dockerfilePath = "../../Dockerfile"
 
 [deploy]
-startCommand = "sh -c 'cd /app/apps/api && node prisma/fix-migration.mjs && npx prisma migrate deploy && node dist/main'"
+startCommand = "sh -c 'cd /app/apps/api && npx prisma db push --accept-data-loss --skip-generate && node dist/main'"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
