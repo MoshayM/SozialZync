@@ -279,12 +279,11 @@ function OAuthCallbackInner() {
       }
 
       try {
-        const redirectUri = `${window.location.origin}/oauth/callback/${provider}`;
-        // Call the Vercel-native API route (no Railway needed)
+        // Railway OAuthCallbackDto only accepts { code, state } — no redirectUri
         const res = await fetch(`/api/auth/${provider}/callback`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, state: stateFromUrl, redirectUri }),
+          body: JSON.stringify({ code, state: stateFromUrl }),
         });
         const data = await res.json() as {
           accessToken?: string; refreshToken?: string;
