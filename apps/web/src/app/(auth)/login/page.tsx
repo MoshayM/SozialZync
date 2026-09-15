@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import {
   startAuthentication,
+  startRegistration,
   platformAuthenticatorIsAvailable,
 } from '@simplewebauthn/browser';
 import { api, setTokens } from '@/lib/api';
@@ -128,6 +129,14 @@ export default function LoginPage() {
   const [hasPlatformAuth, setHasPlatformAuth] = useState(false);
   const passkeyHandledRef = useRef(false);
 
+  // Inline passkey registration (shown after a failed passkey attempt)
+  const [setupOffer, setSetupOffer] = useState(false);
+  const [setupEmail, setSetupEmail] = useState('');
+  const [setupPassword, setSetupPassword] = useState('');
+  const [setupShowPw, setSetupShowPw] = useState(false);
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupError, setSetupError] = useState('');
+
   const [googleProviders, setGoogleProviders] = useState<Record<string, boolean>>({});
   useEffect(() => {
     api.auth.providers().then(r => setGoogleProviders(r.data as unknown as Record<string, boolean>)).catch(() => {});
@@ -159,7 +168,11 @@ export default function LoginPage() {
     if (!isMobileDevice()) return;
     setPasskeySupported(true);
     setPasskeyLabel(detectPasskeyLabel());
-    platformAuthenticatorIsAvailable().then(setHasPlatformAuth).catch(() => {});
+    platformAuthenticatorIsAvailable().then((available) => {
+      setHasPlatformAuth(available);
+      // No platform authenticator → user almost certainly has no passkey; offer setup immediately
+      if (!available) setSetupOffer(true);
+    }).catch(() => {});
   }, []);
 
   // NOTE: The conditional (autofill) passkey arm is intentionally omitted for mobile.
@@ -189,23 +202,55 @@ export default function LoginPage() {
       passkeyHandledRef.current = false;
       const name = (err as { name?: string })?.name;
       const httpStatus = (err as { response?: { status?: number } })?.response?.status;
-      setError(
-        !credentialRetrieved
-          // Browser/device threw before we got a credential — treat as cancellation
-          // regardless of the specific error name (NotAllowedError, AbortError,
-          // NotSupportedError, SecurityError, etc.).
-          ? (name === 'InvalidStateError'
-              ? 'No passkey found on this device. Use your password to sign in, then add a passkey in Settings.'
-              : 'Sign-in was cancelled.')
-          // Credential was returned but server rejected it
-          : httpStatus === 401
+      if (!credentialRetrieved) {
+        // Browser/device threw before credential retrieved — show inline registration offer
+        setError(name === 'InvalidStateError' ? 'No passkey found on this device.' : 'Sign-in was cancelled.');
+        setSetupOffer(true);
+        // Pre-fill email from the password form so the user doesn't have to retype
+        if (email) setSetupEmail(email);
+      } else {
+        setError(
+          httpStatus === 401
             ? 'Passkey not recognised — sign in with your password first, then re-register your passkey in Settings.'
             : 'Passkey sign-in failed. Please try your password.'
-      );
+        );
+      }
     } finally {
       setPasskeyLoading(false);
     }
   }, [router]);
+
+  const handleRegisterPasskey = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSetupLoading(true);
+    setSetupError('');
+    try {
+      // 1. Sign in with password to obtain a JWT (registration requires auth)
+      const { data: authData } = await api.auth.login(setupEmail, setupPassword);
+      setTokens(authData.accessToken, authData.refreshToken);
+      // 2. Get registration challenge (now authenticated)
+      const { data: options } = await api.auth.webauthnRegisterOptions();
+      // 3. Trigger browser biometric prompt
+      const credential = await startRegistration({ optionsJSON: options });
+      // 4. Persist the new passkey
+      await api.auth.webauthnRegisterVerify(credential, 'My passkey');
+      router.push('/home');
+    } catch (err: unknown) {
+      const name = (err as { name?: string })?.name;
+      const httpStatus = (err as { response?: { status?: number } })?.response?.status;
+      setSetupError(
+        httpStatus === 401 || httpStatus === 400
+          ? 'Incorrect email or password.' :
+        name === 'InvalidStateError'
+          ? 'A passkey is already registered on this device — tap "Sign in instantly" to use it.' :
+        name === 'NotAllowedError' || name === 'AbortError' || name === 'NotSupportedError'
+          ? 'Passkey setup was cancelled. You can try again or add one later in Settings.' :
+        'Could not set up passkey. Try again later in Settings → Sign-in & Security.'
+      );
+    } finally {
+      setSetupLoading(false);
+    }
+  }, [setupEmail, setupPassword, router]);
 
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -313,11 +358,79 @@ export default function LoginPage() {
               )}
             </button>
 
-            {/* Passkey hint for users who may not know what it is */}
-            {!hasPlatformAuth && (
-              <p className="text-[11px] text-center text-gray-400 leading-relaxed">
-                No passkey yet? Sign in with your password first, then add one in Settings.
-              </p>
+            {/* Inline passkey registration — shown after a failed attempt or when no platform auth */}
+            {setupOffer && (
+              <div
+                className="rounded-xl overflow-hidden"
+                style={{ border: '1.5px solid #d1fae5', background: '#f0fdf4' }}
+              >
+                {/* Header */}
+                <div className="flex items-center gap-2.5 px-3.5 py-3">
+                  <span
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: '#d1fae5' }}
+                  >
+                    <Fingerprint className="w-4 h-4 text-emerald-600" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-gray-800 leading-tight">Register a passkey</p>
+                    <p className="text-[11px] text-gray-500 leading-tight">Sign in once — your device handles the rest</p>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <form
+                  onSubmit={(e) => { void handleRegisterPasskey(e); }}
+                  className="px-3.5 pb-3.5 space-y-2 border-t border-emerald-100"
+                >
+                  <div className="pt-2.5 space-y-2">
+                    <Input
+                      type="email"
+                      placeholder="Email address"
+                      value={setupEmail}
+                      onChange={(e) => setSetupEmail(e.target.value)}
+                      autoComplete="username"
+                      required
+                    />
+                    <Input
+                      type={setupShowPw ? 'text' : 'password'}
+                      placeholder="Password"
+                      value={setupPassword}
+                      onChange={(e) => setSetupPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                      rightElement={
+                        <button
+                          type="button"
+                          onClick={() => setSetupShowPw((v) => !v)}
+                          aria-label={setupShowPw ? 'Hide password' : 'Show password'}
+                          className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg"
+                        >
+                          {setupShowPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      }
+                    />
+                  </div>
+
+                  {setupError && <ErrorNote msg={setupError} />}
+
+                  <button
+                    type="submit"
+                    disabled={setupLoading || !setupEmail || !setupPassword}
+                    className="w-full py-[10px] rounded-xl font-semibold text-[13px] flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90 active:scale-[0.99]"
+                    style={{
+                      background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                      color: '#fff',
+                      boxShadow: '0 4px 14px rgba(5,150,105,0.3)',
+                    }}
+                  >
+                    {setupLoading
+                      ? <><Loader2 className="w-4 h-4 animate-spin shrink-0" /> Setting up…</>
+                      : <><Fingerprint className="w-4 h-4 shrink-0" /> Sign in &amp; add passkey</>
+                    }
+                  </button>
+                </form>
+              </div>
             )}
           </div>
         )}
@@ -337,7 +450,7 @@ export default function LoginPage() {
             type="email"
             placeholder="Email address"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setSetupEmail(e.target.value); }}
             autoComplete="username webauthn"
             autoFocus={!passkeySupported}
             required
