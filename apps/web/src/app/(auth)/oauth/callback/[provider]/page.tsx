@@ -266,8 +266,8 @@ function OAuthCallbackInner() {
 
   useEffect(() => {
     async function exchange() {
-      const storedState = sessionStorage.getItem('cf.oauth.state');
-      sessionStorage.removeItem('cf.oauth.state');
+      const storedState = localStorage.getItem('cf.oauth.state');
+      localStorage.removeItem('cf.oauth.state');
 
       if (!code || !stateFromUrl) {
         setState({ phase: 'error', message: 'Missing code or state from OAuth provider. Please try signing in again.' });

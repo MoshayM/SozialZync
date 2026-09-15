@@ -154,8 +154,9 @@ export default function LoginPage() {
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const data = await res.json() as { authUrl: string; state: string };
-      // Store state for CSRF verification in the callback page
-      sessionStorage.setItem('cf.oauth.state', data.state);
+      // Use localStorage (not sessionStorage) so state survives if the browser
+      // opens the OAuth URL in a new tab (sessionStorage is tab-scoped).
+      localStorage.setItem('cf.oauth.state', data.state);
       window.location.href = data.authUrl;
     } catch {
       setError('Could not start Google sign-in. Try again.');
