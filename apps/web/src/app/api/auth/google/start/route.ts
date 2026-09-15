@@ -1,30 +1,23 @@
 import { NextResponse } from 'next/server';
 
+const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'https://sozialzync-api-production.up.railway.app/api/v1';
+
 export async function POST(req: Request) {
   const body = await req.json() as { redirectUri?: string; mode?: string };
-  const { redirectUri, mode = 'login' } = body;
 
-  if (!redirectUri) {
+  if (!body.redirectUri) {
     return NextResponse.json({ error: 'redirectUri required' }, { status: 400 });
   }
 
-  const clientId = process.env['GOOGLE_CLIENT_ID'];
-  if (!clientId) {
-    return NextResponse.json({ error: 'Google OAuth not configured' }, { status: 503 });
+  try {
+    const res = await fetch(`${API_BASE}/auth/google/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ error: 'Failed to reach auth server' }, { status: 502 });
   }
-
-  const state = `${mode}:${crypto.randomUUID()}`;
-
-  const params = new URLSearchParams({
-    client_id:     clientId,
-    redirect_uri:  redirectUri,
-    response_type: 'code',
-    scope:         'openid email profile',
-    state,
-    access_type:   'offline',
-    prompt:        'select_account',
-  });
-
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  return NextResponse.json({ authUrl, state });
 }
