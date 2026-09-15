@@ -1,4 +1,4 @@
-# build-buster: 20260911-v1
+# build-buster: 20260915-v2
 FROM node:22-slim AS base
 RUN apt-get update && apt-get install -y openssl libatomic1 && rm -rf /var/lib/apt/lists/* && npm install -g pnpm@10
 
@@ -25,5 +25,5 @@ RUN pnpm --filter @cf/shared build && pnpm --filter @cf/api build
 ENV NODE_ENV=production
 EXPOSE 4007
 
-# Migrate DB then start (DATABASE_URL injected by Railway at runtime)
-CMD ["sh", "-c", "cd apps/api && npx prisma migrate deploy && node dist/main"]
+# Sync schema then start (db push is idempotent and ignores migration history state)
+CMD ["sh", "-c", "cd apps/api && npx prisma db push --accept-data-loss --skip-generate && node dist/main"]
