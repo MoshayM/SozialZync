@@ -637,7 +637,7 @@ export default function BecomeCreatorPage() {
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(52,168,83,.15)'}}>🤖</div>
                 <div>
                   <p className="text-white font-bold text-base mb-1">Android</p>
-                  <p className="text-white/45 text-sm leading-relaxed">Download the APK directly from GitHub. Enable &quot;Install from unknown sources&quot; in Android settings first.</p>
+                  <p className="text-white/45 text-sm leading-relaxed">Works with any browser — Chrome, Brave, DuckDuckGo, Firefox, and more.</p>
                 </div>
                 <a href="https://github.com/MoshayM/SozialZync/releases/download/android-latest/sozialzynk.apk" className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 w-full" style={{background:'rgba(52,168,83,.2)',border:'1px solid rgba(52,168,83,.4)',color:'rgba(134,239,172,1)'}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -645,6 +645,15 @@ export default function BecomeCreatorPage() {
                   </svg>
                   Download APK (Latest)
                 </a>
+                <div style={{background:'rgba(52,168,83,.06)',border:'1px solid rgba(52,168,83,.15)',borderRadius:10,padding:'10px 12px'}}>
+                  <p className="text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wide">How to install</p>
+                  <ol style={{margin:0,paddingLeft:14,display:'flex',flexDirection:'column',gap:4}}>
+                    <li className="text-white/40 text-xs leading-relaxed">Tap <strong className="text-white/60">Download APK</strong> above using any browser</li>
+                    <li className="text-white/40 text-xs leading-relaxed">Open the downloaded file from your notifications or Downloads folder</li>
+                    <li className="text-white/40 text-xs leading-relaxed">When prompted, tap <strong className="text-white/60">Settings</strong> and enable <strong className="text-white/60">Allow from this source</strong></li>
+                    <li className="text-white/40 text-xs leading-relaxed">Go back and tap <strong className="text-white/60">Install</strong></li>
+                  </ol>
+                </div>
                 <a href="https://github.com/MoshayM/SozialZync/releases/tag/android-latest" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 w-full" style={{background:'rgba(52,168,83,.08)',border:'1px solid rgba(52,168,83,.2)',color:'rgba(134,239,172,.6)'}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/>
