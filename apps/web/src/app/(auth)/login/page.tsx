@@ -316,12 +316,15 @@ export default function LoginPage() {
       <div className="space-y-5">
 
         {/* ── Session-expired banner ────────────────────────── */}
-        {sessionExpired && (
-          <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-amber-50 border border-amber-100">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
-            <p className="text-amber-700 text-xs font-medium leading-relaxed">Your session expired. Please sign in again.</p>
-          </div>
-        )}
+        {/* Wrapper always reserves space (min-h) to prevent layout shift when banner appears */}
+        <div className={sessionExpired ? '' : 'min-h-[40px]'}>
+          {sessionExpired && (
+            <div className="flex items-start gap-2 rounded-xl px-3.5 py-2.5 bg-amber-50 border border-amber-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
+              <p className="text-amber-700 text-xs font-medium leading-relaxed">Your session expired. Please sign in again.</p>
+            </div>
+          )}
+        </div>
 
         {/* ── Passkey (primary) ────────────────────────────── */}
         {passkeySupported && (
@@ -453,7 +456,7 @@ export default function LoginPage() {
             placeholder="Email address"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setSetupEmail(e.target.value); }}
-            autoComplete="username webauthn"
+            autoComplete={passkeySupported ? 'username webauthn' : 'email'}
             autoFocus={!passkeySupported}
             required
           />

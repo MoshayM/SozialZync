@@ -273,7 +273,8 @@ function AdRevenueCard() {
   const totalPaid = stats.reduce((s, p) => s + p.adRevenuePaidOut, 0);
   const hasEnabled = stats.some(p => p.adRevenueEnabled);
 
-  if (loading || (!hasEnabled && stats.length === 0)) return null;
+  if (loading) return <div className="h-[104px] rounded-2xl bg-gray-50 animate-pulse" />;
+  if (!hasEnabled && stats.length === 0) return null;
 
   return (
     <Card>
@@ -308,7 +309,9 @@ export default function HomePage() {
     }
     return 1;
   });
-  const [insightDismissed, setInsightDismissed] = useState(false);
+  const [insightDismissed, setInsightDismissed] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('cf_insight_dismissed') === '1'
+  );
   // greeting uses local time — must be client-only to avoid SSR/client hydration mismatch
   const [greeting, setGreeting] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -585,7 +588,7 @@ export default function HomePage() {
             {/* Dismiss button */}
             <button
               type="button"
-              onClick={() => setInsightDismissed(true)}
+              onClick={() => { setInsightDismissed(true); localStorage.setItem('cf_insight_dismissed', '1'); }}
               aria-label="Dismiss insight"
               className="absolute top-3.5 right-3.5 w-7 h-7 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
               style={{ color: 'rgba(255,255,255,0.6)' }}
