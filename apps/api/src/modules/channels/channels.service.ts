@@ -148,10 +148,15 @@ async function resolveChannelViaPage(parsed: ParsedYouTubeUrl): Promise<{
 
   const html = await res.text();
 
-  // externalId is the most reliable source of the canonical channel ID
+  // Try multiple extraction patterns — YouTube's page structure varies by region/experiment
   const channelId =
     html.match(/"externalId":"(UC[\w-]{22})"/)?.[1] ??
-    html.match(/link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)?.[1] ??
+    html.match(/"channelId":"(UC[\w-]{22})"/)?.[1] ??
+    html.match(/"browseId":"(UC[\w-]{22})"/)?.[1] ??
+    html.match(/"ucid":"(UC[\w-]{22})"/)?.[1] ??
+    html.match(/og:url[^>]+content="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)?.[1] ??
+    html.match(/content="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"[^>]+og:url/)?.[1] ??
+    html.match(/link[^>]+rel="canonical"[^>]+href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)?.[1] ??
     parsed.channelId;
 
   if (!channelId) {
@@ -443,6 +448,7 @@ export class ChannelsService implements OnModuleInit {
         lastSyncedAt: now,
       },
       update: {
+        userId,
         title: data.title,
         thumbnailUrl: data.thumbnailUrl,
         customUrl: data.handle,
