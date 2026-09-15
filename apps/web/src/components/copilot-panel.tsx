@@ -840,14 +840,27 @@ export function CopilotPanel() {
         utt.lang = bestVoice?.lang ?? target;
         utt.rate = 0.93; utt.pitch = 1.0; utt.volume = 1.0;
         if (bestVoice) utt.voice = bestVoice;
-        if (chunkIdx === 1) utt.onstart = () => setSpeaking(true);
-        utt.onend = next;
+        let startTimer: ReturnType<typeof setTimeout> | null = null;
+        if (chunkIdx === 1) {
+          utt.onstart = () => {
+            if (startTimer) { clearTimeout(startTimer); startTimer = null; }
+            setSpeaking(true);
+          };
+          // If TTS doesn't start within 3 s (Android WebView silent failure), show fallback button
+          startTimer = setTimeout(() => {
+            if (keepAlive) clearInterval(keepAlive);
+            setSpeaking(false); setSpeakingIdx(null);
+            setTtsBlocked(true);
+            setActivePanel('chat');
+          }, 3000);
+        }
+        utt.onend = () => { if (startTimer) { clearTimeout(startTimer); startTimer = null; } next(); };
         utt.onerror = (e) => {
+          if (startTimer) { clearTimeout(startTimer); startTimer = null; }
           if (keepAlive) clearInterval(keepAlive);
           setSpeaking(false); setSpeakingIdx(null);
-          if (e.error === 'not-allowed') {
-            // Gesture guard fired — bridge didn't reach us in time (very slow API response).
-            // Show the 🔊 Play reply button prominently so the user can tap to hear.
+          if (e.error === 'not-allowed' || e.error === 'synthesis-unavailable') {
+            // No TTS available — show the 🔊 Play reply button so the user can retry.
             setTtsBlocked(true);
             setActivePanel('chat');
             return;
@@ -1012,7 +1025,13 @@ export function CopilotPanel() {
     if (typeof window === 'undefined') return;
     let stream: MediaStream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch { setListening(false); setMicError('Microphone permission denied'); return; }
+    catch {
+      setListening(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isCapacitor = typeof (window as any).Capacitor !== 'undefined';
+      setMicError(isCapacitor ? 'Microphone permission denied — allow it in Android Settings → Apps → Sozialzynk → Permissions' : 'Microphone permission denied');
+      return;
+    }
     startVoiceAnalyser(stream);
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
       : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
@@ -1052,7 +1071,13 @@ export function CopilotPanel() {
 
   const startBrowserSTT = useCallback(async () => {
     const rec = getBrowserRecognition();
-    if (!rec) { setListening(false); setMicError('Voice not supported — use Chrome or Edge'); return; }
+    if (!rec) {
+      setListening(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isCapacitor = typeof (window as any).Capacitor !== 'undefined';
+      setMicError(isCapacitor ? 'Voice recognition unavailable on this device' : 'Voice not supported — use Chrome or Edge');
+      return;
+    }
     let analyserStream: MediaStream | null = null;
     try {
       analyserStream = await navigator.mediaDevices.getUserMedia({ audio: true });

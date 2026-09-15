@@ -56,6 +56,13 @@ jobs:
         run: pnpm add:android
         working-directory: apps/mobile
 
+      - name: Patch AndroidManifest — add mic and audio permissions
+        run: |
+          MANIFEST="apps/mobile/android/app/src/main/AndroidManifest.xml"
+          sed -i 's|<uses-permission android:name="android.permission.INTERNET" />|<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />|' "$MANIFEST"
+          echo "--- Patched manifest ---"
+          cat "$MANIFEST"
+
       - name: Generate launcher icons
         run: pnpm generate:icons
         working-directory: apps/mobile
@@ -134,6 +141,13 @@ jobs:
       - name: Add Android platform
         run: pnpm add:android
         working-directory: apps/mobile
+
+      - name: Patch AndroidManifest — add mic and audio permissions
+        run: |
+          MANIFEST="apps/mobile/android/app/src/main/AndroidManifest.xml"
+          sed -i 's|<uses-permission android:name="android.permission.INTERNET" />|<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />|' "$MANIFEST"
+          echo "--- Patched manifest ---"
+          cat "$MANIFEST"
 
       - name: Generate launcher icons
         run: pnpm generate:icons
