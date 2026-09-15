@@ -289,10 +289,16 @@ function OAuthCallbackInner() {
         const data = await res.json() as {
           accessToken?: string; refreshToken?: string;
           user?: { id: string; email: string; name: string; avatarUrl?: string | null; role?: string };
-          linked?: boolean; error?: string; email?: string; message?: string;
+          linked?: boolean; error?: string; email?: string; message?: string | Record<string, unknown>;
         };
 
         if (!res.ok) {
+          // LINK_REQUIRED: account exists with this email but no OAuth link yet
+          if (res.status === 409 && (data.error === 'LINK_REQUIRED' || (typeof data.message === 'object' && (data.message as Record<string, unknown>)?.['error'] === 'LINK_REQUIRED'))) {
+            const email = data.email ?? (typeof data.message === 'object' ? (data.message as Record<string, unknown>)?.['email'] as string : '') ?? '';
+            setState({ phase: 'link_required', email, provider });
+            return;
+          }
           setState({ phase: 'error', message: typeof data.message === 'string' ? data.message : 'Sign-in failed. Please try again.' });
           return;
         }
