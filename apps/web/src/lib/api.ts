@@ -257,6 +257,105 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
     return _mockResp([], config);
   }
 
+  // ── Admin ────────────────────────────────────────────────────────────────────
+  if (url === '/admin/analytics/enterprise') {
+    return _mockResp({
+      northStar: { publishedVideos30d: 0, activeChannels30d: 0, perActiveChannel: 0 },
+      mrr: 0, arr: 0, revenueByMonth: [0, 0, 0, 0, 0, 0],
+      arpu: 0, ltv: 0, churn: 0,
+      aiCostUsd: 0, cacheSavingsUsd: 0,
+      topModels: [],
+    }, config);
+  }
+  if (url === '/admin/analytics/subscription') {
+    return _mockResp({
+      mrr: 0, arr: 0, acv: 0, tcv: 0, runRate: 0, arpu: 0, arpa: 0, ltv: 0,
+      revenueByMonth: [0, 0, 0, 0, 0, 0],
+      planDistribution: [], totalUsers: 1, payingUsers: 0, freeUsers: 1,
+      newCustomers30d: 0, lostCustomers30d: 0,
+      monthlyChurnRate: 0, annualChurnRate: 0,
+      revenueChurnRate: 0, nrr: 0, grr: 0,
+      customerRetentionRate: 0, avgCustomerLifespanMonths: 0,
+      cohortRetention: [], newMrr: 0, churnedMrr: 0, expansionMrr: 0, contractionMrr: 0,
+      netMrrGrowthRate: 0, cac: null, cacPaybackPeriodMonths: null, ltvCacRatio: null,
+      marketingSpendConfigured: false, aiCostUsd: 0, burnRateUsd: 0,
+      generatedAt: _MOCK_NOW(), dataWindow: '30d',
+    }, config);
+  }
+  if (url.startsWith('/admin/forecasts') && method === 'get') {
+    return _mockResp([], config);
+  }
+  if (url === '/admin/forecasts/generate' && method === 'post') {
+    return _mockResp({ ok: true, message: 'Forecasts generated' }, config);
+  }
+  if (url === '/admin/providers' && method === 'get') {
+    return _mockResp([], config);
+  }
+  if (url === '/admin/providers/health' && method === 'get') {
+    return _mockResp([], config);
+  }
+  if (url === '/admin/providers/test' && method === 'post') {
+    return _mockResp({ ok: true, message: 'Provider reachable' }, config);
+  }
+  if (url.startsWith('/admin/providers/key')) {
+    return _mockResp({ ok: true, message: 'Key updated' }, config);
+  }
+  if (url === '/admin/users' && method === 'get') {
+    const ls = typeof window !== 'undefined' ? localStorage : null;
+    const meId     = ls?.getItem('cf_user_id')   ?? MOCK_USER.id;
+    const meEmail  = ls?.getItem('cf_mock_email') ?? MOCK_USER.email;
+    const meName   = ls?.getItem('cf_user_name')  ?? 'Demo User';
+    const meRole   = ls?.getItem('cf_user_role')  ?? 'SUPER_ADMIN';
+    return _mockResp([{
+      id: meId, email: meEmail, name: meName, role: meRole,
+      createdAt: _MOCK_DAY(30), rechargesFrozen: false,
+      wallet: { balanceCredits: 1000, lifetimePurchased: 1000, lifetimeUsed: 0 },
+      subscription: { plan: 'FREE', status: 'active' },
+      _count: { channels: 0 },
+    }], config);
+  }
+  if (url.startsWith('/admin/users/') && method === 'post') {
+    return _mockResp({ ok: true, message: 'Action completed' }, config);
+  }
+  if (url === '/admin/users/upsert' && method === 'post') {
+    return _mockResp({ id: 'mock-id', email: '', role: 'USER', name: '', action: 'created' as const }, config);
+  }
+  if (url === '/admin/users/transfer-records' && method === 'post') {
+    return _mockResp({ from: '', to: '', transferred: {} }, config);
+  }
+  if (url.startsWith('/admin/content/public')) {
+    return _mockResp({ items: [], nextCursor: null }, config);
+  }
+  if (url.startsWith('/admin/content/') && method === 'post') {
+    return _mockResp({ ok: true }, config);
+  }
+  if (url === '/admin/moderation/log') {
+    return _mockResp([], config);
+  }
+  if (url.startsWith('/wallet/admin/withdrawals/stats')) {
+    return _mockResp({ pending: 0, approved: 0, paid: 0, rejected: 0, totalAmount: 0 }, config);
+  }
+  if (url.startsWith('/wallet/admin/withdrawals')) {
+    return _mockResp([], config);
+  }
+  if (url === '/projects/ad-revenue/platform-stats') {
+    return _mockResp({
+      totalViews: 0, totalCreditsEarned: 0, totalCreditsPaid: 0,
+      activeProjects: 0, cpmCredits: 100, minPayoutCredits: 500,
+    }, config);
+  }
+  if (url === '/projects/ad-revenue/distribute' && method === 'post') {
+    return _mockResp({ paid: 0, skipped: 0 }, config);
+  }
+  if (url === '/token-usage/summary' && method === 'get') {
+    return _mockResp({
+      sinceDays: 7,
+      totals: { calls: 0, tokensIn: 0, tokensOut: 0, costUsd: 0 },
+      byModel: [], copilot: { turns: 0, cacheHits: 0, cacheHitRate: null },
+      byVideo: [], byDay: [],
+    }, config);
+  }
+
   // ── Default: return safe empty object ───────────────────────────────────────
   return _mockResp({}, config);
 }
