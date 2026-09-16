@@ -592,8 +592,27 @@ export function CopilotPanel() {
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [historyMinimized, setHistoryMinimized] = useState(false);
 
-  // drag-to-reposition
-  const [widgetPos, setWidgetPos] = useState<{x:number;y:number}|null>(null);
+  // drag-to-reposition (persisted in localStorage)
+  const POS_KEY = 'cf_copilot_pos';
+  const [widgetPos, setWidgetPosRaw] = useState<{x:number;y:number}|null>(() => {
+    try {
+      const s = typeof window !== 'undefined' && localStorage.getItem(POS_KEY);
+      if (!s) return null;
+      const p = JSON.parse(s) as {x:number;y:number};
+      // Clamp to current viewport on restore (handles screen-size changes)
+      return {
+        x: Math.max(0, Math.min(window.innerWidth  - 100, p.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 100, p.y)),
+      };
+    } catch { return null; }
+  });
+  const setWidgetPos = (pos: {x:number;y:number} | null) => {
+    setWidgetPosRaw(pos);
+    try {
+      if (pos) localStorage.setItem(POS_KEY, JSON.stringify(pos));
+      else      localStorage.removeItem(POS_KEY);
+    } catch { /* storage full */ }
+  };
   const widgetRef  = useRef<HTMLDivElement>(null);
   const dragRef    = useRef<{dragging:boolean;startPtrX:number;startPtrY:number;startWidgetX:number;startWidgetY:number}|null>(null);
 
