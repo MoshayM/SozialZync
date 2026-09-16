@@ -38,14 +38,18 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
 }
 
 async function openCopilotChat(page: import('@playwright/test').Page) {
-  // Click the "Ask Copilot" nav button which fires the cf:open-copilot event
+  // Click the "Ask Copilot" nav button — fires cf:open-copilot which also sets activePanel='chat'
   await page.locator('[title="Ask Copilot"]').click();
   // Wait for the robot widget to appear
   await expect(page.locator('.cf-copilot-widget')).toBeVisible({ timeout: 10_000 });
-  // Open the Chat panel
-  await page.locator('.cf-topic-btn').filter({ hasText: /^Chat$/ }).click();
-  // Chat textarea should now be visible
-  await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible({ timeout: 8_000 });
+  // Chat panel opens automatically; if not, click the Chat button (but only if textarea is absent)
+  const textarea = page.locator('textarea[placeholder="What\'s on your mind?"]');
+  const isOpen = await textarea.isVisible().catch(() => false);
+  if (!isOpen) {
+    // Panel not yet showing Chat — click the tab to open it
+    await page.locator('.cf-topic-btn').filter({ hasText: /^Chat$/ }).click();
+  }
+  await expect(textarea).toBeVisible({ timeout: 8_000 });
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
