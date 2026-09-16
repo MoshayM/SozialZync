@@ -554,6 +554,7 @@ export function CopilotPanel() {
   });
   const [input, setInput]           = useState('');
   const [busy, setBusy]             = useState(false);
+  const [thinkingElapsed, setThinkingElapsed] = useState(0);
   const [excited, setExcited]       = useState(false);
   const [pending, setPending]       = useState<CopilotResponse['needsConfirmation']|null>(null);
   const [pendingEst, setPendingEst] = useState<number|null>(null);
@@ -636,8 +637,9 @@ export function CopilotPanel() {
   const micRafRef        = useRef<number>(0);
   const messagesEndRef   = useRef<HTMLDivElement>(null);
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
-  const speechPrimedRef  = useRef(false);
-  const busyRef          = useRef(false);
+  const speechPrimedRef      = useRef(false);
+  const busyRef              = useRef(false);
+  const abortControllerRef   = useRef<AbortController | null>(null);
   // iOS bridge: text waiting for the bridge to pick up
   const pendingTTSRef    = useRef<{ text: string; lang?: string; onDone?: () => void; msgIdx?: number } | null>(null);
   // true while silent-utterance bridge is pumping
@@ -665,7 +667,12 @@ export function CopilotPanel() {
       // CustomEvent payload: { prompt?: string; voice?: boolean }
       const detail = (e as CustomEvent<{ prompt?: string; voice?: boolean } | undefined>).detail;
       if (widgetOpenRef.current) {
-        // Already open — inject prompt/voice without touching open state.
+        // Already open — plain icon tap closes; prompt/voice payload injects instead.
+        if (!detail?.prompt && !detail?.voice) {
+          setWidgetOpen(false); setActivePanel(null); setPanelPos(null);
+          window.speechSynthesis?.cancel();
+          return;
+        }
         if (detail?.prompt) setTimeout(() => setInput(detail.prompt!), 50);
         if (detail?.voice)  setTimeout(() => toggleMicRef.current(), 200);
       } else {
@@ -701,6 +708,14 @@ export function CopilotPanel() {
       return () => window.speechSynthesis.removeEventListener('voiceschanged', syncVoices);
     }
   }, []);
+
+  // Tick elapsed-seconds counter while waiting for AI response
+  useEffect(() => {
+    if (!busy) { setThinkingElapsed(0); return; }
+    setThinkingElapsed(0);
+    const id = setInterval(() => setThinkingElapsed(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [busy]);
 
   // Cycle greeting when idle (robot visible, no panel open)
   useEffect(() => {
@@ -1028,6 +1043,7 @@ export function CopilotPanel() {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
+    abortControllerRef.current = new AbortController();
     try {
       const res = await apiClient.post('/copilot/chat', {
         messages: nextMessages.slice(-10),
@@ -1035,7 +1051,7 @@ export function CopilotPanel() {
         lang: 'en',
         ...(confirmedCommand ? { confirmedCommand } : {}),
         ...(!confirmedCommand && pending ? { pendingCommand: pending } : {}),
-      }, { timeout: 90_000 });
+      }, { timeout: 90_000, signal: abortControllerRef.current.signal });
       const data = res.data as CopilotResponse;
       setMessages(m => [...m, { role:'assistant', content:data.reply, fromCache:data.fromCache }]);
       const emotion = detectEmotion(data.reply);
@@ -1087,7 +1103,13 @@ export function CopilotPanel() {
         conversationRef.current = false;
       }
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number }; code?: string };
+      const axiosErr = err as { response?: { status?: number }; code?: string; name?: string };
+      // User tapped Cancel — abort silently, restore their input so they can edit and resend
+      if (axiosErr.code === 'ERR_CANCELED' || axiosErr.name === 'AbortError' || axiosErr.name === 'CanceledError') {
+        if (text.trim()) setInput(text.trim());
+        conversationRef.current = false;
+        return;
+      }
       const status = axiosErr.response?.status;
       const isTimeout = axiosErr.code === 'ECONNABORTED' || axiosErr.code === 'ERR_NETWORK' || status === 504;
       const is502 = status === 502 || status === 503;
@@ -1319,7 +1341,7 @@ export function CopilotPanel() {
   const bubbleText =
     micError ? micError :
     isVoiceActive ? (liveTranscript || "I'm all ears, go ahead…") :
-    busy ? "Let me think on that…" :
+    busy ? `Let me think on that…${thinkingElapsed >= 5 ? ` (${thinkingElapsed}s)` : ''}` :
     speaking ? (lastAssistant?.content ?? "Speaking…") :
     lastAssistant ? (lastAssistant.content.length > 68 ? lastAssistant.content.slice(0, 68) + '…' : lastAssistant.content) :
     "Scripts, SEO, ideas — just say the word!";
@@ -1392,27 +1414,6 @@ export function CopilotPanel() {
         {/* ── OPEN WIDGET ── */}
         {widgetOpen && (
         <div style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
-
-          {/* ── Close button — top-right corner of the widget ── */}
-          <button
-            type="button"
-            title="Close Copilot"
-            onClick={() => { setWidgetOpen(false); setActivePanel(null); setPanelPos(null); window.speechSynthesis?.cancel(); }}
-            style={{
-              position: 'absolute', top: -10, right: -10, zIndex: 30,
-              width: 26, height: 26, borderRadius: '50%',
-              background: 'rgba(30,20,50,0.92)', backdropFilter: 'blur(12px)',
-              border: '1.5px solid rgba(255,255,255,0.18)',
-              color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
-              transition: 'background 0.15s, color 0.15s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.8)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(30,20,50,0.92)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)'; }}
-          >
-            <X style={{ width: 12, height: 12 }} />
-          </button>
 
           {/* ── PANEL (draggable popup — only this moves, robot+tabs stay fixed) ── */}
           {activePanel && (
@@ -1659,6 +1660,25 @@ export function CopilotPanel() {
                         <span style={{ flex:'1 1 auto', fontSize:12, fontWeight:500, color:'#FCA5A5' }}>{micError}</span>
                         <button type="button" onClick={() => setMicError(null)} style={{ background:'none', border:'none', color:'#F87171', cursor:'pointer', padding:0 }}><X style={{ width:12, height:12 }} /></button>
                       </div>
+                    ) : busy ? (
+                      /* Thinking state — shows elapsed time + Cancel button */
+                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(251,191,36,0.08)', border:'1.5px solid rgba(251,191,36,0.25)', borderRadius:12, padding:'9px 12px' }}>
+                        <div style={{ display:'flex', gap:3, alignItems:'center' }}>
+                          {[0,1,2].map(i => (
+                            <span key={i} style={{ width:5, height:5, borderRadius:'50%', background:'#FBBF24', display:'inline-block', animation:`cfPulse 1.2s ease-in-out ${i*0.2}s infinite` }} />
+                          ))}
+                        </div>
+                        <span style={{ flex:'1 1 auto', fontSize:12.5, fontWeight:500, color:'#FCD34D' }}>
+                          Thinking{thinkingElapsed >= 5 ? ` · ${thinkingElapsed}s` : '…'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { abortControllerRef.current?.abort(); }}
+                          style={{ padding:'4px 10px', borderRadius:7, background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.35)', color:'#FCA5A5', fontSize:11.5, fontWeight:600, cursor:'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     ) : (
                       <div className="cf-popup-input" style={{ display:'flex', alignItems:'flex-end', gap:6, background:'rgba(255,255,255,0.07)', border:'1.5px solid rgba(255,255,255,0.10)', borderRadius:12, padding:'6px 6px 6px 12px', transition:'border-color .2s, box-shadow .2s' }}>
                         <textarea
@@ -1666,7 +1686,6 @@ export function CopilotPanel() {
                           value={input}
                           onChange={handleTextarea}
                           onKeyDown={handleKeyDown}
-                          disabled={busy}
                           placeholder="What's on your mind?"
                           rows={1}
                           style={{ flex:'1 1 auto', background:'none', border:'none', outline:'none', resize:'none', fontSize:13, color:'#fff', fontFamily:'inherit', maxHeight:80, lineHeight:1.5, paddingTop:2 }}
@@ -1683,8 +1702,8 @@ export function CopilotPanel() {
                         <button
                           type="button"
                           onClick={() => { if (input.trim()) void send(input.trim()); }}
-                          disabled={!input.trim() || busy}
-                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:'linear-gradient(135deg,#374151,#4b5563)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', opacity:(!input.trim()||busy)?0.4:1, transition:'opacity .15s' }}
+                          disabled={!input.trim()}
+                          style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:'linear-gradient(135deg,#374151,#4b5563)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', opacity:!input.trim()?0.4:1, transition:'opacity .15s' }}
                         >
                           <Send style={{ width:13, height:13 }} />
                         </button>
