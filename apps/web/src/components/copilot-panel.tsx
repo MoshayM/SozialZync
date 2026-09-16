@@ -669,10 +669,11 @@ export function CopilotPanel() {
         if (detail?.prompt) setTimeout(() => setInput(detail.prompt!), 50);
         if (detail?.voice)  setTimeout(() => toggleMicRef.current(), 200);
       } else {
-        // Opening fresh: set both states as independent calls so neither
-        // is swallowed by React's batching inside a functional updater.
+        // Opening fresh. Only open the chat panel when the event carries
+        // a prompt or voice trigger (e.g. from home page prompt bar).
+        // Plain icon tap → show robot + tabs + ticker only; user picks the panel.
         setWidgetOpen(true);
-        setActivePanel('chat');
+        if (detail?.prompt || detail?.voice) setActivePanel('chat');
         if (detail?.prompt) setTimeout(() => setInput(detail.prompt!), 200);
         if (detail?.voice)  setTimeout(() => toggleMicRef.current(), 350);
       }
