@@ -51,6 +51,21 @@ async function openCopilotChat(page: import('@playwright/test').Page) {
 
 test.describe('Copilot voice — mobile smoke test', () => {
 
+  // Warm up the Railway backend before AI-dependent tests so they don't hit
+  // cold-start delays. Railway spins down after ~5 min of inactivity and can
+  // take 15-45s to boot — enough to exceed the 40s reply timeout on first run.
+  test.beforeAll(async ({ request }) => {
+    const deadline = Date.now() + 65_000;
+    while (Date.now() < deadline) {
+      try {
+        const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 20_000 });
+        if (res.ok()) return;
+      } catch {
+        await new Promise(r => setTimeout(r, 3_000));
+      }
+    }
+  });
+
   test('mic button shows Listening… state (no permission error)', async ({ page }) => {
     await loginWithPassword(page);
     await openCopilotChat(page);
@@ -124,9 +139,10 @@ test.describe('Copilot voice — mobile smoke test', () => {
       page.getByText(/thinking|processing/i).or(page.locator('[style*="Thinking"]'))
     ).toBeVisible({ timeout: 10_000 }).catch(() => {});
 
-    // Wait for the assistant reply to appear (up to 30s for AI response)
+    // Wait for the assistant reply — up to 75s covers: warm server (20s AI)
+    // or cold start handled by app auto-retry (55s timeout + 5s wait + 20s AI).
     const replyBtn = page.locator('button[aria-label="Read aloud"]').first();
-    await expect(replyBtn).toBeVisible({ timeout: 40_000 });
+    await expect(replyBtn).toBeVisible({ timeout: 75_000 });
 
     // Reply text should be in the chat
     await expect(page.locator('[aria-label="Stop speaking"], [aria-label="Read aloud"]').first()).toBeVisible();
@@ -140,9 +156,9 @@ test.describe('Copilot voice — mobile smoke test', () => {
     await textarea.fill('Hello');
     await textarea.press('Enter');
 
-    // Wait for a reply
+    // Wait for a reply — 75s ceiling same as test above (covers cold-start path).
     const readAloudBtn = page.locator('button[aria-label="Read aloud"]').first();
-    await expect(readAloudBtn).toBeVisible({ timeout: 40_000 });
+    await expect(readAloudBtn).toBeVisible({ timeout: 75_000 });
 
     // Tap the read-aloud button
     await readAloudBtn.click();
