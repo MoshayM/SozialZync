@@ -656,24 +656,26 @@ export function CopilotPanel() {
 
   // Stable ref so the event handler can call toggleMic without a stale closure.
   const toggleMicRef = useRef<() => void>(() => {});
+  // Tracks widget open state without closure staleness — used in the event handler.
+  const widgetOpenRef = useRef(false);
+  useEffect(() => { widgetOpenRef.current = widgetOpen; }, [widgetOpen]);
 
   useEffect(() => {
     const handler = (e: Event) => {
       // CustomEvent payload: { prompt?: string; voice?: boolean }
       const detail = (e as CustomEvent<{ prompt?: string; voice?: boolean } | undefined>).detail;
-      setWidgetOpen(prev => {
-        if (prev) {
-          // Already open — handle prompt/voice without closing
-          if (detail?.prompt) setTimeout(() => setInput(detail.prompt!), 50);
-          if (detail?.voice) setTimeout(() => toggleMicRef.current(), 200);
-          return true;
-        }
-        // Opening: always show Chat panel immediately so the input bar renders.
+      if (widgetOpenRef.current) {
+        // Already open — inject prompt/voice without touching open state.
+        if (detail?.prompt) setTimeout(() => setInput(detail.prompt!), 50);
+        if (detail?.voice)  setTimeout(() => toggleMicRef.current(), 200);
+      } else {
+        // Opening fresh: set both states as independent calls so neither
+        // is swallowed by React's batching inside a functional updater.
+        setWidgetOpen(true);
         setActivePanel('chat');
         if (detail?.prompt) setTimeout(() => setInput(detail.prompt!), 200);
-        if (detail?.voice) setTimeout(() => toggleMicRef.current(), 350);
-        return true;
-      });
+        if (detail?.voice)  setTimeout(() => toggleMicRef.current(), 350);
+      }
     };
     window.addEventListener('cf:open-copilot', handler as EventListener);
     return () => window.removeEventListener('cf:open-copilot', handler as EventListener);
