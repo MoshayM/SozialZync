@@ -1194,8 +1194,19 @@ export function CopilotPanel() {
     rec.onend = () => {
       stopVoiceAnalyser();
       setListening(false);
-      if (finalText.trim()) { conversationRef.current = true; void send(finalText.trim()); }
-      else { conversationRef.current = false; setInput(''); setLiveTranscript(''); }
+      if (finalText.trim()) {
+        conversationRef.current = true;
+        void send(finalText.trim());
+      } else if (conversationRef.current) {
+        // Chrome auto-stopped after ~5 s of silence (no speech detected).
+        // Auto-restart so the mic stays open until the user taps Stop.
+        setLiveTranscript('');
+        setTimeout(() => { if (conversationRef.current) startListeningRef.current(); }, 350);
+      } else {
+        conversationRef.current = false;
+        setInput('');
+        setLiveTranscript('');
+      }
     };
     rec.onerror = e => {
       stopVoiceAnalyser();
@@ -1517,6 +1528,9 @@ export function CopilotPanel() {
                                 }
                                 // This tap IS a user gesture — force direct mode (bypass bridge)
                                 // so speak() doesn't queue into pendingTTSRef.
+                                // Prime AudioContext + wake TTS engine (Android may have paused it).
+                                primeAudio();
+                                try { window.speechSynthesis?.resume(); } catch {}
                                 ttsBridgeActiveRef.current = false;
                                 pendingTTSRef.current = null;
                                 setTtsBlocked(false);
