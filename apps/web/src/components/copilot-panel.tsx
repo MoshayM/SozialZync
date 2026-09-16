@@ -174,6 +174,7 @@ function timeAgo(iso: string): string {
 
 function cleanForTTS(raw: string): string {
   return raw
+    .replace(/\p{Emoji_Presentation}/gu, '')  // strip ⚠️ ⏳ 🔊 💬 ⚡ etc. — TTS engines say "warning sign" otherwise
     .replace(/```[\s\S]*?```/g, 'code example.')
     .replace(/`([^`\n]+)`/g, '$1')
     .replace(/^#{1,6}\s+/gm, '')
@@ -1046,6 +1047,7 @@ export function CopilotPanel() {
         const cat = safety.category ?? 'abuse';
         const colors = SAFETY_COLORS[cat];
         setMessages(prev => [...prev, { role:'assistant', content:`${colors.icon} ${safety.message}`, fromCache:false }]);
+        speak(safety.message);
         return;
       }
     }
@@ -1150,7 +1152,9 @@ export function CopilotPanel() {
       // Always show retry chip after an error so user can resend without retyping
       if (text.trim()) setRetryText(text.trim());
       conversationRef.current = false;
-      window.speechSynthesis?.cancel();
+      // Always speak error messages — speechSynthesis works offline via device TTS (no internet needed).
+      // speak() calls cancel() internally so no need for a separate cancel here.
+      speak(msg);
     } finally {
       busyRef.current = false;
       setBusy(false);
