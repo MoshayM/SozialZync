@@ -292,12 +292,25 @@ function OAuthCallbackInner() {
           accessToken?: string; refreshToken?: string;
           user?: { id: string; email: string; name: string; avatarUrl?: string | null; role?: string };
           linked?: boolean; error?: string; email?: string; message?: string | Record<string, unknown>;
+          details?: Record<string, unknown>;
         };
 
         if (!res.ok) {
-          // LINK_REQUIRED: account exists with this email but no OAuth link yet
-          if (res.status === 409 && (data.error === 'LINK_REQUIRED' || (typeof data.message === 'object' && (data.message as Record<string, unknown>)?.['error'] === 'LINK_REQUIRED'))) {
-            const email = data.email ?? (typeof data.message === 'object' ? (data.message as Record<string, unknown>)?.['email'] as string : '') ?? '';
+          // LINK_REQUIRED: account exists with this email but no OAuth link yet.
+          // The global exception filter shapes the response to { message: 'LINK_REQUIRED', details: { email } }
+          // but older responses may have { error: 'LINK_REQUIRED' } or { message: { error: 'LINK_REQUIRED' } }.
+          const isLinkRequired =
+            res.status === 409 && (
+              data.message === 'LINK_REQUIRED' ||
+              data.error   === 'LINK_REQUIRED' ||
+              (typeof data.message === 'object' && (data.message as Record<string, unknown>)?.['error'] === 'LINK_REQUIRED')
+            );
+          if (isLinkRequired) {
+            const email =
+              data.email ??
+              (data.details?.['email'] as string | undefined) ??
+              (typeof data.message === 'object' ? (data.message as Record<string, unknown>)?.['email'] as string : undefined) ??
+              '';
             setState({ phase: 'link_required', email, provider });
             return;
           }

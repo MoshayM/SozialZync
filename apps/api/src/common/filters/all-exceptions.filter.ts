@@ -92,6 +92,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         details = inner;
       } else if (typeof r['error'] === 'string') message = r['error'];
       else message = 'An unexpected error occurred.';
+      // Preserve extra payload fields (e.g. email in LINK_REQUIRED conflicts)
+      // so callers can act on structured data without parsing the message string.
+      if (details === undefined) {
+        const { message: _m, error: _e, statusCode: _s, ...rest } = r;
+        if (Object.keys(rest).length > 0) details = rest;
+      }
     } else {
       message = 'An unexpected error occurred.';
     }
