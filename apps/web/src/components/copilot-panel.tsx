@@ -1533,15 +1533,21 @@ export function CopilotPanel() {
                                   setSpeaking(false);
                                   return;
                                 }
-                                // This tap IS a user gesture — force direct mode (bypass bridge)
-                                // so speak() doesn't queue into pendingTTSRef.
-                                // Prime AudioContext + wake TTS engine (Android may have paused it).
+                                // This tap is a user gesture.
+                                // Use the bridge pattern rather than calling speak() directly:
+                                // primeSpeechSession() speaks a silent utterance synchronously
+                                // (claiming audio focus / satisfying Android gesture guard),
+                                // then the bridge's onend delivers the real text from speech-event
+                                // context — which iOS/Android allow even after the original tap
+                                // gesture context has expired.
                                 primeAudio();
                                 try { window.speechSynthesis?.resume(); } catch {}
-                                ttsBridgeActiveRef.current = false;
-                                pendingTTSRef.current = null;
                                 setTtsBlocked(false);
-                                speak(m.content, undefined, undefined, i);
+                                // Stage the text so the bridge picks it up on its next onend.
+                                pendingTTSRef.current = { text: m.content, msgIdx: i };
+                                if (!ttsBridgeActiveRef.current) {
+                                  primeSpeechSession(); // starts silent utterance synchronously
+                                }
                               }}
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
