@@ -1330,12 +1330,23 @@ export function CopilotPanel() {
 
   function toggleVoice() {
     primeAudio();
+    // Voice is ON (restored from localStorage) but not actively listening.
+    // Tapping the chest should START listening + open chat, not turn voice off.
+    if (voiceEnabled && !listening && !recording) {
+      setActivePanel('chat');
+      conversationRef.current = true;
+      setListening(true);
+      setMicError(null);
+      primeSpeechSession();
+      setTimeout(() => startListeningRef.current(), 150);
+      return;
+    }
     const next = !voiceEnabled;
     setVoiceEnabled(next);
     localStorage.setItem('cf_copilot_voice', String(next));
     if (next) {
-      // Voice ON → start the iOS TTS bridge now (gesture context) then begin listening.
-      // primeSpeechSession() MUST be synchronous so the bridge is alive when the AI replies.
+      // Voice ON → open chat, start TTS bridge (gesture context), begin listening.
+      setActivePanel('chat');
       conversationRef.current = true;
       setListening(true);
       setMicError(null);
