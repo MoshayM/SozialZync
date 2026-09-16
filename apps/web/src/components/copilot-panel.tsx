@@ -723,6 +723,15 @@ export function CopilotPanel() {
     return () => clearInterval(id);
   }, [busy]);
 
+  // Warm up Railway the moment the chat panel opens so the first AI request
+  // hits a live server instead of a cold-start (Hobby plan has no cron option).
+  const warmedRef = useRef(false);
+  useEffect(() => {
+    if (activePanel !== 'chat' || warmedRef.current) return;
+    warmedRef.current = true;
+    fetch('/api/proxy/copilot/stt-status', { method: 'GET' }).catch(() => {});
+  }, [activePanel]);
+
   // Auto-expand the history strip when thinking starts so user sees progress
   useEffect(() => {
     if (busy && !activePanel) setHistoryMinimized(false);
