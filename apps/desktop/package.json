@@ -1,0 +1,57 @@
+{
+  "name": "@sozialzync/desktop",
+  "version": "1.0.0",
+  "description": "Sozialzynk Desktop — AI Content Creator Platform",
+  "main": "dist/main.js",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc && electron dist/main.js",
+    "dist:win": "tsc && electron-builder --win",
+    "dist:mac": "tsc && electron-builder --mac",
+    "dist:all": "tsc && electron-builder -wml"
+  },
+  "build": {
+    "appId": "com.sozialzync.desktop",
+    "productName": "Sozialzynk",
+    "copyright": "Copyright © 2026 Sozialzynk",
+    "files": ["dist/**/*", "assets/**/*"],
+    "directories": { "output": "release" },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sozialzynk"
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["universal"] }],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "icon": "assets/icon.png",
+      "category": "Productivity"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "MoshayM",
+      "repo": "SozialZync"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "typescript": "^5.7.0"
+  }
+}

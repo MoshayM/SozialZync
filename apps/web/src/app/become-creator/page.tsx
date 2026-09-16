@@ -584,12 +584,24 @@ export default function BecomeCreatorPage() {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
+            <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4 mb-14">
               <a href="https://sozialzynk.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#374151,#1f2937)',border:'1px solid rgba(255,255,255,.15)',minWidth:200,boxShadow:'0 8px 24px -6px rgba(0,0,0,.5)'}}>
                 <span className="text-2xl leading-none">🌐</span>
                 <span className="flex flex-col text-left leading-tight">
                   <span className="text-[10px] font-medium opacity-60 uppercase tracking-wider">Open</span>
                   <span className="text-sm font-bold">Web App</span>
+                </span>
+              </a>
+              <a href="https://github.com/MoshayM/SozialZync/releases/latest/download/Sozialzynk-Setup.exe" className="flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',border:'1px solid rgba(59,130,246,.35)',minWidth:200,boxShadow:'0 8px 24px -6px rgba(29,78,216,.45)'}}>
+                <svg width="24" height="24" viewBox="0 0 88 88" fill="none" aria-hidden="true">
+                  <rect x="0" y="0" width="38" height="38" fill="#f25022"/>
+                  <rect x="50" y="0" width="38" height="38" fill="#7fba00"/>
+                  <rect x="0" y="50" width="38" height="38" fill="#00a4ef"/>
+                  <rect x="50" y="50" width="38" height="38" fill="#ffb900"/>
+                </svg>
+                <span className="flex flex-col text-left leading-tight">
+                  <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider">Windows 10 / 11</span>
+                  <span className="text-sm font-bold">Download .exe</span>
                 </span>
               </a>
               <a href="https://github.com/MoshayM/SozialZync/releases/download/android-latest/sozialzynk.apk" className="flex items-center gap-3 px-5 py-3 rounded-2xl font-semibold text-white transition-all hover:opacity-90 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{background:'linear-gradient(135deg,#166534,#15803d)',border:'1px solid rgba(52,168,83,.35)',minWidth:200,boxShadow:'0 8px 24px -6px rgba(22,101,52,.5)'}}>
@@ -624,7 +636,7 @@ export default function BecomeCreatorPage() {
               </a>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
               <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(55,65,81,.2)'}}>🌐</div>
                 <div>
@@ -632,6 +644,34 @@ export default function BecomeCreatorPage() {
                   <p className="text-white/45 text-sm leading-relaxed">Install directly from Chrome, Edge, or Safari. Works on Windows, Mac, and Linux.</p>
                 </div>
                 <PwaInstallButtonLanding />
+              </div>
+              <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(29,78,216,.08)',border:'1px solid rgba(59,130,246,.2)'}}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{background:'rgba(29,78,216,.18)'}}>
+                  <svg width="28" height="28" viewBox="0 0 88 88" fill="none" aria-hidden="true">
+                    <rect x="0" y="0" width="38" height="38" fill="#f25022"/>
+                    <rect x="50" y="0" width="38" height="38" fill="#7fba00"/>
+                    <rect x="0" y="50" width="38" height="38" fill="#00a4ef"/>
+                    <rect x="50" y="50" width="38" height="38" fill="#ffb900"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-white font-bold text-base mb-1">Windows Desktop</p>
+                  <p className="text-white/45 text-sm leading-relaxed">Native app with system tray, auto-updates, and offline access. Windows 10/11 (64-bit).</p>
+                </div>
+                <a href="https://github.com/MoshayM/SozialZync/releases/latest/download/Sozialzynk-Setup.exe" className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 w-full" style={{background:'rgba(29,78,216,.22)',border:'1px solid rgba(59,130,246,.4)',color:'rgba(147,197,253,1)'}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download Sozialzynk-Setup.exe
+                </a>
+                <div style={{background:'rgba(29,78,216,.06)',border:'1px solid rgba(59,130,246,.15)',borderRadius:10,padding:'10px 12px'}}>
+                  <p className="text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wide">How to install</p>
+                  <ol style={{margin:0,paddingLeft:14,display:'flex',flexDirection:'column',gap:4}}>
+                    <li className="text-white/40 text-xs leading-relaxed">Click <strong className="text-white/60">Download</strong> above</li>
+                    <li className="text-white/40 text-xs leading-relaxed">Run <strong className="text-white/60">Sozialzynk-Setup.exe</strong></li>
+                    <li className="text-white/40 text-xs leading-relaxed">Follow the setup wizard &amp; launch</li>
+                  </ol>
+                </div>
               </div>
               <div className="rounded-2xl p-6 flex flex-col gap-4" style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)'}}>
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{background:'rgba(52,168,83,.15)'}}>🤖</div>
