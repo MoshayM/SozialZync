@@ -1225,16 +1225,23 @@ export function CopilotPanel() {
     try { rec.start(); }
     catch {
       setListening(false); conversationRef.current = false;
-      // start() failed (e.g. another instance already running) — fall back to server STT
-      if (serverStt !== false) void startServerSTT();
-      else setMicError('Could not start microphone');
+      // rec.start() threw — another instance may be running. Show a clear message;
+      // do NOT fall back to server STT (it requires a backend Whisper key that may not be set).
+      setMicError('Could not start mic — tap again or type your message');
     }
-  }, [send, lang, serverStt, startServerSTT, stopVoiceAnalyser]);
+  }, [send, lang, stopVoiceAnalyser]);
 
   const startListening = useCallback(() => {
     setMicError(null);
-    if (serverStt === true) void startServerSTT();
-    else void startBrowserSTT();
+    // Always prefer the browser's Web Speech API — instant, private, no backend required.
+    // Server STT (MediaRecorder + Whisper) is only used when the browser API is genuinely absent
+    // (e.g. Capacitor APK with no WebView bridge), because the backend transcription endpoint
+    // may not be configured and returns 400 "Voice input not configured".
+    const w = typeof window !== 'undefined' ? window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } : null;
+    const hasBrowserSTT = !!(w?.SpeechRecognition ?? w?.webkitSpeechRecognition);
+    if (hasBrowserSTT) void startBrowserSTT();
+    else if (serverStt !== false) void startServerSTT();
+    else setMicError('Voice not supported — use Chrome or Edge');
   }, [serverStt, startServerSTT, startBrowserSTT]);
   startListeningRef.current = startListening;
 
