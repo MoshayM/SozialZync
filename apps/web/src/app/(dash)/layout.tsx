@@ -34,7 +34,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/home',         icon: Home,        label: 'Home' },
       { href: '/projects',     icon: FolderOpen,  label: 'Projects' },
-      { href: '/copilot',      icon: Bot,         label: 'AI Copilot' },
     ],
   },
   {
@@ -198,7 +197,6 @@ function GlobalSearch() {
 const PALETTE_ITEMS: Array<{ group: string; label: string; icon: React.ElementType; href: string }> = [
   { group: 'Navigate', label: 'Home',             icon: Home,             href: '/home' },
   { group: 'Navigate', label: 'Projects',          icon: FolderOpen,       href: '/projects' },
-  { group: 'Navigate', label: 'AI Copilot',        icon: Bot,              href: '/copilot' },
   { group: 'Navigate', label: 'Shorts Studio',     icon: Scissors,         href: '/shorts-studio' },
   { group: 'Navigate', label: 'Analytics',         icon: BarChart2,        href: '/insights' },
   { group: 'Navigate', label: 'Creative Studio',    icon: Compass,          href: '/content' },
@@ -216,7 +214,7 @@ const PALETTE_ITEMS: Array<{ group: string; label: string; icon: React.ElementTy
   { group: 'AI Tools', label: 'Automation',        icon: Zap,              href: '/automation' },
   { group: 'AI Tools', label: 'Growth & Offers',   icon: Gift,             href: '/growth' },
   { group: 'Quick actions', label: 'New project',       icon: Plus,     href: '/projects' },
-  { group: 'Quick actions', label: 'Open Copilot',      icon: Bot,      href: '/copilot' },
+  { group: 'Quick actions', label: 'Open Copilot',      icon: Bot,      href: '__copilot__' },
   { group: 'Quick actions', label: 'Generate calendar', icon: Calendar, href: '/publish?tab=calendar' },
   { group: 'Quick actions', label: 'Admin panel',       icon: Shield,   href: '/admin' },
 ];
@@ -449,6 +447,10 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   function paletteNavigate(href: string) {
     closePalette();
+    if (href === '__copilot__') {
+      window.dispatchEvent(new CustomEvent('cf:open-copilot'));
+      return;
+    }
     router.push(href);
   }
 
