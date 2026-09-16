@@ -927,13 +927,13 @@ export function CopilotPanel() {
             if (startTimer) { clearTimeout(startTimer); startTimer = null; }
             setSpeaking(true);
           };
-          // If TTS doesn't start within 3 s (Android WebView silent failure), show fallback button
+          // If TTS doesn't start within 8 s (Android TTS engine slow to init), show fallback button
           startTimer = setTimeout(() => {
             if (keepAlive) clearInterval(keepAlive);
             setSpeaking(false); setSpeakingIdx(null);
             setTtsBlocked(true);
             setActivePanel('chat');
-          }, 3000);
+          }, 8000);
         }
         utt.onend = () => { if (startTimer) { clearTimeout(startTimer); startTimer = null; } next(); };
         utt.onerror = (e) => {
@@ -960,12 +960,13 @@ export function CopilotPanel() {
       next();
     };
 
-    // Android needs ~50 ms after cancel() before the engine accepts new speech.
+    // Android needs 150–200 ms after cancel() before the engine accepts new speech.
+    // 50 ms was too short for Samsung/Pixel TTS engines — increased to 200 ms.
     const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     const voices = cachedVoicesRef.current.length > 0
       ? cachedVoicesRef.current
       : window.speechSynthesis.getVoices();
-    if (voices.length > 0) { cachedVoicesRef.current = voices; isAndroid ? setTimeout(doSpeak, 50) : doSpeak(); }
+    if (voices.length > 0) { cachedVoicesRef.current = voices; isAndroid ? setTimeout(doSpeak, 200) : doSpeak(); }
     else {
       let fired = false;
       const onVC = () => {
@@ -1533,21 +1534,17 @@ export function CopilotPanel() {
                                   setSpeaking(false);
                                   return;
                                 }
-                                // This tap is a user gesture.
-                                // Use the bridge pattern rather than calling speak() directly:
-                                // primeSpeechSession() speaks a silent utterance synchronously
-                                // (claiming audio focus / satisfying Android gesture guard),
-                                // then the bridge's onend delivers the real text from speech-event
-                                // context — which iOS/Android allow even after the original tap
-                                // gesture context has expired.
+                                // Direct speak from user gesture — no bridge.
+                                // The bridge adds a second cancel() which confuses Android TTS.
+                                // Android Chrome 88+ on HTTPS has no gesture requirement,
+                                // so speak() can be called directly; the 200 ms warmup inside
+                                // speak() is enough for the engine to accept new speech after cancel().
                                 primeAudio();
                                 try { window.speechSynthesis?.resume(); } catch {}
+                                ttsBridgeActiveRef.current = false;
+                                pendingTTSRef.current = null;
                                 setTtsBlocked(false);
-                                // Stage the text so the bridge picks it up on its next onend.
-                                pendingTTSRef.current = { text: m.content, msgIdx: i };
-                                if (!ttsBridgeActiveRef.current) {
-                                  primeSpeechSession(); // starts silent utterance synchronously
-                                }
+                                speak(m.content, undefined, undefined, i);
                               }}
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
