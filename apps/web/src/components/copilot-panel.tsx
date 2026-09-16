@@ -640,6 +640,7 @@ export function CopilotPanel() {
   const speechPrimedRef      = useRef(false);
   const busyRef              = useRef(false);
   const abortControllerRef   = useRef<AbortController | null>(null);
+  const autoRetryRef         = useRef(0); // counts auto-retries on cold-start errors
   // iOS bridge: text waiting for the bridge to pick up
   const pendingTTSRef    = useRef<{ text: string; lang?: string; onDone?: () => void; msgIdx?: number } | null>(null);
   // true while silent-utterance bridge is pumping
@@ -716,6 +717,11 @@ export function CopilotPanel() {
     const id = setInterval(() => setThinkingElapsed(s => s + 1), 1000);
     return () => clearInterval(id);
   }, [busy]);
+
+  // Auto-expand the history strip when thinking starts so user sees progress
+  useEffect(() => {
+    if (busy && !activePanel) setHistoryMinimized(false);
+  }, [busy, activePanel]);
 
   // Cycle greeting when idle (robot visible, no panel open)
   useEffect(() => {
@@ -1113,17 +1119,32 @@ export function CopilotPanel() {
       const status = axiosErr.response?.status;
       const isTimeout = axiosErr.code === 'ECONNABORTED' || axiosErr.code === 'ERR_NETWORK' || status === 504;
       const is502 = status === 502 || status === 503;
-      const msg = status === 504
-        ? 'The AI is taking longer than expected. Try again in a moment.'
-        : is502 ? 'AI server is starting up. Tap ↩ Retry below to try again.'
+
+      // Auto-retry once on Railway cold-start (502/503/timeout) — transparent to user
+      if ((is502 || isTimeout) && autoRetryRef.current < 1 && text.trim()) {
+        autoRetryRef.current++;
+        setMessages(m => [...m, { role:'assistant', content:'⏳ The AI server is warming up — retrying in 5 seconds…', fromCache:false }]);
+        conversationRef.current = false;
+        window.speechSynthesis?.cancel();
+        setTimeout(() => {
+          setMessages(m => m.filter(x => !x.content.startsWith('⏳')));
+          void send(text);
+        }, 5000);
+        return;
+      }
+      autoRetryRef.current = 0;
+
+      const msg = is502
+        ? 'The AI server took too long to start. Tap Retry to try again.'
+        : (isTimeout || status === 504)
+        ? 'Request timed out — the AI may be busy. Tap Retry below.'
         : status ? httpErrorMessage(status)
-        : isTimeout ? 'The AI is taking longer than expected. Check your connection and try again.'
         : (typeof window !== 'undefined' && window.location.hostname === 'localhost')
           ? 'Cannot reach the API server — run `pnpm dev` in apps/api (port 4007).'
-          : 'Connection error — please check your internet and try again.';
+          : 'Connection error — check your internet and tap Retry.';
       setMessages(m => [...m, { role:'assistant', content:`⚠️ ${msg}`, fromCache:false }]);
-      // Surface a retry chip for 502/503 and timeouts so user can resend without retyping
-      if ((is502 || isTimeout) && text.trim()) setRetryText(text.trim());
+      // Always show retry chip after an error so user can resend without retyping
+      if (text.trim()) setRetryText(text.trim());
       conversationRef.current = false;
       window.speechSynthesis?.cancel();
     } finally {
@@ -1578,7 +1599,9 @@ export function CopilotPanel() {
                               <span key={i} style={{ display:'inline-block', width:2.5, borderRadius:3, background:'rgba(233,213,255,.85)', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
                             ))}
                           </div>
-                          <div style={{ fontSize:9.5, fontWeight:600, color:'rgba(233,213,255,.5)', marginTop:2 }}>Thinking…</div>
+                          <div style={{ fontSize:9.5, fontWeight:600, color:'rgba(233,213,255,.5)', marginTop:2 }}>
+                            {thinkingElapsed >= 15 ? `Still working… ${thinkingElapsed}s` : thinkingElapsed >= 5 ? `Thinking… ${thinkingElapsed}s` : 'Thinking…'}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1669,7 +1692,13 @@ export function CopilotPanel() {
                           ))}
                         </div>
                         <span style={{ flex:'1 1 auto', fontSize:12.5, fontWeight:500, color:'#FCD34D' }}>
-                          Thinking{thinkingElapsed >= 5 ? ` · ${thinkingElapsed}s` : '…'}
+                          {thinkingElapsed >= 30
+                            ? `Taking longer than usual · ${thinkingElapsed}s`
+                            : thinkingElapsed >= 15
+                            ? `Still thinking · ${thinkingElapsed}s — server may be waking up`
+                            : thinkingElapsed >= 5
+                            ? `Thinking · ${thinkingElapsed}s`
+                            : 'Thinking…'}
                         </span>
                         <button
                           type="button"
@@ -1939,7 +1968,7 @@ export function CopilotPanel() {
               {/* Strip header — always visible */}
               <div style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 10px', borderBottom: historyMinimized ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
                 <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:'.5px', color:'rgba(255,255,255,0.45)', textTransform:'uppercase', flex:'1 1 auto' }}>
-                  {isVoiceActive ? '🎙 Listening' : busy ? '💭 Thinking' : speaking ? '🔊 Speaking' : `💬 Chat${messages.length > 0 ? ` · ${messages.length}` : ''}`}
+                  {isVoiceActive ? '🎙 Listening' : busy ? `💭 Thinking${thinkingElapsed >= 5 ? ` · ${thinkingElapsed}s` : ''}` : speaking ? '🔊 Speaking' : `💬 Chat${messages.length > 0 ? ` · ${messages.length}` : ''}`}
                 </span>
                 {/* Clear chat */}
                 {messages.length > 0 && (
@@ -1996,16 +2025,37 @@ export function CopilotPanel() {
                     </div>
                   )}
 
-                  {/* Thinking */}
+                  {/* Thinking — with elapsed time and cancel */}
                   {busy && (
                     <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                      <div style={{ display:'flex', gap:2, alignItems:'flex-end' }}>
+                      <div style={{ display:'flex', gap:2, alignItems:'flex-end', flexShrink:0 }}>
                         {['5px','8px','11px','8px','5px'].map((h, i) => (
                           <span key={i} style={{ display:'inline-block', width:2, borderRadius:2, background:'#FBBF24', height:h, animation:`cfVoiceBar .65s ease-in-out ${[0,.1,.2,.1,0][i]}s infinite` }} />
                         ))}
                       </div>
-                      <span style={{ fontSize:11, color:'#FBBF24', fontStyle:'italic' }}>Thinking…</span>
+                      <span style={{ fontSize:11, color:'#FBBF24', fontStyle:'italic', flex:'1 1 auto' }}>
+                        {thinkingElapsed >= 15 ? `Still thinking · ${thinkingElapsed}s` : thinkingElapsed >= 5 ? `Thinking · ${thinkingElapsed}s` : 'Thinking…'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { abortControllerRef.current?.abort(); }}
+                        style={{ padding:'2px 6px', borderRadius:5, background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color:'#FCA5A5', fontSize:9.5, fontWeight:600, cursor:'pointer', flexShrink:0 }}
+                      >
+                        Cancel
+                      </button>
                     </div>
+                  )}
+
+                  {/* Retry chip in strip — mirrors the one in the full chat panel */}
+                  {retryText && !busy && (
+                    <button
+                      type="button"
+                      onClick={() => { setRetryText(null); void send(retryText!); }}
+                      style={{ width:'100%', padding:'4px 8px', borderRadius:7, background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.3)', color:'#FCD34D', fontSize:10.5, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:4, justifyContent:'center' }}
+                    >
+                      <span>↩</span>
+                      <span>Tap to retry</span>
+                    </button>
                   )}
 
                   {/* Speaking */}
