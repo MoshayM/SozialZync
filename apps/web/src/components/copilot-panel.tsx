@@ -1521,13 +1521,48 @@ export function CopilotPanel() {
                 <>
                   <div style={{ maxHeight:280, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:9 }}>
                     {messages.length === 0 && !busy && (
-                      <div style={{ padding:'6px 0 4px' }}>
-                        <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginBottom:10, lineHeight:1.5 }}>
-                          Scripts, SEO, ideas, research — ask me anything.
+                      <div style={{ padding:'4px 0 2px' }}>
+                        {/* Welcome */}
+                        <div style={{ fontSize:12.5, fontWeight:700, color:'rgba(255,255,255,.85)', marginBottom:2 }}>
+                          What would you like to work on?
                         </div>
-                        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                        <div style={{ fontSize:10.5, color:'rgba(255,255,255,.4)', marginBottom:10, lineHeight:1.5 }}>
+                          Pick a topic below or type anything.
+                        </div>
+
+                        {/* Quick action cards — 2-column grid */}
+                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:10 }}>
+                          {QUICK_ACTIONS.map(action => {
+                            const Icon = action.icon;
+                            return (
+                              <button
+                                key={action.id}
+                                type="button"
+                                onClick={() => { setActiveAction(action.id); setActivePanel('actions'); }}
+                                style={{ display:'flex', alignItems:'flex-start', gap:7, padding:'8px 9px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', cursor:'pointer', textAlign:'left' }}
+                              >
+                                <span style={{ width:22, height:22, borderRadius:7, background:`${action.color}22`, border:`1px solid ${action.color}44`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                                  <Icon style={{ width:11, height:11, color:action.color }} />
+                                </span>
+                                <div>
+                                  <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,.85)', lineHeight:1.3 }}>{action.label}</div>
+                                  <div style={{ fontSize:9.5, color:'rgba(255,255,255,.38)', lineHeight:1.35, marginTop:1 }}>{action.description}</div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Prompt chips — fire directly */}
+                        <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
                           {PROMPT_CHIPS.map(chip => (
-                            <button key={chip} onClick={() => void send(chip)} style={{ padding:'5px 10px', borderRadius:99, fontSize:11, fontWeight:500, background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.72)', cursor:'pointer' }}>
+                            <button
+                              key={chip}
+                              type="button"
+                              onClick={() => void send(chip)}
+                              style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 10px', borderRadius:8, fontSize:11, fontWeight:500, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.65)', cursor:'pointer', textAlign:'left' }}
+                            >
+                              <span style={{ fontSize:12, color:'rgba(255,255,255,.3)' }}>→</span>
                               {chip}
                             </button>
                           ))}
