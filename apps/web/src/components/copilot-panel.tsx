@@ -1331,9 +1331,9 @@ export function CopilotPanel() {
   function toggleVoice() {
     primeAudio();
     // Voice is ON (restored from localStorage) but not actively listening.
-    // Tapping the chest should START listening + open chat, not turn voice off.
+    // Tapping the chest should START listening on the robot — chat panel stays
+    // closed until the user explicitly taps the Chat tab.
     if (voiceEnabled && !listening && !recording) {
-      setActivePanel('chat');
       conversationRef.current = true;
       setListening(true);
       setMicError(null);
@@ -1345,8 +1345,8 @@ export function CopilotPanel() {
     setVoiceEnabled(next);
     localStorage.setItem('cf_copilot_voice', String(next));
     if (next) {
-      // Voice ON → open chat, start TTS bridge (gesture context), begin listening.
-      setActivePanel('chat');
+      // Voice ON → start TTS bridge (gesture context) and begin listening.
+      // Chat panel stays closed; user opens it via the Chat tab if needed.
       conversationRef.current = true;
       setListening(true);
       setMicError(null);
