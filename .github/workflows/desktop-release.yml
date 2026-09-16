@@ -27,11 +27,23 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Enable Corepack (installs pnpm@11.9.0 from packageManager field)
+      - name: Enable Corepack
         run: corepack enable
 
+      - name: Get pnpm store path
+        id: pnpm-cache
+        shell: bash
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter @sozialzync/desktop...
 
       - name: Build TypeScript
         run: pnpm --filter @sozialzync/desktop build
@@ -83,11 +95,22 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Enable Corepack (installs pnpm@11.9.0 from packageManager field)
+      - name: Enable Corepack
         run: corepack enable
 
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter @sozialzync/desktop...
 
       - name: Build TypeScript
         run: pnpm --filter @sozialzync/desktop build
