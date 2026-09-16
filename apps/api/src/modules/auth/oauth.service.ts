@@ -21,8 +21,8 @@ export type SignInDecision = 'LOGIN' | 'LINK_REQUIRED' | 'CREATE';
  * Decides the sign-in path for an OAuth callback.
  *
  * - existingLink found → LOGIN (regardless of email match)
- * - no link, verified email matches existing user → LINK_REQUIRED (no silent account takeover)
- * - unverified email match → CREATE (spec: unverified email must NOT auto-match)
+ * - no link, verified email matches existing user → LINK_REQUIRED (service auto-links + signs in)
+ * - unverified email match → CREATE (unverified claims must NOT auto-match — takeover risk)
  * - otherwise → CREATE
  */
 export function decideSignIn(
@@ -201,12 +201,30 @@ export class OAuthService {
     );
 
     if (decision === 'LINK_REQUIRED') {
-      await this.auditLog(userWithSameEmail!.id, 'auth.link_required', {
+      // Email is the universal account identifier. A verified OAuth email claim
+      // matching an existing account automatically links the provider and signs
+      // the user in — no manual linking step required.
+      const userId = userWithSameEmail!.id;
+
+      await this.prisma.accountLink.create({
+        data: {
+          userId,
+          provider: providerName,
+          providerSubject: profile.subject,
+          email: profile.email ?? null,
+        },
+      });
+
+      const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+      const tokens = await this.issueTokens(userId, user.email, meta);
+
+      await this.auditLog(userId, 'auth.oauth_auto_link', {
         provider: providerName,
+        subject: profile.subject,
         email: profile.email,
       });
-      // Throw a ConflictException with a structured body the controller surfaces as JSON
-      throw new ConflictException({ error: 'LINK_REQUIRED', email: profile.email });
+
+      return tokens;
     }
 
     if (decision === 'LOGIN') {
