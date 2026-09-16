@@ -617,6 +617,10 @@ export function CopilotPanel() {
   const panelRef   = useRef<HTMLDivElement>(null);
   const dragRef    = useRef<{dragging:boolean;startPtrX:number;startPtrY:number;startWidgetX:number;startWidgetY:number}|null>(null);
 
+  // panel resize — left-edge (width) and bottom-left corner (width+height)
+  const [panelSize, setPanelSize] = useState<{w:number;h:number}>({ w:340, h:460 });
+  const resizeRef = useRef<{dir:'w'|'wh';sx:number;sy:number;sw:number;sh:number;spx:number;spy:number;hasPos:boolean}|null>(null);
+
   // last failed input text — shown as a retry chip in the input bar
   const [retryText, setRetryText] = useState<string | null>(null);
 
@@ -1442,9 +1446,10 @@ export function CopilotPanel() {
             ...(panelPos
               ? { position:'fixed' as const, left:panelPos.x, top:panelPos.y, zIndex:100001 }
               : { position:'absolute' as const, bottom:96, right:0, zIndex:10 }),
-            width: 340,
+            width: panelSize.w,
             maxWidth: 'calc(100vw - 24px)',
-            maxHeight: 'min(460px, calc(100svh - 180px))',
+            height: panelSize.h,
+            maxHeight: 'calc(100svh - 140px)',
             background:'rgba(10,7,28,0.96)',
             backdropFilter:'blur(60px) saturate(200%)',
             WebkitBackdropFilter:'blur(60px) saturate(200%)',
@@ -1455,6 +1460,56 @@ export function CopilotPanel() {
             animation:'cfPanelIn 0.24s cubic-bezier(.22,1,.36,1) both',
             display:'flex', flexDirection:'column',
           }}>
+            {/* Resize handle — left edge (width) */}
+            <div
+              onPointerDown={e => {
+                e.stopPropagation();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                const rect = panelRef.current!.getBoundingClientRect();
+                resizeRef.current = { dir:'w', sx:e.clientX, sy:e.clientY, sw:panelSize.w, sh:panelSize.h, spx:rect.left, spy:rect.top, hasPos:!!panelPos };
+              }}
+              onPointerMove={e => {
+                if (!resizeRef.current) return;
+                const r = resizeRef.current;
+                const dx = e.clientX - r.sx;
+                const newW = Math.max(280, Math.min(680, r.sw - dx));
+                setPanelSize(s => ({ ...s, w:newW }));
+                if (r.hasPos) setPanelPosRaw(p => p ? { ...p, x:Math.max(0, r.spx + (r.sw - newW)) } : null);
+              }}
+              onPointerUp={() => { resizeRef.current = null; }}
+              style={{ position:'absolute', left:0, top:20, bottom:20, width:6, cursor:'ew-resize', zIndex:12, touchAction:'none',
+                background:'linear-gradient(to right, rgba(139,92,246,0.18) 1px, transparent 1px)' }}
+              title="Drag to resize width"
+            />
+            {/* Resize handle — bottom-left corner (width + height) */}
+            <div
+              onPointerDown={e => {
+                e.stopPropagation();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                const rect = panelRef.current!.getBoundingClientRect();
+                resizeRef.current = { dir:'wh', sx:e.clientX, sy:e.clientY, sw:panelSize.w, sh:panelSize.h, spx:rect.left, spy:rect.top, hasPos:!!panelPos };
+              }}
+              onPointerMove={e => {
+                if (!resizeRef.current) return;
+                const r = resizeRef.current;
+                const dx = e.clientX - r.sx;
+                const dy = e.clientY - r.sy;
+                const newW = Math.max(280, Math.min(680, r.sw - dx));
+                const newH = Math.max(300, Math.min(720, r.sh + dy));
+                setPanelSize({ w:newW, h:newH });
+                if (r.hasPos) setPanelPosRaw(p => p ? { ...p, x:Math.max(0, r.spx + (r.sw - newW)) } : null);
+              }}
+              onPointerUp={() => { resizeRef.current = null; }}
+              style={{ position:'absolute', left:0, bottom:0, width:22, height:22, cursor:'sw-resize', zIndex:12, touchAction:'none',
+                display:'flex', alignItems:'flex-end', justifyContent:'flex-start', paddingBottom:4, paddingLeft:4 }}
+              title="Drag to resize"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" style={{ opacity:0.25 }}>
+                <line x1="1" y1="7" x2="7" y2="1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="1" y1="4" x2="4" y2="1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+
             {/* Panel header — drag handle (only panel moves; robot+tabs are unaffected) */}
             <div
               style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0, cursor:'grab', touchAction:'none', userSelect:'none' }}
@@ -1502,12 +1557,15 @@ export function CopilotPanel() {
               {activePanel === 'chat' && messages.length > 0 && (
                 <button type="button"
                   title="Clear chat history"
+                  onPointerDown={e => e.stopPropagation()}
                   onClick={() => { setMessages([]); localStorage.removeItem(CHAT_KEY); }}
                   style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.10)', color:'rgba(248,113,113,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
                   <Trash2 style={{ width:12, height:12 }} />
                 </button>
               )}
-              <button type="button" onClick={() => setActivePanel(null)}
+              <button type="button"
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => setActivePanel(null)}
                 style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
                 <X style={{ width:13, height:13 }} />
               </button>
@@ -1519,7 +1577,7 @@ export function CopilotPanel() {
               {/* ── CHAT ── */}
               {activePanel === 'chat' && (
                 <>
-                  <div style={{ maxHeight:280, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:9 }}>
+                  <div style={{ flex:'1 1 auto', minHeight:0, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:9 }}>
                     {messages.length === 0 && !busy && (
                       <div style={{ padding:'4px 0 2px' }}>
                         {/* Welcome */}
@@ -1779,7 +1837,7 @@ export function CopilotPanel() {
 
               {/* ── ACTIONS ── */}
               {activePanel === 'actions' && (
-                <div style={{ padding:'10px', maxHeight:380, overflowY:'auto' }}>
+                <div style={{ padding:'10px', flex:'1 1 auto', minHeight:0, overflowY:'auto' }}>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:currentAction?10:0 }}>
                     {QUICK_ACTIONS.map(action => {
                       const Icon = action.icon;
@@ -1840,7 +1898,7 @@ export function CopilotPanel() {
 
               {/* ── TASKS ── */}
               {activePanel === 'jobs' && (
-                <div style={{ padding:'6px 8px 10px', maxHeight:300, overflowY:'auto', display:'flex', flexDirection:'column', gap:5 }}>
+                <div style={{ padding:'6px 8px 10px', flex:'1 1 auto', minHeight:0, overflowY:'auto', display:'flex', flexDirection:'column', gap:5 }}>
                   {recentJobs.length === 0 ? (
                     <div style={{ textAlign:'center', padding:'24px 0 16px' }}>
                       <div style={{ width:40, height:40, borderRadius:14, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
