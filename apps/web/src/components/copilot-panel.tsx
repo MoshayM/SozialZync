@@ -645,6 +645,17 @@ export function CopilotPanel() {
     apiClient.get('/copilot/stt-status')
       .then(r => setServerStt((r.data as { available: boolean }).available))
       .catch(() => setServerStt(false));
+    // Keep the voice cache populated for the component lifetime so doSpeak() always
+    // has synchronous access to voices — eliminates the voiceschanged race on Android.
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const syncVoices = () => {
+        const v = window.speechSynthesis.getVoices();
+        if (v.length > 0) cachedVoicesRef.current = v;
+      };
+      syncVoices();
+      window.speechSynthesis.addEventListener('voiceschanged', syncVoices);
+      return () => window.speechSynthesis.removeEventListener('voiceschanged', syncVoices);
+    }
   }, []);
 
   // Cycle greeting when idle (robot visible, no panel open)
@@ -748,11 +759,12 @@ export function CopilotPanel() {
       const v = window.speechSynthesis.getVoices();
       if (v.length > 0) { cachedVoicesRef.current = v; }
       else if (cachedVoicesRef.current.length === 0) {
-        window.speechSynthesis.onvoiceschanged = () => {
-          window.speechSynthesis.onvoiceschanged = null;
+        const cacheVC = () => {
+          window.speechSynthesis.removeEventListener('voiceschanged', cacheVC);
           const vv = window.speechSynthesis.getVoices();
           if (vv.length > 0) cachedVoicesRef.current = vv;
         };
+        window.speechSynthesis.addEventListener('voiceschanged', cacheVC);
       }
     } catch {}
   }, []);
@@ -781,13 +793,21 @@ export function CopilotPanel() {
         return;
       }
 
-      // Keep bridge alive with another zero-width silent utterance (~10 ms each)
+      // NBSP at rate 3 gives ~300 ms per cycle — stable on Android TTS engines that
+      // silently kill ultra-short utterances and never fire onend, breaking the bridge.
       const u = new SpeechSynthesisUtterance(' ');
-      u.volume = 0; u.rate = 10;
+      u.volume = 0; u.rate = 3;
       u.onend = pumpBridge;
       u.onerror = (e) => {
         if ((e as SpeechSynthesisErrorEvent).error !== 'canceled') {
           ttsBridgeActiveRef.current = false;
+          // Bridge died with text waiting — attempt direct speak as last resort.
+          // Works on Android Chrome; on iOS the 3 s startTimer will show 🔊 Play reply.
+          if (pendingTTSRef.current) {
+            const p = pendingTTSRef.current;
+            pendingTTSRef.current = null;
+            speakRef.current(p.text, p.lang, p.onDone, p.msgIdx);
+          }
         }
       };
       try { window.speechSynthesis.speak(u); } catch { ttsBridgeActiveRef.current = false; }
@@ -874,24 +894,27 @@ export function CopilotPanel() {
       next();
     };
 
+    // Android needs ~50 ms after cancel() before the engine accepts new speech.
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     const voices = cachedVoicesRef.current.length > 0
       ? cachedVoicesRef.current
       : window.speechSynthesis.getVoices();
-    if (voices.length > 0) { cachedVoicesRef.current = voices; doSpeak(); }
+    if (voices.length > 0) { cachedVoicesRef.current = voices; isAndroid ? setTimeout(doSpeak, 50) : doSpeak(); }
     else {
       let fired = false;
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null;
+      const onVC = () => {
+        window.speechSynthesis.removeEventListener('voiceschanged', onVC);
         const v = window.speechSynthesis.getVoices();
         if (v.length > 0) cachedVoicesRef.current = v;
         if (!fired) { fired = true; doSpeak(); }
       };
+      window.speechSynthesis.addEventListener('voiceschanged', onVC);
       let attempts = 0;
       const poll = setInterval(() => {
         if (fired) { clearInterval(poll); return; }
         const v = window.speechSynthesis.getVoices();
-        if (v.length > 0) { clearInterval(poll); cachedVoicesRef.current = v; window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } return; }
-        if (++attempts > 20) { clearInterval(poll); window.speechSynthesis.onvoiceschanged = null; if (!fired) { fired = true; doSpeak(); } }
+        if (v.length > 0) { clearInterval(poll); cachedVoicesRef.current = v; window.speechSynthesis.removeEventListener('voiceschanged', onVC); if (!fired) { fired = true; doSpeak(); } return; }
+        if (++attempts > 20) { clearInterval(poll); window.speechSynthesis.removeEventListener('voiceschanged', onVC); if (!fired) { fired = true; doSpeak(); } }
       }, 150);
     }
   }, [lang]);
@@ -903,8 +926,9 @@ export function CopilotPanel() {
   // ── Send ───────────────────────────────────────────────────────────────────
 
   const send = useCallback(async (text: string, confirmedCommand?: Record<string, unknown>) => {
-    // Prime iOS speech session synchronously before any await — iOS blocks
-    // speechSynthesis.speak() called from async context (after fetch resolves).
+    // Unlock AudioContext + prime TTS session on this user gesture (before any await).
+    // primeAudio() is idempotent after first call; primeSpeechSession() starts the iOS bridge.
+    primeAudio();
     if (voiceEnabled || conversationRef.current) primeSpeechSession();
     const isVoiceSend = conversationRef.current;
 
@@ -1012,7 +1036,7 @@ export function CopilotPanel() {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [messages, speak, pending, router, voiceEnabled, primeSpeechSession]);
+  }, [messages, speak, pending, router, voiceEnabled, primeSpeechSession, primeAudio]);
 
   // ── STT ────────────────────────────────────────────────────────────────────
 
@@ -1398,7 +1422,7 @@ export function CopilotPanel() {
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
                                 padding: '2px 0 0', marginTop: 3, display: 'block', fontSize: 11,
-                                opacity: speakingIdx === i ? 1 : ttsBlocked && i === messages.length - 1 ? 0.95 : 0.45,
+                                opacity: speakingIdx === i ? 1 : i === messages.length - 1 ? 0.85 : 0.45,
                                 color: speakingIdx === i ? '#d1d5db' : ttsBlocked && i === messages.length - 1 ? '#fbbf24' : 'rgba(255,255,255,0.7)',
                                 fontWeight: ttsBlocked && i === messages.length - 1 && speakingIdx !== i ? 600 : 400,
                                 transition: 'opacity 0.2s, color 0.2s',
