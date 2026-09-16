@@ -941,8 +941,6 @@ export function CopilotPanel() {
   // Keep speakRef in sync so primeSpeechSession's bridge can call the latest speak()
   // without a forward-reference or stale closure.
   useEffect(() => { speakRef.current = speak; }, [speak]);
-  // Keep toggleMicRef in sync so the cf:open-copilot event handler can trigger mic.
-  useEffect(() => { toggleMicRef.current = toggleMic; }, [toggleMic]);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
@@ -1192,6 +1190,8 @@ export function CopilotPanel() {
     primeSpeechSession();
     startListening();
   }, [listening, recording, startListening, stopServerSTT, stopVoiceAnalyser, primeAudio, primeSpeechSession]);
+  // Keep toggleMicRef in sync so the cf:open-copilot event handler can trigger mic.
+  useEffect(() => { toggleMicRef.current = toggleMic; }, [toggleMic]);
 
   function toggleVoice() {
     primeAudio();
