@@ -455,11 +455,7 @@ export default function HomePage() {
   }
 
   function openCopilotWithPrompt(prompt: string) {
-    window.dispatchEvent(new CustomEvent('cf:open-copilot'));
-    setTimeout(() => {
-      const inp = document.querySelector<HTMLInputElement>('input[placeholder="Type a message…"]');
-      if (inp) { inp.value = prompt; inp.dispatchEvent(new Event('input', { bubbles: true })); inp.focus(); }
-    }, 400);
+    window.dispatchEvent(new CustomEvent('cf:open-copilot', { detail: { prompt } }));
   }
 
   return (
@@ -543,8 +539,7 @@ export default function HomePage() {
                 type="button"
                 title="Voice mode"
                 onClick={() => {
-                  window.dispatchEvent(new CustomEvent('cf:open-copilot'));
-                  setTimeout(() => document.querySelector<HTMLButtonElement>('button[title="Start listening"]')?.click(), 500);
+                  window.dispatchEvent(new CustomEvent('cf:open-copilot', { detail: { voice: true } }));
                 }}
                 className="shrink-0 w-12 flex items-center justify-center transition-all hover:opacity-80 border-l"
                 style={{ background: 'rgba(255,255,255,0.07)', color: '#d1d5db', borderColor: 'rgba(255,255,255,0.10)' }}

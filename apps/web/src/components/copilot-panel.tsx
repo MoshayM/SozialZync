@@ -627,11 +627,25 @@ export function CopilotPanel() {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
+  // Stable ref so the event handler can call toggleMic without a stale closure.
+  const toggleMicRef = useRef<() => void>(() => {});
+
   useEffect(() => {
-    const handler = () => {
-      setWidgetOpen(open => {
-        if (open) setActivePanel(null); // close any open panel on widget close
-        return !open;
+    const handler = (e: Event) => {
+      // CustomEvent payload: { prompt?: string; voice?: boolean }
+      const detail = (e as CustomEvent<{ prompt?: string; voice?: boolean } | undefined>).detail;
+      setWidgetOpen(prev => {
+        if (prev) {
+          // Already open — handle prompt/voice without closing
+          if (detail?.prompt) setTimeout(() => setInput(detail.prompt!), 50);
+          if (detail?.voice) setTimeout(() => toggleMicRef.current(), 200);
+          return true;
+        }
+        // Opening: always show Chat panel immediately so the input bar renders.
+        setActivePanel('chat');
+        if (detail?.prompt) setTimeout(() => setInput(detail.prompt!), 200);
+        if (detail?.voice) setTimeout(() => toggleMicRef.current(), 350);
+        return true;
       });
     };
     window.addEventListener('cf:open-copilot', handler as EventListener);
@@ -880,12 +894,17 @@ export function CopilotPanel() {
           if (keepAlive) clearInterval(keepAlive);
           setSpeaking(false); setSpeakingIdx(null);
           if (e.error === 'not-allowed' || e.error === 'synthesis-unavailable') {
-            // No TTS available — show the 🔊 Play reply button so the user can retry.
+            // No TTS permission — show 🔊 Play reply so user can force-play.
             setTtsBlocked(true);
             setActivePanel('chat');
             return;
           }
-          if (e.error !== 'canceled' && e.error !== 'interrupted') console.warn('[TTS] error:', e.error);
+          if (e.error === 'interrupted') {
+            // OS interrupted (phone call, notification, tab switch) — restart voice loop.
+            onDone?.();
+            return;
+          }
+          if (e.error !== 'canceled') console.warn('[TTS] error:', e.error);
         };
         window.speechSynthesis.speak(utt);
       }
@@ -922,6 +941,8 @@ export function CopilotPanel() {
   // Keep speakRef in sync so primeSpeechSession's bridge can call the latest speak()
   // without a forward-reference or stale closure.
   useEffect(() => { speakRef.current = speak; }, [speak]);
+  // Keep toggleMicRef in sync so the cf:open-copilot event handler can trigger mic.
+  useEffect(() => { toggleMicRef.current = toggleMic; }, [toggleMic]);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
@@ -1074,7 +1095,7 @@ export function CopilotPanel() {
       try {
         const form = new FormData();
         form.append('audio', blob, `recording.${mimeType.includes('ogg') ? 'ogg' : 'webm'}`);
-        form.append('language', 'en');
+        form.append('language', lang || 'en');
         const { data } = await apiClient.post('/copilot/transcribe', form, { headers: { 'Content-Type': 'multipart/form-data' } });
         const text = (data as { text: string }).text?.trim() ?? '';
         if (text) { conversationRef.current = true; setLiveTranscript(text); void send(text); }
@@ -1115,7 +1136,7 @@ export function CopilotPanel() {
       return;
     }
     recognitionRef.current = rec;
-    rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false;
+    rec.lang = lang || 'en-US'; rec.interimResults = true; rec.continuous = false;
     let finalText = '';
     rec.onresult = e => {
       let interim = '';
@@ -1178,11 +1199,12 @@ export function CopilotPanel() {
     setVoiceEnabled(next);
     localStorage.setItem('cf_copilot_voice', String(next));
     if (next) {
-      // Voice ON → immediately enter listening mode
+      // Voice ON → start the iOS TTS bridge now (gesture context) then begin listening.
+      // primeSpeechSession() MUST be synchronous so the bridge is alive when the AI replies.
       conversationRef.current = true;
       setListening(true);
       setMicError(null);
-      // Small delay: iOS needs the silent utterance from primeAudio() to settle
+      primeSpeechSession();
       setTimeout(() => startListeningRef.current(), 150);
     } else {
       conversationRef.current = false;
@@ -1532,6 +1554,8 @@ export function CopilotPanel() {
                         />
                         <button
                           type="button"
+                          title="Start listening"
+                          aria-label={voiceEnabled ? 'Stop microphone' : 'Start listening'}
                           onClick={toggleMic}
                           style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:voiceEnabled?'rgba(74,222,128,0.2)':'rgba(255,255,255,0.09)', border:`1px solid ${voiceEnabled?'rgba(74,222,128,0.4)':'rgba(255,255,255,0.14)'}`, color:voiceEnabled?'#4ADE80':'rgba(255,255,255,0.55)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}
                         >
