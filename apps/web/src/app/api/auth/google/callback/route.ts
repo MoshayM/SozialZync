@@ -5,8 +5,8 @@ const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'https://sozialzync-api-p
 export async function POST(req: Request) {
   const body = await req.json() as { code?: string; state?: string; redirectUri?: string };
 
-  if (!body.code || !body.redirectUri) {
-    return NextResponse.json({ error: 'code and redirectUri required' }, { status: 400 });
+  if (!body.code || !body.state) {
+    return NextResponse.json({ error: 'code and state required' }, { status: 400 });
   }
 
   try {
