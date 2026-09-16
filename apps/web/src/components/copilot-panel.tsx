@@ -592,29 +592,32 @@ export function CopilotPanel() {
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [historyMinimized, setHistoryMinimized] = useState(false);
 
-  // drag-to-reposition (persisted in localStorage)
+  // drag-to-reposition — only the popup panel moves; robot + tabs stay fixed at bottom-right
   const POS_KEY = 'cf_copilot_pos';
-  const [widgetPos, setWidgetPosRaw] = useState<{x:number;y:number}|null>(() => {
+  const [panelPos, setPanelPosRaw] = useState<{x:number;y:number}|null>(() => {
     try {
       const s = typeof window !== 'undefined' && localStorage.getItem(POS_KEY);
       if (!s) return null;
       const p = JSON.parse(s) as {x:number;y:number};
-      // Clamp to current viewport on restore (handles screen-size changes)
       return {
-        x: Math.max(0, Math.min(window.innerWidth  - 100, p.x)),
+        x: Math.max(0, Math.min(window.innerWidth  - 340, p.x)),
         y: Math.max(0, Math.min(window.innerHeight - 100, p.y)),
       };
     } catch { return null; }
   });
-  const setWidgetPos = (pos: {x:number;y:number} | null) => {
-    setWidgetPosRaw(pos);
+  const setPanelPos = (pos: {x:number;y:number} | null) => {
+    setPanelPosRaw(pos);
     try {
       if (pos) localStorage.setItem(POS_KEY, JSON.stringify(pos));
       else      localStorage.removeItem(POS_KEY);
     } catch { /* storage full */ }
   };
   const widgetRef  = useRef<HTMLDivElement>(null);
+  const panelRef   = useRef<HTMLDivElement>(null);
   const dragRef    = useRef<{dragging:boolean;startPtrX:number;startPtrY:number;startWidgetX:number;startWidgetY:number}|null>(null);
+
+  // last failed input text — shown as a retry chip in the input bar
+  const [retryText, setRetryText] = useState<string | null>(null);
 
   // bubble show/hide
   const [showBubble, setShowBubble]   = useState(false);
@@ -734,6 +737,23 @@ export function CopilotPanel() {
     const id = setTimeout(() => setMicError(null), 6000);
     return () => clearTimeout(id);
   }, [micError]);
+
+  // Simulate volume bars when browser STT is listening (no getUserMedia stream available)
+  useEffect(() => {
+    if (!listening || recording) return; // recording = server STT (has real stream)
+    let frame = 0;
+    const id = setInterval(() => {
+      frame++;
+      setVolumeBars([
+        0.12 + 0.35 * Math.abs(Math.sin(frame * 0.14)),
+        0.12 + 0.45 * Math.abs(Math.sin(frame * 0.19 + 1)),
+        0.12 + 0.55 * Math.abs(Math.sin(frame * 0.24 + 2)),
+        0.12 + 0.45 * Math.abs(Math.sin(frame * 0.19 + 3)),
+        0.12 + 0.35 * Math.abs(Math.sin(frame * 0.14 + 4)),
+      ]);
+    }, 100);
+    return () => { clearInterval(id); setVolumeBars([0.15, 0.15, 0.15, 0.15, 0.15]); };
+  }, [listening, recording]);
 
   // ── Voice amplitude analyser ──────────────────────────────────────────────
 
@@ -975,6 +995,9 @@ export function CopilotPanel() {
     if (voiceEnabled || conversationRef.current) primeSpeechSession();
     const isVoiceSend = conversationRef.current;
 
+    // Clear any pending retry chip from previous failed request
+    setRetryText(null);
+
     const nextMessages: ChatMessage[] = text
       ? [...messages, { role: 'user' as const, content: text }]
       : messages;
@@ -1066,20 +1089,22 @@ export function CopilotPanel() {
       const is502 = status === 502 || status === 503;
       const msg = status === 504
         ? 'The AI is taking longer than expected. Try again in a moment.'
-        : is502 ? 'The AI assistant is temporarily unavailable. Please try again in a moment.'
+        : is502 ? 'AI server is starting up. Tap ↩ Retry below to try again.'
         : status ? httpErrorMessage(status)
         : isTimeout ? 'The AI is taking longer than expected. Check your connection and try again.'
         : (typeof window !== 'undefined' && window.location.hostname === 'localhost')
           ? 'Cannot reach the API server — run `pnpm dev` in apps/api (port 4007).'
           : 'Connection error — please check your internet and try again.';
       setMessages(m => [...m, { role:'assistant', content:`⚠️ ${msg}`, fromCache:false }]);
+      // Surface a retry chip for 502/503 and timeouts so user can resend without retyping
+      if ((is502 || isTimeout) && text.trim()) setRetryText(text.trim());
       conversationRef.current = false;
       window.speechSynthesis?.cancel();
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [messages, speak, pending, router, voiceEnabled, primeSpeechSession, primeAudio]);
+  }, [messages, speak, pending, router, voiceEnabled, primeSpeechSession, primeAudio, setRetryText]);
 
   // ── STT ────────────────────────────────────────────────────────────────────
 
@@ -1339,9 +1364,7 @@ export function CopilotPanel() {
       <div
         ref={widgetRef}
         className="cf-copilot-widget"
-        style={widgetPos
-          ? { position:'fixed', left:widgetPos.x, top:widgetPos.y, zIndex:99999 }
-          : { position:'fixed', bottom:24, right:24, zIndex:99999 }}
+        style={{ position:'fixed', bottom:24, right:24, zIndex:99999 }}
       >
 
         {/* ── OPEN WIDGET ── */}
@@ -1352,7 +1375,7 @@ export function CopilotPanel() {
           <button
             type="button"
             title="Close Copilot"
-            onClick={() => { setWidgetOpen(false); setActivePanel(null); setWidgetPos(null); window.speechSynthesis?.cancel(); }}
+            onClick={() => { setWidgetOpen(false); setActivePanel(null); setPanelPos(null); window.speechSynthesis?.cancel(); }}
             style={{
               position: 'absolute', top: -10, right: -10, zIndex: 30,
               width: 26, height: 26, borderRadius: '50%',
@@ -1369,16 +1392,15 @@ export function CopilotPanel() {
             <X style={{ width: 12, height: 12 }} />
           </button>
 
-          {/* ── PANEL (absolute, overlays robot from above) ── */}
+          {/* ── PANEL (draggable popup — only this moves, robot+tabs stay fixed) ── */}
           {activePanel && (
-          <div style={{
-            position:'absolute',
-            bottom: 96,
-            right: 0,
+          <div ref={panelRef} style={{
+            ...(panelPos
+              ? { position:'fixed' as const, left:panelPos.x, top:panelPos.y, zIndex:100001 }
+              : { position:'absolute' as const, bottom:96, right:0, zIndex:10 }),
             width: 340,
             maxWidth: 'calc(100vw - 24px)',
             maxHeight: 'min(460px, calc(100svh - 180px))',
-            zIndex: 10,
             background:'rgba(10,7,28,0.96)',
             backdropFilter:'blur(60px) saturate(200%)',
             WebkitBackdropFilter:'blur(60px) saturate(200%)',
@@ -1389,25 +1411,27 @@ export function CopilotPanel() {
             animation:'cfPanelIn 0.24s cubic-bezier(.22,1,.36,1) both',
             display:'flex', flexDirection:'column',
           }}>
-            {/* Panel header — also the drag handle */}
+            {/* Panel header — drag handle (only panel moves; robot+tabs are unaffected) */}
             <div
               style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0, cursor:'grab', touchAction:'none', userSelect:'none' }}
               onPointerDown={e => {
                 e.currentTarget.setPointerCapture(e.pointerId);
-                const rect = widgetRef.current?.getBoundingClientRect();
+                const rect = panelRef.current?.getBoundingClientRect();
                 if (!rect) return;
                 dragRef.current = { dragging:true, startPtrX:e.clientX, startPtrY:e.clientY, startWidgetX:rect.left, startWidgetY:rect.top };
-                if (!widgetPos) setWidgetPos({ x: rect.left, y: rect.top });
+                if (!panelPos) setPanelPos({ x: rect.left, y: rect.top });
               }}
               onPointerMove={e => {
                 if (!dragRef.current?.dragging) return;
                 const dx = e.clientX - dragRef.current.startPtrX;
                 const dy = e.clientY - dragRef.current.startPtrY;
-                const maxX = window.innerWidth - (widgetRef.current?.offsetWidth ?? 180);
-                const maxY = window.innerHeight - 80;
-                setWidgetPos({
+                const panelW = panelRef.current?.offsetWidth  ?? 340;
+                const panelH = panelRef.current?.offsetHeight ?? 400;
+                const maxX = window.innerWidth  - panelW;
+                const maxY = window.innerHeight - panelH;
+                setPanelPos({
                   x: Math.max(0, Math.min(maxX, dragRef.current.startWidgetX + dx)),
-                  y: Math.max(0, Math.min(maxY, dragRef.current.startWidgetY + dy)),
+                  y: Math.max(0, Math.min(Math.max(0, maxY), dragRef.current.startWidgetY + dy)),
                 });
               }}
               onPointerUp={() => { if (dragRef.current) dragRef.current.dragging = false; }}
@@ -1568,6 +1592,20 @@ export function CopilotPanel() {
 
                     <div ref={messagesEndRef} />
                   </div>
+
+                  {/* Retry chip — shown when last request failed with 502/503 or timeout */}
+                  {retryText && !busy && (
+                    <div style={{ padding:'4px 10px 0' }}>
+                      <button
+                        type="button"
+                        onClick={() => { setRetryText(null); void send(retryText!); }}
+                        style={{ width:'100%', padding:'7px 12px', borderRadius:9, background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.35)', color:'#FCD34D', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:6, justifyContent:'center' }}
+                      >
+                        <span>↩</span>
+                        <span>Retry: "{retryText.length > 30 ? retryText.slice(0,30)+'…' : retryText}"</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Input bar */}
                   <div style={{ padding:'8px 10px 10px', background:'rgba(0,0,0,0.25)', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
