@@ -592,6 +592,11 @@ export function CopilotPanel() {
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [historyMinimized, setHistoryMinimized] = useState(false);
 
+  // drag-to-reposition
+  const [widgetPos, setWidgetPos] = useState<{x:number;y:number}|null>(null);
+  const widgetRef  = useRef<HTMLDivElement>(null);
+  const dragRef    = useRef<{dragging:boolean;startPtrX:number;startPtrY:number;startWidgetX:number;startWidgetY:number}|null>(null);
+
   // bubble show/hide
   const [showBubble, setShowBubble]   = useState(false);
   const bubbleTimerRef = useRef<ReturnType<typeof setTimeout>|null>(null);
@@ -1115,24 +1120,17 @@ export function CopilotPanel() {
   const startBrowserSTT = useCallback(async () => {
     const rec = getBrowserRecognition();
     if (!rec) {
+      // Web Speech API unavailable — fall through to server STT
       setListening(false);
+      if (serverStt !== false) { void startServerSTT(); return; }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isCapacitor = typeof (window as any).Capacitor !== 'undefined';
       setMicError(isCapacitor ? 'Voice recognition unavailable on this device' : 'Voice not supported — use Chrome or Edge');
       return;
     }
-    let analyserStream: MediaStream | null = null;
-    try {
-      analyserStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      startVoiceAnalyser(analyserStream); // keep stream open for amplitude analysis
-    } catch (err) {
-      setListening(false); conversationRef.current = false;
-      const name = (err as { name?: string }).name;
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') setMicError('Mic blocked — allow microphone in your browser settings');
-      else if (name === 'NotFoundError') setMicError('No microphone found');
-      else setMicError('Could not access microphone');
-      return;
-    }
+    // NOTE: Do NOT call getUserMedia here. Web Speech API manages its own mic stream
+    // internally; opening a second concurrent getUserMedia stream conflicts on Android
+    // Chrome and blocks recognition from starting.
     recognitionRef.current = rec;
     rec.lang = lang || 'en-US'; rec.interimResults = true; rec.continuous = false;
     let finalText = '';
@@ -1148,21 +1146,32 @@ export function CopilotPanel() {
     };
     rec.onend = () => {
       stopVoiceAnalyser();
-      analyserStream?.getTracks().forEach(t => t.stop());
       setListening(false);
       if (finalText.trim()) { conversationRef.current = true; void send(finalText.trim()); }
       else { conversationRef.current = false; setInput(''); setLiveTranscript(''); }
     };
     rec.onerror = e => {
       stopVoiceAnalyser();
-      analyserStream?.getTracks().forEach(t => t.stop());
       setListening(false); conversationRef.current = false;
-      if (e.error === 'not-allowed') setMicError('Mic blocked — allow microphone in your browser');
+      if (e.error === 'not-allowed') {
+        setMicError('Mic blocked — allow microphone in your browser settings');
+      } else if (e.error === 'no-speech') {
+        // Restart automatically if still in voice-conversation mode
+        if (conversationRef.current) setTimeout(() => startListeningRef.current(), 400);
+      } else if (e.error !== 'aborted') {
+        // aborted = we called .stop() ourselves — not an error
+        setMicError(`Voice error: ${e.error}`);
+      }
     };
     window.speechSynthesis?.cancel();
     try { rec.start(); }
-    catch { stopVoiceAnalyser(); analyserStream?.getTracks().forEach(t => t.stop()); setListening(false); conversationRef.current = false; setMicError('Could not start microphone'); }
-  }, [send, lang, startVoiceAnalyser, stopVoiceAnalyser]);
+    catch {
+      setListening(false); conversationRef.current = false;
+      // start() failed (e.g. another instance already running) — fall back to server STT
+      if (serverStt !== false) void startServerSTT();
+      else setMicError('Could not start microphone');
+    }
+  }, [send, lang, serverStt, startServerSTT, stopVoiceAnalyser]);
 
   const startListening = useCallback(() => {
     setMicError(null);
@@ -1309,8 +1318,11 @@ export function CopilotPanel() {
 
       {/* ── Floating widget ── */}
       <div
+        ref={widgetRef}
         className="cf-copilot-widget"
-        style={{ position:'fixed', bottom:24, right:24, zIndex:99999 }}
+        style={widgetPos
+          ? { position:'fixed', left:widgetPos.x, top:widgetPos.y, zIndex:99999 }
+          : { position:'fixed', bottom:24, right:24, zIndex:99999 }}
       >
 
         {/* ── OPEN WIDGET ── */}
@@ -1321,7 +1333,7 @@ export function CopilotPanel() {
           <button
             type="button"
             title="Close Copilot"
-            onClick={() => { setWidgetOpen(false); setActivePanel(null); window.speechSynthesis?.cancel(); }}
+            onClick={() => { setWidgetOpen(false); setActivePanel(null); setWidgetPos(null); window.speechSynthesis?.cancel(); }}
             style={{
               position: 'absolute', top: -10, right: -10, zIndex: 30,
               width: 26, height: 26, borderRadius: '50%',
@@ -1358,8 +1370,31 @@ export function CopilotPanel() {
             animation:'cfPanelIn 0.24s cubic-bezier(.22,1,.36,1) both',
             display:'flex', flexDirection:'column',
           }}>
-            {/* Panel header */}
-            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
+            {/* Panel header — also the drag handle */}
+            <div
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px 10px', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0, cursor:'grab', touchAction:'none', userSelect:'none' }}
+              onPointerDown={e => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                const rect = widgetRef.current?.getBoundingClientRect();
+                if (!rect) return;
+                dragRef.current = { dragging:true, startPtrX:e.clientX, startPtrY:e.clientY, startWidgetX:rect.left, startWidgetY:rect.top };
+                if (!widgetPos) setWidgetPos({ x: rect.left, y: rect.top });
+              }}
+              onPointerMove={e => {
+                if (!dragRef.current?.dragging) return;
+                const dx = e.clientX - dragRef.current.startPtrX;
+                const dy = e.clientY - dragRef.current.startPtrY;
+                const maxX = window.innerWidth - (widgetRef.current?.offsetWidth ?? 180);
+                const maxY = window.innerHeight - 80;
+                setWidgetPos({
+                  x: Math.max(0, Math.min(maxX, dragRef.current.startWidgetX + dx)),
+                  y: Math.max(0, Math.min(maxY, dragRef.current.startWidgetY + dy)),
+                });
+              }}
+              onPointerUp={() => { if (dragRef.current) dragRef.current.dragging = false; }}
+            >
+              {/* Drag grip indicator */}
+              <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)', flexShrink:0, letterSpacing:1, lineHeight:1 }} title="Drag to move">⠿</span>
               <span style={{ flex:'1 1 auto', fontSize:13, fontWeight:700, color:'#fff', letterSpacing:'-.1px', display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                 {activePanel === 'chat' ? '💬 Chat' : activePanel === 'actions' ? '⚡ Quick Actions' : '✅ Recent Tasks'}
                 {activePanel === 'jobs' && recentJobs.length > 0 && (
