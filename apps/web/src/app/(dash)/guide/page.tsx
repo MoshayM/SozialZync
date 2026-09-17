@@ -59,10 +59,10 @@ const PRO_TIPS = [
 ];
 
 const QUICK_ACTIONS = [
-  { icon: Bot,       label: 'Open Copilot',     href: '/copilot',  primary: true  },
-  { icon: FolderOpen,label: 'Projects',          href: '/projects', primary: false },
-  { icon: Sparkles,  label: 'Creative Studio',   href: '/studio',   primary: false },
-  { icon: Upload,    label: 'Publish Hub',        href: '/publish',  primary: false },
+  { icon: Bot,       label: 'Open Copilot',     href: '/copilot',  primary: true,  copilot: true  },
+  { icon: FolderOpen,label: 'Projects',          href: '/projects', primary: false, copilot: false },
+  { icon: Sparkles,  label: 'Creative Studio',   href: '/studio',   primary: false, copilot: false },
+  { icon: Upload,    label: 'Publish Hub',        href: '/publish',  primary: false, copilot: false },
 ];
 
 const STEP_COLORS = [
@@ -190,14 +190,26 @@ export default function GuidePage() {
                 >
                   Save PDF
                 </button>
-                <Link
-                  href={active.href}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #374151, #1f2937)', boxShadow: '0 4px 12px rgba(55,65,81,.3)' }}
-                >
-                  Open {active.label}
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                {active.id === 'copilot' ? (
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('cf:open-copilot'))}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #6d28d9, #4f2ec4)', boxShadow: '0 4px 12px rgba(109,40,217,.35)' }}
+                  >
+                    Open {active.label}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <Link
+                    href={active.href}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #374151, #1f2937)', boxShadow: '0 4px 12px rgba(55,65,81,.3)' }}
+                  >
+                    Open {active.label}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -267,20 +279,32 @@ export default function GuidePage() {
             style={{ border: '1.5px solid #e8e4f8' }}>
             <p className="text-sm font-semibold text-gray-900">Ready to create?</p>
             <div className="flex gap-2 flex-wrap">
-              {QUICK_ACTIONS.map(({ icon: Icon, label, href, primary }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
-                  style={primary
-                    ? { background: 'linear-gradient(135deg, #374151, #1f2937)', color: '#fff', boxShadow: '0 4px 12px rgba(55,65,81,.3)' }
-                    : { border: '1px solid #e3ddf8', color: '#4B5563', background: '#faf9ff' }
-                  }
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {label}
-                </Link>
-              ))}
+              {QUICK_ACTIONS.map(({ icon: Icon, label, href, primary, copilot }) => {
+                const cls = "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90";
+                const style = primary
+                  ? { background: 'linear-gradient(135deg, #6d28d9, #4f2ec4)', color: '#fff', boxShadow: '0 4px 12px rgba(109,40,217,.35)' }
+                  : { border: '1px solid #e3ddf8', color: '#4B5563', background: '#faf9ff' };
+                if (copilot) {
+                  return (
+                    <button
+                      key={href}
+                      type="button"
+                      onClick={() => window.dispatchEvent(new CustomEvent('cf:open-copilot'))}
+                      className={cls}
+                      style={style}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </button>
+                  );
+                }
+                return (
+                  <Link key={href} href={href} className={cls} style={{ border: '1px solid #e3ddf8', color: '#4B5563', background: '#faf9ff' }}>
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 

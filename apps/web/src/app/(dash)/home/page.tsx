@@ -432,6 +432,17 @@ export default function HomePage() {
   }, [allComplete, onboardingDone]);
 
   function advanceWizard(href: string) {
+    // Copilot step — open the widget in-place instead of navigating away
+    if (href === '/copilot') {
+      window.dispatchEvent(new CustomEvent('cf:open-copilot'));
+      if (wizardStep < WIZARD_STEPS.length) {
+        setWizardStep((s) => s + 1);
+      } else {
+        localStorage.setItem('cf.onboarding.done', '1');
+        setOnboardingDone(true);
+      }
+      return;
+    }
     if (wizardStep < WIZARD_STEPS.length) {
       setWizardStep((s) => s + 1);
       router.push(href);
