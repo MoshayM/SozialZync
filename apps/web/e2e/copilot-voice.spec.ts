@@ -58,15 +58,10 @@ test.describe('Copilot voice — mobile smoke test', () => {
     const deadline = Date.now() + 90_000;
     while (Date.now() < deadline) {
       try {
-        // Hit the health endpoint — exists on all Railway NestJS deployments.
-        // stt-status may be mocked by the Vercel dev layer; health is direct.
-        const res = await request.get('/api/proxy/health', { timeout: 15_000 });
-        if (res.ok()) return;
-      } catch { /* ignore — keep retrying */ }
-      try {
+        // Any HTTP response (even 4xx) means Railway is up and accepting requests.
         const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 15_000 });
-        if (res.ok()) return;
-      } catch { /* ignore */ }
+        if (res.status() > 0) return;
+      } catch { /* network error = still booting */ }
       await new Promise(r => setTimeout(r, 3_000));
     }
   });
