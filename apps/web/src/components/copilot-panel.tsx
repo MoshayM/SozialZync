@@ -5,7 +5,7 @@ import {
   X, Send, Mic, MicOff, ShieldCheck, Trash2,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
   BookOpen, FileText, Calendar, Search, Sparkles,
-  MessageSquare, ListChecks, ChevronDown, ChevronUp, type LucideIcon,
+  MessageSquare, ListChecks, ChevronDown, ChevronUp, SlidersHorizontal, Volume2, type LucideIcon,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
@@ -574,6 +574,8 @@ export function CopilotPanel() {
   const [ttsAvailable, setTtsAvailable]   = useState<boolean|null>(null);
   // true when iOS/Android blocked auto-speak — makes the 🔊 button more prominent
   const [ttsBlocked, setTtsBlocked]       = useState(false);
+  // Visible on-screen debug toast — cleared after 12 s
+  const [ttsDebug, setTtsDebug]           = useState('');
   // Cancel handle for the active TTS session; replaced on every speak() call
   const activeSpeechRef = useRef<{ cancel: () => void } | null>(null);
 
@@ -1102,148 +1104,155 @@ export function CopilotPanel() {
   // without a forward-reference or stale closure.
   useEffect(() => { speakRef.current = speak; }, [speak]);
 
-  // ── Hear-button TTS ──────────────────────────────────────────────────────────
+  // ── Hear-button TTS (with visible on-screen debug toast) ─────────────────────
   // Called synchronously from the Hear button onClick — preserves iOS gesture trust.
-  // Does NOT use the bridge. All ss.speak() calls happen within the gesture call stack.
-  const hearSpeak = useCallback((text: string, msgIdx: number) => {
+  // msgIdx is undefined when called as a voice test (no message to highlight).
+  const hearSpeak = useCallback((text: string, msgIdx?: number) => {
+    // ── Debug helpers ──────────────────────────────────────────────────────────
+    const lines: string[] = [];
+    let flashTimer: ReturnType<typeof setTimeout> | null = null;
+    const flash = () => {
+      setTtsDebug(lines.join('\n'));
+      if (flashTimer) clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => setTtsDebug(''), 12_000);
+    };
+
+    // ── Guard: API available ───────────────────────────────────────────────────
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      setTtsBlocked(true);
-      return;
+      lines.push('❌ speechSynthesis not available in this browser');
+      flash(); setTtsBlocked(true); return;
     }
 
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-    const isAndroidWebView = /Android/i.test(ua) && /; wv\b|wv\)|WebView/i.test(ua);
-    if (isAndroidWebView) {
-      console.warn('[TTS] Android WebView detected — speechSynthesis may be non-functional');
-    }
+    const isWV = /Android/i.test(ua) && /; wv\b|wv\)|WebView/i.test(ua);
+    lines.push(`UA: ...${ua.slice(-60)}`);
+    lines.push(`WebView: ${isWV}`);
 
     const ss = window.speechSynthesis;
-    const cleaned = cleanForTTS(text);
-    if (!cleaned) {
-      console.warn('[TTS] hearSpeak: text empty after cleaning. content was:', text.slice(0, 100));
-      return;
-    }
 
-    // Cancel any previous session and clear the engine queue
+    // ── Cancel any previous session ────────────────────────────────────────────
     activeSpeechRef.current?.cancel();
     activeSpeechRef.current = null;
     ttsBridgeActiveRef.current = false;
     pendingTTSRef.current = null;
-    const hadActiveSpeech = ss.speaking || ss.pending;
     try { ss.cancel(); } catch {}
 
-    const chunks = chunkForTTS(cleaned);
-    let chunkIdx = 0;
+    // ── Clean text ─────────────────────────────────────────────────────────────
+    const cleaned = cleanForTTS(text);
+    if (!cleaned) {
+      lines.push('⚠️ Text is empty after cleaning'); flash(); return;
+    }
+
+    // ── Voices (synchronous only — async breaks iOS gesture trust) ─────────────
+    const voices = cachedVoicesRef.current.length > 0
+      ? cachedVoicesRef.current
+      : ss.getVoices();
+    if (voices.length > 0) cachedVoicesRef.current = voices;
+    const bestVoice = voices.length > 0 ? pickBestVoice(voices, lang) : null;
+
+    lines.push(`Voices: ${voices.length}${voices.length ? ' — ' + voices.slice(0,2).map(v=>v.name).join(', ') : ''}`);
+    lines.push(`Voice: ${bestVoice?.name ?? '(browser default)'}`);
+    lines.push(`Text: "${cleaned.slice(0, 50)}${cleaned.length > 50 ? '…' : ''}"`);
+
+    // ── Simple single-utterance approach (most reliable on mobile) ─────────────
+    // Chunk only at ~200 chars to keep it synchronous without chunking complexity.
+    const utt = new SpeechSynthesisUtterance(cleaned.slice(0, 200));
+    if (bestVoice) utt.voice = bestVoice;
+    utt.lang   = bestVoice?.lang ?? lang;
+    utt.rate   = 0.93;
+    utt.pitch  = 1.0;
+    utt.volume = 1.0;
+
+    if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
+    setTtsBlocked(false);
+
     let alive = true;
-    let stallTimer: ReturnType<typeof setTimeout> | null = null;
     const keepAlive = setInterval(() => {
       try { if (ss.paused) ss.resume(); } catch {}
     }, 300);
 
-    const clearTimers = () => {
-      clearInterval(keepAlive);
-      if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
-    };
-
     const finish = (reason: 'done' | 'cancel' | 'error' | 'timeout') => {
       if (!alive) return;
       alive = false;
-      clearTimers();
+      clearInterval(keepAlive);
       try { ss.cancel(); } catch {}
       setSpeaking(false);
       setSpeakingIdx(null);
       activeSpeechRef.current = null;
       if (reason === 'error' || reason === 'timeout') {
         setTtsBlocked(true);
-        setActivePanel('chat');
-        console.warn('[TTS] hearSpeak finished:', reason, '— showing 🔊 Play reply fallback');
+        lines.push(`→ ${reason} — showing 🔊 Play reply fallback`); flash();
       }
     };
 
     activeSpeechRef.current = { cancel: () => finish('cancel') };
-    setSpeakingIdx(msgIdx);
-    setTtsBlocked(false);
 
-    // MUST stay synchronous — getting voices async would break iOS gesture trust
-    const voices = cachedVoicesRef.current.length > 0
-      ? cachedVoicesRef.current
-      : ss.getVoices();
-    if (voices.length > 0) cachedVoicesRef.current = voices;
-    const bestVoice = pickBestVoice(voices, lang);
-
-    console.log('[TTS] hearSpeak —',
-      'voices:', voices.length, voices.slice(0, 3).map(v => v.name),
-      '| best:', bestVoice?.name ?? '(default)',
-      '| chunks:', chunks.length,
-      '| hadActive:', hadActiveSpeech,
-      '| wv:', isAndroidWebView);
-
-    const speakChunk = () => {
+    const noStartTimer = setTimeout(() => {
       if (!alive) return;
-      if (chunkIdx >= chunks.length) { finish('done'); return; }
+      lines.push('❌ No-start timeout (8 s) — onstart never fired');
+      lines.push('   Possible causes: no TTS engine, WebView, or browser policy');
+      flash();
+      finish('timeout');
+    }, 8_000);
 
-      const chunk = chunks[chunkIdx++]!;
-      const utt = new SpeechSynthesisUtterance(chunk);
-      if (bestVoice) utt.voice = bestVoice;
-      utt.lang   = bestVoice?.lang ?? lang;
-      utt.rate   = 0.93;
-      utt.pitch  = 1.0;
-      utt.volume = 1.0;
-
-      console.log(`[TTS] chunk ${chunkIdx}/${chunks.length}: "${chunk.slice(0, 50)}" engine: speaking=${ss.speaking} pending=${ss.pending} paused=${ss.paused}`);
-
-      const noStartTimer = setTimeout(() => {
+    utt.onstart = () => {
+      if (!alive) return;
+      clearTimeout(noStartTimer);
+      setSpeaking(true);
+      lines.push('✅ onstart — audio IS playing');
+      flash();
+      const words = cleaned.slice(0, 200).split(/\s+/).length;
+      const stallMs = Math.max(12_000, (words / 1.2) * 1000 + 3_000);
+      const stallTimer = setTimeout(() => {
         if (!alive) return;
-        console.warn('[TTS] no-start timeout (8s) on chunk', chunkIdx);
-        finish('timeout');
-      }, 8_000);
-
-      utt.onstart = () => {
-        if (!alive) return;
-        clearTimeout(noStartTimer);
-        setSpeaking(true);
-        console.log('[TTS] onstart chunk', chunkIdx, '— audio confirmed');
-        const words = chunk.split(/\s+/).length;
-        stallTimer = setTimeout(() => {
-          if (!alive) return;
-          console.warn('[TTS] stall timeout chunk', chunkIdx);
-          finish('timeout');
-        }, Math.max(12_000, (words / 1.2) * 1000 + 2_000));
-      };
-
+        lines.push('⚠️ Stall — onend never fired'); flash(); finish('timeout');
+      }, stallMs);
       utt.onend = () => {
         if (!alive) return;
-        clearTimeout(noStartTimer);
-        if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
-        console.log('[TTS] onend chunk', chunkIdx);
-        speakChunk();
-      };
-
-      utt.onerror = (e) => {
-        if (!alive) return;
-        clearTimeout(noStartTimer);
-        const err = (e as SpeechSynthesisErrorEvent).error;
-        console.warn('[TTS] onerror chunk', chunkIdx, ':', err);
-        if (err === 'canceled' || err === 'interrupted') { finish('cancel'); return; }
-        if (err === 'not-allowed') {
-          console.error('[TTS] not-allowed — iOS gesture trust may have been lost');
-          finish('error'); return;
+        clearTimeout(stallTimer);
+        lines.push('✅ onend — finished normally'); flash();
+        // Speak remaining text if truncated
+        const rest = cleaned.slice(200);
+        if (rest && alive) {
+          const utt2 = new SpeechSynthesisUtterance(rest);
+          if (bestVoice) utt2.voice = bestVoice;
+          utt2.lang = utt.lang; utt2.rate = utt.rate; utt2.pitch = utt.pitch; utt2.volume = utt.volume;
+          utt2.onend = () => finish('done');
+          utt2.onerror = () => finish('done');
+          try { ss.speak(utt2); } catch { finish('done'); }
+        } else {
+          finish('done');
         }
-        if (err === 'synthesis-unavailable') { finish('error'); return; }
-        finish('error');
       };
-
-      try { ss.speak(utt); }
-      catch (err) {
-        console.error('[TTS] ss.speak() threw:', err);
-        clearTimeout(noStartTimer);
-        finish('error');
-      }
     };
 
-    // speakChunk() is still within the gesture handler's synchronous call stack here.
-    // iOS Speech Synthesis allows this even directly after ss.cancel().
-    speakChunk();
+    utt.onerror = (e) => {
+      if (!alive) return;
+      clearTimeout(noStartTimer);
+      const err = (e as SpeechSynthesisErrorEvent).error;
+      lines.push(`❌ onerror: "${err}"`);
+      if (err === 'not-allowed')            lines.push('   → Browser blocked speech (policy or gesture trust lost)');
+      if (err === 'synthesis-unavailable')  lines.push('   → No TTS engine on this device');
+      if (err === 'language-unavailable')   lines.push('   → Language not supported');
+      if (err === 'synthesis-failed')       lines.push('   → TTS engine internal failure');
+      flash();
+      if (err === 'canceled' || err === 'interrupted') { finish('cancel'); return; }
+      finish('error');
+    };
+
+    lines.push(`→ Calling ss.speak()  speaking=${ss.speaking} pending=${ss.pending} paused=${ss.paused}`);
+    flash();
+
+    try {
+      ss.speak(utt);
+      lines.push('✅ ss.speak() called (no throw)');
+      flash();
+    } catch (err) {
+      lines.push(`❌ ss.speak() threw: ${err}`);
+      clearTimeout(noStartTimer);
+      finish('error');
+      flash();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
@@ -1623,6 +1632,29 @@ export function CopilotPanel() {
 
   return (
     <>
+      {/* ── TTS debug toast (visible on mobile, auto-clears after 12 s) ── */}
+      {ttsDebug && (
+        <div style={{
+          position:'fixed', top:16, left:'50%', transform:'translateX(-50%)',
+          background:'rgba(10,7,28,0.96)', border:'1.5px solid #7c3aed',
+          borderRadius:14, padding:'12px 16px', zIndex:2147483647,
+          maxWidth:'calc(100vw - 32px)', width:360, fontSize:11.5,
+          color:'#e9d5ff', whiteSpace:'pre-line', lineHeight:1.65,
+          fontFamily:'ui-monospace,monospace',
+          boxShadow:'0 12px 48px rgba(0,0,0,0.7)',
+          animation:'cfSlideUp 0.2s ease-out both',
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+            <span style={{ fontWeight:700, fontSize:12, color:'#a78bfa' }}>🔊 TTS Debug</span>
+            <button
+              onClick={() => setTtsDebug('')}
+              style={{ marginLeft:'auto', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.6)', borderRadius:6, padding:'2px 9px', cursor:'pointer', fontSize:11 }}
+            >Dismiss</button>
+          </div>
+          {ttsDebug}
+        </div>
+      )}
+
       <style>{`
         .cf-copilot-widget * { box-sizing: border-box; }
         .cf-copilot-widget textarea::placeholder { color: rgba(255,255,255,0.32); }
@@ -1807,6 +1839,16 @@ export function CopilotPanel() {
                   onClick={() => { setMessages([]); localStorage.removeItem(CHAT_KEY); }}
                   style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.10)', color:'rgba(248,113,113,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
                   <Trash2 style={{ width:12, height:12 }} />
+                </button>
+              )}
+              {/* Test voice — plays a fixed sentence and shows debug info overlay */}
+              {activePanel === 'chat' && ttsAvailable && (
+                <button type="button"
+                  title="Test voice — plays a sample and shows debug info"
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => hearSpeak('Testing voice one two three. Hello, this is a speech test.')}
+                  style={{ width:26, height:26, borderRadius:8, background:'rgba(139,92,246,0.12)', border:'1px solid rgba(139,92,246,0.3)', color:'#a78bfa', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <Volume2 style={{ width:12, height:12 }} />
                 </button>
               )}
               <button type="button"
