@@ -5,7 +5,7 @@ import {
   X, Send, Mic, MicOff, ShieldCheck, Trash2,
   CheckCircle2, Circle, Loader2, AlertCircle, BrainCircuit, Zap,
   BookOpen, FileText, Calendar, Search, Sparkles,
-  MessageSquare, ListChecks, ChevronDown, ChevronUp, SlidersHorizontal, Volume2, type LucideIcon,
+  MessageSquare, ListChecks, ChevronDown, ChevronUp, type LucideIcon,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { checkInputSafety, httpErrorMessage, SAFETY_COLORS } from '@/lib/safety';
@@ -574,8 +574,6 @@ export function CopilotPanel() {
   const [ttsAvailable, setTtsAvailable]   = useState<boolean|null>(null);
   // true when iOS/Android blocked auto-speak — makes the 🔊 button more prominent
   const [ttsBlocked, setTtsBlocked]       = useState(false);
-  // Visible on-screen debug toast — cleared after 12 s
-  const [ttsDebug, setTtsDebug]           = useState('');
   // Cancel handle for the active TTS session; replaced on every speak() call
   const activeSpeechRef = useRef<{ cancel: () => void } | null>(null);
 
@@ -647,6 +645,8 @@ export function CopilotPanel() {
   const messagesEndRef   = useRef<HTMLDivElement>(null);
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
   const speechPrimedRef      = useRef(false);
+  // true once any onstart has fired — skips primer on subsequent Hear taps
+  const speechEngineWarmRef  = useRef(false);
   const busyRef              = useRef(false);
   const abortControllerRef   = useRef<AbortController | null>(null);
   const autoRetryRef         = useRef(0); // counts auto-retries on cold-start errors
@@ -1162,7 +1162,7 @@ export function CopilotPanel() {
       },
     };
 
-    utt.onstart = () => { setSpeaking(true); };
+    utt.onstart = () => { setSpeaking(true); speechEngineWarmRef.current = true; };
     utt.onend   = () => { done(); };
     utt.onerror = (e) => {
       const err = (e as SpeechSynthesisErrorEvent).error;
@@ -1170,7 +1170,21 @@ export function CopilotPanel() {
       done();
     };
 
-    // Exact same sequence as the working Test Voice button
+    // Android Chrome silently drops a single ss.speak() call on the first gesture
+    // if the TTS engine hasn't been unlocked yet — the same bug the Test Voice
+    // button worked around with alert(). Fix: queue a near-silent primer before
+    // the real text. Two queued items force the engine to commit to playing them;
+    // the primer is inaudible and completes in <100 ms.
+    if (!speechEngineWarmRef.current) {
+      const primer = new SpeechSynthesisUtterance('ok');
+      if (pick) primer.voice = pick;
+      primer.lang   = pick?.lang ?? 'en-US';
+      primer.volume = 0.01;
+      primer.rate   = 10;
+      primer.pitch  = 1;
+      ss.speak(primer);
+    }
+
     ss.speak(utt);
     try { ss.resume(); } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1552,29 +1566,6 @@ export function CopilotPanel() {
 
   return (
     <>
-      {/* ── TTS debug toast (visible on mobile, auto-clears after 12 s) ── */}
-      {ttsDebug && (
-        <div style={{
-          position:'fixed', top:16, left:'50%', transform:'translateX(-50%)',
-          background:'rgba(10,7,28,0.96)', border:'1.5px solid #7c3aed',
-          borderRadius:14, padding:'12px 16px', zIndex:2147483647,
-          maxWidth:'calc(100vw - 32px)', width:360, fontSize:11.5,
-          color:'#e9d5ff', whiteSpace:'pre-line', lineHeight:1.65,
-          fontFamily:'ui-monospace,monospace',
-          boxShadow:'0 12px 48px rgba(0,0,0,0.7)',
-          animation:'cfSlideUp 0.2s ease-out both',
-        }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-            <span style={{ fontWeight:700, fontSize:12, color:'#a78bfa' }}>🔊 TTS Debug</span>
-            <button
-              onClick={() => setTtsDebug('')}
-              style={{ marginLeft:'auto', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.6)', borderRadius:6, padding:'2px 9px', cursor:'pointer', fontSize:11 }}
-            >Dismiss</button>
-          </div>
-          {ttsDebug}
-        </div>
-      )}
-
       <style>{`
         .cf-copilot-widget * { box-sizing: border-box; }
         .cf-copilot-widget textarea::placeholder { color: rgba(255,255,255,0.32); }
@@ -1759,83 +1750,6 @@ export function CopilotPanel() {
                   onClick={() => { setMessages([]); localStorage.removeItem(CHAT_KEY); }}
                   style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.10)', color:'rgba(248,113,113,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
                   <Trash2 style={{ width:12, height:12 }} />
-                </button>
-              )}
-              {/* Test voice — always visible; self-contained with full alert debug */}
-              {activePanel === 'chat' && (
-                <button
-                  type="button"
-                  title="Test voice (shows debug alerts)"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // eslint-disable-next-line no-alert
-                    const dbgAlert = (msg: string) => { alert(msg); };
-
-                    if (!('speechSynthesis' in window)) {
-                      dbgAlert('❌ speechSynthesis NOT available on this device/browser!');
-                      return;
-                    }
-                    const ss = window.speechSynthesis;
-                    const voices = ss.getVoices();
-
-                    // Pick best English voice — Google > Samsung > any English
-                    const pick = (
-                      voices.find(v => /google/i.test(v.name) && v.lang === 'en-US') ||
-                      voices.find(v => /google/i.test(v.name) && /^en/i.test(v.lang)) ||
-                      voices.find(v => /samsung/i.test(v.name) && /^en/i.test(v.lang)) ||
-                      voices.find(v => /^en/i.test(v.lang) && !/compact/i.test(v.name)) ||
-                      voices.find(v => /^en/i.test(v.lang)) ||
-                      voices[0] ||
-                      null
-                    );
-
-                    // CRITICAL: only cancel when engine is active — cancel() on idle
-                    // Android Chrome corrupts state and silently drops next speak()
-                    if (ss.speaking || ss.pending) { ss.cancel(); }
-
-                    const utt = new SpeechSynthesisUtterance('Testing voice one two three');
-                    if (pick) utt.voice = pick;
-                    utt.lang   = pick?.lang ?? 'en-US';
-                    utt.volume = 1;
-                    utt.rate   = 1;
-                    utt.pitch  = 1;
-
-                    utt.onstart = () => {
-                      dbgAlert('✅ onstart fired — audio engine started! You should hear sound now.');
-                    };
-                    utt.onend = () => {
-                      dbgAlert('✅ onend fired — speech finished normally.');
-                    };
-                    utt.onerror = (ev) => {
-                      const err = (ev as SpeechSynthesisErrorEvent).error;
-                      dbgAlert(
-                        '❌ onerror: "' + err + '"\n' +
-                        (err === 'not-allowed'           ? '→ Browser blocked speech (policy/gesture)' :
-                         err === 'synthesis-unavailable' ? '→ No TTS engine installed on this device'  :
-                         err === 'synthesis-failed'      ? '→ TTS engine internal error'               :
-                         err === 'language-unavailable'  ? '→ Language/voice not supported'            :
-                         err === 'canceled'              ? '→ Speech was canceled before starting'     : '')
-                      );
-                    };
-
-                    ss.speak(utt);
-                    try { ss.resume(); } catch {}  // un-pause if engine is stuck
-
-                    dbgAlert(
-                      'ss.speak() called!\n' +
-                      'Voice: ' + (pick?.name ?? '(none — browser default)') + '\n' +
-                      'Lang: '  + (pick?.lang  ?? 'en-US') + '\n' +
-                      'vol=1  rate=1  pitch=1\n\n' +
-                      'Engine state RIGHT NOW:\n' +
-                      '  speaking: ' + ss.speaking + '\n' +
-                      '  pending:  ' + ss.pending  + '\n' +
-                      '  paused:   ' + ss.paused   + '\n\n' +
-                      'Total voices: ' + voices.length + '\n' +
-                      'Dismiss — onstart/onend/onerror alerts follow.'
-                    );
-                  }}
-                  style={{ width:26, height:26, borderRadius:8, background:'rgba(139,92,246,0.2)', border:'1.5px solid rgba(139,92,246,0.5)', color:'#c4b5fd', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-                  <Volume2 style={{ width:12, height:12 }} />
                 </button>
               )}
               <button type="button"
