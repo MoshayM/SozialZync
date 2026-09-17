@@ -12,6 +12,7 @@ import {
 import { api, type TrialStatusResponse, type ChannelAutomation, type CalendarEntry } from '@/lib/api';
 import { StatCard } from '@/components/stat-card';
 import { MyContentSection } from '@/components/my-content-section';
+import { CopilotRobotMini } from '@/components/copilot-robot-mini';
 
 interface Project {
   id: string;
@@ -67,14 +68,14 @@ const QUICK_PROMPTS = [
   { label: 'Research topic',    icon: PlayCircle,  prompt: 'Research a topic for my next video' },
 ];
 
-type QuickAction = { href?: string; prompt?: string; icon: React.ElementType; label: string; sub: string; iconBg: string; iconColor: string };
+type QuickAction = { href?: string; prompt?: string; copilot?: boolean; icon: React.ElementType; label: string; sub: string; iconBg: string; iconColor: string };
 const QUICK_ACTIONS: QuickAction[] = [
   { href: '/content',              icon: TrendingUp,  label: 'Research Trends', sub: 'Discover viral topics',         iconBg: '#f3f4f6', iconColor: '#374151' },
   { prompt: 'Write a YouTube script for my next video', icon: FileText,   label: 'Write Script',    sub: 'AI-powered scripts',             iconBg: '#eff6ff', iconColor: '#2563eb' },
   { href: '/studio',               icon: ImageIcon,   label: 'Gen Thumbnail',   sub: 'AI image generation',           iconBg: '#fdf2f8', iconColor: '#db2777' },
   { href: '/publish?tab=calendar', icon: CalendarDays,label: 'Schedule Post',   sub: 'Plan your calendar',            iconBg: '#ecfdf5', iconColor: '#059669' },
   { href: '/analytics',            icon: BarChart2,   label: 'View Analytics',  sub: 'Channel performance',           iconBg: '#fffbeb', iconColor: '#d97706' },
-  { href: '/copilot',              icon: Bot,         label: 'Open Copilot',    sub: 'Chat with your AI',             iconBg: '#f3f4f6', iconColor: '#374151' },
+  { copilot: true,                 icon: Bot,         label: 'Open Copilot',    sub: 'Chat with your AI',             iconBg: '#f5f3ff', iconColor: '#7c3aed' },
 ];
 
 function greet(name: string): string {
@@ -860,6 +861,26 @@ export default function HomePage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {QUICK_ACTIONS.map((action) => {
                   const Icon = action.icon;
+
+                  // "Open Copilot" — shows the actual robot model and opens the widget
+                  if (action.copilot) {
+                    return (
+                      <button
+                        key={action.label}
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('cf:open-copilot'))}
+                        className="flex flex-col items-center p-3 sm:p-3.5 rounded-xl text-center transition-all hover:-translate-y-0.5 min-w-0 overflow-hidden"
+                        style={{ border: '1.5px solid #ddd6fe', background: 'linear-gradient(145deg,#faf5ff,#f3e8ff)' }}
+                      >
+                        <div className="mb-1.5 flex items-center justify-center">
+                          <CopilotRobotMini size={40} />
+                        </div>
+                        <p className="text-[12px] sm:text-[13px] font-semibold text-[#6d28d9] leading-snug line-clamp-1">{action.label}</p>
+                        <p className="text-[10px] sm:text-[11px] text-purple-400 mt-0.5 line-clamp-1">{action.sub}</p>
+                      </button>
+                    );
+                  }
+
                   const inner = (
                     <>
                       <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 mb-2" style={{ background: action.iconBg }}>
