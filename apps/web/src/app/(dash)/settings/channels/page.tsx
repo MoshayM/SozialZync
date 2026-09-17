@@ -763,7 +763,7 @@ function ChannelsInner() {
                 </div>
 
                 {/* Sub-tab bar */}
-                <div className="flex border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar">
+                <div className="flex flex-wrap border-b border-gray-200 mb-6">
                   {([
                     { id: 'videos'    as LibTab, label: 'Videos',    Icon: Video    },
                     { id: 'playlists' as LibTab, label: 'Playlists', Icon: ListVideo },

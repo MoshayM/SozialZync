@@ -458,8 +458,8 @@ function MockFilterBar({
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 flex flex-col gap-3">
-      {/* Platform chips — single scrollable row, no wrapping */}
-      <div className="flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* Platform chips */}
+      <div className="flex flex-wrap items-center gap-2">
         {PLATFORM_FILTER_OPTIONS.map((opt) => {
           const isActive = activePlatform === opt;
           return (
@@ -467,7 +467,7 @@ function MockFilterBar({
               key={opt}
               type="button"
               onClick={() => onPlatformChange(opt)}
-              className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border whitespace-nowrap"
               style={
                 isActive
                   ? { background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }

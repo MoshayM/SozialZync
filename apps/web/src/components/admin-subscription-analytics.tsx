@@ -410,13 +410,13 @@ export function AdminSubscriptionAnalytics() {
       </div>
 
       {/* Inner tab bar */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="flex flex-wrap gap-2">
         {SUB_TABS.map(t => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
-            className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all whitespace-nowrap"
             style={tab === t.id
               ? { background: '#374151', color: '#ffffff', border: '2px solid #374151' }
               : { background: '#faf9ff', color: '#374151', border: '1.5px solid #e3ddf8' }

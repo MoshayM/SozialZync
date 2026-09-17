@@ -713,10 +713,7 @@ export default function DiscoverPage() {
         </div>
 
         {/* Tab bar */}
-        <div
-          className="-mx-5 lg:-mx-7 flex border-b border-[#e3ddf8] px-4 sm:px-6 overflow-x-auto no-scrollbar"
-          style={{ WebkitOverflowScrolling: 'touch' }}
-        >
+        <div className="-mx-5 lg:-mx-7 flex flex-wrap border-b border-[#e3ddf8] px-4 sm:px-6">
           {TABS.map((t) => {
             const active = hubTab === t.id;
             return (

@@ -909,9 +909,9 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Tab bar — horizontally scrollable on mobile */}
-      <div className="overflow-x-auto no-scrollbar -mx-4 sm:mx-0 mb-6" style={{ borderBottom: '1px solid #e3ddf8' }}>
-        <div className="flex min-w-max px-4 sm:px-0">
+      {/* Tab bar */}
+      <div className="-mx-4 sm:mx-0 mb-6" style={{ borderBottom: '1px solid #e3ddf8' }}>
+        <div className="flex flex-wrap px-4 sm:px-0">
           {([
             { id: 'pipeline' as PageTab, label: 'Pipeline',       icon: <Play className="w-3.5 h-3.5" />,       dot: false },
             { id: 'script'   as PageTab, label: 'Script',         icon: <FileText className="w-3.5 h-3.5" />,   dot: !!latestScriptJob },

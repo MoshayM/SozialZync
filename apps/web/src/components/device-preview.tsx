@@ -331,13 +331,13 @@ export function DevicePreview() {
   return (
     <div className="min-h-full bg-[#faf9ff] flex flex-col">
       {/* Page selector bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2">
         {PAGES.map(p => (
           <button
             key={p.id}
             type="button"
             onClick={() => setPage(p.id)}
-            className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all touch-manipulation"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all touch-manipulation whitespace-nowrap"
             style={page === p.id
               ? { background:'#374151', color:'#fff', border:'1.5px solid #374151' }
               : { background:'#faf9ff', color:'#374151', border:'1.5px solid #e3ddf8' }

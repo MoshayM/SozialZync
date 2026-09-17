@@ -437,8 +437,7 @@ export default function ShortsVideoDetailPage() {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-brand-600" /> Analysis results
         </h1>
-        <div className="overflow-x-auto no-scrollbar -mx-4 sm:mx-0">
-        <div className="flex rounded-xl bg-gray-100 p-1 text-sm mx-4 sm:mx-0 min-w-max">
+        <div className="flex flex-wrap rounded-xl bg-gray-100 p-1 text-sm gap-0.5">
           <button
             onClick={() => setTab('highlights')}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg whitespace-nowrap ${tab === 'highlights' ? 'bg-white shadow-sm font-semibold text-gray-900' : 'text-gray-500'}`}
@@ -469,7 +468,6 @@ export default function ShortsVideoDetailPage() {
           >
             <Share2 className="w-4 h-4" /> Social ({socialPieces.length})
           </button>
-        </div>
         </div>
       </div>
 

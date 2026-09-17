@@ -820,7 +820,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Top-level tab bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex gap-2 overflow-x-auto no-scrollbar" style={{ top: impersonating ? '48px' : '0' }}>
+      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex flex-wrap gap-2" style={{ top: impersonating ? '48px' : '0' }}>
         {(
           [
             { id: 'dashboard',           label: 'Enterprise Dashboard', icon: <BarChart2 className="w-4 h-4" /> },

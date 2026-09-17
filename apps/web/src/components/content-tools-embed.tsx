@@ -329,10 +329,10 @@ export function ContentToolsContent() {
   return (
     <div className="space-y-5">
       {/* Section switcher */}
-      <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ background: '#f3f4f6', width: 'fit-content' }}>
+      <div className="flex flex-wrap gap-0.5 p-1 rounded-xl" style={{ background: '#f3f4f6' }}>
         {SECTION_TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setSection(id)}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
             style={section === id
               ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(55,65,81,.15)' }
               : { color: '#9b8fc4' }}>

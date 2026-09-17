@@ -137,13 +137,13 @@ export default function NotificationsPage() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-0.5">
+        <div className="flex flex-wrap gap-2">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className="flex-shrink-0 py-1.5 px-4 text-sm font-semibold rounded-2xl transition-all whitespace-nowrap"
+              className="py-1.5 px-4 text-sm font-semibold rounded-2xl transition-all whitespace-nowrap"
               style={activeTab === tab.id
                 ? { background: '#f3f4f6', border: '2px solid #374151', color: '#374151' }
                 : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }}

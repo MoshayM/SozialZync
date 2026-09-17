@@ -597,7 +597,7 @@ function EditorInner() {
         {/* Tab card */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           {/* Tab bar */}
-          <div className="flex border-b border-gray-100 overflow-x-auto scrollbar-none px-1 pt-1">
+          <div className="flex flex-wrap border-b border-gray-100 px-1 pt-1">
             {TABS.map((tab) => (
               <button
                 key={tab.key}

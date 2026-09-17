@@ -248,11 +248,8 @@ function InsightsContent() {
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
-      <div
-        className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4 overflow-x-auto no-scrollbar"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        <div className="flex px-4 sm:px-6 min-w-max">
+      <div className="sticky top-0 z-10 bg-white border-b border-[#e3ddf8] mt-4">
+        <div className="flex flex-wrap px-4 sm:px-6">
           {TABS.map((t) => {
             const active = activeTab === t.id;
             return (

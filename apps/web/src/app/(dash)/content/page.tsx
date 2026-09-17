@@ -1309,14 +1309,14 @@ function ContentStudioInner() {
             </button>
           </div>
 
-          {/* Tabs — horizontally scrollable on mobile, no wrap */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* Tabs — fully visible, no scroll */}
+          <div className="flex flex-wrap gap-2">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id)}
-                className="flex items-center gap-1.5 shrink-0 text-sm font-semibold transition-all"
+                className="flex items-center gap-1.5 text-sm font-semibold transition-all"
                 style={
                   activeTab === t.id
                     ? { background: '#f3f4f6', border: '2px solid #374151', color: '#374151', borderRadius: '0.75rem', padding: '0.5rem 1rem' }

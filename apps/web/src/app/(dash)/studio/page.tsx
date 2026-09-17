@@ -429,10 +429,10 @@ function CharactersSection() {
   return (
     <div className="space-y-6">
       {/* Inner tab switcher */}
-      <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ background: '#f3f4f6', width: 'fit-content' }}>
+      <div className="flex flex-wrap gap-0.5 p-1 rounded-xl" style={{ background: '#f3f4f6' }}>
         {CHAR_TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
             style={tab === id ? { background: '#fff', color: '#374151', boxShadow: '0 2px 8px rgba(55,65,81,.15)' } : { color: '#9ca3af' }}>
             <Icon className="w-3.5 h-3.5" />
             {label}
@@ -745,12 +745,12 @@ export default function CreativeStudioPage() {
           <p className="text-sm text-gray-500">Content Tools · Characters · Images · Audio · Voices · Music · Shorts · Thumbnails</p>
         </div>
 
-        {/* Top-level tab switcher — full-width scroll container so iOS can swipe */}
-        <div className="w-full overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="inline-flex gap-1 p-1 rounded-xl" style={{ background: '#f3f4f6', minWidth: 'max-content' }}>
+        {/* Top-level tab switcher */}
+        <div className="w-full">
+          <div className="flex flex-wrap gap-0.5 p-1 rounded-xl" style={{ background: '#f3f4f6' }}>
             {TOP_TABS.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => setTopTab(id)}
-                className="flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-all shrink-0 whitespace-nowrap"
+                className="flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
                 style={{
                   padding: '0.5rem 0.75rem',
                   ...(topTab === id

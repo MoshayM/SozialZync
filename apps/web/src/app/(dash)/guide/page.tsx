@@ -8,6 +8,7 @@ import {
   Globe2, Target,
 } from 'lucide-react';
 import Link from 'next/link';
+import { SegmentedControl } from '@/components/segmented-control';
 
 type Tab = 'projects' | 'studio' | 'copilot' | 'workflow' | 'publish';
 
@@ -274,30 +275,15 @@ export default function GuidePage() {
               </div>
             </div>
 
-            {/* Tab bar — horizontally scrollable on mobile */}
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist" aria-label="Guide sections">
-              {tabs.map((t) => {
-                const Icon = t.icon;
-                const isActive = t.id === tab;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    onClick={() => setTab(t.id)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap shrink-0 transition-all border"
-                    style={isActive
-                      ? { background: 'rgba(255,255,255,0.95)', color: '#1f2937', border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 16px rgba(0,0,0,.2)' }
-                      : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', border: '1.5px solid rgba(255,255,255,0.12)' }
-                    }
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Tab bar — fully visible segment control, no scroll */}
+            <SegmentedControl
+              tabs={tabs.map(t => ({ id: t.id, label: t.label, icon: <t.icon className="w-4 h-4 shrink-0" /> }))}
+              value={tab}
+              onChange={(id) => setTab(id as Tab)}
+              aria-label="Guide sections"
+              activeStyle={{ background: 'rgba(255,255,255,0.95)', color: '#1f2937', border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 16px rgba(0,0,0,.2)' }}
+              inactiveStyle={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', border: '1.5px solid rgba(255,255,255,0.12)' }}
+            />
 
             <p className="mt-3 text-sm text-white/55">{active.desc}</p>
           </div>
