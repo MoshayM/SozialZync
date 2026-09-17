@@ -459,8 +459,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+    <div className="min-h-full bg-gray-50 overflow-x-hidden">
+      <div className="px-4 py-5 sm:px-5 lg:px-7 lg:py-7 max-w-5xl mx-auto space-y-5">
 
         {/* ── AI GREETING BANNER ─────────────────────────────────────────── */}
         <div
@@ -471,7 +471,7 @@ export default function HomePage() {
           <div aria-hidden className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.04)', filter: 'blur(50px)' }} />
           <div aria-hidden className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(40px)' }} />
 
-          <div className="relative px-6 sm:px-8 py-7">
+          <div className="relative px-4 sm:px-8 py-6 sm:py-7">
             {/* Top row */}
             <div className="flex items-start justify-between gap-4 mb-5">
               <div className="flex items-center gap-3">
@@ -620,10 +620,10 @@ export default function HomePage() {
         )}
 
         {/* ── MAIN GRID ──────────────────────────────────────────────────── */}
-        <div className="grid lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-5">
 
           {/* ── LEFT: Continue + Recent ──────────────────────────────────── */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-3 space-y-4 min-w-0">
             <SectionLabel icon={Clock}>Continue</SectionLabel>
 
             {/* Last project card */}
@@ -723,7 +723,7 @@ export default function HomePage() {
           </div>
 
           {/* ── RIGHT: Upcoming Posts + Onboarding + Actions + Channels ─── */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4 min-w-0">
 
             {/* Upcoming Posts widget */}
             <Card>
@@ -857,16 +857,16 @@ export default function HomePage() {
             {/* Quick actions — 2×3 grid */}
             <Card>
               <SectionLabel icon={Sparkles}>Quick Actions</SectionLabel>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {QUICK_ACTIONS.map((action) => {
                   const Icon = action.icon;
                   const inner = (
                     <>
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mb-1.5" style={{ background: action.iconBg }}>
-                        <Icon className="w-4 h-4" style={{ color: action.iconColor }} />
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 mb-2" style={{ background: action.iconBg }}>
+                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: action.iconColor }} />
                       </div>
-                      <p className="text-[13px] font-semibold text-gray-900 leading-snug">{action.label}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{action.sub}</p>
+                      <p className="text-[12px] sm:text-[13px] font-semibold text-gray-900 leading-snug line-clamp-1">{action.label}</p>
+                      <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 line-clamp-1">{action.sub}</p>
                     </>
                   );
                   if (action.prompt) {
@@ -875,7 +875,7 @@ export default function HomePage() {
                         key={action.label}
                         type="button"
                         onClick={() => openCopilotWithPrompt(action.prompt!)}
-                        className="flex flex-col p-3.5 rounded-xl text-left transition-all hover:border-gray-300 hover:-translate-y-0.5"
+                        className="flex flex-col p-3 sm:p-3.5 rounded-xl text-left transition-all hover:border-gray-300 hover:-translate-y-0.5 min-w-0 overflow-hidden"
                         style={{ border: '1.5px solid #e5e7eb' }}
                       >
                         {inner}
@@ -886,7 +886,7 @@ export default function HomePage() {
                     <Link
                       key={action.label}
                       href={action.href!}
-                      className="flex flex-col p-3.5 rounded-xl transition-all hover:border-gray-300 hover:-translate-y-0.5"
+                      className="flex flex-col p-3 sm:p-3.5 rounded-xl transition-all hover:border-gray-300 hover:-translate-y-0.5 min-w-0 overflow-hidden"
                       style={{ border: '1.5px solid #e5e7eb' }}
                     >
                       {inner}
