@@ -845,13 +845,7 @@ export function CopilotPanel() {
       if (AC) { const ctx = new AC(); ctx.resume().catch(() => {}); }
     } catch {}
     if (!('speechSynthesis' in window)) return;
-    try {
-      const silent = new SpeechSynthesisUtterance('​');
-      silent.volume = 0; silent.rate = 10;
-      window.speechSynthesis.speak(silent);
-    } catch {}
-    try { window.speechSynthesis.getVoices(); } catch {}
-    // Pre-cache voices so doSpeak() can run synchronously from the bridge onend.
+    // Pre-cache voices so speak() can run synchronously.
     // voiceschanged fires asynchronously, so we set the cache whenever it resolves.
     try {
       const v = window.speechSynthesis.getVoices();
@@ -1107,6 +1101,151 @@ export function CopilotPanel() {
   // Keep speakRef in sync so primeSpeechSession's bridge can call the latest speak()
   // without a forward-reference or stale closure.
   useEffect(() => { speakRef.current = speak; }, [speak]);
+
+  // ── Hear-button TTS ──────────────────────────────────────────────────────────
+  // Called synchronously from the Hear button onClick — preserves iOS gesture trust.
+  // Does NOT use the bridge. All ss.speak() calls happen within the gesture call stack.
+  const hearSpeak = useCallback((text: string, msgIdx: number) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setTtsBlocked(true);
+      return;
+    }
+
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isAndroidWebView = /Android/i.test(ua) && /; wv\b|wv\)|WebView/i.test(ua);
+    if (isAndroidWebView) {
+      console.warn('[TTS] Android WebView detected — speechSynthesis may be non-functional');
+    }
+
+    const ss = window.speechSynthesis;
+    const cleaned = cleanForTTS(text);
+    if (!cleaned) {
+      console.warn('[TTS] hearSpeak: text empty after cleaning. content was:', text.slice(0, 100));
+      return;
+    }
+
+    // Cancel any previous session and clear the engine queue
+    activeSpeechRef.current?.cancel();
+    activeSpeechRef.current = null;
+    ttsBridgeActiveRef.current = false;
+    pendingTTSRef.current = null;
+    const hadActiveSpeech = ss.speaking || ss.pending;
+    try { ss.cancel(); } catch {}
+
+    const chunks = chunkForTTS(cleaned);
+    let chunkIdx = 0;
+    let alive = true;
+    let stallTimer: ReturnType<typeof setTimeout> | null = null;
+    const keepAlive = setInterval(() => {
+      try { if (ss.paused) ss.resume(); } catch {}
+    }, 300);
+
+    const clearTimers = () => {
+      clearInterval(keepAlive);
+      if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
+    };
+
+    const finish = (reason: 'done' | 'cancel' | 'error' | 'timeout') => {
+      if (!alive) return;
+      alive = false;
+      clearTimers();
+      try { ss.cancel(); } catch {}
+      setSpeaking(false);
+      setSpeakingIdx(null);
+      activeSpeechRef.current = null;
+      if (reason === 'error' || reason === 'timeout') {
+        setTtsBlocked(true);
+        setActivePanel('chat');
+        console.warn('[TTS] hearSpeak finished:', reason, '— showing 🔊 Play reply fallback');
+      }
+    };
+
+    activeSpeechRef.current = { cancel: () => finish('cancel') };
+    setSpeakingIdx(msgIdx);
+    setTtsBlocked(false);
+
+    // MUST stay synchronous — getting voices async would break iOS gesture trust
+    const voices = cachedVoicesRef.current.length > 0
+      ? cachedVoicesRef.current
+      : ss.getVoices();
+    if (voices.length > 0) cachedVoicesRef.current = voices;
+    const bestVoice = pickBestVoice(voices, lang);
+
+    console.log('[TTS] hearSpeak —',
+      'voices:', voices.length, voices.slice(0, 3).map(v => v.name),
+      '| best:', bestVoice?.name ?? '(default)',
+      '| chunks:', chunks.length,
+      '| hadActive:', hadActiveSpeech,
+      '| wv:', isAndroidWebView);
+
+    const speakChunk = () => {
+      if (!alive) return;
+      if (chunkIdx >= chunks.length) { finish('done'); return; }
+
+      const chunk = chunks[chunkIdx++]!;
+      const utt = new SpeechSynthesisUtterance(chunk);
+      if (bestVoice) utt.voice = bestVoice;
+      utt.lang   = bestVoice?.lang ?? lang;
+      utt.rate   = 0.93;
+      utt.pitch  = 1.0;
+      utt.volume = 1.0;
+
+      console.log(`[TTS] chunk ${chunkIdx}/${chunks.length}: "${chunk.slice(0, 50)}" engine: speaking=${ss.speaking} pending=${ss.pending} paused=${ss.paused}`);
+
+      const noStartTimer = setTimeout(() => {
+        if (!alive) return;
+        console.warn('[TTS] no-start timeout (8s) on chunk', chunkIdx);
+        finish('timeout');
+      }, 8_000);
+
+      utt.onstart = () => {
+        if (!alive) return;
+        clearTimeout(noStartTimer);
+        setSpeaking(true);
+        console.log('[TTS] onstart chunk', chunkIdx, '— audio confirmed');
+        const words = chunk.split(/\s+/).length;
+        stallTimer = setTimeout(() => {
+          if (!alive) return;
+          console.warn('[TTS] stall timeout chunk', chunkIdx);
+          finish('timeout');
+        }, Math.max(12_000, (words / 1.2) * 1000 + 2_000));
+      };
+
+      utt.onend = () => {
+        if (!alive) return;
+        clearTimeout(noStartTimer);
+        if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
+        console.log('[TTS] onend chunk', chunkIdx);
+        speakChunk();
+      };
+
+      utt.onerror = (e) => {
+        if (!alive) return;
+        clearTimeout(noStartTimer);
+        const err = (e as SpeechSynthesisErrorEvent).error;
+        console.warn('[TTS] onerror chunk', chunkIdx, ':', err);
+        if (err === 'canceled' || err === 'interrupted') { finish('cancel'); return; }
+        if (err === 'not-allowed') {
+          console.error('[TTS] not-allowed — iOS gesture trust may have been lost');
+          finish('error'); return;
+        }
+        if (err === 'synthesis-unavailable') { finish('error'); return; }
+        finish('error');
+      };
+
+      try { ss.speak(utt); }
+      catch (err) {
+        console.error('[TTS] ss.speak() threw:', err);
+        clearTimeout(noStartTimer);
+        finish('error');
+      }
+    };
+
+    // speakChunk() is still within the gesture handler's synchronous call stack here.
+    // iOS Speech Synthesis allows this even directly after ss.cancel().
+    speakChunk();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
@@ -1748,11 +1887,8 @@ export function CopilotPanel() {
                               type="button"
                               onClick={() => {
                                 if (speakingIdx === i) {
-                                  // ── STOP ───────────────────────────────────
-                                  // Kill active session (clears all timers + state).
+                                  // STOP — cancel session + hard-cancel engine
                                   activeSpeechRef.current?.cancel();
-                                  // Belt-and-suspenders: also hard-cancel the engine
-                                  // and kill any bridge in case the cancel handle is stale.
                                   ttsBridgeActiveRef.current = false;
                                   pendingTTSRef.current = null;
                                   try { window.speechSynthesis.cancel(); } catch {}
@@ -1760,18 +1896,9 @@ export function CopilotPanel() {
                                   setSpeaking(false);
                                   return;
                                 }
-                                // ── HEAR ────────────────────────────────────
-                                // primeAudio() speaks a silent utterance synchronously,
-                                // establishing iOS speechSynthesis gesture trust for the
-                                // entire page lifetime. All subsequent speak() calls work
-                                // even from async context after this point.
-                                primeAudio();
-                                try { window.speechSynthesis?.resume(); } catch {}
-                                // Kill any active bridge so speak() takes the direct path
-                                ttsBridgeActiveRef.current = false;
-                                pendingTTSRef.current = null;
-                                setTtsBlocked(false);
-                                speak(m.content, undefined, undefined, i);
+                                // HEAR — hearSpeak() calls ss.speak() synchronously
+                                // within this gesture handler, preserving iOS trust.
+                                hearSpeak(m.content, i);
                               }}
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
