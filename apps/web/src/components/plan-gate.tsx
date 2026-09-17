@@ -5,21 +5,21 @@ import { Lock } from 'lucide-react';
 
 // ── Tier definitions ──────────────────────────────────────────────────────────
 
-export type Plan = 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' | 'AGENCY';
+export type Plan = 'FREE' | 'PRO' | 'UNLIMITED' | 'ENTERPRISE' | 'AGENCY';
 
 const PLAN_ORDER: Record<Plan, number> = {
-  FREE: 0, STARTER: 1, PRO: 2, ENTERPRISE: 3, AGENCY: 4,
+  FREE: 0, PRO: 1, UNLIMITED: 2, ENTERPRISE: 3, AGENCY: 4,
 };
 const PLAN_LABEL: Record<Plan, string> = {
-  FREE: 'Free', STARTER: 'Starter', PRO: 'Pro', ENTERPRISE: 'Enterprise', AGENCY: 'Agency',
+  FREE: 'Free', PRO: 'Pro', UNLIMITED: 'Unlimited', ENTERPRISE: 'Enterprise', AGENCY: 'Agency',
 };
 const PLAN_PRICE: Record<Plan, string> = {
-  FREE: '', STARTER: '$17/mo', PRO: '$17/mo', ENTERPRISE: '$149/mo', AGENCY: '$149/mo',
+  FREE: '', PRO: '$17/mo', UNLIMITED: '$25/mo', ENTERPRISE: 'Custom', AGENCY: 'Custom',
 };
 const PLAN_DESC: Record<Plan, string> = {
-  FREE: 'You\'re on the Free plan — 2,000 credits/month, unlimited channels, unlimited AI Copilot & Shorts Studio.',
-  STARTER: 'Go Pro for $17/month — unlimited credits, unlimited publishing, own branding, ad revenue, and dedicated SLA.',
-  PRO: 'Go Pro for $17/month — unlimited credits, unlimited publishing, own branding, ad revenue monetization, and dedicated SLA & support.',
+  FREE: 'You\'re on the Free plan — 3 projects, 10 AI queries/day, SozialZynk feed publishing only.',
+  PRO: 'Go Pro for $17/month — unlimited projects, AI Copilot & Studio, up to 50 external publishes per month across all platforms.',
+  UNLIMITED: 'Go Unlimited for $25/month — zero publish caps, everything in Pro with unrestricted external publishing.',
   ENTERPRISE: 'Admin-managed — organisation features, custom AI model training, and dedicated SLA.',
   AGENCY: 'Admin-managed — organisation features, custom AI model training, and dedicated SLA.',
 };

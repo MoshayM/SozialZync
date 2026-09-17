@@ -4,13 +4,30 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { CREDITS_ENABLED } from './features';
 
-export type Plan = 'free' | 'pro' | 'enterprise';
+export type Plan = 'free' | 'pro' | 'unlimited' | 'enterprise';
 
 export const FREE_LIMITS = {
   maxProjects: 3,
   maxOutputsPerProject: 5,
   copilotQueriesPerDay: 10,
   shortsEditsPerMonth: 10,
+  externalPublishesPerMonth: 0,
+} as const;
+
+export const PRO_LIMITS = {
+  maxProjects: Infinity,
+  maxOutputsPerProject: Infinity,
+  copilotQueriesPerDay: Infinity,
+  shortsEditsPerMonth: Infinity,
+  externalPublishesPerMonth: 50,
+} as const;
+
+export const UNLIMITED_LIMITS = {
+  maxProjects: Infinity,
+  maxOutputsPerProject: Infinity,
+  copilotQueriesPerDay: Infinity,
+  shortsEditsPerMonth: Infinity,
+  externalPublishesPerMonth: Infinity,
 } as const;
 
 /** Credits below this trigger a "running low" warning. */
@@ -47,6 +64,7 @@ export function usePlan() {
   useEffect(() => {
     const stored = localStorage.getItem('cf_plan') as Plan | null;
     if (stored === 'enterprise') setStoredPlan('enterprise');
+    else if (stored === 'unlimited') setStoredPlan('unlimited');
     else if (stored === 'pro') setStoredPlan('pro');
     setCreditProWasActive(localStorage.getItem(CREDIT_PRO_KEY) === 'true');
     setIsAdmin(isAdminFromToken());
@@ -60,6 +78,8 @@ export function usePlan() {
   // When credits are disabled, plan is determined by subscription only.
   const plan: Plan = isAdmin || storedPlan === 'enterprise'
     ? 'enterprise'
+    : storedPlan === 'unlimited'
+    ? 'unlimited'
     : storedPlan === 'pro' || hasCreditBalance
     ? 'pro'
     : 'free';
@@ -102,18 +122,27 @@ export function usePlan() {
     setStoredPlan('enterprise');
   }
 
+  function upgradeToUnlimited() {
+    localStorage.setItem('cf_plan', 'unlimited');
+    setStoredPlan('unlimited');
+  }
+
+  const limits = plan === 'free' ? FREE_LIMITS : plan === 'unlimited' || plan === 'enterprise' ? UNLIMITED_LIMITS : PRO_LIMITS;
+
   return {
     plan,
     isFreeTier: plan === 'free',
-    isPro: plan === 'pro' || plan === 'enterprise',
+    isPro: plan === 'pro' || plan === 'unlimited' || plan === 'enterprise',
+    isUnlimited: plan === 'unlimited' || plan === 'enterprise',
     isEnterprise: plan === 'enterprise',
     isSuperAdmin: isAdmin,
     hasCreditsPro,
     creditsExhausted,
     lowCredits,
     credits,
-    limits: FREE_LIMITS,
+    limits,
     upgradeToPro,
+    upgradeToUnlimited,
     upgradeToEnterprise,
     downgradeToFree,
     activateCreditPro,

@@ -126,7 +126,7 @@ function PriorityBadge({ priority }: { priority: 'high' | 'medium' | 'low' }) {
 export default function AnalyticsPage() {
   const userPlan = usePlan();
   const isAdmin = useIsAdmin();
-  const canAccessAiAnalysis = isAdmin || planAtLeast(userPlan, 'STARTER');
+  const canAccessAiAnalysis = isAdmin || planAtLeast(userPlan, 'PRO');
   const [channelId, setChannelId] = useState('');
   const [analytics, setAnalytics] = useState<AnalyticsReport | null>(null);
   const [growth, setGrowth] = useState<GrowthReport | null>(null);

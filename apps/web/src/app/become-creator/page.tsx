@@ -63,28 +63,39 @@ const PLANS = [
     description: 'Start creating with AI. No credit card required.',
     cta: 'Start free', href: '/register',
     features: [
-      { text: 'Unlimited channels connected', ok: true },
-      { text: 'Unlimited AI Copilot queries', ok: true },
-      { text: 'Unlimited Shorts Studio', ok: true },
-      { text: 'Publish to SozialZynk feed', ok: true },
-      { text: 'Publish to YouTube / Instagram', ok: false },
+      { text: '3 projects', ok: true },
+      { text: 'AI Copilot (10 queries/day)', ok: true },
+      { text: 'Shorts Studio (10 edits/month)', ok: true },
+      { text: 'SozialZynk feed publishing', ok: true },
+      { text: 'External platform publishing', ok: false },
       { text: 'Export / download files', ok: false },
       { text: 'Ad revenue monetization', ok: false },
     ],
   },
   {
     name: 'Pro', price: '$17', period: 'per month', popular: true,
-    description: 'Unlimited power to grow and monetize your channel.',
+    description: 'Grow and monetize across all platforms. Up to 50 external publishes per month.',
     cta: 'Go Pro', href: '/register',
     features: [
-      { text: 'Unlimited channels', ok: true },
+      { text: 'Unlimited projects', ok: true },
       { text: 'Unlimited AI Copilot', ok: true },
       { text: 'Full Creative Studio (all tools)', ok: true },
-      { text: 'Publish to YouTube, Instagram & more', ok: true },
+      { text: '50 external publishes / month', ok: true },
       { text: 'Export / download files', ok: true },
-      { text: 'A/B Testing + Analytics', ok: true },
+      { text: 'Advanced analytics & A/B testing', ok: true },
       { text: 'Ad revenue monetization', ok: true },
-      { text: 'Own branding (white-label)', ok: true },
+      { text: 'Priority support', ok: true },
+    ],
+  },
+  {
+    name: 'Unlimited', price: '$25', period: 'per month', popular: false,
+    description: 'Zero limits. Publish as much as you want, whenever you want.',
+    cta: 'Go Unlimited', href: '/register',
+    features: [
+      { text: 'Everything in Pro', ok: true },
+      { text: 'Unlimited external publishes', ok: true },
+      { text: 'Zero caps on any feature', ok: true },
+      { text: 'White-label exports & own branding', ok: true },
       { text: 'Dedicated SLA & support', ok: true },
     ],
   },
@@ -524,7 +535,7 @@ export default function BecomeCreatorPage() {
                 Every plan includes AI-powered content creation, compliance checks, and multi-platform publishing. No hidden fees.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {PLANS.map(({ name, price, period, description, cta, href, popular, features }) => (
                 <div key={name} className={`relative flex flex-col rounded-3xl p-6 transition-all ${popular?'shadow-2xl ring-2 ring-[#374151] scale-[1.02]':'border border-gray-100 hover:border-gray-200 hover:shadow-lg'}`} style={popular?{background:'linear-gradient(160deg,#0e0924 0%,#1a0f4a 100%)'}:{background:'#fff'}}>
                   {popular && (
