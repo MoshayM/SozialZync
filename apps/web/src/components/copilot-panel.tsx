@@ -883,6 +883,7 @@ export function CopilotPanel() {
       // silently kill ultra-short utterances and never fire onend, breaking the bridge.
       const u = new SpeechSynthesisUtterance(' ');
       u.volume = 0; u.rate = 3;
+      u.onstart = () => { speechEngineWarmRef.current = true; }; // mark engine warm so speak() skips primer
       u.onend = pumpBridge;
       u.onerror = (e) => {
         // Always mark bridge dead — including 'canceled' (fired when STT calls ss.cancel()).
@@ -940,8 +941,11 @@ export function CopilotPanel() {
       null
     );
 
-    // Conditional cancel (safe pattern — unconditional cancel corrupts idle Android engine)
-    if (ss.speaking || ss.pending) { try { ss.cancel(); } catch {} }
+    // Only cancel if speak() itself started something — never cancel the bridge's ending utterance.
+    // Android Chrome briefly reports ss.speaking=true inside onend; a cancel there corrupts state.
+    if (activeSpeechRef.current) {
+      if (ss.speaking || ss.pending) { try { ss.cancel(); } catch {} }
+    }
     activeSpeechRef.current = null;
 
     if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
