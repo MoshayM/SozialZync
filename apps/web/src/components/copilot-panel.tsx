@@ -1841,13 +1841,23 @@ export function CopilotPanel() {
                   <Trash2 style={{ width:12, height:12 }} />
                 </button>
               )}
-              {/* Test voice — plays a fixed sentence and shows debug info overlay */}
-              {activePanel === 'chat' && ttsAvailable && (
-                <button type="button"
-                  title="Test voice — plays a sample and shows debug info"
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={() => hearSpeak('Testing voice one two three. Hello, this is a speech test.')}
-                  style={{ width:26, height:26, borderRadius:8, background:'rgba(139,92,246,0.12)', border:'1px solid rgba(139,92,246,0.3)', color:'#a78bfa', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+              {/* Test voice — always visible when chat is open; no ttsAvailable gate */}
+              {activePanel === 'chat' && (
+                <button
+                  type="button"
+                  title="Test voice"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const hasSS = typeof window !== 'undefined' && 'speechSynthesis' in window;
+                    window.alert(
+                      'Test Voice tapped!\n' +
+                      'speechSynthesis: ' + hasSS + '\n' +
+                      'voices: ' + (hasSS ? window.speechSynthesis.getVoices().length : 'N/A') + '\n' +
+                      'UA: ' + navigator.userAgent.slice(-80)
+                    );
+                    hearSpeak('Testing voice one two three. Hello, this is a speech test.');
+                  }}
+                  style={{ width:26, height:26, borderRadius:8, background:'rgba(139,92,246,0.2)', border:'1.5px solid rgba(139,92,246,0.5)', color:'#c4b5fd', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
                   <Volume2 style={{ width:12, height:12 }} />
                 </button>
               )}
@@ -1924,7 +1934,7 @@ export function CopilotPanel() {
                         <div className={m.role==='assistant'?'cf-msg-assistant':''} style={{ maxWidth:'82%', padding:'8px 11px', borderRadius:m.role==='user'?'12px 12px 3px 12px':'3px 12px 12px 12px', fontSize:12.5, lineHeight:1.55, whiteSpace:'pre-wrap', background:m.role==='user'?'linear-gradient(135deg,#374151,#111827)':'rgba(255,255,255,0.09)', color:'#fff', border:m.role==='assistant'?'1px solid rgba(255,255,255,0.09)':'1px solid rgba(255,255,255,0.15)', boxShadow:m.role==='user'?'0 4px 14px -4px rgba(55,65,81,.5)':'none', animation:'cfSlideUp 0.2s ease-out both', transition:'background 0.2s' }}>
                           {m.content}
                           {m.fromCache && <span style={{ fontSize:9, color:'rgba(255,255,255,.4)', marginLeft:5 }}>cached</span>}
-                          {m.role === 'assistant' && ttsAvailable && (
+                          {m.role === 'assistant' && (
                             <button
                               type="button"
                               onClick={() => {
