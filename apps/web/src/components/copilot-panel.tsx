@@ -997,11 +997,11 @@ export function CopilotPanel() {
   // without a forward-reference or stale closure.
   useEffect(() => { speakRef.current = speak; }, [speak]);
 
-  // ── Hear-button TTS ────────────────────────────────────────────────────────
-  // Mirrors the Test Voice button logic exactly — same voice selection,
-  // same cancel guard, same speak+resume sequence. Keeping it lean is what
-  // makes it work on Android Chrome (the complex version was silent).
-  const hearSpeak = useCallback((text: string, msgIdx?: number) => {
+  // ── Primary TTS: hearSpeak ─────────────────────────────────────────────────
+  // Used for both the Hear button AND auto-speak (AI replies, errors, safety).
+  // Mirrors the Test Voice button logic exactly — proven to work on Android Chrome.
+  // onDone is called after speech completes successfully; NOT called on cancel or error.
+  const hearSpeak = useCallback((text: string, msgIdx?: number, onDone?: () => void) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       setTtsBlocked(true);
       return;
@@ -1042,25 +1042,28 @@ export function CopilotPanel() {
     if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
     setTtsBlocked(false);
 
-    const done = () => {
+    // success=true → speech finished normally → restart listening in voice mode
+    // success=false → cancelled or errored → do NOT restart (user or error stopped it)
+    const done = (success: boolean) => {
       setSpeaking(false);
       setSpeakingIdx(null);
       activeSpeechRef.current = null;
+      if (success) onDone?.();
     };
 
     activeSpeechRef.current = {
       cancel: () => {
         if (ss.speaking || ss.pending) { try { ss.cancel(); } catch {} }
-        done();
+        done(false);
       },
     };
 
     utt.onstart = () => { setSpeaking(true); speechEngineWarmRef.current = true; };
-    utt.onend   = () => { done(); };
+    utt.onend   = () => { done(true); };
     utt.onerror = (e) => {
       const err = (e as SpeechSynthesisErrorEvent).error;
       if (err !== 'canceled' && err !== 'interrupted') setTtsBlocked(true);
-      done();
+      done(false);
     };
 
     // Android Chrome silently drops a single ss.speak() call on the first gesture
@@ -1118,7 +1121,7 @@ export function CopilotPanel() {
         const cat = safety.category ?? 'abuse';
         const colors = SAFETY_COLORS[cat];
         setMessages(prev => [...prev, { role:'assistant', content:`${colors.icon} ${safety.message}`, fromCache:false }]);
-        speak(safety.message);
+        hearSpeak(safety.message);
         return;
       }
     }
@@ -1173,16 +1176,15 @@ export function CopilotPanel() {
       } else if (data.navigate) {
         router.push(data.navigate);
       }
-      // Auto-speak every AI reply unless the user clicked Stop on this turn.
-      // primeSpeechSession() was already called synchronously at the top of send()
-      // (in the gesture handler), so the bridge is running and will pick up the
-      // text from its next onend — which is iOS-safe. On Android the bridge
-      // warm-starts the engine so the first direct ss.speak() always works.
+      // Auto-speak every AI reply using the proven hearSpeak() path.
+      // hearSpeak() is the same simple logic that works for the Hear button —
+      // no bridge complexity, no timers. On reply completion onDone restarts
+      // the mic so the voice conversation loop continues automatically.
       const wasVoiceInput = conversationRef.current;
       conversationRef.current = voiceEnabled || wasVoiceInput;
       const newIdx = nextMessages.length;
       if (!stopMutedRef.current) {
-        speak(data.reply, data.language, () => { if (voiceEnabled) startListeningRef.current(); }, newIdx);
+        hearSpeak(data.reply, newIdx, voiceEnabled ? () => startListeningRef.current() : undefined);
       }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number }; code?: string; name?: string };
@@ -1222,14 +1224,13 @@ export function CopilotPanel() {
       // Always show retry chip after an error so user can resend without retyping
       if (text.trim()) setRetryText(text.trim());
       conversationRef.current = false;
-      // Always speak error messages — speechSynthesis works offline via device TTS (no internet needed).
-      // speak() calls cancel() internally so no need for a separate cancel here.
-      speak(msg);
+      // Speak error messages so voice users hear what went wrong without opening chat.
+      hearSpeak(msg);
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [messages, speak, pending, router, voiceEnabled, primeSpeechSession, primeAudio, setRetryText]);
+  }, [messages, hearSpeak, pending, router, voiceEnabled, primeSpeechSession, primeAudio, setRetryText]);
 
   // ── STT ────────────────────────────────────────────────────────────────────
 
