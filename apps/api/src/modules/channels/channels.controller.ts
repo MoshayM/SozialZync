@@ -24,7 +24,9 @@ class RefreshDto {
 }
 
 const WEB_URL = process.env['WEB_URL'] ?? 'http://localhost:3007';
-const API_URL = process.env['API_URL'] ?? 'http://localhost:4007';
+// Strip any trailing /api/v1 so we can always append it consistently,
+// regardless of whether the env var includes it or not.
+const API_URL = (process.env['API_URL'] ?? 'http://localhost:4007').replace(/\/api\/v1\/?$/, '');
 
 @TierRateLimit({ bucket: 'channels', windowSecs: 3600, limits: { FREE: 10, STARTER: 30, PRO: 100, AGENCY: 300, default: 10 } })
 @ApiTags('channels')

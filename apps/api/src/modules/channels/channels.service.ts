@@ -523,7 +523,7 @@ export class ChannelsService implements OnModuleInit {
     if (ch.readOnly || !ch.encryptedTokens) throw new BadRequestException('This channel has no OAuth tokens to refresh');
 
     const tokens = await this.getDecryptedTokens(channelId);
-    const redirectUri = `${process.env['API_URL'] ?? 'http://localhost:4007'}/api/v1/channels/oauth/callback`;
+    const redirectUri = `${(process.env['API_URL'] ?? 'http://localhost:4007').replace(/\/api\/v1\/?$/, '')}/api/v1/channels/oauth/callback`;
     const oauth2 = this.buildOAuth2Client(redirectUri);
     oauth2.setCredentials(tokens);
 
@@ -556,7 +556,7 @@ export class ChannelsService implements OnModuleInit {
     }
 
     let tokens: OAuthTokens = JSON.parse(this.enc.decrypt(ch.encryptedTokens)) as OAuthTokens;
-    const redirectUri = `${process.env['API_URL'] ?? 'http://localhost:4007'}/api/v1/channels/oauth/callback`;
+    const redirectUri = `${(process.env['API_URL'] ?? 'http://localhost:4007').replace(/\/api\/v1\/?$/, '')}/api/v1/channels/oauth/callback`;
 
     // Proactive refresh: if the access token expires within 5 minutes, refresh before upload starts
     const FIVE_MINUTES_MS = 5 * 60 * 1000;
