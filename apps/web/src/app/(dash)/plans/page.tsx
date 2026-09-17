@@ -21,7 +21,6 @@ interface PlanDef {
   features: string[];
   adminFeatures?: string[];
   highlight?: boolean;
-  publishTrial?: boolean;
 }
 
 const PLANS: PlanDef[] = [
@@ -39,6 +38,7 @@ const PLANS: PlanDef[] = [
       'Shorts Studio (10 edits/month)',
       'SozialZynk feed publishing only',
       'Basic analytics',
+      '3-day external publishing trial on signup',
     ],
   },
   {
@@ -61,7 +61,6 @@ const PLANS: PlanDef[] = [
       'Priority support',
     ],
     highlight: true,
-    publishTrial: true,
   },
   {
     id: 'UNLIMITED',
@@ -81,7 +80,6 @@ const PLANS: PlanDef[] = [
     adminFeatures: [
       'Team collaboration (3 seats)',
     ],
-    publishTrial: true,
   },
 ];
 
@@ -156,12 +154,22 @@ function PlansContent() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8 text-center">
+      <div className="mb-6 text-center">
         <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Plans &amp; Pricing</h1>
         <p className="text-sm text-gray-500">
           Upgrade or downgrade anytime. Changes take effect immediately with pro-rated billing.
         </p>
       </div>
+
+      {/* New-user explore trial banner */}
+      {activePlan === 'FREE' && !subLoading && (
+        <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+          <p className="text-sm text-emerald-800 flex-1">
+            <span className="font-bold">You have a 3-day explore trial</span> — publish to YouTube, Instagram, TikTok, and more right now, completely free. No card needed.
+          </p>
+        </div>
+      )}
 
       {/* Success banner */}
       {justUpgraded && (
@@ -263,13 +271,6 @@ function PlansContent() {
                     <span className="text-2xl font-extrabold text-gray-900">{plan.price}</span>
                     <span className="text-xs text-gray-500 mb-1">{plan.priceNote}</span>
                   </div>
-                  {plan.publishTrial && !isActive && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
-                      style={{ background: 'rgba(255,255,255,0.65)', color: '#059669', border: '1px solid #6ee7b740' }}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                      3-day external publishing trial for new subscribers
-                    </div>
-                  )}
                 </div>
 
                 {/* Features */}
@@ -330,11 +331,11 @@ function PlansContent() {
         </div>
       )}
 
-      {/* Trial + publish callout */}
+      {/* New-user trial callout */}
       <div className="mt-6 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 text-center leading-relaxed">
-        <span className="font-semibold">New Pro &amp; Unlimited subscribers</span> get a 3-day external publishing trial — try publishing to YouTube, Instagram, TikTok, and more before your billing date.
+        <span className="font-semibold">Every new user</span> gets a <span className="font-semibold">3-day explore trial</span> — publish to YouTube, Instagram, TikTok, and more at no cost from the moment you sign up. No card required.
         <span className="mx-2 text-emerald-300">·</span>
-        Pro publish limit (50/month) resets on billing date. Unlimited has no caps. All plans include unlimited SozialZynk feed posts.
+        After 3 days, upgrade to Pro or Unlimited to keep publishing externally.
       </div>
 
       {/* Billing portal link */}

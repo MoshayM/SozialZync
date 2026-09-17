@@ -108,9 +108,11 @@ You can revoke platform access at any time from your Sozialzynk account settings
 
 Free — $0 forever: 3 projects, 10 AI Copilot queries per day, 10 Shorts Studio edits per month, SozialZynk feed publishing only. External platform publishing (YouTube, Instagram, TikTok, etc.), file exports, and ad revenue are not available on the Free plan.
 
-Pro — $17/month: Unlimited projects, unlimited AI Copilot, full Creative Studio (all AI agents), up to 50 external publishes per month across all connected platforms, export and download files, A/B testing, advanced analytics, ad revenue monetization, and priority support. Publish limit resets on your monthly billing date. New Pro subscribers receive a 3-day external publishing trial from the date of first subscription.
+Pro — $17/month: Unlimited projects, unlimited AI Copilot, full Creative Studio (all AI agents), up to 50 external publishes per month across all connected platforms, export and download files, A/B testing, advanced analytics, ad revenue monetization, and priority support. Publish limit resets on your monthly billing date.
 
-Unlimited — $25/month: Everything in Pro with no monthly publish caps, zero limits on any feature, white-label exports and own branding, and dedicated SLA & support. Team collaboration features are available to organisation admin accounts. New Unlimited subscribers also receive a 3-day external publishing trial from the date of first subscription.
+Unlimited — $25/month: Everything in Pro with no monthly publish caps, zero limits on any feature, white-label exports and own branding, and dedicated SLA & support. Team collaboration features are available to organisation admin accounts.
+
+3-Day Explore Trial: Every new user who registers on SozialZynk receives a 3-day explore trial that enables external platform publishing (YouTube, Instagram, TikTok, and other connected platforms) at no cost from the date of account creation. This trial is intended to allow new users to experience the platform's publishing capabilities before choosing a plan. After 3 days, external publishing requires a Pro or Unlimited subscription. The trial is available once per user account and is non-transferable.
 
 Organisation Features: Team seats, role management, and custom AI model training are available to admin and super admin accounts on the Unlimited plan.
 

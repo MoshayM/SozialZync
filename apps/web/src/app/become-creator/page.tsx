@@ -74,7 +74,7 @@ const PLANS = [
   },
   {
     name: 'Pro', price: '$17', period: 'per month', popular: true,
-    description: '3-day external publishing trial for new subscribers. Up to 50 external publishes per month.',
+    description: 'Up to 50 external publishes per month across all platforms.',
     cta: 'Go Pro', href: '/register',
     features: [
       { text: 'Unlimited projects', ok: true },
@@ -89,7 +89,7 @@ const PLANS = [
   },
   {
     name: 'Unlimited', price: '$25', period: 'per month', popular: false,
-    description: '3-day external publishing trial for new subscribers. Then unlimited publishes — zero caps, forever.',
+    description: 'Unlimited external publishes — zero monthly caps, forever.',
     cta: 'Go Unlimited', href: '/register',
     features: [
       { text: 'Everything in Pro', ok: true },
@@ -210,7 +210,7 @@ export default function BecomeCreatorPage() {
               </Link>
             </div>
 
-            <p className="mt-4 text-sm text-gray-400">Free to start · No credit card required · Cancel any time</p>
+            <p className="mt-4 text-sm text-gray-400">Free to start · 3-day explore trial for every new user · No credit card required</p>
 
             <div className="mt-12 grid grid-cols-3 gap-4 max-w-sm mx-auto">
               {[
@@ -570,7 +570,7 @@ export default function BecomeCreatorPage() {
               ))}
             </div>
             <p className="mt-10 text-center text-sm text-gray-400">
-              New Pro &amp; Unlimited subscribers get a 3-day external publishing trial · Cancel any time
+              Every new user gets a 3-day explore trial — publish externally at no cost · Cancel any time
             </p>
           </div>
         </section>
@@ -759,7 +759,7 @@ export default function BecomeCreatorPage() {
                 </Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm">
-                {['No credit card required','Multi-platform publishing','3-day publish trial on Pro & Unlimited'].map(t => (
+                {['No credit card required','3-day explore trial for every new user','Multi-platform publishing'].map(t => (
                   <span key={t} className="flex items-center gap-1.5" style={{color:'rgba(255,255,255,.45)'}}>
                     <CheckCircle2 className="w-4 h-4" style={{color:'#9ca3af'}} />
                     {t}
