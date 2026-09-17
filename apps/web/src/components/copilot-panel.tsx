@@ -647,6 +647,10 @@ export function CopilotPanel() {
   const speechPrimedRef      = useRef(false);
   // true once any onstart has fired — skips primer on subsequent Hear taps
   const speechEngineWarmRef  = useRef(false);
+  // true after the user clicks Stop on a reply — prevents auto-speak for that
+  // specific reply. Cleared at the start of the next send() so the next AI
+  // reply auto-speaks normally.
+  const stopMutedRef         = useRef(false);
   const busyRef              = useRef(false);
   const abortControllerRef   = useRef<AbortController | null>(null);
   const autoRetryRef         = useRef(0); // counts auto-retries on cold-start errors
@@ -1007,6 +1011,7 @@ export function CopilotPanel() {
         utt.onstart = () => {
           if (!alive) return;
           if (noStartTimer) { clearTimeout(noStartTimer); noStartTimer = null; }
+          speechEngineWarmRef.current = true; // skip hearSpeak primer from now on
           // First chunk starting: update UI
           if (chunkIdx === 1) setSpeaking(true);
 
@@ -1193,10 +1198,14 @@ export function CopilotPanel() {
   // ── Send ───────────────────────────────────────────────────────────────────
 
   const send = useCallback(async (text: string, confirmedCommand?: Record<string, unknown>) => {
-    // Unlock AudioContext + prime TTS session on this user gesture (before any await).
-    // primeAudio() is idempotent after first call; primeSpeechSession() starts the iOS bridge.
+    // Every send() is a fresh user gesture — re-enable auto-speak for the coming reply.
+    stopMutedRef.current = false;
+    // Unlock AudioContext and always start the iOS speech bridge synchronously here
+    // (before any await). On iOS, speechSynthesis.speak() is only allowed from a
+    // gesture handler; the bridge chains silent utterances so the reply can be spoken
+    // from its own onend — which iOS treats as a gesture-equivalent context.
     primeAudio();
-    if (voiceEnabled || conversationRef.current) primeSpeechSession();
+    primeSpeechSession();
     const isVoiceSend = conversationRef.current;
 
     // Clear any pending retry chip from previous failed request
@@ -1276,17 +1285,16 @@ export function CopilotPanel() {
       } else if (data.navigate) {
         router.push(data.navigate);
       }
+      // Auto-speak every AI reply unless the user clicked Stop on this turn.
+      // primeSpeechSession() was already called synchronously at the top of send()
+      // (in the gesture handler), so the bridge is running and will pick up the
+      // text from its next onend — which is iOS-safe. On Android the bridge
+      // warm-starts the engine so the first direct ss.speak() always works.
       const wasVoiceInput = conversationRef.current;
-      if (voiceEnabled || wasVoiceInput) {
-        conversationRef.current = true;
-        const newIdx = nextMessages.length;
-        // primeSpeechSession() is intentionally NOT called here — we are in async context
-        // (after API await). The bridge was started synchronously in the gesture handler
-        // (toggleMic / send before the first await). speak() deposits text into pendingTTSRef
-        // and the bridge speaks it from its own onend (gesture-context-safe).
+      conversationRef.current = voiceEnabled || wasVoiceInput;
+      const newIdx = nextMessages.length;
+      if (!stopMutedRef.current) {
         speak(data.reply, data.language, () => { if (voiceEnabled) startListeningRef.current(); }, newIdx);
-      } else {
-        conversationRef.current = false;
       }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number }; code?: string; name?: string };
@@ -1830,7 +1838,9 @@ export function CopilotPanel() {
                               type="button"
                               onClick={() => {
                                 if (speakingIdx === i) {
-                                  // STOP — cancel session + hard-cancel engine
+                                  // STOP — cancel session + hard-cancel engine.
+                                  // Mute auto-speak for this turn; cleared on next send.
+                                  stopMutedRef.current = true;
                                   activeSpeechRef.current?.cancel();
                                   ttsBridgeActiveRef.current = false;
                                   pendingTTSRef.current = null;
