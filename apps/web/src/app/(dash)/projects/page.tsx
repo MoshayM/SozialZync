@@ -1279,12 +1279,9 @@ export default function ProjectsPage() {
   );
 }
 
-const _WIZARD_API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
-
 async function startOAuthFromWizard() {
   try {
-    const redirectUri = `${_WIZARD_API_URL}/channels/oauth/callback`;
-    const { data } = await api.channels.getAuthUrl(redirectUri, 'PUBLISH', '/projects?connected=1') as { data: { url: string } };
+    const { data } = await api.channels.getAuthUrl('PUBLISH', '/projects?connected=1') as { data: { url: string } };
     window.location.href = data.url;
   } catch { /* ignore */ }
 }

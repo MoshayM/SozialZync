@@ -1602,9 +1602,8 @@ export default function ProjectDetailPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    const _apiUrl = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
                     const returnPath = `/projects/${id}?publish=1`;
-                    api.channels.getAuthUrl(`${_apiUrl}/channels/oauth/callback`, 'PUBLISH', returnPath)
+                    api.channels.getAuthUrl('PUBLISH', returnPath)
                       .then((r) => { window.location.href = (r.data as { url: string }).url; })
                       .catch(() => { window.location.href = '/settings/channels'; });
                   }}
@@ -2137,8 +2136,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
 
   const startOAuth = async (returnPath: string) => {
     try {
-      const redirectUri = `${API_URL}/channels/oauth/callback`;
-      const { data: { url } } = await api.channels.getAuthUrl(redirectUri, 'PUBLISH', returnPath) as { data: { url: string } };
+      const { data: { url } } = await api.channels.getAuthUrl('PUBLISH', returnPath) as { data: { url: string } };
       window.location.href = url;
     } catch { /* ignore — user stays on page */ }
   };

@@ -41,8 +41,7 @@ export function PublishPlatformModal({
     try {
       const returnUrl = window.location.pathname + '?publishProjectId=' + projectId;
       sessionStorage.setItem('cf.oauth.returnUrl', returnUrl);
-      const redirectUri = `${API_URL}/channels/oauth/callback`;
-      const { data } = await api.channels.getAuthUrl(redirectUri, 'PUBLISH', returnUrl) as { data: { url: string } };
+      const { data } = await api.channels.getAuthUrl('PUBLISH', returnUrl) as { data: { url: string } };
       window.location.href = data.url;
     } catch {
       router.push('/projects?tab=channels');

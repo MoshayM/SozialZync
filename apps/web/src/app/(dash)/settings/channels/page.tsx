@@ -396,8 +396,7 @@ function ChannelsInner() {
 
   const connectMutation = useMutation({
     mutationFn: async (access: AccessLevel) => {
-      const redirectUri = `${API_URL}/channels/oauth/callback`;
-      const res = await api.channels.getAuthUrl(redirectUri, access) as { data: { url: string } };
+      const res = await api.channels.getAuthUrl(access) as { data: { url: string } };
       window.location.href = res.data.url;
     },
     onError: () => setBanner({ type: 'error', msg: 'Could not start YouTube connection. Please try again.' }),

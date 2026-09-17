@@ -91,9 +91,8 @@ const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api
 
 async function startYouTubeOAuth() {
   try {
-    const redirectUri = `${API_URL}/channels/oauth/callback`;
     const r = await apiClient.get<{ url: string }>('/channels/auth-url', {
-      params: { redirectUri, accessLevel: 'PUBLISH', returnTo: '/publishing/accounts?connected=1' },
+      params: { access: 'PUBLISH', returnTo: '/publishing/accounts?connected=1' },
     });
     window.location.href = r.data.url;
   } catch { /* ignore */ }
