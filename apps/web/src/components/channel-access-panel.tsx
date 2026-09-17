@@ -75,6 +75,7 @@ const OAUTH_ERRORS: Record<string, string> = {
   invalid_state: 'Session expired. Please try connecting again.',
 };
 
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
 
 interface WatchAccount {
   id: string;
