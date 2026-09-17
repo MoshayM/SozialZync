@@ -34,7 +34,7 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
   await mainForm(page).locator('input[type="password"]').fill('Admin@123');
   await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000 });
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000 });
 }
 
 async function openCopilotChat(page: import('@playwright/test').Page) {
@@ -55,14 +55,19 @@ test.describe('Copilot voice — mobile smoke test', () => {
   // cold-start delays. Railway spins down after ~5 min of inactivity and can
   // take 15-45s to boot — enough to exceed the 40s reply timeout on first run.
   test.beforeAll(async ({ request }) => {
-    const deadline = Date.now() + 65_000;
+    const deadline = Date.now() + 90_000;
     while (Date.now() < deadline) {
       try {
-        const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 20_000 });
+        // Hit the health endpoint — exists on all Railway NestJS deployments.
+        // stt-status may be mocked by the Vercel dev layer; health is direct.
+        const res = await request.get('/api/proxy/health', { timeout: 15_000 });
         if (res.ok()) return;
-      } catch {
-        await new Promise(r => setTimeout(r, 3_000));
-      }
+      } catch { /* ignore — keep retrying */ }
+      try {
+        const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 15_000 });
+        if (res.ok()) return;
+      } catch { /* ignore */ }
+      await new Promise(r => setTimeout(r, 3_000));
     }
   });
 

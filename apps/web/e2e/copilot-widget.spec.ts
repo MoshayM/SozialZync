@@ -24,7 +24,7 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   await expect(submitBtn).toBeEnabled({ timeout: 8_000 });
   await submitBtn.click();
   // WebKit (headless) loads the SPA 2-3× slower than Chromium — allow extra time.
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 60_000 });
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000 });
 }
 
 async function openWidget(page: import('@playwright/test').Page) {
@@ -40,14 +40,17 @@ async function openChatPanel(page: import('@playwright/test').Page) {
 
 // Warm up Railway before AI-dependent tests
 test.beforeAll(async ({ request }) => {
-  const deadline = Date.now() + 65_000;
+  const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
     try {
-      const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 20_000 });
+      const res = await request.get('/api/proxy/health', { timeout: 15_000 });
       if (res.ok()) return;
-    } catch {
-      await new Promise(r => setTimeout(r, 3_000));
-    }
+    } catch { /* ignore */ }
+    try {
+      const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 15_000 });
+      if (res.ok()) return;
+    } catch { /* ignore */ }
+    await new Promise(r => setTimeout(r, 3_000));
   }
 });
 
