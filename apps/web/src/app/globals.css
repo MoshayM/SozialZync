@@ -230,8 +230,20 @@
 /* Section label — small uppercase gray labels above sections */
 .cf-section-label {
   color: #6b7280;
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
+
+/* ── Design system typography utilities ─────────────────────────────────── */
+/* Card / panel body text */
+.ds-body     { font-size: 0.9375rem; line-height: 1.5; color: #111827; }
+/* Secondary / support text */
+.ds-secondary { font-size: 0.8125rem; color: #6b7280; }
+/* Micro labels, badges */
+.ds-micro    { font-size: 0.75rem; font-weight: 500; }
+/* Card title */
+.ds-card-title { font-size: 1rem; font-weight: 600; color: #111827; }
+/* Section / group label (same as .cf-section-label but via DS name) */
+.ds-label    { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; }

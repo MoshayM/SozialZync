@@ -8,6 +8,13 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontSize: {
+        'ds-micro':     ['0.75rem',   { lineHeight: '1.4', fontWeight: '500' }],
+        'ds-secondary': ['0.8125rem', { lineHeight: '1.5' }],
+        'ds-body':      ['0.9375rem', { lineHeight: '1.6' }],
+        'ds-card':      ['1rem',      { lineHeight: '1.4', fontWeight: '600' }],
+        'ds-display':   ['1.5rem',    { lineHeight: '1.25', fontWeight: '700' }],
+      },
       colors: {
         // Purple theme (design refs: login.jpg / ux.jpg). Values live as CSS
         // variables in globals.css so themes can override tokens without

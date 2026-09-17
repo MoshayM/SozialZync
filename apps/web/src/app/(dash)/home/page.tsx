@@ -108,7 +108,7 @@ function daysUntil(dateStr: string): number {
 // ── Section heading ───────────────────────────────────────────────────────────
 function SectionLabel({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; children: React.ReactNode }) {
   return (
-    <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
+    <h2 className="text-[12px] font-semibold text-gray-400 uppercase tracking-[0.06em] flex items-center gap-1.5 mb-3">
       <Icon className="w-3.5 h-3.5" />
       {children}
     </h2>
@@ -569,7 +569,7 @@ export default function HomePage() {
                   key={label}
                   type="button"
                   onClick={() => openCopilotWithPrompt(prompt)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white/80 transition-all hover:text-white"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium text-white/80 transition-all hover:text-white"
                   style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.13)' }}
                 >
                   <Icon className="w-3 h-3" />
@@ -615,8 +615,8 @@ export default function HomePage() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mb-1">AI Channel Insight</p>
-                <h3 className="text-white font-bold text-sm leading-snug mb-2">
+                <p className="text-white/60 text-[11px] font-semibold uppercase tracking-[0.06em] mb-1">AI Channel Insight</p>
+                <h3 className="text-white font-semibold text-[15px] leading-snug mb-2">
                   This week&apos;s AI insight
                 </h3>
                 <p className="text-white/75 text-[13px] leading-relaxed">
@@ -624,7 +624,7 @@ export default function HomePage() {
                 </p>
                 <a
                   href="/analytics"
-                  className="inline-block mt-3 text-gray-300 text-xs font-semibold underline underline-offset-2 hover:text-white transition-colors"
+                  className="inline-block mt-3 text-gray-300 text-[13px] font-semibold underline underline-offset-2 hover:text-white transition-colors"
                 >
                   See full report
                 </a>
@@ -647,7 +647,7 @@ export default function HomePage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span
-                        className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                        className="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-[0.04em]"
                         style={{
                           background: lastProject.status === 'ACTIVE' ? '#ecfdf5' : '#f3f4f6',
                           color: lastProject.status === 'ACTIVE' ? '#065f46' : '#374151',
@@ -655,14 +655,14 @@ export default function HomePage() {
                       >
                         {lastProject.status}
                       </span>
-                      <span className="text-[11px] text-gray-400">{relativeTime(lastProject.updatedAt)}</span>
+                      <span className="text-[12px] text-gray-400">{relativeTime(lastProject.updatedAt)}</span>
                     </div>
-                    <h3 className="font-extrabold text-gray-900 text-base leading-tight truncate">{lastProject.title}</h3>
-                    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                    <h3 className="font-semibold text-gray-900 text-[16px] leading-tight truncate">{lastProject.title}</h3>
+                    <p className="text-[13px] text-gray-400 mt-1 flex items-center gap-1">
                       <Youtube className="w-3.5 h-3.5 text-red-500" />
                       {lastProject.channel?.title ?? 'No channel'}
                     </p>
-                    <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
+                    <div className="flex items-center gap-4 mt-3 text-[13px] text-gray-400">
                       <span className="flex items-center gap-1"><Video className="w-3 h-3" /> {lastProject._count?.videos ?? 0} videos</span>
                       <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {lastProject._count?.jobs ?? 0} AI jobs</span>
                     </div>
@@ -675,14 +675,14 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="mt-4 pt-3 flex items-center gap-2" style={{ borderTop: '1.5px solid #e5e7eb' }}>
-                  <span className="text-xs font-bold text-gray-600 flex items-center gap-1 group-hover:gap-2 transition-all">
+                  <span className="text-[13px] font-semibold text-gray-600 flex items-center gap-1 group-hover:gap-2 transition-all">
                     Open project <ArrowRight className="w-3 h-3" />
                   </span>
                   <div className="flex-1" />
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); openCopilotWithPrompt(`Continue working on ${lastProject.title}`); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors hover:bg-gray-100"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-colors hover:bg-gray-100"
                     style={{ color: '#374151' }}
                   >
                     <Bot className="w-3 h-3" /> Ask AI
@@ -692,11 +692,11 @@ export default function HomePage() {
             ) : (
               <Card className="text-center !py-8">
                 <LayoutDashboard className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-                <p className="text-sm text-gray-500 mb-4">No projects yet — let AI start your first one.</p>
+                <p className="text-[14px] text-gray-500 mb-4">No projects yet — let AI start your first one.</p>
                 <button
                   type="button"
                   onClick={() => openCopilotWithPrompt('Create a new YouTube video project')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.99]"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[14px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
                   style={{ background: 'linear-gradient(135deg, #374151, #4b5563)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
                 >
                   <Bot className="w-4 h-4" /> Ask AI to start
@@ -708,8 +708,8 @@ export default function HomePage() {
             {recentProjects.length > 1 && (
               <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
                 <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1.5px solid #e5e7eb' }}>
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Recent Projects</span>
-                  <Link href="/projects" className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>View all</Link>
+                  <span className="text-[12px] font-semibold text-gray-400 uppercase tracking-[0.06em]">Recent Projects</span>
+                  <Link href="/projects" className="text-[13px] font-semibold hover:underline" style={{ color: '#374151' }}>View all</Link>
                 </div>
                 <div className="divide-y" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
                   {recentProjects.slice(1).map((p) => (
@@ -720,13 +720,13 @@ export default function HomePage() {
                       style={{ borderBottom: '1px solid #f3f4f6' }}
                     >
                       <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-gray-900 text-sm truncate">{p.title}</span>
-                        <span className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                        <span className="font-semibold text-gray-900 text-[14px] truncate">{p.title}</span>
+                        <span className="text-[12px] text-gray-400 flex items-center gap-1 mt-0.5">
                           <Youtube className="w-3 h-3 text-red-400" /> {p.channel?.title ?? 'No channel'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 ml-3 shrink-0">
-                        <span className="text-[11px] text-gray-400">{relativeTime(p.updatedAt)}</span>
+                        <span className="text-[12px] text-gray-400">{relativeTime(p.updatedAt)}</span>
                         <span className="w-2 h-2 rounded-full" style={{ background: STATUS_COLOR[p.status] ?? '#8B8FA8' }} />
                       </div>
                     </Link>
@@ -743,13 +743,13 @@ export default function HomePage() {
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <SectionLabel icon={CalendarDays}>Upcoming Posts</SectionLabel>
-                <Link href="/publish?tab=calendar" className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>View</Link>
+                <Link href="/publish?tab=calendar" className="text-[13px] font-semibold hover:underline" style={{ color: '#374151' }}>View</Link>
               </div>
               {upcomingPosts.length === 0 ? (
                 <div className="flex flex-col items-center py-5 text-center">
                   <CalendarDays className="w-8 h-8 text-gray-200 mb-2" />
-                  <p className="text-xs text-gray-400">No upcoming posts scheduled.</p>
-                  <Link href="/publish?tab=calendar" className="mt-2 text-xs font-bold hover:underline" style={{ color: '#374151' }}>Plan your calendar →</Link>
+                  <p className="text-[13px] text-gray-400">No upcoming posts scheduled.</p>
+                  <Link href="/publish?tab=calendar" className="mt-2 text-[13px] font-semibold hover:underline" style={{ color: '#374151' }}>Plan your calendar →</Link>
                 </div>
               ) : (
                 <div className="divide-y" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
@@ -770,7 +770,7 @@ export default function HomePage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-semibold text-gray-800 truncate">{post.title}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">
+                          <p className="text-[12px] text-gray-400 mt-0.5">
                             {post.format ?? 'Video'} · {dateStr}
                           </p>
                         </div>
@@ -794,16 +794,16 @@ export default function HomePage() {
                 >
                   <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0" />
                   <div>
-                    <p className="font-bold text-green-800 text-sm">You&apos;re all set!</p>
-                    <p className="text-green-600 text-xs mt-0.5">All setup steps complete.</p>
+                    <p className="font-semibold text-green-800 text-[14px]">You&apos;re all set!</p>
+                    <p className="text-green-600 text-[13px] mt-0.5">All setup steps complete.</p>
                   </div>
                 </div>
               ) : (
                 <Card>
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h2 className="font-extrabold text-gray-900 text-sm">Getting Started</h2>
-                      <p className="text-xs text-gray-400 mt-0.5">{completedCount} of {steps.length} complete</p>
+                      <h2 className="font-semibold text-gray-900 text-[15px]">Getting Started</h2>
+                      <p className="text-[13px] text-gray-400 mt-0.5">{completedCount} of {steps.length} complete</p>
                     </div>
                     <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
@@ -820,14 +820,14 @@ export default function HomePage() {
                         className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${step.done ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-50'}`}
                       >
                         <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0"
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
                           style={step.done
                             ? { background: '#10b981', color: '#fff' }
                             : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }}
                         >
                           {step.done ? '✓' : i + 1}
                         </div>
-                        <span className={`text-xs flex-1 font-medium ${step.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                        <span className={`text-[13px] flex-1 font-medium ${step.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>
                           {step.label}
                         </span>
                         {!step.done && <ChevronRight className="w-3.5 h-3.5 text-gray-300" />}
@@ -888,8 +888,8 @@ export default function HomePage() {
                         <div className="mb-1.5 flex items-center justify-center">
                           <CopilotRobotMini size={40} />
                         </div>
-                        <p className="text-[12px] sm:text-[13px] font-semibold text-[#6d28d9] leading-snug line-clamp-1">{action.label}</p>
-                        <p className="text-[10px] sm:text-[11px] text-purple-400 mt-0.5 line-clamp-1">{action.sub}</p>
+                        <p className="text-[13px] font-semibold text-[#6d28d9] leading-snug line-clamp-1">{action.label}</p>
+                        <p className="text-[12px] text-purple-400 mt-0.5 line-clamp-1">{action.sub}</p>
                       </button>
                     );
                   }
@@ -899,8 +899,8 @@ export default function HomePage() {
                       <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 mb-2" style={{ background: action.iconBg }}>
                         <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: action.iconColor }} />
                       </div>
-                      <p className="text-[12px] sm:text-[13px] font-semibold text-gray-900 leading-snug line-clamp-1">{action.label}</p>
-                      <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 line-clamp-1">{action.sub}</p>
+                      <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-1">{action.label}</p>
+                      <p className="text-[12px] text-gray-400 mt-0.5 line-clamp-1">{action.sub}</p>
                     </>
                   );
                   if (action.prompt) {
@@ -938,7 +938,7 @@ export default function HomePage() {
                 placeholder="Enter your channel niche…"
                 value={trendNiche}
                 onChange={(e) => setTrendNiche(e.target.value)}
-                className="w-full text-sm rounded-xl px-3 py-2 mb-3 outline-none"
+                className="w-full text-[14px] rounded-xl px-3 py-2 mb-3 outline-none"
                 style={{ background: '#f9fafb', border: '1.5px solid #e5e7eb', color: '#111827' }}
               />
               {trendsLoading && (
@@ -953,7 +953,7 @@ export default function HomePage() {
                       key={topic}
                       type="button"
                       onClick={() => openCopilotWithPrompt(`Research trending topic: ${topic}`)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:opacity-80"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-all hover:opacity-80"
                       style={{ background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }}
                     >
                       <span
@@ -966,7 +966,7 @@ export default function HomePage() {
                 </div>
               )}
               {!trendsLoading && trendItems.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-1">
+                <p className="text-[13px] text-gray-400 text-center py-1">
                   {trendNiche.trim() ? 'No trends found for this niche.' : 'Enter your niche to see trending topics.'}
                 </p>
               )}
@@ -989,7 +989,7 @@ export default function HomePage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-800 font-semibold truncate leading-none">{ch.title}</p>
                         {(ch.subscriberCount ?? 0) > 0 && (
-                          <p className="text-[11px] text-gray-400 mt-0.5">{formatCount(ch.subscriberCount!)} subscribers</p>
+                          <p className="text-[12px] text-gray-400 mt-0.5">{formatCount(ch.subscriberCount!)} subscribers</p>
                         )}
                       </div>
                       {automation?.enabled && (
@@ -998,7 +998,7 @@ export default function HomePage() {
                     </div>
                   ))}
                   {channels.length > 3 && (
-                    <Link href="/settings/channels" className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
+                    <Link href="/settings/channels" className="text-[13px] font-semibold hover:underline" style={{ color: '#374151' }}>
                       +{channels.length - 3} more channels
                     </Link>
                   )}
