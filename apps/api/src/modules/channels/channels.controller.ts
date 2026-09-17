@@ -45,13 +45,15 @@ export class ChannelsController {
 
   @Get('auth-url')
   getAuthUrl(
-    @Query('redirectUri') redirectUri: string,
     @Query('access') access: string | undefined,
     @Query('returnTo') returnTo: string | undefined,
     @CurrentUser() user: JwtPayload,
   ) {
     const level = isAccessLevel(access) ? access : 'PUBLISH';
-    this.logger.log(`[OAuth] auth-url requested — userId=${user.sub} access=${level}`);
+    // Always derive the redirect URI from the server-side API_URL so it
+    // matches exactly what is registered in Google Cloud Console.
+    const redirectUri = `${API_URL}/api/v1/channels/oauth/callback`;
+    this.logger.log(`[OAuth] auth-url requested — userId=${user.sub} access=${level} redirectUri=${redirectUri}`);
     return { url: this.svc.getAuthUrl(redirectUri, user.sub, level, returnTo) };
   }
 

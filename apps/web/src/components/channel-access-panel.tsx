@@ -75,7 +75,6 @@ const OAUTH_ERRORS: Record<string, string> = {
   invalid_state: 'Session expired. Please try connecting again.',
 };
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
 
 interface WatchAccount {
   id: string;
@@ -384,8 +383,7 @@ function ChannelAccessContent() {
   const connectMutation = useMutation({
     mutationFn: async (access: AccessLevel) => {
       console.log('[OAuth] Button clicked — requesting auth URL');
-      const redirectUri = `${API_URL}/channels/oauth/callback`;
-      const { data } = await api.channels.getAuthUrl(redirectUri, access) as { data: { url: string } };
+      const { data } = await api.channels.getAuthUrl(access) as { data: { url: string } };
       console.log('[OAuth] Redirecting to Google');
       window.location.href = data.url;
     },
@@ -423,8 +421,7 @@ function ChannelAccessContent() {
   const reconnectMutation = useMutation({
     mutationFn: async (access: AccessLevel = 'PUBLISH') => {
       console.log('[OAuth] Reconnect clicked — requesting auth URL');
-      const redirectUri = `${API_URL}/channels/oauth/callback`;
-      const { data } = await api.channels.getAuthUrl(redirectUri, access) as { data: { url: string } };
+      const { data } = await api.channels.getAuthUrl(access) as { data: { url: string } };
       console.log('[OAuth] Redirecting to Google for reconnect');
       window.location.href = data.url;
     },
@@ -437,8 +434,7 @@ function ChannelAccessContent() {
   // the callback upserts the channel with whatever the user actually grants.
   const changeAccessMutation = useMutation({
     mutationFn: async (access: AccessLevel) => {
-      const redirectUri = `${API_URL}/channels/oauth/callback`;
-      const { data } = await api.channels.getAuthUrl(redirectUri, access) as { data: { url: string } };
+      const { data } = await api.channels.getAuthUrl(access) as { data: { url: string } };
       window.location.href = data.url;
     },
     onError: () => {
