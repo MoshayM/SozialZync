@@ -710,7 +710,11 @@ function ChannelAccessContent() {
                 </ul>
                 <div className="flex items-center gap-2">
                   <select
-                    value={accessDrafts[ch.id] ?? (!ch.readOnly && ch.accessLevel && ch.accessLevel !== 'NONE' ? ch.accessLevel : 'PUBLISH')}
+                    value={accessDrafts[ch.id] ?? (
+                      !ch.readOnly && ch.accessLevel && ch.accessLevel !== 'NONE' && ch.accessLevel !== 'READ_ONLY'
+                        ? ch.accessLevel
+                        : 'PUBLISH'
+                    )}
                     onChange={(e) => setAccessDrafts((prev) => ({ ...prev, [ch.id]: e.target.value as AccessLevel }))}
                     className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700"
                     aria-label="Channel access level"
@@ -720,12 +724,22 @@ function ChannelAccessContent() {
                     <option value="FULL">Full Access</option>
                   </select>
                   <button
-                    onClick={() => changeAccessMutation.mutate(accessDrafts[ch.id] ?? 'PUBLISH')}
-                    disabled={channelBusy || (!ch.readOnly && (!accessDrafts[ch.id] || accessDrafts[ch.id] === ch.accessLevel))}
+                    onClick={() => changeAccessMutation.mutate(
+                      accessDrafts[ch.id] ?? (
+                        !ch.readOnly && ch.accessLevel && ch.accessLevel !== 'NONE' && ch.accessLevel !== 'READ_ONLY'
+                          ? ch.accessLevel
+                          : 'PUBLISH'
+                      )
+                    )}
+                    disabled={channelBusy || (
+                      !ch.readOnly &&
+                      ch.accessLevel !== 'READ_ONLY' &&
+                      (!accessDrafts[ch.id] || accessDrafts[ch.id] === ch.accessLevel)
+                    )}
                     title={ch.readOnly ? 'Sign in with Google to grant the selected access level' : 'Re-authorize with the selected access level via Google'}
                     className="px-3 py-1.5 text-xs font-medium border border-brand-300 text-brand-700 rounded-lg hover:bg-brand-50 disabled:opacity-40 transition-colors"
                   >
-                    {changeAccessMutation.isPending ? 'Redirecting…' : ch.readOnly ? 'Upgrade access' : 'Change access'}
+                    {changeAccessMutation.isPending ? 'Redirecting…' : (ch.readOnly || ch.accessLevel === 'READ_ONLY') ? 'Upgrade access' : 'Change access'}
                   </button>
                 </div>
               </div>
