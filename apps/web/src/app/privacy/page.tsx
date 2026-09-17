@@ -22,9 +22,9 @@ Content You Create: Scripts, captions, thumbnails, AI-generated characters, avat
 
 Platform Connection Data: When you connect your YouTube account or other social accounts, we store OAuth access tokens and refresh tokens to publish content and retrieve analytics on your behalf. We request only the minimum OAuth scopes necessary for the features you use. You can revoke access at any time from your settings.
 
-Payment Data: If you subscribe to a paid plan, payment details are processed and stored by Stripe. We only store your subscription status, plan tier, and Stripe customer ID — never your raw card details.
+Payment Data: If you subscribe to a paid plan (Pro at $17/month or Unlimited at $25/month), payment details are processed and stored by Stripe. We only store your subscription status, plan tier, and Stripe customer ID — never your raw card details.
 
-Browse & Ad Revenue Data: When your project is published to the SozialZynk Browse feed and you have enabled ad revenue, we count page view impressions against your project. View counts are stored per project and are used solely to calculate your ad revenue credit payouts. We do not collect or store visitor identities for Browse views — impression counting is anonymous.`,
+Browse & Ad Revenue Data: When your project is published to the SozialZynk Browse feed and you have enabled ad revenue, we count page view impressions against your project. View counts are stored per project and are used solely to calculate your ad revenue payouts. We do not collect or store visitor identities for Browse views — impression counting is anonymous.`,
   },
   {
     id: 'how-we-use',
@@ -93,7 +93,7 @@ We do not use advertising cookies, third-party tracking pixels, or behavioral an
 
 You can disable cookies in your browser settings, but this may prevent certain features from working correctly.
 
-SozialZynk operates an internal ad revenue programme for creators (Pro plan). This programme counts anonymous Browse page impressions to calculate creator credit payouts. It does not use tracking cookies, third-party ad networks, or behavioral profiles.`,
+SozialZynk operates an internal ad revenue programme for creators on Pro and Unlimited plans. This programme counts anonymous Browse page impressions to calculate creator payouts. It does not use tracking cookies, third-party ad networks, or behavioral profiles.`,
   },
   {
     id: 'childrens-privacy',

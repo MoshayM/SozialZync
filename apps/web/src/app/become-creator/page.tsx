@@ -33,7 +33,7 @@ const CAPABILITIES = [
   { icon: ShieldCheck,   color: '#059669', bg: '#ECFDF5', title: 'Compliance Engine',        desc: 'Every piece of content passes copyright, platform monetization policy, and fact-check gates automatically.' },
   { icon: Calendar,      color: '#374151', bg: '#F3EEFF', title: 'Publish & Autopilot',      desc: 'Schedule at peak times, review before publish, or let Autopilot handle the full pipeline hands-free.' },
   { icon: LineChart,     color: '#D97706', bg: '#FFFBEB', title: 'A/B Testing',              desc: 'Test titles and thumbnails on live videos. AI picks the winner — more clicks, better rankings.' },
-  { icon: MessageSquare, color: '#0891B2', bg: '#ECFEFF', title: 'Ad Revenue (Pro)',         desc: 'Pro creators earn from every view on the public Browse feed. Monetization is tracked automatically and credited to your account daily.' },
+  { icon: MessageSquare, color: '#0891B2', bg: '#ECFEFF', title: 'Ad Revenue (Pro & Unlimited)', desc: 'Pro and Unlimited creators earn from every view on the public Browse feed. Monetization is tracked automatically and credited to your account daily.' },
 ];
 
 const WORKFLOW = [
