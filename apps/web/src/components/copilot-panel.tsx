@@ -568,14 +568,14 @@ export function CopilotPanel() {
   const [recording, setRecording]         = useState(false);
   const [micError, setMicError]           = useState<string|null>(null);
   const [serverStt, setServerStt]         = useState<boolean|null>(null);
-  const [serverTts, setServerTts]         = useState(false);
   const [lang]                            = useState<string>('en-US');
   const [speakingIdx, setSpeakingIdx]     = useState<number|null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ttsAvailable, setTtsAvailable]   = useState<boolean|null>(null);
   // true when iOS/Android blocked auto-speak — makes the 🔊 button more prominent
   const [ttsBlocked, setTtsBlocked]       = useState(false);
-  const ttsAudioRef                       = useRef<HTMLAudioElement|null>(null);
+  // Cancel handle for the active TTS session; replaced on every speak() call
+  const activeSpeechRef = useRef<{ cancel: () => void } | null>(null);
 
   // quick actions
   const [activeAction, setActiveAction] = useState<string|null>(null);
@@ -704,9 +704,6 @@ export function CopilotPanel() {
     apiClient.get('/copilot/stt-status')
       .then(r => setServerStt((r.data as { available: boolean }).available))
       .catch(() => setServerStt(false));
-    apiClient.get('/copilot/tts-status')
-      .then(r => setServerTts((r.data as { available: boolean }).available))
-      .catch(() => setServerTts(false));
     // Keep the voice cache populated for the component lifetime so doSpeak() always
     // has synchronous access to voices — eliminates the voiceschanged race on Android.
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -922,171 +919,194 @@ export function CopilotPanel() {
   const startListeningRef = useRef<() => void>(() => undefined);
 
   const speak = useCallback((text: string, replyLang?: string, onDone?: () => void, msgIdx?: number) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) { onDone?.(); return; }
-    if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
-    setTtsBlocked(false);
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) { onDone?.(); return; }
 
-    // Bridge is active — store text in the ref so the bridge picks it up from
-    // its own onend (speech-event context). Do NOT call speak() directly here;
-    // that would be an async call blocked by iOS/Android gesture guard.
+    const ss = window.speechSynthesis;
+
+    // ── Cancel any active session immediately ───────────────────────────────
+    activeSpeechRef.current?.cancel();
+    activeSpeechRef.current = null;
+
+    // ── Bridge path (iOS auto-speak from async context) ─────────────────────
+    // primeSpeechSession() chains silent utterances to stay in speech-event
+    // context so iOS allows speak() after an API await. Deposit text and return;
+    // the bridge picks it up from its own onend (iOS-safe context).
     if (ttsBridgeActiveRef.current) {
+      if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
+      setTtsBlocked(false);
       pendingTTSRef.current = { text, lang: replyLang, onDone, msgIdx };
       return;
     }
 
-    const target = replyLang ?? lang;
-    window.speechSynthesis.cancel();
     const cleaned = cleanForTTS(text);
     if (!cleaned) { onDone?.(); return; }
+
+    if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
+    setTtsBlocked(false);
+
+    const target = replyLang ?? lang;
     const chunks = chunkForTTS(cleaned);
     let chunkIdx = 0;
-    let keepAlive: ReturnType<typeof setInterval> | null = null;
+    let alive = true;
 
-    const doSpeak = () => {
-      // Use cached voices for synchronous access (avoids async voiceschanged path
-      // from bridge onend which would break iOS gesture guard again).
-      const voices = cachedVoicesRef.current.length > 0
-        ? cachedVoicesRef.current
-        : window.speechSynthesis.getVoices();
-      if (voices.length > 0) cachedVoicesRef.current = voices;
-      const bestVoice = pickBestVoice(voices, target);
-      function next() {
-        if (chunkIdx >= chunks.length) {
-          if (keepAlive) clearInterval(keepAlive);
-          setSpeaking(false); setSpeakingIdx(null); onDone?.();
-          return;
-        }
-        const chunk = chunks[chunkIdx++]!;
-        const utt = new SpeechSynthesisUtterance(chunk);
-        utt.lang = bestVoice?.lang ?? target;
-        utt.rate = 0.93; utt.pitch = 1.0; utt.volume = 1.0;
-        if (bestVoice) utt.voice = bestVoice;
-        let startTimer: ReturnType<typeof setTimeout> | null = null;
-        if (chunkIdx === 1) {
-          utt.onstart = () => {
-            if (startTimer) { clearTimeout(startTimer); startTimer = null; }
-            setSpeaking(true);
-            // ── Android stall watchdog ──────────────────────────────────────
-            // Android Chrome sometimes fires onstart then hangs indefinitely —
-            // neither onend nor onerror ever arrives. The keepAlive interval
-            // can't detect this (speech isn't "paused", it's stuck). Set a
-            // generous per-utterance deadline so "Speaking…" can't stay stuck.
-            const wordCount = chunk.split(/\s+/).length;
-            const maxMs = Math.max(15_000, (wordCount / 1.2) * 1000 + 10_000);
-            startTimer = setTimeout(() => {          // reuse ref — onend/onerror clear it
-              if (keepAlive) clearInterval(keepAlive);
-              try { window.speechSynthesis.cancel(); } catch {}
-              setSpeaking(false); setSpeakingIdx(null);
-            }, maxMs);
-          };
-          // If TTS doesn't start within 8 s (Android TTS engine slow to init), show fallback button
-          startTimer = setTimeout(() => {
-            if (keepAlive) clearInterval(keepAlive);
-            setSpeaking(false); setSpeakingIdx(null);
-            setTtsBlocked(true);
-            setActivePanel('chat');
-          }, 8000);
-        }
-        utt.onend = () => { if (startTimer) { clearTimeout(startTimer); startTimer = null; } next(); };
-        utt.onerror = (e) => {
-          if (startTimer) { clearTimeout(startTimer); startTimer = null; }
-          if (keepAlive) clearInterval(keepAlive);
-          setSpeaking(false); setSpeakingIdx(null);
-          if (e.error === 'not-allowed' || e.error === 'synthesis-unavailable') {
-            // No TTS permission — show 🔊 Play reply so user can force-play.
-            setTtsBlocked(true);
-            setActivePanel('chat');
-            return;
-          }
-          if (e.error === 'interrupted') {
-            // OS interrupted (phone call, notification, tab switch) — restart voice loop.
-            onDone?.();
-            return;
-          }
-          if (e.error !== 'canceled') console.warn('[TTS] error:', e.error);
-        };
-        window.speechSynthesis.speak(utt);
-      }
-      // 250 ms keeps Android from stalling when the OS pauses synthesis mid-utterance
-      keepAlive = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 250);
-      next();
+    // Three timers, all cleared together on any exit path:
+    let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+    let noStartTimer:   ReturnType<typeof setTimeout>  | null = null;
+    let stallTimer:     ReturnType<typeof setTimeout>  | null = null;
+
+    const clearTimers = () => {
+      if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
+      if (noStartTimer)   { clearTimeout(noStartTimer);   noStartTimer   = null; }
+      if (stallTimer)     { clearTimeout(stallTimer);     stallTimer     = null; }
     };
 
-    // Android needs 150–200 ms after cancel() before the engine accepts new speech.
-    // 50 ms was too short for Samsung/Pixel TTS engines — increased to 200 ms.
-    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
-    const voices = cachedVoicesRef.current.length > 0
-      ? cachedVoicesRef.current
-      : window.speechSynthesis.getVoices();
-    if (voices.length > 0) { cachedVoicesRef.current = voices; isAndroid ? setTimeout(doSpeak, 200) : doSpeak(); }
-    else {
-      let fired = false;
-      const onVC = () => {
-        window.speechSynthesis.removeEventListener('voiceschanged', onVC);
-        const v = window.speechSynthesis.getVoices();
-        if (v.length > 0) cachedVoicesRef.current = v;
-        if (!fired) { fired = true; doSpeak(); }
+    // finish() is the single exit point — guarantees state is always cleaned up.
+    const finish = (reason: 'done' | 'cancel' | 'error' | 'timeout' | 'interrupted') => {
+      if (!alive) return;
+      alive = false;
+      clearTimers();
+      try { ss.cancel(); } catch {}
+      setSpeaking(false);
+      setSpeakingIdx(null);
+      activeSpeechRef.current = null;
+      if (reason === 'done' || reason === 'interrupted') onDone?.();
+      if (reason === 'error' || reason === 'timeout') {
+        setTtsBlocked(true);
+        setActivePanel('chat');
+      }
+    };
+
+    // Register cancel handle so Stop button and new speak() calls abort instantly.
+    activeSpeechRef.current = { cancel: () => finish('cancel') };
+
+    // ── Chunk runner ────────────────────────────────────────────────────────
+    const runChunks = (voices: SpeechSynthesisVoice[]) => {
+      if (!alive) return;
+      const bestVoice = pickBestVoice(voices, target);
+
+      // Android: resume synthesis if OS paused it mid-utterance
+      keepAliveTimer = setInterval(() => {
+        try { if (ss.paused) ss.resume(); } catch {}
+      }, 300);
+
+      const nextChunk = () => {
+        if (!alive) return;
+        if (chunkIdx >= chunks.length) { finish('done'); return; }
+
+        const chunk = chunks[chunkIdx++]!;
+        const utt = new SpeechSynthesisUtterance(chunk);
+        if (bestVoice) utt.voice = bestVoice;
+        utt.lang   = bestVoice?.lang ?? target;
+        utt.rate   = 0.93;
+        utt.pitch  = 1.0;
+        utt.volume = 1.0;
+
+        // ── No-start watchdog ─────────────────────────────────────────────
+        // If onstart hasn't fired within 8 s the TTS engine is broken/blocked.
+        noStartTimer = setTimeout(() => {
+          if (!alive) return;
+          finish('timeout');
+        }, 8_000);
+
+        utt.onstart = () => {
+          if (!alive) return;
+          if (noStartTimer) { clearTimeout(noStartTimer); noStartTimer = null; }
+          // First chunk starting: update UI
+          if (chunkIdx === 1) setSpeaking(true);
+
+          // ── Stall watchdog ──────────────────────────────────────────────
+          // Android Chrome fires onstart then sometimes hangs forever —
+          // onend and onerror never arrive. Watchdog force-clears the state.
+          // Formula: generous estimate so normal speech always finishes first.
+          const words = chunk.split(/\s+/).length;
+          const maxMs = Math.max(12_000, (words / 1.2) * 1000 + 2_000);
+          stallTimer = setTimeout(() => {
+            if (!alive) return;
+            finish('timeout');
+          }, maxMs);
+        };
+
+        utt.onend = () => {
+          if (!alive) return;
+          if (noStartTimer) { clearTimeout(noStartTimer); noStartTimer = null; }
+          if (stallTimer)   { clearTimeout(stallTimer);   stallTimer   = null; }
+          nextChunk();
+        };
+
+        utt.onerror = (e) => {
+          if (!alive) return;
+          const err = (e as SpeechSynthesisErrorEvent).error;
+          if (err === 'canceled')    { finish('cancel');      return; }
+          if (err === 'interrupted') { finish('interrupted'); return; }
+          if (err === 'not-allowed' || err === 'synthesis-unavailable') {
+            finish('error'); return;
+          }
+          console.warn('[TTS] error:', err);
+          finish('error');
+        };
+
+        try { ss.speak(utt); } catch { finish('error'); }
       };
-      window.speechSynthesis.addEventListener('voiceschanged', onVC);
-      let attempts = 0;
-      const poll = setInterval(() => {
-        if (fired) { clearInterval(poll); return; }
-        const v = window.speechSynthesis.getVoices();
-        if (v.length > 0) { clearInterval(poll); cachedVoicesRef.current = v; window.speechSynthesis.removeEventListener('voiceschanged', onVC); if (!fired) { fired = true; doSpeak(); } return; }
-        if (++attempts > 20) { clearInterval(poll); window.speechSynthesis.removeEventListener('voiceschanged', onVC); if (!fired) { fired = true; doSpeak(); } }
-      }, 150);
+
+      nextChunk();
+    };
+
+    // ── Voice loading ───────────────────────────────────────────────────────
+    // Always try sync first. On mobile, voices may not be ready on first call;
+    // we listen for voiceschanged AND poll as fallback (some builds never fire
+    // voiceschanged). iOS trust was already established by primeAudio() calling
+    // ss.speak(silentUtt) synchronously from the Hear button gesture — so async
+    // voice loading here is safe.
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+
+    const startWithDelay = (voices: SpeechSynthesisVoice[]) => {
+      // Android needs ~220 ms after cancel() before the engine accepts new speech
+      if (isAndroid) setTimeout(() => { if (alive) runChunks(voices); }, 220);
+      else runChunks(voices);
+    };
+
+    let voices = cachedVoicesRef.current.length > 0
+      ? cachedVoicesRef.current
+      : ss.getVoices();
+
+    if (voices.length > 0) {
+      cachedVoicesRef.current = voices;
+      startWithDelay(voices);
+      return;
     }
+
+    // Voices not ready yet — wait (mobile first-load)
+    let voicesFired = false;
+    const onVC = () => {
+      if (voicesFired || !alive) return;
+      voicesFired = true;
+      ss.removeEventListener('voiceschanged', onVC);
+      const v = ss.getVoices();
+      if (v.length > 0) cachedVoicesRef.current = v;
+      startWithDelay(v.length > 0 ? v : []);
+    };
+    ss.addEventListener('voiceschanged', onVC);
+
+    // Polling fallback — some Android/iOS builds never fire voiceschanged
+    let attempts = 0;
+    const poll = setInterval(() => {
+      if (voicesFired || !alive) { clearInterval(poll); return; }
+      const v = ss.getVoices();
+      if (v.length > 0 || ++attempts > 20) {
+        clearInterval(poll);
+        ss.removeEventListener('voiceschanged', onVC);
+        if (!voicesFired) {
+          voicesFired = true;
+          if (v.length > 0) cachedVoicesRef.current = v;
+          startWithDelay(v.length > 0 ? v : []);
+        }
+      }
+    }, 150);
   }, [lang]);
 
   // Keep speakRef in sync so primeSpeechSession's bridge can call the latest speak()
   // without a forward-reference or stale closure.
   useEffect(() => { speakRef.current = speak; }, [speak]);
-
-  // Server-side TTS via ElevenLabs — more reliable than device speechSynthesis on mobile.
-  const speakViaServer = useCallback(async (text: string, msgIdx: number) => {
-    setSpeakingIdx(msgIdx);
-    setSpeaking(true);
-
-    // ── iOS Safari autoplay fix ─────────────────────────────────────────────
-    // iOS loses the user-gesture trust after the first `await`. Pre-create the
-    // Audio element and call play() NOW (synchronously within the gesture handler)
-    // so iOS binds gesture trust to this specific element. The call rejects
-    // (no src yet) but that's fine — the trust is recorded per-element and all
-    // subsequent play() calls on the SAME element are allowed, even after awaits.
-    const audio = new Audio();
-    ttsAudioRef.current = audio; // set BEFORE fetch so Stop works during flight
-    audio.play().catch(() => {}); // intentional rejection — only here for iOS trust
-
-    try {
-      const res = await apiClient.post(
-        '/copilot/tts',
-        { text: cleanForTTS(text) },
-        { responseType: 'blob', timeout: 20_000 },
-      );
-
-      // User may have tapped Stop while the fetch was in flight
-      if (ttsAudioRef.current !== audio) return;
-
-      const blobUrl = URL.createObjectURL(res.data as Blob);
-      const cleanup = () => {
-        URL.revokeObjectURL(blobUrl);
-        if (ttsAudioRef.current === audio) ttsAudioRef.current = null;
-        setSpeakingIdx(null);
-        setSpeaking(false);
-      };
-      audio.onended = cleanup;
-      audio.onerror = cleanup;
-      audio.src = blobUrl;
-      audio.load();
-      await audio.play();
-    } catch {
-      if (ttsAudioRef.current === audio) ttsAudioRef.current = null;
-      setSpeakingIdx(null);
-      setSpeaking(false);
-      // Device TTS fallback
-      speak(text, undefined, undefined, msgIdx);
-    }
-  }, [speak]);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
@@ -1728,30 +1748,30 @@ export function CopilotPanel() {
                               type="button"
                               onClick={() => {
                                 if (speakingIdx === i) {
-                                  // Stop — kill server audio and/or device bridge
-                                  if (ttsAudioRef.current) {
-                                    ttsAudioRef.current.pause();
-                                    ttsAudioRef.current = null;
-                                  }
+                                  // ── STOP ───────────────────────────────────
+                                  // Kill active session (clears all timers + state).
+                                  activeSpeechRef.current?.cancel();
+                                  // Belt-and-suspenders: also hard-cancel the engine
+                                  // and kill any bridge in case the cancel handle is stale.
                                   ttsBridgeActiveRef.current = false;
                                   pendingTTSRef.current = null;
-                                  window.speechSynthesis.cancel();
+                                  try { window.speechSynthesis.cancel(); } catch {}
                                   setSpeakingIdx(null);
                                   setSpeaking(false);
                                   return;
                                 }
-                                if (serverTts) {
-                                  // ElevenLabs server TTS — reliable on all devices
-                                  speakViaServer(m.content, i);
-                                } else {
-                                  // Device speechSynthesis fallback
-                                  primeAudio();
-                                  try { window.speechSynthesis?.resume(); } catch {}
-                                  ttsBridgeActiveRef.current = false;
-                                  pendingTTSRef.current = null;
-                                  setTtsBlocked(false);
-                                  speak(m.content, undefined, undefined, i);
-                                }
+                                // ── HEAR ────────────────────────────────────
+                                // primeAudio() speaks a silent utterance synchronously,
+                                // establishing iOS speechSynthesis gesture trust for the
+                                // entire page lifetime. All subsequent speak() calls work
+                                // even from async context after this point.
+                                primeAudio();
+                                try { window.speechSynthesis?.resume(); } catch {}
+                                // Kill any active bridge so speak() takes the direct path
+                                ttsBridgeActiveRef.current = false;
+                                pendingTTSRef.current = null;
+                                setTtsBlocked(false);
+                                speak(m.content, undefined, undefined, i);
                               }}
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
