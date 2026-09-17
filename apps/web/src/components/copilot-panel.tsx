@@ -1121,7 +1121,7 @@ export function CopilotPanel() {
         const cat = safety.category ?? 'abuse';
         const colors = SAFETY_COLORS[cat];
         setMessages(prev => [...prev, { role:'assistant', content:`${colors.icon} ${safety.message}`, fromCache:false }]);
-        hearSpeak(safety.message);
+        hearSpeak(safety.message, nextMessages.length);
         return;
       }
     }
@@ -1220,12 +1220,13 @@ export function CopilotPanel() {
         : (typeof window !== 'undefined' && window.location.hostname === 'localhost')
           ? 'Cannot reach the API server — run `pnpm dev` in apps/api (port 4007).'
           : 'Connection error — check your internet and tap Retry.';
+      const errorMsgIdx = nextMessages.length;
       setMessages(m => [...m, { role:'assistant', content:`⚠️ ${msg}`, fromCache:false }]);
       // Always show retry chip after an error so user can resend without retyping
       if (text.trim()) setRetryText(text.trim());
       conversationRef.current = false;
       // Speak error messages so voice users hear what went wrong without opening chat.
-      hearSpeak(msg);
+      hearSpeak(msg, errorMsgIdx);
     } finally {
       busyRef.current = false;
       setBusy(false);
