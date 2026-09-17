@@ -19,6 +19,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  verification: { google: 'IZBqMzGX3-t2UchODK2bjqbvvhmkMyo58gd_rZ5Abp0' },
   title: { default: 'SozialZynk', template: '%s · SozialZynk' },
   description: 'AI-powered creator platform. Research, script, create, and publish across all your channels — from one intelligent workspace.',
   applicationName: 'SozialZynk',
