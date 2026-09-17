@@ -1538,6 +1538,11 @@ export default function BrowsePage() {
         />
       )}
 
+      <footer className="mt-8 py-4 border-t border-gray-100 text-center text-xs text-gray-400 space-x-4">
+        <a href="/privacy" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
+        <a href="/terms" className="hover:text-gray-600 transition-colors">Terms of Service</a>
+      </footer>
+
     </div>
   );
 }
