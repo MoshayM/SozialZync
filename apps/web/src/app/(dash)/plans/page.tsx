@@ -21,6 +21,7 @@ interface PlanDef {
   features: string[];
   adminFeatures?: string[];
   highlight?: boolean;
+  trial?: string;
 }
 
 const PLANS: PlanDef[] = [
@@ -60,6 +61,7 @@ const PLANS: PlanDef[] = [
       'Priority support',
     ],
     highlight: true,
+    trial: '5-day free trial',
   },
   {
     id: 'UNLIMITED',
@@ -260,6 +262,12 @@ function PlansContent() {
                     <span className="text-2xl font-extrabold text-gray-900">{plan.price}</span>
                     <span className="text-xs text-gray-500 mb-1">{plan.priceNote}</span>
                   </div>
+                  {plan.trial && !isActive && (
+                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: 'rgba(255,255,255,0.6)', color: plan.color, border: `1px solid ${plan.color}40` }}>
+                      ✦ {plan.trial} — no card needed
+                    </div>
+                  )}
                 </div>
 
                 {/* Features */}

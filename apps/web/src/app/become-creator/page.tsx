@@ -570,7 +570,7 @@ export default function BecomeCreatorPage() {
               ))}
             </div>
             <p className="mt-10 text-center text-sm text-gray-400">
-              All plans include a 14-day free trial · No credit card required to start · Cancel any time
+              Pro plan includes a 5-day free trial · No credit card required · Cancel any time
             </p>
           </div>
         </section>
@@ -759,7 +759,7 @@ export default function BecomeCreatorPage() {
                 </Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm">
-                {['No credit card required','Multi-platform publishing','14-day free trial'].map(t => (
+                {['No credit card required','Multi-platform publishing','5-day free trial on Pro'].map(t => (
                   <span key={t} className="flex items-center gap-1.5" style={{color:'rgba(255,255,255,.45)'}}>
                     <CheckCircle2 className="w-4 h-4" style={{color:'#9ca3af'}} />
                     {t}
