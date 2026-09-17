@@ -570,7 +570,7 @@ export default function AnalyticsPage() {
         )}
 
         {activeView === 'analytics' && !canAccessAiAnalysis && (
-          <PlanGate requiredPlan="STARTER" featureLabel="AI Analysis" preview={false} />
+          <PlanGate requiredPlan="PRO" featureLabel="AI Analysis" preview={false} />
         )}
 
         {activeView === 'analytics' && canAccessAiAnalysis && loadingAnalytics && (
