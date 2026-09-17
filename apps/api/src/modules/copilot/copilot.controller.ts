@@ -1,6 +1,6 @@
 import {
   Controller, Post, Get, Body, UseGuards, BadRequestException,
-  UseInterceptors, UploadedFile, Query, Param, NotFoundException,
+  UseInterceptors, UploadedFile, Query, Param, NotFoundException, StreamableFile, Header,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ import { CopilotService } from './copilot.service';
 import { SpeechService } from './speech.service';
 import { PlanExecutorService } from './plan-executor.service';
 import { CopilotHistoryService } from './copilot-history.service';
+import { ElevenLabsVoiceAdapter } from '../media/adapters/voice-elevenlabs.adapter';
 
 const SaveHistorySchema = z.object({
   sessionId: z.string().min(1).max(128),
@@ -96,5 +97,28 @@ export class CopilotController {
       parsed.data.messages,
     );
     return { ok: true };
+  }
+
+  /** Whether server-side TTS (ElevenLabs) is configured. */
+  @Get('tts-status')
+  ttsStatus() {
+    const adapter = new ElevenLabsVoiceAdapter();
+    return { available: adapter.available() };
+  }
+
+  /** Convert text to speech via ElevenLabs and return MP3 audio. */
+  @Post('tts')
+  @Header('Content-Type', 'audio/mpeg')
+  @Header('Cache-Control', 'no-store')
+  @TierRateLimit({ bucket: 'copilot-tts', windowSecs: 3600, limits: { FREE: 30, STARTER: 100, PRO: 200, AGENCY: 500, default: 30 } })
+  async tts(@Body() body: unknown): Promise<StreamableFile> {
+    const parsed = z.object({ text: z.string().min(1).max(3000) }).safeParse(body);
+    if (!parsed.success) throw new BadRequestException('text must be 1–3000 characters');
+
+    const adapter = new ElevenLabsVoiceAdapter();
+    if (!adapter.available()) throw new BadRequestException('TTS provider not configured');
+
+    const result = await adapter.synthesize({ text: parsed.data.text });
+    return new StreamableFile(result.buffer, { type: 'audio/mpeg', disposition: 'inline' });
   }
 }

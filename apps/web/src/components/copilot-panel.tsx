@@ -568,12 +568,14 @@ export function CopilotPanel() {
   const [recording, setRecording]         = useState(false);
   const [micError, setMicError]           = useState<string|null>(null);
   const [serverStt, setServerStt]         = useState<boolean|null>(null);
+  const [serverTts, setServerTts]         = useState(false);
   const [lang]                            = useState<string>('en-US');
   const [speakingIdx, setSpeakingIdx]     = useState<number|null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ttsAvailable, setTtsAvailable]   = useState<boolean|null>(null);
   // true when iOS/Android blocked auto-speak — makes the 🔊 button more prominent
   const [ttsBlocked, setTtsBlocked]       = useState(false);
+  const ttsAudioRef                       = useRef<HTMLAudioElement|null>(null);
 
   // quick actions
   const [activeAction, setActiveAction] = useState<string|null>(null);
@@ -702,6 +704,9 @@ export function CopilotPanel() {
     apiClient.get('/copilot/stt-status')
       .then(r => setServerStt((r.data as { available: boolean }).available))
       .catch(() => setServerStt(false));
+    apiClient.get('/copilot/tts-status')
+      .then(r => setServerTts((r.data as { available: boolean }).available))
+      .catch(() => setServerTts(false));
     // Keep the voice cache populated for the component lifetime so doSpeak() always
     // has synchronous access to voices — eliminates the voiceschanged race on Android.
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -1024,6 +1029,26 @@ export function CopilotPanel() {
   // Keep speakRef in sync so primeSpeechSession's bridge can call the latest speak()
   // without a forward-reference or stale closure.
   useEffect(() => { speakRef.current = speak; }, [speak]);
+
+  // Server-side TTS via ElevenLabs — more reliable than device speechSynthesis on mobile.
+  const speakViaServer = useCallback(async (text: string, msgIdx: number) => {
+    setSpeakingIdx(msgIdx);
+    setSpeaking(true);
+    try {
+      const res = await apiClient.post('/copilot/tts', { text: cleanForTTS(text) }, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data as Blob);
+      const audio = new Audio(url);
+      ttsAudioRef.current = audio;
+      audio.onended = () => { URL.revokeObjectURL(url); ttsAudioRef.current = null; setSpeakingIdx(null); setSpeaking(false); };
+      audio.onerror  = () => { URL.revokeObjectURL(url); ttsAudioRef.current = null; setSpeakingIdx(null); setSpeaking(false); };
+      await audio.play();
+    } catch {
+      setSpeakingIdx(null);
+      setSpeaking(false);
+      // Device TTS fallback
+      speak(text, undefined, undefined, msgIdx);
+    }
+  }, [speak]);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
@@ -1665,7 +1690,11 @@ export function CopilotPanel() {
                               type="button"
                               onClick={() => {
                                 if (speakingIdx === i) {
-                                  // Stop — kill bridge and current speech
+                                  // Stop — kill server audio and/or device bridge
+                                  if (ttsAudioRef.current) {
+                                    ttsAudioRef.current.pause();
+                                    ttsAudioRef.current = null;
+                                  }
                                   ttsBridgeActiveRef.current = false;
                                   pendingTTSRef.current = null;
                                   window.speechSynthesis.cancel();
@@ -1673,17 +1702,18 @@ export function CopilotPanel() {
                                   setSpeaking(false);
                                   return;
                                 }
-                                // Direct speak from user gesture — no bridge.
-                                // The bridge adds a second cancel() which confuses Android TTS.
-                                // Android Chrome 88+ on HTTPS has no gesture requirement,
-                                // so speak() can be called directly; the 200 ms warmup inside
-                                // speak() is enough for the engine to accept new speech after cancel().
-                                primeAudio();
-                                try { window.speechSynthesis?.resume(); } catch {}
-                                ttsBridgeActiveRef.current = false;
-                                pendingTTSRef.current = null;
-                                setTtsBlocked(false);
-                                speak(m.content, undefined, undefined, i);
+                                if (serverTts) {
+                                  // ElevenLabs server TTS — reliable on all devices
+                                  speakViaServer(m.content, i);
+                                } else {
+                                  // Device speechSynthesis fallback
+                                  primeAudio();
+                                  try { window.speechSynthesis?.resume(); } catch {}
+                                  ttsBridgeActiveRef.current = false;
+                                  pendingTTSRef.current = null;
+                                  setTtsBlocked(false);
+                                  speak(m.content, undefined, undefined, i);
+                                }
                               }}
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',

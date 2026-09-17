@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Loader2, Sparkles, Zap, Building2, Crown, X } from 'lucide-react';
+import { CheckCircle2, Loader2, Zap, Crown, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { usePlanGate, type Plan } from '@/components/plan-gate';
@@ -40,25 +40,6 @@ const PLANS: PlanDef[] = [
     ],
   },
   {
-    id: 'STARTER',
-    label: 'Starter',
-    price: '$17',
-    priceNote: '/ month',
-    icon: <Sparkles className="w-5 h-5" />,
-    color: '#7c5ae8',
-    gradient: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)',
-    features: [
-      'Unlimited credits',
-      'Unlimited projects',
-      'Unlimited AI Copilot',
-      'Unlimited Shorts Studio',
-      'Ad revenue monetization',
-      'Own branding',
-      'Priority support',
-    ],
-    highlight: true,
-  },
-  {
     id: 'PRO',
     label: 'Pro',
     price: '$17',
@@ -67,32 +48,18 @@ const PLANS: PlanDef[] = [
     color: '#d97706',
     gradient: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
     features: [
-      'Everything in Starter',
+      'Unlimited credits',
+      'Unlimited projects',
+      'Unlimited AI Copilot',
+      'Unlimited Shorts Studio',
+      'Ad revenue monetization',
       'Advanced SEO optimization',
       'Multi-channel publishing',
       'Team collaboration (3 seats)',
-      'Custom AI model fine-tuning',
-      'Dedicated SLA',
-      'White-label exports',
+      'Own branding & white-label exports',
+      'Priority support',
     ],
-  },
-  {
-    id: 'AGENCY',
-    label: 'Agency',
-    price: '$149',
-    priceNote: '/ month',
-    icon: <Building2 className="w-5 h-5" />,
-    color: '#059669',
-    gradient: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-    features: [
-      'Everything in Pro',
-      'Unlimited team seats',
-      'Client workspace management',
-      'Custom AI model training',
-      'API access',
-      'Dedicated account manager',
-      'Custom integrations',
-    ],
+    highlight: true,
   },
 ];
 
@@ -167,7 +134,7 @@ function PlansContent() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Plans &amp; Pricing</h1>
@@ -211,10 +178,10 @@ function PlansContent() {
       {subLoading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
           {PLANS.map((plan) => {
             const isActive = plan.id === activePlan;
-            const isHigher = ['STARTER', 'PRO', 'AGENCY'].indexOf(plan.id) > ['STARTER', 'PRO', 'AGENCY'].indexOf(activePlan);
+            const isHigher = plan.id === 'PRO' && activePlan === 'FREE';
             const isFree = plan.id === 'FREE';
 
             return (
