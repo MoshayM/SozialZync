@@ -124,8 +124,10 @@ interface CardProps {
 
 function ChannelCard({ ch, onDisconnect, onRemove, onRefresh, onReconnect, busy }: CardProps) {
   const [confirm, setConfirm] = useState<'disconnect' | 'remove' | null>(null);
+  const [upgradeLevel, setUpgradeLevel] = useState<AccessLevel>('PUBLISH');
   const isActive = ch.active === true;
   const access = toAccessLevel(ch.accessLevel);
+  const isReadOnly = ch.readOnly || ch.accessLevel === 'READ_ONLY';
 
   return (
     <div className={`rounded-2xl border p-5 transition-colors ${
@@ -225,6 +227,22 @@ function ChannelCard({ ch, onDisconnect, onRemove, onRefresh, onReconnect, busy 
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-xl hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-40 transition-colors">
                 <RefreshCw className="w-3.5 h-3.5" /> Refresh Token
               </button>
+            )}
+            {isActive && isReadOnly && (
+              <>
+                <select
+                  value={upgradeLevel}
+                  onChange={e => setUpgradeLevel(e.target.value as AccessLevel)}
+                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700"
+                >
+                  <option value="PUBLISH">Publish</option>
+                  <option value="FULL">Full Access</option>
+                </select>
+                <button onClick={() => onReconnect(upgradeLevel)} disabled={busy}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-xl hover:bg-brand-50 disabled:opacity-40 transition-colors">
+                  Upgrade access
+                </button>
+              </>
             )}
             {isActive ? (
               <button onClick={() => setConfirm('disconnect')} disabled={busy}
