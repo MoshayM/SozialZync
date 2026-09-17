@@ -1131,11 +1131,14 @@ export function CopilotPanel() {
     const ss = window.speechSynthesis;
 
     // ── Cancel any previous session ────────────────────────────────────────────
+    // CRITICAL: only call ss.cancel() when the engine is actually active.
+    // Calling cancel() on an idle Android Chrome engine corrupts its internal
+    // state so subsequent speak() calls are silently swallowed with no error.
     activeSpeechRef.current?.cancel();
     activeSpeechRef.current = null;
     ttsBridgeActiveRef.current = false;
     pendingTTSRef.current = null;
-    try { ss.cancel(); } catch {}
+    if (ss.speaking || ss.pending) { try { ss.cancel(); } catch {} }
 
     // ── Clean text ─────────────────────────────────────────────────────────────
     const cleaned = cleanForTTS(text);
@@ -1245,7 +1248,9 @@ export function CopilotPanel() {
 
     try {
       ss.speak(utt);
-      lines.push('✅ ss.speak() called (no throw)');
+      // resume() forces Android Chrome out of any lingering paused state
+      try { ss.resume(); } catch {}
+      lines.push(`✅ ss.speak() + resume() called — speaking=${ss.speaking} pending=${ss.pending} paused=${ss.paused}`);
       flash();
     } catch (err) {
       lines.push(`❌ ss.speak() threw: ${err}`);
@@ -1841,21 +1846,78 @@ export function CopilotPanel() {
                   <Trash2 style={{ width:12, height:12 }} />
                 </button>
               )}
-              {/* Test voice — always visible when chat is open; no ttsAvailable gate */}
+              {/* Test voice — always visible; self-contained with full alert debug */}
               {activePanel === 'chat' && (
                 <button
                   type="button"
-                  title="Test voice"
+                  title="Test voice (shows debug alerts)"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const hasSS = typeof window !== 'undefined' && 'speechSynthesis' in window;
-                    window.alert(
-                      'Test Voice tapped!\n' +
-                      'speechSynthesis: ' + hasSS + '\n' +
-                      'voices: ' + (hasSS ? window.speechSynthesis.getVoices().length : 'N/A') + '\n' +
-                      'UA: ' + navigator.userAgent.slice(-80)
+                    // eslint-disable-next-line no-alert
+                    const dbgAlert = (msg: string) => { alert(msg); };
+
+                    if (!('speechSynthesis' in window)) {
+                      dbgAlert('❌ speechSynthesis NOT available on this device/browser!');
+                      return;
+                    }
+                    const ss = window.speechSynthesis;
+                    const voices = ss.getVoices();
+
+                    // Pick best English voice — Google > Samsung > any English
+                    const pick = (
+                      voices.find(v => /google/i.test(v.name) && v.lang === 'en-US') ||
+                      voices.find(v => /google/i.test(v.name) && /^en/i.test(v.lang)) ||
+                      voices.find(v => /samsung/i.test(v.name) && /^en/i.test(v.lang)) ||
+                      voices.find(v => /^en/i.test(v.lang) && !/compact/i.test(v.name)) ||
+                      voices.find(v => /^en/i.test(v.lang)) ||
+                      voices[0] ||
+                      null
                     );
-                    hearSpeak('Testing voice one two three. Hello, this is a speech test.');
+
+                    // CRITICAL: only cancel when engine is active — cancel() on idle
+                    // Android Chrome corrupts state and silently drops next speak()
+                    if (ss.speaking || ss.pending) { ss.cancel(); }
+
+                    const utt = new SpeechSynthesisUtterance('Testing voice one two three');
+                    if (pick) utt.voice = pick;
+                    utt.lang   = pick?.lang ?? 'en-US';
+                    utt.volume = 1;
+                    utt.rate   = 1;
+                    utt.pitch  = 1;
+
+                    utt.onstart = () => {
+                      dbgAlert('✅ onstart fired — audio engine started! You should hear sound now.');
+                    };
+                    utt.onend = () => {
+                      dbgAlert('✅ onend fired — speech finished normally.');
+                    };
+                    utt.onerror = (ev) => {
+                      const err = (ev as SpeechSynthesisErrorEvent).error;
+                      dbgAlert(
+                        '❌ onerror: "' + err + '"\n' +
+                        (err === 'not-allowed'           ? '→ Browser blocked speech (policy/gesture)' :
+                         err === 'synthesis-unavailable' ? '→ No TTS engine installed on this device'  :
+                         err === 'synthesis-failed'      ? '→ TTS engine internal error'               :
+                         err === 'language-unavailable'  ? '→ Language/voice not supported'            :
+                         err === 'canceled'              ? '→ Speech was canceled before starting'     : '')
+                      );
+                    };
+
+                    ss.speak(utt);
+                    try { ss.resume(); } catch {}  // un-pause if engine is stuck
+
+                    dbgAlert(
+                      'ss.speak() called!\n' +
+                      'Voice: ' + (pick?.name ?? '(none — browser default)') + '\n' +
+                      'Lang: '  + (pick?.lang  ?? 'en-US') + '\n' +
+                      'vol=1  rate=1  pitch=1\n\n' +
+                      'Engine state RIGHT NOW:\n' +
+                      '  speaking: ' + ss.speaking + '\n' +
+                      '  pending:  ' + ss.pending  + '\n' +
+                      '  paused:   ' + ss.paused   + '\n\n' +
+                      'Total voices: ' + voices.length + '\n' +
+                      'Dismiss — onstart/onend/onerror alerts follow.'
+                    );
                   }}
                   style={{ width:26, height:26, borderRadius:8, background:'rgba(139,92,246,0.2)', border:'1.5px solid rgba(139,92,246,0.5)', color:'#c4b5fd', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
                   <Volume2 style={{ width:12, height:12 }} />
