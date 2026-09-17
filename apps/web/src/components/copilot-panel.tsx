@@ -1104,162 +1104,77 @@ export function CopilotPanel() {
   // without a forward-reference or stale closure.
   useEffect(() => { speakRef.current = speak; }, [speak]);
 
-  // ── Hear-button TTS (with visible on-screen debug toast) ─────────────────────
-  // Called synchronously from the Hear button onClick — preserves iOS gesture trust.
-  // msgIdx is undefined when called as a voice test (no message to highlight).
+  // ── Hear-button TTS ────────────────────────────────────────────────────────
+  // Mirrors the Test Voice button logic exactly — same voice selection,
+  // same cancel guard, same speak+resume sequence. Keeping it lean is what
+  // makes it work on Android Chrome (the complex version was silent).
   const hearSpeak = useCallback((text: string, msgIdx?: number) => {
-    // ── Debug helpers ──────────────────────────────────────────────────────────
-    const lines: string[] = [];
-    let flashTimer: ReturnType<typeof setTimeout> | null = null;
-    const flash = () => {
-      setTtsDebug(lines.join('\n'));
-      if (flashTimer) clearTimeout(flashTimer);
-      flashTimer = setTimeout(() => setTtsDebug(''), 12_000);
-    };
-
-    // ── Guard: API available ───────────────────────────────────────────────────
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      lines.push('❌ speechSynthesis not available in this browser');
-      flash(); setTtsBlocked(true); return;
+      setTtsBlocked(true);
+      return;
     }
-
-    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-    const isWV = /Android/i.test(ua) && /; wv\b|wv\)|WebView/i.test(ua);
-    lines.push(`UA: ...${ua.slice(-60)}`);
-    lines.push(`WebView: ${isWV}`);
 
     const ss = window.speechSynthesis;
 
-    // ── Cancel any previous session ────────────────────────────────────────────
-    // CRITICAL: only call ss.cancel() when the engine is actually active.
-    // Calling cancel() on an idle Android Chrome engine corrupts its internal
-    // state so subsequent speak() calls are silently swallowed with no error.
-    activeSpeechRef.current?.cancel();
+    // Same voice selection as the Test Voice button that works on Android Chrome
+    const voices = ss.getVoices();
+    const pick = (
+      voices.find(v => /google/i.test(v.name) && v.lang === 'en-US') ||
+      voices.find(v => /google/i.test(v.name) && /^en/i.test(v.lang)) ||
+      voices.find(v => /samsung/i.test(v.name) && /^en/i.test(v.lang)) ||
+      voices.find(v => /^en/i.test(v.lang) && !/compact/i.test(v.name)) ||
+      voices.find(v => /^en/i.test(v.lang)) ||
+      voices[0] ||
+      null
+    );
+
+    // CRITICAL: only cancel when the engine is actually active.
+    // cancel() on an idle Android Chrome engine corrupts state and silently
+    // drops all subsequent speak() calls with no error or event.
+    if (ss.speaking || ss.pending) { try { ss.cancel(); } catch {} }
     activeSpeechRef.current = null;
     ttsBridgeActiveRef.current = false;
     pendingTTSRef.current = null;
-    if (ss.speaking || ss.pending) { try { ss.cancel(); } catch {} }
 
-    // ── Clean text ─────────────────────────────────────────────────────────────
     const cleaned = cleanForTTS(text);
-    if (!cleaned) {
-      lines.push('⚠️ Text is empty after cleaning'); flash(); return;
-    }
+    if (!cleaned) return;
 
-    // ── Voices (synchronous only — async breaks iOS gesture trust) ─────────────
-    const voices = cachedVoicesRef.current.length > 0
-      ? cachedVoicesRef.current
-      : ss.getVoices();
-    if (voices.length > 0) cachedVoicesRef.current = voices;
-    const bestVoice = voices.length > 0 ? pickBestVoice(voices, lang) : null;
-
-    lines.push(`Voices: ${voices.length}${voices.length ? ' — ' + voices.slice(0,2).map(v=>v.name).join(', ') : ''}`);
-    lines.push(`Voice: ${bestVoice?.name ?? '(browser default)'}`);
-    lines.push(`Text: "${cleaned.slice(0, 50)}${cleaned.length > 50 ? '…' : ''}"`);
-
-    // ── Simple single-utterance approach (most reliable on mobile) ─────────────
-    // Chunk only at ~200 chars to keep it synchronous without chunking complexity.
-    const utt = new SpeechSynthesisUtterance(cleaned.slice(0, 200));
-    if (bestVoice) utt.voice = bestVoice;
-    utt.lang   = bestVoice?.lang ?? lang;
-    utt.rate   = 0.93;
-    utt.pitch  = 1.0;
-    utt.volume = 1.0;
+    const utt = new SpeechSynthesisUtterance(cleaned);
+    if (pick) utt.voice = pick;
+    utt.lang   = pick?.lang ?? 'en-US';
+    utt.volume = 1;
+    utt.rate   = 1;
+    utt.pitch  = 1;
 
     if (msgIdx !== undefined) setSpeakingIdx(msgIdx);
     setTtsBlocked(false);
 
-    let alive = true;
-    const keepAlive = setInterval(() => {
-      try { if (ss.paused) ss.resume(); } catch {}
-    }, 300);
-
-    const finish = (reason: 'done' | 'cancel' | 'error' | 'timeout') => {
-      if (!alive) return;
-      alive = false;
-      clearInterval(keepAlive);
-      try { ss.cancel(); } catch {}
+    const done = () => {
       setSpeaking(false);
       setSpeakingIdx(null);
       activeSpeechRef.current = null;
-      if (reason === 'error' || reason === 'timeout') {
-        setTtsBlocked(true);
-        lines.push(`→ ${reason} — showing 🔊 Play reply fallback`); flash();
-      }
     };
 
-    activeSpeechRef.current = { cancel: () => finish('cancel') };
-
-    const noStartTimer = setTimeout(() => {
-      if (!alive) return;
-      lines.push('❌ No-start timeout (8 s) — onstart never fired');
-      lines.push('   Possible causes: no TTS engine, WebView, or browser policy');
-      flash();
-      finish('timeout');
-    }, 8_000);
-
-    utt.onstart = () => {
-      if (!alive) return;
-      clearTimeout(noStartTimer);
-      setSpeaking(true);
-      lines.push('✅ onstart — audio IS playing');
-      flash();
-      const words = cleaned.slice(0, 200).split(/\s+/).length;
-      const stallMs = Math.max(12_000, (words / 1.2) * 1000 + 3_000);
-      const stallTimer = setTimeout(() => {
-        if (!alive) return;
-        lines.push('⚠️ Stall — onend never fired'); flash(); finish('timeout');
-      }, stallMs);
-      utt.onend = () => {
-        if (!alive) return;
-        clearTimeout(stallTimer);
-        lines.push('✅ onend — finished normally'); flash();
-        // Speak remaining text if truncated
-        const rest = cleaned.slice(200);
-        if (rest && alive) {
-          const utt2 = new SpeechSynthesisUtterance(rest);
-          if (bestVoice) utt2.voice = bestVoice;
-          utt2.lang = utt.lang; utt2.rate = utt.rate; utt2.pitch = utt.pitch; utt2.volume = utt.volume;
-          utt2.onend = () => finish('done');
-          utt2.onerror = () => finish('done');
-          try { ss.speak(utt2); } catch { finish('done'); }
-        } else {
-          finish('done');
-        }
-      };
+    activeSpeechRef.current = {
+      cancel: () => {
+        if (ss.speaking || ss.pending) { try { ss.cancel(); } catch {} }
+        done();
+      },
     };
 
+    utt.onstart = () => { setSpeaking(true); };
+    utt.onend   = () => { done(); };
     utt.onerror = (e) => {
-      if (!alive) return;
-      clearTimeout(noStartTimer);
       const err = (e as SpeechSynthesisErrorEvent).error;
-      lines.push(`❌ onerror: "${err}"`);
-      if (err === 'not-allowed')            lines.push('   → Browser blocked speech (policy or gesture trust lost)');
-      if (err === 'synthesis-unavailable')  lines.push('   → No TTS engine on this device');
-      if (err === 'language-unavailable')   lines.push('   → Language not supported');
-      if (err === 'synthesis-failed')       lines.push('   → TTS engine internal failure');
-      flash();
-      if (err === 'canceled' || err === 'interrupted') { finish('cancel'); return; }
-      finish('error');
+      if (err !== 'canceled' && err !== 'interrupted') setTtsBlocked(true);
+      done();
     };
 
-    lines.push(`→ Calling ss.speak()  speaking=${ss.speaking} pending=${ss.pending} paused=${ss.paused}`);
-    flash();
-
-    try {
-      ss.speak(utt);
-      // resume() forces Android Chrome out of any lingering paused state
-      try { ss.resume(); } catch {}
-      lines.push(`✅ ss.speak() + resume() called — speaking=${ss.speaking} pending=${ss.pending} paused=${ss.paused}`);
-      flash();
-    } catch (err) {
-      lines.push(`❌ ss.speak() threw: ${err}`);
-      clearTimeout(noStartTimer);
-      finish('error');
-      flash();
-    }
+    // Exact same sequence as the working Test Voice button
+    ss.speak(utt);
+    try { ss.resume(); } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }, []);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
