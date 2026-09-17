@@ -1460,7 +1460,7 @@ export function CopilotPanel() {
         @keyframes cfFloat      { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
         @keyframes cfSpin       { from{transform:translate(-50%,-50%) rotate(0deg)} to{transform:translate(-50%,-50%) rotate(360deg)} }
         @keyframes cfSpinSimple { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes cfPanelIn    { from{opacity:0;transform:translateY(14px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes cfPanelIn    { from{opacity:0;transform:translateY(-14px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
         @keyframes cfBlink      { 0%,88%,92%,100%{transform:scaleY(1)} 90%{transform:scaleY(0.04)} }
         @keyframes cfHeadBob    { 0%,100%{transform:translateY(0) rotate(0deg)} 30%{transform:translateY(-4px) rotate(-1.5deg)} 70%{transform:translateY(-1px) rotate(1deg)} }
         @keyframes cfMouthTalk  { 0%,100%{transform:scaleY(0.3)} 50%{transform:scaleY(1)} }
@@ -1494,11 +1494,11 @@ export function CopilotPanel() {
           <div ref={panelRef} style={{
             ...(panelPos
               ? { position:'fixed' as const, left:panelPos.x, top:panelPos.y, zIndex:100001 }
-              : { position:'absolute' as const, bottom:96, right:0, zIndex:10 }),
-            width: panelSize.w,
+              : { position:'relative' as const, alignSelf:'stretch', zIndex:10 }),
+            width: panelPos ? panelSize.w : '100%',
             maxWidth: 'calc(100vw - 24px)',
             height: panelSize.h,
-            maxHeight: 'calc(100svh - 140px)',
+            maxHeight: 'calc(100svh - 280px)',
             background:'rgba(10,7,28,0.96)',
             backdropFilter:'blur(60px) saturate(200%)',
             WebkitBackdropFilter:'blur(60px) saturate(200%)',
