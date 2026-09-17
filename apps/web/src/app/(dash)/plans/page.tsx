@@ -21,7 +21,7 @@ interface PlanDef {
   features: string[];
   adminFeatures?: string[];
   highlight?: boolean;
-  trial?: string;
+  publishTrial?: boolean;
 }
 
 const PLANS: PlanDef[] = [
@@ -61,7 +61,7 @@ const PLANS: PlanDef[] = [
       'Priority support',
     ],
     highlight: true,
-    trial: '5-day free trial',
+    publishTrial: true,
   },
   {
     id: 'UNLIMITED',
@@ -81,6 +81,7 @@ const PLANS: PlanDef[] = [
     adminFeatures: [
       'Team collaboration (3 seats)',
     ],
+    publishTrial: true,
   },
 ];
 
@@ -262,10 +263,11 @@ function PlansContent() {
                     <span className="text-2xl font-extrabold text-gray-900">{plan.price}</span>
                     <span className="text-xs text-gray-500 mb-1">{plan.priceNote}</span>
                   </div>
-                  {plan.trial && !isActive && (
-                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                      style={{ background: 'rgba(255,255,255,0.6)', color: plan.color, border: `1px solid ${plan.color}40` }}>
-                      ✦ {plan.trial} — no card needed
+                  {plan.publishTrial && !isActive && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
+                      style={{ background: 'rgba(255,255,255,0.65)', color: '#059669', border: '1px solid #6ee7b740' }}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      3-day external publishing trial for new subscribers
                     </div>
                   )}
                 </div>
@@ -328,11 +330,11 @@ function PlansContent() {
         </div>
       )}
 
-      {/* Publish limit callout */}
-      <div className="mt-6 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500 text-center">
-        Pro publish limit (50/month) resets on your billing date. Unlimited plan has no caps.
-        <span className="mx-2 text-gray-300">·</span>
-        All plans include unlimited SozialZynk feed posts.
+      {/* Trial + publish callout */}
+      <div className="mt-6 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 text-center leading-relaxed">
+        <span className="font-semibold">New Pro &amp; Unlimited subscribers</span> get a 3-day external publishing trial — try publishing to YouTube, Instagram, TikTok, and more before your billing date.
+        <span className="mx-2 text-emerald-300">·</span>
+        Pro publish limit (50/month) resets on billing date. Unlimited has no caps. All plans include unlimited SozialZynk feed posts.
       </div>
 
       {/* Billing portal link */}

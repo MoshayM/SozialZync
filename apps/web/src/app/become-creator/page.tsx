@@ -74,7 +74,7 @@ const PLANS = [
   },
   {
     name: 'Pro', price: '$17', period: 'per month', popular: true,
-    description: 'Grow and monetize across all platforms. Up to 50 external publishes per month.',
+    description: '3-day external publishing trial for new subscribers. Up to 50 external publishes per month.',
     cta: 'Go Pro', href: '/register',
     features: [
       { text: 'Unlimited projects', ok: true },
@@ -89,7 +89,7 @@ const PLANS = [
   },
   {
     name: 'Unlimited', price: '$25', period: 'per month', popular: false,
-    description: 'Zero limits. Publish as much as you want, whenever you want.',
+    description: '3-day external publishing trial for new subscribers. Then unlimited publishes — zero caps, forever.',
     cta: 'Go Unlimited', href: '/register',
     features: [
       { text: 'Everything in Pro', ok: true },
@@ -570,7 +570,7 @@ export default function BecomeCreatorPage() {
               ))}
             </div>
             <p className="mt-10 text-center text-sm text-gray-400">
-              Pro plan includes a 5-day free trial · No credit card required · Cancel any time
+              New Pro &amp; Unlimited subscribers get a 3-day external publishing trial · Cancel any time
             </p>
           </div>
         </section>
@@ -759,7 +759,7 @@ export default function BecomeCreatorPage() {
                 </Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm">
-                {['No credit card required','Multi-platform publishing','5-day free trial on Pro'].map(t => (
+                {['No credit card required','Multi-platform publishing','3-day publish trial on Pro & Unlimited'].map(t => (
                   <span key={t} className="flex items-center gap-1.5" style={{color:'rgba(255,255,255,.45)'}}>
                     <CheckCircle2 className="w-4 h-4" style={{color:'#9ca3af'}} />
                     {t}
