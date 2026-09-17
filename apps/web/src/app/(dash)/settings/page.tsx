@@ -46,10 +46,6 @@ function SettingsContent() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Phone ───────────────────────────────────────────────────────────────────
-  const [phoneValue, setPhoneValue] = useState('');
-  const [phoneSaved, setPhoneSaved] = useState(false);
-
   // ── Password ────────────────────────────────────────────────────────────────
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -102,8 +98,7 @@ function SettingsContent() {
   useEffect(() => {
     if (me?.name != null) setProfileName(me.name ?? '');
     if (me?.avatarUrl != null) setProfileAvatar(me.avatarUrl ?? '');
-    if (me?.phone != null) setPhoneValue(me.phone ?? '');
-  }, [me?.name, me?.avatarUrl, me?.phone]);
+  }, [me?.name, me?.avatarUrl]);
 
   // ── Sign-in & security queries ──────────────────────────────────────────────
 
@@ -272,17 +267,6 @@ function SettingsContent() {
     reader.onerror = () => setAvatarUploading(false);
     reader.readAsDataURL(file);
   }
-
-  const updatePhoneMutation = useMutation({
-    mutationFn: () => api.auth.updatePhone(phoneValue.trim() || null),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['me'] });
-      setPhoneSaved(true);
-      setBanner({ type: 'success', message: 'Phone number updated.' });
-      setTimeout(() => setPhoneSaved(false), 3000);
-    },
-    onError: () => setBanner({ type: 'error', message: 'Failed to update phone number.' }),
-  });
 
   const setPasswordMutation = useMutation({
     mutationFn: () => {
@@ -841,41 +825,6 @@ function SettingsContent() {
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <Save className="w-3.5 h-3.5" />}
                 {authLinks?.password ? 'Change password' : 'Set password'}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Phone number ──────────────────────────────────────────────── */}
-        <section>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Phone Number</p>
-          <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e5e7eb' }}>
-            <p className="text-xs text-gray-500">Used for account recovery and two-factor authentication via OTP.</p>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Phone number</label>
-              <input
-                type="tel"
-                value={phoneValue}
-                onChange={(e) => setPhoneValue(e.target.value)}
-                placeholder="+1 555 000 0000"
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 transition-all"
-                style={{ border: '1.5px solid #e3e0f0' }}
-              />
-            </div>
-            <div className="flex items-center justify-between pt-1">
-              <p className="text-xs text-gray-400">Include country code (e.g. +44)</p>
-              <button
-                onClick={() => updatePhoneMutation.mutate()}
-                disabled={updatePhoneMutation.isPending}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
-                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
-              >
-                {updatePhoneMutation.isPending
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : phoneSaved
-                  ? <CheckCircle className="w-3.5 h-3.5" />
-                  : <Save className="w-3.5 h-3.5" />}
-                {phoneSaved ? 'Saved!' : 'Save'}
               </button>
             </div>
           </div>
