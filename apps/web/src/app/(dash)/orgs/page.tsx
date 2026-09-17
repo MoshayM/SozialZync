@@ -1,5 +1,6 @@
 ﻿'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Users, PiggyBank, PlusCircle, Loader2, AlertCircle, Download, ShieldCheck, Layers } from 'lucide-react';
 import { api, apiClient, type Org, type OrgMember, type OrgBudgetStatus, type OrgTeam } from '@/lib/api';
@@ -506,7 +507,20 @@ function UsageReportCard({ org }: { org: Org }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrgsPage() {
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('cf_token');
+      if (!token) { router.replace('/home'); return; }
+      const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { role?: string };
+      const role = payload.role ?? localStorage.getItem('cf_user_role') ?? 'MEMBER';
+      if (!['OWNER', 'SUPER_ADMIN'].includes(role)) router.replace('/home');
+    } catch {
+      router.replace('/home');
+    }
+  }, [router]);
 
   const { data: orgs = [], isLoading } = useQuery<Org[]>({
     queryKey: ['orgs-mine'],

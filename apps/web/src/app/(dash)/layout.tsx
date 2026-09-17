@@ -74,9 +74,8 @@ const NAV_SECTIONS: NavSection[] = [
 const BOTTOM_ITEMS: NavItem[] = [
   { href: '/settings',  icon: Settings,   label: 'Settings' },
   { href: '/brand-kit', icon: Palette,    label: 'Brand Kit' },
-  { href: '/wallet',    icon: Wallet,     label: 'Wallet' },
+  { href: '/wallet',    icon: Wallet,     label: 'Earnings' },
   { href: '/plans',     icon: Crown,      label: 'Plans' },
-  { href: '/orgs',      icon: Building2,  label: 'Organization' },
   { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];
 
@@ -1042,17 +1041,30 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   </Link>
                 ))}
                 {isAdminUser && (
-                  <Link
-                    href="/admin?tab=users"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 transition-colors"
-                    style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: '#374151' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                  >
-                    <ShieldCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280' }} />
-                    Switch / View Account
-                  </Link>
+                  <>
+                    <Link
+                      href="/orgs"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 transition-colors"
+                      style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: '#374151' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      <Building2 style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280' }} />
+                      Organization
+                    </Link>
+                    <Link
+                      href="/admin?tab=users"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 transition-colors"
+                      style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', color: '#374151' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      <ShieldCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280' }} />
+                      Switch / View Account
+                    </Link>
+                  </>
                 )}
               </div>
               <div style={{ padding: '0 6px 6px', borderTop: '1px solid #F1EFF7', marginTop: '2px', paddingTop: '6px' }}>
