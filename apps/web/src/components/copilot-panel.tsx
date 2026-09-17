@@ -966,6 +966,18 @@ export function CopilotPanel() {
           utt.onstart = () => {
             if (startTimer) { clearTimeout(startTimer); startTimer = null; }
             setSpeaking(true);
+            // ── Android stall watchdog ──────────────────────────────────────
+            // Android Chrome sometimes fires onstart then hangs indefinitely —
+            // neither onend nor onerror ever arrives. The keepAlive interval
+            // can't detect this (speech isn't "paused", it's stuck). Set a
+            // generous per-utterance deadline so "Speaking…" can't stay stuck.
+            const wordCount = chunk.split(/\s+/).length;
+            const maxMs = Math.max(15_000, (wordCount / 1.2) * 1000 + 10_000);
+            startTimer = setTimeout(() => {          // reuse ref — onend/onerror clear it
+              if (keepAlive) clearInterval(keepAlive);
+              try { window.speechSynthesis.cancel(); } catch {}
+              setSpeaking(false); setSpeakingIdx(null);
+            }, maxMs);
           };
           // If TTS doesn't start within 8 s (Android TTS engine slow to init), show fallback button
           startTimer = setTimeout(() => {
@@ -1034,15 +1046,41 @@ export function CopilotPanel() {
   const speakViaServer = useCallback(async (text: string, msgIdx: number) => {
     setSpeakingIdx(msgIdx);
     setSpeaking(true);
+
+    // ── iOS Safari autoplay fix ─────────────────────────────────────────────
+    // iOS loses the user-gesture trust after the first `await`. Pre-create the
+    // Audio element and call play() NOW (synchronously within the gesture handler)
+    // so iOS binds gesture trust to this specific element. The call rejects
+    // (no src yet) but that's fine — the trust is recorded per-element and all
+    // subsequent play() calls on the SAME element are allowed, even after awaits.
+    const audio = new Audio();
+    ttsAudioRef.current = audio; // set BEFORE fetch so Stop works during flight
+    audio.play().catch(() => {}); // intentional rejection — only here for iOS trust
+
     try {
-      const res = await apiClient.post('/copilot/tts', { text: cleanForTTS(text) }, { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data as Blob);
-      const audio = new Audio(url);
-      ttsAudioRef.current = audio;
-      audio.onended = () => { URL.revokeObjectURL(url); ttsAudioRef.current = null; setSpeakingIdx(null); setSpeaking(false); };
-      audio.onerror  = () => { URL.revokeObjectURL(url); ttsAudioRef.current = null; setSpeakingIdx(null); setSpeaking(false); };
+      const res = await apiClient.post(
+        '/copilot/tts',
+        { text: cleanForTTS(text) },
+        { responseType: 'blob', timeout: 20_000 },
+      );
+
+      // User may have tapped Stop while the fetch was in flight
+      if (ttsAudioRef.current !== audio) return;
+
+      const blobUrl = URL.createObjectURL(res.data as Blob);
+      const cleanup = () => {
+        URL.revokeObjectURL(blobUrl);
+        if (ttsAudioRef.current === audio) ttsAudioRef.current = null;
+        setSpeakingIdx(null);
+        setSpeaking(false);
+      };
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      audio.src = blobUrl;
+      audio.load();
       await audio.play();
     } catch {
+      if (ttsAudioRef.current === audio) ttsAudioRef.current = null;
       setSpeakingIdx(null);
       setSpeaking(false);
       // Device TTS fallback
