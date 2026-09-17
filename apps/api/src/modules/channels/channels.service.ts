@@ -237,7 +237,8 @@ export class ChannelsService implements OnModuleInit {
   }
 
   getAuthUrl(redirectUri: string, userId: string, access: ChannelAccessLevel = 'PUBLISH', returnTo?: string): string {
-    this.logger.log(`[OAuth] Generating auth URL — userId=${userId} access=${access} redirectUri=${redirectUri}`);
+    const clientId = process.env['GOOGLE_CLIENT_ID'] ?? '';
+    this.logger.log(`[OAuth] Generating auth URL — userId=${userId} access=${access} redirectUri=${redirectUri} clientId=${clientId.slice(0, 20)}...`);
     const oauth2 = this.buildOAuth2Client(redirectUri);
     const statePayload: { u: string; a: ChannelAccessLevel; r?: string } = { u: userId, a: access };
     if (returnTo) statePayload.r = returnTo;

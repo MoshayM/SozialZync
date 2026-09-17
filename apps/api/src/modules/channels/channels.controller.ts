@@ -85,6 +85,7 @@ export class ChannelsController {
         if (parsed.r) returnTo = parsed.r;
       } catch { /* legacy plain-userId state */ }
       const redirectUri = `${API_URL}/api/v1/channels/oauth/callback`;
+      this.logger.log(`[OAuth] Token exchange redirectUri=${redirectUri} clientId=${(process.env['GOOGLE_CLIENT_ID'] ?? '').slice(0, 20)}...`);
       await this.svc.connectChannel(userId, code, redirectUri);
       this.logger.log(`[OAuth] Connection successful — redirecting`);
       const dest = returnTo ? `${WEB_URL}${returnTo}` : `${WEB_URL}/library?tab=channels&connected=true`;
