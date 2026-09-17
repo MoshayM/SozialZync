@@ -1,6 +1,7 @@
 ﻿'use client';
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { CREDITS_ENABLED } from '@/lib/features';
 import {
   Gift, Loader2, CheckCircle, AlertCircle, X, Clock, AlertTriangle,
   TrendingUp, Target, Flame, Zap, CheckCircle2,
@@ -56,8 +57,10 @@ function TrialStatusCard() {
     queryKey: ['trial-status'],
     queryFn: () => api.trial.status().then((r) => r.data),
     retry: false,
+    enabled: CREDITS_ENABLED,
   });
 
+  if (!CREDITS_ENABLED) return null;
   if (isLoading) return (
     <div className="bg-white rounded-2xl p-4" style={{ border: '1.5px solid #e3ddf8' }}>
       <Loader2 className="w-5 h-5 animate-spin text-[#374151]" />
@@ -168,10 +171,12 @@ function UpgradeNudges() {
 // ── Offer Center ──────────────────────────────────────────────────────────────
 
 function OfferCenter() {
+  if (!CREDITS_ENABLED) return null;
   const qc = useQueryClient();
   const { data: offers = [], isLoading } = useQuery<Offer[]>({
     queryKey: ['offers'],
     queryFn: () => api.offers.mine().then((r) => r.data),
+    enabled: CREDITS_ENABLED,
   });
 
   const [successId, setSuccessId] = useState<string | null>(null);

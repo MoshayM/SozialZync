@@ -33,7 +33,7 @@ const CAPABILITIES = [
   { icon: ShieldCheck,   color: '#059669', bg: '#ECFDF5', title: 'Compliance Engine',        desc: 'Every piece of content passes copyright, platform monetization policy, and fact-check gates automatically.' },
   { icon: Calendar,      color: '#374151', bg: '#F3EEFF', title: 'Publish & Autopilot',      desc: 'Schedule at peak times, review before publish, or let Autopilot handle the full pipeline hands-free.' },
   { icon: LineChart,     color: '#D97706', bg: '#FFFBEB', title: 'A/B Testing',              desc: 'Test titles and thumbnails on live videos. AI picks the winner — more clicks, better rankings.' },
-  { icon: MessageSquare, color: '#0891B2', bg: '#ECFEFF', title: 'Ad Revenue (Pro)',         desc: 'Pro creators earn platform ad credits for every view on the public Browse feed — 50 credits per 1,000 views, paid daily.' },
+  { icon: MessageSquare, color: '#0891B2', bg: '#ECFEFF', title: 'Ad Revenue (Pro)',         desc: 'Pro creators earn from every view on the public Browse feed. Monetization is tracked automatically and credited to your account daily.' },
 ];
 
 const WORKFLOW = [
@@ -63,7 +63,6 @@ const PLANS = [
     description: 'Start creating with AI. No credit card required.',
     cta: 'Start free', href: '/register',
     features: [
-      { text: '2,000 AI credits / month', ok: true },
       { text: 'Unlimited channels connected', ok: true },
       { text: 'Unlimited AI Copilot queries', ok: true },
       { text: 'Unlimited Shorts Studio', ok: true },
@@ -78,7 +77,6 @@ const PLANS = [
     description: 'Unlimited power to grow and monetize your channel.',
     cta: 'Go Pro', href: '/register',
     features: [
-      { text: 'Unlimited AI credits', ok: true },
       { text: 'Unlimited channels', ok: true },
       { text: 'Unlimited AI Copilot', ok: true },
       { text: 'Full Creative Studio (all tools)', ok: true },

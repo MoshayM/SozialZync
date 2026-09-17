@@ -15,6 +15,7 @@ import { CopilotPanel } from '@/components/copilot-panel';
 import { LogoMark } from '@/components/logo-mark';
 import { api, clearTokens, getRefreshToken, type AppNotification } from '@/lib/api';
 import { usePlan } from '@/lib/plan';
+import { CREDITS_ENABLED } from '@/lib/features';
 
 interface NavItem {
   href: string;
@@ -336,7 +337,7 @@ function CreditsBanner() {
   const { creditsExhausted, lowCredits, credits, clearCreditProFlag } = usePlan();
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed || (!creditsExhausted && !lowCredits)) return null;
+  if (!CREDITS_ENABLED || dismissed || (!creditsExhausted && !lowCredits)) return null;
 
   if (creditsExhausted) {
     return (

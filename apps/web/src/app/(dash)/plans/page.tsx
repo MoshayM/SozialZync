@@ -32,7 +32,6 @@ const PLANS: PlanDef[] = [
     color: '#6b7280',
     gradient: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
     features: [
-      '2,000 credits / month',
       '3 projects',
       'AI Copilot (10 queries/day)',
       'Shorts Studio (10 edits/month)',
@@ -48,7 +47,6 @@ const PLANS: PlanDef[] = [
     color: '#d97706',
     gradient: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
     features: [
-      'Unlimited credits',
       'Unlimited projects',
       'Unlimited AI Copilot',
       'Unlimited Shorts Studio',

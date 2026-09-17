@@ -13,6 +13,7 @@ import { api, type TrialStatusResponse, type ChannelAutomation, type CalendarEnt
 import { StatCard } from '@/components/stat-card';
 import { MyContentSection } from '@/components/my-content-section';
 import { CopilotRobotMini } from '@/components/copilot-robot-mini';
+import { CREDITS_ENABLED } from '@/lib/features';
 
 interface Project {
   id: string;
@@ -274,6 +275,7 @@ function AdRevenueCard() {
   const totalPaid = stats.reduce((s, p) => s + p.adRevenuePaidOut, 0);
   const hasEnabled = stats.some(p => p.adRevenueEnabled);
 
+  if (!CREDITS_ENABLED) return null;
   if (loading) return <div className="h-[104px] rounded-2xl bg-gray-50 animate-pulse" />;
   if (!hasEnabled && stats.length === 0) return null;
 
@@ -837,7 +839,7 @@ export default function HomePage() {
             )}
 
             {/* Trial credits */}
-            {showTrial && (
+            {CREDITS_ENABLED && showTrial && (
               <Card>
                 <div className="flex items-center gap-2 mb-2">
                   <Flame className="w-4 h-4 text-amber-500" />

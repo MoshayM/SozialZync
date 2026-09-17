@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
+import { CREDITS_ENABLED } from './features';
 
 export type Plan = 'free' | 'pro' | 'enterprise';
 
@@ -34,12 +35,13 @@ export function usePlan() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [creditProWasActive, setCreditProWasActive] = useState(false);
 
-  // Fetch live credit balance — deduplicates with wallet page query via shared key.
+  // Fetch live credit balance only when the credits system is active.
   const { data: balance } = useQuery({
     queryKey: ['wallet-balance'],
     queryFn: () => api.wallet.balance().then((r) => r.data),
     staleTime: 2 * 60_000,
     retry: false,
+    enabled: CREDITS_ENABLED,
   });
 
   useEffect(() => {
@@ -50,25 +52,24 @@ export function usePlan() {
     setIsAdmin(isAdminFromToken());
   }, []);
 
-  const credits = balance?.balanceCredits ?? null;
-  const hasCreditBalance = credits !== null && credits > 0;
+  const credits = CREDITS_ENABLED ? (balance?.balanceCredits ?? null) : null;
+  const hasCreditBalance = CREDITS_ENABLED && credits !== null && credits > 0;
 
   // SUPER_ADMIN / OWNER always get Enterprise access.
   // Enterprise stored plan stays enterprise regardless of credit balance.
-  // Credits > 0 grants Pro access on top of any subscription plan.
+  // When credits are disabled, plan is determined by subscription only.
   const plan: Plan = isAdmin || storedPlan === 'enterprise'
     ? 'enterprise'
     : storedPlan === 'pro' || hasCreditBalance
     ? 'pro'
     : 'free';
 
-  // True when user topped up before but credits are now gone and no subscription.
-  const creditsExhausted = !isAdmin && storedPlan !== 'pro' && credits !== null && credits === 0 && creditProWasActive;
-
-  const lowCredits = !isAdmin && hasCreditBalance && credits !== null && credits < LOW_CREDIT_THRESHOLD;
+  // Credits exhausted / low — always false when credits system is off.
+  const creditsExhausted = CREDITS_ENABLED && !isAdmin && storedPlan !== 'pro' && credits !== null && credits === 0 && creditProWasActive;
+  const lowCredits = CREDITS_ENABLED && !isAdmin && hasCreditBalance && credits !== null && credits < LOW_CREDIT_THRESHOLD;
 
   // Pro access granted specifically via credits (not a paid subscription).
-  const hasCreditsPro = hasCreditBalance && storedPlan !== 'pro';
+  const hasCreditsPro = CREDITS_ENABLED && hasCreditBalance && storedPlan !== 'pro';
 
   /** Call after a successful top-up to mark that credit-based Pro is active. */
   function activateCreditPro() {

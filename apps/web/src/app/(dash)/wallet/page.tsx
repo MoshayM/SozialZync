@@ -1,6 +1,7 @@
 ﻿'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { CREDITS_ENABLED } from '@/lib/features';
 import { Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -1911,6 +1912,11 @@ function WalletContent() {
     typeof window !== 'undefined' &&
     ['superadmin', 'owner', 'admin'].includes(localStorage.getItem('cf_role') ?? '')
   );
+
+  // Credits system is temporarily disabled — redirect to subscription plans page.
+  useEffect(() => {
+    if (!CREDITS_ENABLED) router.replace('/plans');
+  }, [router]);
 
   useEffect(() => { setLocaleKey(detectLocaleKey()); }, []);
 
