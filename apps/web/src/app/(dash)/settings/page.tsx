@@ -473,12 +473,12 @@ function SettingsContent() {
                 style={{ border: '1.5px solid #e3e0f0' }} />
             </div>
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex flex-col gap-3 pt-1">
               <p className="text-xs text-gray-400">Changes apply across the whole app</p>
               <button
                 onClick={() => updateProfileMutation.mutate()}
                 disabled={updateProfileMutation.isPending || avatarUploading}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                className="self-start flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
                 style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}>
                 {updateProfileMutation.isPending
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -640,11 +640,11 @@ function SettingsContent() {
                 <p className="text-xs text-gray-600 mt-0.5">Connect and manage all your publishing accounts in one place.</p>
               </div>
             </div>
-            <div className="px-4 py-5 flex items-center justify-between gap-4">
+            <div className="px-4 py-5 flex flex-col gap-4">
               <p className="text-sm text-gray-600">YouTube, Instagram, TikTok, Facebook, X, LinkedIn, Threads — all managed in one place.</p>
               <a
                 href="/settings/channels"
-                className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 transition-opacity"
+                className="self-start flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 transition-opacity"
                 style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)', textDecoration: 'none' }}
               >
                 <Plus className="w-3.5 h-3.5" /> Manage Channels
@@ -1067,7 +1067,7 @@ function SettingsContent() {
                 </span>
               </div>
 
-              <div className="px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
+              <div className="px-4 py-4 flex flex-col gap-4">
                 <p className="text-sm text-gray-600">
                   {pushPermission === 'granted'
                     ? 'You are receiving browser push notifications on this device.'
@@ -1080,18 +1080,18 @@ function SettingsContent() {
                   <button
                     type="button"
                     onClick={() => { void handlePushUnsubscribe(); }}
-                    className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-sm hover:bg-red-50 transition-colors"
+                    className="self-start flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-sm hover:bg-red-50 transition-colors"
                     style={{ border: '1.5px solid #fecaca', color: '#dc2626' }}
                   >
                     <BellOff className="w-3.5 h-3.5" />
-                    Disable
+                    Disable notifications
                   </button>
                 ) : pushPermission !== 'denied' ? (
                   <button
                     type="button"
                     onClick={() => { void handlePushSubscribe(); }}
                     disabled={pushSubscribing}
-                    className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                    className="self-start flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-white text-sm hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
                     style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
                   >
                     {pushSubscribing

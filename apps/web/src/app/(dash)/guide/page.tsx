@@ -430,7 +430,7 @@ export default function GuidePage() {
           </div>
 
           {/* Quick actions row */}
-          <div className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between gap-4 flex-wrap"
+          <div className="bg-white rounded-2xl px-5 py-4 flex flex-col gap-3"
             style={{ border: '1.5px solid #e8e4f8' }}>
             <p className="text-sm font-semibold text-gray-900">Ready to create?</p>
             <div className="flex gap-2 flex-wrap">
@@ -464,7 +464,7 @@ export default function GuidePage() {
           </div>
 
           {/* Plan reminder */}
-          <div className="rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap"
+          <div className="rounded-2xl p-5 flex flex-col gap-4"
             style={{ background: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', border: '1.5px solid #c4b5fd' }}>
             <div>
               <p className="font-bold text-purple-900 text-sm mb-1">Free · Pro · Unlimited</p>
@@ -473,14 +473,14 @@ export default function GuidePage() {
               </p>
             </div>
             <Link href="/plans"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shrink-0 transition-all hover:opacity-90 text-white"
+              className="self-start flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90 text-white"
               style={{ background: 'linear-gradient(135deg,#7c3aed,#4f2ec4)' }}>
               View Plans <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
           {/* Self-hosted AI guide */}
-          <div className="rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap"
+          <div className="rounded-2xl p-5 flex flex-col gap-4"
             style={{ background: 'linear-gradient(135deg,#1a0845,#4f2ec4)', border: '1.5px solid rgba(55,65,81,.3)' }}>
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -492,7 +492,7 @@ export default function GuidePage() {
               </p>
             </div>
             <Link href="/guide/self-hosted"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shrink-0 transition-all hover:opacity-90"
+              className="self-start flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
               style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}>
               View Guide <ArrowRight className="w-4 h-4" />
             </Link>
