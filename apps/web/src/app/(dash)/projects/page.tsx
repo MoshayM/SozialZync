@@ -457,9 +457,9 @@ function MockFilterBar({
   onSortChange: (s: string) => void;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 flex flex-wrap items-center gap-3">
-      {/* Platform chips */}
-      <div className="flex items-center gap-2 flex-wrap flex-1">
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 flex flex-col gap-3">
+      {/* Platform chips — single scrollable row, no wrapping */}
+      <div className="flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {PLATFORM_FILTER_OPTIONS.map((opt) => {
           const isActive = activePlatform === opt;
           return (
@@ -467,7 +467,7 @@ function MockFilterBar({
               key={opt}
               type="button"
               onClick={() => onPlatformChange(opt)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border"
+              className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border"
               style={
                 isActive
                   ? { background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }
@@ -479,12 +479,12 @@ function MockFilterBar({
           );
         })}
       </div>
-      {/* Status + Sort dropdowns */}
+      {/* Status + Sort — full-width row below chips */}
       <div className="flex items-center gap-2">
         <select
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value)}
-          className="text-xs font-semibold rounded-xl px-3 py-1.5 border appearance-none cursor-pointer outline-none transition-all"
+          className="flex-1 text-xs font-semibold rounded-xl px-3 py-1.5 border appearance-none cursor-pointer outline-none transition-all"
           style={{ background: '#f5f3ff', border: '1.5px solid #e9e5f8', color: '#374151' }}
         >
           {['All Status', 'Active', 'Draft', 'In Review', 'Published', 'Archived'].map((s) => (
@@ -494,7 +494,7 @@ function MockFilterBar({
         <select
           value={sortBy}
           onChange={(e) => onSortChange(e.target.value)}
-          className="text-xs font-semibold rounded-xl px-3 py-1.5 border appearance-none cursor-pointer outline-none transition-all"
+          className="flex-1 text-xs font-semibold rounded-xl px-3 py-1.5 border appearance-none cursor-pointer outline-none transition-all"
           style={{ background: '#f5f3ff', border: '1.5px solid #e9e5f8', color: '#374151' }}
         >
           {['Latest', 'Oldest', 'A–Z', 'Z–A'].map((s) => (
