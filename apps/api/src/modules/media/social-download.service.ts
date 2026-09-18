@@ -3,6 +3,9 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+// @reason: ffmpeg-static ships a pre-built binary; its default export is the absolute path
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const ffmpegPath: string | null = require('ffmpeg-static') as string | null;
 
 const SOCIAL_PATTERNS: Array<[RegExp, string]> = [
   [/youtube\.com|youtu\.be/, 'YouTube'],
@@ -46,11 +49,11 @@ export class SocialDownloadService {
 
     this.logger.log(`yt-dlp download: ${url}`);
 
-    await this.runYtDlp([
+    const args = [
       url,
       '--format',
-      // prefer mp4 ≤1080p; fall back to any best available
-      'bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080]/best[height<=1080]/best',
+      // prefer mp4 ≤1080p with separate audio; fall back to single best stream
+      'bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
       '--merge-output-format', 'mp4',
       '--output', outTemplate,
       '--no-playlist',
@@ -58,7 +61,10 @@ export class SocialDownloadService {
       '--no-warnings',
       '--no-progress',
       '--quiet',
-    ]);
+    ];
+    // Point yt-dlp at ffmpeg-static's pre-built binary so stream merging works
+    if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
+    await this.runYtDlp(args);
 
     const outFile = fs.existsSync(expectedMp4)
       ? expectedMp4
