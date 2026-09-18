@@ -228,7 +228,17 @@ function ChannelCard({ ch, onDisconnect, onRemove, onRefresh, onReconnect, busy 
                 <RefreshCw className="w-3.5 h-3.5" /> Refresh Token
               </button>
             )}
-            {isActive && isReadOnly && (
+
+            {/* URL-added channel: no Google session exists — prompt a fresh Google sign-in */}
+            {isActive && ch.readOnly && (
+              <button onClick={() => onReconnect('PUBLISH')} disabled={busy}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-sm rounded-xl hover:bg-red-700 disabled:opacity-40 transition-colors">
+                <Youtube className="w-3.5 h-3.5" /> Connect with Google
+              </button>
+            )}
+
+            {/* Google OAuth channel with limited READ_ONLY scope — upgrade scopes via re-auth */}
+            {isActive && !ch.readOnly && ch.accessLevel === 'READ_ONLY' && (
               <>
                 <select
                   value={upgradeLevel}
@@ -244,11 +254,20 @@ function ChannelCard({ ch, onDisconnect, onRemove, onRefresh, onReconnect, busy 
                 </button>
               </>
             )}
+
             {isActive ? (
-              <button onClick={() => setConfirm('disconnect')} disabled={busy}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-xl hover:border-red-300 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors">
-                <LogOut className="w-3.5 h-3.5" /> Sign out
-              </button>
+              /* URL-added channels have no Google session — "Remove" makes more sense than "Sign out" */
+              ch.readOnly ? (
+                <button onClick={() => setConfirm('remove')} disabled={busy}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-xl hover:border-red-300 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                </button>
+              ) : (
+                <button onClick={() => setConfirm('disconnect')} disabled={busy}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-xl hover:border-red-300 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors">
+                  <LogOut className="w-3.5 h-3.5" /> Sign out
+                </button>
+              )
             ) : (
               <>
                 <button onClick={() => onReconnect(access)} disabled={busy}
