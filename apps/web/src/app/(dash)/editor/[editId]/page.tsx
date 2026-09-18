@@ -1686,10 +1686,15 @@ export default function EditorWorkspacePage() {
   const rafRef = useRef<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Initialise timeline from server
+  // Initialise timeline from server — normalise Prisma's default {} (no tracks)
   useEffect(() => {
     if (project?.timeline && !timeline) {
-      setTimeline(project.timeline);
+      const raw = project.timeline;
+      setTimeline({
+        width: 1920, height: 1080, fps: 30, durationMs: 0,
+        ...raw,
+        tracks: raw.tracks ?? [],
+      });
     }
   }, [project, timeline]);
 
@@ -1720,7 +1725,9 @@ export default function EditorWorkspacePage() {
   const updateTimeline = useCallback((updater: (tl: EditTimeline) => EditTimeline) => {
     setTimeline((prev) => {
       if (!prev) return prev;
-      const next = updater(prev);
+      // Normalise: Prisma default {} has no tracks; every updater needs the array.
+      const safe: EditTimeline = { width: 1920, height: 1080, fps: 30, durationMs: 0, ...prev, tracks: prev.tracks ?? [] };
+      const next = updater(safe);
       setDirty(true);
       return next;
     });

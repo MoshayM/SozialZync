@@ -1,8 +1,8 @@
 ci:
   collect:
     url:
-      - https://sozialzynk.vercel.app/
-      - https://sozialzynk.vercel.app/login
+      - http://localhost:3000/
+      - http://localhost:3000/login
     numberOfRuns: 2
     settings:
       chromeFlags: '--no-sandbox --disable-dev-shm-usage'
