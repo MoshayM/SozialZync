@@ -1,6 +1,10 @@
-# build-buster: 20260915-v3
+# build-buster: 20260919-v4
 FROM node:22-slim AS base
-RUN apt-get update && apt-get install -y openssl libatomic1 && rm -rf /var/lib/apt/lists/* && npm install -g pnpm@10
+RUN apt-get update && apt-get install -y openssl libatomic1 curl python3 && \
+    curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    chmod a+rx /usr/local/bin/yt-dlp && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g pnpm@10
 
 WORKDIR /app
 

@@ -13,6 +13,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from './storage.service';
 import { ExportsService } from './exports.service';
 import { MediaService } from './media.service';
+import { SocialDownloadService } from './social-download.service';
 import { SignedMediaOrJwtGuard } from './signed-media.guard';
 import { clampTtl, signMedia, signingSecret } from './signed-url.util';
 
@@ -37,6 +38,7 @@ export class MediaController {
     private readonly storage: StorageService,
     private readonly exportsSvc: ExportsService,
     private readonly mediaSvc: MediaService,
+    private readonly socialDl: SocialDownloadService,
   ) {}
 
   /** Returns which image/voice/music/video providers are currently active. */
@@ -167,7 +169,8 @@ export class MediaController {
 
   /**
    * Download a video from a public URL and store it as a VIDEO asset.
-   * Performs SSRF validation before fetching. Max 500 MB.
+   * Social media URLs (YouTube, TikTok, Instagram, etc.) are handled via yt-dlp.
+   * Direct video URLs are fetched via axios with SSRF validation. Max 500 MB.
    * Body: { url, title?, projectId? }
    */
   @Post('video/import-from-url')
@@ -178,6 +181,17 @@ export class MediaController {
     const rawUrl = (body.url ?? '').trim();
     if (!rawUrl) throw new BadRequestException('url is required');
 
+    const resolvedProjectId = await this.resolveProjectForUser(user.sub, body.projectId);
+
+    // ── Social platform URLs → yt-dlp ────────────────────────────────────────
+    if (this.socialDl.isSocialUrl(rawUrl)) {
+      const { buffer, filename, mimeType } = await this.socialDl.download(rawUrl, body.title);
+      const safeFilename = sanitizeFilename(filename);
+      const platform = this.socialDl.platformLabel(rawUrl) ?? 'social';
+      return this.storeVideoBuffer(buffer, safeFilename, mimeType, resolvedProjectId, `social-import:${platform}`);
+    }
+
+    // ── Direct URL → axios (SSRF-validated) ──────────────────────────────────
     await validateOutboundUrl(rawUrl);
 
     let buf: Buffer;
@@ -187,7 +201,7 @@ export class MediaController {
         responseType: 'arraybuffer',
         maxContentLength: 500 * 1024 * 1024,
         maxBodyLength: 500 * 1024 * 1024,
-        timeout: 5 * 60 * 1000, // 5-minute download timeout
+        timeout: 5 * 60 * 1000,
         headers: { 'User-Agent': 'SozialZynk-VideoImporter/1.0' },
       });
       buf = Buffer.from(resp.data);
@@ -216,7 +230,6 @@ export class MediaController {
       ? `${body.title}.${this.extFromMime(detectedMime)}`
       : (rawUrl.split('?')[0]?.split('/').pop() ?? `video.${this.extFromMime(detectedMime)}`);
     const safeFilename = sanitizeFilename(rawName);
-    const resolvedProjectId = await this.resolveProjectForUser(user.sub, body.projectId);
     return this.storeVideoBuffer(buf, safeFilename, detectedMime, resolvedProjectId, 'url-import');
   }
 
