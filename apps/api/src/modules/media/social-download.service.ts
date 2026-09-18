@@ -144,8 +144,10 @@ export class SocialDownloadService {
           return reject(new BadRequestException('That video is geo-blocked and cannot be imported.'));
         if (tail.includes('sign in') || tail.includes('login'))
           return reject(new BadRequestException('That video requires sign-in — only public videos can be imported.'));
+        // Include truncated stderr so the caller can see the raw yt-dlp reason
+        const reason = stderr.slice(-300).trim().replace(/\n+/g, ' ') || 'no output';
         reject(new BadRequestException(
-          'Could not download this video. Make sure it is public and the URL is correct.',
+          `Could not download this video (${reason}). Make sure it is public and the URL is correct.`,
         ));
       });
 
