@@ -1559,7 +1559,12 @@ export function CopilotPanel() {
                 e.stopPropagation();
                 e.currentTarget.setPointerCapture(e.pointerId);
                 const rect = panelRef.current!.getBoundingClientRect();
-                resizeRef.current = { dir:'w', sx:e.clientX, sy:e.clientY, sw:panelSize.w, sh:panelSize.h, spx:rect.left, spy:rect.top, hasPos:!!panelPos };
+                // Anchor the panel to a fixed position on first resize so that
+                // width: panelSize.w takes effect (otherwise width stays '100%').
+                if (!panelPos) setPanelPos({ x: rect.left, y: rect.top });
+                const startW = rect.width;
+                setPanelSize(s => ({ ...s, w: startW }));
+                resizeRef.current = { dir:'w', sx:e.clientX, sy:e.clientY, sw:startW, sh:rect.height, spx:rect.left, spy:rect.top, hasPos:true };
               }}
               onPointerMove={e => {
                 if (!resizeRef.current) return;
@@ -1580,7 +1585,10 @@ export function CopilotPanel() {
                 e.stopPropagation();
                 e.currentTarget.setPointerCapture(e.pointerId);
                 const rect = panelRef.current!.getBoundingClientRect();
-                resizeRef.current = { dir:'wh', sx:e.clientX, sy:e.clientY, sw:panelSize.w, sh:panelSize.h, spx:rect.left, spy:rect.top, hasPos:!!panelPos };
+                if (!panelPos) setPanelPos({ x: rect.left, y: rect.top });
+                const startW = rect.width;
+                setPanelSize(s => ({ ...s, w: startW }));
+                resizeRef.current = { dir:'wh', sx:e.clientX, sy:e.clientY, sw:startW, sh:rect.height, spx:rect.left, spy:rect.top, hasPos:true };
               }}
               onPointerMove={e => {
                 if (!resizeRef.current) return;
