@@ -1,13 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
-const BASE_URL = process.env.PW_BASE_URL ?? 'https://sozialzynk.vercel.app';
+const BASE_URL  = process.env.PW_BASE_URL ?? 'https://sozialzynk.vercel.app';
+const AUTH_FILE = path.join(__dirname, 'e2e', '.auth.json');
 
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
-  retries: 1,
+  retries: 2,
   timeout: 150_000,
-  expect: { timeout: 10_000 },
+  expect: { timeout: 20_000 },   // bumped from 12 s — Railway API may be cold
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
     baseURL: BASE_URL,
@@ -16,11 +18,19 @@ export default defineConfig({
     actionTimeout: 60_000,
   },
   projects: [
-    // ── Chromium (Chrome / Brave) — full voice test including mic ────────────
+    // ── Auth setup: runs once, saves storageState ────────────────────────────
+    {
+      name: 'setup',
+      testMatch: '**/auth.setup.ts',
+    },
+
+    // ── Default: Chromium desktop — runs ALL spec files ──────────────────────
     {
       name: 'chromium-desktop',
+      dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
+        storageState: AUTH_FILE,      // start authenticated by default
         launchOptions: {
           args: [
             '--use-fake-ui-for-media-stream',
@@ -29,8 +39,9 @@ export default defineConfig({
         },
         permissions: ['microphone'],
       },
-      testMatch: ['**/copilot-voice.spec.ts', '**/copilot-widget.spec.ts'],
     },
+
+    // ── Mobile Chrome — selective tests ──────────────────────────────────────
     {
       name: 'chromium-mobile',
       use: {
@@ -43,19 +54,35 @@ export default defineConfig({
         },
         permissions: ['microphone'],
       },
-      testMatch: ['**/copilot-voice.spec.ts', '**/copilot-widget.spec.ts'],
+      testMatch: [
+        '**/login-mobile.spec.ts',
+        '**/create-project-mobile.spec.ts',
+        '**/copilot-voice.spec.ts',
+        '**/copilot-widget.spec.ts',
+      ],
     },
-    // ── Firefox — text + TTS button only (no fake media flags) ──────────────
+
+    // ── Firefox ───────────────────────────────────────────────────────────────
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      testMatch: ['**/copilot-widget.spec.ts'],
+      testMatch: [
+        '**/public.spec.ts',
+        '**/auth.spec.ts',
+        '**/browse.spec.ts',
+        '**/copilot-widget.spec.ts',
+      ],
     },
-    // ── WebKit (Safari) — text + TTS button only ────────────────────────────
+
+    // ── WebKit (Safari) ───────────────────────────────────────────────────────
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      testMatch: ['**/copilot-widget.spec.ts'],
+      testMatch: [
+        '**/public.spec.ts',
+        '**/browse.spec.ts',
+        '**/copilot-widget.spec.ts',
+      ],
     },
   ],
 });

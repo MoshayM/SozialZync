@@ -10,134 +10,17 @@ import {
   AlertCircle,
   Pencil,
   Download,
-  Image as ImageIcon,
-  Music,
-  Video,
-  FileVideo,
-  CheckCircle2,
-  ChevronRight,
   Upload,
+  Layers,
+  FolderOpen,
 } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface SceneCard {
-  id: number;
-  sceneNumber: number;
-  duration: string;
-  scriptExcerpt: string;
-  gradient: string;
-}
-
-interface AssetItem {
-  id: number;
-  name: string;
-  type: 'image' | 'audio' | 'video';
-  size: string;
-  duration?: string;
-  gradient: string;
-}
-
 type ExportFormat = 'MP4' | 'WebM' | 'MOV';
 type ExportQuality = '720p' | '1080p' | '4K';
 type ExportFPS = '24fps' | '30fps' | '60fps';
-
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-const MOCK_SCENES: SceneCard[] = [
-  {
-    id: 1,
-    sceneNumber: 1,
-    duration: '0:32',
-    scriptExcerpt: 'Welcome to the channel! Today we\'re diving deep into AI tools that will transform your workflow.',
-    gradient: 'linear-gradient(135deg, #1a0845, #4c1d95)',
-  },
-  {
-    id: 2,
-    sceneNumber: 2,
-    duration: '1:15',
-    scriptExcerpt: 'First up is the content research phase — here\'s how we use AI to find trending topics before anyone else.',
-    gradient: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
-  },
-  {
-    id: 3,
-    sceneNumber: 3,
-    duration: '2:08',
-    scriptExcerpt: 'Now let\'s talk about scripting. The AI doesn\'t write your video — it helps you think faster and structure ideas.',
-    gradient: 'linear-gradient(135deg, #0d1f12, #14532d)',
-  },
-  {
-    id: 4,
-    sceneNumber: 4,
-    duration: '1:44',
-    scriptExcerpt: 'Thumbnail generation is where we save the most time. Four concepts in under 60 seconds — let me show you.',
-    gradient: 'linear-gradient(135deg, #1c0a00, #7c2d12)',
-  },
-  {
-    id: 5,
-    sceneNumber: 5,
-    duration: '2:55',
-    scriptExcerpt: 'Editing workflow: batch cuts, auto-captions, B-roll suggestions. This is the part most creators underestimate.',
-    gradient: 'linear-gradient(135deg, #0c0a1e, #312e81)',
-  },
-  {
-    id: 6,
-    sceneNumber: 6,
-    duration: '0:48',
-    scriptExcerpt: 'Final CTA and outro. Consistency beats perfection — see you next Tuesday with the SEO deep dive.',
-    gradient: 'linear-gradient(135deg, #1a0a2e, #6b21a8)',
-  },
-];
-
-const MOCK_ASSETS: AssetItem[] = [
-  {
-    id: 1,
-    name: 'hero-thumbnail-v3.png',
-    type: 'image',
-    size: '2.4 MB',
-    gradient: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
-  },
-  {
-    id: 2,
-    name: 'background-lo-fi.mp3',
-    type: 'audio',
-    size: '8.1 MB',
-    duration: '3:22',
-    gradient: 'linear-gradient(135deg, #065f46, #059669)',
-  },
-  {
-    id: 3,
-    name: 'b-roll-desk-setup.mp4',
-    type: 'video',
-    size: '312 MB',
-    duration: '0:45',
-    gradient: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
-  },
-  {
-    id: 4,
-    name: 'channel-logo-anim.png',
-    type: 'image',
-    size: '0.9 MB',
-    gradient: 'linear-gradient(135deg, #7c2d12, #ea580c)',
-  },
-  {
-    id: 5,
-    name: 'intro-jingle.mp3',
-    type: 'audio',
-    size: '1.2 MB',
-    duration: '0:08',
-    gradient: 'linear-gradient(135deg, #14532d, #16a34a)',
-  },
-  {
-    id: 6,
-    name: 'screen-recording-demo.mp4',
-    type: 'video',
-    size: '540 MB',
-    duration: '4:12',
-    gradient: 'linear-gradient(135deg, #312e81, #6366f1)',
-  },
-];
 
 const STATUS_STYLES: Record<string, React.CSSProperties> = {
   DRAFT:     { background: '#f3f4f6', color: '#4b5563' },
@@ -156,18 +39,6 @@ function relativeTime(dateStr: string): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
-}
-
-function assetIcon(type: AssetItem['type']) {
-  if (type === 'image') return <ImageIcon className="w-4 h-4 text-gray-400" />;
-  if (type === 'audio') return <Music className="w-4 h-4 text-green-400" />;
-  return <Video className="w-4 h-4 text-blue-400" />;
-}
-
-function assetBadgeClass(type: AssetItem['type']): string {
-  if (type === 'image') return 'bg-gray-100 text-gray-700';
-  if (type === 'audio') return 'bg-green-100 text-green-700';
-  return 'bg-blue-100 text-blue-700';
 }
 
 // ── Tab: Timeline Editor (project list) ───────────────────────────────────────
@@ -314,53 +185,17 @@ function TimelineEditorTab() {
 // ── Tab: Storyboard ───────────────────────────────────────────────────────────
 
 function StoryboardTab() {
-  const [hoveredScene, setHoveredScene] = useState<number | null>(null);
-
   return (
     <div className="p-5 lg:p-6">
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-sm font-bold text-gray-900">Scene Breakdown</p>
-        <span className="text-xs text-gray-500">{MOCK_SCENES.length} scenes · 9:22 total</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {MOCK_SCENES.map((scene) => (
-          <div
-            key={scene.id}
-            className="bg-white rounded-2xl border border-gray-100 hover:shadow-lg transition-all overflow-hidden cursor-pointer"
-            onMouseEnter={() => setHoveredScene(scene.id)}
-            onMouseLeave={() => setHoveredScene(null)}
-          >
-            {/* Thumbnail */}
-            <div
-              className="relative h-28 flex items-center justify-center"
-              style={{ background: scene.gradient }}
-            >
-              {/* Scene number badge — top left */}
-              <span className="absolute top-2 left-2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px] font-bold border border-white/30 backdrop-blur-sm">
-                {scene.sceneNumber}
-              </span>
-              {/* Duration badge — bottom right */}
-              <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-black/50 text-white text-[10px] font-bold backdrop-blur-sm">
-                {scene.duration}
-              </span>
-              {/* Film icon placeholder */}
-              <FileVideo className="w-8 h-8 text-white/30" />
-              {/* Hover overlay */}
-              {hoveredScene === scene.id && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-all">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-600 text-white text-xs font-semibold hover:bg-gray-700 transition-colors">
-                    <Pencil className="w-3 h-3" /> Edit Scene
-                  </button>
-                </div>
-              )}
-            </div>
-            {/* Script excerpt */}
-            <div className="p-3">
-              <p className="text-xs font-semibold text-gray-700 mb-1">Scene {scene.sceneNumber}</p>
-              <p className="text-sm text-gray-600 leading-snug line-clamp-2">{scene.scriptExcerpt}</p>
-            </div>
-          </div>
-        ))}
+      <p className="text-sm font-bold text-gray-900 mb-5">Scene Breakdown</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
+          <Layers className="w-8 h-8 text-gray-400" />
+        </div>
+        <p className="text-base font-semibold text-gray-800 mb-1">No scenes yet</p>
+        <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
+          AI will generate your script scenes here. Open an edit project and run a Script job to begin.
+        </p>
       </div>
     </div>
   );
@@ -377,53 +212,17 @@ function AssetsTab() {
           <Upload className="w-3.5 h-3.5" /> Upload Asset
         </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {MOCK_ASSETS.map((asset) => (
-          <div
-            key={asset.id}
-            className="bg-white rounded-2xl border border-gray-100 hover:shadow-lg transition-all overflow-hidden"
-          >
-            {/* Visual preview */}
-            <div
-              className="h-24 flex items-center justify-center relative"
-              style={{ background: asset.gradient }}
-            >
-              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center border border-white/20">
-                {asset.type === 'audio' ? (
-                  // Waveform placeholder
-                  <div className="flex items-end gap-0.5 h-6 px-1">
-                    {[40, 70, 55, 90, 60, 35, 75, 50, 80].map((h, i) => (
-                      <div
-                        key={i}
-                        className="bg-white/70 rounded-sm w-1"
-                        style={{ height: `${h}%` }}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  assetIcon(asset.type)
-                )}
-              </div>
-              {/* Type badge */}
-              <span className={`absolute top-2 right-2 px-1.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${assetBadgeClass(asset.type)}`}>
-                {asset.type}
-              </span>
-            </div>
-            {/* Info */}
-            <div className="p-3">
-              <p className="text-[13px] font-semibold text-gray-900 truncate">{asset.name}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-gray-500">{asset.size}</span>
-                {asset.duration && (
-                  <>
-                    <span className="text-gray-300">·</span>
-                    <span className="text-xs text-gray-500">{asset.duration}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
+          <FolderOpen className="w-8 h-8 text-gray-400" />
+        </div>
+        <p className="text-base font-semibold text-gray-800 mb-1">No assets yet</p>
+        <p className="text-sm text-gray-500 max-w-xs leading-relaxed mb-5">
+          Generated thumbnails, audio, and video files will appear here once your AI jobs complete.
+        </p>
+        <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
+          <Upload className="w-4 h-4" /> Upload your first asset
+        </button>
       </div>
     </div>
   );

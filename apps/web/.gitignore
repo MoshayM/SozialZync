@@ -2,3 +2,10 @@
 .env.production
 .env.local
 .env.*.local
+
+# Playwright auth state (contains JWT — never commit)
+e2e/.auth.json
+# Playwright screenshots and reports (generated)
+playwright-report/
+test-results/
+e2e/*.png
