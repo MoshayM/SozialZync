@@ -72,20 +72,36 @@ export function AuthPillInput({
 
 // ─── Split-screen login shell ──────────────────────────────────────────────────
 
-const LOGIN_FEATURES = [
-  { icon: '🤖', text: 'Voice AI Copilot' },
-  { icon: '🔬', text: 'Research & Fact-Check' },
-  { icon: '📝', text: 'AI Script Writer' },
-  { icon: '🎭', text: 'Character Studio' },
-  { icon: '✅', text: 'Compliance Engine' },
-  { icon: '🚀', text: 'Multi-Platform Publishing' },
-  { icon: '💰', text: 'Ad Revenue (Pro)' },
-];
-
-const LOGIN_STATS = [
-  { value: 'Free', label: 'to start' },
-  { value: '$17/mo', label: 'Pro plan' },
-  { value: '15+', label: 'AI Agents' },
+const LOGIN_BENEFITS = [
+  {
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5" aria-hidden>
+        <path d="M10 2C6.134 2 3 5.134 3 9c0 2.386 1.173 4.496 2.977 5.795L5 18h10l-.977-3.205C15.827 13.496 17 11.386 17 9c0-3.866-3.134-7-7-7z" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinejoin="round"/>
+        <circle cx="10" cy="9" r="2" fill="rgba(255,255,255,0.8)"/>
+      </svg>
+    ),
+    title: 'AI Research & Scripting',
+    desc: 'Trend discovery, fact-checked scripts, and SEO copy — in minutes.',
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5" aria-hidden>
+        <rect x="2" y="4" width="16" height="12" rx="2" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/>
+        <path d="M8 8l4 2-4 2V8z" fill="rgba(255,255,255,0.8)"/>
+      </svg>
+    ),
+    title: 'Multi-Platform Publishing',
+    desc: 'YouTube, Instagram, TikTok, LinkedIn — one click, everywhere.',
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5" aria-hidden>
+        <path d="M10 2l2.39 4.845L18 7.639l-4 3.9.944 5.506L10 14.5l-4.944 2.545L6 11.539 2 7.639l5.61-.794L10 2z" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinejoin="round"/>
+      </svg>
+    ),
+    title: 'Compliance & Monetization',
+    desc: 'Built-in compliance checks. Every video ready to earn from day one.',
+  },
 ];
 
 export function LoginShell({
@@ -98,161 +114,118 @@ export function LoginShell({
   return (
     <div className="min-h-screen flex">
       <style>{`
-        @keyframes lf-float-a { 0%,100%{transform:translateY(0) rotateX(0deg)} 50%{transform:translateY(-10px) rotateX(4deg)} }
-        @keyframes lf-float-b { 0%,100%{transform:translateY(0) rotateX(0deg)} 50%{transform:translateY(-14px) rotateX(-3deg)} }
-        @keyframes lf-float-c { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
         @keyframes lf-spin   { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
         @keyframes lf-spin-r { 0%{transform:rotate(0deg)} 100%{transform:rotate(-360deg)} }
-        @keyframes lf-count  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes lf-grad   { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
-        @keyframes lf-shimmer{ 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        @keyframes lf-rp-shift{ 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
-        .lf-float-a { animation:lf-float-a 7s ease-in-out infinite; }
-        .lf-float-b { animation:lf-float-b 9s ease-in-out infinite; }
-        .lf-float-c { animation:lf-float-c 5s ease-in-out infinite; }
-        .lf-spin    { animation:lf-spin 28s linear infinite; }
-        .lf-spin-r  { animation:lf-spin-r 40s linear infinite; }
-        .lf-count-1 { animation:lf-count .6s ease forwards .1s; opacity:0; }
-        .lf-count-2 { animation:lf-count .6s ease forwards .3s; opacity:0; }
-        .lf-count-3 { animation:lf-count .6s ease forwards .5s; opacity:0; }
-        .lf-card { transform-style:preserve-3d; }
-        .lf-card:hover { transform:perspective(800px) rotateX(-4deg) rotateY(6deg) translateZ(8px) scale(1.02); transition:transform .4s ease,box-shadow .4s ease; box-shadow:0 24px 48px -8px rgba(0,0,0,.25); }
-        .lf-shimmer-btn { background:linear-gradient(90deg,#9ca3af,#374151,#6b7280,#374151,#9ca3af); background-size:300% 100%; animation:lf-shimmer 3s linear infinite; }
-        .lf-rp { background:linear-gradient(135deg,#fafafa 0%,#f3f4f6 40%,#e5e7eb 100%); background-size:200% 200%; animation:lf-rp-shift 8s ease infinite; }
+        @keyframes lf-in     { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+        .lf-spin   { animation:lf-spin 28s linear infinite; }
+        .lf-spin-r { animation:lf-spin-r 40s linear infinite; }
+        .lf-in-1   { animation:lf-in .5s ease forwards .05s; opacity:0; }
+        .lf-in-2   { animation:lf-in .5s ease forwards .15s; opacity:0; }
+        .lf-in-3   { animation:lf-in .5s ease forwards .25s; opacity:0; }
+        .lf-in-4   { animation:lf-in .5s ease forwards .35s; opacity:0; }
       `}</style>
 
       {/* ── Left: Brand panel ──────────────────────────────────────────── */}
       <div
-        className="hidden lg:flex lg:w-[58%] xl:w-[60%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'radial-gradient(ellipse at 30% 40%, #0f172a 0%, #020617 55%, #030712 100%)' }}
+        className="hidden lg:flex lg:w-[52%] xl:w-[54%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
+        style={{ background: 'linear-gradient(150deg, #0f172a 0%, #1e293b 60%, #1e3a5f 100%)' }}
       >
-        {/* Deep space ambient orbs */}
-        <div className="absolute -top-40 -left-20 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.15)', filter: 'blur(80px)' }} />
-        <div className="absolute top-1/2 -right-16 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(60px)' }} />
-        <div className="absolute -bottom-32 left-1/3 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.25)', filter: 'blur(70px)' }} />
+        {/* Subtle ambient glow — top-left and bottom-right */}
+        <div className="absolute -top-32 -left-20 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'rgba(99,102,241,0.08)', filter: 'blur(80px)' }} />
+        <div className="absolute -bottom-24 -right-12 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(59,130,246,0.07)', filter: 'blur(70px)' }} />
 
-        {/* Perspective grid overlay */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{opacity:.05}}>
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="lg-gfade" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="white" stopOpacity="1"/>
-                <stop offset="100%" stopColor="white" stopOpacity="0"/>
-              </linearGradient>
-              <mask id="lg-gmask"><rect width="100%" height="100%" fill="url(#lg-gfade)"/></mask>
-            </defs>
-            <g mask="url(#lg-gmask)" stroke="white" strokeWidth="0.5">
-              {[10,20,30,40,50,60,70,80,90].map(x => <line key={x} x1={`${x}%`} y1="0" x2="50%" y2="100%"/>)}
-              {[15,30,45,60,75,90].map((y,i) => <line key={i} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`}/>)}
-            </g>
-          </svg>
-        </div>
-
-        {/* Floating 3D dashboard mini-cards */}
-        <div className="absolute top-[18%] right-12 lf-float-a lf-card z-20 pointer-events-none">
-          <div className="px-4 py-3 rounded-2xl" style={{background:'rgba(255,255,255,.08)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,.14)'}}>
-            <div className="text-white/50 text-[10px] mb-1">Subscribers gained today</div>
-            <div className="text-white font-extrabold text-lg">+2,847</div>
-            <div className="text-emerald-400 text-[10px] font-semibold mt-0.5">▲ 12.4%</div>
-          </div>
-        </div>
-
-        <div className="absolute top-[42%] right-8 lf-float-b lf-card z-20 pointer-events-none">
-          <div className="px-4 py-3 rounded-2xl" style={{background:'rgba(255,255,255,.08)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,.14)'}}>
-            <div className="text-white/50 text-[10px] mb-1">Compliance check</div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-white font-bold text-sm">Passed</span>
-            </div>
-            <div className="text-white/40 text-[10px] mt-0.5">3 checks ran</div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-[28%] right-16 lf-float-c lf-card z-20 pointer-events-none">
-          <div className="px-4 py-3 rounded-2xl" style={{background:'rgba(255,255,255,.08)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,.14)'}}>
-            <div className="text-white/50 text-[10px] mb-1">Click-through rate</div>
-            <div className="text-white font-extrabold text-lg">8.2%</div>
-            <div className="text-amber-400 text-[10px] font-semibold mt-0.5">▲ Above avg.</div>
-          </div>
-        </div>
-
-        {/* Logo with orbital ring */}
+        {/* Logo */}
         <div className="relative z-10 flex items-center gap-4">
-          <div className="relative w-14 h-14 shrink-0">
-            {/* Orbital rings */}
-            <div className="lf-spin absolute inset-[-8px] rounded-full" style={{border:'1px solid rgba(156,163,175,.35)'}} />
-            <div className="lf-spin-r absolute inset-[-16px] rounded-full" style={{border:'1px solid rgba(0,0,0,.15)'}} />
+          <div className="relative w-12 h-12 shrink-0">
+            <div className="lf-spin absolute inset-[-8px] rounded-full" style={{ border: '1px solid rgba(255,255,255,0.15)' }} />
+            <div className="lf-spin-r absolute inset-[-16px] rounded-full" style={{ border: '1px solid rgba(255,255,255,0.07)' }} />
             <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
           </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
-              <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Z</span><span className="text-white">ynk</span>
+              <span className="text-white">Sozial</span><span style={{ color: '#94a3b8' }}>Z</span><span className="text-white">ynk</span>
             </div>
-            <div className="text-white/45 text-xs mt-0.5">AI Creator Platform</div>
+            <div className="text-white/40 text-xs mt-0.5 font-medium">AI Creator Platform</div>
           </div>
         </div>
 
-        {/* Hero content */}
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 text-white/80 text-xs font-semibold px-4 py-1.5 rounded-full mb-8" style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)',border:'1px solid rgba(255,255,255,.12)' }}>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            AI Creator Platform
+        {/* Hero */}
+        <div className="relative z-10 space-y-10">
+          {/* Status pill */}
+          <div className="lf-in-1 inline-flex items-center gap-2 text-white/70 text-xs font-semibold px-4 py-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            All systems operational
           </div>
 
-          <h1 className="text-5xl xl:text-[3.4rem] font-extrabold text-white leading-[1.1] mb-5">
-            Research. Script.<br />
-            <span style={{ WebkitTextFillColor: 'transparent', WebkitBackgroundClip: 'text', backgroundImage: 'linear-gradient(90deg,#ffffff,#d1d5db,#e5e7eb,#ffffff)', backgroundClip: 'text', backgroundSize:'200% 100%', animation:'lf-grad 4s ease infinite' }}>
-              Publish Everywhere.
-            </span>
-          </h1>
-
-          <p className="text-white/60 text-[1.05rem] leading-relaxed max-w-sm mb-10">
-            Your full content creation pipeline — from trend research and AI scripts to compliance-checked publishing across all your channels. Available 24/7.
-          </p>
-
-          {/* Feature pills */}
-          <div className="flex flex-wrap gap-2.5 mb-12">
-            {LOGIN_FEATURES.map((f) => (
-              <span key={f.text} className="inline-flex items-center gap-1.5 text-sm text-white/80 font-medium px-3.5 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.09)', backdropFilter: 'blur(8px)', border:'1px solid rgba(255,255,255,.1)' }}>
-                <span aria-hidden>{f.icon}</span> {f.text}
+          {/* Headline */}
+          <div className="lf-in-2">
+            <h1 className="text-[2.75rem] xl:text-5xl font-extrabold text-white leading-[1.08] tracking-tight mb-4">
+              Research. Script.<br />
+              <span style={{
+                WebkitTextFillColor: 'transparent',
+                WebkitBackgroundClip: 'text',
+                backgroundImage: 'linear-gradient(90deg, #e2e8f0 0%, #ffffff 40%, #cbd5e1 100%)',
+                backgroundClip: 'text',
+                backgroundSize: '200% 100%',
+                animation: 'lf-grad 5s ease infinite',
+              }}>
+                Publish Everywhere.
               </span>
+            </h1>
+            <p className="text-white/50 text-base leading-relaxed max-w-xs">
+              Your complete AI content team — from research to publishing, across every platform.
+            </p>
+          </div>
+
+          {/* Benefits */}
+          <div className="lf-in-3 space-y-5">
+            {LOGIN_BENEFITS.map((b) => (
+              <div key={b.title} className="flex items-start gap-4">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                  style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  {b.icon}
+                </div>
+                <div>
+                  <div className="text-white text-sm font-semibold leading-tight mb-0.5">{b.title}</div>
+                  <div className="text-white/45 text-xs leading-relaxed">{b.desc}</div>
+                </div>
+              </div>
             ))}
           </div>
 
-          {/* Animated stats */}
-          <div className="flex items-center gap-8">
-            {LOGIN_STATS.map((s, i) => (
-              <React.Fragment key={s.label}>
-                {i > 0 && <div className="w-px h-10 bg-white/15" />}
-                <div className={`lf-count-${i + 1}`}>
-                  <div className="text-2xl font-extrabold text-white">{s.value}</div>
-                  <div className="text-white/45 text-xs mt-0.5">{s.label}</div>
-                </div>
-              </React.Fragment>
-            ))}
+          {/* Minimal stats */}
+          <div className="lf-in-4 flex items-center gap-8 pt-2">
+            <div>
+              <div className="text-2xl font-extrabold text-white tracking-tight">Free</div>
+              <div className="text-white/40 text-xs mt-0.5">to get started</div>
+            </div>
+            <div className="w-px h-10 bg-white/10" />
+            <div>
+              <div className="text-2xl font-extrabold text-white tracking-tight">15+</div>
+              <div className="text-white/40 text-xs mt-0.5">AI agents</div>
+            </div>
+            <div className="w-px h-10 bg-white/10" />
+            <div>
+              <div className="text-2xl font-extrabold text-white tracking-tight">24/7</div>
+              <div className="text-white/40 text-xs mt-0.5">always on</div>
+            </div>
           </div>
         </div>
 
-        {/* Testimonial */}
-        <div className="relative z-10 rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-          <div className="flex gap-0.5 mb-3" role="img" aria-label="5 stars">
-            {[...Array(5)].map((_, i) => <span key={i} className="text-[#f0c14d] text-sm" aria-hidden>★</span>)}
-          </div>
-          <p className="text-white/75 text-sm leading-relaxed mb-4">
-            &ldquo;SozialZynk helped me grow from 5K to 150K subscribers in 6 months. The AI research and multi-platform publishing saved me so much time.&rdquo;
+        {/* Bottom brand line */}
+        <div className="relative z-10">
+          <div className="h-px bg-white/8 mb-6" />
+          <p className="text-white/25 text-xs">
+            Trusted by creators on YouTube, Instagram, TikTok, LinkedIn &amp; more.
           </p>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f0c14d] to-[#f5a623] flex items-center justify-center text-sm font-bold text-gray-800 shrink-0">M</div>
-            <div>
-              <div className="text-white text-sm font-semibold leading-none mb-0.5">Marcus Chen</div>
-              <div className="text-white/45 text-xs">Tech Creator · 150K subscribers</div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* ── Right: Form panel (gradient animated) ────────────────────────── */}
-      <div className="lf-rp flex-1 flex items-center justify-center px-6 sm:px-10 py-12 overflow-y-auto">
+      {/* ── Right: Form panel ────────────────────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center bg-white px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[370px]">
           {/* Mobile brand */}
           <Link href="/browse" className="flex items-center gap-2.5 mb-10 lg:hidden hover:opacity-80 transition-opacity">
@@ -708,38 +681,38 @@ export function ResetPasswordShell({
   );
 }
 
-// ─── OAuth callback shell — Short Studio showcase ────────────────────────────
+// ─── OAuth callback shell — calm brand panel ─────────────────────────────────
 
-const SHORT_FEATURES = [
-  { icon: '✂️', text: 'AI Auto-Edit' },
-  { icon: '📱', text: 'Vertical Format' },
-  { icon: '🎯', text: 'Hook Generator' },
-  { icon: '🎵', text: 'Music Sync' },
-  { icon: '💬', text: 'Auto Captions' },
-  { icon: '🚀', text: 'Multi-Platform' },
-];
-
-const MOCK_SHORTS = [
+const OAUTH_TRUST = [
   {
-    bg: 'linear-gradient(175deg, #1f2937 0%, #111827 100%)',
-    emoji: '🤖',
-    title: '5 AI Hacks',
-    views: '2.3M',
-    badge: '#9ca3af',
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" className="w-4.5 h-4.5" aria-hidden>
+        <path d="M10 2L4 5v5c0 3.55 2.57 6.87 6 7.67C13.43 16.87 16 13.55 16 10V5l-6-3z" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" strokeLinejoin="round"/>
+        <path d="M7.5 10l2 2 3-3" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    title: 'OAuth 2.0 secured',
+    desc: 'We never store your Google password.',
   },
   {
-    bg: 'linear-gradient(175deg, #e11d48 0%, #7f1d1d 100%)',
-    emoji: '😱',
-    title: 'Wait for it',
-    views: '4.1M',
-    badge: '#fca5a5',
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" className="w-4.5 h-4.5" aria-hidden>
+        <rect x="3" y="9" width="14" height="9" rx="2" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5"/>
+        <path d="M7 9V6a3 3 0 016 0v3" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+    title: 'End-to-end encrypted',
+    desc: 'All tokens are encrypted at rest and in transit.',
   },
   {
-    bg: 'linear-gradient(175deg, #0891b2 0%, #1e3a8a 100%)',
-    emoji: '📈',
-    title: 'Grow to 100K',
-    views: '1.8M',
-    badge: '#7dd3fc',
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" className="w-4.5 h-4.5" aria-hidden>
+        <circle cx="10" cy="10" r="7" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5"/>
+        <path d="M10 7v3l2 2" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+    title: 'Session ready instantly',
+    desc: 'Your workspace loads in seconds after sign-in.',
   },
 ];
 
@@ -752,136 +725,100 @@ export function OAuthCallbackShell({
 }) {
   return (
     <div className="min-h-screen flex">
-      <style>{`@keyframes sh-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}} @keyframes sh-spin-r{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}`}</style>
-      {/* ── Left: Short Studio showcase ────────────────────────────────── */}
+      <style>{`
+        @keyframes oc-spin  { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes oc-spinr { 0%{transform:rotate(0deg)} 100%{transform:rotate(-360deg)} }
+        @keyframes oc-in    { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+        .oc-spin  { animation:oc-spin 28s linear infinite; }
+        .oc-spinr { animation:oc-spinr 40s linear infinite; }
+        .oc-in-1  { animation:oc-in .5s ease forwards .05s; opacity:0; }
+        .oc-in-2  { animation:oc-in .5s ease forwards .15s; opacity:0; }
+        .oc-in-3  { animation:oc-in .5s ease forwards .25s; opacity:0; }
+      `}</style>
+
+      {/* ── Left: Brand panel ──────────────────────────────────────────── */}
       <div
-        className="hidden lg:flex lg:w-[55%] xl:w-[56%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
-        style={{ background: 'linear-gradient(145deg, #111827 0%, #1f2937 45%, #374151 100%)' }}
+        className="hidden lg:flex lg:w-[52%] xl:w-[54%] relative overflow-hidden flex-col justify-between px-14 xl:px-20 py-14"
+        style={{ background: 'linear-gradient(150deg, #0f172a 0%, #1e293b 60%, #1e3a5f 100%)' }}
       >
-        {/* Orbs */}
-        <div className="absolute -top-40 -left-28 w-[480px] h-[480px] rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(90px)' }} />
-        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(0,0,0,.18)', filter: 'blur(70px)' }} />
+        {/* Ambient glows */}
+        <div className="absolute -top-32 -left-20 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'rgba(99,102,241,0.08)', filter: 'blur(80px)' }} />
+        <div className="absolute -bottom-24 -right-12 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(59,130,246,0.07)', filter: 'blur(70px)' }} />
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-4">
           <div className="relative w-12 h-12 shrink-0">
-            <div style={{ animation:'sh-spin 28s linear infinite', position:'absolute', inset:'-8px', borderRadius:'50%', border:'1px solid rgba(156,163,175,.35)' }} />
-            <div style={{ animation:'sh-spin-r 40s linear infinite', position:'absolute', inset:'-16px', borderRadius:'50%', border:'1px solid rgba(255,255,255,.1)' }} />
+            <div className="oc-spin absolute inset-[-8px] rounded-full" style={{ border: '1px solid rgba(255,255,255,0.15)' }} />
+            <div className="oc-spinr absolute inset-[-16px] rounded-full" style={{ border: '1px solid rgba(255,255,255,0.07)' }} />
             <LogoMark className="absolute inset-0 w-full h-full" variant="light" />
           </div>
           <div>
             <div className="font-extrabold text-xl tracking-[-0.5px] leading-none">
-              <span className="text-white">Sozial</span><span style={{ color: '#d1d5db' }}>Zync</span>
+              <span className="text-white">Sozial</span><span style={{ color: '#94a3b8' }}>Z</span><span className="text-white">ynk</span>
             </div>
-            <div className="text-white/50 text-xs mt-0.5">AI Content Creator Platform</div>
+            <div className="text-white/40 text-xs mt-0.5 font-medium">AI Creator Platform</div>
           </div>
         </div>
 
-        {/* Hero — Short Studio */}
+        {/* Hero */}
+        <div className="relative z-10 space-y-10">
+          <div className="oc-in-1">
+            <h1 className="text-[2.75rem] xl:text-5xl font-extrabold text-white leading-[1.08] tracking-tight mb-4">
+              Connecting<br />
+              <span style={{
+                WebkitTextFillColor: 'transparent',
+                WebkitBackgroundClip: 'text',
+                backgroundImage: 'linear-gradient(90deg, #e2e8f0 0%, #ffffff 40%, #cbd5e1 100%)',
+                backgroundClip: 'text',
+              }}>
+                securely.
+              </span>
+            </h1>
+            <p className="text-white/50 text-base leading-relaxed max-w-xs">
+              Your sign-in is being verified. This only takes a moment.
+            </p>
+          </div>
+
+          {/* Trust items */}
+          <div className="oc-in-2 space-y-5">
+            {OAUTH_TRUST.map((t) => (
+              <div key={t.title} className="flex items-start gap-4">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                  style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.10)' }}
+                >
+                  {t.icon}
+                </div>
+                <div>
+                  <div className="text-white text-sm font-semibold leading-tight mb-0.5">{t.title}</div>
+                  <div className="text-white/45 text-xs leading-relaxed">{t.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Privacy note */}
+          <div
+            className="oc-in-3 rounded-2xl px-5 py-4"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}
+          >
+            <p className="text-white/40 text-xs leading-relaxed">
+              SozialZynk only requests the permissions you approved. You can review or revoke access at any time from your Google Account security settings.
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom brand line */}
         <div className="relative z-10">
-          {/* NEW badge */}
-          <div className="inline-flex items-center gap-2 mb-5">
-            <span
-              className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-full"
-              style={{ background: '#f0c14d', color: '#3b1f00' }}
-            >
-              NEW
-            </span>
-            <span className="text-white/60 text-xs font-medium">Now live in your dashboard</span>
-          </div>
-
-          <div className="flex items-center gap-3 mb-3">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0"
-              style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}
-            >
-              ✂️
-            </div>
-            <div>
-              <div className="text-white font-extrabold text-2xl leading-tight">Short Studio</div>
-              <div className="text-white/50 text-xs">AI-powered short-form video creation</div>
-            </div>
-          </div>
-
-          <h1 className="text-4xl xl:text-[2.8rem] font-extrabold text-white leading-[1.1] mb-4">
-            Create Viral<br />
-            <span style={{ WebkitTextFillColor: 'transparent', WebkitBackgroundClip: 'text', backgroundImage: 'linear-gradient(90deg, #f0c14d 0%, #ffd966 100%)', backgroundClip: 'text' }}>
-              Shorts in Minutes
-            </span>
-          </h1>
-          <p className="text-white/60 text-sm leading-relaxed max-w-xs mb-8">
-            From idea to published short — AI handles scripting, editing, captions, and multi-platform publishing for you.
+          <div className="h-px bg-white/8 mb-6" />
+          <p className="text-white/25 text-xs">
+            Trusted by creators on YouTube, Instagram, TikTok, LinkedIn &amp; more.
           </p>
-
-          {/* Mock video cards */}
-          <div className="flex gap-3 mb-8">
-            {MOCK_SHORTS.map((s) => (
-              <div
-                key={s.title}
-                className="rounded-2xl overflow-hidden flex-1 flex flex-col justify-between relative"
-                style={{ background: s.bg, aspectRatio: '9/16', maxWidth: 96 }}
-              >
-                {/* Top bar */}
-                <div className="flex items-center justify-between px-2 pt-2">
-                  <div className="w-4 h-0.5 rounded-full bg-white/60" />
-                  <div
-                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                    style={{ background: s.badge, color: '#1e0040' }}
-                  >
-                    #shorts
-                  </div>
-                </div>
-                {/* Emoji */}
-                <div className="flex-1 flex items-center justify-center text-3xl" aria-hidden>
-                  {s.emoji}
-                </div>
-                {/* Bottom */}
-                <div className="px-2 pb-2.5">
-                  <p className="text-white text-[10px] font-bold leading-tight mb-1 drop-shadow">{s.title}</p>
-                  <div className="flex items-center gap-1 text-white/70 text-[9px]">
-                    <span>▶</span>
-                    <span>{s.views}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Feature grid */}
-          <div className="grid grid-cols-3 gap-2">
-            {SHORT_FEATURES.map((f) => (
-              <div
-                key={f.text}
-                className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl text-center"
-                style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)' }}
-              >
-                <span className="text-lg" aria-hidden>{f.icon}</span>
-                <span className="text-white/80 text-[10px] font-semibold leading-tight">{f.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div className="relative z-10 flex items-center gap-6">
-          {[
-            { value: '60s', label: 'Avg. creation time' },
-            { value: '10M+', label: 'Shorts published' },
-            { value: '3×', label: 'More views with AI hooks' },
-          ].map((s, i) => (
-            <React.Fragment key={s.label}>
-              {i > 0 && <div className="w-px h-8 bg-white/20" />}
-              <div>
-                <div className="text-xl font-extrabold text-white">{s.value}</div>
-                <div className="text-white/45 text-[10px] mt-0.5">{s.label}</div>
-              </div>
-            </React.Fragment>
-          ))}
         </div>
       </div>
 
       {/* ── Right: Status panel ─────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 sm:px-10 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center bg-white px-6 sm:px-10 py-12 overflow-y-auto">
         <div className="w-full max-w-[360px]">
           {/* Mobile brand */}
           <Link href="/browse" className="flex items-center gap-2.5 mb-10 lg:hidden hover:opacity-80 transition-opacity">
