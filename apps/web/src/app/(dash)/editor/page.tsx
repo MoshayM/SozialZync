@@ -404,6 +404,32 @@ function SourceCard({
   );
 }
 
+// ── Platform detector (client-side, no server round-trip) ────────────────────
+
+interface PlatformInfo { platform: string; hint: string }
+
+function detectVideoPlatform(url: string): PlatformInfo | null {
+  let u: URL;
+  try { u = new URL(url); } catch { return null; }
+  const host = u.hostname.replace(/^(www\.|m\.)/, '');
+
+  if (/youtube\.com|youtu\.be/.test(host))
+    return { platform: 'YouTube', hint: 'YouTube pages aren\'t direct video files. Paste a direct .mp4/.webm link, or use "From your library" for your own published videos.' };
+  if (/tiktok\.com/.test(host))
+    return { platform: 'TikTok', hint: 'TikTok links aren\'t direct video files. Download the clip and upload it, or paste a direct .mp4 URL.' };
+  if (/instagram\.com/.test(host))
+    return { platform: 'Instagram', hint: 'Instagram links aren\'t direct video files. Download the clip and upload it instead.' };
+  if (/twitter\.com|x\.com/.test(host))
+    return { platform: 'X / Twitter', hint: 'X links aren\'t direct video files. Download the clip and upload it instead.' };
+  if (/facebook\.com|fb\.watch/.test(host))
+    return { platform: 'Facebook', hint: 'Facebook links aren\'t direct video files. Download the clip and upload it instead.' };
+  if (/twitch\.tv/.test(host))
+    return { platform: 'Twitch', hint: 'Twitch clip pages aren\'t direct video files. Export the clip and upload it, or paste a direct .mp4 URL.' };
+  if (/vimeo\.com/.test(host) && !u.pathname.match(/\/external\/.+\.mp4/))
+    return { platform: 'Vimeo', hint: 'Vimeo watch pages aren\'t direct video files. Paste the direct .mp4 download URL from Vimeo instead.' };
+  return null;
+}
+
 // ── URL import inline input ───────────────────────────────────────────────────
 
 function UrlImportBar({
@@ -419,30 +445,48 @@ function UrlImportBar({
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
+  const platformInfo: PlatformInfo | null = val.trim() ? detectVideoPlatform(val.trim()) : null;
+
   return (
-    <div className="flex items-center gap-2 bg-white border-2 border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
-      <Link2 className="w-4 h-4 text-gray-400 shrink-0" />
-      <input
-        ref={inputRef}
-        type="url"
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') onImport(val); if (e.key === 'Escape') onClose(); }}
-        placeholder="Paste a direct video URL…"
-        className="flex-1 text-sm outline-none placeholder:text-gray-300"
-      />
-      <button
-        type="button"
-        onClick={() => onImport(val)}
-        disabled={!val.trim() || importing}
-        className="px-4 py-2 rounded-xl text-white text-xs font-bold bg-gray-800 hover:bg-gray-900 disabled:opacity-40 flex items-center gap-1.5 transition-colors"
+    <div className="space-y-2">
+      <div
+        className="flex items-center gap-2 bg-white border-2 rounded-2xl px-4 py-3 shadow-sm transition-colors"
+        style={{ borderColor: platformInfo ? '#fbbf24' : '#e5e7eb' }}
       >
-        {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
-        Import
-      </button>
-      <button type="button" onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
-        <X className="w-4 h-4" />
-      </button>
+        <Link2 className="w-4 h-4 text-gray-400 shrink-0" />
+        <input
+          ref={inputRef}
+          type="url"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') onImport(val); if (e.key === 'Escape') onClose(); }}
+          placeholder="Paste a direct .mp4, .webm or .mov URL…"
+          className="flex-1 text-sm outline-none placeholder:text-gray-300"
+        />
+        <button
+          type="button"
+          onClick={() => onImport(val)}
+          disabled={!val.trim() || importing || !!platformInfo}
+          className="px-4 py-2 rounded-xl text-white text-xs font-bold bg-gray-800 hover:bg-gray-900 disabled:opacity-40 flex items-center gap-1.5 transition-colors"
+        >
+          {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+          Import
+        </button>
+        <button type="button" onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Inline platform warning — amber, not red: it's guidance, not a crash */}
+      {platformInfo && (
+        <div className="flex items-start gap-2 px-3.5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-700 leading-relaxed">
+            <span className="font-semibold">{platformInfo.platform}:</span>{' '}
+            {platformInfo.hint}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -499,20 +543,36 @@ function EditorInner() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleUrlImport(url: string) {
-    if (!url.trim()) return;
+    const trimmed = url.trim();
+    if (!trimmed) return;
+
+    // Client-side guard — never send known platform URLs to the server
+    const platformInfo = detectVideoPlatform(trimmed);
+    if (platformInfo) {
+      setImportError(`${platformInfo.platform}: ${platformInfo.hint}`);
+      return;
+    }
+
     setImportError(null);
     setUrlBusy(true);
     try {
-      const { data: imported } = await api.media.importVideoFromUrl(url.trim());
+      const { data: imported } = await api.media.importVideoFromUrl(trimmed);
       const { data: edit } = await api.editor.create(imported.projectId, {
         sourceKind: 'ASSET',
         sourceId: imported.assetId,
-        title: imported.filename ?? url.split('/').pop() ?? 'Imported video',
+        title: imported.filename ?? trimmed.split('/').pop() ?? 'Imported video',
       });
       setShowUrlBar(false);
       await openEdit(edit.id);
     } catch (err) {
-      setImportError(getErrorMessage(err));
+      const raw = getErrorMessage(err);
+      // Translate technical MIME errors into actionable guidance
+      const friendly = raw.includes('text/html') || raw.includes('MIME') || raw.includes('mime')
+        ? 'That URL points to a web page, not a video file. Paste a direct .mp4, .webm, or .mov link.'
+        : raw.includes('SSRF') || raw.includes('private')
+        ? 'That URL isn\'t reachable from our servers. Please use a publicly accessible direct video link.'
+        : raw;
+      setImportError(friendly);
       setUrlBusy(false);
     }
   }
@@ -594,7 +654,7 @@ function EditorInner() {
             <SourceCard
               icon={<Link2 className="w-6 h-6 text-white" />}
               label="Import from URL"
-              sub="Direct .mp4 link or supported host"
+              sub="Direct .mp4, .webm or .mov link"
               accent="linear-gradient(135deg, #1d4ed8, #1e40af)"
               loading={urlBusy}
               onClick={() => { setShowUrlBar((v) => !v); setImportError(null); }}
