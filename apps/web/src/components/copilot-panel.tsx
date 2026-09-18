@@ -1559,10 +1559,11 @@ export function CopilotPanel() {
                 e.stopPropagation();
                 e.currentTarget.setPointerCapture(e.pointerId);
                 const rect = panelRef.current!.getBoundingClientRect();
-                // Anchor the panel to a fixed position on first resize so that
-                // width: panelSize.w takes effect (otherwise width stays '100%').
-                if (!panelPos) setPanelPos({ x: rect.left, y: rect.top });
                 const startW = rect.width;
+                // Anchor to a fixed position on first resize so width:panelSize.w takes effect.
+                // Store spy/spx in the ref — onPointerMove must NOT use the p=> callback form
+                // because panelPos state may not have re-rendered yet (stale closure issue).
+                if (!panelPos) setPanelPosRaw(() => ({ x: rect.left, y: rect.top }));
                 setPanelSize(s => ({ ...s, w: startW }));
                 resizeRef.current = { dir:'w', sx:e.clientX, sy:e.clientY, sw:startW, sh:rect.height, spx:rect.left, spy:rect.top, hasPos:true };
               }}
@@ -1572,7 +1573,8 @@ export function CopilotPanel() {
                 const dx = e.clientX - r.sx;
                 const newW = Math.max(280, Math.min(680, r.sw - dx));
                 setPanelSize(s => ({ ...s, w:newW }));
-                if (r.hasPos) setPanelPosRaw(p => p ? { ...p, x:Math.max(0, r.spx + (r.sw - newW)) } : null);
+                // Use ref values directly (not p=>) to avoid stale-state closure on first drag.
+                if (r.hasPos) setPanelPosRaw(() => ({ x:Math.max(0, r.spx + (r.sw - newW)), y:r.spy }));
               }}
               onPointerUp={() => { resizeRef.current = null; }}
               style={{ position:'absolute', left:0, top:20, bottom:20, width:6, cursor:'ew-resize', zIndex:12, touchAction:'none',
@@ -1585,8 +1587,8 @@ export function CopilotPanel() {
                 e.stopPropagation();
                 e.currentTarget.setPointerCapture(e.pointerId);
                 const rect = panelRef.current!.getBoundingClientRect();
-                if (!panelPos) setPanelPos({ x: rect.left, y: rect.top });
                 const startW = rect.width;
+                if (!panelPos) setPanelPosRaw(() => ({ x: rect.left, y: rect.top }));
                 setPanelSize(s => ({ ...s, w: startW }));
                 resizeRef.current = { dir:'wh', sx:e.clientX, sy:e.clientY, sw:startW, sh:rect.height, spx:rect.left, spy:rect.top, hasPos:true };
               }}
@@ -1598,7 +1600,7 @@ export function CopilotPanel() {
                 const newW = Math.max(280, Math.min(680, r.sw - dx));
                 const newH = Math.max(300, Math.min(720, r.sh + dy));
                 setPanelSize({ w:newW, h:newH });
-                if (r.hasPos) setPanelPosRaw(p => p ? { ...p, x:Math.max(0, r.spx + (r.sw - newW)) } : null);
+                if (r.hasPos) setPanelPosRaw(() => ({ x:Math.max(0, r.spx + (r.sw - newW)), y:r.spy }));
               }}
               onPointerUp={() => { resizeRef.current = null; }}
               style={{ position:'absolute', left:0, bottom:0, width:22, height:22, cursor:'sw-resize', zIndex:12, touchAction:'none',
