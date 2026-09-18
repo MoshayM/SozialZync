@@ -58,9 +58,10 @@ export class SocialDownloadService {
       '--output', outTemplate,
       '--no-playlist',
       '--max-filesize', '500m',
-      '--no-warnings',
       '--no-progress',
-      '--quiet',
+      '--retries', '2',
+      '--fragment-retries', '2',
+      '--socket-timeout', '20',
     ];
     // Point yt-dlp at ffmpeg-static's pre-built binary so stream merging works
     if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
@@ -127,8 +128,10 @@ export class SocialDownloadService {
       proc.on('close', (code) => {
         clearTimeout(timeout);
         if (code === 0) return resolve();
+        // Log full stderr so Railway logs show the actual yt-dlp error
+        this.logger.error(`yt-dlp exit=${code} stderr: ${stderr.slice(-2000)}`);
         // Surface friendly errors based on yt-dlp stderr
-        const tail = stderr.slice(-1000).toLowerCase();
+        const tail = stderr.slice(-2000).toLowerCase();
         if (tail.includes('private') || tail.includes('members only'))
           return reject(new BadRequestException('That video is private or members-only — only public videos can be imported.'));
         if (tail.includes('not available') || tail.includes('removed') || tail.includes('deleted'))
