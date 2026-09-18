@@ -5,6 +5,12 @@ const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
 
 async function loginAs(page: Page, email: string, pass: string) {
   await page.goto('/login');
+  // If a JWT is already in localStorage (storageState), the login page auto-redirects.
+  const alreadyAuth = await page.waitForURL(
+    /\/(home|projects|dashboard)/,
+    { timeout: 4_000 },
+  ).then(() => true).catch(() => false);
+  if (alreadyAuth) return;
   // Inputs use placeholder only — locate by type
   await page.locator('input[type="email"]').first().fill(email);
   await page.locator('input[type="password"]').first().fill(pass);
