@@ -74,6 +74,20 @@ export function VirtualVideoGrid({
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalHeight = rowVirtualizer.getTotalSize();
 
+  if (videos.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <svg className="w-12 h-12 text-gray-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+        </svg>
+        <p className="font-semibold text-gray-500">No videos yet</p>
+        <p className="text-sm text-gray-400 mt-1 max-w-xs">
+          Click <strong>Sync library</strong> above to import your channel&apos;s videos.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div ref={parentRef} className="overflow-y-auto flex-1" style={{ height: '100%' }}>
       <div style={{ height: `${totalHeight}px`, position: 'relative' }}>

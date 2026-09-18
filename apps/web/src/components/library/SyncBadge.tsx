@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { api, type LibrarySyncPhase } from '@/lib/api';
 
@@ -11,31 +11,40 @@ interface SyncBadgeProps {
 
 export function SyncBadge({ channelId }: SyncBadgeProps) {
   const qc = useQueryClient();
+  // Keep polling briefly after sync is triggered so we catch the IDLE→VIDEOS transition
+  const [syncedAt, setSyncedAt] = useState(0);
 
   const { data: status } = useQuery({
     queryKey: ['library-sync-status', channelId],
     queryFn: () => api.library.syncStatus(channelId).then((r) => r.data),
     refetchInterval: (q) => {
       const phase = q.state.data?.phase;
-      return phase && ACTIVE_PHASES.includes(phase) ? 4000 : false;
+      if (phase && ACTIVE_PHASES.includes(phase)) return 4000;
+      // Poll for 10 s after triggering sync so we catch the IDLE→VIDEOS transition
+      if (syncedAt && Date.now() - syncedAt < 10_000) return 2000;
+      return false;
     },
   });
 
-  // Track previous phase to detect DONE transition
+  // Track previous phase to detect DONE transition and invalidate the video list
   const prevPhaseRef = useRef<LibrarySyncPhase | undefined>(undefined);
   useEffect(() => {
     if (!status) return;
     const prev = prevPhaseRef.current;
     const curr = status.phase;
     if (prev && ACTIVE_PHASES.includes(prev) && curr === 'DONE') {
-      void qc.invalidateQueries({ queryKey: ['library-videos', channelId] });
+      // 'lib-videos' prefix matches all video list queries regardless of filters
+      void qc.invalidateQueries({ queryKey: ['lib-videos'] });
     }
     prevPhaseRef.current = curr;
   }, [status, channelId, qc]);
 
   const syncMutation = useMutation({
     mutationFn: () => api.library.syncStart(channelId),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['library-sync-status', channelId] }),
+    onSuccess: () => {
+      setSyncedAt(Date.now());
+      void qc.invalidateQueries({ queryKey: ['library-sync-status', channelId] });
+    },
   });
 
   if (!status) return null;
