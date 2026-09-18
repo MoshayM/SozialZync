@@ -3,8 +3,10 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Param,
   Body,
+  HttpCode,
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
@@ -102,6 +104,13 @@ export class EditorController {
   @Get(':id')
   async get(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.editor.get(id, user.sub);
+  }
+
+  /** Delete an EditProject — removes timeline and settings; source media is unaffected */
+  @Delete(':id')
+  @HttpCode(204)
+  async delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    await this.editor.deleteEditProject(id, user.sub);
   }
 
   /** Save/validate the timeline JSON */

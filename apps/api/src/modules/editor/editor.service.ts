@@ -572,6 +572,13 @@ export class EditorService {
     })) as EditProjectRow[];
   }
 
+  // ── Delete ───────────────────────────────────────────────────────────────────
+
+  async deleteEditProject(id: string, userId: string): Promise<void> {
+    await this.assertEditProjectOwnership(id, userId);
+    await ep(this.prisma).delete({ where: { id } });
+  }
+
   // ── Save timeline ────────────────────────────────────────────────────────────
 
   async saveTimeline(id: string, userId: string, rawTimeline: unknown): Promise<EditProjectRow> {
