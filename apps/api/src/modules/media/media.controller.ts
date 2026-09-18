@@ -279,13 +279,26 @@ export class MediaController {
       if (!p) throw new NotFoundException('Project not found or not owned by you');
       return explicitId;
     }
+    // Use the most-recent project, or auto-create a container project so the
+    // upload never fails just because the user hasn't set one up yet.
     const recent = await this.prisma.project.findFirst({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
       select: { id: true },
     });
     if (recent) return recent.id;
-    throw new BadRequestException('No project found. Create a project before uploading videos.');
+
+    const channel = await this.prisma.channel.findFirst({ where: { userId }, select: { id: true } });
+    const created = await this.prisma.project.create({
+      data: {
+        userId,
+        channelId: channel?.id ?? null,
+        title: 'Video Editor',
+        description: 'Auto-created container for uploaded videos',
+      },
+      select: { id: true },
+    });
+    return created.id;
   }
 
   // Signed access (docs4/09): file routes accept `?exp=&sig=` OR a JWT.

@@ -18,7 +18,7 @@ import {
   ImageIcon,
   FileText,
   X,
-  CheckCircle2,
+
 } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -467,28 +467,44 @@ function EditorInner() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>('timeline');
   const importRef = useRef<HTMLInputElement>(null);
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
+
+  // Shared busy / error state for all three import actions
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // URL-import inline input
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState('');
-  const [importDone, setImportDone] = useState<string | null>(null); // edit project id after success
 
-  async function runImport(action: () => Promise<{ assetId: string; versionId: string; projectId: string }>) {
-    setImporting(true);
-    setImportError(null);
-    setImportDone(null);
+  /** Upload video asset then create an edit project and navigate to the editor. */
+  async function runVideoImport(
+    action: () => Promise<{ assetId: string; projectId: string }>,
+  ) {
+    setBusy(true);
+    setActionError(null);
     try {
-      const upload = await action();
-      const { data: edit } = await api.editor.create(upload.projectId, {
+      const { assetId, projectId } = await action();
+      const { data: edit } = await api.editor.create(projectId, {
         sourceKind: 'ASSET',
-        sourceId: upload.assetId,
+        sourceId: assetId,
       });
-      setImportDone(edit.id);
       router.push(`/editor/${edit.id}`);
     } catch (err) {
-      setImportError(getErrorMessage(err));
-    } finally {
-      setImporting(false);
+      setActionError(getErrorMessage(err));
+      setBusy(false);
+    }
+  }
+
+  /** Create a blank edit project and navigate immediately. */
+  async function handleNewProject() {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const { data: edit } = await api.editor.createBlank({ title: 'Untitled Edit' });
+      router.push(`/editor/${edit.id}`);
+    } catch (err) {
+      setActionError(getErrorMessage(err));
+      setBusy(false);
     }
   }
 
@@ -496,7 +512,7 @@ function EditorInner() {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    await runImport(async () => {
+    await runVideoImport(async () => {
       const { data } = await api.media.uploadVideo(file);
       return data;
     });
@@ -506,7 +522,8 @@ function EditorInner() {
     const url = urlValue.trim();
     if (!url) return;
     setShowUrlInput(false);
-    await runImport(async () => {
+    setUrlValue('');
+    await runVideoImport(async () => {
       const { data } = await api.media.importVideoFromUrl(url);
       return data;
     });
@@ -517,7 +534,7 @@ function EditorInner() {
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5 pt-5 lg:pt-6">
 
         {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -530,69 +547,78 @@ function EditorInner() {
               <p className="text-sm text-gray-400 mt-0.5">Timeline editing, storyboard &amp; multi-platform export</p>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
+
+          {/* Action row */}
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={importRef}
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/*"
+              className="hidden"
+              onChange={handleFileImport}
+            />
+
+            {/* Upload File */}
+            <button
+              onClick={() => { setShowUrlInput(false); setActionError(null); importRef.current?.click(); }}
+              disabled={busy}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {busy && !showUrlInput ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              Upload File
+            </button>
+
+            {/* From URL */}
+            <button
+              onClick={() => { setShowUrlInput((v) => !v); setActionError(null); }}
+              disabled={busy}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border text-sm font-semibold active:scale-[.98] transition-all disabled:opacity-50 ${showUrlInput ? 'border-gray-600 bg-gray-600 text-white' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+            >
+              <Link2 className="w-4 h-4" /> From URL
+            </button>
+
+            {/* New Project — blank edit, navigates immediately */}
+            <button
+              onClick={handleNewProject}
+              disabled={busy}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-gray-700 hover:bg-gray-800 active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              New Project
+            </button>
+          </div>
+
+          {/* URL input row — expands inline */}
+          {showUrlInput && (
             <div className="flex items-center gap-2">
               <input
-                ref={importRef}
-                type="file"
-                accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/*"
-                className="hidden"
-                onChange={handleFileImport}
+                type="url"
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleUrlImport()}
+                placeholder="https://example.com/video.mp4"
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-gray-400"
+                autoFocus
               />
               <button
-                onClick={() => { setShowUrlInput(false); importRef.current?.click(); }}
-                disabled={importing}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={handleUrlImport}
+                disabled={!urlValue.trim() || busy}
+                className="px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-gray-700 hover:bg-gray-800 disabled:opacity-50 transition-colors"
               >
-                {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                {importing ? 'Uploading…' : 'Upload File'}
+                Import
               </button>
-              <button
-                onClick={() => setShowUrlInput((v) => !v)}
-                disabled={importing}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-60"
-              >
-                <Link2 className="w-4 h-4" /> From URL
-              </button>
-              <button
-                onClick={() => setActiveTab('timeline')}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors"
-              >
-                <Plus className="w-4 h-4" /> New Project
+              <button onClick={() => setShowUrlInput(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
               </button>
             </div>
-            {showUrlInput && (
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <input
-                  type="url"
-                  value={urlValue}
-                  onChange={(e) => setUrlValue(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleUrlImport()}
-                  placeholder="https://example.com/video.mp4"
-                  className="flex-1 sm:w-72 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300"
-                  autoFocus
-                />
-                <button
-                  onClick={handleUrlImport}
-                  disabled={!urlValue.trim()}
-                  className="px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 disabled:opacity-50 transition-colors"
-                >
-                  Import
-                </button>
-                <button onClick={() => setShowUrlInput(false)} className="p-2 text-gray-400 hover:text-gray-600">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-            {importError && (
-              <p className="text-xs text-red-500 max-w-sm text-right">{importError}</p>
-            )}
-            {importDone && (
-              <p className="text-xs text-green-600 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Video imported — opening editor…
-              </p>
-            )}
-          </div>
+          )}
+
+          {/* Inline error */}
+          {actionError && (
+            <p className="text-xs text-red-500 bg-red-50 rounded-xl px-4 py-2.5 border border-red-100">
+              {actionError}
+            </p>
+          )}
         </div>
 
         {/* Tab card */}
