@@ -1690,11 +1690,10 @@ export default function EditorWorkspacePage() {
   useEffect(() => {
     if (project?.timeline && !timeline) {
       const raw = project.timeline;
-      setTimeline({
-        width: 1920, height: 1080, fps: 30, durationMs: 0,
-        ...raw,
-        tracks: raw.tracks ?? [],
-      });
+      // Spread defaults first, then raw values, then guard tracks so that the
+      // Prisma default {} (which has no tracks) never enters state as-is.
+      const seed: EditTimeline = { width: 1920, height: 1080, fps: 30, durationMs: 0, tracks: [] };
+      setTimeline({ ...seed, ...raw, tracks: raw.tracks ?? [] });
     }
   }, [project, timeline]);
 
@@ -1725,8 +1724,8 @@ export default function EditorWorkspacePage() {
   const updateTimeline = useCallback((updater: (tl: EditTimeline) => EditTimeline) => {
     setTimeline((prev) => {
       if (!prev) return prev;
-      // Normalise: Prisma default {} has no tracks; every updater needs the array.
-      const safe: EditTimeline = { width: 1920, height: 1080, fps: 30, durationMs: 0, ...prev, tracks: prev.tracks ?? [] };
+      // Guard tracks — Prisma default {} has no tracks; every updater needs the array.
+      const safe: EditTimeline = { ...prev, tracks: prev.tracks ?? [] };
       const next = updater(safe);
       setDirty(true);
       return next;
