@@ -1644,10 +1644,10 @@ export default function EditorWorkspacePage() {
     refetchOnWindowFocus: false,
   });
 
-  // Load media bin
+  // Load media bin — normalise null response (empty project) to []
   const { data: mediaBin = [] } = useQuery<MediaBinEntry[]>({
     queryKey: ['editor-media-bin', editId],
-    queryFn: () => api.editor.mediaBin(editId).then((r) => r.data),
+    queryFn: () => api.editor.mediaBin(editId).then((r) => r.data ?? []),
     enabled: !!project,
   });
 
@@ -1686,13 +1686,13 @@ export default function EditorWorkspacePage() {
   const rafRef = useRef<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Initialise timeline from server — normalise Prisma's default {} (no tracks)
+  // Initialise timeline from server — normalise Prisma's default {} or null (no tracks)
   useEffect(() => {
-    if (project?.timeline && !timeline) {
-      const raw = project.timeline;
-      // Spread defaults first, then raw values, then guard tracks so that the
-      // Prisma default {} (which has no tracks) never enters state as-is.
+    if (project && !timeline) {
+      // @reason: Prisma JSON returns null for brand-new projects; ?? falls back to seed so every
+      // code-path that calls tl.tracks.map() always has an array.
       const seed: EditTimeline = { width: 1920, height: 1080, fps: 30, durationMs: 0, tracks: [] };
+      const raw = project.timeline ?? seed;
       setTimeline({ ...seed, ...raw, tracks: raw.tracks ?? [] });
     }
   }, [project, timeline]);

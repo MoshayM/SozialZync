@@ -1,7 +1,8 @@
 'use client';
 import { Suspense, useState, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Film,
   Plus,
@@ -9,32 +10,26 @@ import {
   Loader2,
   AlertCircle,
   Pencil,
-  Download,
   Upload,
   Link2,
-  Layers,
-  FolderOpen,
-  Music,
-  ImageIcon,
-  FileText,
   X,
   CheckCircle2,
+  Trash2,
+  Layers,
+  ChevronDown,
 } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ExportFormat = 'MP4' | 'WebM' | 'MOV';
-type ExportQuality = '720p' | '1080p' | '4K';
-type ExportFPS = '24fps' | '30fps' | '60fps';
 type ImportPhase = 'idle' | 'importing' | 'done';
 
-const STATUS_STYLES: Record<string, React.CSSProperties> = {
-  DRAFT:     { background: '#f3f4f6', color: '#4b5563' },
-  RENDERING: { background: '#eff6ff', color: '#1d4ed8' },
-  READY:     { background: '#ecfdf5', color: '#065f46' },
-  FAILED:    { background: '#fef2f2', color: '#b91c1c' },
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  DRAFT:     { bg: '#f3f4f6', text: '#4b5563' },
+  RENDERING: { bg: '#eff6ff', text: '#1d4ed8' },
+  READY:     { bg: '#ecfdf5', text: '#065f46' },
+  FAILED:    { bg: '#fef2f2', text: '#b91c1c' },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -177,7 +172,7 @@ function ProjectPickerPanel({
   useEffect(() => {
     setLoadingProjects(true);
     api.editor.listMine()
-      .then((r) => setExistingProjects(r.data))
+      .then((r) => setExistingProjects(r.data ?? []))
       .catch(() => {})
       .finally(() => setLoadingProjects(false));
   }, []);
@@ -208,7 +203,6 @@ function ProjectPickerPanel({
 
   return (
     <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">
-      {/* Success header */}
       <div className="flex items-start gap-2">
         <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
@@ -224,7 +218,6 @@ function ProjectPickerPanel({
         </button>
       </div>
 
-      {/* Mode toggle */}
       <div className="flex rounded-xl border border-emerald-200 overflow-hidden text-sm font-semibold">
         <button
           type="button"
@@ -242,7 +235,6 @@ function ProjectPickerPanel({
         </button>
       </div>
 
-      {/* New project: name input */}
       {mode === 'new' && (
         <input
           type="text"
@@ -254,7 +246,6 @@ function ProjectPickerPanel({
         />
       )}
 
-      {/* Existing project list */}
       {mode === 'existing' && (
         <div className="space-y-1 max-h-44 overflow-y-auto">
           {loadingProjects ? (
@@ -290,7 +281,6 @@ function ProjectPickerPanel({
         </p>
       )}
 
-      {/* CTA */}
       <button
         type="button"
         onClick={() => void handleOpen()}
@@ -304,353 +294,279 @@ function ProjectPickerPanel({
   );
 }
 
-// ── Tab: Timeline Editor (project list) ───────────────────────────────────────
+// ── Delete Confirm Dialog ─────────────────────────────────────────────────────
 
-function TimelineEditorTab({ onNewProject }: { onNewProject: () => void }) {
-  const { data: projects = [], isLoading, error } = useQuery<EditProject[]>({
+function DeleteConfirmDialog({
+  project,
+  onCancel,
+  onConfirm,
+  deleting,
+}: {
+  project: EditProject;
+  onCancel: () => void;
+  onConfirm: () => void;
+  deleting: boolean;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onCancel(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Delete project"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+            <Trash2 className="w-5 h-5 text-red-600" />
+          </div>
+          <div>
+            <h2 className="font-bold text-gray-900">Delete project?</h2>
+            <p className="text-xs text-gray-400 truncate max-w-[220px] mt-0.5">{project.title}</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-600 mb-5">
+          This will permanently delete the edit project and its timeline. Your source media files will not be affected.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Keep it
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
+          >
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Project Card ──────────────────────────────────────────────────────────────
+
+function ProjectCard({
+  project,
+  onDelete,
+}: {
+  project: EditProject;
+  onDelete: (p: EditProject) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [groupOpen, setGroupOpen] = useState(false);
+  const sc = STATUS_COLORS[project.status] ?? STATUS_COLORS['DRAFT'];
+
+  return (
+    <div
+      className="relative rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setGroupOpen(false); }}
+    >
+      {/* Thumbnail area — 16:9 */}
+      <div className="relative w-full bg-gray-900" style={{ paddingTop: '56.25%' }}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Film className="w-12 h-12 text-gray-700" />
+        </div>
+
+        {/* Specs badge */}
+        <div className="absolute bottom-2 right-2 text-[10px] font-mono text-gray-400 bg-gray-900/70 rounded px-1.5 py-0.5 backdrop-blur-sm">
+          {project.width}×{project.height} · {project.fps}fps
+        </div>
+
+        {/* Hover action overlay */}
+        <div
+          className={`absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          style={{ background: 'rgba(0,0,0,0.62)' }}
+        >
+          {/* Edit */}
+          <Link
+            href={`/editor/${project.id}`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white border border-white/25 bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Edit
+          </Link>
+
+          {/* Delete */}
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); onDelete(project); }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-200 border border-red-300/30 bg-red-500/20 hover:bg-red-500/40 transition-colors backdrop-blur-sm"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete
+          </button>
+
+          {/* Group — dropdown anchor */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setGroupOpen((o) => !o); }}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold text-gray-200 border border-white/20 bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
+            >
+              <Layers className="w-3.5 h-3.5" /> Group <ChevronDown className="w-3 h-3 opacity-70" />
+            </button>
+            {groupOpen && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-10">
+                <p className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide">Organize</p>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setGroupOpen(false); }}
+                  className="w-full text-left px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Plus className="w-3.5 h-3.5 text-gray-400" /> Add to collection
+                  <span className="ml-auto text-[10px] text-gray-300">soon</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setGroupOpen(false); }}
+                  className="w-full text-left px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Film className="w-3.5 h-3.5 text-gray-400" /> Move to project
+                  <span className="ml-auto text-[10px] text-gray-300">soon</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Card info */}
+      <div className="px-3.5 py-3">
+        <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{project.title}</p>
+        <div className="flex items-center gap-2 mt-1.5">
+          <Clock className="w-3 h-3 text-gray-400 shrink-0" />
+          <span className="text-[11px] text-gray-400">{relativeTime(project.lastEditedAt)}</span>
+          <span
+            className="ml-auto shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{ background: sc.bg, color: sc.text }}
+          >
+            {project.status.charAt(0) + project.status.slice(1).toLowerCase()}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── New-project card (+ tile) ─────────────────────────────────────────────────
+
+function NewProjectCard({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative rounded-2xl overflow-hidden border-2 border-dashed border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all flex flex-col items-center justify-center min-h-[180px] cursor-pointer"
+    >
+      <div
+        className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110"
+        style={{ background: 'linear-gradient(135deg,#374151,#1f2937)' }}
+      >
+        <Plus className="w-6 h-6 text-white" />
+      </div>
+      <p className="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">New Project</p>
+      <p className="text-[11px] text-gray-400 mt-0.5">Start a blank timeline</p>
+    </button>
+  );
+}
+
+// ── Project grid ──────────────────────────────────────────────────────────────
+
+function ProjectGrid({ onNewProject }: { onNewProject: () => void }) {
+  const qc = useQueryClient();
+  const { data: rawProjects, isLoading, error } = useQuery<EditProject[]>({
     queryKey: ['editor-projects'],
-    queryFn: () => api.editor.listMine().then((r) => r.data),
+    queryFn: () => api.editor.listMine().then((r) => r.data ?? []),
     retry: false,
   });
 
+  const projects = Array.isArray(rawProjects) ? rawProjects : [];
+
+  const [pendingDelete, setPendingDelete] = useState<EditProject | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await api.editor.deleteProject(pendingDelete.id);
+      void qc.invalidateQueries({ queryKey: ['editor-projects'] });
+      setPendingDelete(null);
+    } catch {
+      // error stays visible via the dialog
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-gray-400 gap-2">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span className="text-sm">Loading projects…</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400">
+        <AlertCircle className="w-8 h-8 mb-3 text-gray-300" />
+        <p className="text-sm">Could not load projects.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5 p-5 lg:p-6">
-      <p className="text-sm font-bold text-gray-900">Recent Projects</p>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <NewProjectCard onClick={onNewProject} />
+        {projects.map((p) => (
+          <ProjectCard key={p.id} project={p} onDelete={setPendingDelete} />
+        ))}
+      </div>
 
-      {isLoading && (
-        <div className="flex items-center gap-2 text-gray-500 py-16 justify-center">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading edit projects…
-        </div>
-      )}
-
-      {!!error && !isLoading && (
-        <div className="py-16 text-center">
-          <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">Could not load edit projects. Create a new one to get started.</p>
-        </div>
-      )}
-
-      {!isLoading && !error && projects.length === 0 && (
-        <div className="text-center py-20 text-gray-500">
-          <Film className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-          <p className="mb-4">No edit projects yet.</p>
-          <button
-            type="button"
-            onClick={onNewProject}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Create your first edit
-          </button>
-        </div>
-      )}
-
-      {!isLoading && projects.length > 0 && (
-        <div className="space-y-2">
-          {projects.map((p) => (
-            <a
-              key={p.id}
-              href={`/editor/${p.id}`}
-              className="block bg-white rounded-2xl px-5 py-4 hover:shadow-lg transition-all border border-gray-100"
-            >
-              <div className="flex items-center gap-3">
-                <Film className="w-5 h-5 shrink-0 text-gray-600" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{p.title}</p>
-                  <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
-                    <Clock className="w-3 h-3" />
-                    {relativeTime(p.lastEditedAt)} · {p.width}×{p.height} · {p.fps}fps
-                  </p>
-                </div>
-                <span
-                  className="px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0"
-                  style={STATUS_STYLES[p.status] ?? { background: '#f3f4f6', color: '#4b5563' }}
-                >
-                  {p.status.toLowerCase()}
-                </span>
-                <Pencil className="w-4 h-4 text-gray-300 shrink-0" />
-              </div>
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Tab: Storyboard ───────────────────────────────────────────────────────────
-
-function StoryboardTab() {
-  return (
-    <div className="p-5 lg:p-6">
-      <p className="text-sm font-bold text-gray-900 mb-5">Scene Breakdown</p>
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
-          <Layers className="w-8 h-8 text-gray-400" />
-        </div>
-        <p className="text-base font-semibold text-gray-800 mb-1">No scenes yet</p>
-        <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
-          AI will generate your script scenes here. Open an edit project and run a Script job to begin.
+      {projects.length === 0 && (
+        <p className="text-center text-sm text-gray-400 mt-6">
+          No projects yet — click <strong className="text-gray-600">New Project</strong> or import a video to get started.
         </p>
-      </div>
-    </div>
-  );
-}
-
-// ── Tab: Assets ───────────────────────────────────────────────────────────────
-
-type LocalAsset = { file: File; id: string };
-
-function assetIcon(file: File) {
-  if (file.type.startsWith('video/')) return <Film className="w-4 h-4 text-blue-500 shrink-0" />;
-  if (file.type.startsWith('audio/')) return <Music className="w-4 h-4 text-purple-500 shrink-0" />;
-  if (file.type.startsWith('image/')) return <ImageIcon className="w-4 h-4 text-green-500 shrink-0" />;
-  return <FileText className="w-4 h-4 text-gray-400 shrink-0" />;
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function AssetsTab() {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [assets, setAssets] = useState<LocalAsset[]>([]);
-
-  function openPicker() {
-    inputRef.current?.click();
-  }
-
-  function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-    const next: LocalAsset[] = files.map((file) => ({
-      file,
-      id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
-    }));
-    setAssets((prev) => [...prev, ...next]);
-    e.target.value = '';
-  }
-
-  function remove(id: string) {
-    setAssets((prev) => prev.filter((a) => a.id !== id));
-  }
-
-  return (
-    <div className="p-5 lg:p-6">
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        accept="video/*,image/*,audio/*,.pdf,.txt,.srt,.vtt"
-        className="hidden"
-        onChange={handleFiles}
-      />
-
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-sm font-bold text-gray-900">Project Assets</p>
-        <button
-          type="button"
-          onClick={openPicker}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 active:scale-[0.97] transition-all"
-        >
-          <Upload className="w-3.5 h-3.5" /> Upload Asset
-        </button>
-      </div>
-
-      {assets.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          {assets.map(({ file, id }) => (
-            <div
-              key={id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-white"
-            >
-              {assetIcon(file)}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-900 truncate">{file.name}</p>
-                <p className="text-[11px] text-gray-400">{formatBytes(file.size)}</p>
-              </div>
-              <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-100">
-                Local
-              </span>
-              <button
-                type="button"
-                aria-label="Remove asset"
-                onClick={() => remove(id)}
-                className="shrink-0 text-gray-300 hover:text-red-400 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-
-          <button
-            type="button"
-            onClick={openPicker}
-            className="flex items-center justify-center gap-1.5 mt-1 py-2.5 rounded-xl border border-dashed border-gray-200 text-gray-500 text-xs font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add more files
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
-            <FolderOpen className="w-8 h-8 text-gray-400" />
-          </div>
-          <p className="text-base font-semibold text-gray-800 mb-1">No assets yet</p>
-          <p className="text-sm text-gray-500 max-w-xs leading-relaxed mb-5">
-            Generated thumbnails, audio, and video files will appear here once your AI jobs complete.
-          </p>
-          <button
-            type="button"
-            onClick={openPicker}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all"
-          >
-            <Upload className="w-4 h-4" /> Upload your first asset
-          </button>
-        </div>
       )}
-    </div>
-  );
-}
 
-// ── Tab: Export ───────────────────────────────────────────────────────────────
-
-function ExportTab() {
-  const [format, setFormat] = useState<ExportFormat>('MP4');
-  const [quality, setQuality] = useState<ExportQuality>('1080p');
-  const [fps, setFps] = useState<ExportFPS>('30fps');
-
-  const formats: ExportFormat[] = ['MP4', 'WebM', 'MOV'];
-  const qualities: ExportQuality[] = ['720p', '1080p', '4K'];
-  const frameRates: ExportFPS[] = ['24fps', '30fps', '60fps'];
-
-  return (
-    <div className="p-5 lg:p-6 max-w-lg mx-auto">
-      <p className="text-sm font-bold text-gray-900 mb-6">Export Settings</p>
-
-      <div className="mb-5">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Format</label>
-        <div className="flex gap-2">
-          {formats.map((f) => (
-            <button
-              key={f}
-              onClick={() => setFormat(f)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                format === f
-                  ? 'bg-gray-600 text-white border-gray-600'
-                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-5">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Quality</label>
-        <div className="flex gap-2">
-          {qualities.map((q) => (
-            <button
-              key={q}
-              onClick={() => setQuality(q)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                quality === q
-                  ? 'bg-gray-600 text-white border-gray-600'
-                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Frame Rate</label>
-        <div className="flex gap-2">
-          {frameRates.map((r) => (
-            <button
-              key={r}
-              onClick={() => setFps(r)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                fps === r
-                  ? 'bg-gray-600 text-white border-gray-600'
-                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-        <p className="text-xs font-semibold text-gray-500 mb-2">Export Summary</p>
-        <div className="flex items-center justify-between text-sm text-gray-700">
-          <span>Format</span>
-          <span className="font-semibold">{format}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm text-gray-700 mt-1">
-          <span>Resolution</span>
-          <span className="font-semibold">{quality}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm text-gray-700 mt-1">
-          <span>Frame Rate</span>
-          <span className="font-semibold">{fps}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm text-gray-700 mt-1">
-          <span>Estimated size</span>
-          <span className="font-semibold text-gray-400">~2.1 GB</span>
-        </div>
-      </div>
-
-      <div className="mb-5">
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
-          <span>Export progress</span>
-          <span>0%</span>
-        </div>
-        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-gray-600 rounded-full" style={{ width: '0%' }} />
-        </div>
-      </div>
-
-      <button className="w-full py-3.5 rounded-xl bg-gray-600 text-white text-sm font-bold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
-        <Download className="w-4 h-4" />
-        Export Video
-      </button>
-
-      <p className="text-center text-xs text-gray-400 mt-3">Exports are processed in the background. You&#39;ll be notified when ready.</p>
-    </div>
+      {pendingDelete && (
+        <DeleteConfirmDialog
+          project={pendingDelete}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void confirmDelete()}
+          deleting={deleting}
+        />
+      )}
+    </>
   );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-type TabKey = 'timeline' | 'storyboard' | 'assets' | 'export';
-
-interface TabDef {
-  key: TabKey;
-  label: string;
-}
-
-const TABS: TabDef[] = [
-  { key: 'timeline', label: 'Timeline Editor' },
-  { key: 'storyboard', label: 'Storyboard' },
-  { key: 'assets', label: 'Assets' },
-  { key: 'export', label: 'Export' },
-];
-
 function EditorInner() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>('timeline');
   const importRef = useRef<HTMLInputElement>(null);
 
-  // New Project modal
   const [showNewProject, setShowNewProject] = useState(false);
 
-  // Upload/URL import state machine
   const [importPhase, setImportPhase] = useState<ImportPhase>('idle');
   const [importLabel, setImportLabel] = useState('');
   const [importedAsset, setImportedAsset] = useState<{
@@ -660,7 +576,6 @@ function EditorInner() {
   } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
-  // URL input
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState('');
 
@@ -711,7 +626,7 @@ function EditorInner() {
 
   return (
     <div className="min-h-full bg-[#faf9ff]">
-      <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5 pt-5 lg:pt-6">
+      <div className="p-5 lg:p-7 max-w-7xl mx-auto space-y-6 pt-5 lg:pt-6">
 
         {/* Page header */}
         <div className="flex flex-col gap-4">
@@ -724,11 +639,11 @@ function EditorInner() {
             </div>
             <div>
               <h2 className="text-xl font-extrabold text-gray-900 leading-tight">Video Editor</h2>
-              <p className="text-sm text-gray-400 mt-0.5">Timeline editing, storyboard &amp; multi-platform export</p>
+              <p className="text-sm text-gray-400 mt-0.5">Timeline editing &amp; multi-platform export</p>
             </div>
           </div>
 
-          {/* Action row */}
+          {/* Import actions */}
           <div className="flex flex-wrap gap-2">
             <input
               ref={importRef}
@@ -738,7 +653,6 @@ function EditorInner() {
               onChange={handleFileImport}
             />
 
-            {/* Upload File */}
             <button
               type="button"
               onClick={() => { setShowUrlInput(false); setImportError(null); importRef.current?.click(); }}
@@ -749,7 +663,6 @@ function EditorInner() {
               Upload File
             </button>
 
-            {/* From URL */}
             <button
               type="button"
               onClick={() => { setShowUrlInput((v) => !v); setImportError(null); }}
@@ -758,19 +671,9 @@ function EditorInner() {
             >
               <Link2 className="w-4 h-4" /> From URL
             </button>
-
-            {/* New Project — opens naming modal */}
-            <button
-              type="button"
-              onClick={() => setShowNewProject(true)}
-              disabled={importing}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-gray-700 hover:bg-gray-800 active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Plus className="w-4 h-4" /> New Project
-            </button>
           </div>
 
-          {/* URL input row */}
+          {/* URL input */}
           {showUrlInput && (
             <div className="flex items-center gap-2">
               <input
@@ -796,7 +699,7 @@ function EditorInner() {
             </div>
           )}
 
-          {/* Import in-progress indicator */}
+          {/* Import progress */}
           {importing && (
             <div className="flex items-center gap-2.5 text-sm text-gray-500 bg-white border border-gray-100 rounded-xl px-4 py-3">
               <Loader2 className="w-4 h-4 animate-spin text-gray-400 shrink-0" />
@@ -806,7 +709,7 @@ function EditorInner() {
             </div>
           )}
 
-          {/* Project picker — shown once upload/import succeeds */}
+          {/* Project picker after import */}
           {importPhase === 'done' && importedAsset && (
             <ProjectPickerPanel
               assetId={importedAsset.assetId}
@@ -824,33 +727,12 @@ function EditorInner() {
           )}
         </div>
 
-        {/* Tab card */}
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="flex overflow-x-auto border-b border-gray-100 px-1 pt-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg whitespace-nowrap transition-all mr-0.5 shrink-0 ${
-                  activeTab === tab.key
-                    ? 'bg-gray-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === 'timeline' && <TimelineEditorTab onNewProject={() => setShowNewProject(true)} />}
-          {activeTab === 'storyboard' && <StoryboardTab />}
-          {activeTab === 'assets' && <AssetsTab />}
-          {activeTab === 'export' && <ExportTab />}
-        </div>
+        {/* Projects grid */}
+        <ProjectGrid onNewProject={() => setShowNewProject(true)} />
 
       </div>
 
-      {/* New Project modal — rendered outside main scroll area */}
+      {/* New project modal */}
       {showNewProject && (
         <NewProjectModal
           onClose={() => setShowNewProject(false)}

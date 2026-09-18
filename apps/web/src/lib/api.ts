@@ -1471,6 +1471,8 @@ export const api = {
       targetLufs?: number;
       thresholdDb?: number;
     }) => apiClient.post<{ assetVersionId: string; durationMs: number }>(`/editor/${editId}/audio/enhance-asset`, body),
+    deleteProject: (editId: string) =>
+      apiClient.delete<void>(`/editor/${editId}`),
   },
   voice: {
     library: (source?: 'elevenlabs' | 'openai' | 'all') =>
