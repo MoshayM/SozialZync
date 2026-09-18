@@ -2004,7 +2004,7 @@ export default function EditorWorkspacePage() {
           </button>
         ) : (
           <Link
-            href="/wallet"
+            href="/plans"
             className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50 min-h-[44px]"
             title="Pro plan required to export videos"
           >

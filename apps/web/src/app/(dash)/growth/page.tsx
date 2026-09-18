@@ -156,7 +156,7 @@ function UpgradeNudges() {
               Recommended plan: <span className="font-semibold">{rec.recommendedPlan}</span>
             </p>
           </div>
-          <a href="/wallet" className="shrink-0 text-xs font-semibold text-[#374151] hover:underline px-2 py-1 rounded-2xl">
+          <a href="/plans" className="shrink-0 text-xs font-semibold text-[#374151] hover:underline px-2 py-1 rounded-2xl">
             Upgrade
           </a>
           <button onClick={() => dismissMutation.mutate(rec.id)} aria-label="Dismiss" className="shrink-0 text-gray-500 hover:text-gray-600 p-1 rounded-2xl">
@@ -301,7 +301,7 @@ function ScorecardTab() {
         <p className="text-sm text-white mb-4">
           Upgrade to Pro for advanced analytics, unlimited AI generations, priority rendering, and multi-channel management.
         </p>
-        <Link href="/wallet" className="inline-flex items-center gap-2 bg-white text-[#374151] font-semibold px-4 py-2 rounded-2xl text-sm hover:bg-[#f3f4f6] transition-colors">
+        <Link href="/plans" className="inline-flex items-center gap-2 bg-white text-[#374151] font-semibold px-4 py-2 rounded-2xl text-sm hover:bg-[#f3f4f6] transition-colors">
           <TrendingUp className="w-4 h-4" /> View Plans
         </Link>
       </div>

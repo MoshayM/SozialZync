@@ -1926,7 +1926,7 @@ function AdRevenuePanel({ projectId }: { projectId: string }) {
           </button>
         ) : (
           <Link
-            href="/wallet"
+            href="/plans"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
             style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
           >
@@ -2367,7 +2367,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
             <button type="button" onClick={() => setShowFreeBlocker(false)} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-4 h-4" /></button>
           </div>
           <a
-            href="/wallet"
+            href="/plans"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
           >

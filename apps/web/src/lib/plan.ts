@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { CREDITS_ENABLED } from './features';
@@ -48,6 +49,7 @@ function isAdminFromToken(): boolean {
 }
 
 export function usePlan() {
+  const router = useRouter();
   const [storedPlan, setStoredPlan] = useState<Plan>('free');
   const [isAdmin, setIsAdmin] = useState(false);
   const [creditProWasActive, setCreditProWasActive] = useState(false);
@@ -108,8 +110,7 @@ export function usePlan() {
   }
 
   function upgradeToPro() {
-    localStorage.setItem('cf_plan', 'pro');
-    setStoredPlan('pro');
+    router.push('/plans');
   }
 
   function downgradeToFree() {

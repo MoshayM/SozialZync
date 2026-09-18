@@ -22,7 +22,7 @@ function friendlyForbidden(data: unknown, httpStatus?: number): string | null {
   // If the backend message explicitly mentions Pro / upgrade, use it verbatim
   if (raw && /pro|upgrade|plan|credits/i.test(raw)) return raw;
   // Generic 403 fallback — never show "403 Forbidden" to users
-  return 'This feature requires a Pro account. Upgrade to Pro ($17/mo) to unlock it — visit your Wallet to upgrade.';
+  return 'This feature requires a Pro account. Upgrade to Pro ($17/mo) to unlock it — visit Plans to upgrade.';
 }
 
 function envelopeHint(data: unknown): string | null {

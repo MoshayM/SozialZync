@@ -342,7 +342,7 @@ export default function ClipExportPage() {
                 <Download className="w-4 h-4" /> Download
               </button>
             ) : (
-              <Link href="/wallet" className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-sm hover:bg-gray-50" title="Pro plan required to download">
+              <Link href="/plans" className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-sm hover:bg-gray-50" title="Pro plan required to download">
                 <Lock className="w-4 h-4" /> Pro only
               </Link>
             )}

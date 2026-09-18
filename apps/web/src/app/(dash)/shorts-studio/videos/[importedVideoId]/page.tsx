@@ -311,7 +311,7 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
           </button>
         ) : (
           <Link
-            href="/wallet"
+            href="/plans"
             className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50"
             title="Pro plan required to publish to external platforms"
           >

@@ -859,7 +859,7 @@ export default function HomePage() {
                     {(trialStatus?.trialCreditsRemaining ?? 0).toLocaleString()} credits
                   </span>
                 </div>
-                <Link href="/wallet" className="text-xs font-bold flex items-center gap-1 hover:underline" style={{ color: '#374151' }}>
+                <Link href="/plans" className="text-xs font-bold flex items-center gap-1 hover:underline" style={{ color: '#374151' }}>
                   Upgrade plan <ArrowRight className="w-3 h-3" />
                 </Link>
               </Card>

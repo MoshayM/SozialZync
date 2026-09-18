@@ -439,7 +439,7 @@ export default function AutopilotPage() {
               Upgrade to Pro ($17/mo) to enable Autopilot — AI runs your full pipeline: research, scripting, compliance, and publishing hands-free.
             </p>
           </div>
-          <Link href="/wallet"
+          <Link href="/plans"
             className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg,#374151 0%,#7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}>
             Upgrade to Pro
