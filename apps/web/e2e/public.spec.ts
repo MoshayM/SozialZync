@@ -24,6 +24,9 @@ test.describe('Root redirect', () => {
 });
 
 test.describe('Protected pages redirect to login', () => {
+  // Must test unauthenticated behaviour — clear stored JWT so the auth guard fires.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   for (const path of ['/home', '/projects', '/insights', '/copilot', '/admin']) {
     test(`${path} redirects unauthenticated users`, async ({ page }) => {
       await page.goto(path);

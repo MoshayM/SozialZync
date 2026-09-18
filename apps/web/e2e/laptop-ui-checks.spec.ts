@@ -7,7 +7,11 @@ test.use({
   userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
 });
 
-test.describe('Laptop UI — passkey hidden + no layout shift', () => {
+// Login-page tests: must run unauthenticated so the form actually renders
+// (a stored JWT causes an immediate redirect away from /login).
+test.describe('Laptop UI — login page checks', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('login page: passkey "Sign in instantly" button is NOT shown on desktop', async ({ page }) => {
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
@@ -56,14 +60,15 @@ test.describe('Laptop UI — passkey hidden + no layout shift', () => {
 
     await page.screenshot({ path: 'e2e/laptop-login-stable.png' });
   });
+});
 
+// Home-page test: requires an authenticated session to reach /home.
+test.describe('Laptop UI — authenticated home page', () => {
   test('home page: AI Channel Insight card does not flash (localStorage init)', async ({ page }) => {
-    await page.goto('/login');
-    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
-
-    // Clear insight dismissal so card is expected to show
-    await page.evaluate(() => localStorage.removeItem('cf_insight_dismissed'));
+    // Clear the dismissal flag then navigate to home (storageState provides auth).
     await page.goto('/home');
+    await page.evaluate(() => localStorage.removeItem('cf_insight_dismissed'));
+    await page.reload();
     await page.waitForTimeout(2000);
 
     const insightCard = page.getByText(/ai channel insight/i);
