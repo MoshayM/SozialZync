@@ -30,6 +30,14 @@ const mainForm = (page: import('@playwright/test').Page) =>
 
 async function loginWithPassword(page: import('@playwright/test').Page) {
   await page.goto('/login');
+  // When a stored JWT is in localStorage the login page useEffect auto-redirects.
+  // Detect that and skip form-filling so the fill() calls don't race the redirect.
+  const alreadyAuth = await page.waitForURL(
+    /\/(home|projects|dashboard)/,
+    { timeout: 4_000 },
+  ).then(() => true).catch(() => false);
+  if (alreadyAuth) return;
+
   await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
   await mainForm(page).locator('input[type="password"]').fill('Admin@123');

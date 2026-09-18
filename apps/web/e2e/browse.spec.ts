@@ -253,6 +253,10 @@ test.describe('Browse page — sort and view mode', () => {
 // ── Plan gate — Pro-only pages ────────────────────────────────────────────────
 
 test.describe('Plan gates — Free user sees upgrade card', () => {
+  // Must test unauthenticated behaviour — clear any stored JWT so the auth
+  // guard actually fires instead of letting the session through.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('automation page shows upgrade info for unauthenticated', async ({ page }) => {
     await page.goto('/automation');
     // Redirected to login (not authenticated)

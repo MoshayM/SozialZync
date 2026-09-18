@@ -13,6 +13,14 @@ const mainForm = (page: import('@playwright/test').Page) =>
 
 async function loginWithPassword(page: import('@playwright/test').Page) {
   await page.goto('/login');
+  // When a stored JWT is in localStorage the login page useEffect auto-redirects.
+  // Detect that and skip form-filling so the fill() calls don't race the redirect.
+  const alreadyAuth = await page.waitForURL(
+    /\/(home|projects|dashboard)/,
+    { timeout: 4_000 },
+  ).then(() => true).catch(() => false);
+  if (alreadyAuth) return;
+
   await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
   await mainForm(page).locator('input[type="password"]').fill('Admin@123');
@@ -38,12 +46,7 @@ test.describe('Copilot panel — desktop smoke tests', () => {
     // Confirm chat textarea is visible (panel is open)
     await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible();
 
-    // Click the X close button
-    const closeBtn = page.locator('button[title=""]').or(
-      page.locator('.cf-copilot-widget button').filter({ has: page.locator('svg') }).last()
-    );
-    // Use the aria role approach — find the X button by its position in the header
-    await page.locator('.cf-copilot-widget').locator('button').filter({ has: page.locator('svg.lucide-x, svg[class*="lucide-x"]') }).click();
+    await page.locator('button[aria-label="Close panel"]').click();
 
     // Panel content (textarea) should be gone; widget (robot) stays visible
     await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).not.toBeVisible({ timeout: 5_000 });
@@ -57,7 +60,7 @@ test.describe('Copilot panel — desktop smoke tests', () => {
     await openCopilotChat(page);
 
     // Close the panel via X
-    await page.locator('.cf-copilot-widget').locator('button').filter({ has: page.locator('svg.lucide-x, svg[class*="lucide-x"]') }).click();
+    await page.locator('button[aria-label="Close panel"]').click();
     await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).not.toBeVisible({ timeout: 5_000 });
 
     // Reopen via Chat tab

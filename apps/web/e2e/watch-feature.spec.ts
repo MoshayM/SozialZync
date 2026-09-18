@@ -5,6 +5,13 @@ const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
 
 async function login(page: Page) {
   await page.goto('/login');
+  // When a stored JWT is in localStorage the login page useEffect auto-redirects.
+  const alreadyAuth = await page.waitForURL(
+    /\/(home|projects|dashboard)/,
+    { timeout: 4_000 },
+  ).then(() => true).catch(() => false);
+  if (alreadyAuth) return;
+
   await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
   await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
   await page.getByRole('button', { name: /sign in with password/i }).click();
@@ -27,13 +34,25 @@ function attachNetworkLogger(page: Page, log: string[]) {
 }
 
 test.describe('Watch feature — live smoke test', () => {
+  // Warm up Railway so the channel-access API doesn't cold-start mid-test.
+  test.beforeAll(async ({ request }) => {
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      try {
+        const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 12_000 });
+        if (res.status() > 0) return;
+      } catch { /* still booting */ }
+      await new Promise(r => setTimeout(r, 3_000));
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
 
   test('channel-access page loads with Social Platforms section', async ({ page }) => {
     await page.goto('/channel-access');
-    await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 30_000 });
     for (const name of ['Facebook', 'Instagram', 'TikTok', 'LinkedIn', 'Threads']) {
       await expect(page.getByText(name).first()).toBeVisible();
     }
@@ -44,7 +63,7 @@ test.describe('Watch feature — live smoke test', () => {
 
   test('Watch button expands section with handle input and Add button', async ({ page }) => {
     await page.goto('/channel-access');
-    await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 30_000 });
 
     const allWatchBtns = page.getByRole('button', { name: /watch/i });
     // TikTok is the 3rd platform (index 2)
@@ -60,7 +79,7 @@ test.describe('Watch feature — live smoke test', () => {
     attachNetworkLogger(page, networkLog);
 
     await page.goto('/channel-access');
-    await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 30_000 });
     // Wait for the initial connection-status fetch to complete so our interceptor only
     // catches the post-add refetch, not the page-load request.
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
@@ -77,11 +96,11 @@ test.describe('Watch feature — live smoke test', () => {
     // Intercept the watch POST response directly
     const watchResponsePromise = page.waitForResponse(
       (res) => res.url().includes('/platforms') && res.request().method() === 'POST',
-      { timeout: 15_000 },
+      { timeout: 30_000 },
     );
     const statusResponsePromise = page.waitForResponse(
       (res) => res.url().includes('connection-status'),
-      { timeout: 15_000 },
+      { timeout: 30_000 },
     );
 
     await page.getByRole('button', { name: /^add$/i }).first().click();
@@ -107,7 +126,7 @@ test.describe('Watch feature — live smoke test', () => {
     // Unwatch it
     const unwatchResponsePromise = page.waitForResponse(
       (res) => res.url().includes('/platforms') && res.request().method() === 'DELETE',
-      { timeout: 15_000 },
+      { timeout: 30_000 },
     );
     await page.getByRole('button', { name: /unwatch/i }).first().click();
     const unwatchRes = await unwatchResponsePromise;
@@ -124,7 +143,7 @@ test.describe('Watch feature — live smoke test', () => {
     attachNetworkLogger(page, networkLog);
 
     await page.goto('/channel-access');
-    await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 30_000 });
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
 
     // X is the 4th platform (index 3)
@@ -149,7 +168,7 @@ test.describe('Watch feature — live smoke test', () => {
     await handleInput.fill('@x_user_one');
     const res1Promise = page.waitForResponse(
       (r) => r.url().includes('/platforms') && r.request().method() === 'POST',
-      { timeout: 15_000 },
+      { timeout: 30_000 },
     );
     await page.getByRole('button', { name: /^add$/i }).first().click();
     const res1 = await res1Promise;
@@ -161,7 +180,7 @@ test.describe('Watch feature — live smoke test', () => {
     await handleInput.fill('@x_user_two');
     const res2Promise = page.waitForResponse(
       (r) => r.url().includes('/platforms') && r.request().method() === 'POST',
-      { timeout: 15_000 },
+      { timeout: 30_000 },
     );
     await page.getByRole('button', { name: /^add$/i }).first().click();
     const res2 = await res2Promise;
@@ -182,7 +201,7 @@ test.describe('Watch feature — live smoke test', () => {
     while (remaining > 0) {
       const delPromise = page.waitForResponse(
         (r) => r.url().includes('/platforms') && r.request().method() === 'DELETE',
-        { timeout: 15_000 },
+        { timeout: 30_000 },
       );
       await unwatchBtns.first().click();
       await delPromise;

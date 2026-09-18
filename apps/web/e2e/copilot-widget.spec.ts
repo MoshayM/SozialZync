@@ -8,6 +8,15 @@ import { test, expect } from '@playwright/test';
 
 async function loginWithPassword(page: import('@playwright/test').Page) {
   await page.goto('/login');
+  // When a stored JWT is in localStorage (e.g. chromium-desktop storageState),
+  // the login page's useEffect auto-redirects to /home without showing the form.
+  // Detect that redirect early and skip form-filling in that case.
+  const alreadyAuth = await page.waitForURL(
+    /\/(home|projects|dashboard)/,
+    { timeout: 4_000 },
+  ).then(() => true).catch(() => false);
+  if (alreadyAuth) return;
+
   await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
   const form = page.locator('form').filter({
     has: page.locator('button').filter({ hasText: /sign in with password/i }),

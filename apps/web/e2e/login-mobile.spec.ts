@@ -1,7 +1,8 @@
 import { test, expect, devices } from '@playwright/test';
 
-// Run these tests with Pixel 5 emulation to match the Android Brave screenshot
-test.use({ ...devices['Pixel 5'] });
+// Run these tests with Pixel 5 emulation to match the Android Brave screenshot.
+// Clear storageState: the login page must render (not auto-redirect via JWT).
+test.use({ ...devices['Pixel 5'], storageState: { cookies: [], origins: [] } });
 
 // Helpers to target a specific form by its submit button text
 const mainForm = (page: Parameters<typeof test>[1] extends { page: infer P } ? P : import('@playwright/test').Page) =>

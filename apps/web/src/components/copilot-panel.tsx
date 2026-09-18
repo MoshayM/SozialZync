@@ -1657,6 +1657,7 @@ export function CopilotPanel() {
                 </button>
               )}
               <button type="button"
+                aria-label="Close panel"
                 onPointerDown={e => e.stopPropagation()}
                 onClick={() => setActivePanel(null)}
                 style={{ width:26, height:26, borderRadius:8, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', color:'rgba(255,255,255,.7)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>

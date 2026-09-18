@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+// These tests verify the login/register UI — they must run without any stored
+// auth session so the login page actually renders (not immediately redirects).
+test.use({ storageState: { cookies: [], origins: [] } });
+
 const ADMIN_EMAIL = process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com';
 const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
 
