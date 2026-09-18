@@ -207,3 +207,58 @@ export function validateImageFile(file: Express.Multer.File): void {
     );
   }
 }
+
+// ── Video MIME validation ────────────────────────────────────────────────────
+
+const VIDEO_MIME_ALLOWLIST = new Set([
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/x-matroska',
+  'video/3gpp',
+  'video/3gpp2',
+  'video/ogg',
+  'video/mpeg',
+  'video/x-ms-wmv',
+  'application/octet-stream', // some servers send this for video files — magic bytes decide
+]);
+
+const VIDEO_MAGIC: Array<{ bytes: number[]; offset?: number }> = [
+  { bytes: [0x1a, 0x45, 0xdf, 0xa3] },           // WebM / MKV (EBML header)
+  { bytes: [0x4f, 0x67, 0x67, 0x53] },            // Ogg video (OggS)
+  { bytes: [0x52, 0x49, 0x46, 0x46] },            // AVI (RIFF container)
+  { bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }, // MP4 / MOV / M4V / 3GP (ISO ftyp box)
+  { bytes: [0x6d, 0x6f, 0x6f, 0x76], offset: 4 }, // QuickTime moov atom (old .mov)
+  { bytes: [0x30, 0x26, 0xb2, 0x75] },            // WMV / ASF header
+  { bytes: [0x00, 0x00, 0x01, 0xba] },            // MPEG-PS program stream
+  { bytes: [0x00, 0x00, 0x01, 0xb3] },            // MPEG-1/2 video elementary stream
+];
+
+/**
+ * Validate an uploaded or downloaded file is a legitimate video file.
+ * Checks MIME allowlist first, then magic bytes (prevents MIME spoofing).
+ * Throws `BadRequestException` on failure.
+ */
+export function validateVideoFile(file: Pick<Express.Multer.File, 'mimetype' | 'buffer'>): void {
+  const { BadRequestException } = require('@nestjs/common') as typeof import('@nestjs/common');
+
+  const mime = (file.mimetype ?? '').toLowerCase().split(';')[0]?.trim() ?? '';
+  if (!VIDEO_MIME_ALLOWLIST.has(mime)) {
+    throw new BadRequestException(
+      `Unsupported video MIME type "${mime}". Allowed: mp4, webm, mov, avi, mkv, 3gp, ogg, mpeg.`,
+    );
+  }
+
+  const buf = file.buffer;
+  if (!buf || buf.length < 12) {
+    throw new BadRequestException('Video file is too small to be valid.');
+  }
+
+  const recognised = VIDEO_MAGIC.some((sig) => matchesMagic(buf, sig));
+  if (!recognised) {
+    throw new BadRequestException(
+      'File content does not match a recognised video format. Upload MP4, WebM, MOV, AVI, or MKV.',
+    );
+  }
+}

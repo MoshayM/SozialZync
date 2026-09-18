@@ -1127,6 +1127,21 @@ export const api = {
         { headers: { 'Content-Type': 'multipart/form-data' } },
       );
     },
+    uploadVideo: (file: File, projectId?: string) => {
+      const form = new FormData();
+      form.append('video', file, file.name);
+      const qs = projectId ? `?projectId=${encodeURIComponent(projectId)}` : '';
+      return apiClient.post<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }>(
+        `/media/video/upload${qs}`,
+        form,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+    },
+    importVideoFromUrl: (url: string, opts?: { title?: string; projectId?: string }) =>
+      apiClient.post<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }>(
+        '/media/video/import-from-url',
+        { url, ...opts },
+      ),
   },
   settings: {
     getApiKeys: () =>

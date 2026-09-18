@@ -11,14 +11,17 @@ import {
   Pencil,
   Download,
   Upload,
+  Link2,
   Layers,
   FolderOpen,
   Music,
   ImageIcon,
   FileText,
   X,
+  CheckCircle2,
 } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
+import { getErrorMessage } from '@/lib/getErrorMessage';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -461,14 +464,52 @@ const TABS: TabDef[] = [
 ];
 
 function EditorInner() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>('timeline');
   const importRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlValue, setUrlValue] = useState('');
+  const [importDone, setImportDone] = useState<string | null>(null); // edit project id after success
 
-  function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+  async function runImport(action: () => Promise<{ assetId: string; versionId: string; projectId: string }>) {
+    setImporting(true);
+    setImportError(null);
+    setImportDone(null);
+    try {
+      const upload = await action();
+      const { data: edit } = await api.editor.create(upload.projectId, {
+        sourceKind: 'ASSET',
+        sourceId: upload.assetId,
+      });
+      setImportDone(edit.id);
+      router.push(`/editor/${edit.id}`);
+    } catch (err) {
+      setImportError(getErrorMessage(err));
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    alert(`"${file.name}" imported — timeline editing coming soon.`);
     e.target.value = '';
+    await runImport(async () => {
+      const { data } = await api.media.uploadVideo(file);
+      return data;
+    });
+  }
+
+  async function handleUrlImport() {
+    const url = urlValue.trim();
+    if (!url) return;
+    setShowUrlInput(false);
+    await runImport(async () => {
+      const { data } = await api.media.importVideoFromUrl(url);
+      return data;
+    });
   }
 
   return (
@@ -489,23 +530,68 @@ function EditorInner() {
               <p className="text-sm text-gray-400 mt-0.5">Timeline editing, storyboard &amp; multi-platform export</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              ref={importRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              onChange={handleImport}
-            />
-            <button
-              onClick={() => importRef.current?.click()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
-            >
-              <Upload className="w-4 h-4" /> Import Video
-            </button>
-            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors">
-              <Plus className="w-4 h-4" /> New Project
-            </button>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <input
+                ref={importRef}
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/*"
+                className="hidden"
+                onChange={handleFileImport}
+              />
+              <button
+                onClick={() => { setShowUrlInput(false); importRef.current?.click(); }}
+                disabled={importing}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {importing ? 'Uploading…' : 'Upload File'}
+              </button>
+              <button
+                onClick={() => setShowUrlInput((v) => !v)}
+                disabled={importing}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-60"
+              >
+                <Link2 className="w-4 h-4" /> From URL
+              </button>
+              <button
+                onClick={() => setActiveTab('timeline')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> New Project
+              </button>
+            </div>
+            {showUrlInput && (
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="url"
+                  value={urlValue}
+                  onChange={(e) => setUrlValue(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUrlImport()}
+                  placeholder="https://example.com/video.mp4"
+                  className="flex-1 sm:w-72 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300"
+                  autoFocus
+                />
+                <button
+                  onClick={handleUrlImport}
+                  disabled={!urlValue.trim()}
+                  className="px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                >
+                  Import
+                </button>
+                <button onClick={() => setShowUrlInput(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            {importError && (
+              <p className="text-xs text-red-500 max-w-sm text-right">{importError}</p>
+            )}
+            {importDone && (
+              <p className="text-xs text-green-600 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Video imported — opening editor…
+              </p>
+            )}
           </div>
         </div>
 

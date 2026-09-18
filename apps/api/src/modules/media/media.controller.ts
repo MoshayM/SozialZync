@@ -1,11 +1,13 @@
-import { Controller, Get, Param, Post, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createHash } from 'crypto';
+import axios from 'axios';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
-import { sanitizeFilename, validateAudioFile } from '../../common/sanitize';
+import { sanitizeFilename, validateAudioFile, validateVideoFile } from '../../common/sanitize';
+import { validateOutboundUrl } from '../../common/ssrf';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from './storage.service';
@@ -141,6 +143,149 @@ export class MediaController {
     });
 
     return { versionId: version.id, assetId: asset.id, provider: 'user-recording', sizeBytes };
+  }
+
+  /**
+   * Accept a local video file upload and store it as a VIDEO asset.
+   * Max 500 MB. Optional ?projectId= — resolves to user's most-recent project if omitted.
+   */
+  @Post('video/upload')
+  @UseInterceptors(FileInterceptor('video', { limits: { fileSize: 500 * 1024 * 1024 } }))
+  async uploadVideo(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('projectId') projectId: string | undefined,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }> {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Missing video file — send as multipart field "video"');
+    }
+    validateVideoFile(file);
+    const safeFilename = sanitizeFilename(file.originalname ?? 'video');
+    const resolvedProjectId = await this.resolveProjectForUser(user.sub, projectId);
+    return this.storeVideoBuffer(file.buffer, safeFilename, file.mimetype, resolvedProjectId, 'user-upload');
+  }
+
+  /**
+   * Download a video from a public URL and store it as a VIDEO asset.
+   * Performs SSRF validation before fetching. Max 500 MB.
+   * Body: { url, title?, projectId? }
+   */
+  @Post('video/import-from-url')
+  async importVideoFromUrl(
+    @Body() body: { url?: string; title?: string; projectId?: string },
+    @CurrentUser() user: JwtPayload,
+  ): Promise<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }> {
+    const rawUrl = (body.url ?? '').trim();
+    if (!rawUrl) throw new BadRequestException('url is required');
+
+    await validateOutboundUrl(rawUrl);
+
+    let buf: Buffer;
+    let detectedMime = 'video/mp4';
+    try {
+      const resp = await axios.get<ArrayBuffer>(rawUrl, {
+        responseType: 'arraybuffer',
+        maxContentLength: 500 * 1024 * 1024,
+        maxBodyLength: 500 * 1024 * 1024,
+        timeout: 5 * 60 * 1000, // 5-minute download timeout
+        headers: { 'User-Agent': 'SozialZynk-VideoImporter/1.0' },
+      });
+      buf = Buffer.from(resp.data);
+      const ct = String(resp.headers['content-type'] ?? '').split(';')[0]?.trim() ?? '';
+      if (ct) detectedMime = ct;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new BadRequestException(`Failed to download video from URL: ${msg}`);
+    }
+
+    if (buf.length === 0) throw new BadRequestException('Downloaded file is empty');
+
+    // Infer MIME from URL extension if server returned octet-stream
+    if (detectedMime === 'application/octet-stream' || !detectedMime.startsWith('video/')) {
+      const ext = rawUrl.split('?')[0]?.split('.').pop()?.toLowerCase() ?? '';
+      const extMime: Record<string, string> = {
+        mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime',
+        avi: 'video/x-msvideo', mkv: 'video/x-matroska', ogv: 'video/ogg',
+      };
+      detectedMime = extMime[ext] ?? detectedMime;
+    }
+
+    validateVideoFile({ mimetype: detectedMime, buffer: buf });
+
+    const rawName = body.title
+      ? `${body.title}.${this.extFromMime(detectedMime)}`
+      : (rawUrl.split('?')[0]?.split('/').pop() ?? `video.${this.extFromMime(detectedMime)}`);
+    const safeFilename = sanitizeFilename(rawName);
+    const resolvedProjectId = await this.resolveProjectForUser(user.sub, body.projectId);
+    return this.storeVideoBuffer(buf, safeFilename, detectedMime, resolvedProjectId, 'url-import');
+  }
+
+  // ── Private helpers ─────────────────────────────────────────────────────────
+
+  private async storeVideoBuffer(
+    buf: Buffer,
+    safeFilename: string,
+    mime: string,
+    projectId: string,
+    provider: string,
+  ): Promise<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }> {
+    const ext = this.extFromMime(mime);
+    const asset = await this.prisma.asset.create({
+      data: { projectId, kind: 'VIDEO', label: safeFilename, status: 'READY' },
+    });
+    const key = `assets/${projectId}/${asset.id}/v1/media.${ext}`;
+    const { sizeBytes } = await this.storage.put(key, buf);
+    const contentHash = createHash('sha256').update(buf).digest('hex');
+    const version = await this.prisma.assetVersion.create({
+      data: {
+        assetId: asset.id,
+        version: 1,
+        r2Key: key,
+        contentHash,
+        provider,
+        model: null,
+        prompt: {} as never,
+        params: {} as never,
+        provenance: {
+          provider,
+          model: null,
+          generatedAt: new Date().toISOString(),
+          license: 'user-owned',
+          notes: provider === 'url-import' ? 'Imported from user-supplied URL' : 'Uploaded by user via browser',
+        } as never,
+        sizeBytes: BigInt(sizeBytes),
+        durationMs: null,
+      },
+    });
+    await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
+    return { assetId: asset.id, versionId: version.id, projectId, sizeBytes, filename: safeFilename };
+  }
+
+  private extFromMime(mime: string): string {
+    if (mime.includes('webm')) return 'webm';
+    if (mime.includes('quicktime')) return 'mov';
+    if (mime.includes('x-msvideo')) return 'avi';
+    if (mime.includes('x-matroska')) return 'mkv';
+    if (mime.includes('3gpp')) return '3gp';
+    if (mime.includes('ogg')) return 'ogv';
+    if (mime.includes('mpeg')) return 'mpeg';
+    if (mime.includes('wmv') || mime.includes('asf')) return 'wmv';
+    return 'mp4';
+  }
+
+  private async resolveProjectForUser(userId: string, explicitId?: string): Promise<string> {
+    if (explicitId) {
+      const p = await this.prisma.project.findFirst({ where: { id: explicitId, userId }, select: { id: true } });
+      if (!p) throw new NotFoundException('Project not found or not owned by you');
+      return explicitId;
+    }
+    const recent = await this.prisma.project.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    });
+    if (recent) return recent.id;
+    throw new BadRequestException('No project found. Create a project before uploading videos.');
   }
 
   // Signed access (docs4/09): file routes accept `?exp=&sig=` OR a JWT.
