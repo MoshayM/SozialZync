@@ -417,7 +417,7 @@ export default function AnalyticsPage() {
           <label htmlFor="analytics-channel" className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-2">Select Channel</label>
           <div className="flex gap-3">
             {channels.length > 0 ? (
-              <div className="relative flex-1">
+              <div className="relative flex-1 min-w-0">
                 <select
                   id="analytics-channel"
                   value={channelId}
@@ -433,14 +433,14 @@ export default function AnalyticsPage() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
               </div>
             ) : (
-              <div className="flex-1 flex items-center gap-3">
+              <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2">
                 <input
                   id="analytics-channel"
                   type="text"
                   value={channelId}
                   onChange={e => setChannelId(e.target.value)}
                   placeholder="Channel ID"
-                  className="flex-1 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
+                  className="flex-1 min-w-0 bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] transition-all"
                   style={{ border: '1.5px solid #e3e0f0' }}
                 />
                 <Link href="/settings/channels" className="shrink-0 text-sm font-semibold hover:underline whitespace-nowrap" style={{ color: '#374151' }}>
@@ -463,11 +463,12 @@ export default function AnalyticsPage() {
           {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
         </div>
 
-        {/* Tab bar — AI Usage visible to SUPER_ADMIN/OWNER only */}
+        {/* Tab bar — AI Analysis + AI Usage visible to SUPER_ADMIN/OWNER only */}
         <div style={{ borderBottom: '1px solid #e3ddf8' }}>
-          <div className="flex">
+          <div className="flex overflow-x-auto">
             {(['scorecard', 'analytics', 'usage', 'benchmark'] as const).map(v => {
               if (v === 'usage' && !isAdmin) return null;
+              if (v === 'analytics' && !isAdmin) return null;
               const isGated = v === 'analytics';
               const locked = isGated && !canAccessAiAnalysis;
               const label = v === 'scorecard' ? 'Scorecard' : v === 'analytics' ? 'AI Analysis' : v === 'usage' ? 'AI Usage' : 'Benchmark';

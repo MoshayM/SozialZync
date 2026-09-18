@@ -210,6 +210,27 @@ function StrategyPanel({ period }: { period: Period }) {
   );
 }
 
+function exportStrategyCSV(period: string) {
+  const rows: string[][] = [
+    ['Type', 'Title', 'Detail', 'Badge'],
+    ...RECOMMENDATION_CARDS.map(c => ['Strategy', c.title, c.headline, c.badge]),
+    [''],
+    ['Posting Schedule', 'Day', 'Times', 'Score'],
+    ...POSTING_SCHEDULE.map(s => ['Schedule', s.day, s.times.join(' / '), String(s.score)]),
+    [''],
+    ['Trending Topics', 'Topic', 'Growth', ''],
+    ...TRENDING_TOPICS.map(t => ['Topic', t.label, t.growth, '']),
+  ];
+  const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `insights-strategy-${period.replace(/\s+/g, '-').toLowerCase()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function InsightsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -240,9 +261,12 @@ function InsightsContent() {
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
-          <button className="flex items-center gap-1.5 border border-gray-200 text-gray-700 font-semibold text-sm rounded-xl px-4 py-2 hover:bg-gray-50 transition">
+          <button
+            onClick={() => exportStrategyCSV(period)}
+            className="flex items-center gap-1.5 border border-gray-200 text-gray-700 font-semibold text-sm rounded-xl px-4 py-2 hover:bg-gray-50 transition"
+          >
             <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span>Export CSV</span>
           </button>
         </div>
       </div>

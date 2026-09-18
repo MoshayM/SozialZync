@@ -462,6 +462,14 @@ const TABS: TabDef[] = [
 
 function EditorInner() {
   const [activeTab, setActiveTab] = useState<TabKey>('timeline');
+  const importRef = useRef<HTMLInputElement>(null);
+
+  function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    alert(`"${file.name}" imported — timeline editing coming soon.`);
+    e.target.value = '';
+  }
 
   return (
     <div className="min-h-full bg-[#faf9ff]">
@@ -482,7 +490,17 @@ function EditorInner() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
+            <input
+              ref={importRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={handleImport}
+            />
+            <button
+              onClick={() => importRef.current?.click()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+            >
               <Upload className="w-4 h-4" /> Import Video
             </button>
             <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors">
@@ -494,12 +512,12 @@ function EditorInner() {
         {/* Tab card */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           {/* Tab bar */}
-          <div className="flex flex-wrap border-b border-gray-100 px-1 pt-1">
+          <div className="flex overflow-x-auto border-b border-gray-100 px-1 pt-1">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg whitespace-nowrap transition-all mr-0.5 ${
+                className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg whitespace-nowrap transition-all mr-0.5 shrink-0 ${
                   activeTab === tab.key
                     ? 'bg-gray-600 text-white'
                     : 'text-gray-600 hover:bg-gray-100'

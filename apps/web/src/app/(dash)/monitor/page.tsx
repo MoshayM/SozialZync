@@ -107,17 +107,15 @@ export default function MonitorPage() {
     <div className="min-h-full bg-[#faf9ff]">
       <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}>
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}>
               <Activity className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">AI Job Monitor</h1>
-              <p className="text-sm text-gray-600 mt-0.5">Real-time view of all pipeline jobs across your projects</p>
-            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">AI Job Monitor</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <p className="text-sm text-gray-600">Real-time view of all pipeline jobs across your projects</p>
+          <div className="flex flex-wrap items-center gap-2">
             {dataUpdatedAt > 0 && (
               <span className="text-xs text-gray-600">Updated {timeAgo(new Date(dataUpdatedAt).toISOString())}</span>
             )}
@@ -180,12 +178,12 @@ export default function MonitorPage() {
         {/* Filters */}
         <div className="bg-white rounded-2xl p-4 flex flex-wrap items-center gap-3" style={{ border: '1.5px solid #e5e7eb' }}>
           <Filter className="w-4 h-4 text-gray-600 shrink-0" />
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1 overflow-x-auto max-w-full">
             {STATUS_FILTER_OPTIONS.map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1 text-xs font-medium rounded-2xl capitalize transition-colors ${statusFilter === s ? 'bg-white shadow text-[#374151]' : 'text-gray-600 hover:text-gray-700'}`}
+                className={`px-3 py-1 text-xs font-medium rounded-2xl capitalize transition-colors whitespace-nowrap ${statusFilter === s ? 'bg-white shadow text-[#374151]' : 'text-gray-600 hover:text-gray-700'}`}
               >
                 {s}
               </button>
