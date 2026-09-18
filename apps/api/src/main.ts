@@ -2,39 +2,37 @@
 import './instrument';
 import 'reflect-metadata';
 
-// When REDIS_URL is not set, BullMQ emits 'error' events for failed Redis
-// connections that become uncaught exceptions. Suppress only those so the
-// API can start and serve auth/core routes without a queue backend.
-if (!process.env['REDIS_URL']) {
-  // When no Redis is configured, IORedis / BullMQ emit error events that
-  // become uncaught exceptions. Suppress all of them so the API can boot
-  // and serve auth + core routes. Queue-dependent features will degrade.
-  const isRedisError = (err: unknown): boolean => {
-    if (!(err instanceof Error)) return false;
-    const msg = err.message ?? '';
-    const code = (err as NodeJS.ErrnoException).code ?? '';
-    return (
-      msg.includes('Connection is closed') ||
-      msg.includes('ECONNREFUSED') ||
-      msg.includes('connect ECONNREFUSED') ||
-      code === 'ECONNREFUSED' ||
-      // BullMQ wraps errors with queue context
-      msg.includes('Queue') ||
-      (err.stack ?? '').includes('ioredis') ||
-      (err.stack ?? '').includes('bullmq')
-    );
-  };
-  process.on('uncaughtException', (err) => {
-    if (isRedisError(err)) return;
-    process.stderr.write(`UNCAUGHT EXCEPTION: ${err.stack ?? err.message}\n`);
-    process.exit(1);
-  });
-  process.on('unhandledRejection', (reason) => {
-    if (isRedisError(reason)) return;
-    process.stderr.write(`UNHANDLED REJECTION: ${String(reason)}\n`);
-    process.exit(1);
-  });
-}
+// Suppress Redis/BullMQ errors that must not crash the process:
+//   - No REDIS_URL: connection refused (queue degrades, API stays up)
+//   - REDIS_URL set: Upstash free-tier rate limit exceeded (transient;
+//     queue ops fail but every non-queue route continues to serve)
+const isRedisError = (err: unknown): boolean => {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message ?? '';
+  const code = (err as NodeJS.ErrnoException).code ?? '';
+  return (
+    msg.includes('Connection is closed') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('connect ECONNREFUSED') ||
+    // Upstash free-tier daily limit — transient, resets at midnight UTC
+    msg.includes('max requests limit exceeded') ||
+    code === 'ECONNREFUSED' ||
+    // BullMQ wraps errors with queue context
+    msg.includes('Queue') ||
+    (err.stack ?? '').includes('ioredis') ||
+    (err.stack ?? '').includes('bullmq')
+  );
+};
+process.on('uncaughtException', (err) => {
+  if (isRedisError(err)) return;
+  process.stderr.write(`UNCAUGHT EXCEPTION: ${err.stack ?? err.message}\n`);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  if (isRedisError(reason)) return;
+  process.stderr.write(`UNHANDLED REJECTION: ${String(reason)}\n`);
+  process.exit(1);
+});
 
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
