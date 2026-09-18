@@ -1,5 +1,5 @@
 ﻿'use client';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,6 +13,10 @@ import {
   Upload,
   Layers,
   FolderOpen,
+  Music,
+  ImageIcon,
+  FileText,
+  X,
 } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
 
@@ -203,27 +207,121 @@ function StoryboardTab() {
 
 // ── Tab: Assets ───────────────────────────────────────────────────────────────
 
+type LocalAsset = { file: File; id: string };
+
+function assetIcon(file: File) {
+  if (file.type.startsWith('video/')) return <Film className="w-4 h-4 text-blue-500 shrink-0" />;
+  if (file.type.startsWith('audio/')) return <Music className="w-4 h-4 text-purple-500 shrink-0" />;
+  if (file.type.startsWith('image/')) return <ImageIcon className="w-4 h-4 text-green-500 shrink-0" />;
+  return <FileText className="w-4 h-4 text-gray-400 shrink-0" />;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function AssetsTab() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [assets, setAssets] = useState<LocalAsset[]>([]);
+
+  function openPicker() {
+    inputRef.current?.click();
+  }
+
+  function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const next: LocalAsset[] = files.map((file) => ({
+      file,
+      id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+    }));
+    setAssets((prev) => [...prev, ...next]);
+    // Reset so the same file can be picked again
+    e.target.value = '';
+  }
+
+  function remove(id: string) {
+    setAssets((prev) => prev.filter((a) => a.id !== id));
+  }
+
   return (
     <div className="p-5 lg:p-6">
+      {/* Hidden file input — accepts video, image, audio */}
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="video/*,image/*,audio/*,.pdf,.txt,.srt,.vtt"
+        className="hidden"
+        onChange={handleFiles}
+      />
+
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm font-bold text-gray-900">Project Assets</p>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors">
+        <button
+          type="button"
+          onClick={openPicker}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 active:scale-[0.97] transition-all"
+        >
           <Upload className="w-3.5 h-3.5" /> Upload Asset
         </button>
       </div>
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
-          <FolderOpen className="w-8 h-8 text-gray-400" />
+
+      {assets.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          {assets.map(({ file, id }) => (
+            <div
+              key={id}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-white"
+            >
+              {assetIcon(file)}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-900 truncate">{file.name}</p>
+                <p className="text-[11px] text-gray-400">{formatBytes(file.size)}</p>
+              </div>
+              <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-100">
+                Local
+              </span>
+              <button
+                type="button"
+                aria-label="Remove asset"
+                onClick={() => remove(id)}
+                className="shrink-0 text-gray-300 hover:text-red-400 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+
+          {/* Add more — dashed border row */}
+          <button
+            type="button"
+            onClick={openPicker}
+            className="flex items-center justify-center gap-1.5 mt-1 py-2.5 rounded-xl border border-dashed border-gray-200 text-gray-500 text-xs font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add more files
+          </button>
         </div>
-        <p className="text-base font-semibold text-gray-800 mb-1">No assets yet</p>
-        <p className="text-sm text-gray-500 max-w-xs leading-relaxed mb-5">
-          Generated thumbnails, audio, and video files will appear here once your AI jobs complete.
-        </p>
-        <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
-          <Upload className="w-4 h-4" /> Upload your first asset
-        </button>
-      </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' }}>
+            <FolderOpen className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-base font-semibold text-gray-800 mb-1">No assets yet</p>
+          <p className="text-sm text-gray-500 max-w-xs leading-relaxed mb-5">
+            Generated thumbnails, audio, and video files will appear here once your AI jobs complete.
+          </p>
+          <button
+            type="button"
+            onClick={openPicker}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all"
+          >
+            <Upload className="w-4 h-4" /> Upload your first asset
+          </button>
+        </div>
+      )}
     </div>
   );
 }
