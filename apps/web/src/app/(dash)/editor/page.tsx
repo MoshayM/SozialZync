@@ -1,6 +1,6 @@
-﻿'use client';
-import { Suspense, useState, useRef } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+'use client';
+import { Suspense, useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
   Film,
@@ -18,7 +18,7 @@ import {
   ImageIcon,
   FileText,
   X,
-
+  CheckCircle2,
 } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -28,6 +28,7 @@ import { getErrorMessage } from '@/lib/getErrorMessage';
 type ExportFormat = 'MP4' | 'WebM' | 'MOV';
 type ExportQuality = '720p' | '1080p' | '4K';
 type ExportFPS = '24fps' | '30fps' | '60fps';
+type ImportPhase = 'idle' | 'importing' | 'done';
 
 const STATUS_STYLES: Record<string, React.CSSProperties> = {
   DRAFT:     { background: '#f3f4f6', color: '#4b5563' },
@@ -48,87 +49,273 @@ function relativeTime(dateStr: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+// ── New Project Modal ─────────────────────────────────────────────────────────
+
+function NewProjectModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (editId: string) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 60);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  async function handleCreate() {
+    const t = title.trim();
+    if (!t || creating) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const { data: edit } = await api.editor.createBlank({ title: t });
+      onCreated(edit.id);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="New edit project"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm"
+      >
+        <div className="px-6 py-5">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center shrink-0">
+              <Plus className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="font-bold text-gray-900 leading-tight">New project</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Name your edit project to get started</p>
+            </div>
+          </div>
+
+          <input
+            ref={inputRef}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); }}
+            placeholder="e.g. YouTube Tutorial, Product Demo"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gray-300 transition"
+          />
+
+          {error && (
+            <p className="mt-2 text-xs text-red-600 flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
+            </p>
+          )}
+
+          <div className="flex gap-2 mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleCreate()}
+              disabled={!title.trim() || creating}
+              className="flex-1 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-1.5 hover:bg-gray-800 transition-colors"
+            >
+              {creating && <Loader2 className="w-4 h-4 animate-spin" />}
+              Create &amp; Open
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Project Picker Panel (post-import) ────────────────────────────────────────
+
+function ProjectPickerPanel({
+  assetId,
+  projectId,
+  filename,
+  onDismiss,
+}: {
+  assetId: string;
+  projectId: string;
+  filename: string;
+  onDismiss: () => void;
+}) {
+  const router = useRouter();
+  const [mode, setMode] = useState<'new' | 'existing'>('new');
+  const [newTitle, setNewTitle] = useState('');
+  const [existingProjects, setExistingProjects] = useState<EditProject[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoadingProjects(true);
+    api.editor.listMine()
+      .then((r) => setExistingProjects(r.data))
+      .catch(() => {})
+      .finally(() => setLoadingProjects(false));
+  }, []);
+
+  const canOpen = mode === 'new' ? true : !!selectedId;
+  const baseName = filename.replace(/\.[^.]+$/, '');
+
+  async function handleOpen() {
+    setOpening(true);
+    setError(null);
+    try {
+      if (mode === 'new') {
+        const title = newTitle.trim() || baseName;
+        const { data: edit } = await api.editor.create(projectId, {
+          sourceKind: 'ASSET',
+          sourceId: assetId,
+          title,
+        });
+        router.push(`/editor/${edit.id}`);
+      } else if (selectedId) {
+        router.push(`/editor/${selectedId}`);
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setOpening(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">
+      {/* Success header */}
+      <div className="flex items-start gap-2">
+        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-emerald-900">Video ready!</p>
+          <p className="text-xs text-emerald-700 truncate mt-0.5">{filename}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="shrink-0 text-emerald-400 hover:text-emerald-600 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Mode toggle */}
+      <div className="flex rounded-xl border border-emerald-200 overflow-hidden text-sm font-semibold">
+        <button
+          type="button"
+          onClick={() => setMode('new')}
+          className={`flex-1 py-2 transition-colors ${mode === 'new' ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-700 hover:bg-emerald-50'}`}
+        >
+          New project
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('existing')}
+          className={`flex-1 py-2 transition-colors border-l border-emerald-200 ${mode === 'existing' ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-700 hover:bg-emerald-50'}`}
+        >
+          Existing project
+        </button>
+      </div>
+
+      {/* New project: name input */}
+      {mode === 'new' && (
+        <input
+          type="text"
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') void handleOpen(); }}
+          placeholder={`e.g. "${baseName}"`}
+          className="w-full border border-emerald-200 bg-white rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 transition"
+        />
+      )}
+
+      {/* Existing project list */}
+      {mode === 'existing' && (
+        <div className="space-y-1 max-h-44 overflow-y-auto">
+          {loadingProjects ? (
+            <p className="text-sm text-emerald-600 flex items-center gap-1.5 py-2 px-1">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+            </p>
+          ) : existingProjects.length === 0 ? (
+            <p className="text-sm text-emerald-700 py-2 px-1">No projects yet — use &quot;New project&quot; above.</p>
+          ) : (
+            existingProjects.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedId(p.id)}
+                className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors flex items-center gap-2 ${
+                  selectedId === p.id
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white border border-emerald-100 text-emerald-900 hover:bg-emerald-100'
+                }`}
+              >
+                <Film className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{p.title}</span>
+                {selectedId === p.id && <CheckCircle2 className="w-3.5 h-3.5 ml-auto shrink-0" />}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2 flex items-center gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
+        </p>
+      )}
+
+      {/* CTA */}
+      <button
+        type="button"
+        onClick={() => void handleOpen()}
+        disabled={opening || !canOpen}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+      >
+        {opening ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+        Edit this video →
+      </button>
+    </div>
+  );
+}
+
 // ── Tab: Timeline Editor (project list) ───────────────────────────────────────
 
-function TimelineEditorTab() {
-  const router = useRouter();
-  const [creating, setCreating] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [showForm, setShowForm] = useState(false);
-
+function TimelineEditorTab({ onNewProject }: { onNewProject: () => void }) {
   const { data: projects = [], isLoading, error } = useQuery<EditProject[]>({
     queryKey: ['editor-projects'],
     queryFn: () => api.editor.listMine().then((r) => r.data),
     retry: false,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (title: string) =>
-      api.editor.createBlank({ title: title || 'Untitled Edit' }).then((r) => r.data),
-    onSuccess: (data) => {
-      router.push(`/editor/${data.id}`);
-    },
-  });
-
-  const handleCreate = () => {
-    if (creating) return;
-    setCreating(true);
-    createMutation.mutate(newTitle || 'Untitled Edit');
-  };
-
   return (
     <div className="space-y-5 p-5 lg:p-6">
-      {/* Sub-header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-sm font-bold text-gray-900">Recent Projects</p>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowForm((s) => !s)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" /> New edit
-          </button>
-        </div>
-      </div>
-
-      {/* Create form */}
-      {showForm && (
-        <div className="bg-white rounded-2xl p-5 border border-gray-100">
-          <p className="text-sm font-semibold text-gray-800 mb-3">New edit project</p>
-          <div className="flex gap-2 flex-wrap">
-            <input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreate();
-                if (e.key === 'Escape') setShowForm(false);
-              }}
-              placeholder="Edit title (e.g. My YouTube Video)"
-              className="bg-white rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all flex-1 border border-gray-200"
-            />
-            <button
-              onClick={handleCreate}
-              disabled={createMutation.isPending}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50 bg-gray-600 hover:bg-gray-700 transition-colors"
-            >
-              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Create
-            </button>
-            <button
-              onClick={() => setShowForm(false)}
-              className="px-3 py-2 rounded-xl text-gray-600 text-sm border border-gray-200 hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-          {createMutation.isError && (
-            <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" />
-              {(createMutation.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to create edit'}
-            </p>
-          )}
-        </div>
-      )}
+      <p className="text-sm font-bold text-gray-900">Recent Projects</p>
 
       {isLoading && (
         <div className="flex items-center gap-2 text-gray-500 py-16 justify-center">
@@ -148,7 +335,8 @@ function TimelineEditorTab() {
           <Film className="w-10 h-10 mx-auto mb-3 text-gray-300" />
           <p className="mb-4">No edit projects yet.</p>
           <button
-            onClick={() => setShowForm(true)}
+            type="button"
+            onClick={onNewProject}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold bg-gray-600 hover:bg-gray-700 transition-colors"
           >
             <Plus className="w-4 h-4" /> Create your first edit
@@ -241,7 +429,6 @@ function AssetsTab() {
       id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
     }));
     setAssets((prev) => [...prev, ...next]);
-    // Reset so the same file can be picked again
     e.target.value = '';
   }
 
@@ -251,7 +438,6 @@ function AssetsTab() {
 
   return (
     <div className="p-5 lg:p-6">
-      {/* Hidden file input — accepts video, image, audio */}
       <input
         ref={inputRef}
         type="file"
@@ -298,7 +484,6 @@ function AssetsTab() {
             </div>
           ))}
 
-          {/* Add more — dashed border row */}
           <button
             type="button"
             onClick={openPicker}
@@ -344,7 +529,6 @@ function ExportTab() {
     <div className="p-5 lg:p-6 max-w-lg mx-auto">
       <p className="text-sm font-bold text-gray-900 mb-6">Export Settings</p>
 
-      {/* Format */}
       <div className="mb-5">
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Format</label>
         <div className="flex gap-2">
@@ -364,7 +548,6 @@ function ExportTab() {
         </div>
       </div>
 
-      {/* Quality */}
       <div className="mb-5">
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Quality</label>
         <div className="flex gap-2">
@@ -384,7 +567,6 @@ function ExportTab() {
         </div>
       </div>
 
-      {/* Frame rate */}
       <div className="mb-6">
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Frame Rate</label>
         <div className="flex gap-2">
@@ -404,7 +586,6 @@ function ExportTab() {
         </div>
       </div>
 
-      {/* Summary */}
       <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
         <p className="text-xs font-semibold text-gray-500 mb-2">Export Summary</p>
         <div className="flex items-center justify-between text-sm text-gray-700">
@@ -425,7 +606,6 @@ function ExportTab() {
         </div>
       </div>
 
-      {/* Progress bar (mock 0%) */}
       <div className="mb-5">
         <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
           <span>Export progress</span>
@@ -436,7 +616,6 @@ function ExportTab() {
         </div>
       </div>
 
-      {/* Export button */}
       <button className="w-full py-3.5 rounded-xl bg-gray-600 text-white text-sm font-bold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
         <Download className="w-4 h-4" />
         Export Video
@@ -468,56 +647,41 @@ function EditorInner() {
   const [activeTab, setActiveTab] = useState<TabKey>('timeline');
   const importRef = useRef<HTMLInputElement>(null);
 
-  // Per-action loading states — prevents Upload File spinning when New Project is clicked
-  const [busyUpload, setBusyUpload] = useState(false);
-  const [busyNew, setBusyNew] = useState(false);
-  const busy = busyUpload || busyNew;
-  const [actionError, setActionError] = useState<string | null>(null);
+  // New Project modal
+  const [showNewProject, setShowNewProject] = useState(false);
 
-  // URL-import inline input
+  // Upload/URL import state machine
+  const [importPhase, setImportPhase] = useState<ImportPhase>('idle');
+  const [importLabel, setImportLabel] = useState('');
+  const [importedAsset, setImportedAsset] = useState<{
+    assetId: string;
+    projectId: string;
+    filename: string;
+  } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  // URL input
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState('');
 
-  /** Upload video asset then create an edit project and navigate to the editor. */
-  async function runVideoImport(
-    action: () => Promise<{ assetId: string; projectId: string }>,
-  ) {
-    setBusyUpload(true);
-    setActionError(null);
-    try {
-      const { assetId, projectId } = await action();
-      const { data: edit } = await api.editor.create(projectId, {
-        sourceKind: 'ASSET',
-        sourceId: assetId,
-      });
-      router.push(`/editor/${edit.id}`);
-    } catch (err) {
-      setActionError(getErrorMessage(err));
-      setBusyUpload(false);
-    }
-  }
-
-  /** Create a blank edit project and navigate immediately. */
-  async function handleNewProject() {
-    setBusyNew(true);
-    setActionError(null);
-    try {
-      const { data: edit } = await api.editor.createBlank({ title: 'Untitled Edit' });
-      router.push(`/editor/${edit.id}`);
-    } catch (err) {
-      setActionError(getErrorMessage(err));
-      setBusyNew(false);
-    }
-  }
+  const importing = importPhase === 'importing';
 
   async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    await runVideoImport(async () => {
+    setShowUrlInput(false);
+    setImportLabel(file.name);
+    setImportPhase('importing');
+    setImportError(null);
+    try {
       const { data } = await api.media.uploadVideo(file);
-      return data;
-    });
+      setImportedAsset({ assetId: data.assetId, projectId: data.projectId, filename: data.filename || file.name });
+      setImportPhase('done');
+    } catch (err) {
+      setImportError(getErrorMessage(err));
+      setImportPhase('idle');
+    }
   }
 
   async function handleUrlImport() {
@@ -525,10 +689,24 @@ function EditorInner() {
     if (!url) return;
     setShowUrlInput(false);
     setUrlValue('');
-    await runVideoImport(async () => {
+    const label = url.split('/').pop()?.split('?')[0] || 'video';
+    setImportLabel(label);
+    setImportPhase('importing');
+    setImportError(null);
+    try {
       const { data } = await api.media.importVideoFromUrl(url);
-      return data;
-    });
+      setImportedAsset({ assetId: data.assetId, projectId: data.projectId, filename: data.filename || label });
+      setImportPhase('done');
+    } catch (err) {
+      setImportError(getErrorMessage(err));
+      setImportPhase('idle');
+    }
+  }
+
+  function dismissImport() {
+    setImportPhase('idle');
+    setImportedAsset(null);
+    setImportError(null);
   }
 
   return (
@@ -562,70 +740,92 @@ function EditorInner() {
 
             {/* Upload File */}
             <button
-              onClick={() => { setShowUrlInput(false); setActionError(null); importRef.current?.click(); }}
-              disabled={busy}
+              type="button"
+              onClick={() => { setShowUrlInput(false); setImportError(null); importRef.current?.click(); }}
+              disabled={importing}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {busyUpload ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Upload File
             </button>
 
             {/* From URL */}
             <button
-              onClick={() => { setShowUrlInput((v) => !v); setActionError(null); }}
-              disabled={busy}
+              type="button"
+              onClick={() => { setShowUrlInput((v) => !v); setImportError(null); }}
+              disabled={importing}
               className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border text-sm font-semibold active:scale-[.98] transition-all disabled:opacity-50 ${showUrlInput ? 'border-gray-600 bg-gray-600 text-white' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
             >
               <Link2 className="w-4 h-4" /> From URL
             </button>
 
-            {/* New Project — blank edit, navigates immediately */}
+            {/* New Project — opens naming modal */}
             <button
-              onClick={handleNewProject}
-              disabled={busy}
+              type="button"
+              onClick={() => setShowNewProject(true)}
+              disabled={importing}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-gray-700 hover:bg-gray-800 active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {busyNew ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              New Project
+              <Plus className="w-4 h-4" /> New Project
             </button>
           </div>
 
-          {/* URL input row — expands inline */}
+          {/* URL input row */}
           {showUrlInput && (
             <div className="flex items-center gap-2">
               <input
                 type="url"
                 value={urlValue}
                 onChange={(e) => setUrlValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleUrlImport()}
+                onKeyDown={(e) => { if (e.key === 'Enter') void handleUrlImport(); }}
                 placeholder="https://example.com/video.mp4"
                 className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-gray-400"
                 autoFocus
               />
               <button
-                onClick={handleUrlImport}
-                disabled={!urlValue.trim() || busy}
+                type="button"
+                onClick={() => void handleUrlImport()}
+                disabled={!urlValue.trim() || importing}
                 className="px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-gray-700 hover:bg-gray-800 disabled:opacity-50 transition-colors"
               >
                 Import
               </button>
-              <button onClick={() => setShowUrlInput(false)} className="p-2 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowUrlInput(false)} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
           )}
 
-          {/* Inline error */}
-          {actionError && (
-            <p className="text-xs text-red-500 bg-red-50 rounded-xl px-4 py-2.5 border border-red-100">
-              {actionError}
+          {/* Import in-progress indicator */}
+          {importing && (
+            <div className="flex items-center gap-2.5 text-sm text-gray-500 bg-white border border-gray-100 rounded-xl px-4 py-3">
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400 shrink-0" />
+              <span>
+                Importing <span className="font-medium text-gray-700 max-w-xs truncate">{importLabel}</span>…
+              </span>
+            </div>
+          )}
+
+          {/* Project picker — shown once upload/import succeeds */}
+          {importPhase === 'done' && importedAsset && (
+            <ProjectPickerPanel
+              assetId={importedAsset.assetId}
+              projectId={importedAsset.projectId}
+              filename={importedAsset.filename}
+              onDismiss={dismissImport}
+            />
+          )}
+
+          {/* Import error */}
+          {importError && (
+            <p className="text-xs text-red-500 bg-red-50 rounded-xl px-4 py-2.5 border border-red-100 flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {importError}
             </p>
           )}
         </div>
 
         {/* Tab card */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          {/* Tab bar */}
           <div className="flex overflow-x-auto border-b border-gray-100 px-1 pt-1">
             {TABS.map((tab) => (
               <button
@@ -642,14 +842,21 @@ function EditorInner() {
             ))}
           </div>
 
-          {/* Tab panels */}
-          {activeTab === 'timeline' && <TimelineEditorTab />}
+          {activeTab === 'timeline' && <TimelineEditorTab onNewProject={() => setShowNewProject(true)} />}
           {activeTab === 'storyboard' && <StoryboardTab />}
           {activeTab === 'assets' && <AssetsTab />}
           {activeTab === 'export' && <ExportTab />}
         </div>
 
       </div>
+
+      {/* New Project modal — rendered outside main scroll area */}
+      {showNewProject && (
+        <NewProjectModal
+          onClose={() => setShowNewProject(false)}
+          onCreated={(id) => router.push(`/editor/${id}`)}
+        />
+      )}
     </div>
   );
 }
