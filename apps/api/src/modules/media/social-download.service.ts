@@ -142,12 +142,16 @@ export class SocialDownloadService {
           return reject(new BadRequestException('That video is no longer available.'));
         if (tail.includes('geo') || tail.includes('country'))
           return reject(new BadRequestException('That video is geo-blocked and cannot be imported.'));
-        if (tail.includes('sign in') || tail.includes('login'))
+        if (tail.includes('sign in') || tail.includes('login') || tail.includes('logged-in') || tail.includes('log in') || tail.includes('credentials'))
           return reject(new BadRequestException('That video requires sign-in — only public videos can be imported.'));
-        // Include truncated stderr so the caller can see the raw yt-dlp reason
-        const reason = stderr.slice(-300).trim().replace(/\n+/g, ' ') || 'no output';
+        if (tail.includes('impersonation') || tail.includes('curl_cffi'))
+          return reject(new BadRequestException('That platform requires browser-level access which is not supported. Try a YouTube or direct video link instead.'));
+        if (tail.includes('unexpected response') || tail.includes('report this issue'))
+          return reject(new BadRequestException('That platform is temporarily unavailable for import. Try again later or use a YouTube/direct video link.'));
+        if (tail.includes('http error 404') || tail.includes('404: not found'))
+          return reject(new BadRequestException('That video was not found — it may have been deleted or the URL is incorrect.'));
         reject(new BadRequestException(
-          `Could not download this video (${reason}). Make sure it is public and the URL is correct.`,
+          'Could not download this video. Make sure it is public and the URL is correct.',
         ));
       });
 
