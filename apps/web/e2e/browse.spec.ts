@@ -3,6 +3,10 @@ import { test, expect } from '@playwright/test';
 // ── Browse page — public (no auth required) ───────────────────────────────────
 
 test.describe('Browse page — public access', () => {
+  // Tests verify guest UI (Sign In, Start Creating) — clear JWT so the
+  // authenticated nav is not shown instead.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('loads without authentication', async ({ page }) => {
     await page.goto('/browse');
     await expect(page).not.toHaveURL(/login/);

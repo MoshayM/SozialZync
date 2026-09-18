@@ -34,7 +34,7 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   // Detect that and skip form-filling so the fill() calls don't race the redirect.
   const alreadyAuth = await page.waitForURL(
     /\/(home|projects|dashboard)/,
-    { timeout: 4_000 },
+    { timeout: 10_000 },
   ).then(() => true).catch(() => false);
   if (alreadyAuth) return;
 

@@ -1557,26 +1557,30 @@ export function CopilotPanel() {
             <div
               onPointerDown={e => {
                 e.stopPropagation();
-                e.currentTarget.setPointerCapture(e.pointerId);
                 const rect = panelRef.current!.getBoundingClientRect();
                 const startW = rect.width;
-                // Anchor to a fixed position on first resize so width:panelSize.w takes effect.
-                // Store spy/spx in the ref — onPointerMove must NOT use the p=> callback form
-                // because panelPos state may not have re-rendered yet (stale closure issue).
+                // Anchor to fixed position so width:panelSize.w takes effect.
                 if (!panelPos) setPanelPosRaw(() => ({ x: rect.left, y: rect.top }));
                 setPanelSize(s => ({ ...s, w: startW }));
                 resizeRef.current = { dir:'w', sx:e.clientX, sy:e.clientY, sw:startW, sh:rect.height, spx:rect.left, spy:rect.top, hasPos:true };
+                // Use window listeners so mousemove fires even when the cursor
+                // leaves the 6px handle — setPointerCapture is unreliable here.
+                function onMove(ev: MouseEvent) {
+                  const r = resizeRef.current;
+                  if (!r) return;
+                  const dx = ev.clientX - r.sx;
+                  const newW = Math.max(280, Math.min(680, r.sw - dx));
+                  setPanelSize(s => ({ ...s, w:newW }));
+                  if (r.hasPos) setPanelPosRaw(() => ({ x:Math.max(0, r.spx + (r.sw - newW)), y:r.spy }));
+                }
+                function onUp() {
+                  resizeRef.current = null;
+                  window.removeEventListener('mousemove', onMove);
+                  window.removeEventListener('mouseup', onUp);
+                }
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onUp);
               }}
-              onPointerMove={e => {
-                if (!resizeRef.current) return;
-                const r = resizeRef.current;
-                const dx = e.clientX - r.sx;
-                const newW = Math.max(280, Math.min(680, r.sw - dx));
-                setPanelSize(s => ({ ...s, w:newW }));
-                // Use ref values directly (not p=>) to avoid stale-state closure on first drag.
-                if (r.hasPos) setPanelPosRaw(() => ({ x:Math.max(0, r.spx + (r.sw - newW)), y:r.spy }));
-              }}
-              onPointerUp={() => { resizeRef.current = null; }}
               style={{ position:'absolute', left:0, top:20, bottom:20, width:6, cursor:'ew-resize', zIndex:12, touchAction:'none',
                 background:'linear-gradient(to right, rgba(139,92,246,0.18) 1px, transparent 1px)' }}
               title="Drag to resize width"
@@ -1585,24 +1589,29 @@ export function CopilotPanel() {
             <div
               onPointerDown={e => {
                 e.stopPropagation();
-                e.currentTarget.setPointerCapture(e.pointerId);
                 const rect = panelRef.current!.getBoundingClientRect();
                 const startW = rect.width;
                 if (!panelPos) setPanelPosRaw(() => ({ x: rect.left, y: rect.top }));
                 setPanelSize(s => ({ ...s, w: startW }));
                 resizeRef.current = { dir:'wh', sx:e.clientX, sy:e.clientY, sw:startW, sh:rect.height, spx:rect.left, spy:rect.top, hasPos:true };
+                function onMove(ev: MouseEvent) {
+                  const r = resizeRef.current;
+                  if (!r) return;
+                  const dx = ev.clientX - r.sx;
+                  const dy = ev.clientY - r.sy;
+                  const newW = Math.max(280, Math.min(680, r.sw - dx));
+                  const newH = Math.max(300, Math.min(720, r.sh + dy));
+                  setPanelSize({ w:newW, h:newH });
+                  if (r.hasPos) setPanelPosRaw(() => ({ x:Math.max(0, r.spx + (r.sw - newW)), y:r.spy }));
+                }
+                function onUp() {
+                  resizeRef.current = null;
+                  window.removeEventListener('mousemove', onMove);
+                  window.removeEventListener('mouseup', onUp);
+                }
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onUp);
               }}
-              onPointerMove={e => {
-                if (!resizeRef.current) return;
-                const r = resizeRef.current;
-                const dx = e.clientX - r.sx;
-                const dy = e.clientY - r.sy;
-                const newW = Math.max(280, Math.min(680, r.sw - dx));
-                const newH = Math.max(300, Math.min(720, r.sh + dy));
-                setPanelSize({ w:newW, h:newH });
-                if (r.hasPos) setPanelPosRaw(() => ({ x:Math.max(0, r.spx + (r.sw - newW)), y:r.spy }));
-              }}
-              onPointerUp={() => { resizeRef.current = null; }}
               style={{ position:'absolute', left:0, bottom:0, width:22, height:22, cursor:'sw-resize', zIndex:12, touchAction:'none',
                 display:'flex', alignItems:'flex-end', justifyContent:'flex-start', paddingBottom:4, paddingLeft:4 }}
               title="Drag to resize"

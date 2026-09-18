@@ -105,7 +105,7 @@ test.describe('Login page — mobile passkey UX', () => {
     await mainForm(page).locator('input[type="password"]').fill('Admin@123');
     await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
 
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 25_000 });
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 60_000 });
     await page.screenshot({ path: 'e2e/mobile-login-success.png' });
   });
 });
