@@ -1864,7 +1864,7 @@ export default function EditorWorkspacePage() {
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 
   // Find the currently-active video source for the preview
-  const activeVideoItem = timeline?.tracks
+  const activeVideoItem = (timeline?.tracks ?? [])
     .filter((t) => t.kind === 'VIDEO')
     .flatMap((t) => t.items)
     .find((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs) ?? null;
@@ -1878,10 +1878,10 @@ export default function EditorWorkspacePage() {
 
   // TEXT items overlapping the playhead — overlaid on the preview as a
   // lower-third approximation of the rendered output.
-  const activeTextItems = timeline?.tracks
+  const activeTextItems = (timeline?.tracks ?? [])
     .filter((t) => t.kind === 'TEXT')
     .flatMap((t) => t.items)
-    .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs) ?? [];
+    .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs);
 
   // Clip-local source time: timeline offset within the clip, scaled by its
   // speed, plus the source trim-in point. This is what the render produces,
@@ -1912,7 +1912,7 @@ export default function EditorWorkspacePage() {
 
   // Selected item
   const selectedItem = selectedItemId
-    ? timeline?.tracks.flatMap((t) => t.items).find((it) => it.id === selectedItemId) ?? null
+    ? (timeline?.tracks ?? []).flatMap((t) => t.items).find((it) => it.id === selectedItemId) ?? null
     : null;
 
   if (isLoading) {
@@ -2171,7 +2171,7 @@ export default function EditorWorkspacePage() {
               <div className="flex items-center justify-center h-full text-gray-400 text-sm">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading timeline…
               </div>
-            ) : timeline.tracks.length === 0 ? (
+            ) : (timeline.tracks ?? []).length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 text-sm gap-2">
                 <Film className="w-8 h-8 opacity-30" />
                 <p>Add media from the bin to start editing</p>
@@ -2198,7 +2198,7 @@ export default function EditorWorkspacePage() {
                   />
                 </div>
                 {/* Tracks */}
-                {timeline.tracks.map((track) => (
+                {(timeline.tracks ?? []).map((track) => (
                   <TimelineTrack
                     key={track.id}
                     track={track}
