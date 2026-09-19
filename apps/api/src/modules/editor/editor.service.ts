@@ -687,13 +687,13 @@ export class EditorService {
       };
     });
 
-    // Also include imported video source assets
+    // Also include imported video source assets (exclude soft-deleted)
     const importedVideos = await this.prisma.importedVideo.findMany({
       where: { projectId },
       include: { sourceAsset: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } } },
     });
     for (const iv of importedVideos) {
-      if (iv.sourceAsset) {
+      if (iv.sourceAsset && iv.sourceAsset.deletedAt === null) {
         const ver = iv.sourceAsset.versions[0];
         const previewPath =
           ver?.r2Key && this.storage.exists(ver.r2Key) ? this.storage.resolve(ver.r2Key) : null;

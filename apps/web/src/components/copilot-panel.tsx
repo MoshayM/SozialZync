@@ -719,14 +719,16 @@ export function CopilotPanel() {
     return () => clearInterval(id);
   }, [busy]);
 
-  // Warm up Railway the moment the chat panel opens so the first AI request
-  // hits a live server instead of a cold-start (Hobby plan has no cron option).
-  const warmedRef = useRef(false);
+  // Railway is pre-warmed by the dashboard layout on mount.
+  // Re-warm here only if the widget was opened after a long idle (>4 min).
+  const lastWarmRef = useRef(0);
   useEffect(() => {
-    if (activePanel !== 'chat' || warmedRef.current) return;
-    warmedRef.current = true;
+    if (!widgetOpen) return;
+    const now = Date.now();
+    if (now - lastWarmRef.current < 4 * 60 * 1000) return;
+    lastWarmRef.current = now;
     fetch('/api/proxy/copilot/stt-status', { method: 'GET' }).catch(() => {});
-  }, [activePanel]);
+  }, [widgetOpen]);
 
   // Auto-expand the history strip when thinking starts so user sees progress
   useEffect(() => {

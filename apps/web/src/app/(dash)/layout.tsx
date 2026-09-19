@@ -471,6 +471,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
+  // Pre-warm Railway API on dashboard mount so the first AI request
+  // doesn't hit a cold start. Fire-and-forget — errors are harmless.
+  useEffect(() => {
+    fetch('/api/proxy/copilot/stt-status', { method: 'GET' }).catch(() => {});
+  }, []);
+
   /* Track copilot panel open state so topbar button reflects it */
   const [copilotOpen, setCopilotOpen] = useState(false);
   useEffect(() => {
