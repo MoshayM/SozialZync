@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Put,
   Delete,
   Param,
@@ -104,6 +105,17 @@ export class EditorController {
   @Get(':id')
   async get(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.editor.get(id, user.sub);
+  }
+
+  /** Rename or move an edit to a different project */
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: { title?: string; projectId?: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!body.title && !body.projectId) throw new BadRequestException('title or projectId required');
+    return this.editor.updateEditProject(id, user.sub, body);
   }
 
   /** Delete an EditProject — removes timeline and settings; source media is unaffected */

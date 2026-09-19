@@ -572,6 +572,25 @@ export class EditorService {
     })) as EditProjectRow[];
   }
 
+  // ── Update (rename / move to project) ───────────────────────────────────────
+
+  async updateEditProject(
+    id: string,
+    userId: string,
+    data: { title?: string; projectId?: string },
+  ): Promise<EditProjectRow> {
+    await this.assertEditProjectOwnership(id, userId);
+    if (data.projectId) await this.assertProjectOwnership(data.projectId, userId);
+    const updated = await ep(this.prisma).update({
+      where: { id },
+      data: {
+        ...(data.title !== undefined && { title: data.title }),
+        ...(data.projectId !== undefined && { projectId: data.projectId }),
+      },
+    });
+    return updated as EditProjectRow;
+  }
+
   // ── Delete ───────────────────────────────────────────────────────────────────
 
   async deleteEditProject(id: string, userId: string): Promise<void> {

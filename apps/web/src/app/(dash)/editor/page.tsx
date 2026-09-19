@@ -20,6 +20,7 @@ import {
   Youtube,
   Search,
   Check,
+  Plus,
 } from 'lucide-react';
 import { api, type EditProject, type LibraryVideo } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -181,6 +182,154 @@ function TitleDialog({
             {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             Open Editor
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Move-to-project Dialog ────────────────────────────────────────────────────
+
+interface ProjectOption { id: string; title: string; _count?: { videos: number } }
+
+function MoveToProjectDialog({
+  edit,
+  onDone,
+  onCancel,
+}: {
+  edit: EditProject;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data: projectsResp } = useQuery({
+    queryKey: ['projects-list-for-move'],
+    queryFn: () => api.projects.list(),
+    staleTime: 30_000,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- api response shape
+  const projects: ProjectOption[] = (projectsResp as any)?.data?.data ?? [];
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onCancel(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  async function moveTo(projectId: string) {
+    setBusy(projectId);
+    setError(null);
+    try {
+      await api.editor.update(edit.id, { projectId });
+      onDone();
+    } catch {
+      setError('Could not move — try again.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function createAndMove() {
+    const t = newTitle.trim();
+    if (!t) return;
+    setCreating(true);
+    setError(null);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- api response shape
+      const resp = (await api.projects.create({ title: t })) as any;
+      const newId: string = resp?.data?.id ?? resp?.id;
+      if (!newId) throw new Error('No project id returned');
+      await api.editor.update(edit.id, { projectId: newId });
+      onDone();
+    } catch {
+      setError('Could not create project — try again.');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div role="dialog" aria-modal="true" aria-label="Move to project" className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-gray-100">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-indigo-50">
+            <Layers className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-gray-900 text-sm">Move to project</h2>
+            <p className="text-xs text-gray-400 truncate mt-0.5">&ldquo;{edit.title}&rdquo;</p>
+          </div>
+          <button type="button" onClick={onCancel} className="p-1 text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Project list */}
+        <div className="max-h-60 overflow-y-auto py-1">
+          {projects.length === 0 && !showNew && (
+            <p className="text-xs text-gray-400 text-center py-6">No projects yet — create one below</p>
+          )}
+          {projects.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={!!busy || creating}
+              onClick={() => void moveTo(p.id)}
+              className="w-full text-left px-5 py-2.5 hover:bg-gray-50 flex items-center justify-between gap-3 disabled:opacity-60"
+            >
+              <span className="text-sm font-medium text-gray-800 truncate">{p.title}</span>
+              <span className="shrink-0 text-[11px] text-gray-400">
+                {busy === p.id
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : p._count?.videos != null ? `${p._count.videos} video${p._count.videos !== 1 ? 's' : ''}` : ''}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Create new project */}
+        <div className="border-t border-gray-100 px-4 py-3">
+          {showNew ? (
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') void createAndMove(); if (e.key === 'Escape') setShowNew(false); }}
+                placeholder="Project name…"
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"
+                maxLength={80}
+              />
+              <button
+                type="button"
+                disabled={creating || !newTitle.trim()}
+                onClick={() => void createAndMove()}
+                className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold flex items-center gap-1 disabled:opacity-50"
+              >
+                {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                Create
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowNew(true)}
+              className="w-full flex items-center gap-2 text-sm text-indigo-600 font-semibold hover:text-indigo-700"
+            >
+              <Plus className="w-4 h-4" /> New project
+            </button>
+          )}
+          {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
         </div>
       </div>
     </div>
@@ -358,9 +507,11 @@ function LibraryDrawer({
 function EditCard({
   project,
   onDelete,
+  onMove,
 }: {
   project: EditProject;
   onDelete: (p: EditProject) => void;
+  onMove: (p: EditProject) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const [groupOpen, setGroupOpen] = useState(false);
@@ -415,8 +566,8 @@ function EditCard({
                 <button type="button" onClick={() => setGroupOpen(false)} className="w-full text-left px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 flex items-center justify-between">
                   Add to collection <span className="text-[10px] text-gray-300">soon</span>
                 </button>
-                <button type="button" onClick={() => setGroupOpen(false)} className="w-full text-left px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 flex items-center justify-between">
-                  Move to project <span className="text-[10px] text-gray-300">soon</span>
+                <button type="button" onClick={() => { setGroupOpen(false); onMove(project); }} className="w-full text-left px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 flex items-center justify-between">
+                  Move to project
                 </button>
               </div>
             )}
@@ -593,6 +744,9 @@ function EditorInner() {
   // delete state
   const [pendingDelete, setPendingDelete] = useState<EditProject | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // move-to-project state
+  const [pendingMove, setPendingMove] = useState<EditProject | null>(null);
 
   // ── helpers ───────────────────────────────────────────────────────────────
 
@@ -805,7 +959,7 @@ function EditorInner() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {projects.map((p) => (
-                <EditCard key={p.id} project={p} onDelete={setPendingDelete} />
+                <EditCard key={p.id} project={p} onDelete={setPendingDelete} onMove={setPendingMove} />
               ))}
             </div>
           )}
@@ -829,6 +983,15 @@ function EditorInner() {
           creating={creating}
           onConfirm={(title) => void handleConfirmCreate(title)}
           onCancel={() => setPendingCreate(null)}
+        />
+      )}
+
+      {/* Move to project */}
+      {pendingMove && (
+        <MoveToProjectDialog
+          edit={pendingMove}
+          onDone={() => { setPendingMove(null); void qc.invalidateQueries({ queryKey: ['editor-projects'] }); }}
+          onCancel={() => setPendingMove(null)}
         />
       )}
 
