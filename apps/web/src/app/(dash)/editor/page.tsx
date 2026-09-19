@@ -413,8 +413,9 @@ function detectSocialPlatform(url: string): string | null {
   if (/youtube\.com|youtu\.be/.test(host)) return 'YouTube';
   if (/tiktok\.com/.test(host)) return 'TikTok';
   if (/instagram\.com/.test(host)) return 'Instagram';
-  if (/twitter\.com|^x\.com$/.test(host)) return 'Twitter/X';
+  if (/twitter\.com|x\.com/.test(host)) return 'Twitter/X';
   if (/facebook\.com|fb\.watch/.test(host)) return 'Facebook';
+  if (/linkedin\.com/.test(host)) return 'LinkedIn';
   if (/twitch\.tv/.test(host)) return 'Twitch';
   if (/vimeo\.com/.test(host)) return 'Vimeo';
   if (/dailymotion\.com/.test(host)) return 'Dailymotion';
