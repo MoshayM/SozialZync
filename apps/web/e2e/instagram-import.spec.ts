@@ -38,7 +38,7 @@ test('Instagram Reel URL import — sends URL to API and shows result in bin', a
 
   // ── 1. Navigate to editor (smart redirect) ───────────────────────────────────
   await page.goto('/editor');
-  await page.waitForURL(/\/editor\/.+/, { timeout: 30_000 });
+  await page.waitForURL(/\/editor\/.+/, { timeout: 30_000, waitUntil: 'commit' });
   await page.screenshot({ path: 'e2e/ig-1-editor.png' });
 
   // ── 2. Open the URL import bar in the Media Bin ──────────────────────────────
