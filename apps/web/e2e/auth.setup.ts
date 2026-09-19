@@ -16,7 +16,8 @@ setup('authenticate', async ({ page }) => {
   await page.locator('input[type="email"]').first().fill(EMAIL);
   await page.locator('input[type="password"]').first().fill(PASS);
   await page.getByRole('button', { name: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 35_000 });
+  // Allow 90s — Railway cold start can take 30-45s on the Hobby plan
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000 });
   // Save auth state (cookies + localStorage, including the JWT)
   await page.context().storageState({ path: AUTH_FILE });
 });
