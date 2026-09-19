@@ -47,11 +47,20 @@ export class SocialDownloadService {
     const outTemplate = path.join(tmpDir, `${id}.%(ext)s`);
     const expectedMp4 = path.join(tmpDir, `${id}.mp4`);
 
-    this.logger.log(`yt-dlp download: ${url}`);
+    // Convert /shorts/<id> URLs to /watch?v=<id> — the regular watch URL uses a
+    // different extraction path in yt-dlp and is less prone to datacenter bot detection.
+    let resolvedUrl = url;
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/);
+    if (shortsMatch) {
+      resolvedUrl = `https://www.youtube.com/watch?v=${shortsMatch[1]}`;
+      this.logger.log(`YouTube Shorts → rewritten to watch URL: ${resolvedUrl}`);
+    }
 
-    const isYouTube = /youtube\.com|youtu\.be/.test(url);
+    this.logger.log(`yt-dlp download: ${resolvedUrl}`);
+
+    const isYouTube = /youtube\.com|youtu\.be/.test(resolvedUrl);
     const args = [
-      url,
+      resolvedUrl,
       '--format',
       // prefer mp4 ≤1080p with separate audio; fall back to single best stream
       'bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
