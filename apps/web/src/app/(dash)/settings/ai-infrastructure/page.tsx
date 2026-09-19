@@ -577,7 +577,7 @@ export default function AiInfrastructurePage() {
   const [routeOverrides, setRouteOverrides] = useState<Record<string, string>>(
     Object.fromEntries(AGENT_TASKS.map((t) => [t.key, 'anthropic/claude-sonnet-4-6'])),
   );
-  const [usageData, setUsageData] = useState<UsageData>(MOCK_USAGE);
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [pullModel, setPullModel] = useState('');
   const [pulling, setPulling] = useState(false);
@@ -615,7 +615,7 @@ export default function AiInfrastructurePage() {
 
     void apiClient.get<UsageData>('/admin/ai-usage').then((r) => {
       setUsageData(r.data);
-    }).catch(() => setUsageData(MOCK_USAGE));
+    }).catch(() => {});
   }, []);
 
   async function handleSave() {
@@ -680,7 +680,7 @@ export default function AiInfrastructurePage() {
       const r = await apiClient.get<UsageData>('/admin/ai-usage');
       setUsageData(r.data);
     } catch {
-      setUsageData(MOCK_USAGE);
+      showToast('err', 'Could not load usage data — check admin access or try again.');
     }
     setUsageLoading(false);
   }
@@ -706,7 +706,7 @@ export default function AiInfrastructurePage() {
     );
   }
 
-  const maxByTaskCost = Math.max(...usageData.byTask.map((t) => t.cost), 1);
+  const maxByTaskCost = usageData ? Math.max(...usageData.byTask.map((t) => t.cost), 1) : 1;
 
   return (
     <div className="min-h-full bg-[#faf9ff]">
@@ -1113,53 +1113,77 @@ export default function AiInfrastructurePage() {
           </div>
 
           <div className="p-5 space-y-5">
-            {/* Stat cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: 'TOTAL CALLS',       value: String(usageData.totalCalls),              suffix: '' },
-                { label: '$ EST. COST',        value: `$${usageData.estimatedCost.toFixed(4)}`, suffix: '' },
-                { label: 'INTERACTIVE',        value: String(usageData.interactivePerHr),        suffix: '/hr' },
-                { label: 'SAVINGS VS SONNET',  value: `$${usageData.savingsVsSonnet.toFixed(4)}`, suffix: '' },
-              ].map((s) => (
-                <div key={s.label} className="rounded-xl px-4 py-3" style={{ border: '1px solid #f3f4f6', background: '#faf9ff' }}>
-                  <p className="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">{s.label}</p>
-                  <p className="text-xl font-extrabold text-gray-900">
-                    {s.value}<span className="text-sm font-normal text-gray-400">{s.suffix}</span>
-                  </p>
-                  {s.label === 'SAVINGS VS SONNET' && (
-                    <p className="text-[9px] text-gray-400 mt-0.5">vs all-Sonnet 4.6 pricing</p>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Chart */}
-            <div>
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">DAILY SPEND (30 DAYS)</p>
-              <SpendChart data={usageData.dailySpend} />
-            </div>
-
-            {/* By task */}
-            <div>
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">BY TASK</p>
-              <div className="space-y-3">
-                {usageData.byTask.map((t) => (
-                  <div key={t.task}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">{t.task}</span>
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
-                        <span className="font-mono">${t.cost.toFixed(4)}</span>
-                        <span className="font-semibold">{t.calls} calls</span>
-                      </div>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#f3f4f6' }}>
-                      <div className="h-full rounded-full transition-all"
-                        style={{ width: `${(t.cost / maxByTaskCost) * 100}%`, background: '#1e3a5f' }} />
-                    </div>
-                  </div>
-                ))}
+            {usageData === null ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                {usageLoading ? (
+                  <>
+                    <RefreshCw className="w-6 h-6 text-gray-300 animate-spin mb-3" />
+                    <p className="text-sm text-gray-400">Loading usage data…</p>
+                  </>
+                ) : (
+                  <>
+                    <BarChart3 className="w-8 h-8 text-gray-200 mb-3" />
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Usage data unavailable</p>
+                    <p className="text-xs text-gray-400 mb-4">Requires admin access to the AI usage log. Click refresh to try again.</p>
+                    <button type="button" onClick={() => void refreshUsage()}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+                      style={{ background: '#374151' }}>
+                      <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                    </button>
+                  </>
+                )}
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Stat cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: 'TOTAL CALLS',       value: String(usageData.totalCalls),              suffix: '' },
+                    { label: '$ EST. COST',        value: `$${usageData.estimatedCost.toFixed(4)}`, suffix: '' },
+                    { label: 'INTERACTIVE',        value: String(usageData.interactivePerHr),        suffix: '/hr' },
+                    { label: 'SAVINGS VS SONNET',  value: `$${usageData.savingsVsSonnet.toFixed(4)}`, suffix: '' },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl px-4 py-3" style={{ border: '1px solid #f3f4f6', background: '#faf9ff' }}>
+                      <p className="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 mb-1">{s.label}</p>
+                      <p className="text-xl font-extrabold text-gray-900">
+                        {s.value}<span className="text-sm font-normal text-gray-400">{s.suffix}</span>
+                      </p>
+                      {s.label === 'SAVINGS VS SONNET' && (
+                        <p className="text-[9px] text-gray-400 mt-0.5">vs all-Sonnet 4.6 pricing</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Chart */}
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">DAILY SPEND (30 DAYS)</p>
+                  <SpendChart data={usageData.dailySpend} />
+                </div>
+
+                {/* By task */}
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">BY TASK</p>
+                  <div className="space-y-3">
+                    {usageData.byTask.map((t) => (
+                      <div key={t.task}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-gray-700">{t.task}</span>
+                          <div className="flex items-center gap-3 text-xs text-gray-500">
+                            <span className="font-mono">${t.cost.toFixed(4)}</span>
+                            <span className="font-semibold">{t.calls} calls</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#f3f4f6' }}>
+                          <div className="h-full rounded-full transition-all"
+                            style={{ width: `${(t.cost / maxByTaskCost) * 100}%`, background: '#1e3a5f' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </section>
       </div>

@@ -7,6 +7,6 @@ import { AdRevenueService } from './ad-revenue.service';
 @Module({
   providers: [ProjectsService, DemoSeedService, AdRevenueService],
   controllers: [ProjectsController],
-  exports: [ProjectsService, AdRevenueService],
+  exports: [ProjectsService, AdRevenueService, DemoSeedService],
 })
 export class ProjectsModule {}

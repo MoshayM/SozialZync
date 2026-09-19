@@ -1071,6 +1071,14 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
+          {/* Simulated data notice */}
+          <div className="rounded-2xl px-4 py-3 flex items-start gap-3" style={{ background: '#fffbeb', border: '1.5px solid #f59e0b' }}>
+            <Activity className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#d97706' }} />
+            <p className="text-sm" style={{ color: '#92400e' }}>
+              <strong>Simulated data</strong> — These analytics are representative placeholder values. Connect a real analytics provider (Mixpanel, PostHog, Plausible) in <strong>Settings → Integrations</strong> to display live session data here.
+            </p>
+          </div>
+
           {/* KPI row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
@@ -1124,13 +1132,6 @@ export default function AdminDashboardPage() {
             </section>
           </div>
 
-          {/* Sessions trend note */}
-          <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
-            <Activity className="w-4 h-4 text-[#9d6ff0] mt-0.5 shrink-0" />
-            <p className="text-sm text-gray-600">
-              Analytics shown are <strong>simulated representative data</strong> for the superadmin view. Connect your real analytics provider (Mixpanel, PostHog, Plausible) in <strong>Settings → Integrations</strong> to stream live session data here.
-            </p>
-          </div>
         </div>
       )}
 

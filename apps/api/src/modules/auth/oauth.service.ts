@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import type { AuthTokens } from './auth.service';
 import type { SessionMeta } from './sessions.service';
 import { TrialService } from '../trial/trial.service';
+import { DemoSeedService } from '../projects/demo-seed.service';
 import { ProviderRegistry } from './providers/provider.registry';
 
 // ── Pure exported helpers (unit-testable without DI) ─────────────────────────
@@ -64,6 +65,7 @@ export class OAuthService {
     private readonly registry: ProviderRegistry,
     private readonly auth: AuthService,
     private readonly trial: TrialService,
+    private readonly demoSeed: DemoSeedService,
   ) {}
 
   /**
@@ -82,8 +84,14 @@ export class OAuthService {
 
     // The stored redirectUri is later used verbatim in a 302 (apple/return) —
     // restrict it to the web app's origin to prevent open redirects.
-    const allowedOrigin = process.env['WEB_URL'] ?? 'http://localhost:3007';
-    if (new URL(redirectUri).origin !== new URL(allowedOrigin).origin) {
+    // WEB_URL may be a comma-separated list of allowed origins (e.g. multiple Vercel aliases).
+    const allowedOrigins = (process.env['WEB_URL'] ?? 'http://localhost:3007')
+      .split(',')
+      .map((u) => { try { return new URL(u.trim()).origin; } catch { return ''; } })
+      .filter(Boolean);
+    allowedOrigins.push('http://localhost:3007', 'http://localhost:3000');
+    const requestOrigin = new URL(redirectUri).origin;
+    if (!allowedOrigins.includes(requestOrigin)) {
       throw new UnauthorizedException('redirectUri origin not allowed');
     }
 

@@ -7,6 +7,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import type { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { resolveElevatedRole } from '../../common/rbac';
 import { TrialService } from '../trial/trial.service';
+import { DemoSeedService } from '../projects/demo-seed.service';
 import { SessionsService, hashRefreshToken } from './sessions.service';
 import type { SessionMeta } from './sessions.service';
 
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly trial: TrialService,
     private readonly sessions: SessionsService,
+    private readonly demoSeed: DemoSeedService,
   ) {}
 
   async register(
@@ -63,6 +65,8 @@ export class AuthService {
     await this.trial
       .grantTrial(user.id, user.email, { ...signals, verificationMethod: 'email' })
       .catch(() => undefined);
+
+    await this.demoSeed.seedDemoProjectsForUser(user.id).catch(() => undefined);
 
     const tokens = await this.issueSessionTokens(user.id, user.email, {
       device: signals.device,
@@ -164,6 +168,8 @@ export class AuthService {
     await this.trial
       .grantTrial(user.id, user.email, { ...signals, verificationMethod: 'otp' })
       .catch(() => undefined);
+
+    await this.demoSeed.seedDemoProjectsForUser(user.id).catch(() => undefined);
 
     const tokens = await this.issueSessionTokens(user.id, user.email, {
       device: signals.device,

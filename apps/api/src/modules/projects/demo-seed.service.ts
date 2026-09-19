@@ -37,6 +37,27 @@ export class DemoSeedService implements OnApplicationBootstrap {
     }
   }
 
+  async seedDemoProjectsForUser(userId: string): Promise<void> {
+    const count = await this.prisma.project.count({ where: { userId } });
+    if (count > 0) return;
+
+    const USER_DEMO = [
+      { title: 'The Future of AI in 2026', niche: 'Technology', status: 'ACTIVE' as const },
+      { title: '5 Productivity Hacks That Changed My Life', niche: 'Productivity', status: 'ACTIVE' as const },
+      { title: 'Morning Routine Vlog', niche: 'Lifestyle', status: 'DRAFT' as const },
+      { title: 'ChatGPT vs Claude – Full Comparison', niche: 'AI Tools', status: 'ACTIVE' as const },
+      { title: 'Crypto Market Outlook', niche: 'Finance', status: 'DRAFT' as const },
+      { title: 'Street Food Tour – Bangkok', niche: 'Travel & Food', status: 'DRAFT' as const },
+    ];
+
+    for (const d of USER_DEMO) {
+      await this.prisma.project.create({
+        data: { userId, ...d, platforms: [], targetLang: 'en' },
+      });
+    }
+    this.logger.log(`Seeded ${USER_DEMO.length} demo projects for user ${userId}`);
+  }
+
   private async seedDemoProjects(): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- isDemo pending Prisma client regen after migration
     const existing = await (this.prisma.project as any).count({ where: { isDemo: true } });
