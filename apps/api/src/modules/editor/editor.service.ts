@@ -639,6 +639,19 @@ export class EditorService {
 
   // ── Media bin ────────────────────────────────────────────────────────────────
 
+  /** Soft-delete an asset from the media bin (sets deletedAt). */
+  async removeFromBin(editId: string, assetId: string, userId: string): Promise<void> {
+    const editProj = await this.assertEditProjectOwnership(editId, userId);
+    const asset = await this.prisma.asset.findFirst({
+      where: { id: assetId, projectId: editProj.projectId, deletedAt: null },
+    });
+    if (!asset) return; // already gone or not in this project — silently OK
+    await this.prisma.asset.update({
+      where: { id: assetId },
+      data: { deletedAt: new Date() },
+    });
+  }
+
   /**
    * Returns assets available to drag onto the timeline:
    *   - All VIDEO, IMAGE, VOICE, MUSIC, RENDER_SOURCE, EDIT_RENDER assets in the project

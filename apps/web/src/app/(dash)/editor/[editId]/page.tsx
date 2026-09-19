@@ -410,14 +410,17 @@ const QUALITIES: { value: RenderQuality; label: string; hint: string }[] = [
 
 function ExportDialog({
   editId,
+  projectTitle,
   onClose,
   onBeforeRender,
 }: {
   editId: string;
+  projectTitle: string;
   onClose: () => void;
   /** Called before enqueueing the render job — use this to flush any unsaved timeline changes. */
   onBeforeRender?: () => Promise<void>;
 }) {
+  const router = useRouter();
   const [preset, setPreset] = useState<RenderPreset>('1080P_16_9');
   const [format, setFormat] = useState<RenderFormat>('mp4');
   const [quality, setQuality] = useState<RenderQuality>('standard');
@@ -426,6 +429,11 @@ function ExportDialog({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Publish form
+  const [showPublishForm, setShowPublishForm] = useState(false);
+  const [pubTitle, setPubTitle] = useState(projectTitle);
+  const [pubDesc, setPubDesc] = useState('');
+  const [pubTags, setPubTags] = useState('');
 
   const stopPoll = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -544,16 +552,87 @@ function ExportDialog({
             </div>
           )}
 
-          {renderStatus === 'READY' && downloadPath && (
-            <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 space-y-2">
+          {renderStatus === 'READY' && downloadPath && !showPublishForm && (
+            <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 space-y-3">
               <p className="text-sm text-green-800 font-medium">Render complete!</p>
-              <a
-                href={downloadPath}
-                download={downloadFilename}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
-              >
-                <Download className="w-4 h-4" /> Download {downloadFilename}
-              </a>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={downloadPath}
+                  download={downloadFilename}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+                >
+                  <Download className="w-4 h-4" /> Download
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowPublishForm(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700"
+                >
+                  <Zap className="w-4 h-4" /> Send to Publish
+                </button>
+              </div>
+            </div>
+          )}
+
+          {renderStatus === 'READY' && showPublishForm && (
+            <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-4 space-y-3">
+              <p className="text-sm font-semibold text-brand-800">Queue for Publishing</p>
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">Title</label>
+                <input
+                  type="text"
+                  value={pubTitle}
+                  onChange={(e) => setPubTitle(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+                  maxLength={100}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">Description</label>
+                <textarea
+                  value={pubDesc}
+                  onChange={(e) => setPubDesc(e.target.value)}
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 block mb-1">Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  value={pubTags}
+                  onChange={(e) => setPubTags(e.target.value)}
+                  placeholder="youtube, tutorial, vlog"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowPublishForm(false)}
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={!pubTitle.trim()}
+                  onClick={() => {
+                    const tags = pubTags.split(',').map((t) => t.trim()).filter(Boolean);
+                    const qs = new URLSearchParams({
+                      fromEdit: editId,
+                      title: pubTitle.trim(),
+                      description: pubDesc.trim(),
+                      tags: tags.join(','),
+                    });
+                    router.push(`/publishing?${qs.toString()}`);
+                    onClose();
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
+                >
+                  <Zap className="w-4 h-4" /> Send to Publish Queue
+                </button>
+              </div>
             </div>
           )}
 
@@ -2154,9 +2233,10 @@ export default function EditorWorkspacePage() {
     }
   }, [project?.projectId, editId, qc]);
 
-  const handleBinDeleteEntry = useCallback((_id: string) => {
-    // Soft-remove from local mediaBin view; server-side deletion not yet exposed.
-    // Invalidating the query will re-fetch and confirm the current state.
+  const handleBinDeleteEntry = useCallback(async (assetId: string) => {
+    try {
+      await api.editor.removeBinEntry(editId, assetId);
+    } catch { /* silently ignore — asset may already be gone */ }
     void qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
   }, [editId, qc]);
 
@@ -2767,7 +2847,7 @@ export default function EditorWorkspacePage() {
       </div>
 
       {/* Dialogs */}
-      {showExport && <ExportDialog editId={editId} onClose={() => setShowExport(false)} onBeforeRender={handleSave} />}
+      {showExport && <ExportDialog editId={editId} projectTitle={project.title} onClose={() => setShowExport(false)} onBeforeRender={handleSave} />}
       {showAiEdit && (
         <AiEditDialog
           editId={editId}

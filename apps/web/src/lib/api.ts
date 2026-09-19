@@ -1475,6 +1475,8 @@ export const api = {
       apiClient.patch<EditProject>(`/editor/${editId}`, data),
     deleteProject: (editId: string) =>
       apiClient.delete<void>(`/editor/${editId}`),
+    removeBinEntry: (editId: string, assetId: string) =>
+      apiClient.delete<void>(`/editor/${editId}/media-bin/${encodeURIComponent(assetId)}`),
   },
   voice: {
     library: (source?: 'elevenlabs' | 'openai' | 'all') =>

@@ -141,6 +141,17 @@ export class EditorController {
     return this.editor.mediaBin(id, user.sub);
   }
 
+  /** Remove an asset from the media bin (soft-delete). */
+  @Delete(':id/media-bin/:assetId')
+  @HttpCode(204)
+  async removeBinEntry(
+    @Param('id') id: string,
+    @Param('assetId') assetId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    await this.editor.removeFromBin(id, assetId, user.sub);
+  }
+
   /** Enqueue an EDIT_RENDER job. Body: { preset, format?, quality? } */
   @Post(':id/render')
   async render(
