@@ -25,13 +25,19 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
   await mainForm(page).locator('input[type="password"]').fill('Admin@123');
   await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000 });
+  // 'commit' waits for URL change only — avoids Railway full-load timeout
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
 }
 
 async function openCopilotChat(page: import('@playwright/test').Page) {
   await page.locator('[title="Ask Copilot"]').click();
   await expect(page.locator('.cf-copilot-widget')).toBeVisible({ timeout: 10_000 });
-  await page.locator('.cf-topic-btn').filter({ hasText: /^Chat$/ }).click();
+  // Widget re-renders briefly after mount (position + auth state). Wait for the Chat
+  // tab to be both visible AND stable before clicking — prevents mid-render detachment.
+  const chatBtn = page.locator('.cf-topic-btn').filter({ hasText: /^Chat$/ });
+  await expect(chatBtn).toBeVisible({ timeout: 10_000 });
+  await expect(chatBtn).toBeEnabled({ timeout: 5_000 });
+  await chatBtn.click();
   await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible({ timeout: 8_000 });
 }
 
@@ -63,8 +69,10 @@ test.describe('Copilot panel — desktop smoke tests', () => {
     await page.locator('button[aria-label="Close panel"]').click();
     await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).not.toBeVisible({ timeout: 5_000 });
 
-    // Reopen via Chat tab
-    await page.locator('.cf-topic-btn').filter({ hasText: /^Chat$/ }).click();
+    // Reopen via Chat tab — wait for tab to stabilize after panel-close animation
+    const chatBtn = page.locator('.cf-topic-btn').filter({ hasText: /^Chat$/ });
+    await expect(chatBtn).toBeEnabled({ timeout: 5_000 });
+    await chatBtn.click();
     await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible({ timeout: 8_000 });
 
     await page.screenshot({ path: 'e2e/copilot-panel-reopened.png' });
