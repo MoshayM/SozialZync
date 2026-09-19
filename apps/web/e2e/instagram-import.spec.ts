@@ -47,7 +47,7 @@ test('Instagram Reel URL import — sends URL to API and shows result in bin', a
   await importBtn.click();
 
   // ── 3. Fill in the Instagram URL ─────────────────────────────────────────────
-  const urlInput = page.locator('input[placeholder*="video URL"]');
+  const urlInput = page.locator('input[placeholder*="Instagram"], input[placeholder*="file URL"], input[placeholder*="video URL"]').first();
   await expect(urlInput).toBeVisible({ timeout: 5_000 });
   await urlInput.fill(REEL_URL);
   await page.screenshot({ path: 'e2e/ig-2-url-filled.png' });

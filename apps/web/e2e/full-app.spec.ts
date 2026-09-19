@@ -335,8 +335,8 @@ test.describe('Authenticated — plans', () => {
     // Use the plan-card grid container to avoid false matches on static callout text
     const planGrid = page.locator('.grid.grid-cols-1');
     await expect(planGrid).toBeVisible({ timeout: 40_000 });
-    await expect(planGrid.getByText('Free')).toBeVisible({ timeout: 5_000 });
-    await expect(planGrid.getByText('Pro')).toBeVisible({ timeout: 5_000 });
+    await expect(planGrid.getByText('Free', { exact: true })).toBeVisible({ timeout: 5_000 });
+    await expect(planGrid.getByText('Pro', { exact: true })).toBeVisible({ timeout: 5_000 });
   });
 
   test('plans page has plan action elements', async ({ page }) => {

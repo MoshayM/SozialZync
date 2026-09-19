@@ -38,8 +38,8 @@ test.describe('Editor video preview', () => {
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(TEST_VIDEO);
 
-    // Upload video button should be visible in the bin (before or after upload)
-    const uploadBtn = page.locator('button').filter({ hasText: /upload video/i }).first();
+    // Upload button should be visible in the bin (before or after upload)
+    const uploadBtn = page.locator('button').filter({ hasText: /upload (file|video)/i }).first();
     await expect(uploadBtn).toBeVisible({ timeout: 20_000 });
     await page.screenshot({ path: 'e2e/editor-upload-btn.png' });
   });
@@ -64,8 +64,8 @@ test.describe('Editor video preview', () => {
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(TEST_VIDEO);
 
-    // Wait for the upload to finish — button shows "Uploading…" then returns to "Upload video"
-    const uploadBtn = page.locator('button').filter({ hasText: /upload video/i }).first();
+    // Wait for the upload to finish — button shows "Uploading…" then returns to "Upload file"
+    const uploadBtn = page.locator('button').filter({ hasText: /upload (file|video)/i }).first();
     await expect(uploadBtn).toBeVisible({ timeout: 60_000 });
 
     if (!capturedVersionId) {
