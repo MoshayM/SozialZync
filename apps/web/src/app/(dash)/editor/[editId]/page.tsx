@@ -1391,7 +1391,7 @@ function TimelineTrack({
         className="relative flex-1 bg-gray-50 border border-gray-100 rounded-lg overflow-hidden"
         style={{ height: TRACK_H, width: totalW }}
       >
-        {track.items.map((item) => (
+        {(track.items ?? []).map((item) => (
           <TimelineItem
             key={item.id}
             item={item}
@@ -1820,7 +1820,7 @@ export default function EditorWorkspacePage() {
     setSelectedItemId((sel) => (sel === itemId ? null : sel));
     updateTimeline((tl) => {
       const tracks = tl.tracks
-        .map((tr) => ({ ...tr, items: tr.items.filter((it) => it.id !== itemId) }))
+        .map((tr) => ({ ...tr, items: (tr.items ?? []).filter((it) => it.id !== itemId) }))
         .filter((tr) => tr.items.length > 0);
       const durationMs = tracks.reduce(
         (max, tr) => tr.items.reduce((m, it) => Math.max(m, it.timelineEndMs), max),
@@ -1872,7 +1872,7 @@ export default function EditorWorkspacePage() {
   // Find the currently-active video source for the preview
   const activeVideoItem = (timeline?.tracks ?? [])
     .filter((t) => t.kind === 'VIDEO')
-    .flatMap((t) => t.items)
+    .flatMap((t) => t.items ?? [])
     .find((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs) ?? null;
 
   const activeMediaEntry = activeVideoItem?.sourceAssetId
@@ -1886,7 +1886,7 @@ export default function EditorWorkspacePage() {
   // lower-third approximation of the rendered output.
   const activeTextItems = (timeline?.tracks ?? [])
     .filter((t) => t.kind === 'TEXT')
-    .flatMap((t) => t.items)
+    .flatMap((t) => t.items ?? [])
     .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs);
 
   // Clip-local source time: timeline offset within the clip, scaled by its
@@ -1918,7 +1918,7 @@ export default function EditorWorkspacePage() {
 
   // Selected item
   const selectedItem = selectedItemId
-    ? (timeline?.tracks ?? []).flatMap((t) => t.items).find((it) => it.id === selectedItemId) ?? null
+    ? (timeline?.tracks ?? []).flatMap((t) => t.items ?? []).find((it) => it.id === selectedItemId) ?? null
     : null;
 
   if (isLoading) {
