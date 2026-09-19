@@ -64,9 +64,12 @@ export class SocialDownloadService {
       '--fragment-retries', '2',
       '--socket-timeout', '20',
     ];
-    // Use alternate YouTube player clients to bypass bot-detection on cloud IPs.
-    // ios/mweb/android_vr are less aggressively bot-checked than the web client.
-    if (isYouTube) args.push('--extractor-args', 'youtube:player_client=ios,mweb,android_vr,android');
+    // Use po_token workaround + broad client list to avoid bot-detection on cloud IPs.
+    // Default web client triggers sign-in challenges on datacenter IPs; android,mweb,ios
+    // are less restricted. 'default' as fallback lets yt-dlp pick automatically.
+    if (isYouTube) {
+      args.push('--extractor-args', 'youtube:player_client=android,mweb,ios,web_creator,web_embedded,web');
+    }
     // Point yt-dlp at ffmpeg-static's pre-built binary so stream merging works
     if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
     await this.runYtDlp(args);
