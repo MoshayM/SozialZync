@@ -1478,13 +1478,13 @@ export const api = {
   },
   voice: {
     library: (source?: 'elevenlabs' | 'openai' | 'all') =>
-      apiClient.get<VoiceLibraryEntry[]>('/voice/library', { params: { source } }),
+      apiClient.get<{ voices: VoiceLibraryEntry[] }>('/voice/library', { params: { source } }),
     autoSelect: (scriptText: string) =>
       apiClient.post<{ voiceId: string; source: string; name: string }>('/voice/auto-select', { scriptText }),
   },
   music: {
     list: (params?: { search?: string }) =>
-      apiClient.get<MusicTrack[]>('/music', { params }),
+      apiClient.get<{ tracks: MusicTrack[]; total: number }>('/music', { params }),
     autoSelect: (scriptText: string, projectId?: string) =>
       apiClient.post<{ track: MusicTrack | null; brief: Record<string, unknown> }>('/music/auto-select', { scriptText, projectId }),
   },

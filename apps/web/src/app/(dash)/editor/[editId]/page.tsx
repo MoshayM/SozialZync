@@ -448,7 +448,7 @@ function AIAudioPanel({
     setVoicesLoading(true);
     api.voice.library()
       .then((r) => {
-        const list = r.data ?? [];
+        const list = r.data?.voices ?? [];
         setVoices(list);
         const first = list[0];
         if (first) { setSelectedVoiceId(first.id); setSelectedVoiceSource(first.source); }
@@ -460,7 +460,7 @@ function AIAudioPanel({
   useEffect(() => {
     setMusicLoading(true);
     api.music.list()
-      .then((r) => setMusicTracks(r.data ?? []))
+      .then((r) => setMusicTracks(r.data?.tracks ?? []))
       .catch(() => {})
       .finally(() => setMusicLoading(false));
   }, []);
