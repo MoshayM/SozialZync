@@ -162,10 +162,13 @@ test.describe('Watch feature — live smoke test', () => {
       );
       await existingUnwatches.first().click();
       await preDelPromise;
+      // Wait for refetch to settle before checking the count again
+      await page.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => {});
     }
 
-    // Add first account
+    // Add first account — wait for Add button to be enabled first
     await handleInput.fill('@x_user_one');
+    await expect(page.getByRole('button', { name: /^add$/i }).first()).toBeEnabled({ timeout: 5_000 });
     const res1Promise = page.waitForResponse(
       (r) => r.url().includes('/platforms') && r.request().method() === 'POST',
       { timeout: 30_000 },
@@ -176,8 +179,9 @@ test.describe('Watch feature — live smoke test', () => {
     expect(res1.status(), 'First watch POST should succeed').toBeLessThan(300);
     await expect(page.getByText('@x_user_one')).toBeVisible({ timeout: 10_000 });
 
-    // Add second account
+    // Add second account — wait for Add button to be enabled (mutation may still be settling)
     await handleInput.fill('@x_user_two');
+    await expect(page.getByRole('button', { name: /^add$/i }).first()).toBeEnabled({ timeout: 10_000 });
     const res2Promise = page.waitForResponse(
       (r) => r.url().includes('/platforms') && r.request().method() === 'POST',
       { timeout: 30_000 },
@@ -188,9 +192,11 @@ test.describe('Watch feature — live smoke test', () => {
     expect(res2.status(), 'Second watch POST should succeed').toBeLessThan(300);
     await expect(page.getByText('@x_user_two')).toBeVisible({ timeout: 10_000 });
 
-    // Badge should show 2
-    const badge = page.locator('span').filter({ hasText: '2' });
-    await expect(badge.first()).toBeVisible({ timeout: 5_000 });
+    // Badge should show 2 — scoped to the X Watch toggle button to avoid false matches
+    // (other spans on the page may contain "2", e.g. the @x_user_two handle)
+    const xWatchToggle = page.getByRole('button', { name: /^watch/i }).nth(3);
+    const badge = xWatchToggle.locator('span').filter({ hasText: /^2$/ });
+    await expect(badge).toBeVisible({ timeout: 8_000 });
     await page.screenshot({ path: 'e2e/pw-watch-5-badge.png', fullPage: false });
 
     // Clean up — after each DELETE, wait for networkidle so the UI refetch completes

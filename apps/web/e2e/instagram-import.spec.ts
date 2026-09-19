@@ -1,62 +1,77 @@
 /**
  * E2E: Instagram Reel import via the Video Editor URL bar.
- * Confirmed working via API: 17.7 MB mp4 in ~10s (2026-09-19).
+ * Uses a mocked import API so the test doesn't need real Instagram credentials.
  */
 import { test, expect } from '@playwright/test';
 
 const REEL_URL =
   'https://www.instagram.com/reel/DcFd8Z7CZDT/?utm_source=ig_web_copy_link';
 
-test('Instagram Reel imports and opens editor', async ({ page }) => {
-  // ── 1. Go to editor page ─────────────────────────────────────────────────
+const FAKE_ASSET = {
+  id: 'ig-e2e-asset',
+  label: 'instagram-reel.mp4',
+  kind: 'VIDEO',
+  sizeBytes: 17_600_000,
+  versionId: 'ig-e2e-version',
+  createdAt: new Date().toISOString(),
+};
+
+test('Instagram Reel URL import — sends URL to API and shows result in bin', async ({ page }) => {
+  let capturedUrl = '';
+
+  // Mock the import API — Instagram auth not available in CI
+  await page.route('**/media/video/import-from-url', async (route) => {
+    const body = route.request().postDataJSON() as { url?: string } | null;
+    capturedUrl = body?.url ?? '';
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        assetId: FAKE_ASSET.id,
+        versionId: FAKE_ASSET.versionId,
+        projectId: 'e2e-project',
+        sizeBytes: FAKE_ASSET.sizeBytes,
+        filename: FAKE_ASSET.label,
+      }),
+    });
+  });
+
+  // ── 1. Navigate to editor (smart redirect) ───────────────────────────────────
   await page.goto('/editor');
-  await page.waitForLoadState('networkidle');
+  await page.waitForURL(/\/editor\/.+/, { timeout: 30_000 });
   await page.screenshot({ path: 'e2e/ig-1-editor.png' });
 
-  // ── 2. Click the "From URL" source card ──────────────────────────────────
-  // The SourceCard subtitle contains "Instagram"; clicking it shows the URL bar
-  const urlCard = page.locator('button', { hasText: /instagram/i }).first();
-  await expect(urlCard).toBeVisible({ timeout: 15_000 });
-  await urlCard.click();
+  // ── 2. Open the URL import bar in the Media Bin ──────────────────────────────
+  const importBtn = page.getByRole('button', { name: /import from url/i });
+  await expect(importBtn).toBeVisible({ timeout: 15_000 });
+  await importBtn.click();
 
-  // ── 3. Fill the Instagram Reel URL ───────────────────────────────────────
-  const urlInput = page.locator('input[type="url"]');
-  await expect(urlInput).toBeVisible({ timeout: 8_000 });
+  // ── 3. Fill in the Instagram URL ─────────────────────────────────────────────
+  const urlInput = page.locator('input[placeholder*="video URL"]');
+  await expect(urlInput).toBeVisible({ timeout: 5_000 });
   await urlInput.fill(REEL_URL);
-
-  // Blue info chip: "Instagram detected — we'll extract the video for you"
-  await expect(page.locator('text=Instagram detected')).toBeVisible({ timeout: 5_000 });
   await page.screenshot({ path: 'e2e/ig-2-url-filled.png' });
 
-  // ── 4. Click Import ───────────────────────────────────────────────────────
-  await page.getByRole('button', { name: /^import$/i }).click();
+  // ── 4. Submit — wait for the mocked import API call ──────────────────────────
+  const importResponsePromise = page.waitForResponse(
+    (res) => res.url().includes('import-from-url'),
+    { timeout: 20_000 },
+  );
+  await page.getByRole('button', { name: /^go$/i }).click();
 
-  // Downloading spinner should appear
-  await expect(
-    page.locator('text=Downloading from Instagram')
-  ).toBeVisible({ timeout: 10_000 });
-  await page.screenshot({ path: 'e2e/ig-3-downloading.png' });
+  const importRes = await importResponsePromise;
+  console.log(`Import API status: ${importRes.status()}, URL captured: ${capturedUrl}`);
+  expect(importRes.status(), 'Import API should succeed').toBeLessThan(300);
 
-  // ── 5. Wait up to 90s for the title dialog ───────────────────────────────
-  // After download: "Name your edit" dialog appears (pre-filled with filename).
-  // User must confirm before the edit project is created and navigation happens.
-  const titleDialog = page.getByRole('dialog', { name: /name your edit/i });
-  await expect(titleDialog).toBeVisible({ timeout: 90_000 });
-  await page.screenshot({ path: 'e2e/ig-4-title-dialog.png' });
+  // ── 5. Verify the correct Instagram URL was sent ──────────────────────────────
+  expect(capturedUrl, 'Instagram URL should be forwarded to import API').toContain(
+    'instagram.com',
+  );
 
-  // ── 6. Verify title is pre-filled ────────────────────────────────────────
-  const titleInput = titleDialog.locator('input[type="text"]');
-  await expect(titleInput).toBeVisible();
-  const prefilled = await titleInput.inputValue();
-  console.log('✓ Title pre-filled as:', prefilled);
-  expect(prefilled.length).toBeGreaterThan(0);
+  // ── 6. After import, the URL bar closes and the bin refetches ─────────────────
+  // The Import from URL button should become visible again (bar closed)
+  await expect(importBtn).toBeVisible({ timeout: 10_000 });
+  await page.screenshot({ path: 'e2e/ig-3-done.png' });
 
-  // ── 7. Click "Open Editor" to create the project and navigate ─────────────
-  await titleDialog.getByRole('button', { name: /open editor/i }).click();
-  await page.waitForURL(/\/editor\/.+/, { timeout: 30_000 });
-  await page.screenshot({ path: 'e2e/ig-5-success.png' });
-
-  const finalUrl = page.url();
-  console.log('✓ Instagram Reel imported → navigated to:', finalUrl);
-  expect(finalUrl).toMatch(/\/editor\/.+/);
+  console.log('✓ Instagram Reel import URL submitted successfully');
 });
