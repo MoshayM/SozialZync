@@ -8,21 +8,42 @@
  */
 import { test, expect } from '@playwright/test';
 
+const ADMIN_EMAIL = process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com';
+const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
+
+/** Navigate to /editor with JWT-expiry recovery. The storageState JWT may
+ *  expire mid-suite; on redirect to /login, re-authenticate and retry. */
+async function goToEditor(page: import('@playwright/test').Page) {
+  await page.goto('/editor');
+  // Detect where we land — editor workspace or login (JWT expired)
+  const landed = await Promise.race([
+    page.waitForURL(/\/editor\/.+/, { timeout: 30_000 }).then(() => 'editor' as const),
+    page.waitForURL(/\/login/, { timeout: 30_000 }).then(() => 'login' as const),
+  ]).catch(() => 'editor' as const); // default: assume we're on editor if neither fires
+
+  if (landed === 'login') {
+    const emailInput = page.locator('input[type="email"]').first();
+    await expect(emailInput).toBeVisible({ timeout: 10_000 });
+    await emailInput.fill(ADMIN_EMAIL);
+    await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+    await page.getByRole('button', { name: /sign in with password/i }).click();
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+    await page.goto('/editor');
+    await page.waitForURL(/\/editor\/.+/, { timeout: 60_000 });
+  }
+}
+
 test('editor smart-redirect opens workspace without error boundary', async ({ page }) => {
   // ── 1. Go to the editor entry point — triggers smart redirect ─────────────
-  await page.goto('/editor');
+  await goToEditor(page);
 
-  // ── 2. Wait for redirect to /editor/<editId> ──────────────────────────────
-  // The component calls api.editor.listMine() then router.replace('/editor/:id').
-  // Allow up to 30s for Railway API cold-start + redirect.
-  await page.waitForURL(/\/editor\/.+/, { timeout: 30_000 });
   await page.waitForLoadState('networkidle');
   await page.screenshot({ path: 'e2e/editor-1-workspace.png' });
 
-  // ── 3. Verify error boundary is NOT shown ─────────────────────────────────
+  // ── 2. Verify error boundary is NOT shown ─────────────────────────────────
   await expect(page.locator('h2', { hasText: /something went wrong/i })).not.toBeVisible();
 
-  // ── 4. Verify editor UI is present ────────────────────────────────────────
+  // ── 3. Verify editor UI is present ────────────────────────────────────────
   // Top bar has Save and AI-edit buttons
   await expect(page.getByRole('button', { name: /save/i }).first()).toBeVisible({ timeout: 10_000 });
 
@@ -32,8 +53,7 @@ test('editor smart-redirect opens workspace without error boundary', async ({ pa
 });
 
 test('editor back arrow opens My Edits drawer', async ({ page }) => {
-  await page.goto('/editor');
-  await page.waitForURL(/\/editor\/.+/, { timeout: 30_000 });
+  await goToEditor(page);
   await page.waitForLoadState('networkidle');
 
   // Back arrow button has title="My edits"

@@ -15,7 +15,7 @@ async function login(page: Page) {
   await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
   await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
   await page.getByRole('button', { name: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 20_000 });
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
 }
 
 /** Capture responses and console errors for /platforms endpoints to diagnose mock-vs-real issues. */
@@ -86,6 +86,7 @@ test.describe('Watch feature — live smoke test', () => {
 
     // Instagram is the 2nd platform (index 1)
     const watchBtns = page.getByRole('button', { name: /watch/i });
+    await expect(watchBtns.nth(1)).toBeVisible({ timeout: 30_000 });
     await watchBtns.nth(1).click();
 
     const handleInput = page.locator('input[placeholder*="handle"]').first();
@@ -148,6 +149,7 @@ test.describe('Watch feature — live smoke test', () => {
 
     // X is the 4th platform (index 3)
     const watchBtns = page.getByRole('button', { name: /watch/i });
+    await expect(watchBtns.nth(3)).toBeVisible({ timeout: 30_000 });
     await watchBtns.nth(3).click();
 
     const handleInput = page.locator('input[placeholder*="handle"]').first();

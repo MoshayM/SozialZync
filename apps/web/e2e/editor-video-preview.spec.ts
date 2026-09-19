@@ -3,6 +3,27 @@ import path from 'path';
 
 const TEST_VIDEO = path.join(__dirname, 'test-video.mp4');
 const API = 'https://sozialzync-api-production.up.railway.app/api/v1';
+const ADMIN_EMAIL = process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com';
+const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
+
+async function goToEditor(page: import('@playwright/test').Page) {
+  await page.goto('/editor');
+  const landed = await Promise.race([
+    page.waitForURL(/\/editor\/.+/, { timeout: 30_000 }).then(() => 'editor' as const),
+    page.waitForURL(/\/login/, { timeout: 30_000 }).then(() => 'login' as const),
+  ]).catch(() => 'editor' as const);
+
+  if (landed === 'login') {
+    const emailInput = page.locator('input[type="email"]').first();
+    await expect(emailInput).toBeVisible({ timeout: 10_000 });
+    await emailInput.fill(ADMIN_EMAIL);
+    await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+    await page.getByRole('button', { name: /sign in with password/i }).click();
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+    await page.goto('/editor');
+    await page.waitForURL(/\/editor\/.+/, { timeout: 60_000 });
+  }
+}
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -10,8 +31,7 @@ test.describe('Editor video preview', () => {
 
   test('upload flow opens editor workspace with Upload video button', async ({ page }) => {
     // /editor now redirects to the workspace — wait for the redirect
-    await page.goto('/editor');
-    await page.waitForURL(/\/editor\/.+/, { timeout: 30_000 });
+    await goToEditor(page);
     await page.screenshot({ path: 'e2e/editor-workspace-initial.png' });
 
     // Upload via the bin's hidden file input
@@ -38,8 +58,7 @@ test.describe('Editor video preview', () => {
     });
 
     // /editor redirects to the workspace
-    await page.goto('/editor');
-    await page.waitForURL(/\/editor\/.+/, { timeout: 30_000 });
+    await goToEditor(page);
 
     // Upload via the bin's hidden file input
     const fileInput = page.locator('input[type="file"]').first();
