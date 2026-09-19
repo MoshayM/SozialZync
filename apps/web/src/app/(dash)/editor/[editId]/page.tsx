@@ -1,6 +1,6 @@
 ﻿'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -9,6 +9,7 @@ import {
   ZoomIn, ZoomOut, Plus, Maximize2,
   SlidersHorizontal, ChevronDown, ChevronRight, Clapperboard, Sparkles, KeyRound,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
+  Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
 } from 'lucide-react';
 import {
   api,
@@ -31,6 +32,8 @@ import {
   type RenderQuality,
   type VoiceLibraryEntry,
   type MusicTrack,
+  type LibraryVideo,
+  type LibraryVideosPage,
 } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { usePlanGate, useIsAdmin, planAtLeast } from '@/components/plan-gate';
@@ -94,6 +97,294 @@ function useSignedMediaUrl(versionId: string | null): string | null {
     return () => { cancelled = true; };
   }, [versionId]);
   return url;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function fmtLibDuration(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}:${String(m % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  DRAFT:     { bg: '#f3f4f6', text: '#4b5563' },
+  RENDERING: { bg: '#eff6ff', text: '#1d4ed8' },
+  READY:     { bg: '#ecfdf5', text: '#065f46' },
+  FAILED:    { bg: '#fef2f2', text: '#b91c1c' },
+};
+
+// ── Library Drawer ────────────────────────────────────────────────────────────
+
+function LibraryDrawer({
+  onClose,
+  onSelect,
+  selecting,
+}: {
+  onClose: () => void;
+  onSelect: (video: LibraryVideo) => void;
+  selecting: string | null;
+}) {
+  const [q, setQ] = useState('');
+
+  const { data: channels = [] } = useQuery<Array<{ id: string; title: string; thumbnailUrl?: string | null }>>({
+    queryKey: ['channels'],
+    queryFn: () => api.channels.list().then((r) => (Array.isArray(r.data) ? r.data : [])),
+    staleTime: 120_000,
+  });
+
+  const channelId = channels[0]?.id ?? '';
+
+  const { data: pageData, isLoading, error } = useQuery<LibraryVideosPage>({
+    queryKey: ['library-videos', channelId, q],
+    queryFn: () => api.library.listVideos(channelId, { q: q || undefined, sort: 'date' }).then((r) => r.data),
+    enabled: !!channelId,
+    staleTime: 60_000,
+  });
+
+  const videos: LibraryVideo[] = pageData?.data ?? [];
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex justify-end"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Pick a video from your library"
+        className="w-full max-w-md bg-white h-full flex flex-col shadow-2xl"
+      >
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+            <Youtube className="w-4 h-4 text-red-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-gray-900 text-sm leading-tight">Your Library</h2>
+            <p className="text-xs text-gray-400 mt-0.5 truncate">
+              {channels[0]?.title ?? 'Connect a channel to browse videos'}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {!!channelId && (
+          <div className="px-4 pt-3 pb-2">
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+              <Search className="w-4 h-4 text-gray-400 shrink-0" />
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search videos…"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
+          {!channelId && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Youtube className="w-10 h-10 text-gray-200 mb-3" />
+              <p className="text-sm font-semibold text-gray-500">No channel connected</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Connect a YouTube channel in Settings to browse your videos here.
+              </p>
+            </div>
+          )}
+          {!!channelId && isLoading && (
+            <div className="flex items-center justify-center py-12 text-gray-400 gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Loading videos…</span>
+            </div>
+          )}
+          {!!channelId && error && (
+            <div className="flex items-center justify-center py-12 text-gray-400 gap-1.5">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">Could not load videos.</span>
+            </div>
+          )}
+          {!!channelId && !isLoading && videos.length === 0 && !error && (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+              <Film className="w-8 h-8 text-gray-200 mb-2" />
+              <p className="text-sm">No videos found{q ? ' for that search' : ''}.</p>
+            </div>
+          )}
+          {videos.map((v) => {
+            const isSel = selecting === v.id;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => onSelect(v)}
+                disabled={!!selecting}
+                className="w-full flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all text-left disabled:opacity-60 group"
+              >
+                <div className="w-24 shrink-0 rounded-lg overflow-hidden bg-gray-900 relative" style={{ aspectRatio: '16/9' }}>
+                  {v.thumbnailUrl
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={v.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                    : <div className="w-full h-full flex items-center justify-center"><Film className="w-5 h-5 text-gray-600" /></div>}
+                  {v.durationMs > 0 && (
+                    <span className="absolute bottom-1 right-1 text-[9px] font-mono text-white bg-black/70 rounded px-1">
+                      {fmtLibDuration(v.durationMs)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 py-0.5">
+                  <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-tight">{v.title}</p>
+                  {v.publishedAt && <p className="text-[11px] text-gray-400 mt-1">{relativeTime(v.publishedAt)}</p>}
+                </div>
+                <div className="shrink-0 pt-1">
+                  {isSel
+                    ? <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    : (
+                      <span className="text-[11px] font-semibold text-gray-400 group-hover:text-gray-700 transition-colors flex items-center gap-0.5">
+                        Import <ArrowRight className="w-3 h-3" />
+                      </span>
+                    )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── History Drawer (My Edits) ─────────────────────────────────────────────────
+
+function HistoryDrawer({
+  currentEditId,
+  onClose,
+  onNew,
+}: {
+  currentEditId: string;
+  onClose: () => void;
+  onNew: () => void;
+}) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const { data: edits = [], refetch } = useQuery<EditProject[]>({
+    queryKey: ['editor-mine-list'],
+    queryFn: () => api.editor.listMine().then((r) => {
+      const arr = Array.isArray(r.data) ? r.data : [];
+      return arr.slice().sort((a, b) => new Date(b.lastEditedAt).getTime() - new Date(a.lastEditedAt).getTime());
+    }),
+    staleTime: 10_000,
+  });
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  async function handleDelete(id: string) {
+    setDeleting(id);
+    try {
+      await api.editor.deleteProject(id);
+      void refetch();
+    } catch { /* silently ignore */ } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-40 bg-black/30 flex"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="presentation"
+    >
+      <div className="w-80 sm:w-96 bg-white h-full flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="My edits">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+          <Film className="w-4 h-4 text-brand-500" />
+          <p className="flex-1 font-semibold text-gray-800 text-sm">My Edits</p>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close my edits">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        <div className="p-3 border-b border-gray-50">
+          <button
+            type="button"
+            onClick={onNew}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-sm font-semibold text-gray-500 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> New Edit
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1.5">
+          {edits.map((p) => {
+            const sc = STATUS_COLORS[p.status] ?? STATUS_COLORS['DRAFT']!;
+            const isCurrent = p.id === currentEditId;
+            return (
+              <div
+                key={p.id}
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors group ${isCurrent ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-white hover:bg-gray-50'}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => { router.push(`/editor/${p.id}`); onClose(); }}
+                  className="flex-1 flex items-center gap-2.5 text-left min-w-0"
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? 'bg-brand-100' : 'bg-gray-100'}`}>
+                    <Film className={`w-3.5 h-3.5 ${isCurrent ? 'text-brand-600' : 'text-gray-500'}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold truncate ${isCurrent ? 'text-brand-800' : 'text-gray-800'}`}>{p.title}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Clock className="w-2.5 h-2.5 text-gray-400" />
+                      <span className="text-[10px] text-gray-400">{relativeTime(p.lastEditedAt)}</span>
+                      <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold" style={{ background: sc.bg, color: sc.text }}>
+                        {p.status.charAt(0) + p.status.slice(1).toLowerCase()}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+                {!isCurrent && (
+                  <button
+                    type="button"
+                    disabled={deleting === p.id}
+                    onClick={() => void handleDelete(p.id)}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
+                    title="Delete this edit"
+                  >
+                    {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          {edits.length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-8">No edits yet — create one above.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Render Export Dialog ──────────────────────────────────────────────────────
@@ -1525,15 +1816,43 @@ function kindBadge(kind: string): string {
 function BinEntry({
   entry,
   onAdd,
+  onDelete,
 }: {
   entry: MediaBinEntry;
   onAdd: (e: MediaBinEntry) => void;
+  onDelete?: (id: string) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [label, setLabel] = useState(entry.label);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit() { setEditing(true); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 10); }
+  function commitEdit() { setEditing(false); }
+
   return (
-    <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-2.5 py-2 hover:bg-gray-50">
+    <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-2.5 py-2 hover:bg-gray-50 group">
       <span className="shrink-0">{KIND_ICON[entry.kind] ?? <Film className="w-3.5 h-3.5 text-gray-400" />}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-gray-800 truncate">{entry.label}</p>
+        {editing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); }}
+            className="text-xs font-medium text-gray-800 border border-brand-300 rounded px-1 py-0.5 w-full focus:outline-none"
+            maxLength={80}
+          />
+        ) : (
+          <p
+            className="text-xs font-medium text-gray-800 truncate cursor-text hover:text-brand-700"
+            title="Click to rename"
+            onClick={startEdit}
+          >
+            {label}
+          </p>
+        )}
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className="text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-gray-100 text-gray-500">
             {kindBadge(entry.kind)}
@@ -1543,6 +1862,15 @@ function BinEntry({
           )}
         </div>
       </div>
+      {onDelete && (
+        <button
+          onClick={() => onDelete(entry.id)}
+          title="Remove from bin"
+          className="shrink-0 p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 min-h-[36px] min-w-[36px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
       <button
         onClick={() => onAdd(entry)}
         title="Add to timeline"
@@ -1559,13 +1887,23 @@ function MediaBin({
   onAddToTimeline,
   onUpload,
   uploading,
+  onImportUrl,
+  urlImporting,
+  onOpenLibrary,
+  onDeleteEntry,
 }: {
   entries: MediaBinEntry[];
   onAddToTimeline: (entry: MediaBinEntry) => void;
   onUpload?: (file: File) => void;
   uploading?: boolean;
+  onImportUrl?: (url: string) => void;
+  urlImporting?: boolean;
+  onOpenLibrary?: () => void;
+  onDeleteEntry?: (id: string) => void;
 }) {
   const [rendersOpen, setRendersOpen] = useState(false);
+  const [showUrlBar, setShowUrlBar] = useState(false);
+  const [urlValue, setUrlValue] = useState('');
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const SOURCE_KINDS  = new Set(['VIDEO', 'RENDER_SOURCE', 'SHORTS_SOURCE_VIDEO']);
@@ -1584,37 +1922,17 @@ function MediaBin({
     e.target.value = '';
   };
 
-  if (entries.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center text-gray-400 text-xs gap-3">
-        <Film className="w-8 h-8 opacity-20" />
-        <div>
-          <p className="font-semibold text-gray-500 text-sm mb-1">No media yet</p>
-          <p className="leading-relaxed">Upload a video below, or send one from <strong>Projects</strong> / <strong>Shorts Studio</strong>.</p>
-        </div>
-        {onUpload && (
-          <>
-            <input ref={uploadRef} type="file" accept="video/*,.mp4,.mov,.avi,.webm,.mkv" className="hidden" onChange={handleFileChange} />
-            <button
-              type="button"
-              disabled={uploading}
-              onClick={() => uploadRef.current?.click()}
-              className="flex items-center gap-1.5 text-xs text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 font-medium px-3 py-2 rounded-lg transition-colors"
-            >
-              {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-              {uploading ? 'Uploading…' : 'Upload video'}
-            </button>
-          </>
-        )}
-        <Link href="/projects" className="text-xs text-brand-600 hover:underline font-medium flex items-center gap-1">Or go to Projects <ChevronRight className="w-3 h-3" /></Link>
-      </div>
-    );
+  function submitUrl() {
+    const u = urlValue.trim();
+    if (!u || !onImportUrl) return;
+    onImportUrl(u);
+    setUrlValue('');
+    setShowUrlBar(false);
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-
-      {/* Upload button — always visible when upload is wired up */}
+  // Action buttons always shown at top of bin
+  const actionButtons = (
+    <div className="px-2 pt-2 pb-1 space-y-1.5">
       {onUpload && (
         <>
           <input ref={uploadRef} type="file" accept="video/*,.mp4,.mov,.avi,.webm,.mkv" className="hidden" onChange={handleFileChange} />
@@ -1622,53 +1940,120 @@ function MediaBin({
             type="button"
             disabled={uploading}
             onClick={() => uploadRef.current?.click()}
-            className="w-full flex items-center gap-1.5 justify-center text-xs text-brand-600 border border-dashed border-brand-200 hover:border-brand-400 hover:bg-brand-50 disabled:opacity-50 font-medium px-3 py-2 rounded-lg transition-colors mt-1"
+            className="w-full flex items-center gap-1.5 text-xs text-brand-600 border border-dashed border-brand-200 hover:border-brand-400 hover:bg-brand-50 disabled:opacity-50 font-medium px-3 py-2 rounded-lg transition-colors"
           >
             {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
             {uploading ? 'Uploading…' : 'Upload video'}
           </button>
         </>
       )}
-
-      {/* Source Videos */}
-      {sources.length > 0 && (
-        <>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Source Videos</p>
-          {sources.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
-        </>
-      )}
-
-      {/* AI Generated (renders) — collapsible, starts collapsed */}
-      {renders.length > 0 && (
-        <>
+      {onImportUrl && (
+        showUrlBar ? (
+          <div className="flex gap-1">
+            <input
+              autoFocus
+              type="url"
+              value={urlValue}
+              onChange={(e) => setUrlValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitUrl(); if (e.key === 'Escape') { setShowUrlBar(false); setUrlValue(''); } }}
+              placeholder="Paste video URL…"
+              className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-brand-400"
+            />
+            <button
+              type="button"
+              onClick={submitUrl}
+              disabled={urlImporting || !urlValue.trim()}
+              className="px-2 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
+            >
+              {urlImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Go'}
+            </button>
+            <button type="button" onClick={() => { setShowUrlBar(false); setUrlValue(''); }} className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-500 hover:bg-gray-50">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
-            onClick={() => setRendersOpen((o) => !o)}
-            className="w-full flex items-center gap-1 px-2 pt-3 pb-1 hover:opacity-70 transition-opacity"
+            onClick={() => setShowUrlBar(true)}
+            className="w-full flex items-center gap-1.5 text-xs text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 font-medium px-3 py-2 rounded-lg transition-colors"
           >
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide flex-1 text-left">AI Generated</p>
-            <span className="text-[9px] text-gray-400 font-medium">{renders.length} render{renders.length !== 1 ? 's' : ''}</span>
-            <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform shrink-0 ${rendersOpen ? '' : '-rotate-90'}`} />
+            <Link2 className="w-3 h-3" /> Import from URL
           </button>
-          {rendersOpen && renders.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
-        </>
+        )
       )}
+      {onOpenLibrary && (
+        <button
+          type="button"
+          onClick={onOpenLibrary}
+          className="w-full flex items-center gap-1.5 text-xs text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 font-medium px-3 py-2 rounded-lg transition-colors"
+        >
+          <Library className="w-3 h-3" /> Import from Library
+        </button>
+      )}
+    </div>
+  );
 
-      {/* Audio */}
-      {audios.length > 0 && (
-        <>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Audio</p>
-          {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
-        </>
-      )}
+  if (entries.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col">
+        {actionButtons}
+        <div className="flex-1 flex flex-col items-center justify-center p-4 text-center text-gray-400 text-xs gap-3">
+          <Film className="w-8 h-8 opacity-20" />
+          <div>
+            <p className="font-semibold text-gray-500 text-sm mb-1">No media yet</p>
+            <p className="leading-relaxed">Upload a video above, or send one from <strong>Projects</strong> / <strong>Shorts Studio</strong>.</p>
+          </div>
+          <Link href="/projects" className="text-xs text-brand-600 hover:underline font-medium flex items-center gap-1">Go to Projects <ChevronRight className="w-3 h-3" /></Link>
+        </div>
+      </div>
+    );
+  }
 
-      {/* Images */}
-      {images.length > 0 && (
-        <>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Images</p>
-          {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
-        </>
-      )}
+  return (
+    <div className="flex-1 overflow-y-auto flex flex-col">
+      {actionButtons}
+
+      <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        {/* Source Videos */}
+        {sources.length > 0 && (
+          <>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-2 pb-1">Source Videos</p>
+            {sources.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} />)}
+          </>
+        )}
+
+        {/* AI Generated (renders) — collapsible, starts collapsed */}
+        {renders.length > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setRendersOpen((o) => !o)}
+              className="w-full flex items-center gap-1 px-2 pt-3 pb-1 hover:opacity-70 transition-opacity"
+            >
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide flex-1 text-left">AI Generated</p>
+              <span className="text-[9px] text-gray-400 font-medium">{renders.length} render{renders.length !== 1 ? 's' : ''}</span>
+              <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform shrink-0 ${rendersOpen ? '' : '-rotate-90'}`} />
+            </button>
+            {rendersOpen && renders.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
+          </>
+        )}
+
+        {/* Audio */}
+        {audios.length > 0 && (
+          <>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Audio</p>
+            {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
+          </>
+        )}
+
+        {/* Images */}
+        {images.length > 0 && (
+          <>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Images</p>
+            {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -1711,9 +2096,14 @@ export default function EditorWorkspacePage() {
   // Mobile panel visibility
   const [mobileBinOpen, setMobileBinOpen] = useState(false);
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
+  // History + library drawers
+  const [showHistory, setShowHistory] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [librarySelecting, setLibrarySelecting] = useState<string | null>(null);
   // Getting-started guide strip — shown when media bin is empty
   const [guideOpen, setGuideOpen] = useState(true);
   const [binUploading, setBinUploading] = useState(false);
+  const [binUrlImporting, setBinUrlImporting] = useState(false);
   const [binUploadError, setBinUploadError] = useState<string | null>(null);
 
   const handleBinUpload = useCallback(async (file: File) => {
@@ -1730,6 +2120,52 @@ export default function EditorWorkspacePage() {
       setBinUploading(false);
     }
   }, [project?.projectId, editId, qc]);
+
+  const handleBinUrlImport = useCallback(async (url: string) => {
+    if (!project?.projectId) return;
+    setBinUrlImporting(true);
+    setBinUploadError(null);
+    try {
+      await api.media.importVideoFromUrl(url, { projectId: project.projectId });
+      await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setBinUploadError(e.response?.data?.message ?? 'Import failed');
+    } finally {
+      setBinUrlImporting(false);
+    }
+  }, [project?.projectId, editId, qc]);
+
+  const handleLibrarySelect = useCallback(async (video: LibraryVideo) => {
+    setLibrarySelecting(video.id);
+    setBinUploadError(null);
+    try {
+      await api.media.importVideoFromUrl(
+        `https://www.youtube.com/watch?v=${video.youtubeVideoId}`,
+        { title: video.title, projectId: project?.projectId },
+      );
+      await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
+      setShowLibrary(false);
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setBinUploadError(e.response?.data?.message ?? 'Import from library failed');
+    } finally {
+      setLibrarySelecting(null);
+    }
+  }, [project?.projectId, editId, qc]);
+
+  const handleBinDeleteEntry = useCallback((_id: string) => {
+    // Soft-remove from local mediaBin view; server-side deletion not yet exposed.
+    // Invalidating the query will re-fetch and confirm the current state.
+    void qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
+  }, [editId, qc]);
+
+  const handleNewEdit = useCallback(async () => {
+    try {
+      const { data: edit } = await api.editor.createBlank({ title: 'New Edit' });
+      window.location.href = `/editor/${edit.id}`;
+    } catch { /* ignore — user can retry */ }
+  }, []);
 
   // Arriving from "Video Edit" on an imported video (?autoEdit=1): open the
   // AI dialog immediately so the assistant proposes an auto-edit plan.
@@ -2010,9 +2446,13 @@ export default function EditorWorkspacePage() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 bg-white shrink-0 flex-wrap gap-y-2">
-        <Link href="/editor" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 min-h-[44px] min-w-[44px] flex items-center justify-center">
+        <button
+          onClick={() => setShowHistory(true)}
+          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          title="My edits"
+        >
           <ArrowLeft className="w-4 h-4" />
-        </Link>
+        </button>
         <Film className="w-4 h-4 text-brand-500 shrink-0" />
         <p className="font-semibold text-gray-800 text-sm truncate flex-1 min-w-0">{project.title}</p>
 
@@ -2116,7 +2556,16 @@ export default function EditorWorkspacePage() {
             <Film className="w-3.5 h-3.5 text-brand-500" />
             <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Media bin</p>
           </div>
-          <MediaBin entries={mediaBin} onAddToTimeline={handleAddToTimeline} onUpload={handleBinUpload} uploading={binUploading} />
+          <MediaBin
+            entries={mediaBin}
+            onAddToTimeline={handleAddToTimeline}
+            onUpload={handleBinUpload}
+            uploading={binUploading}
+            onImportUrl={handleBinUrlImport}
+            urlImporting={binUrlImporting}
+            onOpenLibrary={() => setShowLibrary(true)}
+            onDeleteEntry={handleBinDeleteEntry}
+          />
           {binUploadError && (
             <p className="text-xs text-red-600 px-3 pb-2">{binUploadError}</p>
           )}
@@ -2133,7 +2582,16 @@ export default function EditorWorkspacePage() {
                   <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
-              <MediaBin entries={mediaBin} onAddToTimeline={(e) => { handleAddToTimeline(e); setMobileBinOpen(false); }} onUpload={handleBinUpload} uploading={binUploading} />
+              <MediaBin
+                entries={mediaBin}
+                onAddToTimeline={(e) => { handleAddToTimeline(e); setMobileBinOpen(false); }}
+                onUpload={handleBinUpload}
+                uploading={binUploading}
+                onImportUrl={handleBinUrlImport}
+                urlImporting={binUrlImporting}
+                onOpenLibrary={() => { setShowLibrary(true); setMobileBinOpen(false); }}
+                onDeleteEntry={handleBinDeleteEntry}
+              />
             </div>
           </div>
         )}
@@ -2317,6 +2775,20 @@ export default function EditorWorkspacePage() {
           autoSuggest={aiAutoSuggest}
           onClose={() => { setShowAiEdit(false); setAiAutoSuggest(false); }}
           onApplyTimeline={(t) => { setTimeline(t as EditTimeline); setDirty(true); setShowAiEdit(false); setAiAutoSuggest(false); }}
+        />
+      )}
+      {showHistory && (
+        <HistoryDrawer
+          currentEditId={editId}
+          onClose={() => setShowHistory(false)}
+          onNew={() => { setShowHistory(false); void handleNewEdit(); }}
+        />
+      )}
+      {showLibrary && (
+        <LibraryDrawer
+          onClose={() => setShowLibrary(false)}
+          onSelect={handleLibrarySelect}
+          selecting={librarySelecting}
         />
       )}
     </div>
