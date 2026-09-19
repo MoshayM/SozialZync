@@ -2046,6 +2046,8 @@ function BinEntry({
   function startEdit() { setEditing(true); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 10); }
   function commitEdit() { setEditing(false); }
 
+  const isProcessing = !entry.versionId;
+
   return (
     <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-2.5 py-2 hover:bg-gray-50 group">
       <span className="shrink-0">{KIND_ICON[entry.kind] ?? <Film className="w-3.5 h-3.5 text-gray-400" />}</span>
@@ -2071,9 +2073,15 @@ function BinEntry({
           </p>
         )}
         <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-gray-100 text-gray-500">
-            {kindBadge(entry.kind)}
-          </span>
+          {isProcessing ? (
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-yellow-100 text-yellow-700 flex items-center gap-0.5">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" /> Processing…
+            </span>
+          ) : (
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-gray-100 text-gray-500">
+              {kindBadge(entry.kind)}
+            </span>
+          )}
           {(entry.durationMs ?? 0) > 0 && (
             <span className="text-[10px] text-gray-400">{fmtMs(entry.durationMs!)}</span>
           )}
@@ -2090,10 +2098,11 @@ function BinEntry({
       )}
       <button
         onClick={() => onAdd(entry)}
-        title="Add to timeline"
-        className="shrink-0 p-1 rounded hover:bg-brand-50 text-brand-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
+        disabled={isProcessing}
+        title={isProcessing ? 'Processing — please wait' : 'Add to timeline'}
+        className="shrink-0 p-1 rounded hover:bg-brand-50 text-brand-600 min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <Plus className="w-4 h-4" />
+        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
       </button>
     </div>
   );
@@ -2152,7 +2161,7 @@ function MediaBin({
     <div className="px-2 pt-2 pb-1 space-y-1.5">
       {onUpload && (
         <>
-          <input ref={uploadRef} type="file" accept="video/*,.mp4,.mov,.avi,.webm,.mkv" className="hidden" onChange={handleFileChange} />
+          <input ref={uploadRef} type="file" accept="video/*,image/*,audio/*,.mp4,.mov,.avi,.webm,.mkv,.jpg,.jpeg,.png,.webp,.gif,.mp3,.wav,.ogg,.m4a,.aac" className="hidden" onChange={handleFileChange} />
           <button
             type="button"
             disabled={uploading}
@@ -2160,34 +2169,37 @@ function MediaBin({
             className="w-full flex items-center gap-1.5 text-xs text-brand-600 border border-dashed border-brand-200 hover:border-brand-400 hover:bg-brand-50 disabled:opacity-50 font-medium px-3 py-2 rounded-lg transition-colors"
           >
             {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-            {uploading ? 'Uploading…' : 'Upload video'}
+            {uploading ? 'Uploading…' : 'Upload file'}
           </button>
         </>
       )}
       {onImportUrl && (
         showUrlBar ? (
-          <div className="flex gap-1">
-            <input
-              autoFocus
-              type="url"
-              value={urlValue}
-              onChange={(e) => setUrlValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') submitUrl(); if (e.key === 'Escape') { setShowUrlBar(false); setUrlValue(''); } }}
-              placeholder="Paste video URL…"
-              className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-brand-400"
-            />
-            <button
-              type="button"
-              onClick={submitUrl}
-              disabled={urlImporting || !urlValue.trim()}
-              className="px-2 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
-            >
-              {urlImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Go'}
-            </button>
-            <button type="button" onClick={() => { setShowUrlBar(false); setUrlValue(''); }} className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-500 hover:bg-gray-50">
-              <X className="w-3 h-3" />
-            </button>
-          </div>
+          <>
+            <div className="flex gap-1">
+              <input
+                autoFocus
+                type="url"
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') submitUrl(); if (e.key === 'Escape') { setShowUrlBar(false); setUrlValue(''); } }}
+                placeholder="YouTube, Instagram, TikTok, X, or direct file URL…"
+                className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-brand-400"
+              />
+              <button
+                type="button"
+                onClick={submitUrl}
+                disabled={urlImporting || !urlValue.trim()}
+                className="px-2 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
+              >
+                {urlImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Go'}
+              </button>
+              <button type="button" onClick={() => { setShowUrlBar(false); setUrlValue(''); }} className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-500 hover:bg-gray-50">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-400 px-1">Supports YouTube, Instagram, TikTok, Twitter/X, LinkedIn, and direct video/image links</p>
+          </>
         ) : (
           <button
             type="button"
@@ -2415,6 +2427,7 @@ export default function EditorWorkspacePage() {
   }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const rafRef = useRef<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2601,18 +2614,33 @@ export default function EditorWorkspacePage() {
 
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 
-  // Find the currently-active video source for the preview
-  const activeVideoItem = (timeline?.tracks ?? [])
+  // Find the currently-active item on VIDEO tracks (may be a video clip or an image)
+  const activeTimelineItem = (timeline?.tracks ?? [])
     .filter((t) => t.kind === 'VIDEO')
     .flatMap((t) => t.items ?? [])
     .find((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs) ?? null;
 
-  const activeMediaEntry = activeVideoItem?.sourceAssetId
-    ? mediaBin.find((e) => e.id === activeVideoItem.sourceAssetId)
+  const isActiveImage = activeTimelineItem?.kind === 'IMAGE';
+  const activeVideoItem = isActiveImage ? null : activeTimelineItem;
+
+  // Active item on AUDIO tracks for standalone audio playback
+  const activeAudioItem = (timeline?.tracks ?? [])
+    .filter((t) => t.kind === 'AUDIO')
+    .flatMap((t) => t.items ?? [])
+    .find((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs) ?? null;
+
+  const activeDisplayEntry = activeTimelineItem?.sourceAssetId
+    ? mediaBin.find((e) => e.id === activeTimelineItem.sourceAssetId)
     : null;
+  const activeAudioEntry = activeAudioItem?.sourceAssetId
+    ? mediaBin.find((e) => e.id === activeAudioItem.sourceAssetId)
+    : null;
+
   // The bin's previewPath is a server disk path the browser can't load —
   // stream through the media API with an expiring signed URL instead.
-  const videoSrc = useSignedMediaUrl(activeMediaEntry?.versionId ?? null);
+  const displaySrc = useSignedMediaUrl(activeDisplayEntry?.versionId ?? null);
+  const audioSrc   = useSignedMediaUrl(activeAudioEntry?.versionId ?? null);
+  const videoSrc   = isActiveImage ? null : displaySrc;
 
   // TEXT items overlapping the playhead — overlaid on the preview as a
   // lower-third approximation of the rendered output.
@@ -2647,6 +2675,24 @@ export default function EditorWorkspacePage() {
       if (Math.abs(v.currentTime - activeSourceSec) > 0.05) v.currentTime = activeSourceSec;
     }
   }, [playing, currentTimeMs, activeVideoItem, activeSourceSec]);
+
+  // Slave the hidden <audio> element to the rAF master clock for AUDIO track items.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (!audioSrc || !activeAudioItem) {
+      if (!a.paused) a.pause();
+      return;
+    }
+    const sourceSec = Math.max(0, ((activeAudioItem.sourceInMs ?? 0) + (currentTimeMs - activeAudioItem.timelineStartMs))) / 1000;
+    if (playing) {
+      if (Math.abs(a.currentTime - sourceSec) > 0.4) a.currentTime = sourceSec;
+      if (a.paused) void a.play().catch(() => undefined);
+    } else {
+      if (!a.paused) a.pause();
+      if (Math.abs(a.currentTime - sourceSec) > 0.05) a.currentTime = sourceSec;
+    }
+  }, [playing, currentTimeMs, activeAudioItem, audioSrc]);
 
   // Selected item
   const selectedItem = selectedItemId
@@ -2838,7 +2884,39 @@ export default function EditorWorkspacePage() {
 
           {/* Preview area */}
           <div className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: 280 }}>
-            {videoSrc ? (
+            {/* Hidden audio element slaved to the rAF clock for AUDIO track items */}
+            <audio ref={audioRef} src={audioSrc ?? undefined} style={{ display: 'none' }}>
+              <track kind="captions" />
+            </audio>
+
+            {isActiveImage && displaySrc ? (
+              <>
+                <img
+                  src={displaySrc}
+                  alt=""
+                  className="max-w-full max-h-full object-contain"
+                  style={{ opacity: clamp(activeTimelineItem?.properties?.opacity ?? 1, 0, 1) }}
+                />
+                {activeTextItems.map((it) => (
+                  <span
+                    key={it.id}
+                    className="absolute left-1/2 -translate-x-1/2 pointer-events-none font-semibold text-center px-2 max-w-[90%] truncate"
+                    style={{
+                      bottom: '12%',
+                      color: it.properties?.color ?? '#ffffff',
+                      fontSize: Math.max(10, (it.properties?.fontSize ?? 32) * 0.4),
+                      opacity: clamp(it.properties?.opacity ?? 1, 0, 1),
+                      textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                    }}
+                  >
+                    {it.properties?.text ?? ''}
+                  </span>
+                ))}
+                <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wide bg-black/50 text-white/70 px-2 py-0.5 rounded-full pointer-events-none">
+                  Approximate preview
+                </span>
+              </>
+            ) : videoSrc ? (
               <>
                 {/* The rAF loop is the master clock — the element never drives
                     currentTimeMs (two competing clocks made the playhead jump). */}
@@ -2872,12 +2950,17 @@ export default function EditorWorkspacePage() {
                   Approximate preview
                 </span>
               </>
+            ) : activeAudioItem ? (
+              <div className="text-gray-400 text-sm text-center space-y-2 p-4">
+                <Volume2 className="w-10 h-10 mx-auto opacity-50" />
+                <p className="opacity-70 font-medium">Audio track</p>
+                <p className="text-xs opacity-40">{activeAudioEntry?.label ?? 'Playing audio…'}</p>
+              </div>
             ) : (
               <div className="text-gray-600 text-sm text-center space-y-1 p-4">
                 <Film className="w-8 h-8 mx-auto opacity-40" />
                 <p className="opacity-60">Approximate preview</p>
-                <p className="text-xs opacity-40">Add a video clip to the timeline to preview it here</p>
-                {/* TODO (Phase 2): Full WYSIWYG compositing preview with canvas renderer */}
+                <p className="text-xs opacity-40">Add media to the timeline to preview it here</p>
               </div>
             )}
           </div>
