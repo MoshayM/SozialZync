@@ -332,13 +332,16 @@ export class MediaController {
     // (The JWT payload carries the user id in `sub` — there is no `id` field.)
     const authorized =
       req.signedMediaAccess === true || version?.asset.project.userId === req.user?.sub;
-    if (!version?.r2Key || !authorized || !this.storage.exists(version.r2Key)) {
+    if (!version?.r2Key || !authorized) {
       throw new NotFoundException('Asset file not found');
     }
+    // ensure() downloads from R2 on cache miss (no-op for local-only driver)
+    const available = await this.storage.ensure(version.r2Key);
+    if (!available) throw new NotFoundException('Asset file not found');
     const name = version.r2Key.split('/').pop() ?? 'file';
     return new StreamableFile(this.storage.stream(version.r2Key), {
       type: mimeFor(name),
-      disposition: `attachment; filename="${name}"`,
+      disposition: `inline; filename="${name}"`,
     });
   }
 

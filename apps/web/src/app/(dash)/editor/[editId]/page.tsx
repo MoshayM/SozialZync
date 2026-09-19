@@ -8,7 +8,7 @@ import {
   Volume2, Zap, Type, Image, X,
   ZoomIn, ZoomOut, Plus, Maximize2,
   SlidersHorizontal, ChevronDown, ChevronRight, Clapperboard, Sparkles, KeyRound,
-  Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock,
+  Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
 } from 'lucide-react';
 import {
   api,
@@ -1557,11 +1557,16 @@ function BinEntry({
 function MediaBin({
   entries,
   onAddToTimeline,
+  onUpload,
+  uploading,
 }: {
   entries: MediaBinEntry[];
   onAddToTimeline: (entry: MediaBinEntry) => void;
+  onUpload?: (file: File) => void;
+  uploading?: boolean;
 }) {
   const [rendersOpen, setRendersOpen] = useState(false);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   const SOURCE_KINDS  = new Set(['VIDEO', 'RENDER_SOURCE', 'SHORTS_SOURCE_VIDEO']);
   const RENDER_KINDS  = new Set(['EDIT_RENDER']);
@@ -1573,21 +1578,57 @@ function MediaBin({
   const audios   = entries.filter((e) => AUDIO_KINDS.has(e.kind));
   const images   = entries.filter((e) => IMAGE_KINDS.has(e.kind));
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onUpload) onUpload(file);
+    e.target.value = '';
+  };
+
   if (entries.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-4 text-center text-gray-400 text-xs gap-3">
         <Film className="w-8 h-8 opacity-20" />
         <div>
           <p className="font-semibold text-gray-500 text-sm mb-1">No media yet</p>
-          <p className="leading-relaxed">Send a video here from <strong>Projects</strong> or <strong>Shorts Studio</strong>, or import a file from the <strong>Projects</strong> page.</p>
+          <p className="leading-relaxed">Upload a video below, or send one from <strong>Projects</strong> / <strong>Shorts Studio</strong>.</p>
         </div>
-        <Link href="/projects" className="text-xs text-brand-600 hover:underline font-medium flex items-center gap-1">Go to Projects <ChevronRight className="w-3 h-3" /></Link>
+        {onUpload && (
+          <>
+            <input ref={uploadRef} type="file" accept="video/*,.mp4,.mov,.avi,.webm,.mkv" className="hidden" onChange={handleFileChange} />
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => uploadRef.current?.click()}
+              className="flex items-center gap-1.5 text-xs text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 font-medium px-3 py-2 rounded-lg transition-colors"
+            >
+              {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+              {uploading ? 'Uploading…' : 'Upload video'}
+            </button>
+          </>
+        )}
+        <Link href="/projects" className="text-xs text-brand-600 hover:underline font-medium flex items-center gap-1">Or go to Projects <ChevronRight className="w-3 h-3" /></Link>
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+
+      {/* Upload button — always visible when upload is wired up */}
+      {onUpload && (
+        <>
+          <input ref={uploadRef} type="file" accept="video/*,.mp4,.mov,.avi,.webm,.mkv" className="hidden" onChange={handleFileChange} />
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => uploadRef.current?.click()}
+            className="w-full flex items-center gap-1.5 justify-center text-xs text-brand-600 border border-dashed border-brand-200 hover:border-brand-400 hover:bg-brand-50 disabled:opacity-50 font-medium px-3 py-2 rounded-lg transition-colors mt-1"
+          >
+            {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+            {uploading ? 'Uploading…' : 'Upload video'}
+          </button>
+        </>
+      )}
 
       {/* Source Videos */}
       {sources.length > 0 && (
@@ -1672,6 +1713,23 @@ export default function EditorWorkspacePage() {
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
   // Getting-started guide strip — shown when media bin is empty
   const [guideOpen, setGuideOpen] = useState(true);
+  const [binUploading, setBinUploading] = useState(false);
+  const [binUploadError, setBinUploadError] = useState<string | null>(null);
+
+  const handleBinUpload = useCallback(async (file: File) => {
+    if (!project?.projectId) return;
+    setBinUploading(true);
+    setBinUploadError(null);
+    try {
+      await api.media.uploadVideo(file, project.projectId);
+      await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setBinUploadError(e.response?.data?.message ?? 'Upload failed');
+    } finally {
+      setBinUploading(false);
+    }
+  }, [project?.projectId, editId, qc]);
 
   // Arriving from "Video Edit" on an imported video (?autoEdit=1): open the
   // AI dialog immediately so the assistant proposes an auto-edit plan.
@@ -2036,11 +2094,10 @@ export default function EditorWorkspacePage() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-brand-800">How to use the Video Editor</p>
             <ol className="mt-1.5 space-y-0.5 text-xs text-brand-700">
-              <li>1. Go to <Link href="/projects" className="underline font-medium">Projects</Link> or <Link href="/shorts-studio" className="underline font-medium">Shorts Studio</Link> and click &quot;Send to Editor&quot; on any video</li>
-              <li>2. Come back here — your clips will appear in the <strong>Media Bin</strong> on the left</li>
-              <li>3. Click <strong>+</strong> on any clip to add it to the timeline below</li>
-              <li>4. Drag clips to rearrange, drag edges to trim, click to inspect &amp; edit</li>
-              <li>5. Click <strong>Export</strong> to render your final video</li>
+              <li>1. Click <strong>Upload video</strong> in the Media Bin — or send a video from <Link href="/projects" className="underline font-medium">Projects</Link> / <Link href="/shorts-studio" className="underline font-medium">Shorts Studio</Link></li>
+              <li>2. Click <strong>+</strong> on any clip to add it to the timeline below</li>
+              <li>3. Drag clips to rearrange, drag edges to trim, click to inspect &amp; edit</li>
+              <li>4. Click <strong>Export</strong> to render your final video</li>
             </ol>
           </div>
           <button onClick={() => setGuideOpen(false)} className="p-1 rounded-lg hover:bg-brand-100 text-brand-400 shrink-0" aria-label="Dismiss guide">
@@ -2059,7 +2116,10 @@ export default function EditorWorkspacePage() {
             <Film className="w-3.5 h-3.5 text-brand-500" />
             <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Media bin</p>
           </div>
-          <MediaBin entries={mediaBin} onAddToTimeline={handleAddToTimeline} />
+          <MediaBin entries={mediaBin} onAddToTimeline={handleAddToTimeline} onUpload={handleBinUpload} uploading={binUploading} />
+          {binUploadError && (
+            <p className="text-xs text-red-600 px-3 pb-2">{binUploadError}</p>
+          )}
         </aside>
 
         {/* Mobile media bin slide-over */}
@@ -2073,7 +2133,7 @@ export default function EditorWorkspacePage() {
                   <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
-              <MediaBin entries={mediaBin} onAddToTimeline={(e) => { handleAddToTimeline(e); setMobileBinOpen(false); }} />
+              <MediaBin entries={mediaBin} onAddToTimeline={(e) => { handleAddToTimeline(e); setMobileBinOpen(false); }} onUpload={handleBinUpload} uploading={binUploading} />
             </div>
           </div>
         )}
