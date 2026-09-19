@@ -29,7 +29,10 @@ test.describe('Browse page — public access', () => {
     await page.goto('/browse');
     const input = page.locator('input[type="search"]');
     await expect(input).toBeVisible();
-    await input.fill('AI tools');
+    // pressSequentially fires real key events — works on WebKit where fill() may
+    // not trigger React onChange on type="search" inputs (WebKit uses 'search' event).
+    await input.click();
+    await input.pressSequentially('AI tools', { delay: 20 });
     await expect(input).toHaveValue('AI tools');
   });
 
@@ -75,9 +78,11 @@ test.describe('Browse page — public access', () => {
 
   test('empty search shows no-results state', async ({ page }) => {
     await page.goto('/browse');
-    await page.locator('input[type="search"]').fill('xyzthiscannotexist99999');
-    // All content types empty
-    await expect(page.getByText(/no content found/i)).toBeVisible({ timeout: 5_000 });
+    const input = page.locator('input[type="search"]');
+    await input.click();
+    await input.pressSequentially('xyzthiscannotexist99999', { delay: 20 });
+    // Filtering may take a beat on WebKit — allow 10s for the empty-state to appear
+    await expect(page.getByText(/no content found/i)).toBeVisible({ timeout: 10_000 });
   });
 });
 
