@@ -29,16 +29,34 @@ const mainForm = (page: import('@playwright/test').Page) =>
   });
 
 async function loginWithPassword(page: import('@playwright/test').Page) {
-  // Always force a fresh JWT — storageState JWT may be 40+ min old when desktop
-  // tests run late in the suite, causing Railway to reject API calls mid-test.
-  // Navigate to app origin first so localStorage.clear() targets the right domain.
-  await page.goto('/');
-  await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+  // Go to /login (fast static page — no Railway call). If the storageState JWT is
+  // still valid the login page useEffect redirects to /home immediately.
   await page.goto('/login');
-  // If auth uses httpOnly cookies instead of localStorage, redirect may still fire.
-  const cookieAuth = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 5_000 })
+  const redirectedToHome = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 8_000 })
     .then(() => true).catch(() => false);
-  if (cookieAuth) return;
+
+  if (redirectedToHome) {
+    // JWT is currently valid. Check whether it expires within 10 minutes —
+    // if so, force a fresh login so it doesn't expire mid-test.
+    const expiresAt = await page.evaluate(() => {
+      for (let i = 0; i < localStorage.length; i++) {
+        const v = localStorage.getItem(localStorage.key(i) ?? '') ?? '';
+        if (!v.startsWith('eyJ')) continue;
+        const parts = v.split('.');
+        if (parts.length !== 3) continue;
+        try { return (JSON.parse(atob(parts[1])).exp ?? 0) * 1000; } catch { /* not a JWT */ }
+      }
+      return null; // cookie-based auth — no localStorage JWT
+    });
+    const TEN_MIN = 10 * 60 * 1000;
+    if (expiresAt === null || expiresAt > Date.now() + TEN_MIN) return; // fresh enough
+    // JWT expires soon — clear it and force re-login via form
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+    await page.goto('/login');
+    const cookieAuth = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 2_000 })
+      .then(() => true).catch(() => false);
+    if (cookieAuth) return;
+  }
 
   await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');

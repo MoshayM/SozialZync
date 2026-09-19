@@ -12,15 +12,29 @@ const mainForm = (page: import('@playwright/test').Page) =>
   });
 
 async function loginWithPassword(page: import('@playwright/test').Page) {
-  // Always force a fresh JWT — storageState JWT may be 40+ min old when desktop
-  // tests run late in the suite, causing the client-side auth guard to redirect mid-test.
-  await page.goto('/');
-  await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
   await page.goto('/login');
-  // If auth uses httpOnly cookies, redirect may still fire despite localStorage clear.
-  const cookieAuth = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 5_000 })
+  const redirectedToHome = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 8_000 })
     .then(() => true).catch(() => false);
-  if (cookieAuth) return;
+
+  if (redirectedToHome) {
+    const expiresAt = await page.evaluate(() => {
+      for (let i = 0; i < localStorage.length; i++) {
+        const v = localStorage.getItem(localStorage.key(i) ?? '') ?? '';
+        if (!v.startsWith('eyJ')) continue;
+        const parts = v.split('.');
+        if (parts.length !== 3) continue;
+        try { return (JSON.parse(atob(parts[1])).exp ?? 0) * 1000; } catch { /* not a JWT */ }
+      }
+      return null;
+    });
+    const TEN_MIN = 10 * 60 * 1000;
+    if (expiresAt === null || expiresAt > Date.now() + TEN_MIN) return;
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+    await page.goto('/login');
+    const cookieAuth = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 2_000 })
+      .then(() => true).catch(() => false);
+    if (cookieAuth) return;
+  }
 
   await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');

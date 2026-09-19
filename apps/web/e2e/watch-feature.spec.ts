@@ -145,7 +145,8 @@ test.describe('Watch feature — live smoke test', () => {
 
     await page.goto('/channel-access');
     await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 30_000 });
-    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+    // Wait for connection-status API to populate all platform cards (Railway may be slow)
+    await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
 
     // X is the 4th platform (index 3)
     const watchBtns = page.getByRole('button', { name: /watch/i });

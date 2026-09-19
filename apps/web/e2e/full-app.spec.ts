@@ -16,7 +16,10 @@ const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
 /** Navigate to `path` with inline JWT-expiry recovery for late-running authenticated tests. */
 async function gotoWithAuth(page: import('@playwright/test').Page, path: string) {
   await page.goto(path);
-  const expired = await page.waitForURL(/\/login/, { timeout: 3_000 })
+  // Client-side auth guard fires via useEffect after React hydration — can take up to ~10s
+  // on slow Vercel cold starts. 3s was too short and caused false negatives (guard fired
+  // after gotoWithAuth returned, causing mid-test redirects).
+  const expired = await page.waitForURL(/\/login/, { timeout: 12_000 })
     .then(() => true).catch(() => false);
   if (expired) {
     const emailInput = page.locator('input[type="email"]').first();

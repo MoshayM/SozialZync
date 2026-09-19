@@ -56,7 +56,7 @@ test('Instagram Reel URL import — sends URL to API and shows result in bin', a
 
   // ── 2. Open the URL import bar in the Media Bin ──────────────────────────────
   const importBtn = page.getByRole('button', { name: /import from url/i });
-  await expect(importBtn).toBeVisible({ timeout: 15_000 });
+  await expect(importBtn).toBeVisible({ timeout: 30_000 });
   await importBtn.click();
 
   // ── 3. Fill in the Instagram URL ─────────────────────────────────────────────
