@@ -29,21 +29,21 @@ const mainForm = (page: import('@playwright/test').Page) =>
   });
 
 async function loginWithPassword(page: import('@playwright/test').Page) {
+  // Always force a fresh JWT — storageState JWT may be 40+ min old when desktop
+  // tests run late in the suite, causing Railway to reject API calls mid-test.
+  // Navigate to app origin first so localStorage.clear() targets the right domain.
+  await page.goto('/');
+  await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
   await page.goto('/login');
-  // When a stored JWT is in localStorage the login page useEffect auto-redirects.
-  // Detect that and skip form-filling so the fill() calls don't race the redirect.
-  const alreadyAuth = await page.waitForURL(
-    /\/(home|projects|dashboard)/,
-    { timeout: 10_000 },
-  ).then(() => true).catch(() => false);
-  if (alreadyAuth) return;
+  // If auth uses httpOnly cookies instead of localStorage, redirect may still fire.
+  const cookieAuth = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 5_000 })
+    .then(() => true).catch(() => false);
+  if (cookieAuth) return;
 
   await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
   await mainForm(page).locator('input[type="password"]').fill('Admin@123');
   await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
-  // 'commit' waits for URL change only (not full page load) — avoids 90s timeout
-  // when the dashboard itself is slow to load (Railway API calls on /home).
   await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
 }
 
@@ -54,7 +54,7 @@ async function openCopilotChat(page: import('@playwright/test').Page) {
   await expect(page.locator('.cf-copilot-widget')).toBeVisible({ timeout: 10_000 });
   // Always click the Chat tab to open the panel.
   await page.locator('.cf-topic-btn').filter({ hasText: /^Chat$/ }).click();
-  await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible({ timeout: 8_000 });
+  await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible({ timeout: 20_000 });
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ test.describe('Copilot voice — mobile smoke test', () => {
     // Tap the mic button — the small Mic icon button in the input bar
     const inputBar = page.locator('.cf-popup-input');
     const micButton = inputBar.locator('button').first(); // mic is first, send is second
-    await expect(micButton).toBeVisible({ timeout: 8_000 });
+    await expect(micButton).toBeVisible({ timeout: 20_000 });
     await micButton.click();
 
     // Should show "Listening…" — key regression test for RECORD_AUDIO fix

@@ -36,9 +36,22 @@ test('Instagram Reel URL import — sends URL to API and shows result in bin', a
     });
   });
 
-  // ── 1. Navigate to editor (smart redirect) ───────────────────────────────────
+  // ── 1. Navigate to editor with JWT-expiry recovery ───────────────────────────
   await page.goto('/editor');
-  await page.waitForURL(/\/editor\/.+/, { timeout: 30_000, waitUntil: 'commit' });
+  const landed = await Promise.race([
+    page.waitForURL(/\/editor\/.+/, { timeout: 30_000, waitUntil: 'commit' }).then(() => 'editor' as const),
+    page.waitForURL(/\/login/, { timeout: 30_000 }).then(() => 'login' as const),
+  ]).catch(() => 'editor' as const);
+  if (landed === 'login') {
+    const emailInput = page.locator('input[type="email"]').first();
+    await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
+    await emailInput.fill(process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com');
+    await page.locator('input[type="password"]').first().fill(process.env.PW_ADMIN_PASS ?? 'Admin@123');
+    await page.getByRole('button', { name: /sign in with password/i }).click();
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+    await page.goto('/editor');
+    await page.waitForURL(/\/editor\/.+/, { timeout: 60_000, waitUntil: 'commit' });
+  }
   await page.screenshot({ path: 'e2e/ig-1-editor.png' });
 
   // ── 2. Open the URL import bar in the Media Bin ──────────────────────────────

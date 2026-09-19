@@ -7,15 +7,15 @@ import { test, expect } from '@playwright/test';
  */
 
 async function loginWithPassword(page: import('@playwright/test').Page) {
+  // Always force a fresh JWT — storageState JWT may be 40+ min old when desktop
+  // tests run late in the suite, causing Railway to reject API calls mid-test.
+  await page.goto('/');
+  await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
   await page.goto('/login');
-  // When a stored JWT is in localStorage (e.g. chromium-desktop storageState),
-  // the login page's useEffect auto-redirects to /home without showing the form.
-  // Detect that redirect early and skip form-filling in that case.
-  const alreadyAuth = await page.waitForURL(
-    /\/(home|projects|dashboard)/,
-    { timeout: 4_000 },
-  ).then(() => true).catch(() => false);
-  if (alreadyAuth) return;
+  // If auth uses httpOnly cookies, redirect may still fire despite localStorage clear.
+  const cookieAuth = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 5_000 })
+    .then(() => true).catch(() => false);
+  if (cookieAuth) return;
 
   await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
   const form = page.locator('form').filter({
@@ -32,8 +32,6 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   const submitBtn = form.locator('button').filter({ hasText: /sign in with password/i });
   await expect(submitBtn).toBeEnabled({ timeout: 8_000 });
   await submitBtn.click();
-  // WebKit (headless) loads the SPA 2-3× slower than Chromium — allow extra time.
-  // 'commit' waits for URL change only, avoiding slow dashboard data loading from Railway.
   await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
 }
 
@@ -45,7 +43,7 @@ async function openWidget(page: import('@playwright/test').Page) {
 async function openChatPanel(page: import('@playwright/test').Page) {
   await openWidget(page);
   await page.locator('.cf-topic-btn').filter({ hasText: /^Chat$/ }).click();
-  await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible({ timeout: 8_000 });
+  await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible({ timeout: 20_000 });
 }
 
 // Warm up Railway before AI-dependent tests

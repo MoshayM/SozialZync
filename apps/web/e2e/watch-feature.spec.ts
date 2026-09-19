@@ -86,7 +86,7 @@ test.describe('Watch feature — live smoke test', () => {
 
     // Instagram is the 2nd platform (index 1)
     const watchBtns = page.getByRole('button', { name: /watch/i });
-    await expect(watchBtns.nth(1)).toBeVisible({ timeout: 30_000 });
+    await expect(watchBtns.nth(1)).toBeVisible({ timeout: 60_000 });
     await watchBtns.nth(1).click();
 
     const handleInput = page.locator('input[placeholder*="handle"]').first();
@@ -149,7 +149,7 @@ test.describe('Watch feature — live smoke test', () => {
 
     // X is the 4th platform (index 3)
     const watchBtns = page.getByRole('button', { name: /watch/i });
-    await expect(watchBtns.nth(3)).toBeVisible({ timeout: 30_000 });
+    await expect(watchBtns.nth(3)).toBeVisible({ timeout: 60_000 });
     await watchBtns.nth(3).click();
 
     const handleInput = page.locator('input[placeholder*="handle"]').first();

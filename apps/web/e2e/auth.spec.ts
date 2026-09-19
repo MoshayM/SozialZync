@@ -53,8 +53,14 @@ test.describe('Login page', () => {
 
   test('admin can log in and reach dashboard', async ({ page }) => {
     await page.goto('/login');
-    await emailInput(page).fill(ADMIN_EMAIL);
-    await passwordInput(page).fill(ADMIN_PASS);
+    // pressSequentially fires real keydown/input/keyup events — more reliable than
+    // fill() across all browsers (Firefox headless is sensitive to synthetic events).
+    await emailInput(page).click();
+    await emailInput(page).pressSequentially(ADMIN_EMAIL, { delay: 20 });
+    await passwordInput(page).click();
+    await passwordInput(page).pressSequentially(ADMIN_PASS, { delay: 20 });
+    // Wait for form validation to enable the button before clicking
+    await expect(signInBtn(page)).toBeEnabled({ timeout: 5_000 });
     await signInBtn(page).click();
     // Allow 90s — Railway cold start can take 30-45s on Firefox headless.
     // 'commit' resolves on URL change only, not full dashboard data load.

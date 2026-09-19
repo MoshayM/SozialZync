@@ -10,6 +10,25 @@ import path from 'path';
 
 const AUTH_FILE = path.join(__dirname, '.auth.json');
 
+const ADMIN_EMAIL = process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com';
+const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
+
+/** Navigate to `path` with inline JWT-expiry recovery for late-running authenticated tests. */
+async function gotoWithAuth(page: import('@playwright/test').Page, path: string) {
+  await page.goto(path);
+  const expired = await page.waitForURL(/\/login/, { timeout: 3_000 })
+    .then(() => true).catch(() => false);
+  if (expired) {
+    const emailInput = page.locator('input[type="email"]').first();
+    await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
+    await emailInput.fill(ADMIN_EMAIL);
+    await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+    await page.getByRole('button', { name: /sign in with password/i }).click();
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+    await page.goto(path);
+  }
+}
+
 // ── 1. PUBLIC PAGES (no auth needed) ──────────────────────────────────────────
 
 test.describe('Public — landing + auth pages', () => {
@@ -225,10 +244,11 @@ test.describe('Authenticated — settings', () => {
   });
 
   test('settings/channels — Google connect button present', async ({ page }) => {
-    await page.goto('/settings/channels');
+    await gotoWithAuth(page, '/settings/channels');
     await expect(page.getByRole('heading', { name: /channels/i })).toBeVisible({ timeout: 25_000 });
     // Button text varies: "Add via Google" (has channels) or "Connect with Google" (empty state)
-    await expect(page.getByRole('button', { name: /add via google|connect with google/i }).first()).toBeVisible({ timeout: 15_000 });
+    // 30s: Railway channels API can take 15-25s after cold start to return connection status
+    await expect(page.getByRole('button', { name: /add via google|connect with google/i }).first()).toBeVisible({ timeout: 30_000 });
   });
 
   test('settings/ai-infrastructure loads', async ({ page }) => {
@@ -329,7 +349,7 @@ test.describe('Authenticated — copilot widget', () => {
 
 test.describe('Authenticated — plans', () => {
   test('plans page shows pricing tiers (waits for API)', async ({ page }) => {
-    await page.goto('/plans');
+    await gotoWithAuth(page, '/plans');
     await expect(page.getByRole('heading', { name: /plans|pricing/i })).toBeVisible({ timeout: 20_000 });
     // Wait for the plan grid to render (Railway cold start may delay subscription API)
     // Use the plan-card grid container to avoid false matches on static callout text
@@ -340,7 +360,7 @@ test.describe('Authenticated — plans', () => {
   });
 
   test('plans page has plan action elements', async ({ page }) => {
-    await page.goto('/plans');
+    await gotoWithAuth(page, '/plans');
     const planGrid = page.locator('.grid.grid-cols-1');
     await expect(planGrid).toBeVisible({ timeout: 40_000 });
     // Any plan action: "Upgrade to X", "Switch to X", "Your plan", "Downgrade via cancel"
