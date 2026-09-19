@@ -448,8 +448,9 @@ function AIAudioPanel({
     setVoicesLoading(true);
     api.voice.library()
       .then((r) => {
-        setVoices(r.data);
-        const first = r.data[0];
+        const list = r.data ?? [];
+        setVoices(list);
+        const first = list[0];
         if (first) { setSelectedVoiceId(first.id); setSelectedVoiceSource(first.source); }
       })
       .catch(() => {})
@@ -459,7 +460,7 @@ function AIAudioPanel({
   useEffect(() => {
     setMusicLoading(true);
     api.music.list()
-      .then((r) => setMusicTracks(r.data))
+      .then((r) => setMusicTracks(r.data ?? []))
       .catch(() => {})
       .finally(() => setMusicLoading(false));
   }, []);
@@ -627,7 +628,7 @@ function AIAudioPanel({
                 <p className="text-xs font-semibold text-gray-800">{selectedMusic.title}</p>
                 {selectedMusic.artist && <p className="text-[11px] text-gray-500">{selectedMusic.artist}</p>}
                 <div className="flex gap-1.5 flex-wrap">
-                  {selectedMusic.mood.slice(0, 3).map((m) => (
+                  {(selectedMusic.mood ?? []).slice(0, 3).map((m) => (
                     <span key={m} className="text-[10px] bg-brand-100 text-brand-700 rounded px-1.5 py-0.5">{m}</span>
                   ))}
                 </div>
@@ -1693,7 +1694,7 @@ export default function EditorWorkspacePage() {
       // code-path that calls tl.tracks.map() always has an array.
       const seed: EditTimeline = { width: 1920, height: 1080, fps: 30, durationMs: 0, tracks: [] };
       const raw = project.timeline ?? seed;
-      setTimeline({ ...seed, ...raw, tracks: raw.tracks ?? [] });
+      setTimeline({ ...seed, ...raw, tracks: (raw.tracks ?? []).map((t) => ({ ...t, items: t.items ?? [] })) });
     }
   }, [project, timeline]);
 
@@ -1740,7 +1741,7 @@ export default function EditorWorkspacePage() {
       ...tl,
       tracks: tl.tracks.map((tr) => ({
         ...tr,
-        items: tr.items.map((it) => {
+        items: (tr.items ?? []).map((it) => {
           if (it.id !== itemId) return it;
           const start = Math.max(0, Math.round(newStartMs));
           return { ...it, timelineStartMs: start, timelineEndMs: start + (it.timelineEndMs - it.timelineStartMs) };
@@ -1754,7 +1755,7 @@ export default function EditorWorkspacePage() {
       ...tl,
       tracks: tl.tracks.map((tr) => ({
         ...tr,
-        items: tr.items.map((it) => {
+        items: (tr.items ?? []).map((it) => {
           if (it.id !== itemId) return it;
           const start = Math.max(0, Math.round(newStartMs));
           const end = Math.max(start + 1, Math.round(newEndMs));
@@ -1770,7 +1771,7 @@ export default function EditorWorkspacePage() {
       ...tl,
       tracks: tl.tracks.map((tr) => ({
         ...tr,
-        items: tr.items.map((it) =>
+        items: (tr.items ?? []).map((it) =>
           it.id === selectedItemId ? { ...it, ...patch } : it,
         ),
       })),
@@ -1800,7 +1801,7 @@ export default function EditorWorkspacePage() {
           ...tl,
           durationMs: newDuration,
           tracks: tl.tracks.map((t) =>
-            t.id === trackId ? { ...t, items: [...t.items, newItem] } : t,
+            t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t,
           ),
         };
       }
