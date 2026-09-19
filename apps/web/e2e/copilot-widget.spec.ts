@@ -33,7 +33,8 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   await expect(submitBtn).toBeEnabled({ timeout: 8_000 });
   await submitBtn.click();
   // WebKit (headless) loads the SPA 2-3× slower than Chromium — allow extra time.
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000 });
+  // 'commit' waits for URL change only, avoiding slow dashboard data loading from Railway.
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
 }
 
 async function openWidget(page: import('@playwright/test').Page) {

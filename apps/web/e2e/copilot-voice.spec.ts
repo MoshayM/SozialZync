@@ -42,7 +42,9 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
   await mainForm(page).locator('input[type="password"]').fill('Admin@123');
   await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000 });
+  // 'commit' waits for URL change only (not full page load) — avoids 90s timeout
+  // when the dashboard itself is slow to load (Railway API calls on /home).
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
 }
 
 async function openCopilotChat(page: import('@playwright/test').Page) {
@@ -82,16 +84,14 @@ test.describe('Copilot voice — mobile smoke test', () => {
     await page.screenshot({ path: 'e2e/copilot-robo-home.png' });
 
     // Tap the mic button — the small Mic icon button in the input bar
-    const micBtn = page.locator('button').filter({ has: page.locator('svg') }).last();
-    // More reliable: find the button adjacent to the send button in the input bar
-    // The mic button has the Mic icon; in the input bar div there are exactly 2 icon buttons
     const inputBar = page.locator('.cf-popup-input');
     const micButton = inputBar.locator('button').first(); // mic is first, send is second
+    await expect(micButton).toBeVisible({ timeout: 8_000 });
     await micButton.click();
 
     // Should show "Listening…" — key regression test for RECORD_AUDIO fix
     // .first() because it appears in both the input bar AND the panel header simultaneously
-    await expect(page.getByText('Listening…').first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText('Listening…').first()).toBeVisible({ timeout: 12_000 });
     // Should NOT show any permission error
     await expect(page.getByText(/microphone permission denied/i)).not.toBeVisible();
     await expect(page.getByText(/could not start microphone/i)).not.toBeVisible();
@@ -113,8 +113,9 @@ test.describe('Copilot voice — mobile smoke test', () => {
 
     const inputBar = page.locator('.cf-popup-input');
     const micButton = inputBar.locator('button').first();
+    await expect(micButton).toBeVisible({ timeout: 8_000 });
     await micButton.click();
-    await expect(page.getByText('Listening…').first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText('Listening…').first()).toBeVisible({ timeout: 12_000 });
 
     // Record for 2 seconds so the fake audio device has time to produce data
     await page.waitForTimeout(2_000);
