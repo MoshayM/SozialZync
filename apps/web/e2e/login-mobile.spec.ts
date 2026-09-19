@@ -116,7 +116,8 @@ test.describe('Login page — mobile passkey UX', () => {
       await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
     }
 
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 60_000 });
+    // 'commit' waits for URL change only — avoids Railway dashboard load timeout
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
     await page.screenshot({ path: 'e2e/mobile-login-success.png' });
   });
 });

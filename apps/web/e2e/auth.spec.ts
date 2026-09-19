@@ -56,8 +56,9 @@ test.describe('Login page', () => {
     await emailInput(page).fill(ADMIN_EMAIL);
     await passwordInput(page).fill(ADMIN_PASS);
     await signInBtn(page).click();
-    // Wait for redirect to dashboard
-    await page.waitForURL(/\/(home|dashboard|\(dash\))/, { timeout: 20_000 }).catch(() => {});
+    // Allow 90s — Railway cold start can take 30-45s on Firefox headless.
+    // 'commit' resolves on URL change only, not full dashboard data load.
+    await page.waitForURL(/\/(home|dashboard|\(dash\))/, { timeout: 90_000, waitUntil: 'commit' }).catch(() => {});
     const url = page.url();
     expect(url).not.toMatch(/login/);
   });

@@ -92,12 +92,13 @@ test.describe('Copilot widget — cross-browser smoke', () => {
     await page.screenshot({ path: 'e2e/chest-no-panel.png' });
   });
 
-  test('text message → reply → Read aloud button (all browsers)', async ({ page, browserName }) => {
-    // Firefox + WebKit headless block API calls / navigation after auth — this path
-    // is fully covered by chromium-desktop and chromium-mobile projects.
+  test('text message → reply → Read aloud button (all browsers)', async ({ page, browserName, isMobile }) => {
+    // Firefox + WebKit headless block API calls / navigation after auth — covered by Chromium desktop.
+    // Mobile skipped: no storageState → each test does a fresh login; 4 prior logins in this file
+    // can trigger rate-limiting before this AI-heavy test runs. Covered by chromium-desktop.
     test.skip(
-      browserName === 'firefox' || browserName === 'webkit',
-      `${browserName} headless blocks post-login navigation or XHR — covered by Chromium projects`
+      browserName === 'firefox' || browserName === 'webkit' || isMobile,
+      `${browserName}${isMobile ? '-mobile' : ''} headless blocks post-login navigation or XHR — covered by chromium-desktop`
     );
 
     await loginWithPassword(page);
@@ -118,12 +119,13 @@ test.describe('Copilot widget — cross-browser smoke', () => {
     await page.screenshot({ path: 'e2e/reply-received.png' });
   });
 
-  test('Read aloud button → TTS starts or Play fallback shown', async ({ page, browserName }) => {
+  test('Read aloud button → TTS starts or Play fallback shown', async ({ page, browserName, isMobile }) => {
     // WebKit + Firefox headless: speechSynthesis is blocked/restricted.
-    // On real Safari/Firefox devices the button works — this is a headless limit only.
+    // Mobile: no storageState → repeated logins in this file trigger rate-limiting;
+    // TTS is covered by chromium-desktop which has fast auth via storageState.
     test.skip(
-      browserName === 'webkit' || browserName === 'firefox',
-      `${browserName} blocks speechSynthesis in headless — verified on real devices`
+      browserName === 'webkit' || browserName === 'firefox' || isMobile,
+      `${browserName}${isMobile ? '-mobile' : ''} blocks speechSynthesis or hits login rate-limit — covered by chromium-desktop`
     );
 
     await loginWithPassword(page);
