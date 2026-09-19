@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Youtube,
   Search,
+  Check,
 } from 'lucide-react';
 import { api, type EditProject, type LibraryVideo } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
@@ -104,6 +105,81 @@ function DeleteConfirmDialog({
           >
             {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Name-your-edit Dialog ─────────────────────────────────────────────────────
+
+function TitleDialog({
+  suggestedTitle,
+  creating,
+  onConfirm,
+  onCancel,
+}: {
+  suggestedTitle: string;
+  creating: boolean;
+  onConfirm: (title: string) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState(suggestedTitle);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onCancel(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div role="dialog" aria-modal="true" aria-label="Name your edit" className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'linear-gradient(135deg, #374151, #7c5ae8)' }}>
+            <Film className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="font-bold text-gray-900">Name your edit</h2>
+            <p className="text-xs text-gray-400 mt-0.5">You can rename it later from the editor</p>
+          </div>
+        </div>
+        <input
+          ref={inputRef}
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && title.trim()) onConfirm(title.trim()); }}
+          placeholder="Enter a title…"
+          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 mb-4"
+          maxLength={120}
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={creating}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(title.trim() || suggestedTitle)}
+            disabled={creating}
+            className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #374151, #7c5ae8)' }}
+          >
+            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Open Editor
           </button>
         </div>
       </div>
@@ -510,6 +586,10 @@ function EditorInner() {
   // global import error banner
   const [importError, setImportError] = useState<string | null>(null);
 
+  // title dialog — shown after upload/import, before creating the edit project
+  const [pendingCreate, setPendingCreate] = useState<{ projectId: string; assetId: string; suggestedTitle: string } | null>(null);
+  const [creating, setCreating] = useState(false);
+
   // delete state
   const [pendingDelete, setPendingDelete] = useState<EditProject | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -529,15 +609,12 @@ function EditorInner() {
     setUploadBusy(true);
     try {
       const { data: uploaded } = await api.media.uploadVideo(file);
-      // create an edit session for this video — project folder is handled server-side
-      const { data: edit } = await api.editor.create(uploaded.projectId, {
-        sourceKind: 'ASSET',
-        sourceId: uploaded.assetId,
-        title: uploaded.filename ?? file.name,
-      });
-      await openEdit(edit.id);
+      // Show title dialog before creating the edit project
+      const suggestedTitle = (uploaded.filename ?? file.name).replace(/\.[^.]+$/, '');
+      setPendingCreate({ projectId: uploaded.projectId, assetId: uploaded.assetId, suggestedTitle });
     } catch (err) {
       setImportError(getErrorMessage(err));
+    } finally {
       setUploadBusy(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -549,16 +626,12 @@ function EditorInner() {
     setUrlBusy(true);
     try {
       const { data: imported } = await api.media.importVideoFromUrl(trimmed);
-      const { data: edit } = await api.editor.create(imported.projectId, {
-        sourceKind: 'ASSET',
-        sourceId: imported.assetId,
-        title: imported.filename ?? trimmed.split('/').pop() ?? 'Imported video',
-      });
+      // Show title dialog before creating the edit project
+      const suggestedTitle = (imported.filename ?? trimmed.split('/').pop() ?? 'Imported video').replace(/\.[^.]+$/, '');
       setShowUrlBar(false);
-      await openEdit(edit.id);
+      setPendingCreate({ projectId: imported.projectId, assetId: imported.assetId, suggestedTitle });
     } catch (err) {
       const raw = getErrorMessage(err);
-      // Translate generic MIME/network errors into friendlier copy
       const friendly =
         raw.includes('text/html') || (raw.includes('MIME') && raw.includes('html'))
           ? 'That URL points to a web page, not a video. For YouTube/TikTok/Instagram, paste the share URL and we\'ll extract it.'
@@ -566,7 +639,27 @@ function EditorInner() {
           ? 'That URL isn\'t publicly reachable. Use a public video link.'
           : raw;
       setImportError(friendly);
+    } finally {
       setUrlBusy(false);
+    }
+  }
+
+  async function handleConfirmCreate(title: string) {
+    if (!pendingCreate) return;
+    setCreating(true);
+    try {
+      const { data: edit } = await api.editor.create(pendingCreate.projectId, {
+        sourceKind: 'ASSET',
+        sourceId: pendingCreate.assetId,
+        title: title || pendingCreate.suggestedTitle,
+      });
+      setPendingCreate(null);
+      await openEdit(edit.id);
+    } catch (err) {
+      setImportError(getErrorMessage(err));
+      setPendingCreate(null);
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -726,6 +819,16 @@ function EditorInner() {
           onClose={() => setShowLibrary(false)}
           onSelect={(v) => void handleLibrarySelect(v)}
           selecting={librarySelecting}
+        />
+      )}
+
+      {/* Title dialog — shown after upload/import completes */}
+      {pendingCreate && (
+        <TitleDialog
+          suggestedTitle={pendingCreate.suggestedTitle}
+          creating={creating}
+          onConfirm={(title) => void handleConfirmCreate(title)}
+          onCancel={() => setPendingCreate(null)}
         />
       )}
 
