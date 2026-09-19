@@ -37,19 +37,24 @@ test('Instagram Reel imports and opens editor', async ({ page }) => {
   ).toBeVisible({ timeout: 10_000 });
   await page.screenshot({ path: 'e2e/ig-3-downloading.png' });
 
-  // ── 5. Wait up to 90s for navigation to /editor/<editId> ─────────────────
-  // On success: router.push(`/editor/${editId}`) → URL changes
-  // On failure: error banner appears with AlertCircle + message text
-  await page.waitForURL(/\/editor\/.+/, { timeout: 90_000 });
+  // ── 5. Wait up to 90s for the title dialog ───────────────────────────────
+  // After download: "Name your edit" dialog appears (pre-filled with filename).
+  // User must confirm before the edit project is created and navigation happens.
+  const titleDialog = page.getByRole('dialog', { name: /name your edit/i });
+  await expect(titleDialog).toBeVisible({ timeout: 90_000 });
+  await page.screenshot({ path: 'e2e/ig-4-title-dialog.png' });
 
-  await page.screenshot({ path: 'e2e/ig-4-success.png' });
+  // ── 6. Verify title is pre-filled ────────────────────────────────────────
+  const titleInput = titleDialog.locator('input[type="text"]');
+  await expect(titleInput).toBeVisible();
+  const prefilled = await titleInput.inputValue();
+  console.log('✓ Title pre-filled as:', prefilled);
+  expect(prefilled.length).toBeGreaterThan(0);
 
-  // ── 6. Confirm no import-error banner visible on the new edit page ────────
-  // The error banner has: <AlertCircle> + text + X button; rendered in red-50 bg
-  // It would only be visible if we somehow stayed on /editor with an error.
-  await expect(
-    page.locator('div.bg-red-50').filter({ hasText: /could not download|sign.in|failed/i })
-  ).not.toBeVisible();
+  // ── 7. Click "Open Editor" to create the project and navigate ─────────────
+  await titleDialog.getByRole('button', { name: /open editor/i }).click();
+  await page.waitForURL(/\/editor\/.+/, { timeout: 30_000 });
+  await page.screenshot({ path: 'e2e/ig-5-success.png' });
 
   const finalUrl = page.url();
   console.log('✓ Instagram Reel imported → navigated to:', finalUrl);
