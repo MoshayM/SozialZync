@@ -96,6 +96,10 @@ test.describe('Login page — mobile passkey UX', () => {
   });
 
   test('password sign-in still works on mobile', async ({ page }) => {
+    // Other tests in this suite (auth.setup + auth.spec) also login as the admin,
+    // so the rate-limiter may already be triggered. Give up to 90s for it to clear.
+    test.setTimeout(150_000);
+
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 15_000 });
 
@@ -104,6 +108,13 @@ test.describe('Login page — mobile passkey UX', () => {
     await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
     await mainForm(page).locator('input[type="password"]').fill('Admin@123');
     await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
+
+    // If rate-limited by prior test-suite logins, wait 90s for the window to clear then retry.
+    const rateLimited = page.getByText(/too many attempts/i);
+    if (await rateLimited.isVisible({ timeout: 4_000 }).catch(() => false)) {
+      await page.waitForTimeout(90_000);
+      await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
+    }
 
     await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 60_000 });
     await page.screenshot({ path: 'e2e/mobile-login-success.png' });
