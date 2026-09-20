@@ -64,34 +64,42 @@ const FAKE_ASSET = {
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
 async function doLogin(page: import('@playwright/test').Page) {
-  const emailInput = page.locator('input[type="email"]').first();
-  await emailInput.waitFor({ state: 'visible', timeout: 15_000 });
-  await emailInput.fill(ADMIN_EMAIL);
-  await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
-  await page.getByRole('button', { name: /sign in with password/i }).click();
-
-  // Race: navigation success vs rate-limit toast.
-  // Cold Railway returns a 429 after > 4 s — the 30 s race catches whichever fires first.
-  let navigated = false;
-  await Promise.race([
-    page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
-      .then(() => { navigated = true; }).catch(() => {}),
-    page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
-      .catch(() => {}),
-  ]);
-
-  if (!navigated) {
-    if (await page.getByText(/too many attempts/i).isVisible()) {
-      // 400 s budget — 120 s wait clears the ~240 s fixed rate-limit window.
-      await page.waitForTimeout(120_000);
-      await page.goto('/login');
-      await page.locator('input[type="email"]').first().waitFor({ state: 'visible', timeout: 15_000 });
-      await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
-      await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
-      await page.getByRole('button', { name: /sign in with password/i }).click();
-    }
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+  async function fillAndSubmit() {
+    const email = page.locator('input[type="email"]').first();
+    await email.waitFor({ state: 'visible', timeout: 15_000 });
+    await email.fill(ADMIN_EMAIL);
+    await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+    await page.getByRole('button', { name: /sign in with password/i }).click();
   }
+
+  async function raceResult(): Promise<boolean> {
+    // Returns true if navigation succeeded, false if rate-limited or timed-out.
+    let ok = false;
+    await Promise.race([
+      page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
+        .then(() => { ok = true; }).catch(() => {}),
+      page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
+        .catch(() => {}),
+    ]);
+    return ok;
+  }
+
+  await fillAndSubmit();
+  if (await raceResult()) return;
+
+  // Recovery loop: up to 2 extra attempts with 120s waits between them.
+  // Two waits span 240s which guarantees the fixed rate-limit window has cleared
+  // (window is ~240s from the first trigger, not reset by subsequent attempts).
+  for (let i = 0; i < 2; i++) {
+    await page.waitForTimeout(120_000);
+    await page.goto('/login');
+    await fillAndSubmit();
+    if (await raceResult()) return;
+  }
+
+  // Last-resort final wait — by this point ≥240s have elapsed from the first
+  // trigger so the window has definitely cleared.
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 60_000, waitUntil: 'commit' });
 }
 
 async function ensureAuth(page: import('@playwright/test').Page) {
@@ -343,8 +351,9 @@ test.describe('Media import — URL connect · download · upload · play · edi
 
   test('4. Play — imported asset exposes a preview / play affordance in the bin', async ({ page }) => {
     // test.use({ timeout }) inside describe is ignored when the global config is lower.
-    // Set it explicitly inside the body to guarantee the 400s budget.
-    test.setTimeout(400_000);
+    // Set it explicitly inside the body. 500s covers: 2×120s rate-limit recovery +
+    // 90s cold Railway editor load + test body — safe for worst-case late-suite auth.
+    test.setTimeout(500_000);
     await mockImportAPI(page);
     await mockAssetList(page);
     await navigateToEditor(page);
@@ -415,7 +424,7 @@ test.describe('Media import — URL connect · download · upload · play · edi
   // test adapts to different panel layouts without hardcoded pixel positions.
 
   test('5. Edit — bin asset can be moved to timeline; edit controls appear on selection', async ({ page }) => {
-    test.setTimeout(400_000);
+    test.setTimeout(500_000);
     await mockImportAPI(page);
     await mockAssetList(page);
     await navigateToEditor(page);
@@ -445,7 +454,11 @@ test.describe('Media import — URL connect · download · upload · play · edi
       .or(page.locator('[data-testid*="add-to-timeline"]'))
       .first();
 
-    if (await addBtn.isVisible({ timeout: 8_000 }).catch(() => false)) {
+    const addBtnVisible = await addBtn.isVisible({ timeout: 8_000 }).catch(() => false);
+    // isVisible() returns true even for disabled buttons — check isEnabled() separately
+    // to avoid waiting 60s for a button that is present but permanently disabled.
+    const addBtnEnabled = addBtnVisible && await addBtn.isEnabled().catch(() => false);
+    if (addBtnEnabled) {
       await addBtn.click();
       await page.waitForTimeout(500);
       console.log('Added asset via "Add to timeline" button');

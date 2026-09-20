@@ -167,6 +167,9 @@ test.describe('Copilot widget — cross-browser smoke', () => {
       browserName === 'webkit' || browserName === 'firefox' || isMobile,
       `${browserName}${isMobile ? '-mobile' : ''} blocks speechSynthesis or hits login rate-limit — covered by chromium-desktop`
     );
+    // test.use({ timeout }) inside describe is NOT reliably overriding the 150s global;
+    // set it explicitly in the body to guarantee the 300s budget for rate-limit recovery.
+    test.setTimeout(300_000);
 
     await loginWithPassword(page);
     await openChatPanel(page);
