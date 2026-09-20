@@ -66,7 +66,9 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
       });
       await form2.locator('input[type="email"]').pressSequentially('sozialzync@gmail.com', { delay: 20 });
       await form2.locator('input[type="password"]').pressSequentially('Admin@123', { delay: 20 });
-      await form2.locator('button').filter({ hasText: /sign in with password/i }).click();
+      const submitBtn2 = form2.locator('button').filter({ hasText: /sign in with password/i });
+      await expect(submitBtn2).toBeEnabled({ timeout: 10_000 });
+      await submitBtn2.click();
     }
     await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
   }
@@ -97,6 +99,9 @@ test.beforeAll(async ({ request }) => {
 });
 
 test.describe('Copilot widget — cross-browser smoke', () => {
+  // Tests call loginWithPassword (rate-limit recovery: 30+120+120=270s) AND wait
+  // up to 75s for the AI reply. Override the 150s global to give enough headroom.
+  test.use({ timeout: 300_000 });
 
   test('widget opens and shows robot + tabs', async ({ page }) => {
     await loginWithPassword(page);

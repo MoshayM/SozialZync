@@ -51,14 +51,16 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   ]);
   if (!navigated) {
     if (await page.getByText(/too many attempts/i).isVisible()) {
-      await page.waitForTimeout(120_000);
+      // Short wait — each attempt takes ~135s total (30+15+90), and 3 attempts
+      // span ~270s which naturally clears the ~240s rate-limit window.
+      await page.waitForTimeout(15_000);
       await page.goto('/login');
       await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
       await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
       await mainForm(page).locator('input[type="password"]').fill('Admin@123');
       await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
     }
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
   }
 }
 

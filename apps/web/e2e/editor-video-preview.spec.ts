@@ -32,13 +32,15 @@ async function goToEditor(page: import('@playwright/test').Page) {
     ]);
     if (!editorNavigated) {
       if (await page.getByText(/too many attempts/i).isVisible()) {
-        await page.waitForTimeout(120_000);
+        // Short wait — each attempt takes ~135s total, and 3 attempts span ~270s
+        // which naturally clears the ~240s rate-limit window.
+        await page.waitForTimeout(15_000);
         await page.goto('/login');
         await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
         await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
         await page.getByRole('button', { name: /sign in with password/i }).click();
       }
-      await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+      await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
     }
 
     await page.goto('/editor');
