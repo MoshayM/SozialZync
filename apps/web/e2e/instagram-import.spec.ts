@@ -342,6 +342,9 @@ test.describe('Media import — URL connect · download · upload · play · edi
   // the render path is wired up).
 
   test('4. Play — imported asset exposes a preview / play affordance in the bin', async ({ page }) => {
+    // test.use({ timeout }) inside describe is ignored when the global config is lower.
+    // Set it explicitly inside the body to guarantee the 400s budget.
+    test.setTimeout(400_000);
     await mockImportAPI(page);
     await mockAssetList(page);
     await navigateToEditor(page);
@@ -354,8 +357,14 @@ test.describe('Media import — URL connect · download · upload · play · edi
     const urlInput = page.locator(URL_INPUT_SEL).first();
     await expect(urlInput).toBeVisible({ timeout: 15_000 });
     await urlInput.fill(SOURCES[0].url);
+    // Register the response listener BEFORE clicking so a synchronous mock response
+    // isn't missed between the click dispatch and the listener setup.
+    const importDone = page.waitForResponse(
+      (res) => res.url().includes('import-from-url'),
+      { timeout: 20_000 },
+    );
     await page.getByRole('button', { name: /^go$/i }).click();
-    await page.waitForResponse((res) => res.url().includes('import-from-url'), { timeout: 20_000 });
+    await importDone;
     await page.waitForTimeout(1_500);
 
     await page.screenshot({ path: 'e2e/ig-4-play-bin.png' });
@@ -406,6 +415,7 @@ test.describe('Media import — URL connect · download · upload · play · edi
   // test adapts to different panel layouts without hardcoded pixel positions.
 
   test('5. Edit — bin asset can be moved to timeline; edit controls appear on selection', async ({ page }) => {
+    test.setTimeout(400_000);
     await mockImportAPI(page);
     await mockAssetList(page);
     await navigateToEditor(page);
@@ -418,8 +428,13 @@ test.describe('Media import — URL connect · download · upload · play · edi
     const urlInput = page.locator(URL_INPUT_SEL).first();
     await expect(urlInput).toBeVisible({ timeout: 15_000 });
     await urlInput.fill(SOURCES[0].url);
+    // Listener before click — same reason as test 4 above.
+    const importDone = page.waitForResponse(
+      (res) => res.url().includes('import-from-url'),
+      { timeout: 20_000 },
+    );
     await page.getByRole('button', { name: /^go$/i }).click();
-    await page.waitForResponse((res) => res.url().includes('import-from-url'), { timeout: 20_000 });
+    await importDone;
     await page.waitForTimeout(1_000);
 
     await page.screenshot({ path: 'e2e/ig-5-edit-before.png' });
