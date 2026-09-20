@@ -1,0 +1,27 @@
+name: Keep Railway Warm
+
+# Pings the Railway API health endpoint every 8 minutes to prevent the service
+# from sleeping due to inactivity (Railway Hobby sleeps after ~10 min idle).
+# This eliminates cold-start flakiness in E2E tests without a plan upgrade.
+
+on:
+  schedule:
+    - cron: '*/8 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping Railway health endpoint
+        run: |
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+            https://sozialzync-api-production.up.railway.app/api/v1/health \
+            --max-time 30 || echo "000")
+          echo "Railway status: $STATUS"
+          if [ "$STATUS" = "000" ]; then
+            echo "Warning: Railway did not respond (may be cold-starting)"
+          else
+            echo "Railway is warm (HTTP $STATUS)"
+          fi
