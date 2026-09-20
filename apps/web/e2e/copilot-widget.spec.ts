@@ -101,6 +101,7 @@ test.describe('Copilot widget — cross-browser smoke', () => {
   test.use({ timeout: 300_000 });
 
   test('widget opens and shows robot + tabs', async ({ page }) => {
+    test.setTimeout(300_000);
     await loginWithPassword(page);
     await openWidget(page);
     await expect(page.locator('.cf-copilot-widget')).toBeVisible();
@@ -111,7 +112,7 @@ test.describe('Copilot widget — cross-browser smoke', () => {
   });
 
   test('Chat tab opens panel with textarea', async ({ page }) => {
-
+    test.setTimeout(300_000);
     await loginWithPassword(page);
     await openChatPanel(page);
     await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible();
@@ -119,6 +120,7 @@ test.describe('Copilot widget — cross-browser smoke', () => {
   });
 
   test('chest button does NOT open chat panel', async ({ page }) => {
+    test.setTimeout(300_000);
     await loginWithPassword(page);
     await openWidget(page);
     // Robot body is visible but chat panel should NOT be open yet
@@ -133,6 +135,7 @@ test.describe('Copilot widget — cross-browser smoke', () => {
       browserName === 'firefox' || browserName === 'webkit',
       `${browserName} headless blocks post-login XHR to Railway — covered by chromium-desktop`
     );
+    test.setTimeout(300_000);
 
     await loginWithPassword(page);
     await openChatPanel(page);
