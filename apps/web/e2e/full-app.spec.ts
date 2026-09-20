@@ -21,23 +21,44 @@ async function gotoWithAuth(page: import('@playwright/test').Page, path: string)
   // after gotoWithAuth returned, causing mid-test redirects).
   const expired = await page.waitForURL(/\/login/, { timeout: 12_000 })
     .then(() => true).catch(() => false);
-  if (expired) {
-    const emailInput = page.locator('input[type="email"]').first();
-    await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
-    await emailInput.fill(ADMIN_EMAIL);
+  if (!expired) return;
+
+  const emailInput = page.locator('input[type="email"]').first();
+  await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
+  await emailInput.fill(ADMIN_EMAIL);
+  await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+  await page.getByRole('button', { name: /sign in with password/i }).click();
+
+  // Race: successful navigation vs rate-limit toast. A cold Railway can take >4 s to return
+  // a 429, so a fixed 4 s sequential check misses it. The race resolves as soon as either
+  // the redirect lands or the "too many attempts" text becomes visible.
+  let navigated = false;
+  await Promise.race([
+    page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
+      .then(() => { navigated = true; }).catch(() => {}),
+    page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
+      .catch(() => {}),
+  ]);
+
+  if (navigated) {
+    await page.goto(path);
+    return;
+  }
+
+  // Not navigated in 30 s — either rate-limited or Railway is very slow.
+  if (await page.getByText(/too many attempts/i).isVisible()) {
+    // Do NOT click again — each click may reset the rate-limit window.
+    // 120 s clears a typical 2-minute rate-limit window.
+    await page.waitForTimeout(120_000);
+    // Re-navigate to reset form state, then re-submit fresh credentials.
+    await page.goto('/login');
+    await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
     await page.getByRole('button', { name: /sign in with password/i }).click();
-    // If concurrent tests hit the same admin account the rate-limiter fires immediately.
-    // Wait 90s for the window to clear, then retry.
-    const rateLimited = page.getByText(/too many attempts/i);
-    if (await rateLimited.isVisible({ timeout: 4_000 }).catch(() => false)) {
-      await page.waitForTimeout(90_000);
-      await page.getByRole('button', { name: /sign in with password/i }).click();
-    }
-    // 240s = 90s rate-limit window + up to 120s Railway cold-start + network overhead.
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 240_000, waitUntil: 'commit' });
-    await page.goto(path);
   }
+  // Railway should now be warm and rate-limit cleared — 120 s covers cold-start overhead.
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+  await page.goto(path);
 }
 
 // ── 1. PUBLIC PAGES (no auth needed) ──────────────────────────────────────────
@@ -360,6 +381,19 @@ test.describe('Authenticated — copilot widget', () => {
 // ── 8. PLANS ─────────────────────────────────────────────────────────────────
 
 test.describe('Authenticated — plans', () => {
+  // Plans tests run late in the suite — Railway may be cold. Warm it up once so
+  // the login POST in gotoWithAuth is fast and rate-limit responses are immediate.
+  test.beforeAll(async ({ request }) => {
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      try {
+        const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 12_000 });
+        if (res.status() > 0) return;
+      } catch { /* still booting */ }
+      await new Promise(r => setTimeout(r, 3_000));
+    }
+  });
+
   test('plans page shows pricing tiers (waits for API)', async ({ page }) => {
     test.setTimeout(300_000);
     await gotoWithAuth(page, '/plans');

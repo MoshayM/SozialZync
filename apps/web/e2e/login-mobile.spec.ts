@@ -108,11 +108,18 @@ test.describe('Login page — mobile passkey UX', () => {
     await page.screenshot({ path: 'e2e/mobile-login-setup-error.png' });
   });
 
-  test('password sign-in still works on mobile', async ({ page }) => {
-    // Other tests in this suite (auth.setup + auth.spec) also login as the admin,
-    // so the rate-limiter may already be triggered. Give up to 90s for it to clear.
-    // Total budget: 90s rate-limit wait + 180s waitForURL + overhead = 300s needed.
+  test('password sign-in still works on mobile', async ({ page, request }) => {
+    // This test runs after 5 UI-only tests — Railway may have gone cold since beforeAll.
+    // Warm it up so the login POST completes quickly.
     test.setTimeout(300_000);
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      try {
+        const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 12_000 });
+        if (res.status() > 0) break;
+      } catch { /* still booting */ }
+      await new Promise(r => setTimeout(r, 3_000));
+    }
 
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 15_000 });
@@ -123,16 +130,26 @@ test.describe('Login page — mobile passkey UX', () => {
     await mainForm(page).locator('input[type="password"]').fill('Admin@123');
     await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
 
-    // If rate-limited by prior test-suite logins, wait 90s for the window to clear then retry.
-    const rateLimited = page.getByText(/too many attempts/i);
-    if (await rateLimited.isVisible({ timeout: 4_000 }).catch(() => false)) {
-      await page.waitForTimeout(90_000);
+    // Race: successful navigation vs rate-limit toast. A cold Railway can take >4 s to return
+    // a 429, so a fixed sequential check misses it. The race catches whichever fires first.
+    let loginOk = false;
+    await Promise.race([
+      page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 20_000, waitUntil: 'commit' })
+        .then(() => { loginOk = true; }).catch(() => {}),
+      page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 20_000 })
+        .catch(() => {}),
+    ]);
+
+    if (!loginOk) {
+      // Rate-limited or Railway very slow — wait for the window to clear then retry.
+      if (await page.getByText(/too many attempts/i).isVisible()) {
+        await page.waitForTimeout(90_000);
+      }
       await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
+      // 150s: Railway should be warm (warmup ran) and rate-limit cleared (90s wait).
+      await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 150_000, waitUntil: 'commit' });
     }
 
-    // 'commit' waits for URL change only — avoids Railway dashboard load timeout.
-    // 240s = 90s rate-limit window + up to 120s Railway cold-start + overhead.
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 240_000, waitUntil: 'commit' });
     await page.screenshot({ path: 'e2e/mobile-login-success.png' });
   });
 });
