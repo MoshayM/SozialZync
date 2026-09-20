@@ -133,12 +133,13 @@ test.describe('Copilot panel — desktop smoke tests', () => {
   });
 
   test('panel width changes when left edge is dragged', async ({ page }) => {
+    test.setTimeout(180_000);
     await loginWithPassword(page);
     await openCopilotChat(page);
 
     const panel = page.locator('.cf-copilot-widget > div > div').first();
-    // Wait for panel to be positioned
-    await page.waitForTimeout(500);
+    // Wait for panel to be positioned and any mount animation to settle
+    await page.waitForTimeout(800);
 
     const handle = page.locator('[title="Drag to resize width"]');
 
@@ -150,7 +151,8 @@ test.describe('Copilot panel — desktop smoke tests', () => {
     await page.mouse.down();
     await page.mouse.move(b0.x + 3 + 120, b0.y + b0.height / 2, { steps: 20 });
     await page.mouse.up();
-    await page.waitForTimeout(200);
+    // Wait for CSS transition + React re-render to commit the narrowed width
+    await page.waitForTimeout(600);
 
     // Now measure the narrowed panel, then widen by dragging 80px to the left
     const b1 = await handle.boundingBox();
@@ -163,7 +165,18 @@ test.describe('Copilot panel — desktop smoke tests', () => {
     await page.mouse.move(b1.x + 3 - 80, b1.y + b1.height / 2, { steps: 20 });
     await page.mouse.up();
 
-    await page.waitForTimeout(200);
+    // Poll until React commits the wider width — avoids fixed waits that lose
+    // races against CSS transitions in slow CI environments.
+    const expectedMinWidth = initialPanelBox.width + 60;
+    await page.waitForFunction(
+      (minW: number) => {
+        const el = document.querySelector('.cf-copilot-widget > div > div');
+        return el ? el.getBoundingClientRect().width > minW : false;
+      },
+      expectedMinWidth,
+      { timeout: 4_000 },
+    ).catch(() => { /* assertion below will give the clear error */ });
+
     const afterPanelBox = await panel.boundingBox();
     if (!afterPanelBox) throw new Error('Panel not found after resize');
 

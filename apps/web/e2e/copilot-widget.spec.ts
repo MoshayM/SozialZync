@@ -82,6 +82,50 @@ async function openChatPanel(page: import('@playwright/test').Page) {
   await expect(page.locator('textarea[placeholder="What\'s on your mind?"]')).toBeVisible({ timeout: 20_000 });
 }
 
+// Intercept the Railway copilot chat API and return a synthetic reply.
+// Used on Firefox/WebKit where headless XHR to Railway is blocked post-auth.
+async function mockCopilotReply(page: import('@playwright/test').Page) {
+  await page.route('**/api/proxy/copilot/chat**', async (route) => {
+    if (route.request().method() !== 'POST') { await route.continue(); return; }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ reply: 'Hello! I am your AI copilot. How can I help you today?' }),
+    });
+  });
+}
+
+// Inject a stub speechSynthesis before page navigation. On Firefox/WebKit/mobile,
+// the real speechSynthesis.speak() is blocked in headless. The stub fires onend
+// after 800ms — long enough for React to render the "Stop speaking" state
+// (setSpeakingIdx is set synchronously before speak()) so the test can observe it.
+async function mockSpeechSynthesis(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    class FakeUtterance {
+      text = ''; lang = 'en-US'; voice: null = null;
+      rate = 1; pitch = 1; volume = 1;
+      onend: ((e: Event) => void) | null = null;
+      onerror: ((e: Event) => void) | null = null;
+      onstart: ((e: Event) => void) | null = null;
+      constructor(t = '') { this.text = t; }
+      addEventListener() {}
+      removeEventListener() {}
+    }
+    const stub = {
+      speak(utt: FakeUtterance) {
+        setTimeout(() => { utt.onend?.(new Event('end')); }, 800);
+      },
+      cancel() {},
+      getVoices() { return []; },
+      speaking: false, pending: false, paused: false,
+      addEventListener() {}, removeEventListener() {},
+    };
+    Object.defineProperty(window, 'speechSynthesis', { value: stub, writable: false, configurable: true });
+    // @ts-ignore
+    window.SpeechSynthesisUtterance = FakeUtterance;
+  });
+}
+
 // Warm up Railway before AI-dependent tests
 test.beforeAll(async ({ request }) => {
   const deadline = Date.now() + 90_000;
@@ -129,13 +173,13 @@ test.describe('Copilot widget — cross-browser smoke', () => {
   });
 
   test('text message → reply → Read aloud button (all browsers)', async ({ page, browserName, isMobile }) => {
-    // Firefox + WebKit headless block XHR to Railway after auth — covered by Chromium desktop.
-    // Mobile now has storageState so no rate-limit risk; only skip Firefox/WebKit.
-    test.skip(
-      browserName === 'firefox' || browserName === 'webkit',
-      `${browserName} headless blocks post-login XHR to Railway — covered by chromium-desktop`
-    );
     test.setTimeout(300_000);
+
+    // Firefox/WebKit headless blocks XHR to Railway after auth — mock the chat
+    // endpoint so the browser gets a reply without hitting Railway directly.
+    if (browserName === 'firefox' || browserName === 'webkit') {
+      await mockCopilotReply(page);
+    }
 
     await loginWithPassword(page);
     await openChatPanel(page);
@@ -156,16 +200,18 @@ test.describe('Copilot widget — cross-browser smoke', () => {
   });
 
   test('Read aloud button → TTS starts or Play fallback shown', async ({ page, browserName, isMobile }) => {
-    // WebKit + Firefox headless: speechSynthesis is blocked/restricted.
-    // Mobile: no storageState → repeated logins in this file trigger rate-limiting;
-    // TTS is covered by chromium-desktop which has fast auth via storageState.
-    test.skip(
-      browserName === 'webkit' || browserName === 'firefox' || isMobile,
-      `${browserName}${isMobile ? '-mobile' : ''} blocks speechSynthesis or hits login rate-limit — covered by chromium-desktop`
-    );
-    // test.use({ timeout }) inside describe is NOT reliably overriding the 150s global;
-    // set it explicitly in the body to guarantee the 300s budget for rate-limit recovery.
     test.setTimeout(300_000);
+
+    // Firefox/WebKit: blocks XHR to Railway after auth — mock chat reply.
+    if (browserName === 'firefox' || browserName === 'webkit') {
+      await mockCopilotReply(page);
+    }
+    // Firefox/WebKit/mobile: speechSynthesis.speak() is blocked in headless.
+    // Inject a stub that fires onend after 800ms so React can render the
+    // "Stop speaking" state before the button reverts to "Read aloud".
+    if (browserName === 'firefox' || browserName === 'webkit' || isMobile) {
+      await mockSpeechSynthesis(page);
+    }
 
     await loginWithPassword(page);
     await openChatPanel(page);
