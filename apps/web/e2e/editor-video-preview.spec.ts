@@ -7,20 +7,24 @@ const ADMIN_EMAIL = process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com';
 const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
 
 async function goToEditor(page: import('@playwright/test').Page) {
+  // /editor creates a project then redirects to /editor/[id]. Wait 90s for the
+  // redirect (Railway cold start can take 60s+ to create the project).
   await page.goto('/editor');
   const landed = await Promise.race([
-    page.waitForURL(/\/editor\/.+/, { timeout: 30_000 }).then(() => 'editor' as const),
-    page.waitForURL(/\/login/, { timeout: 30_000 }).then(() => 'login' as const),
-  ]).catch(() => 'editor' as const);
+    page.waitForURL(/\/editor\/.+/, { timeout: 90_000 }).then(() => 'editor' as const),
+    page.waitForURL(/\/login/, { timeout: 90_000 }).then(() => 'login' as const),
+  ]).catch(() => 'timeout' as const);
 
-  if (landed === 'login') {
+  if (landed === 'login' || (landed === 'timeout' && page.url().includes('/login'))) {
     const emailInput = page.locator('input[type="email"]').first();
     await expect(emailInput).toBeVisible({ timeout: 10_000 });
     await emailInput.fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
     await page.getByRole('button', { name: /sign in with password/i }).click();
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
     await page.goto('/editor');
+    await page.waitForURL(/\/editor\/.+/, { timeout: 90_000 });
+  } else if (landed === 'timeout') {
     await page.waitForURL(/\/editor\/.+/, { timeout: 60_000 });
   }
 }
