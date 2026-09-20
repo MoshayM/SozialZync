@@ -27,9 +27,9 @@ async function gotoWithAuth(page: import('@playwright/test').Page, path: string)
     await emailInput.fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
     await page.getByRole('button', { name: /sign in with password/i }).click();
-    // 130s covers Railway cold-start (up to 60s) + network overhead, more reliably
-    // than 90s when these tests run late in the 40-minute suite.
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
+    // 180s covers Railway cold-start (up to 120s) + network overhead for tests that
+    // run very late in the 40-minute suite when Railway has gone cold again.
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 180_000, waitUntil: 'commit' });
     await page.goto(path);
   }
 }
@@ -249,6 +249,7 @@ test.describe('Authenticated — settings', () => {
   });
 
   test('settings/channels — Google connect button present', async ({ page }) => {
+    test.setTimeout(300_000);
     await gotoWithAuth(page, '/settings/channels');
     await expect(page.getByRole('heading', { name: /channels/i })).toBeVisible({ timeout: 25_000 });
     // Button text varies: "Add via Google" (has channels) or "Connect with Google" (empty state)
@@ -354,6 +355,7 @@ test.describe('Authenticated — copilot widget', () => {
 
 test.describe('Authenticated — plans', () => {
   test('plans page shows pricing tiers (waits for API)', async ({ page }) => {
+    test.setTimeout(300_000);
     await gotoWithAuth(page, '/plans');
     await expect(page.getByRole('heading', { name: /plans|pricing/i })).toBeVisible({ timeout: 20_000 });
     // The plan grid is `grid grid-cols-1 sm:grid-cols-3 gap-5`.
@@ -364,6 +366,7 @@ test.describe('Authenticated — plans', () => {
   });
 
   test('plans page has plan action elements', async ({ page }) => {
+    test.setTimeout(300_000);
     await gotoWithAuth(page, '/plans');
     // Wait for plan cards to render before asserting action buttons
     await expect(page.getByText('Free', { exact: true }).first()).toBeVisible({ timeout: 40_000 });

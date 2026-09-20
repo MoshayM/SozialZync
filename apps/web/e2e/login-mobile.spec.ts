@@ -111,8 +111,8 @@ test.describe('Login page — mobile passkey UX', () => {
   test('password sign-in still works on mobile', async ({ page }) => {
     // Other tests in this suite (auth.setup + auth.spec) also login as the admin,
     // so the rate-limiter may already be triggered. Give up to 90s for it to clear.
-    // Total budget: 90s rate-limit wait + 130s waitForURL + overhead = 250s needed.
-    test.setTimeout(250_000);
+    // Total budget: 90s rate-limit wait + 180s waitForURL + overhead = 300s needed.
+    test.setTimeout(300_000);
 
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 15_000 });
@@ -131,8 +131,8 @@ test.describe('Login page — mobile passkey UX', () => {
     }
 
     // 'commit' waits for URL change only — avoids Railway dashboard load timeout.
-    // 130s covers rate-limit clear (90s) + Railway cold start (up to 60s).
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
+    // 180s covers rate-limit clear (90s) + Railway cold start (up to 120s).
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 180_000, waitUntil: 'commit' });
     await page.screenshot({ path: 'e2e/mobile-login-success.png' });
   });
 });
