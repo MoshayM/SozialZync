@@ -27,7 +27,9 @@ async function gotoWithAuth(page: import('@playwright/test').Page, path: string)
     await emailInput.fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
     await page.getByRole('button', { name: /sign in with password/i }).click();
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+    // 130s covers Railway cold-start (up to 60s) + network overhead, more reliably
+    // than 90s when these tests run late in the 40-minute suite.
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
     await page.goto(path);
   }
 }
@@ -354,18 +356,17 @@ test.describe('Authenticated — plans', () => {
   test('plans page shows pricing tiers (waits for API)', async ({ page }) => {
     await gotoWithAuth(page, '/plans');
     await expect(page.getByRole('heading', { name: /plans|pricing/i })).toBeVisible({ timeout: 20_000 });
-    // Wait for the plan grid to render (Railway cold start may delay subscription API)
-    // Use the plan-card grid container to avoid false matches on static callout text
-    const planGrid = page.locator('.grid.grid-cols-1');
-    await expect(planGrid).toBeVisible({ timeout: 40_000 });
-    await expect(planGrid.getByText('Free', { exact: true })).toBeVisible({ timeout: 5_000 });
-    await expect(planGrid.getByText('Pro', { exact: true })).toBeVisible({ timeout: 5_000 });
+    // The plan grid is `grid grid-cols-1 sm:grid-cols-3 gap-5`.
+    // .grid.grid-cols-1 matches multiple elements on the page — use page-level assertions
+    // with .first() to avoid strict-mode violations.
+    await expect(page.getByText('Free', { exact: true }).first()).toBeVisible({ timeout: 40_000 });
+    await expect(page.getByText('Pro', { exact: true }).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('plans page has plan action elements', async ({ page }) => {
     await gotoWithAuth(page, '/plans');
-    const planGrid = page.locator('.grid.grid-cols-1');
-    await expect(planGrid).toBeVisible({ timeout: 40_000 });
+    // Wait for plan cards to render before asserting action buttons
+    await expect(page.getByText('Free', { exact: true }).first()).toBeVisible({ timeout: 40_000 });
     // Any plan action: "Upgrade to X", "Switch to X", "Your plan", "Downgrade via cancel"
     await expect(
       page.locator('text=/upgrade to|switch to|your plan|downgrade/i').first()

@@ -37,16 +37,17 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   });
   const emailInput = form.locator('input[type="email"]');
   const passInput  = form.locator('input[type="password"]');
-  // pressSequentially fires real keydown/input/keyup events — required for WebKit
-  // (Safari) where fill() doesn't trigger React's onChange, leaving submit disabled.
-  await emailInput.click();
+  // pressSequentially focuses the element then fires real keydown/input/keyup events —
+  // required for WebKit where fill() doesn't trigger React's onChange.
+  // Skip the explicit .click() before typing: during React hydration the input element
+  // can briefly detach and reattach, causing click() to time out while pressSequentially
+  // (which internally calls focus()) handles the same detach/reattach gracefully.
   await emailInput.pressSequentially('sozialzync@gmail.com', { delay: 20 });
-  await passInput.click();
   await passInput.pressSequentially('Admin@123', { delay: 20 });
   const submitBtn = form.locator('button').filter({ hasText: /sign in with password/i });
   await expect(submitBtn).toBeEnabled({ timeout: 8_000 });
   await submitBtn.click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
 }
 
 async function openWidget(page: import('@playwright/test').Page) {

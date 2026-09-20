@@ -62,7 +62,7 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
   await mainForm(page).locator('input[type="password"]').fill('Admin@123');
   await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
 }
 
 async function openCopilotChat(page: import('@playwright/test').Page) {

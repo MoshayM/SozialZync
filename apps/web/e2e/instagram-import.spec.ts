@@ -37,19 +37,25 @@ test('Instagram Reel URL import — sends URL to API and shows result in bin', a
   });
 
   // ── 1. Navigate to editor with JWT-expiry recovery ───────────────────────────
+  // /editor creates a project then redirects to /editor/[id]. Wait up to 90s for
+  // the redirect (Railway cold start can take 60s+ to create the project).
   await page.goto('/editor');
   const landed = await Promise.race([
-    page.waitForURL(/\/editor\/.+/, { timeout: 30_000, waitUntil: 'commit' }).then(() => 'editor' as const),
-    page.waitForURL(/\/login/, { timeout: 30_000 }).then(() => 'login' as const),
-  ]).catch(() => 'editor' as const);
-  if (landed === 'login') {
+    page.waitForURL(/\/editor\/.+/, { timeout: 90_000, waitUntil: 'commit' }).then(() => 'editor' as const),
+    page.waitForURL(/\/login/, { timeout: 90_000 }).then(() => 'login' as const),
+  ]).catch(() => 'timeout' as const);
+
+  if (landed === 'login' || (landed === 'timeout' && page.url().includes('/login'))) {
     const emailInput = page.locator('input[type="email"]').first();
     await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
     await emailInput.fill(process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com');
     await page.locator('input[type="password"]').first().fill(process.env.PW_ADMIN_PASS ?? 'Admin@123');
     await page.getByRole('button', { name: /sign in with password/i }).click();
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
     await page.goto('/editor');
+    await page.waitForURL(/\/editor\/.+/, { timeout: 90_000, waitUntil: 'commit' });
+  } else if (landed === 'timeout') {
+    // Timed out waiting for /editor/[id] redirect — Railway may still be processing
     await page.waitForURL(/\/editor\/.+/, { timeout: 60_000, waitUntil: 'commit' });
   }
   await page.screenshot({ path: 'e2e/ig-1-editor.png' });
@@ -60,8 +66,9 @@ test('Instagram Reel URL import — sends URL to API and shows result in bin', a
   await importBtn.click();
 
   // ── 3. Fill in the Instagram URL ─────────────────────────────────────────────
-  const urlInput = page.locator('input[placeholder*="Instagram"], input[placeholder*="file URL"], input[placeholder*="video URL"]').first();
-  await expect(urlInput).toBeVisible({ timeout: 5_000 });
+  // Actual placeholder: "YouTube, Instagram, TikTok, X, or direct file URL…"
+  const urlInput = page.locator('input[placeholder*="Instagram"], input[placeholder*="file URL"]').first();
+  await expect(urlInput).toBeVisible({ timeout: 15_000 });
   await urlInput.fill(REEL_URL);
   await page.screenshot({ path: 'e2e/ig-2-url-filled.png' });
 

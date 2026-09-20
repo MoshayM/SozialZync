@@ -25,6 +25,19 @@ async function ensureSetupCard(page: import('@playwright/test').Page) {
 }
 
 test.describe('Login page — mobile passkey UX', () => {
+  // Warm up Railway before these tests — login-mobile runs late in the suite
+  // and the backend may have gone cold after 30+ minutes of prior tests.
+  test.beforeAll(async ({ request }) => {
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      try {
+        const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 12_000 });
+        if (res.status() > 0) return;
+      } catch { /* still booting */ }
+      await new Promise(r => setTimeout(r, 3_000));
+    }
+  });
+
   test('passkey button visible and no mock-mode loading screen', async ({ page }) => {
     await page.goto('/login');
 
@@ -98,7 +111,8 @@ test.describe('Login page — mobile passkey UX', () => {
   test('password sign-in still works on mobile', async ({ page }) => {
     // Other tests in this suite (auth.setup + auth.spec) also login as the admin,
     // so the rate-limiter may already be triggered. Give up to 90s for it to clear.
-    test.setTimeout(150_000);
+    // Total budget: 90s rate-limit wait + 130s waitForURL + overhead = 250s needed.
+    test.setTimeout(250_000);
 
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 15_000 });
@@ -116,8 +130,9 @@ test.describe('Login page — mobile passkey UX', () => {
       await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
     }
 
-    // 'commit' waits for URL change only — avoids Railway dashboard load timeout
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+    // 'commit' waits for URL change only — avoids Railway dashboard load timeout.
+    // 130s covers rate-limit clear (90s) + Railway cold start (up to 60s).
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
     await page.screenshot({ path: 'e2e/mobile-login-success.png' });
   });
 });

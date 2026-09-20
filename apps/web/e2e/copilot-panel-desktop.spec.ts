@@ -40,7 +40,7 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
   await mainForm(page).locator('input[type="password"]').fill('Admin@123');
   await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
 }
 
 async function openCopilotChat(page: import('@playwright/test').Page) {
@@ -119,16 +119,27 @@ test.describe('Copilot panel — desktop smoke tests', () => {
     // Wait for panel to be positioned
     await page.waitForTimeout(500);
 
-    const before = await page.locator('[title="Drag to resize width"]').boundingBox();
-    if (!before) throw new Error('Left resize handle not found');
+    const handle = page.locator('[title="Drag to resize width"]');
 
+    // The panel may start near its max-width. First narrow it by dragging the left
+    // edge 120px to the RIGHT, then widen — this guarantees we have room to grow.
+    const b0 = await handle.boundingBox();
+    if (!b0) throw new Error('Left resize handle not found');
+    await page.mouse.move(b0.x + 3, b0.y + b0.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(b0.x + 3 + 120, b0.y + b0.height / 2, { steps: 20 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+
+    // Now measure the narrowed panel, then widen by dragging 80px to the left
+    const b1 = await handle.boundingBox();
+    if (!b1) throw new Error('Left resize handle not found after narrowing');
     const initialPanelBox = await panel.boundingBox();
     if (!initialPanelBox) throw new Error('Panel not found');
 
-    // Drag the left edge 80px to the left (should widen the panel by ~80px)
-    await page.mouse.move(before.x + 3, before.y + before.height / 2);
+    await page.mouse.move(b1.x + 3, b1.y + b1.height / 2);
     await page.mouse.down();
-    await page.mouse.move(before.x + 3 - 80, before.y + before.height / 2, { steps: 20 });
+    await page.mouse.move(b1.x + 3 - 80, b1.y + b1.height / 2, { steps: 20 });
     await page.mouse.up();
 
     await page.waitForTimeout(200);

@@ -36,7 +36,10 @@ function attachNetworkLogger(page: Page, log: string[]) {
 test.describe('Watch feature — live smoke test', () => {
   // Warm up Railway so the channel-access API doesn't cold-start mid-test.
   test.beforeAll(async ({ request }) => {
-    const deadline = Date.now() + 60_000;
+    // watch-feature runs late in the 40-minute suite — Railway may be cold or under
+    // load. Wait up to 2 minutes before proceeding so connection-status API calls
+    // don't time out in individual tests.
+    const deadline = Date.now() + 120_000;
     while (Date.now() < deadline) {
       try {
         const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 12_000 });
@@ -86,7 +89,7 @@ test.describe('Watch feature — live smoke test', () => {
 
     // Instagram is the 2nd platform (index 1)
     const watchBtns = page.getByRole('button', { name: /watch/i });
-    await expect(watchBtns.nth(1)).toBeVisible({ timeout: 60_000 });
+    await expect(watchBtns.nth(1)).toBeVisible({ timeout: 120_000 });
     await watchBtns.nth(1).click();
 
     const handleInput = page.locator('input[placeholder*="handle"]').first();
@@ -150,7 +153,7 @@ test.describe('Watch feature — live smoke test', () => {
 
     // X is the 4th platform (index 3)
     const watchBtns = page.getByRole('button', { name: /watch/i });
-    await expect(watchBtns.nth(3)).toBeVisible({ timeout: 60_000 });
+    await expect(watchBtns.nth(3)).toBeVisible({ timeout: 120_000 });
     await watchBtns.nth(3).click();
 
     const handleInput = page.locator('input[placeholder*="handle"]').first();
