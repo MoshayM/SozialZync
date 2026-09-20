@@ -5,17 +5,36 @@ const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
 
 async function login(page: Page) {
   await page.goto('/login');
-  // When a stored JWT is in localStorage the login page useEffect auto-redirects.
   const alreadyAuth = await page.waitForURL(
     /\/(home|projects|dashboard)/,
-    { timeout: 4_000 },
+    { timeout: 8_000 },
   ).then(() => true).catch(() => false);
-  if (alreadyAuth) return;
+
+  if (alreadyAuth) {
+    // Check JWT expiry — if < 10 min remain the app will redirect mid-test; force re-auth now.
+    const expiresAt = await page.evaluate(() => {
+      for (let i = 0; i < localStorage.length; i++) {
+        const v = localStorage.getItem(localStorage.key(i) ?? '') ?? '';
+        if (!v.startsWith('eyJ')) continue;
+        const parts = v.split('.');
+        if (parts.length !== 3) continue;
+        try { return (JSON.parse(atob(parts[1])).exp ?? 0) * 1000; } catch { /* not a JWT */ }
+      }
+      return null;
+    });
+    const TEN_MIN = 10 * 60 * 1000;
+    if (expiresAt === null || expiresAt > Date.now() + TEN_MIN) return;
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+    await page.goto('/login');
+    const cookieAuth = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 2_000 })
+      .then(() => true).catch(() => false);
+    if (cookieAuth) return;
+  }
 
   await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
   await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
   await page.getByRole('button', { name: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
 }
 
 /** Capture responses and console errors for /platforms endpoints to diagnose mock-vs-real issues. */
@@ -49,7 +68,17 @@ test.describe('Watch feature — live smoke test', () => {
     }
   });
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    // Re-warm Railway before each test — beforeAll covers test 1 but Railway can
+    // cool down in the minutes between tests when the suite is heavily loaded.
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      try {
+        const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 12_000 });
+        if (res.status() > 0) break;
+      } catch { /* still booting */ }
+      await new Promise(r => setTimeout(r, 3_000));
+    }
     await login(page);
   });
 
@@ -78,6 +107,7 @@ test.describe('Watch feature — live smoke test', () => {
   });
 
   test('can add and remove a watch account on Instagram', async ({ page }) => {
+    test.setTimeout(300_000);
     const networkLog: string[] = [];
     attachNetworkLogger(page, networkLog);
 
@@ -143,6 +173,7 @@ test.describe('Watch feature — live smoke test', () => {
   });
 
   test('Watch button shows count badge after adding multiple accounts', async ({ page }) => {
+    test.setTimeout(300_000);
     const networkLog: string[] = [];
     attachNetworkLogger(page, networkLog);
 

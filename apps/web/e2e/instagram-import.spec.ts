@@ -4,6 +4,9 @@
  */
 import { test, expect } from '@playwright/test';
 
+const ADMIN_EMAIL = process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com';
+const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
+
 const REEL_URL =
   'https://www.instagram.com/reel/DcFd8Z7CZDT/?utm_source=ig_web_copy_link';
 
@@ -16,7 +19,20 @@ const FAKE_ASSET = {
   createdAt: new Date().toISOString(),
 };
 
+// Warm up Railway before the test — cold starts can take 60-90s.
+test.beforeAll(async ({ request }) => {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    try {
+      const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 15_000 });
+      if (res.status() > 0) return;
+    } catch { /* still booting */ }
+    await new Promise(r => setTimeout(r, 3_000));
+  }
+});
+
 test('Instagram Reel URL import — sends URL to API and shows result in bin', async ({ page }) => {
+  test.setTimeout(400_000);
   let capturedUrl = '';
 
   // Mock the import API — Instagram auth not available in CI
@@ -35,6 +51,44 @@ test('Instagram Reel URL import — sends URL to API and shows result in bin', a
       }),
     });
   });
+
+  // ── 0. Ensure JWT has ≥ 10 min remaining before touching the editor ──────────
+  // The editor redirect → /editor/[id] makes two Railway calls. If the JWT expires
+  // between them the /editor/[id] page gets a 401, the auth guard fires a competing
+  // redirect, and Playwright sees ERR_ABORTED on the navigation.
+  await page.goto('/login');
+  const homeReached = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 8_000 })
+    .then(() => true).catch(() => false);
+  if (homeReached) {
+    const expiresAt = await page.evaluate(() => {
+      for (let i = 0; i < localStorage.length; i++) {
+        const v = localStorage.getItem(localStorage.key(i) ?? '') ?? '';
+        if (!v.startsWith('eyJ')) continue;
+        const parts = v.split('.');
+        if (parts.length !== 3) continue;
+        try { return (JSON.parse(atob(parts[1])).exp ?? 0) * 1000; } catch { /* not a JWT */ }
+      }
+      return null;
+    });
+    const TEN_MIN = 10 * 60 * 1000;
+    if (expiresAt !== null && expiresAt <= Date.now() + TEN_MIN) {
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+      await page.goto('/login');
+      const cookieOk = await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 2_000 })
+        .then(() => true).catch(() => false);
+      if (!cookieOk) {
+        await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
+        await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+        await page.getByRole('button', { name: /sign in with password/i }).click();
+        await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
+      }
+    }
+  } else {
+    await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
+    await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+    await page.getByRole('button', { name: /sign in with password/i }).click();
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
+  }
 
   // ── 1. Navigate to editor with JWT-expiry recovery ───────────────────────────
   // /editor creates a project then redirects to /editor/[id]. Wait up to 90s for
@@ -55,8 +109,23 @@ test('Instagram Reel URL import — sends URL to API and shows result in bin', a
     await page.goto('/editor');
     await page.waitForURL(/\/editor\/.+/, { timeout: 90_000, waitUntil: 'commit' });
   } else if (landed === 'timeout') {
-    // Timed out waiting for /editor/[id] redirect — Railway may still be processing
-    await page.waitForURL(/\/editor\/.+/, { timeout: 60_000, waitUntil: 'commit' });
+    // Railway took > 90s or the /editor/[id] navigation was aborted (auth redirect
+    // competed with the router.replace). Navigate to /editor again to retry.
+    await page.goto('/editor').catch(() => {});
+    const landed2 = await Promise.race([
+      page.waitForURL(/\/editor\/.+/, { timeout: 90_000, waitUntil: 'commit' }).then(() => 'editor' as const),
+      page.waitForURL(/\/login/, { timeout: 90_000 }).then(() => 'login' as const),
+    ]).catch(() => 'timeout2' as const);
+    if (landed2 === 'login') {
+      await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
+      await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+      await page.getByRole('button', { name: /sign in with password/i }).click();
+      await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
+      await page.goto('/editor').catch(() => {});
+      await page.waitForURL(/\/editor\/.+/, { timeout: 90_000, waitUntil: 'commit' });
+    } else if (landed2 !== 'editor') {
+      throw new Error(`Could not navigate to editor after retry. Current URL: ${page.url()}`);
+    }
   }
   await page.screenshot({ path: 'e2e/ig-1-editor.png' });
 
