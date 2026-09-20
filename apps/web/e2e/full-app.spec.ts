@@ -27,9 +27,15 @@ async function gotoWithAuth(page: import('@playwright/test').Page, path: string)
     await emailInput.fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
     await page.getByRole('button', { name: /sign in with password/i }).click();
-    // 180s covers Railway cold-start (up to 120s) + network overhead for tests that
-    // run very late in the 40-minute suite when Railway has gone cold again.
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 180_000, waitUntil: 'commit' });
+    // If concurrent tests hit the same admin account the rate-limiter fires immediately.
+    // Wait 90s for the window to clear, then retry.
+    const rateLimited = page.getByText(/too many attempts/i);
+    if (await rateLimited.isVisible({ timeout: 4_000 }).catch(() => false)) {
+      await page.waitForTimeout(90_000);
+      await page.getByRole('button', { name: /sign in with password/i }).click();
+    }
+    // 240s = 90s rate-limit window + up to 120s Railway cold-start + network overhead.
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 240_000, waitUntil: 'commit' });
     await page.goto(path);
   }
 }

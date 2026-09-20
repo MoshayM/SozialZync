@@ -131,8 +131,8 @@ test.describe('Login page — mobile passkey UX', () => {
     }
 
     // 'commit' waits for URL change only — avoids Railway dashboard load timeout.
-    // 180s covers rate-limit clear (90s) + Railway cold start (up to 120s).
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 180_000, waitUntil: 'commit' });
+    // 240s = 90s rate-limit window + up to 120s Railway cold-start + overhead.
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 240_000, waitUntil: 'commit' });
     await page.screenshot({ path: 'e2e/mobile-login-success.png' });
   });
 });
