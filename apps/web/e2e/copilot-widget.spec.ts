@@ -31,47 +31,44 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
     if (cookieAuth) return;
   }
 
-  await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
-  const form = page.locator('form').filter({
-    has: page.locator('button').filter({ hasText: /sign in with password/i }),
-  });
-  const emailInput = form.locator('input[type="email"]');
-  const passInput  = form.locator('input[type="password"]');
-  // pressSequentially focuses the element then fires real keydown/input/keyup events —
-  // required for WebKit where fill() doesn't trigger React's onChange.
-  // Skip the explicit .click() before typing: during React hydration the input element
-  // can briefly detach and reattach, causing click() to time out while pressSequentially
-  // (which internally calls focus()) handles the same detach/reattach gracefully.
-  await emailInput.pressSequentially('sozialzync@gmail.com', { delay: 20 });
-  await passInput.pressSequentially('Admin@123', { delay: 20 });
-  const submitBtn = form.locator('button').filter({ hasText: /sign in with password/i });
-  await expect(submitBtn).toBeEnabled({ timeout: 8_000 });
-  await submitBtn.click();
-
-  // Race: navigation success vs rate-limit toast — cold Railway returns 429 after >4 s.
-  let navigated = false;
-  await Promise.race([
-    page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
-      .then(() => { navigated = true; }).catch(() => {}),
-    page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
-      .catch(() => {}),
-  ]);
-  if (!navigated) {
-    if (await page.getByText(/too many attempts/i).isVisible()) {
-      await page.waitForTimeout(120_000);
-      await page.goto('/login');
-      await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
-      const form2 = page.locator('form').filter({
-        has: page.locator('button').filter({ hasText: /sign in with password/i }),
-      });
-      await form2.locator('input[type="email"]').pressSequentially('sozialzync@gmail.com', { delay: 20 });
-      await form2.locator('input[type="password"]').pressSequentially('Admin@123', { delay: 20 });
-      const submitBtn2 = form2.locator('button').filter({ hasText: /sign in with password/i });
-      await expect(submitBtn2).toBeEnabled({ timeout: 10_000 });
-      await submitBtn2.click();
-    }
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+  // pressSequentially fires real keydown/input/keyup events — required for WebKit
+  // where fill() doesn't trigger React's onChange.
+  async function fillAndSubmit() {
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
+    const f = page.locator('form').filter({
+      has: page.locator('button').filter({ hasText: /sign in with password/i }),
+    });
+    await f.locator('input[type="email"]').pressSequentially('sozialzync@gmail.com', { delay: 20 });
+    await f.locator('input[type="password"]').pressSequentially('Admin@123', { delay: 20 });
+    const btn = f.locator('button').filter({ hasText: /sign in with password/i });
+    await expect(btn).toBeEnabled({ timeout: 8_000 });
+    await btn.click();
   }
+
+  async function raceNavOrLimit(): Promise<boolean> {
+    let ok = false;
+    await Promise.race([
+      page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
+        .then(() => { ok = true; }).catch(() => {}),
+      page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
+        .catch(() => {}),
+    ]);
+    return ok;
+  }
+
+  await fillAndSubmit();
+  if (await raceNavOrLimit()) return;
+
+  // Recovery loop: 2 extra attempts with 120s waits.
+  // Two waits span 240s — guarantees the fixed rate-limit window clears.
+  for (let i = 0; i < 2; i++) {
+    await page.waitForTimeout(120_000);
+    await page.goto('/login');
+    await fillAndSubmit();
+    if (await raceNavOrLimit()) return;
+  }
+
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 60_000, waitUntil: 'commit' });
 }
 
 async function openWidget(page: import('@playwright/test').Page) {
@@ -113,10 +110,7 @@ test.describe('Copilot widget — cross-browser smoke', () => {
     await page.screenshot({ path: 'e2e/widget-open.png' });
   });
 
-  test('Chat tab opens panel with textarea', async ({ page, browserName }) => {
-    // Firefox headless post-login navigation is unreliable (waitForURL > 60s).
-    // The UI is verified on Chromium; skip for Firefox to avoid false failures.
-    test.skip(browserName === 'firefox', 'Firefox headless login navigation unreliable — covered by Chromium');
+  test('Chat tab opens panel with textarea', async ({ page }) => {
 
     await loginWithPassword(page);
     await openChatPanel(page);
@@ -133,12 +127,11 @@ test.describe('Copilot widget — cross-browser smoke', () => {
   });
 
   test('text message → reply → Read aloud button (all browsers)', async ({ page, browserName, isMobile }) => {
-    // Firefox + WebKit headless block API calls / navigation after auth — covered by Chromium desktop.
-    // Mobile skipped: no storageState → each test does a fresh login; 4 prior logins in this file
-    // can trigger rate-limiting before this AI-heavy test runs. Covered by chromium-desktop.
+    // Firefox + WebKit headless block XHR to Railway after auth — covered by Chromium desktop.
+    // Mobile now has storageState so no rate-limit risk; only skip Firefox/WebKit.
     test.skip(
-      browserName === 'firefox' || browserName === 'webkit' || isMobile,
-      `${browserName}${isMobile ? '-mobile' : ''} headless blocks post-login navigation or XHR — covered by chromium-desktop`
+      browserName === 'firefox' || browserName === 'webkit',
+      `${browserName} headless blocks post-login XHR to Railway — covered by chromium-desktop`
     );
 
     await loginWithPassword(page);

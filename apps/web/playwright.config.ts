@@ -44,8 +44,10 @@ export default defineConfig({
     // ── Mobile Chrome — selective tests ──────────────────────────────────────
     {
       name: 'chromium-mobile',
+      dependencies: ['setup'],        // provides storageState so AI tests don't need fresh login
       use: {
         ...devices['Pixel 5'],
+        storageState: AUTH_FILE,      // avoids repeated logins that trigger rate-limiting
         launchOptions: {
           args: [
             '--use-fake-ui-for-media-stream',

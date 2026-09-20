@@ -31,28 +31,35 @@ async function login(page: Page) {
     if (cookieAuth) return;
   }
 
-  await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
-  await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
-  await page.getByRole('button', { name: /sign in with password/i }).click();
-
-  // Race: navigation success vs rate-limit toast — cold Railway returns 429 after >4 s.
-  let watchNavigated = false;
-  await Promise.race([
-    page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
-      .then(() => { watchNavigated = true; }).catch(() => {}),
-    page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
-      .catch(() => {}),
-  ]);
-  if (!watchNavigated) {
-    if (await page.getByText(/too many attempts/i).isVisible()) {
-      await page.waitForTimeout(120_000);
-      await page.goto('/login');
-      await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
-      await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
-      await page.getByRole('button', { name: /sign in with password/i }).click();
-    }
-    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+  async function fillAndSubmit() {
+    await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
+    await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+    await page.getByRole('button', { name: /sign in with password/i }).click();
   }
+
+  async function raceNavOrLimit(): Promise<boolean> {
+    let ok = false;
+    await Promise.race([
+      page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
+        .then(() => { ok = true; }).catch(() => {}),
+      page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
+        .catch(() => {}),
+    ]);
+    return ok;
+  }
+
+  await fillAndSubmit();
+  if (await raceNavOrLimit()) return;
+
+  // Two 120s waits = 240s elapsed — fixed rate-limit window guaranteed clear.
+  for (let i = 0; i < 2; i++) {
+    await page.waitForTimeout(120_000);
+    await page.goto('/login');
+    await fillAndSubmit();
+    if (await raceNavOrLimit()) return;
+  }
+
+  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 60_000, waitUntil: 'commit' });
 }
 
 /** Capture responses and console errors for /platforms endpoints to diagnose mock-vs-real issues. */
@@ -105,6 +112,9 @@ test.describe('Watch feature — live smoke test', () => {
   });
 
   test('channel-access page loads with Social Platforms section', async ({ page }) => {
+    // test.use({ timeout }) inside describe is not reliable for the first test in a describe.
+    // Set it explicitly in the body: beforeEach warmup(60s) + login(300s) + test body.
+    test.setTimeout(300_000);
     await page.goto('/channel-access');
     await expect(page.getByRole('heading', { name: 'Social Platforms' })).toBeVisible({ timeout: 30_000 });
     for (const name of ['Facebook', 'Instagram', 'TikTok', 'LinkedIn', 'Threads']) {

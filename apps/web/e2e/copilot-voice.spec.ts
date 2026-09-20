@@ -100,20 +100,22 @@ async function openCopilotChat(page: import('@playwright/test').Page) {
 
 test.describe('Copilot voice — mobile smoke test', () => {
 
-  // Warm up the Railway backend before AI-dependent tests so they don't hit
-  // cold-start delays. Railway spins down after ~5 min of inactivity and can
-  // take 15-45s to boot — enough to exceed the 40s reply timeout on first run.
-  test.beforeAll(async ({ request }) => {
-    const deadline = Date.now() + 90_000;
+  // Warm up Railway once before the suite and again before each test.
+  // beforeAll covers test 1; Railway can cool down between tests when the suite
+  // is heavily loaded across workers — beforeEach keeps it warm for every test.
+  async function warmRailway(request: import('@playwright/test').APIRequestContext, maxMs = 90_000) {
+    const deadline = Date.now() + maxMs;
     while (Date.now() < deadline) {
       try {
-        // Any HTTP response (even 4xx) means Railway is up and accepting requests.
         const res = await request.get('/api/proxy/copilot/stt-status', { timeout: 15_000 });
         if (res.status() > 0) return;
-      } catch { /* network error = still booting */ }
+      } catch { /* still booting */ }
       await new Promise(r => setTimeout(r, 3_000));
     }
-  });
+  }
+
+  test.beforeAll(async ({ request }) => { await warmRailway(request, 90_000); });
+  test.beforeEach(async ({ request }) => { await warmRailway(request, 60_000); });
 
   test('mic button shows Listening… state (no permission error)', async ({ page }) => {
     await loginWithPassword(page);
