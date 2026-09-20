@@ -115,7 +115,10 @@ test.describe('Copilot voice — mobile smoke test', () => {
   }
 
   test.beforeAll(async ({ request }) => { await warmRailway(request, 90_000); });
-  test.beforeEach(async ({ request }) => { await warmRailway(request, 60_000); });
+  // Short per-test ping (20s max): confirms Railway is still up without stalling
+  // the suite. A 60s beforeEach adds 8+ minutes to a 40-minute suite and causes
+  // downstream Railway cold-starts through increased overall duration.
+  test.beforeEach(async ({ request }) => { await warmRailway(request, 20_000); });
 
   test('mic button shows Listening… state (no permission error)', async ({ page }) => {
     await loginWithPassword(page);
