@@ -47,7 +47,29 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   const submitBtn = form.locator('button').filter({ hasText: /sign in with password/i });
   await expect(submitBtn).toBeEnabled({ timeout: 8_000 });
   await submitBtn.click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
+
+  // Race: navigation success vs rate-limit toast — cold Railway returns 429 after >4 s.
+  let navigated = false;
+  await Promise.race([
+    page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
+      .then(() => { navigated = true; }).catch(() => {}),
+    page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
+      .catch(() => {}),
+  ]);
+  if (!navigated) {
+    if (await page.getByText(/too many attempts/i).isVisible()) {
+      await page.waitForTimeout(120_000);
+      await page.goto('/login');
+      await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
+      const form2 = page.locator('form').filter({
+        has: page.locator('button').filter({ hasText: /sign in with password/i }),
+      });
+      await form2.locator('input[type="email"]').pressSequentially('sozialzync@gmail.com', { delay: 20 });
+      await form2.locator('input[type="password"]').pressSequentially('Admin@123', { delay: 20 });
+      await form2.locator('button').filter({ hasText: /sign in with password/i }).click();
+    }
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+  }
 }
 
 async function openWidget(page: import('@playwright/test').Page) {

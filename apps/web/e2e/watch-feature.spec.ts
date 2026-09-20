@@ -34,7 +34,25 @@ async function login(page: Page) {
   await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
   await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
   await page.getByRole('button', { name: /sign in with password/i }).click();
-  await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 130_000, waitUntil: 'commit' });
+
+  // Race: navigation success vs rate-limit toast — cold Railway returns 429 after >4 s.
+  let watchNavigated = false;
+  await Promise.race([
+    page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
+      .then(() => { watchNavigated = true; }).catch(() => {}),
+    page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
+      .catch(() => {}),
+  ]);
+  if (!watchNavigated) {
+    if (await page.getByText(/too many attempts/i).isVisible()) {
+      await page.waitForTimeout(120_000);
+      await page.goto('/login');
+      await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
+      await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
+      await page.getByRole('button', { name: /sign in with password/i }).click();
+    }
+    await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+  }
 }
 
 /** Capture responses and console errors for /platforms endpoints to diagnose mock-vs-real issues. */
