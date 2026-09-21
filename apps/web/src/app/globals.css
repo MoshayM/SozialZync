@@ -56,6 +56,13 @@
   }
 }
 
+/* ── Timeline cross-track drag target highlight ──────────────────────────── */
+[data-trackid].drag-target-track {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+  outline: 2px solid rgba(139, 92, 246, 0.5);
+  outline-offset: -2px;
+}
+
 /* ── Notification panel: cap width on small screens ─────────────────────── */
 @media (max-width: 480px) {
   .notif-panel {

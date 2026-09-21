@@ -793,16 +793,19 @@ export class EditorService {
   async renderStatus(
     id: string,
     userId: string,
-  ): Promise<{ renderStatus: string; renderAssetId: string | null; downloadPath: string | null }> {
+  ): Promise<{ renderStatus: string; renderAssetId: string | null; renderVersionId: string | null; downloadPath: string | null }> {
     const row = await this.assertEditProjectOwnership(id, userId);
 
     let downloadPath: string | null = null;
+    let renderVersionId: string | null = null;
     if (row.renderAssetId) {
       const asset = await this.prisma.asset.findUnique({
         where: { id: row.renderAssetId },
         include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
       });
-      const r2Key = asset?.versions[0]?.r2Key;
+      const ver = asset?.versions[0];
+      renderVersionId = ver?.id ?? null;
+      const r2Key = ver?.r2Key;
       if (r2Key && this.storage.exists(r2Key)) {
         downloadPath = this.storage.resolve(r2Key);
       }
@@ -811,6 +814,7 @@ export class EditorService {
     return {
       renderStatus: row.renderStatus,
       renderAssetId: row.renderAssetId,
+      renderVersionId,
       downloadPath,
     };
   }
@@ -845,17 +849,22 @@ export class EditorService {
             id: t.id,
             kind: t.kind,
             label: t.label,
-            items: (t.items ?? []).map((item) => ({
-              id: item.id,
-              kind: item.kind,
-              timelineStartMs: item.timelineStartMs,
-              timelineEndMs: item.timelineEndMs,
-              ...(item.sourceAssetId ? { sourceAssetId: item.sourceAssetId } : {}),
-              ...(item.linkedItemId ? { linkedItemId: item.linkedItemId } : {}),
-              ...(item.sourceInMs != null ? { sourceInMs: item.sourceInMs } : {}),
-              ...(item.sourceOutMs != null ? { sourceOutMs: item.sourceOutMs } : {}),
-              ...(item.properties ? { properties: item.properties } : {}),
-            })),
+            items: (t.items ?? []).map((item) => {
+              // @reason: EditItemSchema includes linkedItemId but tsc resolves an older
+              // compiled type from the shared dist; cast to access the field safely.
+              const it = item as typeof item & { linkedItemId?: string };
+              return {
+                id: it.id,
+                kind: it.kind,
+                timelineStartMs: it.timelineStartMs,
+                timelineEndMs: it.timelineEndMs,
+                ...(it.sourceAssetId ? { sourceAssetId: it.sourceAssetId } : {}),
+                ...(it.linkedItemId ? { linkedItemId: it.linkedItemId } : {}),
+                ...(it.sourceInMs != null ? { sourceInMs: it.sourceInMs } : {}),
+                ...(it.sourceOutMs != null ? { sourceOutMs: it.sourceOutMs } : {}),
+                ...(it.properties ? { properties: it.properties } : {}),
+              };
+            }),
           })),
         }
       : { width: 1920, height: 1080, fps: 30, durationMs: 0, tracks: [] };
@@ -1270,19 +1279,16 @@ ${binSection}
         throw new BadRequestException('No renderable video or image items found after resolving assets');
       }
 
-      // ── Phase 3: Collect ALL audio sources ──────────────────────────────────
+      // ── Phase 3: Collect AUDIO-track sources ────────────────────────────────
       //
-      // Two source types:
-      //   1. VIDEO segment files — each extracted .mp4 carries its own audio,
-      //      positioned at its timelineStartMs via adelay.
-      //   2. AUDIO-track items — voice, music, SFX assets.
+      // Only AUDIO-track items (voice, music, SFX) are collected here.
+      // VIDEO segment audio is already embedded in composite.mp4 produced above —
+      // re-reading individual segment files as audio inputs causes "[N:a] Stream
+      // specifier matched no streams" when a clip has no audio stream at all.
+      // The composite's [0:a] is used directly when no extra audio tracks exist.
       //
       // Per-item controls: volume (linear), gainDb (dB → linear multiplier),
       // fadeInMs / fadeOutMs (afade), duckUnderVoice (constant -9 dB = ×0.354).
-      //
-      // sidechaincompress is NOT used for ducking — fragile across ffmpeg-static
-      // builds (no guarantee the lavfi sidechain graph compiles). Constant gain
-      // reduction is a reliable alternative.
 
       interface AudioSource {
         path: string;
@@ -1297,32 +1303,7 @@ ${binSection}
       }
       const audioSources: AudioSource[] = [];
 
-      // 1. VIDEO segment audio.
-      // segmentPaths entries for VIDEO items carry an itemId field that matches
-      // sortedVideoItems[i].id. Use it to look up the item's audio properties.
-      const videoItemById = new Map(sortedVideoItems.map((item) => [item.id, item]));
-      for (const seg of segmentPaths) {
-        if (seg.isImage || !seg.itemId) continue;
-        const item = videoItemById.get(seg.itemId);
-        if (!item) continue;
-
-        const vol = item.properties?.volume ?? 1;
-        const gainLinear = item.properties?.gainDb !== undefined
-          ? gainDbToLinear(item.properties.gainDb)
-          : 1;
-        const duckFactor = item.properties?.duckUnderVoice ? 0.354 : 1;
-
-        audioSources.push({
-          path: seg.path,
-          offsetMs: item.timelineStartMs,
-          volume: vol * gainLinear * duckFactor,
-          fadeInMs: item.properties?.fadeInMs ?? 0,
-          fadeOutMs: item.properties?.fadeOutMs ?? 0,
-          clipDurationMs: item.timelineEndMs - item.timelineStartMs,
-        });
-      }
-
-      // 2. AUDIO-track items (all AUDIO-kind tracks, all items)
+      // AUDIO-track items (all AUDIO-kind tracks, all items)
       const audioTracks = timeline.tracks.filter((t) => t.kind === 'AUDIO');
       for (const aTrack of audioTracks) {
         for (const audioItem of aTrack.items.slice().sort((a, b) => a.timelineStartMs - b.timelineStartMs)) {
@@ -1365,6 +1346,10 @@ ${binSection}
       const totalSecs = segmentPaths.reduce((s, seg) => s + seg.durationSecs, 0);
 
       const allVideo = segmentPaths.every((s) => !s.isImage);
+
+      // Whether composite.mp4 will carry an audio stream after the first encode pass.
+      // All-video concat paths preserve audio; image-only or xfade paths do not.
+      const compositeHasAudio = !hasTransitions && (allVideo || segmentPaths.length === 1);
 
       if (!hasTransitions && segmentPaths.length === 1 && !segmentPaths[0]!.isImage && audioSources.length === 0) {
         // Single video segment, no additional audio mixing — direct re-encode
@@ -1575,11 +1560,11 @@ ${binSection}
           filterChain += `,afade=t=out:st=${fadeOutStart.toFixed(3)}:d=${(src.fadeOutMs / 1000).toFixed(3)}`;
         }
         if (src.offsetMs > 0) {
-          // adelay takes ms values; pipe-separated per-channel; all=1 works for any channel count
-          filterChain += `,adelay=${src.offsetMs}|${src.offsetMs}`;
+          // adelay takes ms values; all=1 works for any channel count
+          filterChain += `,adelay=delays=${src.offsetMs}:all=1`;
         }
 
-        const label = `[a${ai}]`;
+        const label = `[xa${ai}]`;
         filterChain += label;
         audioFilterChains.push(filterChain);
         audioOutputLabels.push(label);
@@ -1587,15 +1572,31 @@ ${binSection}
 
       let audioMixFilter = '';
       let finalAudioLabel = '';
-      if (audioOutputLabels.length > 1) {
-        audioMixFilter = `${audioOutputLabels.join('')}amix=inputs=${audioOutputLabels.length}:duration=first:dropout_transition=2[aout]`;
-        finalAudioLabel = '[aout]';
-      } else if (audioOutputLabels.length === 1) {
-        finalAudioLabel = audioOutputLabels[0]!;
-      }
 
-      const hasAudio = audioOutputLabels.length > 0;
-      const needsSecondPass = textFilters.length > 0 || hasAudio;
+      const hasExtraAudio = audioOutputLabels.length > 0;
+      // Only force a second pass when there is actual work to do (text burn-in or extra audio).
+      // When compositeHasAudio but no extra audio and no text, just rename — no re-encode needed.
+      const needsSecondPass = textFilters.length > 0 || hasExtraAudio;
+
+      if (hasExtraAudio) {
+        if (compositeHasAudio) {
+          // Mix composite audio stream with AUDIO-track sources
+          const allLabels = ['[0:a]', ...audioOutputLabels];
+          audioMixFilter = `${allLabels.join('')}amix=inputs=${allLabels.length}:duration=first:dropout_transition=2[aout]`;
+          finalAudioLabel = '[aout]';
+        } else if (audioOutputLabels.length > 1) {
+          audioMixFilter = `${audioOutputLabels.join('')}amix=inputs=${audioOutputLabels.length}:duration=first:dropout_transition=2[aout]`;
+          finalAudioLabel = '[aout]';
+        } else {
+          finalAudioLabel = audioOutputLabels[0]!;
+        }
+      } else if (compositeHasAudio && textFilters.length > 0) {
+        // Text-only second pass — carry composite audio through with a raw stream ref
+        finalAudioLabel = '0:a';
+      }
+      // else: no audio in second pass
+
+      const hasAudio = finalAudioLabel !== '';
       const codecArgs = buildCodecArgs(exportFormat, exportQuality);
 
       if (!needsSecondPass) {

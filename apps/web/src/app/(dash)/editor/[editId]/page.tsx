@@ -740,6 +740,7 @@ function ExportDialog({
   const [quality, setQuality] = useState<RenderQuality>('standard');
   const [renderStatus, setRenderStatus] = useState<RenderStatus | null>(null);
   const [downloadPath, setDownloadPath] = useState<string | null>(null);
+  const [renderVersionId, setRenderVersionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -774,6 +775,7 @@ function ExportDialog({
           const s = await api.editor.renderStatus(editId);
           setRenderStatus(s.data.renderStatus);
           if (s.data.renderStatus === 'READY') {
+            setRenderVersionId((s.data as { renderVersionId?: string }).renderVersionId ?? null);
             setDownloadPath(s.data.downloadPath ?? null);
             stopPoll();
             onRenderDone?.();
@@ -870,12 +872,12 @@ function ExportDialog({
             </div>
           )}
 
-          {renderStatus === 'READY' && downloadPath && !showPublishForm && (
+          {renderStatus === 'READY' && (renderVersionId || downloadPath) && !showPublishForm && (
             <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 space-y-3">
               <p className="text-sm text-green-800 font-medium">Render complete!</p>
               <div className="flex flex-wrap gap-2">
                 <a
-                  href={downloadPath}
+                  href={renderVersionId ? `/api/proxy/media/versions/${encodeURIComponent(renderVersionId)}/file` : (downloadPath ?? '#')}
                   download={downloadFilename}
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
                 >
@@ -2236,6 +2238,7 @@ function TimelineTrack({
   onHideItem,
   onDelinkItem,
   onDeleteTrack,
+  onCrossTrackDrop,
 }: {
   track: EditTrack;
   durationMs: number;
@@ -2252,6 +2255,7 @@ function TimelineTrack({
   onHideItem: (itemId: string) => void;
   onDelinkItem: (itemId: string) => void;
   onDeleteTrack: (trackId: string) => void;
+  onCrossTrackDrop?: (itemId: string, toTrackId: string, newStartMs: number) => void;
 }) {
   const totalW = Math.max(msToX(durationMs, pxPerSec) + 200, 600);
   const [dragOver, setDragOver] = useState(false);
@@ -2304,6 +2308,8 @@ function TimelineTrack({
       </div>
       {/* Track lane */}
       <div
+        data-trackid={track.id}
+        data-trackkind={track.kind}
         className={`relative flex-none transition-colors ${dragOver ? 'bg-white/5' : 'bg-transparent'}`}
         style={{ height: TRACK_H + 4, width: totalW }}
         onDragOver={(e) => {
@@ -2347,6 +2353,7 @@ function TimelineTrack({
             }
             isLinked={!!item.linkedItemId}
             trackKind={track.kind}
+            currentTrackId={track.id}
             onSelect={() => onSelect(item.id)}
             onMove={(newStartMs) => onMoveItem(item.id, newStartMs)}
             onTrim={(newStartMs, newEndMs) => onTrimItem(item.id, newStartMs, newEndMs)}
@@ -2354,6 +2361,7 @@ function TimelineTrack({
             onMuteToggle={track.kind === 'AUDIO' ? () => onMuteItem(item.id) : undefined}
             onHideToggle={track.kind === 'VIDEO' ? () => onHideItem(item.id) : undefined}
             onDelinkItem={track.kind === 'AUDIO' && !!item.linkedItemId ? () => onDelinkItem(item.id) : undefined}
+            onCrossTrackDrop={onCrossTrackDrop}
           />
         ))}
         {dragOver && (
@@ -2376,6 +2384,7 @@ function TimelineItem({
   label,
   isLinked,
   trackKind,
+  currentTrackId,
   onSelect,
   onMove,
   onTrim,
@@ -2383,6 +2392,7 @@ function TimelineItem({
   onMuteToggle,
   onHideToggle,
   onDelinkItem,
+  onCrossTrackDrop,
 }: {
   item: EditItem;
   pxPerSec: number;
@@ -2393,6 +2403,7 @@ function TimelineItem({
   label: string;
   isLinked?: boolean;
   trackKind?: string;
+  currentTrackId?: string;
   onSelect: () => void;
   onMove: (newStartMs: number) => void;
   onTrim: (newStartMs: number, newEndMs: number) => void;
@@ -2400,6 +2411,7 @@ function TimelineItem({
   onMuteToggle?: () => void;
   onHideToggle?: () => void;
   onDelinkItem?: () => void;
+  onCrossTrackDrop?: (itemId: string, toTrackId: string, newStartMs: number) => void;
 }) {
   const left = msToX(item.timelineStartMs, pxPerSec);
   const width = Math.max(4, msToX(item.timelineEndMs - item.timelineStartMs, pxPerSec));
@@ -2413,6 +2425,9 @@ function TimelineItem({
     origStartMs: number;
     origEndMs: number;
     mode: 'move' | 'trim-left' | 'trim-right';
+    currentNewStartMs: number;
+    targetTrackId: string | null;
+    prevTargetEl: Element | null;
   } | null>(null);
 
   function snapTo(ms: number): number {
@@ -2434,6 +2449,9 @@ function TimelineItem({
       origStartMs: item.timelineStartMs,
       origEndMs: item.timelineEndMs,
       mode,
+      currentNewStartMs: item.timelineStartMs,
+      targetTrackId: null,
+      prevTargetEl: null,
     };
     onSelect();
     onDragStart?.();
@@ -2445,7 +2463,28 @@ function TimelineItem({
     const deltaMs = xToMs(dx, pxPerSec);
     const { origStartMs, origEndMs } = dragRef.current;
     if (dragRef.current.mode === 'move') {
-      onMove(Math.max(0, snapTo(origStartMs + deltaMs)));
+      const newStart = Math.max(0, snapTo(origStartMs + deltaMs));
+      dragRef.current.currentNewStartMs = newStart;
+      onMove(newStart);
+
+      // Detect which track lane the pointer is over for cross-track drag
+      if (onCrossTrackDrop && currentTrackId) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const lane = el?.closest('[data-trackid]') as HTMLElement | null;
+        const toTrackId = lane?.dataset.trackid ?? null;
+
+        // Highlight target lane
+        if (lane !== dragRef.current.prevTargetEl) {
+          if (dragRef.current.prevTargetEl) {
+            dragRef.current.prevTargetEl.classList.remove('drag-target-track');
+          }
+          if (lane && toTrackId && toTrackId !== currentTrackId) {
+            lane.classList.add('drag-target-track');
+          }
+          dragRef.current.prevTargetEl = lane;
+        }
+        dragRef.current.targetTrackId = (toTrackId && toTrackId !== currentTrackId) ? toTrackId : null;
+      }
     } else if (dragRef.current.mode === 'trim-left') {
       const newStart = clamp(snapTo(origStartMs + deltaMs), 0, origEndMs - 100);
       onTrim(newStart, origEndMs);
@@ -2453,9 +2492,21 @@ function TimelineItem({
       const newEnd = clamp(snapTo(origEndMs + deltaMs), origStartMs + 100, Infinity);
       onTrim(origStartMs, newEnd);
     }
-  }, [pxPerSec, onMove, onTrim, snapPoints]);
+  }, [pxPerSec, onMove, onTrim, onCrossTrackDrop, currentTrackId, snapPoints]);
 
-  const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
+  const onPointerUp = useCallback(() => {
+    if (dragRef.current) {
+      // Clear cross-track highlight
+      if (dragRef.current.prevTargetEl) {
+        dragRef.current.prevTargetEl.classList.remove('drag-target-track');
+      }
+      // Fire cross-track drop if we landed on a different track
+      if (dragRef.current.targetTrackId && onCrossTrackDrop) {
+        onCrossTrackDrop(item.id, dragRef.current.targetTrackId, dragRef.current.currentNewStartMs);
+      }
+    }
+    dragRef.current = null;
+  }, [item.id, onCrossTrackDrop]);
 
   const muted = !!item.properties?.muted;      // AUDIO clips: audio silenced
   const hidden = !!item.properties?.hidden;    // VIDEO clips: frames hidden
@@ -3229,6 +3280,8 @@ export default function EditorWorkspacePage() {
       await api.editor.saveTimeline(editId, timeline);
       setDirty(false);
       void qc.invalidateQueries({ queryKey: ['editor-project', editId] });
+      void qc.invalidateQueries({ queryKey: ['editor-mine'] });
+      void qc.invalidateQueries({ queryKey: ['editor-mine-list'] });
       updateToast(id, 'success', 'All changes saved');
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -3240,48 +3293,6 @@ export default function EditorWorkspacePage() {
       progressDone();
     }
   };
-
-  const toggleAutoSave = useCallback(() => {
-    setAutoSave((prev) => {
-      const next = !prev;
-      localStorage.setItem('editor-autosave', String(next));
-      addToast(`autosave-${Date.now()}`, next ? 'Auto-save enabled' : 'Auto-save disabled');
-      return next;
-    });
-  }, [addToast]);
-
-  const handleSaveSnapshot = useCallback((name: string) => {
-    if (!timeline) return;
-    const entry: SnapshotEntry = {
-      id: `snap-${Date.now()}`,
-      name,
-      savedAt: new Date().toISOString(),
-      timeline,
-    };
-    setSnapshots((prev) => {
-      const next = [...prev, entry].slice(-30); // keep last 30 versions
-      try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* storage full */ }
-      return next;
-    });
-    setShowSaveDialog(false);
-    addToast(`snap-saved-${Date.now()}`, `Version "${name}" saved to My Versions`);
-  }, [timeline, editId, addToast]);
-
-  const handleLoadSnapshot = useCallback((s: SnapshotEntry) => {
-    pushUndo();
-    setTimeline(s.timeline);
-    setDirty(true);
-    setShowSnapshots(false);
-    addToast(`snap-load-${Date.now()}`, `Loaded "${s.name}"`);
-  }, [pushUndo, addToast]);
-
-  const handleDeleteSnapshot = useCallback((id: string) => {
-    setSnapshots((prev) => {
-      const next = prev.filter((s) => s.id !== id);
-      try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* */ }
-      return next;
-    });
-  }, [editId]);
 
   // skipHistory=true during pointer-move (drag/trim) so Ctrl+Z steps through
   // whole operations, not individual pixel positions.
@@ -3565,6 +3576,48 @@ export default function EditorWorkspacePage() {
     });
   }, []);
 
+  const toggleAutoSave = useCallback(() => {
+    setAutoSave((prev) => {
+      const next = !prev;
+      localStorage.setItem('editor-autosave', String(next));
+      addToast(`autosave-${Date.now()}`, next ? 'Auto-save enabled' : 'Auto-save disabled');
+      return next;
+    });
+  }, [addToast]);
+
+  const handleSaveSnapshot = useCallback((name: string) => {
+    if (!timeline) return;
+    const entry: SnapshotEntry = {
+      id: `snap-${Date.now()}`,
+      name,
+      savedAt: new Date().toISOString(),
+      timeline,
+    };
+    setSnapshots((prev) => {
+      const next = [...prev, entry].slice(-30); // keep last 30 versions
+      try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* storage full */ }
+      return next;
+    });
+    setShowSaveDialog(false);
+    addToast(`snap-saved-${Date.now()}`, `Version "${name}" saved to My Versions`);
+  }, [timeline, editId, addToast]);
+
+  const handleLoadSnapshot = useCallback((s: SnapshotEntry) => {
+    pushUndo();
+    setTimeline(s.timeline);
+    setDirty(true);
+    setShowSnapshots(false);
+    addToast(`snap-load-${Date.now()}`, `Loaded "${s.name}"`);
+  }, [pushUndo, addToast]);
+
+  const handleDeleteSnapshot = useCallback((id: string) => {
+    setSnapshots((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* */ }
+      return next;
+    });
+  }, [editId]);
+
   const handleAddTrack = useCallback((kind: 'VIDEO' | 'AUDIO') => {
     updateTimeline((tl) => {
       const count = tl.tracks.filter((t) => t.kind === kind).length + 1;
@@ -3595,6 +3648,44 @@ export default function EditorWorkspacePage() {
       ...tl,
       tracks: tl.tracks.filter((t) => (t.items ?? []).length > 0),
     }));
+  }, [updateTimeline]);
+
+  // Move a clip from its current track to a different track of the same kind.
+  const handleCrossTrackDrop = useCallback((itemId: string, toTrackId: string, newStartMs: number) => {
+    updateTimeline((tl) => {
+      let movingItem: EditItem | null = null;
+      let fromTrackKind: string | null = null;
+
+      // Find the item and its source track kind
+      for (const tr of tl.tracks) {
+        const found = (tr.items ?? []).find((it) => it.id === itemId);
+        if (found) { movingItem = found; fromTrackKind = tr.kind; break; }
+      }
+      if (!movingItem) return tl;
+
+      const toTrack = tl.tracks.find((t) => t.id === toTrackId);
+      if (!toTrack) return tl;
+
+      // Only allow drops onto same-kind tracks (VIDEO→VIDEO, AUDIO→AUDIO, TEXT→TEXT)
+      if (toTrack.kind !== fromTrackKind) return tl;
+
+      const durMs = movingItem.timelineEndMs - movingItem.timelineStartMs;
+      const clampedStart = Math.max(0, Math.round(newStartMs));
+      const updatedItem: EditItem = { ...movingItem, timelineStartMs: clampedStart, timelineEndMs: clampedStart + durMs };
+
+      return {
+        ...tl,
+        tracks: tl.tracks.map((tr) => {
+          if (tr.id === toTrackId) {
+            // Add to destination (avoid duplicate if same track)
+            const already = (tr.items ?? []).some((it) => it.id === itemId);
+            return { ...tr, items: already ? (tr.items ?? []).map((it) => it.id === itemId ? updatedItem : it) : [...(tr.items ?? []), updatedItem] };
+          }
+          // Remove from source track
+          return { ...tr, items: (tr.items ?? []).filter((it) => it.id !== itemId) };
+        }),
+      };
+    });
   }, [updateTimeline]);
 
   const handleMuteItem = useCallback((itemId: string) => {
@@ -4661,6 +4752,7 @@ export default function EditorWorkspacePage() {
                                 onHideItem={handleHideItem}
                                 onDelinkItem={handleDelinkItem}
                                 onDeleteTrack={handleDeleteTrack}
+                                onCrossTrackDrop={handleCrossTrackDrop}
                               />
                             ))}
                           </div>
