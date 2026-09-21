@@ -2271,7 +2271,7 @@ function MediaBin({
         {audios.length > 0 && (
           <>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Audio</p>
-            {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
+            {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} />)}
           </>
         )}
 
@@ -2279,7 +2279,7 @@ function MediaBin({
         {images.length > 0 && (
           <>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Images</p>
-            {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
+            {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} />)}
           </>
         )}
       </div>
@@ -2340,7 +2340,7 @@ export default function EditorWorkspacePage() {
     setBinUploading(true);
     setBinUploadError(null);
     try {
-      await api.media.uploadVideo(file, project.projectId);
+      await api.media.uploadMedia(file, project.projectId);
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };

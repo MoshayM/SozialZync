@@ -1127,6 +1127,16 @@ export const api = {
         { headers: { 'Content-Type': 'multipart/form-data' } },
       );
     },
+    uploadMedia: (file: File, projectId?: string) => {
+      const form = new FormData();
+      form.append('file', file, file.name);
+      const qs = projectId ? `?projectId=${encodeURIComponent(projectId)}` : '';
+      return apiClient.post<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }>(
+        `/media/media/upload${qs}`,
+        form,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+    },
     uploadVideo: (file: File, projectId?: string) => {
       const form = new FormData();
       form.append('video', file, file.name);

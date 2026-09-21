@@ -6,7 +6,7 @@ import axios from 'axios';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
-import { sanitizeFilename, validateAudioFile, validateVideoFile } from '../../common/sanitize';
+import { sanitizeFilename, validateAudioFile, validateImageFile, validateVideoFile } from '../../common/sanitize';
 import { validateOutboundUrl } from '../../common/ssrf';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -148,6 +148,37 @@ export class MediaController {
   }
 
   /**
+   * Unified media upload — video, image, or audio.
+   * Detects the file type from MIME and stores it as VIDEO / IMAGE / MUSIC accordingly.
+   * Max 500 MB. Optional ?projectId= — resolves to user's most-recent project if omitted.
+   */
+  @Post('media/upload')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 500 * 1024 * 1024 } }))
+  async uploadMedia(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('projectId') projectId: string | undefined,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }> {
+    if (!file?.buffer?.length) throw new BadRequestException('Missing file');
+    const mime = (file.mimetype ?? '').toLowerCase().split(';')[0]?.trim() ?? '';
+    const safeFilename = sanitizeFilename(file.originalname ?? 'upload');
+    const resolvedProjectId = await this.resolveProjectForUser(user.sub, projectId);
+    if (mime.startsWith('video/')) {
+      validateVideoFile(file);
+      return this.storeMediaBuffer(file.buffer, safeFilename, mime, resolvedProjectId, 'VIDEO', 'user-upload');
+    }
+    if (mime.startsWith('image/')) {
+      validateImageFile(file);
+      return this.storeMediaBuffer(file.buffer, safeFilename, mime, resolvedProjectId, 'IMAGE', 'user-upload');
+    }
+    if (mime.startsWith('audio/')) {
+      validateAudioFile(file);
+      return this.storeMediaBuffer(file.buffer, safeFilename, mime, resolvedProjectId, 'MUSIC', 'user-upload');
+    }
+    throw new BadRequestException('Unsupported file type. Use video (mp4, mov…), image (jpg, png…), or audio (mp3, wav…).');
+  }
+
+  /**
    * Accept a local video file upload and store it as a VIDEO asset.
    * Max 500 MB. Optional ?projectId= — resolves to user's most-recent project if omitted.
    */
@@ -272,6 +303,70 @@ export class MediaController {
     });
     await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
     return { assetId: asset.id, versionId: version.id, projectId, sizeBytes, filename: safeFilename };
+  }
+
+  private async storeMediaBuffer(
+    buf: Buffer,
+    safeFilename: string,
+    mime: string,
+    projectId: string,
+    kind: 'VIDEO' | 'IMAGE' | 'MUSIC' | 'VOICE',
+    provider: string,
+  ): Promise<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }> {
+    const ext = this.extFromAnyMime(mime);
+    const asset = await this.prisma.asset.create({
+      data: { projectId, kind, label: safeFilename, status: 'READY' },
+    });
+    const key = `assets/${projectId}/${asset.id}/v1/media.${ext}`;
+    const { sizeBytes } = await this.storage.put(key, buf);
+    const contentHash = createHash('sha256').update(buf).digest('hex');
+    const version = await this.prisma.assetVersion.create({
+      data: {
+        assetId: asset.id,
+        version: 1,
+        r2Key: key,
+        contentHash,
+        provider,
+        model: null,
+        prompt: {} as never,
+        params: {} as never,
+        provenance: {
+          provider,
+          model: null,
+          generatedAt: new Date().toISOString(),
+          license: 'user-owned',
+          notes: 'Uploaded by user via browser',
+        } as never,
+        sizeBytes: BigInt(sizeBytes),
+        durationMs: null,
+      },
+    });
+    await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
+    return { assetId: asset.id, versionId: version.id, projectId, sizeBytes, filename: safeFilename };
+  }
+
+  private extFromAnyMime(mime: string): string {
+    const m = mime.toLowerCase();
+    if (m.includes('webm')) return 'webm';
+    if (m.includes('quicktime')) return 'mov';
+    if (m.includes('x-msvideo')) return 'avi';
+    if (m.includes('x-matroska')) return 'mkv';
+    if (m.includes('3gpp')) return '3gp';
+    if (m.includes('wmv') || m.includes('asf')) return 'wmv';
+    if (m.startsWith('video/')) return 'mp4';
+    if (m.includes('jpeg')) return 'jpg';
+    if (m.includes('png')) return 'png';
+    if (m.includes('webp')) return 'webp';
+    if (m.includes('gif')) return 'gif';
+    if (m.includes('avif')) return 'avif';
+    if (m.startsWith('image/')) return 'jpg';
+    if (m.includes('mpeg')) return 'mp3';
+    if (m.includes('wav')) return 'wav';
+    if (m.includes('aac')) return 'aac';
+    if (m.includes('flac')) return 'flac';
+    if (m.includes('ogg') || m.includes('opus')) return 'ogg';
+    if (m.startsWith('audio/')) return 'mp3';
+    return 'bin';
   }
 
   private extFromMime(mime: string): string {
