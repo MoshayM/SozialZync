@@ -435,6 +435,7 @@ function HistoryDrawer({
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [editSearch, setEditSearch] = useState('');
 
   const { data: edits = [], refetch } = useQuery<EditProject[]>({
     queryKey: ['editor-mine-list'],
@@ -461,6 +462,10 @@ function HistoryDrawer({
     }
   }
 
+  const filteredEdits = editSearch.trim()
+    ? edits.filter((p) => p.title.toLowerCase().includes(editSearch.toLowerCase()))
+    : edits;
+
   return (
     <div
       className="fixed inset-0 z-40 bg-black/30 flex"
@@ -471,11 +476,12 @@ function HistoryDrawer({
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
           <Film className="w-4 h-4 text-brand-500" />
           <p className="flex-1 font-semibold text-gray-800 text-sm">My Edits</p>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close my edits">
+          <span className="text-[10px] text-gray-400 font-medium">{edits.length} projects</span>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 ml-1" aria-label="Close my edits">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
-        <div className="p-3 border-b border-gray-50">
+        <div className="p-3 space-y-2 border-b border-gray-100">
           <button
             type="button"
             onClick={onNew}
@@ -483,9 +489,36 @@ function HistoryDrawer({
           >
             <Plus className="w-4 h-4" /> New Edit
           </button>
+          {/* Search */}
+          {edits.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={editSearch}
+                onChange={(e) => setEditSearch(e.target.value)}
+                placeholder="Search my edits…"
+                className="w-full pl-7 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 bg-gray-50"
+              />
+              {editSearch && (
+                <button onClick={() => setEditSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1.5">
-          {edits.map((p) => {
+          {filteredEdits.length === 0 && editSearch ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+              <Search className="w-8 h-8 text-gray-200" />
+              <p className="text-xs text-gray-400">No edits match <strong>&quot;{editSearch}&quot;</strong></p>
+              <button onClick={() => setEditSearch('')} className="text-[11px] text-brand-500 hover:underline">Clear search</button>
+            </div>
+          ) : filteredEdits.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-8">No edits yet — create one above.</p>
+          ) : null}
+          {filteredEdits.map((p) => {
             const sc = STATUS_COLORS[p.status] ?? STATUS_COLORS['DRAFT']!;
             const isCurrent = p.id === currentEditId;
             return (
@@ -526,9 +559,6 @@ function HistoryDrawer({
               </div>
             );
           })}
-          {edits.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-8">No edits yet — create one above.</p>
-          )}
         </div>
       </div>
     </div>
@@ -620,11 +650,17 @@ function VersionsDrawer({
   onDelete: (id: string) => void;
   onClose: () => void;
 }) {
+  const [vSearch, setVSearch] = useState('');
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  const filtered = vSearch.trim()
+    ? [...snapshots].reverse().filter((s) => s.name.toLowerCase().includes(vSearch.toLowerCase()))
+    : [...snapshots].reverse();
+
   return (
     <div
       className="fixed inset-0 z-40 bg-black/30 flex justify-end"
@@ -635,11 +671,12 @@ function VersionsDrawer({
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
           <FolderOpen className="w-4 h-4 text-brand-500 shrink-0" />
           <p className="flex-1 font-semibold text-gray-800 text-sm">My Versions</p>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close">
+          <span className="text-[10px] text-gray-400 font-medium">{snapshots.length} saved</span>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 ml-1" aria-label="Close">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
-        <div className="p-3 border-b border-gray-50">
+        <div className="p-3 space-y-2 border-b border-gray-100">
           <button
             type="button"
             onClick={onSaveNew}
@@ -647,9 +684,27 @@ function VersionsDrawer({
           >
             <BookmarkPlus className="w-4 h-4" /> Save current version
           </button>
+          {/* Search */}
+          {snapshots.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={vSearch}
+                onChange={(e) => setVSearch(e.target.value)}
+                placeholder="Search versions…"
+                className="w-full pl-7 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 bg-gray-50"
+              />
+              {vSearch && (
+                <button onClick={() => setVSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
-        <p className="px-4 py-2 text-[11px] text-gray-400 border-b border-gray-50">
-          Versions are saved locally in your browser. Load any version to restore the timeline.
+        <p className="px-4 py-2 text-[11px] text-gray-400">
+          Saved locally in this browser · Ctrl+Z restores previous state after loading
         </p>
         <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1.5">
           {snapshots.length === 0 ? (
@@ -662,8 +717,14 @@ function VersionsDrawer({
                 </p>
               </div>
             </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+              <Search className="w-8 h-8 text-gray-200" />
+              <p className="text-xs text-gray-400">No versions match <strong>&quot;{vSearch}&quot;</strong></p>
+              <button onClick={() => setVSearch('')} className="text-[11px] text-brand-500 hover:underline">Clear search</button>
+            </div>
           ) : (
-            [...snapshots].reverse().map((s) => (
+            filtered.map((s) => (
               <div
                 key={s.id}
                 className="flex items-center gap-2.5 p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 group/snap"
@@ -2774,6 +2835,7 @@ function MediaBin({
   const [rendersOpen, setRendersOpen] = useState(false);
   const [showUrlBar, setShowUrlBar] = useState(false);
   const [urlValue, setUrlValue] = useState('');
+  const [binSearch, setBinSearch] = useState('');
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const SOURCE_KINDS  = new Set(['VIDEO', 'RENDER_SOURCE', 'SHORTS_SOURCE_VIDEO']);
@@ -2781,10 +2843,14 @@ function MediaBin({
   const AUDIO_KINDS   = new Set(['AUDIO', 'VOICE', 'MUSIC']);
   const IMAGE_KINDS   = new Set(['IMAGE']);
 
-  const sources  = entries.filter((e) => SOURCE_KINDS.has(e.kind));
-  const renders  = entries.filter((e) => RENDER_KINDS.has(e.kind));
-  const audios   = entries.filter((e) => AUDIO_KINDS.has(e.kind));
-  const images   = entries.filter((e) => IMAGE_KINDS.has(e.kind));
+  const q = binSearch.trim().toLowerCase();
+  const matchesSearch = (e: MediaBinEntry) => !q || e.label.toLowerCase().includes(q);
+
+  const sources  = entries.filter((e) => SOURCE_KINDS.has(e.kind) && matchesSearch(e));
+  const renders  = entries.filter((e) => RENDER_KINDS.has(e.kind) && matchesSearch(e));
+  const audios   = entries.filter((e) => AUDIO_KINDS.has(e.kind) && matchesSearch(e));
+  const images   = entries.filter((e) => IMAGE_KINDS.has(e.kind) && matchesSearch(e));
+  const totalFiltered = sources.length + renders.length + audios.length + images.length;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2863,6 +2929,24 @@ function MediaBin({
           <Library className="w-3 h-3" /> Import from Library
         </button>
       )}
+      {/* Search Working Files */}
+      {entries.length > 0 && (
+        <div className="relative mt-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={binSearch}
+            onChange={(e) => setBinSearch(e.target.value)}
+            placeholder="Search working files…"
+            className="w-full pl-7 pr-7 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 bg-gray-50"
+          />
+          {binSearch && (
+            <button onClick={() => setBinSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -2887,10 +2971,21 @@ function MediaBin({
       {actionButtons}
 
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        {/* Search no-results state */}
+        {binSearch && totalFiltered === 0 && (
+          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center px-4">
+            <Search className="w-8 h-8 text-gray-200" />
+            <p className="text-xs text-gray-400">No files match <strong>&quot;{binSearch}&quot;</strong></p>
+            <button onClick={() => setBinSearch('')} className="text-[11px] text-brand-500 hover:underline">Clear search</button>
+          </div>
+        )}
+
         {/* Source Videos */}
         {sources.length > 0 && (
           <>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-2 pb-1">Working Files</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-2 pb-1">
+              Working Files {binSearch && <span className="text-gray-300 normal-case font-normal">({sources.length})</span>}
+            </p>
             {sources.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onLockToggle={onLockEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
@@ -2914,7 +3009,9 @@ function MediaBin({
         {/* Audio */}
         {audios.length > 0 && (
           <>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Audio</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">
+              Audio {binSearch && <span className="text-gray-300 normal-case font-normal">({audios.length})</span>}
+            </p>
             {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onLockToggle={onLockEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
@@ -2922,7 +3019,9 @@ function MediaBin({
         {/* Images */}
         {images.length > 0 && (
           <>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Images</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">
+              Images {binSearch && <span className="text-gray-300 normal-case font-normal">({images.length})</span>}
+            </p>
             {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onLockToggle={onLockEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
@@ -3057,6 +3156,8 @@ export default function EditorWorkspacePage() {
   });
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const saveMenuRef = useRef<HTMLDivElement>(null);
   const [binUploading, setBinUploading] = useState(false);
   const [binUrlImporting, setBinUrlImporting] = useState(false);
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -4216,55 +4317,98 @@ export default function EditorWorkspacePage() {
           <HelpCircle className="w-3.5 h-3.5" />
           <span className="hidden md:inline">Guide</span>
         </Link>
-        {/* Auto-save toggle */}
-        <button
-          onClick={toggleAutoSave}
-          title={autoSave ? 'Auto-save ON — click to turn off' : 'Auto-save OFF — click to turn on'}
-          className={`hidden sm:flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs min-h-[44px] border transition-colors ${autoSave ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100' : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
-        >
-          <span className={`relative w-7 h-4 rounded-full flex items-center transition-colors shrink-0 ${autoSave ? 'bg-green-500' : 'bg-gray-300'}`}>
-            <span className={`absolute w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${autoSave ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-          </span>
-          <span className="hidden md:inline">Auto</span>
-        </button>
+        {/* ── Save group: Save + dropdown (Save As / Auto-save / Versions) ── */}
+        <div ref={saveMenuRef} className="relative flex items-center">
+          {/* Primary Save button */}
+          <button
+            onClick={() => void handleSave()}
+            disabled={saving}
+            className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-l-lg text-xs min-h-[44px] font-medium transition-colors disabled:opacity-40 border-r-0 ${
+              dirty
+                ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600'
+                : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+            title={dirty ? 'Save changes to server' : 'All changes saved'}
+          >
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">Save</span>
+            {autoSave && (
+              <span className="hidden md:flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-700 text-[9px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />Auto
+              </span>
+            )}
+          </button>
+          {/* Dropdown trigger */}
+          <button
+            onClick={() => setShowSaveMenu((v) => !v)}
+            title="Save options"
+            className={`flex items-center justify-center px-1.5 py-2 rounded-r-lg text-xs min-h-[44px] border transition-colors ${
+              dirty
+                ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600 border-l border-amber-400'
+                : 'border border-gray-200 text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            <ChevronDown className={`w-3 h-3 transition-transform ${showSaveMenu ? 'rotate-180' : ''}`} />
+          </button>
 
-        {/* My Versions (saved snapshots) */}
-        <button
-          onClick={() => setShowSnapshots(true)}
-          title="My saved versions"
-          className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 min-h-[44px] transition-colors"
-        >
-          <FolderOpen className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">Versions</span>
-          {snapshots.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-600 text-[10px] font-bold leading-none">{snapshots.length}</span>
+          {/* Save options popover */}
+          {showSaveMenu && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setShowSaveMenu(false)} />
+              <div className="absolute right-0 top-full mt-1.5 z-40 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 overflow-hidden">
+                {/* Auto-save toggle */}
+                <button
+                  onClick={() => { toggleAutoSave(); setShowSaveMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-gray-50 transition-colors"
+                >
+                  <span className={`relative w-8 h-4.5 rounded-full flex items-center transition-colors shrink-0 ${autoSave ? 'bg-green-500' : 'bg-gray-300'}`} style={{ height: '18px', width: '32px' }}>
+                    <span className={`absolute w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${autoSave ? 'translate-x-[14px]' : 'translate-x-0.5'}`} />
+                  </span>
+                  <div className="flex-1 text-left">
+                    <p className="font-semibold text-gray-700">Auto-save</p>
+                    <p className="text-[10px] text-gray-400">{autoSave ? 'On — saves every 30 s' : 'Off — click to enable'}</p>
+                  </div>
+                  {autoSave && <span className="text-green-500 text-[9px] font-bold uppercase tracking-wide">ON</span>}
+                </button>
+
+                <div className="h-px bg-gray-100 mx-3 my-1" />
+
+                {/* Save As */}
+                <button
+                  onClick={() => { setShowSaveMenu(false); setShowSaveDialog(true); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center shrink-0">
+                    <BookmarkPlus className="w-3.5 h-3.5 text-brand-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-semibold text-gray-700">Save as…</p>
+                    <p className="text-[10px] text-gray-400">Name &amp; bookmark this state</p>
+                  </div>
+                </button>
+
+                {/* My Versions */}
+                <button
+                  onClick={() => { setShowSaveMenu(false); setShowSnapshots(true); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
+                    <FolderOpen className="w-3.5 h-3.5 text-gray-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-semibold text-gray-700">My Versions</p>
+                    <p className="text-[10px] text-gray-400">
+                      {snapshots.length === 0 ? 'No saved versions' : `${snapshots.length} saved version${snapshots.length !== 1 ? 's' : ''}`}
+                    </p>
+                  </div>
+                  {snapshots.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-600 text-[9px] font-bold">{snapshots.length}</span>
+                  )}
+                </button>
+              </div>
+            </>
           )}
-        </button>
-
-        {/* Save as (bookmark current state with a name) */}
-        <button
-          onClick={() => setShowSaveDialog(true)}
-          title="Save a named version"
-          className="flex items-center gap-1.5 px-2 py-2 border border-gray-200 text-gray-500 rounded-lg text-xs hover:bg-brand-50 hover:text-brand-600 hover:border-brand-200 min-h-[44px] transition-colors"
-        >
-          <BookmarkPlus className="w-3.5 h-3.5" />
-          <span className="hidden lg:inline">Save as</span>
-        </button>
-
-        {/* Save — syncs timeline to server */}
-        <button
-          onClick={() => void handleSave()}
-          disabled={saving}
-          className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg text-xs min-h-[44px] font-medium transition-colors disabled:opacity-40 ${
-            dirty
-              ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600'
-              : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
-          title={dirty ? 'Save changes to server' : 'All changes saved'}
-        >
-          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-          <span className="hidden sm:inline">Save</span>
-        </button>
+        </div>
         {canExport ? (
           <button
             onClick={() => setShowExport(true)}
