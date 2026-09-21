@@ -2320,6 +2320,8 @@ export default function EditorWorkspacePage() {
   const [pxPerSec, setPxPerSec] = useState(40);
   const [playing, setPlaying] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
+  // Keep the ref in sync when state changes from outside (e.g. inspector seek)
+  useEffect(() => { currentTimeMsRef.current = currentTimeMs; }, [currentTimeMs]);
   const [showExport, setShowExport] = useState(false);
   const [showAiEdit, setShowAiEdit] = useState(false);
   const userPlan = usePlanGate();
@@ -2447,6 +2449,11 @@ export default function EditorWorkspacePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const rafRef = useRef<number | null>(null);
+  // Refs let the rAF tick read current values without stale closures or 60fps state updates.
+  const currentTimeMsRef = useRef(0);
+  const activeVideoItemRef = useRef<EditItem | null>(null);
+  const activeAudioItemRef = useRef<EditItem | null>(null);
+  const audioSrcRef = useRef<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialise timeline from server — normalise Prisma's default {} or null (no tracks)
@@ -2607,28 +2614,107 @@ export default function EditorWorkspacePage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedItemId, handleDeleteItem]);
 
-  // Playback via rAF
+  // Playback via rAF — video is synced directly in the tick (not via React effects)
+  // so React state is only updated at ~30 fps for the seek bar / time display.
   const startPlay = useCallback(() => {
     if (!timeline) return;
-    setPlaying(true);
-    const startTime = Date.now() - currentTimeMs;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const dur = timeline.durationMs;
+    // Allow restart from beginning if already at the end
+    const origin = currentTimeMsRef.current >= dur ? 0 : currentTimeMsRef.current;
+    currentTimeMsRef.current = origin;
+    const startWall = Date.now() - origin;
+    let lastUiMs = -Infinity;
+
     const tick = () => {
-      const now = Date.now() - startTime;
-      if (now >= timeline.durationMs) {
+      const elapsed = Date.now() - startWall;
+      const t = Math.min(elapsed, dur);
+      currentTimeMsRef.current = t;
+
+      // Sync <video> at full rAF rate without going through React.
+      const v = videoRef.current;
+      const item = activeVideoItemRef.current;
+      if (v && item) {
+        const rate = item.properties?.speed ?? 1;
+        if (v.playbackRate !== rate) v.playbackRate = rate;
+        const vol = clamp(item.properties?.volume ?? 1, 0, 1);
+        v.volume = vol;
+        v.muted = vol === 0;
+        const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (t - item.timelineStartMs) * rate) / 1000);
+        // Correct drift only when it exceeds 500 ms to avoid interrupting playback.
+        if (Math.abs(v.currentTime - sourceSec) > 0.5) v.currentTime = sourceSec;
+        if (v.paused) void v.play().catch(() => undefined);
+      } else if (v && !v.paused) {
+        v.pause();
+      }
+
+      // Sync <audio> at rAF rate too.
+      const a = audioRef.current;
+      const aItem = activeAudioItemRef.current;
+      const aSrc = audioSrcRef.current;
+      if (a && aItem && aSrc) {
+        const sourceSec = Math.max(0, ((aItem.sourceInMs ?? 0) + (t - aItem.timelineStartMs)) / 1000);
+        if (Math.abs(a.currentTime - sourceSec) > 0.5) a.currentTime = sourceSec;
+        if (a.paused) void a.play().catch(() => undefined);
+      } else if (a && !a.paused) {
+        a.pause();
+      }
+
+      // Update React state at ~30 fps so the seek bar and time display stay smooth
+      // without flooding reconciliation at 60 fps.
+      if (t - lastUiMs >= 33) {
+        lastUiMs = t;
+        setCurrentTimeMs(t);
+      }
+
+      if (t >= dur) {
         setCurrentTimeMs(0);
+        currentTimeMsRef.current = 0;
         setPlaying(false);
         return;
       }
-      setCurrentTimeMs(now);
       rafRef.current = requestAnimationFrame(tick);
     };
+
+    setPlaying(true);
     rafRef.current = requestAnimationFrame(tick);
-  }, [timeline, currentTimeMs]);
+  }, [timeline]);
 
   const stopPlay = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     setPlaying(false);
   }, []);
+
+  // Space = play/pause  |  ← → = seek ±1 s
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+          setPlaying(false);
+        } else {
+          startPlay();
+        }
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const next = Math.max(0, currentTimeMsRef.current - 1000);
+        currentTimeMsRef.current = next;
+        setCurrentTimeMs(next);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const next = currentTimeMsRef.current + 1000;
+        currentTimeMsRef.current = next;
+        setCurrentTimeMs(next);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [startPlay]);
+
 
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 
@@ -2674,42 +2760,34 @@ export default function EditorWorkspacePage() {
     ? ((activeVideoItem.sourceInMs ?? 0) + (currentTimeMs - activeVideoItem.timelineStartMs) * (activeVideoItem.properties?.speed ?? 1)) / 1000
     : 0;
 
-  // Slave the <video> element to the rAF master clock. While playing, only
-  // correct drift beyond a threshold so playback doesn't stutter from
-  // constant micro-seeks; when paused/seeking, snap exactly.
+  // Keep refs in sync so the rAF tick can read current values without stale closures.
+  useEffect(() => { activeVideoItemRef.current = activeVideoItem; }, [activeVideoItem]);
+  useEffect(() => { activeAudioItemRef.current = activeAudioItem; }, [activeAudioItem]);
+  useEffect(() => { audioSrcRef.current = audioSrc ?? null; }, [audioSrc]);
+
+  // When paused, snap the <video> to the exact seek position.
+  // While playing, the rAF tick drives the video directly.
   useEffect(() => {
+    if (playing) return;
     const v = videoRef.current;
     if (!v) return;
-    const rate = activeVideoItem?.properties?.speed ?? 1;
-    if (v.playbackRate !== rate) v.playbackRate = rate;
-    const vol = clamp(activeVideoItem?.properties?.volume ?? 1, 0, 1);
-    v.volume = vol;
-    v.muted = vol === 0;
-    if (playing && activeVideoItem) {
-      if (Math.abs(v.currentTime - activeSourceSec) > 0.35) v.currentTime = activeSourceSec;
-      if (v.paused) void v.play().catch(() => undefined);
-    } else {
-      if (!v.paused) v.pause();
-      if (Math.abs(v.currentTime - activeSourceSec) > 0.05) v.currentTime = activeSourceSec;
+    if (!v.paused) v.pause();
+    if (activeVideoItem) {
+      const sourceSec = Math.max(0, ((activeVideoItem.sourceInMs ?? 0) + (currentTimeMs - activeVideoItem.timelineStartMs) * (activeVideoItem.properties?.speed ?? 1)) / 1000);
+      if (Math.abs(v.currentTime - sourceSec) > 0.05) v.currentTime = sourceSec;
     }
-  }, [playing, currentTimeMs, activeVideoItem, activeSourceSec]);
+  }, [playing, currentTimeMs, activeVideoItem]);
 
-  // Slave the hidden <audio> element to the rAF master clock for AUDIO track items.
+  // When paused, snap the <audio> to the seek position.
+  // While playing, the rAF tick drives it directly.
   useEffect(() => {
+    if (playing) return;
     const a = audioRef.current;
     if (!a) return;
-    if (!audioSrc || !activeAudioItem) {
-      if (!a.paused) a.pause();
-      return;
-    }
-    const sourceSec = Math.max(0, ((activeAudioItem.sourceInMs ?? 0) + (currentTimeMs - activeAudioItem.timelineStartMs))) / 1000;
-    if (playing) {
-      if (Math.abs(a.currentTime - sourceSec) > 0.4) a.currentTime = sourceSec;
-      if (a.paused) void a.play().catch(() => undefined);
-    } else {
-      if (!a.paused) a.pause();
-      if (Math.abs(a.currentTime - sourceSec) > 0.05) a.currentTime = sourceSec;
-    }
+    if (!audioSrc || !activeAudioItem) { if (!a.paused) a.pause(); return; }
+    if (!a.paused) a.pause();
+    const sourceSec = Math.max(0, ((activeAudioItem.sourceInMs ?? 0) + (currentTimeMs - activeAudioItem.timelineStartMs)) / 1000);
+    if (Math.abs(a.currentTime - sourceSec) > 0.05) a.currentTime = sourceSec;
   }, [playing, currentTimeMs, activeAudioItem, audioSrc]);
 
   // Selected item
@@ -2901,12 +2979,17 @@ export default function EditorWorkspacePage() {
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
           {/* Preview area */}
-          <div className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: 280 }}>
+          <div className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: 360 }}>
             {/* Hidden audio element slaved to the rAF clock for AUDIO track items */}
             <audio ref={audioRef} src={audioSrc ?? undefined} style={{ display: 'none' }}>
               <track kind="captions" />
             </audio>
 
+            {activeTimelineItem && !displaySrc && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
+                <Loader2 className="w-8 h-8 animate-spin text-white/70" />
+              </div>
+            )}
             {isActiveImage && displaySrc ? (
               <>
                 <img
@@ -2930,9 +3013,6 @@ export default function EditorWorkspacePage() {
                     {it.properties?.text ?? ''}
                   </span>
                 ))}
-                <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wide bg-black/50 text-white/70 px-2 py-0.5 rounded-full pointer-events-none">
-                  Approximate preview
-                </span>
               </>
             ) : videoSrc ? (
               <>
@@ -2964,9 +3044,6 @@ export default function EditorWorkspacePage() {
                     {it.properties?.text ?? ''}
                   </span>
                 ))}
-                <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wide bg-black/50 text-white/70 px-2 py-0.5 rounded-full pointer-events-none">
-                  Approximate preview
-                </span>
               </>
             ) : activeAudioItem ? (
               <div className="text-gray-400 text-sm text-center space-y-2 p-4">
@@ -2992,21 +3069,46 @@ export default function EditorWorkspacePage() {
             >
               {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             </button>
-            <button
-              type="button"
+            <div
+              role="slider"
               aria-label="Seek"
-              className="flex-1 relative h-1.5 bg-white/20 rounded-full cursor-pointer"
-              onClick={(e) => {
+              aria-valuenow={currentTimeMs}
+              aria-valuemin={0}
+              aria-valuemax={dur || 60000}
+              tabIndex={0}
+              className="flex-1 relative h-3 flex items-center cursor-pointer group"
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
                 const rect = e.currentTarget.getBoundingClientRect();
-                const frac = (e.clientX - rect.left) / rect.width;
-                setCurrentTimeMs(Math.round(frac * (dur || 60000)));
+                const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                const ms = Math.round(frac * (dur || 60000));
+                currentTimeMsRef.current = ms;
+                setCurrentTimeMs(ms);
+              }}
+              onPointerMove={(e) => {
+                if (e.buttons !== 1) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                const ms = Math.round(frac * (dur || 60000));
+                currentTimeMsRef.current = ms;
+                setCurrentTimeMs(ms);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowLeft') { const ms = Math.max(0, currentTimeMs - 1000); currentTimeMsRef.current = ms; setCurrentTimeMs(ms); }
+                if (e.key === 'ArrowRight') { const ms = Math.min(dur, currentTimeMs + 1000); currentTimeMsRef.current = ms; setCurrentTimeMs(ms); }
               }}
             >
-              <span
-                className="absolute left-0 top-0 bottom-0 bg-brand-400 rounded-full"
-                style={{ width: `${dur > 0 ? (currentTimeMs / dur) * 100 : 0}%` }}
-              />
-            </button>
+              <div className="absolute inset-x-0 h-1.5 bg-white/20 rounded-full group-hover:h-2 transition-all">
+                <div
+                  className="absolute left-0 top-0 bottom-0 bg-brand-400 rounded-full"
+                  style={{ width: `${dur > 0 ? (currentTimeMs / dur) * 100 : 0}%` }}
+                />
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ left: `calc(${dur > 0 ? (currentTimeMs / dur) * 100 : 0}% - 6px)` }}
+                />
+              </div>
+            </div>
             <span className="text-xs font-mono tabular-nums">{fmtMs(currentTimeMs)} / {fmtMs(dur)}</span>
             {/* Zoom controls */}
             <button
