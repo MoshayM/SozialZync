@@ -1909,6 +1909,7 @@ function TimelineTrack({
   onMuteItem,
   onHideItem,
   onDelinkItem,
+  onDeleteTrack,
 }: {
   track: EditTrack;
   durationMs: number;
@@ -1924,6 +1925,7 @@ function TimelineTrack({
   onMuteItem: (itemId: string) => void;
   onHideItem: (itemId: string) => void;
   onDelinkItem: (itemId: string) => void;
+  onDeleteTrack: (trackId: string) => void;
 }) {
   const totalW = Math.max(msToX(durationMs, pxPerSec) + 200, 600);
   const [dragOver, setDragOver] = useState(false);
@@ -1959,6 +1961,20 @@ function TimelineTrack({
             {trackMuted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
           </button>
         )}
+        {/* Delete track — always visible; confirm only when track has clips */}
+        <button
+          onClick={() => {
+            const hasClips = (track.items ?? []).length > 0;
+            if (!hasClips || window.confirm(`Delete "${track.label}" and all its clips?`)) {
+              onDeleteTrack(track.id);
+            }
+          }}
+          className="shrink-0 p-0.5 rounded hover:bg-red-500/20 text-gray-600 hover:text-red-400 transition-colors"
+          title="Delete track"
+          aria-label="Delete track"
+        >
+          <Trash2 className="w-2.5 h-2.5" />
+        </button>
       </div>
       {/* Track lane */}
       <div
@@ -3010,6 +3026,25 @@ export default function EditorWorkspacePage() {
     });
   }, [updateTimeline]);
 
+  const handleDeleteTrack = useCallback((trackId: string) => {
+    updateTimeline((tl) => ({
+      ...tl,
+      tracks: tl.tracks.filter((t) => t.id !== trackId),
+    }));
+    setSelectedItemId((prev) => {
+      // If the selected item was on this track, deselect
+      if (!prev) return prev;
+      return prev;
+    });
+  }, [updateTimeline]);
+
+  const handleClearEmptyTracks = useCallback(() => {
+    updateTimeline((tl) => ({
+      ...tl,
+      tracks: tl.tracks.filter((t) => (t.items ?? []).length > 0),
+    }));
+  }, [updateTimeline]);
+
   const handleMuteItem = useCallback((itemId: string) => {
     updateTimeline((tl) => ({
       ...tl,
@@ -4050,6 +4085,7 @@ export default function EditorWorkspacePage() {
                                 onMuteItem={handleMuteItem}
                                 onHideItem={handleHideItem}
                                 onDelinkItem={handleDelinkItem}
+                                onDeleteTrack={handleDeleteTrack}
                               />
                             ))}
                           </div>
@@ -4134,6 +4170,7 @@ export default function EditorWorkspacePage() {
               { icon: <Magnet className="w-5 h-5" />, label: snapEnabled ? 'Snap On' : 'Snap Off', action: () => setSnapEnabled(s => !s), disabled: false, color: snapEnabled ? 'text-brand-400' : 'text-gray-400' },
               { icon: <Film className="w-5 h-5" />, label: '+ Video', action: () => { handleAddTrack('VIDEO'); setMobileSheet('none'); }, disabled: false, color: 'text-violet-400' },
               { icon: <Volume2 className="w-5 h-5" />, label: '+ Audio', action: () => { handleAddTrack('AUDIO'); setMobileSheet('none'); }, disabled: false, color: 'text-emerald-400' },
+              { icon: <Trash2 className="w-5 h-5" />, label: 'Clear Empty', action: () => { handleClearEmptyTracks(); setMobileSheet('none'); }, disabled: (timeline?.tracks ?? []).every(t => (t.items ?? []).length > 0), color: 'text-orange-400' },
               { icon: <Wand2 className="w-5 h-5" />, label: 'AI Edit', action: () => { setShowAiEdit(true); setMobileSheet('none'); }, disabled: false, color: 'text-brand-400' },
             ].map((item, i) => (
               <button
