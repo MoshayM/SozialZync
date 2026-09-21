@@ -51,7 +51,7 @@ function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
 }
 
-const TRACK_H = 48; // px, also min touch target height
+const TRACK_H = 40; // px, also min touch target height
 const LABEL_W = 96; // px — matches w-24 track label width
 const SNAP_MS = 200; // snap threshold in ms at 40px/s
 const TRACK_COLORS: Record<string, string> = {
@@ -2431,6 +2431,7 @@ export default function EditorWorkspacePage() {
   const [canRedo, setCanRedo] = useState(false);
   const [binPanelOpen, setBinPanelOpen] = useState(true);
   const [inspectorPanelOpen, setInspectorPanelOpen] = useState(true);
+  const [previewH, setPreviewH] = useState(200);
 
   const assetNameMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -2552,6 +2553,7 @@ export default function EditorWorkspacePage() {
   const activeAudioItemRef = useRef<EditItem | null>(null);
   const audioSrcRef = useRef<string | null>(null);
   const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
+  const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const historyRef = useRef<EditTimeline[]>([]);
   const historyIndexRef = useRef(-1);
@@ -3254,8 +3256,8 @@ export default function EditorWorkspacePage() {
         {/* ── Center: Preview + Timeline ───────────────────────────────── */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-          {/* Preview area — responsive height: 35vh clamped between 160px and 400px */}
-          <div className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: 'clamp(160px, 35vh, 400px)' }}>
+          {/* Preview area — height is user-draggable via the resize handle below */}
+          <div className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: previewH }}>
             {/* Hidden audio element slaved to the rAF clock for AUDIO track items */}
             <audio ref={audioRef} src={audioSrc ?? undefined} style={{ display: 'none' }}>
               <track kind="captions" />
@@ -3337,7 +3339,7 @@ export default function EditorWorkspacePage() {
           </div>
 
           {/* Transport bar */}
-          <div className="shrink-0 bg-gray-900 text-white flex items-center gap-3 px-4 py-2">
+          <div className="shrink-0 bg-gray-900 text-white flex items-center gap-2 px-3 py-1">
             <button
               onClick={() => playing ? stopPlay() : startPlay()}
               className="p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -3404,6 +3406,33 @@ export default function EditorWorkspacePage() {
             >
               <ZoomIn className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* ── Drag-to-resize handle — preview vs timeline ──────────────── */}
+          <div
+            className="shrink-0 flex items-center justify-center bg-gray-950 cursor-row-resize select-none touch-none group"
+            style={{ height: 7 }}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              previewDragRef.current = { startY: e.clientY, startH: previewH };
+            }}
+            onPointerMove={(e) => {
+              if (!previewDragRef.current) return;
+              const newH = Math.max(100, Math.min(560, previewDragRef.current.startH + (e.clientY - previewDragRef.current.startY)));
+              setPreviewH(newH);
+            }}
+            onPointerUp={() => { previewDragRef.current = null; }}
+            onDoubleClick={() => setPreviewH(200)}
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Drag to resize preview"
+            title="Drag to resize · Double-click to reset"
+          >
+            <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+              <div className="w-8 h-0.5 rounded-full bg-white group-hover:bg-brand-400 transition-colors" />
+              <div className="w-1 h-1 rounded-full bg-white/70 group-hover:bg-brand-400 transition-colors" />
+              <div className="w-8 h-0.5 rounded-full bg-white group-hover:bg-brand-400 transition-colors" />
+            </div>
           </div>
 
           {/* Timeline — Professional dark multi-track editor */}
