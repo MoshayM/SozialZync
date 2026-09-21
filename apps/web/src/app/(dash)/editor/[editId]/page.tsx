@@ -2618,8 +2618,12 @@ export default function EditorWorkspacePage() {
   // Refs let the rAF tick read current values without stale closures or 60fps state updates.
   const currentTimeMsRef = useRef(0);
   const activeVideoItemRef = useRef<EditItem | null>(null);
-  const activeAudioItemRef = useRef<EditItem | null>(null);
+  const activeAudioItemRef = useRef<EditItem | null>(null);       // standalone audio only
+  const activeLinkedAudioItemRef = useRef<EditItem | null>(null); // AUDIO clip linked to current video
   const audioSrcRef = useRef<string | null>(null);
+  // AudioContext kept alive for the session; resumed inside every Play gesture to
+  // satisfy browser autoplay policy for <audio>-element standalone clips.
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
   const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3049,9 +3053,12 @@ export default function EditorWorkspacePage() {
         if (v.playbackRate !== rate) v.playbackRate = rate;
         const vol = clamp(item.properties?.volume ?? 1, 0, 1);
         v.volume = vol;
-        // Mute the video element when the AUDIO track has its own item — the
-        // <audio> element handles audio in that case, preventing double playback.
-        v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted || activeAudioItemRef.current !== null;
+        // Audio routing: the <video> element carries the audio for its own linked
+        // audio clip. Only mute it when there is a truly standalone (unlinked) AUDIO
+        // clip at this position — in that case <audio> handles audio, preventing
+        // double playback. Also respect per-clip mute on the linked AUDIO track item.
+        const linkedAudioMuted = activeLinkedAudioItemRef.current?.properties?.muted ?? false;
+        v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted || linkedAudioMuted || activeAudioItemRef.current !== null;
         const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (t - item.timelineStartMs) * rate) / 1000);
         // Correct drift only when it exceeds 500 ms to avoid interrupting playback.
         if (Math.abs(v.currentTime - sourceSec) > 0.5) v.currentTime = sourceSec;
@@ -3060,12 +3067,15 @@ export default function EditorWorkspacePage() {
         v.pause();
       }
 
-      // Sync <audio> at rAF rate too.
+      // Sync <audio> — only used for STANDALONE (unlinked) audio clips like voice/music.
+      // Linked-video audio is handled by the <video> element above.
       const a = audioRef.current;
       const aItem = activeAudioItemRef.current;
       const aSrc = audioSrcRef.current;
       if (a && aItem && aSrc) {
-        a.muted = globalMutedRef.current || !!aItem.properties?.muted;
+        const aVol = clamp(aItem.properties?.volume ?? 1, 0, 1);
+        a.volume = aVol;
+        a.muted = globalMutedRef.current || aVol === 0 || !!aItem.properties?.muted;
         const sourceSec = Math.max(0, ((aItem.sourceInMs ?? 0) + (t - aItem.timelineStartMs)) / 1000);
         if (Math.abs(a.currentTime - sourceSec) > 0.5) a.currentTime = sourceSec;
         if (a.paused) void a.play().catch(() => undefined);
@@ -3093,17 +3103,25 @@ export default function EditorWorkspacePage() {
 
     // Play immediately while still inside the click-handler user-gesture context.
     // Browsers block audio when play() is called from a rAF callback because
-    // that fires after the gesture completes. Calling it here unlocks audio.
+    // that fires after the gesture completes. Resume AudioContext here too —
+    // this unlocks <audio>-element autoplay for standalone clips.
+    if (typeof AudioContext !== 'undefined') {
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+      if (audioCtxRef.current.state === 'suspended') void audioCtxRef.current.resume();
+    }
+
     const vNow = videoRef.current;
     const itemNow = activeVideoItemRef.current;
     const aNow = audioRef.current;
-    const aItemNow = activeAudioItemRef.current;
+    const aItemNow = activeAudioItemRef.current; // standalone audio only
     if (vNow) {
       if (itemNow) {
         const vol = clamp(itemNow.properties?.volume ?? 1, 0, 1);
         vNow.volume = vol;
-        // Mute video element when AUDIO track handles audio (prevents double audio)
-        vNow.muted = globalMutedRef.current || vol === 0 || !!itemNow.properties?.muted || aItemNow !== null;
+        // Mute video only when a standalone audio clip is playing (it handles audio)
+        // or when the linked audio clip's own mute flag is set.
+        const linkedMuted = activeLinkedAudioItemRef.current?.properties?.muted ?? false;
+        vNow.muted = globalMutedRef.current || vol === 0 || !!itemNow.properties?.muted || linkedMuted || aItemNow !== null;
         vNow.playbackRate = itemNow.properties?.speed ?? 1;
       } else {
         // No active item yet (signed URL still loading) — muted prime to unlock
@@ -3113,7 +3131,7 @@ export default function EditorWorkspacePage() {
       void vNow.play().catch(() => undefined);
     }
     if (aNow && aItemNow && audioSrcRef.current) {
-      aNow.volume = 1;
+      aNow.volume = clamp(aItemNow.properties?.volume ?? 1, 0, 1);
       aNow.muted = globalMutedRef.current || !!aItemNow.properties?.muted;
       void aNow.play().catch(() => undefined);
     }
@@ -3168,11 +3186,25 @@ export default function EditorWorkspacePage() {
   const isActiveImage = activeTimelineItem?.kind === 'IMAGE';
   const activeVideoItem = isActiveImage ? null : activeTimelineItem;
 
-  // Active item on AUDIO tracks for standalone audio playback
-  const activeAudioItem = (timeline?.tracks ?? [])
+  // All audio clips overlapping the current playhead
+  const allActiveAudioItems = (timeline?.tracks ?? [])
     .filter((t) => t.kind === 'AUDIO')
     .flatMap((t) => t.items ?? [])
-    .find((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs) ?? null;
+    .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs);
+
+  // LINKED audio: the AUDIO-track clip paired to the active video clip.
+  // Audio for these comes from the <video> element — no separate <audio> element needed.
+  const activeLinkedAudioItem = activeVideoItem
+    ? (allActiveAudioItems.find((it) =>
+        it.linkedItemId === activeVideoItem.id || activeVideoItem.linkedItemId === it.id
+      ) ?? null)
+    : null;
+
+  // STANDALONE audio: voice-over / music / imported audio NOT linked to the current video.
+  // These play via the <audio> element.
+  const activeAudioItem = allActiveAudioItems.find((it) =>
+    it.linkedItemId !== activeVideoItem?.id && activeVideoItem?.linkedItemId !== it.id
+  ) ?? null;
 
   const activeDisplayEntry = activeTimelineItem?.sourceAssetId
     ? mediaBin.find((e) => e.id === activeTimelineItem.sourceAssetId)
@@ -3204,6 +3236,7 @@ export default function EditorWorkspacePage() {
   // Keep refs in sync so the rAF tick can read current values without stale closures.
   useEffect(() => { activeVideoItemRef.current = activeVideoItem; }, [activeVideoItem]);
   useEffect(() => { activeAudioItemRef.current = activeAudioItem; }, [activeAudioItem]);
+  useEffect(() => { activeLinkedAudioItemRef.current = activeLinkedAudioItem; }, [activeLinkedAudioItem]);
   useEffect(() => { audioSrcRef.current = audioSrc ?? null; }, [audioSrc]);
 
   // When paused, snap the <video> to the exact seek position.
@@ -3242,7 +3275,8 @@ export default function EditorWorkspacePage() {
     if (!item) return;
     const vol = clamp(item.properties?.volume ?? 1, 0, 1);
     v.volume = vol;
-    v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted || activeAudioItemRef.current !== null;
+    const linkedMuted = activeLinkedAudioItemRef.current?.properties?.muted ?? false;
+    v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted || linkedMuted || activeAudioItemRef.current !== null;
     void v.play().catch(() => undefined);
   }, [videoSrc, playing]);
 
