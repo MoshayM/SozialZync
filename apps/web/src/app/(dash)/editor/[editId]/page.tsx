@@ -7,7 +7,7 @@ import {
   ArrowLeft, Film, Play, Pause, Loader2, Save, Download, Wand2,
   Volume2, Zap, Type, Image, X,
   ZoomIn, ZoomOut, Plus, Maximize2,
-  SlidersHorizontal, ChevronDown, ChevronRight, Clapperboard, Sparkles, KeyRound,
+  SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Sparkles, KeyRound,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
   Scissors, RotateCcw, RotateCw, Magnet,
@@ -2429,6 +2429,8 @@ export default function EditorWorkspacePage() {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [binPanelOpen, setBinPanelOpen] = useState(true);
+  const [inspectorPanelOpen, setInspectorPanelOpen] = useState(true);
 
   const assetNameMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -3102,17 +3104,17 @@ export default function EditorWorkspacePage() {
           </span>
         )}
 
-        {/* Mobile panel toggles */}
+        {/* Panel toggles — visible below xl (drawers) and on xl+ (inline collapse) */}
         <button
-          onClick={() => setMobileBinOpen((o) => !o)}
-          className="lg:hidden p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          onClick={() => { if (window.innerWidth >= 1280) setBinPanelOpen(o => !o); else setMobileBinOpen(o => !o); }}
+          className="xl:hidden p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
           title="Media bin"
         >
           <Film className="w-4 h-4" />
         </button>
         <button
-          onClick={() => setMobileInspectorOpen((o) => !o)}
-          className="lg:hidden p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          onClick={() => { if (window.innerWidth >= 1280) setInspectorPanelOpen(o => !o); else setMobileInspectorOpen(o => !o); }}
+          className="xl:hidden p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
           title="Inspector"
         >
           <Maximize2 className="w-4 h-4" />
@@ -3189,32 +3191,43 @@ export default function EditorWorkspacePage() {
       {/* ── Main layout: left bin / center / right inspector ───────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* ── Left: Media Bin (desktop always visible, mobile slide-over) ── */}
-        {/* Desktop */}
-        <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-gray-100 bg-gray-50">
-          <div className="px-3 py-2.5 border-b border-gray-100 flex items-center gap-1.5">
-            <Film className="w-3.5 h-3.5 text-brand-500" />
-            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Media bin</p>
+        {/* ── Left: Media Bin (xl+ collapsible inline, below xl slide-over) ── */}
+        <aside className={`hidden xl:flex flex-col shrink-0 border-r border-gray-100 bg-gray-50 transition-all duration-200 ${binPanelOpen ? 'w-52' : 'w-9 overflow-hidden'}`}>
+          <div className="px-2 py-2.5 border-b border-gray-100 flex items-center gap-1.5 min-h-[40px]">
+            {binPanelOpen && <Film className="w-3.5 h-3.5 text-brand-500 shrink-0" />}
+            {binPanelOpen && <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide flex-1 truncate">Media bin</p>}
+            <button
+              onClick={() => setBinPanelOpen(o => !o)}
+              className="p-1 rounded hover:bg-gray-200 shrink-0 ml-auto"
+              title={binPanelOpen ? 'Collapse bin' : 'Expand bin'}
+              aria-label={binPanelOpen ? 'Collapse media bin' : 'Expand media bin'}
+            >
+              {binPanelOpen ? <ChevronLeft className="w-3.5 h-3.5 text-gray-500" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
+            </button>
           </div>
-          <MediaBin
-            entries={mediaBin}
-            onAddToTimeline={handleAddToTimeline}
-            onUpload={handleBinUpload}
-            uploading={binUploading}
-            onImportUrl={handleBinUrlImport}
-            urlImporting={binUrlImporting}
-            onOpenLibrary={() => setShowLibrary(true)}
-            onDeleteEntry={handleBinDeleteEntry}
-            onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
-          />
-          {binUploadError && (
-            <p className="text-xs text-red-600 px-3 pb-2">{binUploadError}</p>
+          {binPanelOpen && (
+            <>
+              <MediaBin
+                entries={mediaBin}
+                onAddToTimeline={handleAddToTimeline}
+                onUpload={handleBinUpload}
+                uploading={binUploading}
+                onImportUrl={handleBinUrlImport}
+                urlImporting={binUrlImporting}
+                onOpenLibrary={() => setShowLibrary(true)}
+                onDeleteEntry={handleBinDeleteEntry}
+                onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
+              />
+              {binUploadError && (
+                <p className="text-xs text-red-600 px-3 pb-2">{binUploadError}</p>
+              )}
+            </>
           )}
         </aside>
 
-        {/* Mobile media bin slide-over */}
+        {/* Below-xl media bin slide-over */}
         {mobileBinOpen && (
-          <div className="lg:hidden fixed inset-0 z-40 bg-black/30 flex" onClick={(e) => { if (e.target === e.currentTarget) setMobileBinOpen(false); }} role="presentation">
+          <div className="xl:hidden fixed inset-0 z-40 bg-black/30 flex" onClick={(e) => { if (e.target === e.currentTarget) setMobileBinOpen(false); }} role="presentation">
             <div className="w-72 bg-white h-full flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="Media bin">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                 <Film className="w-4 h-4 text-brand-500" />
@@ -3241,8 +3254,8 @@ export default function EditorWorkspacePage() {
         {/* ── Center: Preview + Timeline ───────────────────────────────── */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-          {/* Preview area */}
-          <div className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: 360 }}>
+          {/* Preview area — responsive height: 35vh clamped between 160px and 400px */}
+          <div className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: 'clamp(160px, 35vh, 400px)' }}>
             {/* Hidden audio element slaved to the rAF clock for AUDIO track items */}
             <audio ref={audioRef} src={audioSrc ?? undefined} style={{ display: 'none' }}>
               <track kind="captions" />
@@ -3575,18 +3588,28 @@ export default function EditorWorkspacePage() {
           </div>
         </div>
 
-        {/* ── Right: Inspector (desktop always visible, mobile slide-over) ─ */}
-        <aside className="hidden lg:flex flex-col w-64 shrink-0 border-l border-gray-100 bg-white">
-          <div className="px-3 py-2.5 border-b border-gray-100 flex items-center gap-1.5">
-            <Maximize2 className="w-3.5 h-3.5 text-gray-500" />
-            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Inspector</p>
+        {/* ── Right: Inspector (xl+ collapsible inline, below xl slide-over) ─ */}
+        <aside className={`hidden xl:flex flex-col shrink-0 border-l border-gray-100 bg-white transition-all duration-200 ${inspectorPanelOpen ? 'w-64' : 'w-9 overflow-hidden'}`}>
+          <div className="px-2 py-2.5 border-b border-gray-100 flex items-center gap-1.5 min-h-[40px]">
+            <button
+              onClick={() => setInspectorPanelOpen(o => !o)}
+              className="p-1 rounded hover:bg-gray-100 shrink-0"
+              title={inspectorPanelOpen ? 'Collapse inspector' : 'Expand inspector'}
+              aria-label={inspectorPanelOpen ? 'Collapse inspector' : 'Expand inspector'}
+            >
+              {inspectorPanelOpen ? <ChevronRight className="w-3.5 h-3.5 text-gray-500" /> : <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />}
+            </button>
+            {inspectorPanelOpen && <Maximize2 className="w-3.5 h-3.5 text-gray-500" />}
+            {inspectorPanelOpen && <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Inspector</p>}
           </div>
-          <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+          {inspectorPanelOpen && (
+            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+          )}
         </aside>
 
-        {/* Mobile inspector slide-over */}
+        {/* Below-xl inspector slide-over */}
         {mobileInspectorOpen && (
-          <div className="lg:hidden fixed inset-0 z-40 bg-black/30 flex justify-end" onClick={(e) => { if (e.target === e.currentTarget) setMobileInspectorOpen(false); }} role="presentation">
+          <div className="xl:hidden fixed inset-0 z-40 bg-black/30 flex justify-end" onClick={(e) => { if (e.target === e.currentTarget) setMobileInspectorOpen(false); }} role="presentation">
             <div className="w-72 bg-white h-full flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="Inspector">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                 <Maximize2 className="w-4 h-4 text-gray-500" />
