@@ -3368,7 +3368,8 @@ export default function EditorWorkspacePage() {
     if (!item) return;
     const vol = clamp(item.properties?.volume ?? 1, 0, 1);
     v.volume = vol;
-    v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
+    const linkedAudio = activeLinkedAudioItemRef.current;
+    v.muted = globalMutedRef.current || !!linkedAudio?.properties?.muted;
     void v.play().catch(() => undefined);
   }, [videoSrc, playing]);
 
@@ -3692,13 +3693,24 @@ export default function EditorWorkspacePage() {
                   ref={videoRef}
                   src={videoSrc ?? undefined}
                   className="max-w-full max-h-full object-contain"
-                  style={{ opacity: clamp(activeVideoItem?.properties?.opacity ?? 1, 0, 1), display: videoSrc ? undefined : 'none' }}
+                  style={{
+                    opacity: clamp(activeVideoItem?.properties?.opacity ?? 1, 0, 1),
+                    // Hide video frames when the clip is toggled off with the Eye button.
+                    // The <video> element stays mounted so audio continues playing.
+                    display: (videoSrc && !activeVideoItem?.properties?.hidden) ? undefined : 'none',
+                  }}
                   onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
                   playsInline
                 >
                   {/* Source clips carry no sidecar caption file; empty track satisfies a11y. */}
                   <track kind="captions" />
                 </video>
+                {/* Black placeholder shown when the active video clip is hidden (eye-off) */}
+                {videoSrc && activeVideoItem?.properties?.hidden && (
+                  <div className="absolute inset-0 bg-black flex items-center justify-center pointer-events-none">
+                    <EyeOff className="w-8 h-8 text-white/30" />
+                  </div>
+                )}
                 {videoSrc && activeTextItems.map((it) => (
                   <span
                     key={it.id}
