@@ -2597,8 +2597,6 @@ export default function EditorWorkspacePage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [librarySelecting, setLibrarySelecting] = useState<string | null>(null);
-  // Getting-started guide strip — shown when media bin is empty
-  const [guideOpen, setGuideOpen] = useState(true);
   const [binUploading, setBinUploading] = useState(false);
   const [binUrlImporting, setBinUrlImporting] = useState(false);
   const [binUploadError, setBinUploadError] = useState<string | null>(null);
@@ -3639,24 +3637,6 @@ export default function EditorWorkspacePage() {
         </div>
       )}
 
-      {/* ── Getting Started guide strip ─────────────────────────────── */}
-      {guideOpen && mediaBin.length === 0 && (
-        <div className="shrink-0 bg-gradient-to-r from-brand-50 to-purple-50 border-b border-brand-100 px-4 py-3 flex items-start gap-3">
-          <Sparkles className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-brand-800">How to use the Video Editor</p>
-            <ol className="mt-1.5 space-y-0.5 text-xs text-brand-700">
-              <li>1. Click <strong>Upload video</strong> in the Media Bin — or send a video from <Link href="/projects" className="underline font-medium">Projects</Link> / <Link href="/shorts-studio" className="underline font-medium">Shorts Studio</Link></li>
-              <li>2. Click <strong>+</strong> on any clip to add it to the timeline below</li>
-              <li>3. Drag clips to rearrange, drag edges to trim, click to inspect &amp; edit</li>
-              <li>4. Click <strong>Export</strong> to render your final video</li>
-            </ol>
-          </div>
-          <button onClick={() => setGuideOpen(false)} className="p-1 rounded-lg hover:bg-brand-100 text-brand-400 shrink-0" aria-label="Dismiss guide">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
 
       {/* ── Main layout: left bin / center / right inspector ───────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
