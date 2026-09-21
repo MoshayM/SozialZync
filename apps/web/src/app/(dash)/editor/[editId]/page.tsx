@@ -88,9 +88,13 @@ function useSignedMediaUrl(versionId: string | null): string | null {
     if (hit && hit.expiresAtMs - Date.now() > 30_000) { setUrl(hit.url); return; }
     let cancelled = false;
     void api.media.versionSignedUrl(versionId).then((r) => {
-      // r.data.url is API-relative ("/api/v1/media/..."), prefix the API origin
-      const origin = new URL(apiClient.defaults.baseURL ?? 'http://localhost:4007/api/v1').origin;
-      const abs = `${origin}${r.data.url}`;
+      // r.data.url is API-relative: "/api/v1/media/versions/xxx/file?exp=…&sig=…"
+      // apiClient.defaults.baseURL is "/api/proxy" in the browser — a relative
+      // path that new URL() cannot parse and would throw. Rewrite directly.
+      const raw: string = r.data.url;
+      const abs = raw.startsWith('/api/v1/')
+        ? raw.replace('/api/v1/', '/api/proxy/')
+        : raw;
       signedUrlCache.set(versionId, { url: abs, expiresAtMs: new Date(r.data.expiresAt).getTime() });
       if (!cancelled) setUrl(abs);
     }).catch(() => { if (!cancelled) setUrl(null); });
@@ -2389,8 +2393,11 @@ export default function EditorWorkspacePage() {
     setBinUploadError(null);
     try {
       const { data: { url } } = await api.media.versionSignedUrl(entry.versionId, 600);
-      const origin = new URL(apiClient.defaults.baseURL ?? 'http://localhost:4007/api/v1').origin;
-      const absoluteUrl = url.startsWith('http') ? url : `${origin}${url}`;
+      const absoluteUrl = url.startsWith('http')
+        ? url
+        : url.startsWith('/api/v1/')
+          ? `${window.location.origin}${url.replace('/api/v1/', '/api/proxy/')}`
+          : `${window.location.origin}${url}`;
       await api.media.importVideoFromUrl(absoluteUrl, { title: entry.label, projectId: project.projectId });
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
       setShowLibrary(false);
