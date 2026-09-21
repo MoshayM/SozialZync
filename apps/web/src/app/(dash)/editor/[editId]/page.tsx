@@ -2452,7 +2452,12 @@ export default function EditorWorkspacePage() {
   // Load edit project
   const { data: project, isLoading, error: loadError } = useQuery<EditProject>({
     queryKey: ['editor-project', editId],
-    queryFn: () => api.editor.get(editId).then((r) => r.data),
+    queryFn: async () => {
+      const r = await api.editor.get(editId);
+      // Cache so /editor can skip listMine() on the next visit
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('lastEditorId', editId);
+      return r.data;
+    },
     refetchOnWindowFocus: false,
   });
 
@@ -2624,6 +2629,11 @@ export default function EditorWorkspacePage() {
   // AudioContext kept alive for the session; resumed inside every Play gesture to
   // satisfy browser autoplay policy for <audio>-element standalone clips.
   const audioCtxRef = useRef<AudioContext | null>(null);
+  // Web Audio chain: <video> → MediaElementSource → GainNode → destination.
+  // Created once per video element in the Play gesture to bypass per-element
+  // autoplay restrictions — the AudioContext is unlocked by the gesture.
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const mediaSourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
   const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2931,9 +2941,12 @@ export default function EditorWorkspacePage() {
     const next = !globalMutedRef.current;
     globalMutedRef.current = next;
     setGlobalMuted(next);
-    const v = videoRef.current;
+    // Apply via Web Audio gain node (video) and element mute (standalone audio)
+    if (gainNodeRef.current) {
+      const vol = clamp(activeVideoItemRef.current?.properties?.volume ?? 1, 0, 1);
+      gainNodeRef.current.gain.value = next ? 0 : vol;
+    }
     const a = audioRef.current;
-    if (v) v.muted = next;
     if (a) a.muted = next;
   }, []);
 
@@ -3029,9 +3042,15 @@ export default function EditorWorkspacePage() {
       if (v && item) {
         const rate = item.properties?.speed ?? 1;
         if (v.playbackRate !== rate) v.playbackRate = rate;
-        const vol = clamp(item.properties?.volume ?? 1, 0, 1);
-        v.volume = vol;
-        v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
+        // Volume/mute via Web Audio gain node — more reliable than v.muted/v.volume
+        // because the AudioContext was unlocked in the user-gesture context.
+        if (gainNodeRef.current) {
+          const vol = clamp(item.properties?.volume ?? 1, 0, 1);
+          const shouldMute = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
+          gainNodeRef.current.gain.value = shouldMute ? 0 : vol;
+        }
+        v.muted = false; // Web Audio graph handles volume/muting
+        v.volume = 1;
         const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (t - item.timelineStartMs) * rate) / 1000);
         // Correct drift only when it exceeds 500 ms to avoid interrupting playback.
         if (Math.abs(v.currentTime - sourceSec) > 0.5) v.currentTime = sourceSec;
@@ -3074,30 +3093,46 @@ export default function EditorWorkspacePage() {
 
     setPlaying(true);
 
-    // Play immediately while still inside the click-handler user-gesture context.
-    // Browsers block audio when play() is called from a rAF callback because
-    // that fires after the gesture completes. Resume AudioContext here too —
-    // this unlocks <audio>-element autoplay for standalone clips.
+    // ── Web Audio unlock (must happen inside the user-gesture click handler) ──
+    // Creating/resuming an AudioContext here satisfies the browser's autoplay
+    // policy. Once the context is running, audio flows through the gain node
+    // reliably even when v.play() is later called from requestAnimationFrame.
     if (typeof AudioContext !== 'undefined') {
       if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
-      if (audioCtxRef.current.state === 'suspended') void audioCtxRef.current.resume();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') void ctx.resume();
+
+      // Wire the <video> element into the Web Audio graph once per element.
+      // createMediaElementSource disconnects the element from browser default
+      // routing — all audio must flow through gain → destination to be heard.
+      const vEl = videoRef.current;
+      if (vEl && !mediaSourceNodeRef.current) {
+        try {
+          const src = ctx.createMediaElementSource(vEl);
+          const gain = ctx.createGain();
+          src.connect(gain);
+          gain.connect(ctx.destination);
+          mediaSourceNodeRef.current = src;
+          gainNodeRef.current = gain;
+        } catch { /* element already has a MediaElementSource on this context */ }
+      }
     }
 
     const vNow = videoRef.current;
     const itemNow = activeVideoItemRef.current;
     const aNow = audioRef.current;
     const aItemNow = activeAudioItemRef.current; // standalone audio only
+
     if (vNow) {
-      if (itemNow) {
-        const vol = clamp(itemNow.properties?.volume ?? 1, 0, 1);
-        vNow.volume = vol;
-        vNow.muted = globalMutedRef.current || vol === 0 || !!itemNow.properties?.muted;
-        vNow.playbackRate = itemNow.properties?.speed ?? 1;
-      } else {
-        // No active item yet (signed URL still loading) — muted prime to unlock
-        // the audio gesture so audio works once the src loads via useEffect.
-        vNow.muted = true;
+      // Set initial gain before play() so audio starts at the right level.
+      if (gainNodeRef.current) {
+        const vol = clamp(itemNow?.properties?.volume ?? 1, 0, 1);
+        const shouldMute = globalMutedRef.current || vol === 0 || !!itemNow?.properties?.muted;
+        gainNodeRef.current.gain.value = shouldMute ? 0 : vol;
       }
+      vNow.muted = false; // gain node controls volume; never mute the element
+      vNow.volume = 1;
+      if (itemNow) vNow.playbackRate = itemNow.properties?.speed ?? 1;
       void vNow.play().catch(() => undefined);
     }
     if (aNow && aItemNow && audioSrcRef.current) {
@@ -3244,8 +3279,13 @@ export default function EditorWorkspacePage() {
     const item = activeVideoItemRef.current;
     if (!item) return;
     const vol = clamp(item.properties?.volume ?? 1, 0, 1);
-    v.volume = vol;
-    v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
+    // Apply current gain; Web Audio handles volume (not v.muted)
+    if (gainNodeRef.current) {
+      const shouldMute = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
+      gainNodeRef.current.gain.value = shouldMute ? 0 : vol;
+    }
+    v.muted = false;
+    v.volume = 1;
     void v.play().catch(() => undefined);
   }, [videoSrc, playing]);
 

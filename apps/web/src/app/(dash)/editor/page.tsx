@@ -13,6 +13,15 @@ function SmartRedirect() {
     if (ran.current) return;
     ran.current = true;
 
+    // Fast path: if the user was recently in a project, jump straight there.
+    const cached = typeof sessionStorage !== 'undefined'
+      ? sessionStorage.getItem('lastEditorId')
+      : null;
+    if (cached) {
+      router.replace(`/editor/${cached}`);
+      return;
+    }
+
     async function go() {
       try {
         const { data: edits } = await api.editor.listMine();
