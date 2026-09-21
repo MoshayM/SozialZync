@@ -10,7 +10,7 @@ import {
   SlidersHorizontal, ChevronDown, ChevronRight, Clapperboard, Sparkles, KeyRound,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
-  Scissors, RotateCcw, RotateCw, Magnet, Undo2, Redo2,
+  Scissors, RotateCcw, RotateCw, Magnet,
 } from 'lucide-react';
 import {
   api,
@@ -3375,7 +3375,7 @@ export default function EditorWorkspacePage() {
                 className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white"
                 title="Undo (Ctrl+Z)"
               >
-                <Undo2 className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={handleRedo}
@@ -3383,7 +3383,7 @@ export default function EditorWorkspacePage() {
                 className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white"
                 title="Redo (Ctrl+Shift+Z)"
               >
-                <Redo2 className="w-3.5 h-3.5" />
+                <RotateCw className="w-3.5 h-3.5" />
               </button>
               <div className="w-px h-4 bg-white/20 mx-0.5" />
               <button
@@ -3518,6 +3518,7 @@ export default function EditorWorkspacePage() {
                             pxPerSec={pxPerSec}
                             selectedId={selectedItemId}
                             snapPoints={snapPoints}
+                            nameMap={assetNameMap}
                             onSelect={(id) => {
                               setSelectedItemId(id || null);
                               if (id && window.innerWidth < 1024) setMobileInspectorOpen(true);
