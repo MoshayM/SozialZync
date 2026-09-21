@@ -560,12 +560,16 @@ function ExportDialog({
   projectTitle,
   onClose,
   onBeforeRender,
+  onRenderStart,
+  onRenderDone,
 }: {
   editId: string;
   projectTitle: string;
   onClose: () => void;
   /** Called before enqueueing the render job — use this to flush any unsaved timeline changes. */
   onBeforeRender?: () => Promise<void>;
+  onRenderStart?: () => void;
+  onRenderDone?: () => void;
 }) {
   const router = useRouter();
   const [preset, setPreset] = useState<RenderPreset>('1080P_16_9');
@@ -592,6 +596,7 @@ function ExportDialog({
     setSubmitting(true);
     setError(null);
     setRenderStatus(null);
+    onRenderStart?.();
     try {
       // Flush any unsaved timeline edits (including effects/filters) to the server
       // before enqueueing the render job. Without this, changes made since the last
@@ -608,15 +613,18 @@ function ExportDialog({
           if (s.data.renderStatus === 'READY') {
             setDownloadPath(s.data.downloadPath ?? null);
             stopPoll();
+            onRenderDone?.();
           } else if (s.data.renderStatus === 'FAILED') {
             setError('Render failed on the server. Retry or contact support.');
             stopPoll();
+            onRenderDone?.();
           }
         } catch { /* keep polling */ }
       }, 4000);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
       setError(e.response?.data?.message ?? 'Failed to start render');
+      onRenderDone?.();
     } finally {
       setSubmitting(false);
     }
@@ -2618,6 +2626,12 @@ export default function EditorWorkspacePage() {
   const [toasts, setToasts] = useState<Array<{ id: string; label: string; status: 'pending' | 'success' | 'error'; message?: string }>>([]);
   const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
+  // ── Top progress bar ──────────────────────────────────────────────────────────
+  const [barPct, setBarPct] = useState(0);
+  const [barVisible, setBarVisible] = useState(false);
+  const barActiveOps = useRef(0);
+  const barSimTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const addToast = useCallback((id: string, label: string) => {
     setToasts((prev) => [...prev.filter((t) => t.id !== id), { id, label, status: 'pending' }]);
   }, []);
@@ -2636,6 +2650,34 @@ export default function EditorWorkspacePage() {
   const dismissToast = useCallback((id: string) => {
     if (toastTimers.current[id]) { clearTimeout(toastTimers.current[id]); delete toastTimers.current[id]; }
     setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const progressStart = useCallback(() => {
+    barActiveOps.current += 1;
+    if (barActiveOps.current === 1) {
+      if (barSimTimer.current) { clearInterval(barSimTimer.current); barSimTimer.current = null; }
+      setBarPct(0);
+      setBarVisible(true);
+      let pct = 0;
+      barSimTimer.current = setInterval(() => {
+        pct = Math.min(85, pct + (85 - pct) * 0.08 + 0.4);
+        setBarPct(Math.floor(pct));
+        if (pct >= 84.5) { clearInterval(barSimTimer.current!); barSimTimer.current = null; }
+      }, 160);
+    }
+  }, []);
+
+  const progressSet = useCallback((pct: number) => {
+    setBarPct(Math.min(95, Math.round(pct)));
+  }, []);
+
+  const progressDone = useCallback(() => {
+    barActiveOps.current = Math.max(0, barActiveOps.current - 1);
+    if (barActiveOps.current === 0) {
+      if (barSimTimer.current) { clearInterval(barSimTimer.current); barSimTimer.current = null; }
+      setBarPct(100);
+      setTimeout(() => { setBarVisible(false); setBarPct(0); }, 500);
+    }
   }, []);
 
   // Local timeline state (editable copy, synced from server initially)
@@ -2691,8 +2733,20 @@ export default function EditorWorkspacePage() {
     const id = `upload-${Date.now()}`;
     setBinUploading(true);
     addToast(id, `Uploading ${file.name}`);
+    progressStart();
     try {
-      await api.media.uploadMedia(file, project.projectId);
+      const form = new FormData();
+      form.append('file', file, file.name);
+      await apiClient.post(
+        `/media/media/upload?projectId=${encodeURIComponent(project.projectId)}`,
+        form,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (e) => {
+            if (e.total) progressSet(Math.round((e.loaded / e.total) * 90));
+          },
+        },
+      );
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
       updateToast(id, 'success', `${file.name} added to Working Files`);
     } catch (err) {
@@ -2700,14 +2754,16 @@ export default function EditorWorkspacePage() {
       updateToast(id, 'error', e.response?.data?.message ?? 'Upload failed');
     } finally {
       setBinUploading(false);
+      progressDone();
     }
-  }, [project?.projectId, editId, qc, addToast, updateToast]);
+  }, [project?.projectId, editId, qc, addToast, updateToast, progressStart, progressSet, progressDone]);
 
   const handleBinUrlImport = useCallback(async (url: string) => {
     if (!project?.projectId) return;
     const id = `import-url-${Date.now()}`;
     setBinUrlImporting(true);
     addToast(id, 'Importing video from URL…');
+    progressStart();
     try {
       await api.media.importVideoFromUrl(url, { projectId: project.projectId });
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
@@ -2717,13 +2773,15 @@ export default function EditorWorkspacePage() {
       updateToast(id, 'error', e.response?.data?.message ?? 'Import failed');
     } finally {
       setBinUrlImporting(false);
+      progressDone();
     }
-  }, [project?.projectId, editId, qc, addToast, updateToast]);
+  }, [project?.projectId, editId, qc, addToast, updateToast, progressStart, progressDone]);
 
   const handleLibrarySelect = useCallback(async (video: LibraryVideo) => {
     setLibrarySelecting(video.id);
     const id = `import-lib-${video.id}`;
     addToast(id, `Importing "${video.title}"…`);
+    progressStart();
     try {
       await api.media.importVideoFromUrl(
         `https://www.youtube.com/watch?v=${video.youtubeVideoId}`,
@@ -2737,14 +2795,16 @@ export default function EditorWorkspacePage() {
       updateToast(id, 'error', e.response?.data?.message ?? 'Import from library failed');
     } finally {
       setLibrarySelecting(null);
+      progressDone();
     }
-  }, [project?.projectId, editId, qc, addToast, updateToast]);
+  }, [project?.projectId, editId, qc, addToast, updateToast, progressStart, progressDone]);
 
   const handleProjectBinSelect = useCallback(async (entry: MediaBinEntry) => {
     if (!entry.versionId || !project?.projectId) return;
     setLibrarySelecting(entry.id);
     const id = `import-proj-${entry.id}`;
     addToast(id, `Importing "${entry.label}"…`);
+    progressStart();
     try {
       const { data: { url } } = await api.media.versionSignedUrl(entry.versionId, 600);
       const absoluteUrl = url.startsWith('http')
@@ -2761,13 +2821,15 @@ export default function EditorWorkspacePage() {
       updateToast(id, 'error', e.response?.data?.message ?? 'Import from project failed');
     } finally {
       setLibrarySelecting(null);
+      progressDone();
     }
-  }, [project?.projectId, editId, qc, addToast, updateToast]);
+  }, [project?.projectId, editId, qc, addToast, updateToast, progressStart, progressDone]);
 
   const handleBinDeleteEntry = useCallback(async (assetId: string) => {
     if (!window.confirm('Remove this file? It will be permanently deleted from Cloudflare storage.')) return;
     const id = `delete-${assetId}`;
     addToast(id, 'Removing file…');
+    progressStart();
     const previous = qc.getQueryData<MediaBinEntry[]>(['editor-media-bin', editId]);
     qc.setQueryData<MediaBinEntry[]>(
       ['editor-media-bin', editId],
@@ -2779,9 +2841,11 @@ export default function EditorWorkspacePage() {
     } catch {
       if (previous !== undefined) qc.setQueryData(['editor-media-bin', editId], previous);
       updateToast(id, 'error', 'Could not remove file — please try again');
+    } finally {
+      progressDone();
+      void qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
     }
-    void qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
-  }, [editId, qc, addToast, updateToast]);
+  }, [editId, qc, addToast, updateToast, progressStart, progressDone]);
 
   const handleBinLockEntry = useCallback(async (assetId: string, locked: boolean) => {
     qc.setQueryData<MediaBinEntry[]>(
@@ -2862,6 +2926,7 @@ export default function EditorWorkspacePage() {
     setSaveError(null);
     const id = 'save';
     addToast(id, 'Saving timeline…');
+    progressStart();
     try {
       await api.editor.saveTimeline(editId, timeline);
       setDirty(false);
@@ -2874,6 +2939,7 @@ export default function EditorWorkspacePage() {
       updateToast(id, 'error', msg);
     } finally {
       setSaving(false);
+      progressDone();
     }
   };
 
@@ -3631,7 +3697,16 @@ export default function EditorWorkspacePage() {
   const totalTimelineW = msToX(dur || 60000, pxPerSec);
 
   return (
-    <div className="cf-editor-page flex flex-col h-full overflow-hidden">
+    <div className="cf-editor-page relative flex flex-col h-full overflow-hidden">
+      {/* ── Top progress bar ─────────────────────────────────────────────── */}
+      {barVisible && (
+        <div className="absolute top-0 left-0 right-0 z-[80] h-[3px] pointer-events-none" aria-hidden="true">
+          <div
+            className="h-full bg-gradient-to-r from-brand-500 to-purple-500 transition-[width] duration-300 ease-out"
+            style={{ width: `${barPct}%` }}
+          />
+        </div>
+      )}
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 px-2 sm:px-4 py-2 border-b border-gray-100 bg-white shrink-0 overflow-x-auto scrollbar-none">
         <button
@@ -4321,7 +4396,7 @@ export default function EditorWorkspacePage() {
       </nav>
 
       {/* Dialogs */}
-      {showExport && <ExportDialog editId={editId} projectTitle={project.title} onClose={() => setShowExport(false)} onBeforeRender={handleSave} />}
+      {showExport && <ExportDialog editId={editId} projectTitle={project.title} onClose={() => setShowExport(false)} onBeforeRender={handleSave} onRenderStart={progressStart} onRenderDone={progressDone} />}
       {showAiEdit && (
         <AiEditDialog
           editId={editId}
