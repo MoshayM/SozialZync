@@ -57,6 +57,13 @@ export class SocialDownloadService {
       this.logger.log(`YouTube Shorts → rewritten to watch URL: ${resolvedUrl}`);
     }
 
+    // Fetch the real video title from yt-dlp metadata if caller didn't supply one.
+    // This is a fast metadata-only call (no download), so it adds ~1-2s up front
+    // but produces a meaningful label in the Working Files panel.
+    if (!title) {
+      title = (await this.fetchTitle(resolvedUrl)) ?? undefined;
+    }
+
     this.logger.log(`yt-dlp download: ${resolvedUrl}`);
 
     const isYouTube = /youtube\.com|youtu\.be/.test(resolvedUrl);
@@ -113,6 +120,29 @@ export class SocialDownloadService {
     } finally {
       try { fs.unlinkSync(outFile); } catch { /* best-effort cleanup */ }
     }
+  }
+
+  /** Fetch the video title from yt-dlp metadata only (no download). Times out at 15s. */
+  private async fetchTitle(url: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      let proc: ReturnType<typeof spawn>;
+      try {
+        proc = spawn('yt-dlp', [url, '--no-download', '--print', 'title', '--no-playlist'], {
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      } catch {
+        return resolve(null);
+      }
+      let out = '';
+      proc.stdout?.on('data', (c: Buffer) => { out += c.toString(); });
+      const t = setTimeout(() => { try { proc.kill('SIGTERM'); } catch { /* */ } resolve(null); }, 15_000);
+      proc.on('close', (code) => {
+        clearTimeout(t);
+        const title = out.trim().slice(0, 120);
+        resolve(code === 0 && title ? title : null);
+      });
+      proc.on('error', () => { clearTimeout(t); resolve(null); });
+    });
   }
 
   private findDownloaded(dir: string, prefix: string): string | null {

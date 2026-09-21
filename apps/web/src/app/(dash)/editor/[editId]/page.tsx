@@ -2440,7 +2440,7 @@ function BinEntry({
 
   return (
     <div
-      className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-2.5 py-2 hover:bg-gray-50 group"
+      className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-2 py-1.5 hover:bg-gray-50 hover:border-gray-200 group/entry transition-colors"
       draggable={!isProcessing}
       onDragStart={(e) => {
         if (isProcessing) { e.preventDefault(); return; }
@@ -2449,7 +2449,10 @@ function BinEntry({
         onDragStart?.(entry);
       }}
     >
-      <span className="shrink-0">{KIND_ICON[entry.kind] ?? <Film className="w-3.5 h-3.5 text-gray-400" />}</span>
+      {/* Kind icon */}
+      <span className="shrink-0 text-gray-400">{KIND_ICON[entry.kind] ?? <Film className="w-3.5 h-3.5" />}</span>
+
+      {/* Label + meta badges */}
       <div className="flex-1 min-w-0">
         {editing ? (
           <input
@@ -2471,7 +2474,7 @@ function BinEntry({
             {label}
           </p>
         )}
-        <div className="flex items-center gap-1.5 mt-0.5">
+        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
           {isProcessing ? (
             <span className="text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-yellow-100 text-yellow-700 flex items-center gap-0.5">
               <Loader2 className="w-2.5 h-2.5 animate-spin" /> Processing…
@@ -2485,40 +2488,47 @@ function BinEntry({
             <span className="text-[10px] text-gray-400">{fmtMs(entry.durationMs!)}</span>
           )}
           {isLocked && (
-            <span className="text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-amber-100 text-amber-700 flex items-center gap-0.5">
+            <span className="text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded bg-amber-50 text-amber-600 flex items-center gap-0.5">
               <Lock className="w-2 h-2" /> Locked
             </span>
           )}
         </div>
       </div>
-      {onLockToggle && (
-        <button
-          onClick={() => onLockToggle(entry.id, !isLocked)}
-          title={isLocked ? 'Unlock file (allow deletion)' : 'Lock file (prevent accidental deletion)'}
-          className={`shrink-0 p-1 rounded min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${isLocked ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'}`}
-        >
-          {isLocked ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
-        </button>
-      )}
-      {onDelete && (
-        <button
-          onClick={() => {
-            if (isLocked) { alert('This file is locked. Click the lock icon to unlock it before removing.'); return; }
-            onDelete(entry.id);
-          }}
-          title={isLocked ? 'Unlock first to remove' : 'Remove file (deletes from Cloudflare)'}
-          className={`shrink-0 p-1 rounded min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${isLocked ? 'text-gray-200 cursor-not-allowed' : 'text-red-300 hover:bg-red-50 hover:text-red-500'}`}
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      )}
+
+      {/* Secondary actions: lock + delete
+          Always visible on touch screens (no hover), hover-reveal on desktop */}
+      <div className="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover/entry:opacity-100 transition-opacity duration-150">
+        {onLockToggle && (
+          <button
+            onClick={() => onLockToggle(entry.id, !isLocked)}
+            title={isLocked ? 'Unlock file' : 'Lock file'}
+            className={`shrink-0 p-1 rounded transition-colors ${isLocked ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+          >
+            {isLocked ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
+          </button>
+        )}
+        {onDelete && (
+          <button
+            onClick={() => {
+              if (isLocked) { alert('This file is locked. Unlock it first before removing.'); return; }
+              onDelete(entry.id);
+            }}
+            title={isLocked ? 'Unlock first to remove' : 'Remove file'}
+            className={`shrink-0 p-1 rounded transition-colors ${isLocked ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Add to timeline — always visible, primary action */}
       <button
         onClick={() => onAdd(entry)}
         disabled={isProcessing}
         title={isProcessing ? 'Processing — please wait' : 'Add to timeline'}
-        className="shrink-0 p-1 rounded hover:bg-brand-50 text-brand-600 min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+        className="shrink-0 p-1 rounded-md bg-brand-50 hover:bg-brand-100 text-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
       >
-        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+        {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
       </button>
     </div>
   );
