@@ -3403,6 +3403,15 @@ export default function EditorWorkspacePage() {
                 <Trash2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Delete</span>
               </button>
+              <div className="w-px h-4 bg-white/20 mx-0.5" />
+              <button
+                onClick={() => setSnapEnabled((s) => !s)}
+                className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${snapEnabled ? 'text-brand-400 bg-brand-900/30' : 'text-gray-500 hover:bg-white/10 hover:text-white'}`}
+                title={snapEnabled ? 'Snap on (click to disable)' : 'Snap off (click to enable)'}
+              >
+                <Magnet className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Snap</span>
+              </button>
               <div className="flex-1" />
               <button
                 onClick={() => handleAddTrack('VIDEO')}
@@ -3517,7 +3526,7 @@ export default function EditorWorkspacePage() {
                             durationMs={dur || 60000}
                             pxPerSec={pxPerSec}
                             selectedId={selectedItemId}
-                            snapPoints={snapPoints}
+                            snapPoints={snapEnabled ? allSnapPoints : []}
                             nameMap={assetNameMap}
                             onSelect={(id) => {
                               setSelectedItemId(id || null);
