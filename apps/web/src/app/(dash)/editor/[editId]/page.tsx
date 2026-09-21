@@ -1936,7 +1936,7 @@ function TimelineTrack({
           const x = e.clientX - rect.left;
           onDropFromBin(track.id, x);
         }}
-        onClick={(e) => { if (e.target === e.currentTarget) onSelect(selectedId ?? ''); }}
+        onClick={(e) => { if (e.target === e.currentTarget) onSelect(''); }}
       >
         {(track.items ?? []).map((item) => (
           <TimelineItem
@@ -2577,17 +2577,22 @@ export default function EditorWorkspacePage() {
     }
   };
 
-  const updateTimeline = useCallback((updater: (tl: EditTimeline) => EditTimeline) => {
+  // skipHistory=true during pointer-move (drag/trim) so Ctrl+Z steps through
+  // whole operations, not individual pixel positions.
+  const updateTimeline = useCallback((updater: (tl: EditTimeline) => EditTimeline, skipHistory = false) => {
     setTimeline((prev) => {
       if (!prev) return prev;
       const safe: EditTimeline = { ...prev, tracks: prev.tracks ?? [] };
       const next = updater(safe);
       setDirty(true);
-      const newHist = historyRef.current.slice(0, historyIndexRef.current + 1).concat([next]);
-      historyRef.current = newHist;
-      historyIndexRef.current = newHist.length - 1;
-      setCanUndo(historyIndexRef.current > 0);
-      setCanRedo(false);
+      if (!skipHistory) {
+        const base = historyRef.current.slice(0, historyIndexRef.current + 1);
+        const newHist = [...base, next].slice(-50); // cap at 50 entries
+        historyRef.current = newHist;
+        historyIndexRef.current = newHist.length - 1;
+        setCanUndo(historyIndexRef.current > 0);
+        setCanRedo(false);
+      }
       return next;
     });
   }, []);
@@ -2606,7 +2611,7 @@ export default function EditorWorkspacePage() {
           return { ...it, timelineStartMs: start, timelineEndMs: start + (it.timelineEndMs - it.timelineStartMs) };
         }),
       })),
-    }));
+    }), true); // skipHistory — history captured once on drag start
   }, [updateTimeline]);
 
   const handleTrimItem = useCallback((itemId: string, newStartMs: number, newEndMs: number) => {
@@ -2621,7 +2626,7 @@ export default function EditorWorkspacePage() {
           return { ...it, timelineStartMs: start, timelineEndMs: end };
         }),
       })),
-    }));
+    }), true); // skipHistory — history captured once on drag start
   }, [updateTimeline]);
 
   const handleInspectorChange = useCallback((patch: Partial<EditItem>) => {
@@ -2704,9 +2709,20 @@ export default function EditorWorkspacePage() {
     if (state) { setTimeline(state); setDirty(true); setCanUndo(true); setCanRedo(historyIndexRef.current < historyRef.current.length - 1); }
   }, []);
 
-  // pushUndo: no-op; updateTimeline already records every change in historyRef.
-  // Called by TimelineItem onDragStart to signal intent (history entry captured on first move).
-  const pushUndo = useCallback(() => { /* history captured automatically by updateTimeline */ }, []);
+  // Called by TimelineItem on pointer-down — captures the before-state so the
+  // entire move/trim gesture undoes in a single Ctrl+Z step.
+  const pushUndo = useCallback(() => {
+    setTimeline((curr) => {
+      if (!curr) return curr;
+      const base = historyRef.current.slice(0, historyIndexRef.current + 1);
+      const newHist = [...base, curr].slice(-50);
+      historyRef.current = newHist;
+      historyIndexRef.current = newHist.length - 1;
+      setCanUndo(true);
+      setCanRedo(false);
+      return curr; // no change to timeline, only history
+    });
+  }, []);
 
   const handleAddTrack = useCallback((kind: 'VIDEO' | 'AUDIO') => {
     updateTimeline((tl) => {
