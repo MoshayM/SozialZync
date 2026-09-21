@@ -2886,7 +2886,9 @@ export default function EditorWorkspacePage() {
         if (v.playbackRate !== rate) v.playbackRate = rate;
         const vol = clamp(item.properties?.volume ?? 1, 0, 1);
         v.volume = vol;
-        v.muted = vol === 0;
+        // Mute the video element when the AUDIO track has its own item — the
+        // <audio> element handles audio in that case, preventing double playback.
+        v.muted = vol === 0 || activeAudioItemRef.current !== null;
         const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (t - item.timelineStartMs) * rate) / 1000);
         // Correct drift only when it exceeds 500 ms to avoid interrupting playback.
         if (Math.abs(v.currentTime - sourceSec) > 0.5) v.currentTime = sourceSec;
@@ -2930,15 +2932,22 @@ export default function EditorWorkspacePage() {
     // that fires after the gesture completes. Calling it here unlocks audio.
     const vNow = videoRef.current;
     const itemNow = activeVideoItemRef.current;
-    if (vNow && itemNow) {
-      const vol = clamp(itemNow.properties?.volume ?? 1, 0, 1);
-      vNow.volume = vol;
-      vNow.muted = false;
-      vNow.playbackRate = itemNow.properties?.speed ?? 1;
-      void vNow.play().catch(() => undefined);
-    }
     const aNow = audioRef.current;
     const aItemNow = activeAudioItemRef.current;
+    if (vNow) {
+      if (itemNow) {
+        const vol = clamp(itemNow.properties?.volume ?? 1, 0, 1);
+        vNow.volume = vol;
+        // Mute video element when AUDIO track handles audio (prevents double audio)
+        vNow.muted = vol === 0 || aItemNow !== null;
+        vNow.playbackRate = itemNow.properties?.speed ?? 1;
+      } else {
+        // No active item yet (signed URL still loading) — muted prime to unlock
+        // the audio gesture so audio works once the src loads via useEffect.
+        vNow.muted = true;
+      }
+      void vNow.play().catch(() => undefined);
+    }
     if (aNow && aItemNow && audioSrcRef.current) {
       aNow.volume = 1;
       aNow.muted = false;
@@ -3057,6 +3066,29 @@ export default function EditorWorkspacePage() {
     const sourceSec = Math.max(0, ((activeAudioItem.sourceInMs ?? 0) + (currentTimeMs - activeAudioItem.timelineStartMs)) / 1000);
     if (Math.abs(a.currentTime - sourceSec) > 0.05) a.currentTime = sourceSec;
   }, [playing, currentTimeMs, activeAudioItem, audioSrc]);
+
+  // Re-unlock audio when the signed URL loads after the user has already clicked Play.
+  // The play() inside startPlay() fires in the gesture context but videoRef may have had
+  // no src yet (URL was still fetching). Once videoSrc arrives, resume here — Chrome
+  // allows this within ~1 s of the originating gesture.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !playing || !videoSrc) return;
+    const item = activeVideoItemRef.current;
+    if (!item) return;
+    const vol = clamp(item.properties?.volume ?? 1, 0, 1);
+    v.volume = vol;
+    v.muted = vol === 0 || activeAudioItemRef.current !== null;
+    void v.play().catch(() => undefined);
+  }, [videoSrc, playing]);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a || !playing || !audioSrc) return;
+    a.volume = 1;
+    a.muted = false;
+    void a.play().catch(() => undefined);
+  }, [audioSrc, playing]);
 
   // Selected item
   const selectedItem = selectedItemId
@@ -3359,22 +3391,26 @@ export default function EditorWorkspacePage() {
                   </span>
                 ))}
               </>
-            ) : videoSrc ? (
+            ) : (
               <>
-                {/* The rAF loop is the master clock — the element never drives
-                    currentTimeMs (two competing clocks made the playhead jump). */}
+                {/* Always render the video element so videoRef is set when Play is
+                    clicked — even if the signed URL hasn't arrived yet. Without this,
+                    videoRef.current is null at click time, v.play() inside the
+                    user-gesture context is skipped, and the browser blocks audio on
+                    every subsequent rAF-triggered play() call. Hidden via CSS when
+                    no src so it doesn't affect layout. */}
                 <video
                   ref={videoRef}
-                  src={videoSrc}
+                  src={videoSrc ?? undefined}
                   className="max-w-full max-h-full object-contain"
-                  style={{ opacity: clamp(activeVideoItem?.properties?.opacity ?? 1, 0, 1) }}
+                  style={{ opacity: clamp(activeVideoItem?.properties?.opacity ?? 1, 0, 1), display: videoSrc ? undefined : 'none' }}
                   onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
                   playsInline
                 >
                   {/* Source clips carry no sidecar caption file; empty track satisfies a11y. */}
                   <track kind="captions" />
                 </video>
-                {activeTextItems.map((it) => (
+                {videoSrc && activeTextItems.map((it) => (
                   <span
                     key={it.id}
                     className="absolute left-1/2 -translate-x-1/2 pointer-events-none font-semibold text-center px-2 max-w-[90%] truncate"
@@ -3389,19 +3425,21 @@ export default function EditorWorkspacePage() {
                     {it.properties?.text ?? ''}
                   </span>
                 ))}
+                {!videoSrc && activeAudioItem && (
+                  <div className="text-gray-400 text-sm text-center space-y-2 p-4">
+                    <Volume2 className="w-10 h-10 mx-auto opacity-50" />
+                    <p className="opacity-70 font-medium">Audio track</p>
+                    <p className="text-xs opacity-40">{activeAudioEntry?.label ?? 'Playing audio…'}</p>
+                  </div>
+                )}
+                {!videoSrc && !activeAudioItem && !activeTimelineItem && (
+                  <div className="text-gray-600 text-sm text-center space-y-1 p-4">
+                    <Film className="w-8 h-8 mx-auto opacity-40" />
+                    <p className="opacity-60">Approximate preview</p>
+                    <p className="text-xs opacity-40">Add media to the timeline to preview it here</p>
+                  </div>
+                )}
               </>
-            ) : activeAudioItem ? (
-              <div className="text-gray-400 text-sm text-center space-y-2 p-4">
-                <Volume2 className="w-10 h-10 mx-auto opacity-50" />
-                <p className="opacity-70 font-medium">Audio track</p>
-                <p className="text-xs opacity-40">{activeAudioEntry?.label ?? 'Playing audio…'}</p>
-              </div>
-            ) : (
-              <div className="text-gray-600 text-sm text-center space-y-1 p-4">
-                <Film className="w-8 h-8 mx-auto opacity-40" />
-                <p className="opacity-60">Approximate preview</p>
-                <p className="text-xs opacity-40">Add media to the timeline to preview it here</p>
-              </div>
             )}
           </div>
 
