@@ -2136,7 +2136,7 @@ function TimelineItem({
           title={muted ? 'Unmute clip' : 'Mute clip'}
           aria-label={muted ? 'Unmute clip' : 'Mute clip'}
         >
-          {muted ? <Volume2 className="w-2.5 h-2.5" /> : <VolumeX className="w-2.5 h-2.5" />}
+          {muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
         </button>
       )}
       {/* Right trim handle */}
@@ -2782,7 +2782,6 @@ export default function EditorWorkspacePage() {
       const endMs = startMs + Math.max(1, Math.round(entry.durationMs || 5000));
       const ts = Date.now();
       const videoId = `item-${ts}-v`;
-      const audioId = `item-${ts}-a`;
 
       // Primary clip (VIDEO or standalone AUDIO/IMAGE)
       const primaryItem: EditItem = {
@@ -2791,8 +2790,6 @@ export default function EditorWorkspacePage() {
         kind: itemKind,
         timelineStartMs: startMs,
         timelineEndMs: endMs,
-        // Link to companion audio clip for VIDEO assets
-        linkedItemId: itemKind === 'VIDEO' ? audioId : undefined,
       };
 
       let newTracks = [...tl.tracks];
@@ -2802,25 +2799,6 @@ export default function EditorWorkspacePage() {
         newTracks = newTracks.map((t) => t.id === primaryTrack.id ? { ...t, items: [...(t.items ?? []), primaryItem] } : t);
       } else {
         newTracks = [...newTracks, { id: `track-${ts}`, kind, label: kind === 'VIDEO' ? 'Video' : 'Audio', items: [primaryItem] }];
-      }
-
-      // Auto-create linked audio clip when a VIDEO is added — the <audio> element
-      // plays the video file's audio track; the <video> element is muted when this exists.
-      if (itemKind === 'VIDEO') {
-        const audioItem: EditItem = {
-          id: audioId,
-          sourceAssetId: entry.id,
-          kind: 'AUDIO',
-          timelineStartMs: startMs,
-          timelineEndMs: endMs,
-          linkedItemId: videoId,
-        };
-        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
-        if (audioTrack) {
-          newTracks = newTracks.map((t) => t.kind === 'AUDIO' ? { ...t, items: [...(t.items ?? []), audioItem] } : t);
-        } else {
-          newTracks = [...newTracks, { id: `track-audio-${ts}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
-        }
       }
 
       return { ...tl, durationMs: endMs, tracks: newTracks };
@@ -3053,12 +3031,7 @@ export default function EditorWorkspacePage() {
         if (v.playbackRate !== rate) v.playbackRate = rate;
         const vol = clamp(item.properties?.volume ?? 1, 0, 1);
         v.volume = vol;
-        // Audio routing: the <video> element carries the audio for its own linked
-        // audio clip. Only mute it when there is a truly standalone (unlinked) AUDIO
-        // clip at this position — in that case <audio> handles audio, preventing
-        // double playback. Also respect per-clip mute on the linked AUDIO track item.
-        const linkedAudioMuted = activeLinkedAudioItemRef.current?.properties?.muted ?? false;
-        v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted || linkedAudioMuted || activeAudioItemRef.current !== null;
+        v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
         const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (t - item.timelineStartMs) * rate) / 1000);
         // Correct drift only when it exceeds 500 ms to avoid interrupting playback.
         if (Math.abs(v.currentTime - sourceSec) > 0.5) v.currentTime = sourceSec;
@@ -3118,10 +3091,7 @@ export default function EditorWorkspacePage() {
       if (itemNow) {
         const vol = clamp(itemNow.properties?.volume ?? 1, 0, 1);
         vNow.volume = vol;
-        // Mute video only when a standalone audio clip is playing (it handles audio)
-        // or when the linked audio clip's own mute flag is set.
-        const linkedMuted = activeLinkedAudioItemRef.current?.properties?.muted ?? false;
-        vNow.muted = globalMutedRef.current || vol === 0 || !!itemNow.properties?.muted || linkedMuted || aItemNow !== null;
+        vNow.muted = globalMutedRef.current || vol === 0 || !!itemNow.properties?.muted;
         vNow.playbackRate = itemNow.properties?.speed ?? 1;
       } else {
         // No active item yet (signed URL still loading) — muted prime to unlock
@@ -3275,8 +3245,7 @@ export default function EditorWorkspacePage() {
     if (!item) return;
     const vol = clamp(item.properties?.volume ?? 1, 0, 1);
     v.volume = vol;
-    const linkedMuted = activeLinkedAudioItemRef.current?.properties?.muted ?? false;
-    v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted || linkedMuted || activeAudioItemRef.current !== null;
+    v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
     void v.play().catch(() => undefined);
   }, [videoSrc, playing]);
 
@@ -3304,38 +3273,18 @@ export default function EditorWorkspacePage() {
       const endMs = dropMs + Math.max(1, Math.round(entry.durationMs || 5000));
       const ts = Date.now();
       const videoId = `item-${ts}-v`;
-      const audioId = `item-${ts}-a`;
       const newItem: EditItem = {
         id: videoId,
         sourceAssetId: entry.id,
         kind: itemKind,
         timelineStartMs: dropMs,
         timelineEndMs: endMs,
-        linkedItemId: itemKind === 'VIDEO' ? audioId : undefined,
       };
       const newDuration = Math.max(tl.durationMs, endMs);
       const dropTrack = tl.tracks.find((t) => t.id === trackId);
       if (!dropTrack) return tl;
 
       let newTracks = tl.tracks.map((t) => t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t);
-
-      // Auto-link audio when dropping a VIDEO asset
-      if (itemKind === 'VIDEO') {
-        const audioItem: EditItem = {
-          id: audioId,
-          sourceAssetId: entry.id,
-          kind: 'AUDIO',
-          timelineStartMs: dropMs,
-          timelineEndMs: endMs,
-          linkedItemId: videoId,
-        };
-        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
-        if (audioTrack) {
-          newTracks = newTracks.map((t) => t.kind === 'AUDIO' ? { ...t, items: [...(t.items ?? []), audioItem] } : t);
-        } else {
-          newTracks = [...newTracks, { id: `track-audio-${ts}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
-        }
-      }
 
       return { ...tl, durationMs: newDuration, tracks: newTracks };
     });
