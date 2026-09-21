@@ -817,93 +817,162 @@ export class EditorService {
 
   // ── AI Copilot: editor-aware timeline editing ────────────────────────────────
 
-  async editorCopilot(id: string, userId: string, message: string): Promise<{
-    reply: string;
-    timeline: EditTimeline | null;
-  }> {
+  async editorCopilot(
+    id: string,
+    userId: string,
+    message: string,
+    opts?: {
+      mediaBin?: unknown[];
+      clientTimeline?: unknown;
+      history?: { role: 'user' | 'assistant'; content: string }[];
+    },
+  ): Promise<{ reply: string; timeline: EditTimeline | null }> {
     const ep = await this.assertEditProjectOwnership(id, userId);
 
-    const timelineParse = EditTimelineSchema.safeParse(ep.timeline);
-    if (!timelineParse.success || timelineParse.data.tracks.length === 0) {
-      return { reply: 'Add some clips to the timeline first, then I can help edit it.', timeline: null };
-    }
-    const timeline = timelineParse.data;
+    // Prefer the client's current (possibly unsaved) timeline; fall back to DB.
+    const rawTimeline = opts?.clientTimeline ?? ep.timeline;
+    const timelineParse = EditTimelineSchema.safeParse(rawTimeline);
+    const timeline = timelineParse.success ? timelineParse.data : null;
 
-    // Compact representation: omit internal asset paths from AI context
-    const compact = {
-      width: timeline.width,
-      height: timeline.height,
-      fps: timeline.fps,
-      durationMs: timeline.durationMs,
-      tracks: timeline.tracks.map((t) => ({
-        id: t.id,
-        kind: t.kind,
-        label: t.label,
-        items: t.items.map((item) => ({
-          id: item.id,
-          kind: item.kind,
-          timelineStartMs: item.timelineStartMs,
-          timelineEndMs: item.timelineEndMs,
-          ...(item.sourceInMs != null ? { sourceInMs: item.sourceInMs } : {}),
-          ...(item.sourceOutMs != null ? { sourceOutMs: item.sourceOutMs } : {}),
-          ...(item.sourceAssetId ? { sourceAssetId: item.sourceAssetId } : {}),
-          ...(item.properties ? { properties: item.properties } : {}),
-        })),
-      })),
-    };
+    // Compact timeline for AI context (omit internal storage paths).
+    const compactTimeline = timeline
+      ? {
+          width: timeline.width,
+          height: timeline.height,
+          fps: timeline.fps,
+          durationMs: timeline.durationMs,
+          tracks: timeline.tracks.map((t) => ({
+            id: t.id,
+            kind: t.kind,
+            label: t.label,
+            items: (t.items ?? []).map((item) => ({
+              id: item.id,
+              kind: item.kind,
+              timelineStartMs: item.timelineStartMs,
+              timelineEndMs: item.timelineEndMs,
+              ...(item.sourceAssetId ? { sourceAssetId: item.sourceAssetId } : {}),
+              ...(item.linkedItemId ? { linkedItemId: item.linkedItemId } : {}),
+              ...(item.sourceInMs != null ? { sourceInMs: item.sourceInMs } : {}),
+              ...(item.sourceOutMs != null ? { sourceOutMs: item.sourceOutMs } : {}),
+              ...(item.properties ? { properties: item.properties } : {}),
+            })),
+          })),
+        }
+      : { width: 1920, height: 1080, fps: 30, durationMs: 0, tracks: [] };
+
+    // Compact media bin for AI context.
+    type BinItem = { id: string; kind: string; label: string; durationMs: number | null };
+    const binItems: BinItem[] = [];
+    if (Array.isArray(opts?.mediaBin)) {
+      for (const raw of opts!.mediaBin) {
+        const item = raw as Record<string, unknown>;
+        if (typeof item['id'] === 'string' && typeof item['kind'] === 'string') {
+          binItems.push({
+            id: item['id'],
+            kind: item['kind'],
+            label: typeof item['label'] === 'string' ? item['label'] : String(item['kind']),
+            durationMs: typeof item['durationMs'] === 'number' ? item['durationMs'] : null,
+          });
+        }
+      }
+    }
+
+    // If the project has no files at all, nudge the user to upload first.
+    if (compactTimeline.tracks.length === 0 && binItems.length === 0) {
+      return {
+        reply:
+          'Your project has no files yet. Upload a video, image, or audio file to the Working Files panel first, then I can help you build the edit.',
+        timeline: null,
+      };
+    }
+
+    const binSection =
+      binItems.length > 0
+        ? `### Media Bin — Files You Can Add to the Timeline
+Use these exact sourceAssetId values to place clips:
+${binItems
+  .map(
+    (a) =>
+      `  - id: "${a.id}" | kind: ${a.kind} | label: "${a.label}" | duration: ${
+        a.durationMs != null ? (a.durationMs / 1000).toFixed(2) + 's' : 'unknown'
+      }`,
+  )
+  .join('\n')}`
+        : '### Media Bin\n(empty — no files uploaded yet)';
+
+    const timelineSection =
+      compactTimeline.tracks.length === 0
+        ? '### Current Timeline\n(empty — no clips placed yet)'
+        : `### Current Timeline (${(compactTimeline.durationMs / 1000).toFixed(2)}s total)\n${JSON.stringify(compactTimeline, null, 2)}`;
+
+    const systemPrompt = `You are a professional video timeline editor AI for the Sozialzynk platform.
+Your job is to understand the user's editing intent and produce a correctly modified timeline.
+
+## CURRENT PROJECT STATE
+
+### Canvas
+- Resolution: ${compactTimeline.width}×${compactTimeline.height} at ${compactTimeline.fps} fps
+- Total duration: ${(compactTimeline.durationMs / 1000).toFixed(2)}s
+
+${timelineSection}
+
+${binSection}
+
+## WHAT YOU CAN DO
+
+**1. Modify existing clips** (adjust timing, trim, or apply properties):
+  - Move in time: change timelineStartMs and timelineEndMs (integers, ms)
+  - Trim source: sourceInMs / sourceOutMs
+  - Properties: volume(0-2), speed(0.1-10), opacity(0-1), scale(0.1-3), x/y(pixels)
+  - Filters: { brightness: -1..1, contrast: 0..2, saturation: 0..3, grayscale: bool, blur: 0..20 }
+  - Transition: transitionIn: { type: 'fade'|'dissolve'|'slide', durationMs: integer }
+  - Audio controls: fadeInMs(0-5000), fadeOutMs(0-5000), gainDb(-60..12), duckUnderVoice(bool)
+
+**2. Add new clips from the Media Bin** (use the exact id as sourceAssetId):
+  - VIDEO/IMAGE assets → kind: "VIDEO", add to a VIDEO track
+  - MUSIC/VOICE assets → kind: "AUDIO", add to an AUDIO track
+  - ⚠️ When adding a VIDEO clip you MUST ALSO add a companion AUDIO item at the same
+    timelineStartMs/timelineEndMs. The VIDEO item gets linkedItemId = the AUDIO item's id,
+    and the AUDIO item gets linkedItemId = the VIDEO item's id.
+  - Generate unique item ids like "item-<timestamp>-v" and "item-<timestamp>-a".
+
+**3. Create new tracks** when no suitable track exists:
+  - Give a unique id (e.g. "track-v1", "track-audio-2"), kind ("VIDEO"|"AUDIO"), and label.
+
+**4. Loop / extend background music** to cover the full video duration:
+  - Add multiple instances of the same MUSIC asset back-to-back (each with a unique item id).
+
+## RULES
+1. ONLY use sourceAssetId values listed in the Media Bin section above.
+2. NEVER change the id, kind, or sourceAssetId of EXISTING clips.
+3. Keep all existing clips unless the user explicitly asks to remove them.
+4. timelineEndMs must always be greater than timelineStartMs for every item.
+5. Return the COMPLETE modified timeline including ALL tracks and ALL items.
+6. If the user is only asking a question (not requesting an edit), return timeline as null.
+
+## RESPONSE FORMAT — valid JSON only, no markdown fences
+{ "reply": "1-2 sentence plain-English description of the changes", "timeline": <complete timeline JSON> | null }`;
 
     const EditorResponseSchema = z.object({
       reply: z.string(),
       timeline: z.unknown().nullable().optional(),
     });
 
-    const systemPrompt = `You are a video timeline editor AI for the Sozialzynk platform.
+    // Build message list including conversation history for multi-turn context.
+    const messages: { role: 'user' | 'assistant'; content: string }[] = [];
+    if (opts?.history && opts.history.length > 0) {
+      for (const h of opts.history) {
+        if ((h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string') {
+          messages.push({ role: h.role, content: h.content });
+        }
+      }
+    }
+    messages.push({ role: 'user', content: message });
 
-Current timeline (JSON):
-${JSON.stringify(compact, null, 2)}
-
-You can modify these per-item properties (EditItemProperties):
-
-VIDEO / IMAGE items:
-  volume: 0–2 (default 1.0)         — audio volume multiplier
-  speed: 0.1–10 (default 1.0)       — playback speed (2 = 2× faster, 0.5 = slow motion)
-  opacity: 0–1 (default 1.0)
-  scale: 0.1–3 (default 1.0)
-  x, y: position offset in pixels (default 0)
-  filters: { brightness?: -1..1, contrast?: 0..2, saturation?: 0..3, grayscale?: boolean, blur?: 0..20 }
-  transitionIn: { type: 'fade'|'dissolve'|'slide', durationMs: integer }
-
-TEXT items (kind: TEXT):
-  text: string
-  fontSize: 8–200
-  color: hex string e.g. "#ffffff"
-  textAnim: 'none'|'fade-in'|'slide-up'
-  x, y: position (0 = centered in frame)
-
-AUDIO items (kind: AUDIO):
-  volume: 0–2
-  fadeInMs / fadeOutMs: 0–5000 ms
-  gainDb: -60..12 (dB)
-  duckUnderVoice: boolean
-
-You can also shift a clip in time by changing timelineStartMs / timelineEndMs (integers, ms).
-You can trim source footage by changing sourceInMs / sourceOutMs.
-
-RULES:
-1. Only change exactly what the user asked for. Leave everything else untouched.
-2. NEVER change id, kind, or sourceAssetId on any item.
-3. NEVER add or remove tracks. NEVER change track id, kind, or label.
-4. Return the COMPLETE modified timeline including ALL tracks and ALL items.
-5. If the user is asking a question rather than requesting a change, set "timeline" to null.
-
-Respond with JSON only:
-{ "reply": "1–2 sentence plain English summary of what you changed", "timeline": <complete modified timeline JSON> | null }`;
-
-    const res = await callAIStructured(
-      [{ role: 'user', content: message }],
-      EditorResponseSchema,
-      { systemPrompt, bypassCache: true },
-    );
+    const res = await callAIStructured(messages, EditorResponseSchema, {
+      systemPrompt,
+      bypassCache: true,
+    });
 
     if (!res.timeline) {
       return { reply: res.reply, timeline: null };
@@ -911,9 +980,11 @@ Respond with JSON only:
 
     const validated = EditTimelineSchema.safeParse(res.timeline);
     if (!validated.success) {
-      this.logger.warn(`[EditorCopilot] AI returned invalid timeline: ${validated.error.issues[0]?.message}`);
+      this.logger.warn(
+        `[EditorCopilot] AI returned invalid timeline: ${validated.error.issues[0]?.message}`,
+      );
       return {
-        reply: `${res.reply}\n\n(Some proposed changes could not be validated and were discarded.)`,
+        reply: `${res.reply}\n\n(Some proposed changes could not be validated — please try again or rephrase your request.)`,
         timeline: null,
       };
     }

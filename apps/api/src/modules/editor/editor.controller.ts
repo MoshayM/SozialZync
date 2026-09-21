@@ -189,18 +189,27 @@ export class EditorController {
     return this.editor.renderStatus(id, user.sub);
   }
 
-  /** AI Copilot: receive a free-text instruction, return a modified timeline */
+  /** AI Copilot: receive a free-text instruction + context, return a modified timeline */
   @Post(':id/copilot')
   @TierRateLimit({ bucket: 'copilot-chat', windowSecs: 3600, limits: { FREE: 10, STARTER: 40, PRO: 150, AGENCY: 400, default: 10 } })
   editorCopilot(
     @Param('id') id: string,
-    @Body() body: { message?: string },
+    @Body() body: {
+      message?: string;
+      mediaBin?: unknown[];
+      clientTimeline?: unknown;
+      history?: { role: 'user' | 'assistant'; content: string }[];
+    },
     @CurrentUser() user: JwtPayload,
   ) {
     if (!body?.message || typeof body.message !== 'string' || !body.message.trim()) {
       throw new BadRequestException('message is required');
     }
-    return this.editor.editorCopilot(id, user.sub, body.message.trim());
+    return this.editor.editorCopilot(id, user.sub, body.message.trim(), {
+      mediaBin: body.mediaBin,
+      clientTimeline: body.clientTimeline,
+      history: body.history,
+    });
   }
 
   /** POST /editor/audio/normalize — normalize loudness to -14 LUFS */

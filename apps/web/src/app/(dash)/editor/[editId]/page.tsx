@@ -867,19 +867,36 @@ function StatusTray({
 
 // ── AI Edit Dialog ────────────────────────────────────────────────────────────
 
-/** Canned instruction used when the dialog opens in auto-suggest mode. */
 const AUTO_EDIT_INSTRUCTION =
   'Analyze this video edit and suggest an automatic edit plan: silent sections to trim, ' +
   'filler words to cut, pacing improvements, and any title/text overlays or transitions ' +
   'that would improve it. List each suggested edit with timestamps so I can apply them.';
 
-function AiEditDialog({ editId, timeline, autoSuggest = false, onClose, onApplyTimeline }: { editId: string; timeline: EditTimeline | null; autoSuggest?: boolean; onClose: () => void; onApplyTimeline: (t: unknown) => void }) {
-  const [instruction, setInstruction] = useState(autoSuggest ? AUTO_EDIT_INSTRUCTION : '');
+type ChatMsg =
+  | { role: 'user'; text: string }
+  | { role: 'assistant'; text: string; pendingTimeline?: unknown | null };
+
+function AiEditDialog({
+  editId,
+  timeline,
+  mediaBin,
+  autoSuggest = false,
+  onClose,
+  onApplyTimeline,
+}: {
+  editId: string;
+  timeline: EditTimeline | null;
+  mediaBin: MediaBinEntry[];
+  autoSuggest?: boolean;
+  onClose: () => void;
+  onApplyTimeline: (t: unknown) => void;
+}) {
+  const [input, setInput] = useState(autoSuggest ? AUTO_EDIT_INSTRUCTION : '');
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [busy, setBusy] = useState(false);
-  const [reply, setReply] = useState<string | null>(null);
-  const [pendingTimeline, setPendingTimeline] = useState<unknown | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autoRan = useRef(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -887,96 +904,189 @@ function AiEditDialog({ editId, timeline, autoSuggest = false, onClose, onApplyT
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const submit = async (text?: string) => {
-    const prompt = (text ?? instruction).trim();
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, busy]);
+
+  // Build history for the API from current messages array
+  const historyForApi = (msgs: ChatMsg[]) =>
+    msgs.flatMap<{ role: 'user' | 'assistant'; content: string }>((m) =>
+      m.role === 'user'
+        ? [{ role: 'user' as const, content: m.text }]
+        : [{ role: 'assistant' as const, content: m.text }],
+    );
+
+  const submit = async (text?: string, currentMessages?: ChatMsg[]) => {
+    const prompt = (text ?? input).trim();
     if (!prompt || busy) return;
-    setBusy(true);
-    setReply(null);
-    setPendingTimeline(null);
+    setInput('');
     setError(null);
+    const updated: ChatMsg[] = [...(currentMessages ?? messages), { role: 'user', text: prompt }];
+    setMessages(updated);
+    setBusy(true);
     try {
-      const res = await apiClient.post<{ reply: string; timeline: unknown | null }>(`/editor/${editId}/copilot`, { message: prompt });
-      setReply(res.data.reply);
-      if (res.data.timeline) {
-        setPendingTimeline(res.data.timeline);
-      }
+      const res = await api.editor.editorCopilot(editId, prompt, {
+        mediaBin,
+        clientTimeline: timeline,
+        history: historyForApi(updated.slice(0, -1)), // exclude the message we're sending now
+      });
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', text: res.data.reply, pendingTimeline: res.data.timeline ?? null },
+      ]);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      setError(e.response?.data?.message ?? 'Request failed');
+      setError(e.response?.data?.message ?? 'Request failed — please try again.');
+      setMessages((prev) => prev.slice(0, -1)); // remove the optimistic user message on error
     } finally {
       setBusy(false);
     }
   };
 
-  const handleApply = () => {
-    if (pendingTimeline) {
-      onApplyTimeline(pendingTimeline);
-      onClose();
-    }
-  };
-
-  // Auto-suggest: fire the canned request once when opened from "Video Edit"
-  // on an imported video, as soon as the timeline context has loaded.
+  // Auto-suggest: fire once when opened from "Video Edit" on an imported video
   useEffect(() => {
-    if (!autoSuggest || autoRan.current || !timeline) return;
+    if (!autoSuggest || autoRan.current || timeline === undefined) return;
     autoRan.current = true;
-    void submit(AUTO_EDIT_INSTRUCTION);
+    void submit(AUTO_EDIT_INSTRUCTION, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSuggest, timeline]);
+
+  const binSummary =
+    mediaBin.length === 0
+      ? 'No files in Working Files yet'
+      : `${mediaBin.length} file${mediaBin.length === 1 ? '' : 's'} available: ${mediaBin
+          .slice(0, 3)
+          .map((f) => f.label)
+          .join(', ')}${mediaBin.length > 3 ? ` +${mediaBin.length - 3} more` : ''}`;
+
+  const SUGGESTIONS = [
+    'Add all files to the timeline',
+    'Extend background music to cover the full video',
+    'Add fade transition between all clips',
+    'Set music volume to 30%',
+  ];
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="presentation"
     >
-      <div role="dialog" aria-modal="true" aria-label="AI edit assistant" className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
-          <Wand2 className="w-5 h-5 text-brand-600" />
-          <h2 className="text-base font-semibold text-gray-900 flex-1">AI edit</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="AI edit assistant"
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-xl flex flex-col"
+        style={{ maxHeight: '90vh', minHeight: '420px' }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center shrink-0">
+            <Wand2 className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 leading-tight">AI Edit</p>
+            <p className="text-[10px] text-gray-400 truncate">{binSummary}</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-5 space-y-3">
-          <p className="text-xs text-gray-500">
-            Describe what to change — the Copilot will propose timeline edits you can review and apply.
-          </p>
-          <textarea
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            rows={3}
-            placeholder={'Try: "trim the silent intro", "add a title that says Welcome", "speed up the middle section to 2×", "add a fade transition between clips"'}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 resize-none"
-          />
-          {reply && (
-            <div className="rounded-xl bg-brand-50 border border-brand-100 p-4 text-sm text-gray-800 whitespace-pre-wrap">
-              {reply}
+
+        {/* Chat area */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
+          {/* Empty state with quick chips */}
+          {messages.length === 0 && !busy && (
+            <div className="text-center py-6">
+              <div className="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center mx-auto mb-3">
+                <Sparkles className="w-6 h-6 text-brand-500" />
+              </div>
+              <p className="text-sm font-semibold text-gray-800 mb-1">What would you like to edit?</p>
+              <p className="text-xs text-gray-400 max-w-[260px] mx-auto mb-4">
+                I can see your Working Files and current timeline. Ask me to add clips, extend music, trim, apply transitions, and more.
+              </p>
+              <div className="flex flex-wrap gap-1.5 justify-center">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => void submit(s, [])}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-700 hover:bg-brand-50 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-          {pendingTimeline != null && (
-            <div className="rounded-xl bg-green-50 border border-green-200 p-3 flex items-center gap-3">
-              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-              <p className="text-sm text-green-800 flex-1">Changes ready — click Apply to update your timeline.</p>
-              <button
-                onClick={handleApply}
-                className="px-4 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 shrink-0"
-              >
-                Apply
-              </button>
+
+          {/* Message bubbles */}
+          {messages.map((msg, i) => (
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {msg.role === 'user' ? (
+                <div className="max-w-[80%] bg-brand-600 text-white rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-sm">
+                  {msg.text}
+                </div>
+              ) : (
+                <div className="max-w-[88%] space-y-2">
+                  <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                    {msg.text}
+                  </div>
+                  {msg.pendingTimeline != null && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                      <p className="text-xs text-green-800 flex-1">Timeline changes ready</p>
+                      <button
+                        onClick={() => onApplyTimeline(msg.pendingTimeline)}
+                        className="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 shrink-0"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Typing indicator */}
+          {busy && (
+            <div className="flex justify-start">
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-500" />
+                <span className="text-xs text-gray-500">Thinking…</span>
+              </div>
             </div>
           )}
+
           {error && (
-            <p className="text-xs text-red-600">{error}</p>
+            <div className="flex justify-start">
+              <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>
+            </div>
           )}
-          <div className="flex justify-end gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Close</button>
+
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input bar */}
+        <div className="shrink-0 px-4 pb-4 pt-2 border-t border-gray-100">
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); }
+              }}
+              rows={2}
+              placeholder="Add all clips to the timeline, extend music to cover the whole video…  (Enter to send)"
+              className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
+            />
             <button
               onClick={() => void submit()}
-              disabled={!instruction.trim() || busy}
-              className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
+              disabled={!input.trim() || busy}
+              className="flex items-center justify-center w-9 h-9 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-40 shrink-0 mb-0.5"
+              aria-label="Send"
             >
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-              Ask Copilot
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -4435,9 +4545,10 @@ export default function EditorWorkspacePage() {
         <AiEditDialog
           editId={editId}
           timeline={timeline}
+          mediaBin={mediaBin}
           autoSuggest={aiAutoSuggest}
           onClose={() => { setShowAiEdit(false); setAiAutoSuggest(false); }}
-          onApplyTimeline={(t) => { pushUndo(); setTimeline(t as EditTimeline); setDirty(true); setShowAiEdit(false); setAiAutoSuggest(false); }}
+          onApplyTimeline={(t) => { pushUndo(); setTimeline(t as EditTimeline); setDirty(true); }}
         />
       )}
       {showHistory && (

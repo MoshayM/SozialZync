@@ -1462,8 +1462,15 @@ export const api = {
       apiClient.get<EditProject[]>(`/editor/projects/${projectId}`),
     saveTimeline: (editId: string, timeline: EditTimeline) =>
       apiClient.put<EditProject>(`/editor/${editId}/timeline`, timeline),
-    editorCopilot: (editId: string, message: string) =>
-      apiClient.post<{ reply: string; timeline: unknown | null }>(`/editor/${editId}/copilot`, { message }),
+    editorCopilot: (
+      editId: string,
+      message: string,
+      ctx: { mediaBin: MediaBinEntry[]; clientTimeline: unknown | null; history?: { role: 'user' | 'assistant'; content: string }[] },
+    ) =>
+      apiClient.post<{ reply: string; timeline: unknown | null }>(
+        `/editor/${editId}/copilot`,
+        { message, mediaBin: ctx.mediaBin, clientTimeline: ctx.clientTimeline, history: ctx.history },
+      ),
     mediaBin: (editId: string) =>
       apiClient.get<MediaBinEntry[]>(`/editor/${editId}/media-bin`),
     render: (editId: string, options: RenderPreset | EditExportOptions) =>
