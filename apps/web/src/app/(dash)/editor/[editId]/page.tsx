@@ -3620,10 +3620,11 @@ export default function EditorWorkspacePage() {
         </aside>
 
         {/* Mobile bottom sheets — media bin and inspector */}
-        {/* Backdrop */}
+        {/* Backdrop — stops at bottom-14 so tab bar stays visible and clickable */}
         {mobileSheet !== 'none' && (
           <div
-            className="lg:hidden fixed inset-0 z-40 bg-black/40"
+            className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/40"
+            style={{ bottom: 56 }}
             onClick={() => setMobileSheet('none')}
             role="presentation"
           />
@@ -3631,8 +3632,8 @@ export default function EditorWorkspacePage() {
 
         {/* Media bin bottom sheet */}
         <div
-          className={`lg:hidden fixed left-0 right-0 bottom-14 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'media' ? 'translate-y-0' : 'translate-y-full'}`}
-          style={{ maxHeight: '70vh' }}
+          className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'media' ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ maxHeight: '70vh', bottom: 56 }}
           role="dialog"
           aria-modal="true"
           aria-label="Media bin"
@@ -4083,8 +4084,8 @@ export default function EditorWorkspacePage() {
 
         {/* Inspector bottom sheet — only half height so timeline stays usable */}
         <div
-          className={`lg:hidden fixed left-0 right-0 bottom-14 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'inspector' ? 'translate-y-0' : 'translate-y-full'}`}
-          style={{ maxHeight: '55vh' }}
+          className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'inspector' ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ maxHeight: '55vh', bottom: 56 }}
           role="dialog"
           aria-modal="true"
           aria-label="Inspector"
@@ -4108,7 +4109,8 @@ export default function EditorWorkspacePage() {
 
         {/* Tools bottom sheet — undo/redo/split/delete/snap */}
         <div
-          className={`lg:hidden fixed left-0 right-0 bottom-14 z-50 bg-gray-900 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}
+          className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-900 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ bottom: 56 }}
           role="dialog"
           aria-modal="true"
           aria-label="Edit tools"
@@ -4151,7 +4153,7 @@ export default function EditorWorkspacePage() {
       </div>
 
       {/* ── Mobile bottom tab bar ─────────────────────────────────────────── */}
-      <nav className="lg:hidden shrink-0 flex items-stretch bg-gray-950 border-t border-white/10" style={{ height: 56, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <nav className="lg:hidden shrink-0 flex items-stretch bg-gray-950 border-t border-white/10 relative z-[60]" style={{ height: 56, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {[
           {
             id: 'media' as const,
