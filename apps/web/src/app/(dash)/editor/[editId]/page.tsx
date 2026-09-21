@@ -3049,13 +3049,40 @@ export default function EditorWorkspacePage() {
     }));
   }, [selectedItemId, updateTimeline]);
 
-  const handleAddToTimeline = useCallback((entry: MediaBinEntry) => {
+  // Probe real media duration from the browser's native video element when
+  // the server hasn't stored it yet (existing assets uploaded before the fix).
+  const probeMediaDurationMs = useCallback((versionId: string): Promise<number | null> => {
+    return new Promise((resolve) => {
+      const el = document.createElement('video');
+      el.preload = 'metadata';
+      el.src = `/api/proxy/media/versions/${encodeURIComponent(versionId)}/file`;
+      let settled = false;
+      const done = (val: number | null) => {
+        if (settled) return;
+        settled = true;
+        el.src = '';
+        el.load();
+        resolve(val);
+      };
+      el.onloadedmetadata = () => done(isFinite(el.duration) && el.duration > 0 ? Math.round(el.duration * 1000) : null);
+      el.onerror = () => done(null);
+      setTimeout(() => done(null), 15_000);
+    });
+  }, []);
+
+  const handleAddToTimeline = useCallback(async (entry: MediaBinEntry) => {
+    let clipDurationMs = entry.durationMs ?? 0;
+    if (!clipDurationMs && entry.versionId && ['VIDEO', 'SHORTS_SOURCE_VIDEO', 'MUSIC', 'VOICE'].includes(entry.kind)) {
+      clipDurationMs = (await probeMediaDurationMs(entry.versionId)) ?? 5000;
+    }
+    if (!clipDurationMs) clipDurationMs = 5000;
+
     updateTimeline((tl) => {
       const itemKind = binKindToItemKind(entry.kind);
       // VOICE/MUSIC/AUDIO assets go straight to an AUDIO track only
       const kind = itemKind === 'AUDIO' ? 'AUDIO' : 'VIDEO';
       const startMs = Math.max(0, Math.round(tl.durationMs));
-      const endMs = startMs + Math.max(1, Math.round(entry.durationMs || 5000));
+      const endMs = startMs + Math.max(1, Math.round(clipDurationMs));
       const ts = Date.now();
       const videoId = `item-${ts}-v`;
       const audioId = `item-${ts}-a`;
@@ -3099,7 +3126,7 @@ export default function EditorWorkspacePage() {
 
       return { ...tl, durationMs: endMs, tracks: newTracks };
     });
-  }, [updateTimeline]);
+  }, [updateTimeline, probeMediaDurationMs]);
 
   // Remove an item from the timeline (Inspector button or Delete/Backspace).
   // Empty tracks are pruned and the master duration recomputed.
@@ -3614,14 +3641,21 @@ export default function EditorWorkspacePage() {
     : null;
 
   // Drop from bin onto a specific track at a pixel position
-  const handleDropFromBin = useCallback((trackId: string, xInTrack: number) => {
+  const handleDropFromBin = useCallback(async (trackId: string, xInTrack: number) => {
     const entry = draggedBinEntryRef.current;
     if (!entry) return;
     draggedBinEntryRef.current = null;
+
+    let clipDurationMs = entry.durationMs ?? 0;
+    if (!clipDurationMs && entry.versionId && ['VIDEO', 'SHORTS_SOURCE_VIDEO', 'MUSIC', 'VOICE'].includes(entry.kind)) {
+      clipDurationMs = (await probeMediaDurationMs(entry.versionId)) ?? 5000;
+    }
+    if (!clipDurationMs) clipDurationMs = 5000;
+
     const dropMs = Math.max(0, Math.round(xToMs(xInTrack, pxPerSec)));
     updateTimeline((tl) => {
       const itemKind = binKindToItemKind(entry.kind);
-      const endMs = dropMs + Math.max(1, Math.round(entry.durationMs || 5000));
+      const endMs = dropMs + Math.max(1, Math.round(clipDurationMs));
       const ts = Date.now();
       const videoId = `item-${ts}-v`;
       const audioId = `item-${ts}-a`;
@@ -3656,7 +3690,7 @@ export default function EditorWorkspacePage() {
 
       return { ...tl, durationMs: newDuration, tracks: newTracks };
     });
-  }, [pxPerSec, updateTimeline]);
+  }, [pxPerSec, updateTimeline, probeMediaDurationMs]);
 
   // All clip edge points for snapping (unique sorted list) — must be before early returns (Rules of Hooks)
   const allSnapPoints = useMemo(() => {

@@ -6,7 +6,7 @@ import { promises as fsAsync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import axios from 'axios';
-import { runFfmpeg } from './adapters/ffmpeg.util';
+import { runFfmpeg, runFfmpegCapture, parseMediaProbe } from './adapters/ffmpeg.util';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -270,6 +270,16 @@ export class MediaController {
 
   // ── Private helpers ─────────────────────────────────────────────────────────
 
+  /** Probe real duration from a file on disk using ffmpeg. Returns null if ffprobe fails. */
+  private async probeDurationMs(filePath: string): Promise<number | null> {
+    try {
+      const out = await runFfmpegCapture(['-i', filePath, '-f', 'null', '-'], 60_000);
+      return parseMediaProbe(out).durationMs;
+    } catch {
+      return null;
+    }
+  }
+
   private async storeVideoBuffer(
     buf: Buffer,
     safeFilename: string,
@@ -284,6 +294,8 @@ export class MediaController {
     const key = `assets/${projectId}/${asset.id}/v1/media.${ext}`;
     const { sizeBytes } = await this.storage.put(key, buf);
     const contentHash = createHash('sha256').update(buf).digest('hex');
+    const absPath = this.storage.resolve(key);
+    const durationMs = await this.probeDurationMs(absPath);
     const version = await this.prisma.assetVersion.create({
       data: {
         assetId: asset.id,
@@ -302,7 +314,7 @@ export class MediaController {
           notes: provider === 'url-import' ? 'Imported from user-supplied URL' : 'Uploaded by user via browser',
         } as never,
         sizeBytes: BigInt(sizeBytes),
-        durationMs: null,
+        durationMs,
       },
     });
     await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
@@ -324,6 +336,10 @@ export class MediaController {
     const key = `assets/${projectId}/${asset.id}/v1/media.${ext}`;
     const { sizeBytes } = await this.storage.put(key, buf);
     const contentHash = createHash('sha256').update(buf).digest('hex');
+    const absPath = this.storage.resolve(key);
+    const durationMs = (kind === 'VIDEO' || kind === 'MUSIC' || kind === 'VOICE')
+      ? await this.probeDurationMs(absPath)
+      : null;
     const version = await this.prisma.assetVersion.create({
       data: {
         assetId: asset.id,
@@ -342,7 +358,7 @@ export class MediaController {
           notes: 'Uploaded by user via browser',
         } as never,
         sizeBytes: BigInt(sizeBytes),
-        durationMs: null,
+        durationMs,
       },
     });
     await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
