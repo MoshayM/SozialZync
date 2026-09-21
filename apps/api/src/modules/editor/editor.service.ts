@@ -305,6 +305,7 @@ export type MediaBinItem = {
   previewPath: string | null;
   /** Latest asset version — the web preview streams it via /media/versions/:id/file. */
   versionId: string | null;
+  locked: boolean;
 };
 
 @Injectable()
@@ -639,19 +640,40 @@ export class EditorService {
 
   // ── Media bin ────────────────────────────────────────────────────────────────
 
-  /** Soft-delete an asset from the media bin (sets deletedAt). */
+  /** Remove an asset from the media bin: checks lock, then deletes from Cloudflare + DB. */
   async removeFromBin(editId: string, assetId: string, userId: string): Promise<void> {
     const editProj = await this.assertEditProjectOwnership(editId, userId);
     const asset = await this.prisma.asset.findFirst({
       where: { id: assetId, projectId: editProj.projectId },
-      select: { id: true, deletedAt: true },
+      select: { id: true, deletedAt: true, locked: true },
     });
     if (!asset) throw new NotFoundException('Asset not found in this project');
+    if (asset.locked) throw new ForbiddenException('Asset is locked — unlock it first before removing');
     if (asset.deletedAt !== null) return; // idempotent — already removed
+
     await this.prisma.asset.update({
       where: { id: assetId },
       data: { deletedAt: new Date() },
     });
+
+    // Delete the actual files from Cloudflare/local storage (best-effort)
+    const assetPrefix = `assets/${editProj.projectId}/${assetId}`;
+    try {
+      await this.storage.removePrefix(assetPrefix);
+    } catch (e) {
+      this.logger.warn(`removeFromBin: storage cleanup failed for ${assetPrefix}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  /** Toggle the lock flag on an asset in the media bin. */
+  async lockBinEntry(editId: string, assetId: string, userId: string, locked: boolean): Promise<void> {
+    const editProj = await this.assertEditProjectOwnership(editId, userId);
+    const asset = await this.prisma.asset.findFirst({
+      where: { id: assetId, projectId: editProj.projectId },
+      select: { id: true },
+    });
+    if (!asset) throw new NotFoundException('Asset not found in this project');
+    await this.prisma.asset.update({ where: { id: assetId }, data: { locked } });
   }
 
   /**
@@ -686,6 +708,7 @@ export class EditorService {
         durationMs: ver?.durationMs ?? null,
         previewPath,
         versionId: ver?.id ?? null,
+        locked: a.locked,
       };
     });
 
@@ -708,6 +731,7 @@ export class EditorService {
             durationMs: iv.durationMs,
             previewPath,
             versionId: ver?.id ?? null,
+            locked: iv.sourceAsset.locked,
           });
         }
       }

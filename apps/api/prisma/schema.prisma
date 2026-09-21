@@ -537,6 +537,7 @@ model Asset {
   currentVersionId String?
   status           AssetStatus @default(BRIEFED)
   label            String?
+  locked           Boolean     @default(false)
   deletedAt        DateTime?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt

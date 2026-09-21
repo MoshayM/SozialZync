@@ -141,7 +141,7 @@ export class EditorController {
     return this.editor.mediaBin(id, user.sub);
   }
 
-  /** Remove an asset from the media bin (soft-delete). */
+  /** Remove an asset from the media bin — hard-deletes from Cloudflare if not locked. */
   @Delete(':id/media-bin/:assetId')
   @HttpCode(204)
   async removeBinEntry(
@@ -150,6 +150,19 @@ export class EditorController {
     @CurrentUser() user: JwtPayload,
   ) {
     await this.editor.removeFromBin(id, assetId, user.sub);
+  }
+
+  /** Lock or unlock an asset in the media bin. Body: { locked: boolean } */
+  @Patch(':id/media-bin/:assetId/lock')
+  @HttpCode(204)
+  async lockBinEntry(
+    @Param('id') id: string,
+    @Param('assetId') assetId: string,
+    @Body() body: { locked: boolean },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (typeof body.locked !== 'boolean') throw new BadRequestException('locked must be a boolean');
+    await this.editor.lockBinEntry(id, assetId, user.sub, body.locked);
   }
 
   /** Enqueue an EDIT_RENDER job. Body: { preset, format?, quality? } */

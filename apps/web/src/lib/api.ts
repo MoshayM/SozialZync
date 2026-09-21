@@ -1491,6 +1491,8 @@ export const api = {
       apiClient.delete<void>(`/editor/${editId}`),
     removeBinEntry: (editId: string, assetId: string) =>
       apiClient.delete<void>(`/editor/${editId}/media-bin/${encodeURIComponent(assetId)}`),
+    lockBinEntry: (editId: string, assetId: string, locked: boolean) =>
+      apiClient.patch<void>(`/editor/${editId}/media-bin/${encodeURIComponent(assetId)}/lock`, { locked }),
   },
   voice: {
     library: (source?: 'elevenlabs' | 'openai' | 'all') =>
@@ -1748,6 +1750,8 @@ export interface MediaBinEntry {
   /** Server-side storage path — NOT loadable by the browser; use versionId + signed URL instead. */
   previewPath: string | null;
   versionId: string | null;
+  /** When true the file is protected; delete is blocked until the user unlocks it. */
+  locked?: boolean;
 }
 
 export interface VoiceLibraryEntry {

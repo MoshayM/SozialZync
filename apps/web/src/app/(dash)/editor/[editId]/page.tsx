@@ -10,7 +10,7 @@ import {
   SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Sparkles, KeyRound, Link2Off,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
-  Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2,
+  Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
 } from 'lucide-react';
 import {
   api,
@@ -2256,11 +2256,13 @@ function BinEntry({
   entry,
   onAdd,
   onDelete,
+  onLockToggle,
   onDragStart,
 }: {
   entry: MediaBinEntry;
   onAdd: (e: MediaBinEntry) => void;
   onDelete?: (id: string) => void;
+  onLockToggle?: (id: string, locked: boolean) => void;
   onDragStart?: (entry: MediaBinEntry) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -2271,6 +2273,7 @@ function BinEntry({
   function commitEdit() { setEditing(false); }
 
   const isProcessing = !entry.versionId;
+  const isLocked = entry.locked ?? false;
 
   return (
     <div
@@ -2318,13 +2321,30 @@ function BinEntry({
           {(entry.durationMs ?? 0) > 0 && (
             <span className="text-[10px] text-gray-400">{fmtMs(entry.durationMs!)}</span>
           )}
+          {isLocked && (
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded bg-amber-100 text-amber-700 flex items-center gap-0.5">
+              <Lock className="w-2 h-2" /> Locked
+            </span>
+          )}
         </div>
       </div>
+      {onLockToggle && (
+        <button
+          onClick={() => onLockToggle(entry.id, !isLocked)}
+          title={isLocked ? 'Unlock file (allow deletion)' : 'Lock file (prevent accidental deletion)'}
+          className={`shrink-0 p-1 rounded min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${isLocked ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'}`}
+        >
+          {isLocked ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
+        </button>
+      )}
       {onDelete && (
         <button
-          onClick={() => onDelete(entry.id)}
-          title="Remove from bin"
-          className="shrink-0 p-1 rounded hover:bg-red-50 text-red-300 hover:text-red-500 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
+          onClick={() => {
+            if (isLocked) { alert('This file is locked. Click the lock icon to unlock it before removing.'); return; }
+            onDelete(entry.id);
+          }}
+          title={isLocked ? 'Unlock first to remove' : 'Remove file (deletes from Cloudflare)'}
+          className={`shrink-0 p-1 rounded min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${isLocked ? 'text-gray-200 cursor-not-allowed' : 'text-red-300 hover:bg-red-50 hover:text-red-500'}`}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -2350,6 +2370,7 @@ function MediaBin({
   urlImporting,
   onOpenLibrary,
   onDeleteEntry,
+  onLockEntry,
   onEntryDragStart,
 }: {
   entries: MediaBinEntry[];
@@ -2360,6 +2381,7 @@ function MediaBin({
   urlImporting?: boolean;
   onOpenLibrary?: () => void;
   onDeleteEntry?: (id: string) => void;
+  onLockEntry?: (id: string, locked: boolean) => void;
   onEntryDragStart?: (entry: MediaBinEntry) => void;
 }) {
   const [rendersOpen, setRendersOpen] = useState(false);
@@ -2482,7 +2504,7 @@ function MediaBin({
         {sources.length > 0 && (
           <>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-2 pb-1">Working Files</p>
-            {sources.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onDragStart={onEntryDragStart} />)}
+            {sources.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onLockToggle={onLockEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
 
@@ -2506,7 +2528,7 @@ function MediaBin({
         {audios.length > 0 && (
           <>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Audio</p>
-            {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onDragStart={onEntryDragStart} />)}
+            {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onLockToggle={onLockEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
 
@@ -2514,7 +2536,7 @@ function MediaBin({
         {images.length > 0 && (
           <>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Images</p>
-            {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onDragStart={onEntryDragStart} />)}
+            {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onLockToggle={onLockEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
       </div>
@@ -2670,6 +2692,7 @@ export default function EditorWorkspacePage() {
 
   const handleBinDeleteEntry = useCallback(async (assetId: string) => {
     setBinUploadError(null);
+    if (!window.confirm('Remove this file? It will be permanently deleted from Cloudflare storage.')) return;
     // Optimistic removal — item disappears immediately without waiting for Railway
     const previous = qc.getQueryData<MediaBinEntry[]>(['editor-media-bin', editId]);
     qc.setQueryData<MediaBinEntry[]>(
@@ -2684,6 +2707,24 @@ export default function EditorWorkspacePage() {
       setBinUploadError('Could not remove file — please try again');
     }
     void qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
+  }, [editId, qc]);
+
+  const handleBinLockEntry = useCallback(async (assetId: string, locked: boolean) => {
+    // Optimistic update
+    qc.setQueryData<MediaBinEntry[]>(
+      ['editor-media-bin', editId],
+      (old) => old?.map((e) => e.id === assetId ? { ...e, locked } : e) ?? [],
+    );
+    try {
+      await api.editor.lockBinEntry(editId, assetId, locked);
+    } catch {
+      // Revert on failure
+      qc.setQueryData<MediaBinEntry[]>(
+        ['editor-media-bin', editId],
+        (old) => old?.map((e) => e.id === assetId ? { ...e, locked: !locked } : e) ?? [],
+      );
+      setBinUploadError(locked ? 'Could not lock file — please try again' : 'Could not unlock file — please try again');
+    }
   }, [editId, qc]);
 
   const handleNewEdit = useCallback(async () => {
@@ -3645,6 +3686,7 @@ export default function EditorWorkspacePage() {
                 urlImporting={binUrlImporting}
                 onOpenLibrary={() => setShowLibrary(true)}
                 onDeleteEntry={handleBinDeleteEntry}
+                onLockEntry={handleBinLockEntry}
                 onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
               />
               {binUploadError && (
@@ -3694,6 +3736,7 @@ export default function EditorWorkspacePage() {
               urlImporting={binUrlImporting}
               onOpenLibrary={() => { setShowLibrary(true); setMobileSheet('none'); }}
               onDeleteEntry={handleBinDeleteEntry}
+              onLockEntry={handleBinLockEntry}
               onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
             />
           </div>
