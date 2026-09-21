@@ -1152,6 +1152,10 @@ export const api = {
         '/media/video/import-from-url',
         { url, ...opts },
       ),
+    extractAudio: (versionId: string) =>
+      apiClient.post<{ assetId: string; versionId: string; filename: string; durationMs: number | null }>(
+        `/media/versions/${versionId}/extract-audio`,
+      ),
   },
   settings: {
     getApiKeys: () =>

@@ -2,7 +2,11 @@ import { Controller, Get, Param, Post, Body, Query, Req, Res, UseGuards, Streama
 import type { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createHash } from 'crypto';
+import { promises as fsAsync } from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import axios from 'axios';
+import { runFfmpeg } from './adapters/ffmpeg.util';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -407,6 +411,51 @@ export class MediaController {
       select: { id: true },
     });
     return created.id;
+  }
+
+  /**
+   * Extract the audio track from a video asset version and store it as a new
+   * MUSIC asset (MP3). Returns the new assetId + versionId so the editor can
+   * create an AUDIO timeline clip pointing to the extracted MP3.
+   */
+  @Post('versions/:versionId/extract-audio')
+  async extractAudioFromVideo(
+    @Param('versionId') versionId: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<{ assetId: string; versionId: string; filename: string; durationMs: number | null }> {
+    const version = await this.prisma.assetVersion.findUnique({
+      where: { id: versionId },
+      select: { r2Key: true, asset: { select: { projectId: true, project: { select: { userId: true } } } } },
+    });
+    if (!version?.r2Key || version.asset.project.userId !== user.sub) {
+      throw new NotFoundException('Asset version not found');
+    }
+
+    const available = await this.storage.ensure(version.r2Key);
+    if (!available) throw new NotFoundException('Asset file not found in storage');
+
+    const tmpDir = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'cf-audio-'));
+    const inputPath = this.storage.resolve(version.r2Key);
+    const outputPath = path.join(tmpDir, 'audio.mp3');
+
+    try {
+      await runFfmpeg([
+        '-i', inputPath,
+        '-vn',                   // drop video stream
+        '-acodec', 'libmp3lame', // MP3 codec
+        '-q:a', '2',             // ~190 kbps VBR
+        outputPath,
+      ]);
+
+      const mp3Buffer = await fsAsync.readFile(outputPath);
+      const baseName = path.basename(version.r2Key, path.extname(version.r2Key));
+      const filename = `${baseName}-audio.mp3`;
+
+      const result = await this.storeMediaBuffer(mp3Buffer, filename, 'audio/mpeg', version.asset.projectId, 'MUSIC', 'audio-extract');
+      return { assetId: result.assetId, versionId: result.versionId, filename, durationMs: null };
+    } finally {
+      await fsAsync.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+    }
   }
 
   // Signed access (docs4/09): file routes accept `?exp=&sig=` OR a JWT.

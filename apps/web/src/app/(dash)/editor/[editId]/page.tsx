@@ -1174,6 +1174,7 @@ function Inspector({
   item,
   onChange,
   onDelete,
+  onDetachAudio,
   currentTimeMs,
   editId,
   onAddToTimeline,
@@ -1181,6 +1182,7 @@ function Inspector({
   item: EditItem | null;
   onChange: (patch: Partial<EditItem>) => void;
   onDelete?: () => void;
+  onDetachAudio?: () => void;
   currentTimeMs: number;
   editId: string;
   onAddToTimeline: (entry: MediaBinEntry) => void;
@@ -1278,6 +1280,19 @@ function Inspector({
             className="w-full accent-brand-600"
           />
           <p className="text-[11px] text-gray-500 text-right">{(props.speed ?? 1).toFixed(2)}×</p>
+        </div>
+      )}
+
+      {/* ── Detach Audio (VIDEO) ── */}
+      {item.kind === 'VIDEO' && onDetachAudio && (
+        <div>
+          <button
+            onClick={onDetachAudio}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-50 active:bg-gray-100"
+          >
+            <Link2Off className="w-3.5 h-3.5" /> Detach Audio
+          </button>
+          <p className="text-[10px] text-gray-400 mt-1 text-center">Extracts audio as MP3 onto the Audio track</p>
         </div>
       )}
 
@@ -2710,32 +2725,43 @@ export default function EditorWorkspacePage() {
         newTracks = [...newTracks, { id: `track-${Date.now()}`, kind, label: kind === 'VIDEO' ? 'Video' : 'Audio', items: [videoItem] }];
       }
 
-      // ── Linked audio extraction (VIDEO clips only) ────────────────────
-      // When a video is added, auto-create a linked AUDIO clip on the audio
-      // track directly below — mirrors Premiere Pro / DaVinci Resolve behaviour.
-      if (kind === 'VIDEO') {
-        const linkedAudioItem: EditItem = {
-          id: `item-${Date.now()}-audio`,
-          sourceAssetId: entry.id, // same asset → browser extracts audio track
-          kind: 'AUDIO',
-          timelineStartMs: startMs,
-          timelineEndMs: endMs,
-          properties: { volume: 1 },
-        };
-        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
-        if (audioTrack) {
-          newTracks = newTracks.map((t) => t.id === audioTrack.id ? { ...t, items: [...(t.items ?? []), linkedAudioItem] } : t);
-        } else {
-          newTracks = [...newTracks, { id: `track-audio-${Date.now()}`, kind: 'AUDIO', label: 'Audio', items: [linkedAudioItem] }];
-        }
-      }
-
       return { ...tl, durationMs: endMs, tracks: newTracks };
     });
   }, [updateTimeline]);
 
   // Remove an item from the timeline (Inspector button or Delete/Backspace).
   // Empty tracks are pruned and the master duration recomputed.
+  // Detach audio from a VIDEO clip: call the backend to extract the audio as
+  // an MP3, then add an AUDIO track item covering the same time range.
+  const handleDetachAudio = useCallback(async (item: EditItem) => {
+    const entry = item.sourceAssetId ? mediaBin.find((e) => e.id === item.sourceAssetId) : null;
+    if (!entry?.versionId) return;
+    try {
+      const { data } = await api.media.extractAudio(entry.versionId);
+      // Refresh the bin so the new MP3 asset appears
+      await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
+      // Add an AUDIO track item at the same time range pointing to the new MP3
+      updateTimeline((tl) => {
+        const audioItem: EditItem = {
+          id: `item-${Date.now()}-detached-audio`,
+          sourceAssetId: data.assetId,
+          kind: 'AUDIO',
+          timelineStartMs: item.timelineStartMs,
+          timelineEndMs: item.timelineEndMs,
+          properties: { volume: 1 },
+        };
+        const audioTrack = tl.tracks.find((t) => t.kind === 'AUDIO');
+        const newTracks = audioTrack
+          ? tl.tracks.map((t) => t.id === audioTrack.id ? { ...t, items: [...(t.items ?? []), audioItem] } : t)
+          : [...tl.tracks, { id: `track-audio-${Date.now()}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
+        return { ...tl, tracks: newTracks };
+      });
+    } catch {
+      // Surface error to the user via a toast if one is wired up, otherwise silently fail
+      console.error('Audio extraction failed');
+    }
+  }, [mediaBin, editId, qc, updateTimeline]);
+
   const handleDeleteItem = useCallback((itemId: string) => {
     setSelectedItemId((sel) => (sel === itemId ? null : sel));
     updateTimeline((tl) => {
@@ -3116,24 +3142,6 @@ export default function EditorWorkspacePage() {
       if (!dropTrack) return tl;
 
       let newTracks = tl.tracks.map((t) => t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t);
-
-      // Auto-add linked audio when dropping a video onto a VIDEO track
-      if (dropTrack.kind === 'VIDEO' && itemKind === 'VIDEO') {
-        const linkedAudio: EditItem = {
-          id: `item-${Date.now()}-audio`,
-          sourceAssetId: entry.id,
-          kind: 'AUDIO',
-          timelineStartMs: dropMs,
-          timelineEndMs: endMs,
-          properties: { volume: 1 },
-        };
-        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
-        if (audioTrack) {
-          newTracks = newTracks.map((t) => t.id === audioTrack.id ? { ...t, items: [...(t.items ?? []), linkedAudio] } : t);
-        } else {
-          newTracks = [...newTracks, { id: `track-audio-${Date.now()}`, kind: 'AUDIO', label: 'Audio', items: [linkedAudio] }];
-        }
-      }
 
       return { ...tl, durationMs: newDuration, tracks: newTracks };
     });
@@ -3750,7 +3758,7 @@ export default function EditorWorkspacePage() {
             {inspectorPanelOpen && <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Inspector</p>}
           </div>
           {inspectorPanelOpen && (
-            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
           )}
         </aside>
 
@@ -3765,7 +3773,7 @@ export default function EditorWorkspacePage() {
                   <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
-              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
             </div>
           </div>
         )}
