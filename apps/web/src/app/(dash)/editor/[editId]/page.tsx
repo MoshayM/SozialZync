@@ -10,7 +10,7 @@ import {
   SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Sparkles, KeyRound, Link2Off,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
-  Scissors, RotateCcw, RotateCw, Magnet,
+  Scissors, RotateCcw, RotateCw, Magnet, VolumeX,
 } from 'lucide-react';
 import {
   api,
@@ -1901,12 +1901,12 @@ function TimelineTrack({
   selectedId,
   snapPoints,
   nameMap,
-  linkedAssetIds,
   onSelect,
   onMoveItem,
   onTrimItem,
   onItemDragStart,
   onDropFromBin,
+  onMuteItem,
 }: {
   track: EditTrack;
   durationMs: number;
@@ -1914,27 +1914,37 @@ function TimelineTrack({
   selectedId: string | null;
   snapPoints: number[];
   nameMap: Map<string, string>;
-  linkedAssetIds: Set<string>;
   onSelect: (id: string) => void;
   onMoveItem: (itemId: string, newStartMs: number) => void;
   onTrimItem: (itemId: string, newStartMs: number, newEndMs: number) => void;
   onItemDragStart: () => void;
   onDropFromBin: (trackId: string, xInTrack: number) => void;
+  onMuteItem: (itemId: string) => void;
 }) {
   const totalW = Math.max(msToX(durationMs, pxPerSec) + 200, 600);
   const [dragOver, setDragOver] = useState(false);
+  const trackMuted = (track.items ?? []).length > 0 && (track.items ?? []).every((it) => !!it.properties?.muted);
 
   return (
     <div className="flex items-center border-b border-gray-800" style={{ minHeight: TRACK_H + 4 }}>
       {/* Track label */}
       <div
-        className="shrink-0 flex items-center gap-1.5 px-2 border-r border-gray-700"
+        className="shrink-0 flex items-center gap-1 px-1.5 border-r border-gray-700"
         style={{ width: LABEL_W, height: TRACK_H + 4 }}
       >
         {track.kind === 'VIDEO' ? <Film className="w-3 h-3 text-violet-400 shrink-0" /> :
          track.kind === 'AUDIO' ? <Volume2 className="w-3 h-3 text-emerald-400 shrink-0" /> :
          <Type className="w-3 h-3 text-amber-400 shrink-0" />}
-        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate">{track.label}</span>
+        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate flex-1 min-w-0">{track.label}</span>
+        {(track.kind === 'VIDEO' || track.kind === 'AUDIO') && (track.items ?? []).length > 0 && (
+          <button
+            onClick={() => { const targetMuted = !trackMuted; (track.items ?? []).forEach((it) => { if (!!it.properties?.muted !== targetMuted) onMuteItem(it.id); }); }}
+            className="shrink-0 p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-white"
+            title={trackMuted ? 'Unmute track' : 'Mute track'}
+          >
+            {trackMuted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
+          </button>
+        )}
       </div>
       {/* Track lane */}
       <div
@@ -1965,17 +1975,18 @@ function TimelineTrack({
             trackH={TRACK_H + 4}
             selected={item.id === selectedId}
             colorClass={
-              track.kind === 'AUDIO' && !!item.sourceAssetId && linkedAssetIds.has(item.sourceAssetId)
+              track.kind === 'AUDIO' && !!item.linkedItemId
                 ? LINKED_AUDIO_COLOR
                 : (TRACK_COLORS[track.kind] ?? 'bg-gray-400/70 border-gray-500 text-white')
             }
             snapPoints={snapPoints.filter((p) => p !== item.timelineStartMs && p !== item.timelineEndMs)}
             label={item.sourceAssetId ? (nameMap.get(item.sourceAssetId) ?? item.properties?.text ?? item.kind.toLowerCase()) : (item.properties?.text ?? item.kind.toLowerCase())}
-            isLinked={!!item.sourceAssetId && linkedAssetIds.has(item.sourceAssetId)}
+            isLinked={!!item.linkedItemId}
             onSelect={() => onSelect(item.id)}
             onMove={(newStartMs) => onMoveItem(item.id, newStartMs)}
             onTrim={(newStartMs, newEndMs) => onTrimItem(item.id, newStartMs, newEndMs)}
             onDragStart={onItemDragStart}
+            onMuteToggle={() => onMuteItem(item.id)}
           />
         ))}
         {dragOver && (
@@ -2001,6 +2012,7 @@ function TimelineItem({
   onMove,
   onTrim,
   onDragStart,
+  onMuteToggle,
 }: {
   item: EditItem;
   pxPerSec: number;
@@ -2014,6 +2026,7 @@ function TimelineItem({
   onMove: (newStartMs: number) => void;
   onTrim: (newStartMs: number, newEndMs: number) => void;
   onDragStart?: () => void;
+  onMuteToggle?: () => void;
 }) {
   const left = msToX(item.timelineStartMs, pxPerSec);
   const width = Math.max(4, msToX(item.timelineEndMs - item.timelineStartMs, pxPerSec));
@@ -2071,11 +2084,13 @@ function TimelineItem({
 
   const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
 
+  const muted = !!item.properties?.muted;
+
   return (
     <div
       data-clip="1"
       style={{ left, width, height: trackH - 4, position: 'absolute', top: 2 }}
-      className={`rounded border ${colorClass} ${selected ? 'ring-2 ring-white ring-offset-1 ring-offset-gray-900' : 'opacity-90'} flex items-center overflow-hidden select-none touch-none`}
+      className={`group rounded border ${colorClass} ${muted ? 'opacity-50' : selected ? 'ring-2 ring-white ring-offset-1 ring-offset-gray-900' : 'opacity-90'} flex items-center overflow-hidden select-none touch-none`}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
@@ -2105,12 +2120,25 @@ function TimelineItem({
         )}
         <div className="flex items-center gap-1 relative z-10">
           {isLinked && <Link2Off className="w-2.5 h-2.5 opacity-60 shrink-0" />}
+          {muted && <VolumeX className="w-2.5 h-2.5 opacity-80 shrink-0" />}
           <span className="text-[11px] font-medium truncate leading-tight">{label}</span>
         </div>
         {width > 48 && (
           <span className="text-[9px] opacity-60 leading-tight relative z-10">{fmtMs(durMs)}</span>
         )}
       </div>
+      {/* Mute toggle — shown on hover or when selected */}
+      {onMuteToggle && width > 40 && (
+        <button
+          className="absolute top-0.5 right-8 p-0.5 rounded z-20 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onMuteToggle(); }}
+          title={muted ? 'Unmute clip' : 'Mute clip'}
+          aria-label={muted ? 'Unmute clip' : 'Mute clip'}
+        >
+          {muted ? <Volume2 className="w-2.5 h-2.5" /> : <VolumeX className="w-2.5 h-2.5" />}
+        </button>
+      )}
       {/* Right trim handle */}
       <div
         className="absolute right-0 top-0 bottom-0 cursor-ew-resize z-10 flex items-center justify-center hover:bg-white/20"
@@ -2595,6 +2623,8 @@ export default function EditorWorkspacePage() {
   const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
   const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const globalMutedRef = useRef(false);
+  const [globalMuted, setGlobalMuted] = useState(false);
   const historyRef = useRef<EditTimeline[]>([]);
   const historyIndexRef = useRef(-1);
 
@@ -2657,32 +2687,73 @@ export default function EditorWorkspacePage() {
   // fractional pixels, so every write from a drag/trim must round, or the
   // autosave is rejected with "Invalid timeline: … expected integer".
   const handleMoveItem = useCallback((itemId: string, newStartMs: number) => {
-    updateTimeline((tl) => ({
-      ...tl,
-      tracks: tl.tracks.map((tr) => ({
-        ...tr,
-        items: (tr.items ?? []).map((it) => {
-          if (it.id !== itemId) return it;
-          const start = Math.max(0, Math.round(newStartMs));
-          return { ...it, timelineStartMs: start, timelineEndMs: start + (it.timelineEndMs - it.timelineStartMs) };
-        }),
-      })),
-    }), true); // skipHistory — history captured once on drag start
+    updateTimeline((tl) => {
+      let delta = 0;
+      let linkedItemId: string | null = null;
+      for (const tr of tl.tracks) {
+        for (const it of tr.items ?? []) {
+          if (it.id === itemId) {
+            delta = Math.max(0, Math.round(newStartMs)) - it.timelineStartMs;
+            linkedItemId = it.linkedItemId ?? null;
+            break;
+          }
+        }
+      }
+      return {
+        ...tl,
+        tracks: tl.tracks.map((tr) => ({
+          ...tr,
+          items: (tr.items ?? []).map((it) => {
+            if (it.id === itemId) {
+              const start = Math.max(0, Math.round(newStartMs));
+              return { ...it, timelineStartMs: start, timelineEndMs: start + (it.timelineEndMs - it.timelineStartMs) };
+            }
+            if (linkedItemId && it.id === linkedItemId) {
+              const start = Math.max(0, it.timelineStartMs + delta);
+              return { ...it, timelineStartMs: start, timelineEndMs: start + (it.timelineEndMs - it.timelineStartMs) };
+            }
+            return it;
+          }),
+        })),
+      };
+    }, true); // skipHistory — history captured once on drag start
   }, [updateTimeline]);
 
   const handleTrimItem = useCallback((itemId: string, newStartMs: number, newEndMs: number) => {
-    updateTimeline((tl) => ({
-      ...tl,
-      tracks: tl.tracks.map((tr) => ({
-        ...tr,
-        items: (tr.items ?? []).map((it) => {
-          if (it.id !== itemId) return it;
-          const start = Math.max(0, Math.round(newStartMs));
-          const end = Math.max(start + 1, Math.round(newEndMs));
-          return { ...it, timelineStartMs: start, timelineEndMs: end };
-        }),
-      })),
-    }), true); // skipHistory — history captured once on drag start
+    updateTimeline((tl) => {
+      let startDelta = 0;
+      let endDelta = 0;
+      let linkedItemId: string | null = null;
+      for (const tr of tl.tracks) {
+        for (const it of tr.items ?? []) {
+          if (it.id === itemId) {
+            startDelta = Math.max(0, Math.round(newStartMs)) - it.timelineStartMs;
+            endDelta = Math.max(it.timelineStartMs + 1, Math.round(newEndMs)) - it.timelineEndMs;
+            linkedItemId = it.linkedItemId ?? null;
+            break;
+          }
+        }
+      }
+      return {
+        ...tl,
+        tracks: tl.tracks.map((tr) => ({
+          ...tr,
+          items: (tr.items ?? []).map((it) => {
+            if (it.id === itemId) {
+              const start = Math.max(0, Math.round(newStartMs));
+              const end = Math.max(start + 1, Math.round(newEndMs));
+              return { ...it, timelineStartMs: start, timelineEndMs: end };
+            }
+            if (linkedItemId && it.id === linkedItemId) {
+              const start = Math.max(0, it.timelineStartMs + startDelta);
+              const end = Math.max(start + 1, it.timelineEndMs + endDelta);
+              return { ...it, timelineStartMs: start, timelineEndMs: end };
+            }
+            return it;
+          }),
+        })),
+      };
+    }, true); // skipHistory — history captured once on drag start
   }, [updateTimeline]);
 
   const handleInspectorChange = useCallback((patch: Partial<EditItem>) => {
@@ -2705,24 +2776,47 @@ export default function EditorWorkspacePage() {
       const kind = itemKind === 'AUDIO' ? 'AUDIO' : 'VIDEO';
       const startMs = Math.max(0, Math.round(tl.durationMs));
       const endMs = startMs + Math.max(1, Math.round(entry.durationMs || 5000));
+      const ts = Date.now();
+      const videoId = `item-${ts}-v`;
+      const audioId = `item-${ts}-a`;
 
-      // ── Video clip ───────────────────────────────────────────────────────
-      const videoItem: EditItem = {
-        id: `item-${Date.now()}`,
+      // Primary clip (VIDEO or standalone AUDIO/IMAGE)
+      const primaryItem: EditItem = {
+        id: videoId,
         sourceAssetId: entry.id,
         kind: itemKind,
         timelineStartMs: startMs,
         timelineEndMs: endMs,
+        // Link to companion audio clip for VIDEO assets
+        linkedItemId: itemKind === 'VIDEO' ? audioId : undefined,
       };
 
       let newTracks = [...tl.tracks];
 
-      // Add to (or create) the primary track
       const primaryTrack = newTracks.find((t) => t.kind === kind);
       if (primaryTrack) {
-        newTracks = newTracks.map((t) => t.id === primaryTrack.id ? { ...t, items: [...(t.items ?? []), videoItem] } : t);
+        newTracks = newTracks.map((t) => t.id === primaryTrack.id ? { ...t, items: [...(t.items ?? []), primaryItem] } : t);
       } else {
-        newTracks = [...newTracks, { id: `track-${Date.now()}`, kind, label: kind === 'VIDEO' ? 'Video' : 'Audio', items: [videoItem] }];
+        newTracks = [...newTracks, { id: `track-${ts}`, kind, label: kind === 'VIDEO' ? 'Video' : 'Audio', items: [primaryItem] }];
+      }
+
+      // Auto-create linked audio clip when a VIDEO is added — the <audio> element
+      // plays the video file's audio track; the <video> element is muted when this exists.
+      if (itemKind === 'VIDEO') {
+        const audioItem: EditItem = {
+          id: audioId,
+          sourceAssetId: entry.id,
+          kind: 'AUDIO',
+          timelineStartMs: startMs,
+          timelineEndMs: endMs,
+          linkedItemId: videoId,
+        };
+        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
+        if (audioTrack) {
+          newTracks = newTracks.map((t) => t.kind === 'AUDIO' ? { ...t, items: [...(t.items ?? []), audioItem] } : t);
+        } else {
+          newTracks = [...newTracks, { id: `track-audio-${ts}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
+        }
       }
 
       return { ...tl, durationMs: endMs, tracks: newTracks };
@@ -2740,20 +2834,31 @@ export default function EditorWorkspacePage() {
       const { data } = await api.media.extractAudio(entry.versionId);
       // Refresh the bin so the new MP3 asset appears
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
-      // Add an AUDIO track item at the same time range pointing to the new MP3
+      // Add an AUDIO track item at the same time range, linked to the video item
+      const audioItemId = `item-${Date.now()}-detached-audio`;
       updateTimeline((tl) => {
         const audioItem: EditItem = {
-          id: `item-${Date.now()}-detached-audio`,
+          id: audioItemId,
           sourceAssetId: data.assetId,
           kind: 'AUDIO',
           timelineStartMs: item.timelineStartMs,
           timelineEndMs: item.timelineEndMs,
+          linkedItemId: item.id,
           properties: { volume: 1 },
         };
-        const audioTrack = tl.tracks.find((t) => t.kind === 'AUDIO');
-        const newTracks = audioTrack
-          ? tl.tracks.map((t) => t.id === audioTrack.id ? { ...t, items: [...(t.items ?? []), audioItem] } : t)
-          : [...tl.tracks, { id: `track-audio-${Date.now()}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
+        // Update the video item to point back at the audio item
+        let newTracks = tl.tracks.map((tr) => ({
+          ...tr,
+          items: (tr.items ?? []).map((it) =>
+            it.id === item.id
+              ? { ...it, linkedItemId: audioItemId }
+              : it,
+          ),
+        }));
+        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
+        newTracks = audioTrack
+          ? newTracks.map((t) => t.id === audioTrack.id ? { ...t, items: [...(t.items ?? []), audioItem] } : t)
+          : [...newTracks, { id: `track-audio-${Date.now()}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
         return { ...tl, tracks: newTracks };
       });
     } catch {
@@ -2765,8 +2870,18 @@ export default function EditorWorkspacePage() {
   const handleDeleteItem = useCallback((itemId: string) => {
     setSelectedItemId((sel) => (sel === itemId ? null : sel));
     updateTimeline((tl) => {
+      let linkedItemId: string | null = null;
+      for (const tr of tl.tracks) {
+        for (const it of tr.items ?? []) {
+          if (it.id === itemId) {
+            linkedItemId = it.linkedItemId ?? null;
+            break;
+          }
+        }
+      }
+      const toDelete = new Set([itemId, ...(linkedItemId ? [linkedItemId] : [])]);
       const tracks = tl.tracks
-        .map((tr) => ({ ...tr, items: (tr.items ?? []).filter((it) => it.id !== itemId) }))
+        .map((tr) => ({ ...tr, items: (tr.items ?? []).filter((it) => !toDelete.has(it.id)) }))
         .filter((tr) => tr.items.length > 0);
       const durationMs = tracks.reduce(
         (max, tr) => tr.items.reduce((m, it) => Math.max(m, it.timelineEndMs), max),
@@ -2817,6 +2932,28 @@ export default function EditorWorkspacePage() {
       return { ...tl, tracks: [...tl.tracks, newTrack] };
     });
   }, [updateTimeline]);
+
+  const handleMuteItem = useCallback((itemId: string) => {
+    updateTimeline((tl) => ({
+      ...tl,
+      tracks: tl.tracks.map((tr) => ({
+        ...tr,
+        items: (tr.items ?? []).map((it) =>
+          it.id === itemId ? { ...it, properties: { ...it.properties, muted: !it.properties?.muted } } : it,
+        ),
+      })),
+    }));
+  }, [updateTimeline]);
+
+  const handleGlobalMuteToggle = useCallback(() => {
+    const next = !globalMutedRef.current;
+    globalMutedRef.current = next;
+    setGlobalMuted(next);
+    const v = videoRef.current;
+    const a = audioRef.current;
+    if (v) v.muted = next;
+    if (a) a.muted = next;
+  }, []);
 
   const handleSplitItem = useCallback((itemId: string, atMs: number) => {
     updateTimeline((tl) => ({
@@ -2914,7 +3051,7 @@ export default function EditorWorkspacePage() {
         v.volume = vol;
         // Mute the video element when the AUDIO track has its own item — the
         // <audio> element handles audio in that case, preventing double playback.
-        v.muted = vol === 0 || activeAudioItemRef.current !== null;
+        v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted || activeAudioItemRef.current !== null;
         const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (t - item.timelineStartMs) * rate) / 1000);
         // Correct drift only when it exceeds 500 ms to avoid interrupting playback.
         if (Math.abs(v.currentTime - sourceSec) > 0.5) v.currentTime = sourceSec;
@@ -2928,6 +3065,7 @@ export default function EditorWorkspacePage() {
       const aItem = activeAudioItemRef.current;
       const aSrc = audioSrcRef.current;
       if (a && aItem && aSrc) {
+        a.muted = globalMutedRef.current || !!aItem.properties?.muted;
         const sourceSec = Math.max(0, ((aItem.sourceInMs ?? 0) + (t - aItem.timelineStartMs)) / 1000);
         if (Math.abs(a.currentTime - sourceSec) > 0.5) a.currentTime = sourceSec;
         if (a.paused) void a.play().catch(() => undefined);
@@ -2965,7 +3103,7 @@ export default function EditorWorkspacePage() {
         const vol = clamp(itemNow.properties?.volume ?? 1, 0, 1);
         vNow.volume = vol;
         // Mute video element when AUDIO track handles audio (prevents double audio)
-        vNow.muted = vol === 0 || aItemNow !== null;
+        vNow.muted = globalMutedRef.current || vol === 0 || !!itemNow.properties?.muted || aItemNow !== null;
         vNow.playbackRate = itemNow.properties?.speed ?? 1;
       } else {
         // No active item yet (signed URL still loading) — muted prime to unlock
@@ -2976,7 +3114,7 @@ export default function EditorWorkspacePage() {
     }
     if (aNow && aItemNow && audioSrcRef.current) {
       aNow.volume = 1;
-      aNow.muted = false;
+      aNow.muted = globalMutedRef.current || !!aItemNow.properties?.muted;
       void aNow.play().catch(() => undefined);
     }
 
@@ -3104,15 +3242,15 @@ export default function EditorWorkspacePage() {
     if (!item) return;
     const vol = clamp(item.properties?.volume ?? 1, 0, 1);
     v.volume = vol;
-    v.muted = vol === 0 || activeAudioItemRef.current !== null;
+    v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted || activeAudioItemRef.current !== null;
     void v.play().catch(() => undefined);
   }, [videoSrc, playing]);
 
   useEffect(() => {
     const a = audioRef.current;
     if (!a || !playing || !audioSrc) return;
-    a.volume = 1;
-    a.muted = false;
+    const aItem = activeAudioItemRef.current;
+    a.muted = globalMutedRef.current || (aItem?.properties?.muted ?? false);
     void a.play().catch(() => undefined);
   }, [audioSrc, playing]);
 
@@ -3130,18 +3268,40 @@ export default function EditorWorkspacePage() {
     updateTimeline((tl) => {
       const itemKind = binKindToItemKind(entry.kind);
       const endMs = dropMs + Math.max(1, Math.round(entry.durationMs || 5000));
+      const ts = Date.now();
+      const videoId = `item-${ts}-v`;
+      const audioId = `item-${ts}-a`;
       const newItem: EditItem = {
-        id: `item-${Date.now()}`,
+        id: videoId,
         sourceAssetId: entry.id,
         kind: itemKind,
         timelineStartMs: dropMs,
         timelineEndMs: endMs,
+        linkedItemId: itemKind === 'VIDEO' ? audioId : undefined,
       };
       const newDuration = Math.max(tl.durationMs, endMs);
       const dropTrack = tl.tracks.find((t) => t.id === trackId);
       if (!dropTrack) return tl;
 
       let newTracks = tl.tracks.map((t) => t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t);
+
+      // Auto-link audio when dropping a VIDEO asset
+      if (itemKind === 'VIDEO') {
+        const audioItem: EditItem = {
+          id: audioId,
+          sourceAssetId: entry.id,
+          kind: 'AUDIO',
+          timelineStartMs: dropMs,
+          timelineEndMs: endMs,
+          linkedItemId: videoId,
+        };
+        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
+        if (audioTrack) {
+          newTracks = newTracks.map((t) => t.kind === 'AUDIO' ? { ...t, items: [...(t.items ?? []), audioItem] } : t);
+        } else {
+          newTracks = [...newTracks, { id: `track-audio-${ts}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
+        }
+      }
 
       return { ...tl, durationMs: newDuration, tracks: newTracks };
     });
@@ -3204,12 +3364,6 @@ export default function EditorWorkspacePage() {
         <Film className="w-4 h-4 text-brand-500 shrink-0" />
         <p className="font-semibold text-gray-800 text-sm truncate flex-1 min-w-0">{project.title}</p>
 
-        {dirty && (
-          <span className="hidden sm:inline text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 shrink-0">
-            Unsaved
-          </span>
-        )}
-
         {/* Panel toggles — visible below xl (drawers) and on xl+ (inline collapse) */}
         <button
           onClick={() => { if (window.innerWidth >= 1280) setBinPanelOpen(o => !o); else setMobileBinOpen(o => !o); }}
@@ -3243,12 +3397,16 @@ export default function EditorWorkspacePage() {
         </Link>
         <button
           onClick={() => void handleSave()}
-          disabled={saving || !dirty}
-          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-40 min-h-[44px]"
-          title="Save"
+          disabled={saving}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs min-h-[44px] font-medium transition-colors disabled:opacity-40 ${
+            dirty
+              ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600'
+              : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+          title={dirty ? 'Save changes' : 'No unsaved changes'}
         >
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-          <span className="hidden sm:inline">Save</span>
+          <span>Save</span>
         </button>
         {canExport ? (
           <button
@@ -3501,6 +3659,15 @@ export default function EditorWorkspacePage() {
               </div>
             </div>
             <span className="text-xs font-mono tabular-nums">{fmtMs(currentTimeMs)} / {fmtMs(dur)}</span>
+            {/* Global mute */}
+            <button
+              onClick={handleGlobalMuteToggle}
+              className={`p-2 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${globalMuted ? 'text-red-400 bg-red-900/30 hover:bg-red-900/50' : 'hover:bg-white/10'}`}
+              title={globalMuted ? 'Unmute all' : 'Mute all'}
+              aria-label={globalMuted ? 'Unmute all' : 'Mute all'}
+            >
+              {globalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
             {/* Zoom controls */}
             <button
               onClick={() => setPxPerSec((p) => Math.max(5, p - 10))}
@@ -3703,13 +3870,6 @@ export default function EditorWorkspacePage() {
                       {/* Tracks */}
                       {(() => {
                         // Asset IDs that appear in MORE than one track = linked clips
-                        const assetTrackCount = new Map<string, number>();
-                        for (const tr of timeline.tracks ?? []) {
-                          for (const it of tr.items ?? []) {
-                            if (it.sourceAssetId) assetTrackCount.set(it.sourceAssetId, (assetTrackCount.get(it.sourceAssetId) ?? 0) + 1);
-                          }
-                        }
-                        const linkedAssetIds = new Set<string>([...assetTrackCount.entries()].filter(([, c]) => c > 1).map(([id]) => id));
                         return (
                           <div className="flex flex-col">
                             {(timeline.tracks ?? []).map((track) => (
@@ -3721,7 +3881,6 @@ export default function EditorWorkspacePage() {
                                 selectedId={selectedItemId}
                                 snapPoints={snapEnabled ? allSnapPoints : []}
                                 nameMap={assetNameMap}
-                                linkedAssetIds={linkedAssetIds}
                                 onSelect={(id) => {
                                   setSelectedItemId(id || null);
                                   if (id && window.innerWidth < 1024) setMobileInspectorOpen(true);
@@ -3730,6 +3889,7 @@ export default function EditorWorkspacePage() {
                                 onTrimItem={handleTrimItem}
                                 onItemDragStart={pushUndo}
                                 onDropFromBin={handleDropFromBin}
+                                onMuteItem={handleMuteItem}
                               />
                             ))}
                           </div>

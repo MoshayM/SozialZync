@@ -62,6 +62,8 @@ export const EditItemPropertiesSchema = z.object({
    * sidechaincompress is not used — fragile across ffmpeg-static builds.
    */
   duckUnderVoice: z.boolean().optional(),
+  /** When true, this clip's audio is silenced (volume is preserved for unmute). */
+  muted: z.boolean().optional(),
 });
 export type EditItemProperties = z.infer<typeof EditItemPropertiesSchema>;
 
@@ -76,6 +78,8 @@ export const EditItemSchema = z.object({
   sourceInMs: z.number().int().nonnegative().optional(),
   sourceOutMs: z.number().int().positive().optional(),
   properties: EditItemPropertiesSchema.optional(),
+  /** ID of the partner item this clip is hard-linked to (move/trim/delete together). */
+  linkedItemId: z.string().optional(),
 });
 export type EditItem = z.infer<typeof EditItemSchema>;
 

@@ -1669,6 +1669,7 @@ export interface EditItemProperties {
   text?: string;
   fontSize?: number;
   color?: string;
+  muted?: boolean;       // silence this clip's audio in preview and render
   // Phase 2 — all optional; Phase-1 items without these still work
   filters?: EditItemFilters;
   transitionIn?: EditItemTransition;
@@ -1690,6 +1691,7 @@ export interface EditItem {
   sourceInMs?: number;
   sourceOutMs?: number;
   properties?: EditItemProperties;
+  linkedItemId?: string; // paired item that moves/trims/deletes together (video↔audio)
 }
 
 export interface EditTrack {
