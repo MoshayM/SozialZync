@@ -1994,7 +1994,14 @@ function TimelineItem({
   const HANDLE_W = 8;
   const durMs = item.timelineEndMs - item.timelineStartMs;
 
-  const dragRef = useRef<{ startX: number; startMs: number; mode: 'move' | 'trim-left' | 'trim-right' } | null>(null);
+  // Store origStartMs + origEndMs at drag start so pointer-move deltas are always
+  // relative to the original position — avoids stale-closure accumulation on trim-right.
+  const dragRef = useRef<{
+    startX: number;
+    origStartMs: number;
+    origEndMs: number;
+    mode: 'move' | 'trim-left' | 'trim-right';
+  } | null>(null);
 
   function snapTo(ms: number): number {
     const thresholdMs = (SNAP_MS / 40) * pxPerSec;
@@ -2010,26 +2017,31 @@ function TimelineItem({
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, mode: 'move' | 'trim-left' | 'trim-right') => {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = { startX: e.clientX, startMs: item.timelineStartMs, mode };
+    dragRef.current = {
+      startX: e.clientX,
+      origStartMs: item.timelineStartMs,
+      origEndMs: item.timelineEndMs,
+      mode,
+    };
     onSelect();
     onDragStart?.();
-  }, [item.timelineStartMs, onSelect, onDragStart]);
+  }, [item.timelineStartMs, item.timelineEndMs, onSelect, onDragStart]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragRef.current) return;
     const dx = e.clientX - dragRef.current.startX;
     const deltaMs = xToMs(dx, pxPerSec);
+    const { origStartMs, origEndMs } = dragRef.current;
     if (dragRef.current.mode === 'move') {
-      const newStart = Math.max(0, snapTo(dragRef.current.startMs + deltaMs));
-      onMove(newStart);
+      onMove(Math.max(0, snapTo(origStartMs + deltaMs)));
     } else if (dragRef.current.mode === 'trim-left') {
-      const newStart = clamp(snapTo(dragRef.current.startMs + deltaMs), 0, item.timelineEndMs - 100);
-      onTrim(newStart, item.timelineEndMs);
+      const newStart = clamp(snapTo(origStartMs + deltaMs), 0, origEndMs - 100);
+      onTrim(newStart, origEndMs);
     } else {
-      const newEnd = clamp(snapTo(item.timelineStartMs + (item.timelineEndMs - item.timelineStartMs) + deltaMs), item.timelineStartMs + 100, Infinity);
-      onTrim(item.timelineStartMs, newEnd);
+      const newEnd = clamp(snapTo(origEndMs + deltaMs), origStartMs + 100, Infinity);
+      onTrim(origStartMs, newEnd);
     }
-  }, [item.timelineStartMs, item.timelineEndMs, pxPerSec, onMove, onTrim, snapPoints]);
+  }, [pxPerSec, onMove, onTrim, snapPoints]);
 
   const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
 
