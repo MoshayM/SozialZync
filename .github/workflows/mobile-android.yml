@@ -56,12 +56,64 @@ jobs:
         run: pnpm add:android
         working-directory: apps/mobile
 
-      - name: Patch AndroidManifest — add mic and audio permissions
+      - name: Patch AndroidManifest — permissions + App Links
         run: |
           MANIFEST="apps/mobile/android/app/src/main/AndroidManifest.xml"
+
+          # 1. Mic / audio permissions
           sed -i 's|<uses-permission android:name="android.permission.INTERNET" />|<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />|' "$MANIFEST"
+
+          # 2. App Links intent filter — routes sozialzynk.vercel.app back into the
+          #    Capacitor WebView after OAuth / push-notification deep links.
+          #    android:autoVerify lets Android verify ownership via assetlinks.json so
+          #    the app becomes the *default* handler (no disambiguation dialog) on all
+          #    devices including OnePlus / OxygenOS.
+          python3 - <<'PYEOF'
+          import re, sys
+
+          path = "apps/mobile/android/app/src/main/AndroidManifest.xml"
+          xml  = open(path).read()
+
+          app_links = """
+              <intent-filter android:autoVerify="true">
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="https" android:host="sozialzynk.vercel.app" />
+              </intent-filter>"""
+
+          # Insert after the LAUNCHER intent-filter closing tag inside MainActivity
+          patched = xml.replace(
+              '<category android:name="android.intent.category.LAUNCHER" />\n        </intent-filter>',
+              '<category android:name="android.intent.category.LAUNCHER" />\n        </intent-filter>' + app_links,
+              1,
+          )
+
+          if patched == xml:
+              print("WARNING: LAUNCHER intent-filter not found — skipping App Links patch", file=sys.stderr)
+          else:
+              open(path, "w").write(patched)
+              print("App Links intent-filter added.")
+          PYEOF
+
           echo "--- Patched manifest ---"
           cat "$MANIFEST"
+
+      - name: Restore stable debug keystore
+        # Uses a stable keystore stored as a CI secret so the SHA-256 fingerprint
+        # stays consistent across builds and matches the assetlinks.json entry.
+        # If the secret is absent (first-time setup), Android Gradle generates a
+        # fresh debug keystore and the step is a no-op.
+        run: |
+          if [ -n "$ANDROID_DEBUG_KEYSTORE_BASE64" ]; then
+            mkdir -p ~/.android
+            echo "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+            echo "Stable debug keystore restored."
+          else
+            echo "ANDROID_DEBUG_KEYSTORE_BASE64 not set — using auto-generated keystore."
+          fi
+        env:
+          ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
 
       - name: Generate launcher icons
         run: pnpm generate:icons
@@ -77,6 +129,13 @@ jobs:
 
       - name: Rename APK
         run: mv apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk apps/mobile/android/app/build/outputs/apk/debug/sozialzynk.apk
+
+      - name: Log APK signing fingerprint
+        run: |
+          APK="apps/mobile/android/app/build/outputs/apk/debug/sozialzynk.apk"
+          unzip -p "$APK" META-INF/CERT.RSA | \
+            openssl pkcs7 -inform DER -print_certs -noout -fingerprint -sha256 2>/dev/null \
+            || echo "(openssl unavailable — fingerprint not logged)"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -142,10 +201,41 @@ jobs:
         run: pnpm add:android
         working-directory: apps/mobile
 
-      - name: Patch AndroidManifest — add mic and audio permissions
+      - name: Patch AndroidManifest — permissions + App Links
         run: |
           MANIFEST="apps/mobile/android/app/src/main/AndroidManifest.xml"
+
+          # 1. Mic / audio permissions
           sed -i 's|<uses-permission android:name="android.permission.INTERNET" />|<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />|' "$MANIFEST"
+
+          # 2. App Links intent filter
+          python3 - <<'PYEOF'
+          import re, sys
+
+          path = "apps/mobile/android/app/src/main/AndroidManifest.xml"
+          xml  = open(path).read()
+
+          app_links = """
+              <intent-filter android:autoVerify="true">
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="https" android:host="sozialzynk.vercel.app" />
+              </intent-filter>"""
+
+          patched = xml.replace(
+              '<category android:name="android.intent.category.LAUNCHER" />\n        </intent-filter>',
+              '<category android:name="android.intent.category.LAUNCHER" />\n        </intent-filter>' + app_links,
+              1,
+          )
+
+          if patched == xml:
+              print("WARNING: LAUNCHER intent-filter not found — skipping App Links patch", file=sys.stderr)
+          else:
+              open(path, "w").write(patched)
+              print("App Links intent-filter added.")
+          PYEOF
+
           echo "--- Patched manifest ---"
           cat "$MANIFEST"
 
