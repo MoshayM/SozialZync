@@ -109,8 +109,11 @@ test.describe('Login page — mobile passkey UX', () => {
   });
 
   test('password sign-in still works on mobile', async ({ page, request }) => {
-    // 400s: warmup(60) + fill+race(25) + wait(120) + re-login(120) = 325s < 400s.
-    test.setTimeout(400_000);
+    // chromium-desktop runs ALL specs (no testMatch filter) AND chromium-mobile also
+    // runs this file — both workers hit the same account concurrently → rate-limit.
+    // Double-cycle recovery (2 × 120s = 240s) guarantees the fixed window clears.
+    test.setTimeout(600_000);
+
     // This test runs after 5 UI-only tests — Railway may have gone cold since beforeAll.
     const deadline = Date.now() + 60_000;
     while (Date.now() < deadline) {
@@ -124,37 +127,33 @@ test.describe('Login page — mobile passkey UX', () => {
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 15_000 });
 
-    // Scope to the main password form to avoid strict-mode violations
-    // when the green registration card is also present on the page.
-    await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
-    await mainForm(page).locator('input[type="password"]').fill('Admin@123');
-    await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
-
-    // Race: successful navigation vs rate-limit toast. A cold Railway can take >4 s to return
-    // a 429, so a fixed sequential check misses it. The race catches whichever fires first.
-    let loginOk = false;
-    await Promise.race([
-      page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 20_000, waitUntil: 'commit' })
-        .then(() => { loginOk = true; }).catch(() => {}),
-      page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 20_000 })
-        .catch(() => {}),
-    ]);
-
-    if (!loginOk) {
-      if (await page.getByText(/too many attempts/i).isVisible()) {
-        // Wait for the ~240s rate-limit window to clear. 120s is safe here because
-        // 3 retries span at least 3×(fill+race) ≈ 3×75s = 225s total elapsed, which
-        // outlasts the window even in the worst case across retries.
-        await page.waitForTimeout(120_000);
-      }
-      // Re-navigate and re-fill — the form may have been cleared or the toast
-      // may have obscured it after the long wait.
-      await page.goto('/login');
-      await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 15_000 });
+    async function fillAndSubmit() {
       await mainForm(page).locator('input[type="email"]').fill('sozialzync@gmail.com');
       await mainForm(page).locator('input[type="password"]').fill('Admin@123');
       await mainForm(page).locator('button').filter({ hasText: /sign in with password/i }).click();
-      await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
+    }
+
+    async function raceNavOrLimit(): Promise<boolean> {
+      let ok = false;
+      await Promise.race([
+        page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 25_000, waitUntil: 'commit' })
+          .then(() => { ok = true; }).catch(() => {}),
+        page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 25_000 })
+          .catch(() => {}),
+      ]);
+      return ok;
+    }
+
+    await fillAndSubmit();
+    if (!await raceNavOrLimit()) {
+      // Double-cycle: 2 × 120s waits guarantee the 240s rate-limit window clears
+      for (let i = 0; i < 2; i++) {
+        await page.waitForTimeout(120_000);
+        await page.goto('/login');
+        await fillAndSubmit();
+        if (await raceNavOrLimit()) break;
+      }
+      await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 60_000, waitUntil: 'commit' });
     }
 
     await page.screenshot({ path: 'e2e/mobile-login-success.png' });
