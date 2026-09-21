@@ -7,7 +7,7 @@ import {
   ArrowLeft, Film, Play, Pause, Loader2, Save, Download, Wand2,
   Volume2, Zap, Type, Image, X,
   ZoomIn, ZoomOut, Plus, Maximize2,
-  SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Sparkles, KeyRound,
+  SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Sparkles, KeyRound, Link2Off,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
   Scissors, RotateCcw, RotateCw, Magnet,
@@ -55,10 +55,12 @@ const TRACK_H = 40; // px, also min touch target height
 const LABEL_W = 96; // px — matches w-24 track label width
 const SNAP_MS = 200; // snap threshold in ms at 40px/s
 const TRACK_COLORS: Record<string, string> = {
-  VIDEO: 'bg-brand-500/80 border-brand-600 text-white',
-  AUDIO: 'bg-emerald-500/70 border-emerald-600 text-white',
+  VIDEO: 'bg-violet-600/80 border-violet-700 text-white',
+  AUDIO: 'bg-teal-500/80 border-teal-600 text-white',
   TEXT: 'bg-amber-400/80 border-amber-500 text-gray-900',
 };
+// Linked audio clips (extracted from video) use a slightly different shade to distinguish
+const LINKED_AUDIO_COLOR = 'bg-teal-600/90 border-teal-700 text-white';
 
 function msToX(ms: number, pxPerSec: number): number {
   return (ms / 1000) * pxPerSec;
@@ -1884,6 +1886,7 @@ function TimelineTrack({
   selectedId,
   snapPoints,
   nameMap,
+  linkedAssetIds,
   onSelect,
   onMoveItem,
   onTrimItem,
@@ -1896,6 +1899,7 @@ function TimelineTrack({
   selectedId: string | null;
   snapPoints: number[];
   nameMap: Map<string, string>;
+  linkedAssetIds: Set<string>;
   onSelect: (id: string) => void;
   onMoveItem: (itemId: string, newStartMs: number) => void;
   onTrimItem: (itemId: string, newStartMs: number, newEndMs: number) => void;
@@ -1945,9 +1949,14 @@ function TimelineTrack({
             pxPerSec={pxPerSec}
             trackH={TRACK_H + 4}
             selected={item.id === selectedId}
-            colorClass={TRACK_COLORS[track.kind] ?? 'bg-gray-400/70 border-gray-500 text-white'}
+            colorClass={
+              track.kind === 'AUDIO' && !!item.sourceAssetId && linkedAssetIds.has(item.sourceAssetId)
+                ? LINKED_AUDIO_COLOR
+                : (TRACK_COLORS[track.kind] ?? 'bg-gray-400/70 border-gray-500 text-white')
+            }
             snapPoints={snapPoints.filter((p) => p !== item.timelineStartMs && p !== item.timelineEndMs)}
             label={item.sourceAssetId ? (nameMap.get(item.sourceAssetId) ?? item.properties?.text ?? item.kind.toLowerCase()) : (item.properties?.text ?? item.kind.toLowerCase())}
+            isLinked={!!item.sourceAssetId && linkedAssetIds.has(item.sourceAssetId)}
             onSelect={() => onSelect(item.id)}
             onMove={(newStartMs) => onMoveItem(item.id, newStartMs)}
             onTrim={(newStartMs, newEndMs) => onTrimItem(item.id, newStartMs, newEndMs)}
@@ -1972,6 +1981,7 @@ function TimelineItem({
   colorClass,
   snapPoints,
   label,
+  isLinked,
   onSelect,
   onMove,
   onTrim,
@@ -1984,6 +1994,7 @@ function TimelineItem({
   colorClass: string;
   snapPoints: number[];
   label: string;
+  isLinked?: boolean;
   onSelect: () => void;
   onMove: (newStartMs: number) => void;
   onTrim: (newStartMs: number, newEndMs: number) => void;
@@ -2064,13 +2075,25 @@ function TimelineItem({
       </div>
       {/* Main body — drag to move */}
       <div
-        className="flex-1 h-full flex flex-col justify-center px-3 cursor-grab active:cursor-grabbing overflow-hidden"
+        className="flex-1 h-full flex flex-col justify-center cursor-grab active:cursor-grabbing overflow-hidden relative"
         style={{ paddingLeft: HANDLE_W + 4, paddingRight: HANDLE_W + 4 }}
         onPointerDown={(e) => onPointerDown(e, 'move')}
       >
-        <span className="text-[11px] font-medium truncate leading-tight">{label}</span>
+        {/* Waveform visual for audio clips */}
+        {item.kind === 'AUDIO' && width > 32 && (
+          <div className="absolute inset-0 flex items-center gap-px px-2 pointer-events-none opacity-40" aria-hidden>
+            {Array.from({ length: Math.min(60, Math.floor(width / 4)) }).map((_, i) => {
+              const h = 30 + Math.sin(i * 1.7) * 20 + Math.sin(i * 0.5) * 15;
+              return <div key={i} className="w-px bg-white rounded-full" style={{ height: `${h}%` }} />;
+            })}
+          </div>
+        )}
+        <div className="flex items-center gap-1 relative z-10">
+          {isLinked && <Link2Off className="w-2.5 h-2.5 opacity-60 shrink-0" />}
+          <span className="text-[11px] font-medium truncate leading-tight">{label}</span>
+        </div>
         {width > 48 && (
-          <span className="text-[9px] opacity-60 leading-tight">{fmtMs(durMs)}</span>
+          <span className="text-[9px] opacity-60 leading-tight relative z-10">{fmtMs(durMs)}</span>
         )}
       </div>
       {/* Right trim handle */}
@@ -2660,38 +2683,52 @@ export default function EditorWorkspacePage() {
 
   const handleAddToTimeline = useCallback((entry: MediaBinEntry) => {
     updateTimeline((tl) => {
-      // Find or create a track of matching kind — VOICE/MUSIC assets are
-      // audio-only and must land on an AUDIO track, not VIDEO.
       const itemKind = binKindToItemKind(entry.kind);
+      // VOICE/MUSIC/AUDIO assets go straight to an AUDIO track only
       const kind = itemKind === 'AUDIO' ? 'AUDIO' : 'VIDEO';
-      const existingTrack = tl.tracks.find((t) => t.kind === kind);
-      const trackId = existingTrack?.id ?? `track-${Date.now()}`;
-      // Round: asset durations from ffprobe can be fractional, schema wants int ms
       const startMs = Math.max(0, Math.round(tl.durationMs));
-      const newItem: EditItem = {
+      const endMs = startMs + Math.max(1, Math.round(entry.durationMs || 5000));
+
+      // ── Video clip ───────────────────────────────────────────────────────
+      const videoItem: EditItem = {
         id: `item-${Date.now()}`,
         sourceAssetId: entry.id,
         kind: itemKind,
         timelineStartMs: startMs,
-        timelineEndMs: startMs + Math.max(1, Math.round(entry.durationMs || 5000)),
+        timelineEndMs: endMs,
       };
-      const newDuration = newItem.timelineEndMs;
-      if (existingTrack) {
-        return {
-          ...tl,
-          durationMs: newDuration,
-          tracks: tl.tracks.map((t) =>
-            t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t,
-          ),
-        };
+
+      let newTracks = [...tl.tracks];
+
+      // Add to (or create) the primary track
+      const primaryTrack = newTracks.find((t) => t.kind === kind);
+      if (primaryTrack) {
+        newTracks = newTracks.map((t) => t.id === primaryTrack.id ? { ...t, items: [...(t.items ?? []), videoItem] } : t);
+      } else {
+        newTracks = [...newTracks, { id: `track-${Date.now()}`, kind, label: kind === 'VIDEO' ? 'Video' : 'Audio', items: [videoItem] }];
       }
-      const newTrack: EditTrack = {
-        id: trackId,
-        kind,
-        label: kind.charAt(0) + kind.slice(1).toLowerCase(),
-        items: [newItem],
-      };
-      return { ...tl, durationMs: newDuration, tracks: [...tl.tracks, newTrack] };
+
+      // ── Linked audio extraction (VIDEO clips only) ────────────────────
+      // When a video is added, auto-create a linked AUDIO clip on the audio
+      // track directly below — mirrors Premiere Pro / DaVinci Resolve behaviour.
+      if (kind === 'VIDEO') {
+        const linkedAudioItem: EditItem = {
+          id: `item-${Date.now()}-audio`,
+          sourceAssetId: entry.id, // same asset → browser extracts audio track
+          kind: 'AUDIO',
+          timelineStartMs: startMs,
+          timelineEndMs: endMs,
+          properties: { volume: 1 },
+        };
+        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
+        if (audioTrack) {
+          newTracks = newTracks.map((t) => t.id === audioTrack.id ? { ...t, items: [...(t.items ?? []), linkedAudioItem] } : t);
+        } else {
+          newTracks = [...newTracks, { id: `track-audio-${Date.now()}`, kind: 'AUDIO', label: 'Audio', items: [linkedAudioItem] }];
+        }
+      }
+
+      return { ...tl, durationMs: endMs, tracks: newTracks };
     });
   }, [updateTimeline]);
 
@@ -3032,19 +3069,39 @@ export default function EditorWorkspacePage() {
     const dropMs = Math.max(0, Math.round(xToMs(xInTrack, pxPerSec)));
     updateTimeline((tl) => {
       const itemKind = binKindToItemKind(entry.kind);
+      const endMs = dropMs + Math.max(1, Math.round(entry.durationMs || 5000));
       const newItem: EditItem = {
         id: `item-${Date.now()}`,
         sourceAssetId: entry.id,
         kind: itemKind,
         timelineStartMs: dropMs,
-        timelineEndMs: dropMs + Math.max(1, Math.round(entry.durationMs || 5000)),
+        timelineEndMs: endMs,
       };
-      const newDuration = Math.max(tl.durationMs, newItem.timelineEndMs);
-      const track = tl.tracks.find((t) => t.id === trackId);
-      if (track) {
-        return { ...tl, durationMs: newDuration, tracks: tl.tracks.map((t) => t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t) };
+      const newDuration = Math.max(tl.durationMs, endMs);
+      const dropTrack = tl.tracks.find((t) => t.id === trackId);
+      if (!dropTrack) return tl;
+
+      let newTracks = tl.tracks.map((t) => t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t);
+
+      // Auto-add linked audio when dropping a video onto a VIDEO track
+      if (dropTrack.kind === 'VIDEO' && itemKind === 'VIDEO') {
+        const linkedAudio: EditItem = {
+          id: `item-${Date.now()}-audio`,
+          sourceAssetId: entry.id,
+          kind: 'AUDIO',
+          timelineStartMs: dropMs,
+          timelineEndMs: endMs,
+          properties: { volume: 1 },
+        };
+        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
+        if (audioTrack) {
+          newTracks = newTracks.map((t) => t.id === audioTrack.id ? { ...t, items: [...(t.items ?? []), linkedAudio] } : t);
+        } else {
+          newTracks = [...newTracks, { id: `track-audio-${Date.now()}`, kind: 'AUDIO', label: 'Audio', items: [linkedAudio] }];
+        }
       }
-      return tl;
+
+      return { ...tl, durationMs: newDuration, tracks: newTracks };
     });
   }, [pxPerSec, updateTimeline]);
 
@@ -3588,27 +3645,40 @@ export default function EditorWorkspacePage() {
                       </div>
 
                       {/* Tracks */}
-                      <div className="flex flex-col">
-                        {(timeline.tracks ?? []).map((track) => (
-                          <TimelineTrack
-                            key={track.id}
-                            track={track}
-                            durationMs={dur || 60000}
-                            pxPerSec={pxPerSec}
-                            selectedId={selectedItemId}
-                            snapPoints={snapEnabled ? allSnapPoints : []}
-                            nameMap={assetNameMap}
-                            onSelect={(id) => {
-                              setSelectedItemId(id || null);
-                              if (id && window.innerWidth < 1024) setMobileInspectorOpen(true);
-                            }}
-                            onMoveItem={handleMoveItem}
-                            onTrimItem={handleTrimItem}
-                            onItemDragStart={pushUndo}
-                            onDropFromBin={handleDropFromBin}
-                          />
-                        ))}
-                      </div>
+                      {(() => {
+                        // Asset IDs that appear in MORE than one track = linked clips
+                        const assetTrackCount = new Map<string, number>();
+                        for (const tr of timeline.tracks ?? []) {
+                          for (const it of tr.items ?? []) {
+                            if (it.sourceAssetId) assetTrackCount.set(it.sourceAssetId, (assetTrackCount.get(it.sourceAssetId) ?? 0) + 1);
+                          }
+                        }
+                        const linkedAssetIds = new Set<string>([...assetTrackCount.entries()].filter(([, c]) => c > 1).map(([id]) => id));
+                        return (
+                          <div className="flex flex-col">
+                            {(timeline.tracks ?? []).map((track) => (
+                              <TimelineTrack
+                                key={track.id}
+                                track={track}
+                                durationMs={dur || 60000}
+                                pxPerSec={pxPerSec}
+                                selectedId={selectedItemId}
+                                snapPoints={snapEnabled ? allSnapPoints : []}
+                                nameMap={assetNameMap}
+                                linkedAssetIds={linkedAssetIds}
+                                onSelect={(id) => {
+                                  setSelectedItemId(id || null);
+                                  if (id && window.innerWidth < 1024) setMobileInspectorOpen(true);
+                                }}
+                                onMoveItem={handleMoveItem}
+                                onTrimItem={handleTrimItem}
+                                onItemDragStart={pushUndo}
+                                onDropFromBin={handleDropFromBin}
+                              />
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}
