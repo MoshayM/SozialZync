@@ -11,6 +11,7 @@ import {
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
   Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
+  FolderOpen, BookmarkPlus,
 } from 'lucide-react';
 import {
   api,
@@ -527,6 +528,168 @@ function HistoryDrawer({
           })}
           {edits.length === 0 && (
             <p className="text-xs text-gray-400 text-center py-8">No edits yet — create one above.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Saved Versions (Snapshots) ────────────────────────────────────────────────
+
+type SnapshotEntry = {
+  id: string;
+  name: string;
+  savedAt: string;
+  timeline: EditTimeline;
+};
+
+function SnapshotSaveDialog({
+  defaultName,
+  onSave,
+  onClose,
+}: {
+  defaultName: string;
+  onSave: (name: string) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(defaultName);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 50); }, []);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <BookmarkPlus className="w-4 h-4 text-brand-600 shrink-0" />
+          <p className="flex-1 font-bold text-gray-800 text-sm">Save version</p>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-gray-600">Version name</label>
+          <input
+            ref={inputRef}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && name.trim()) onSave(name.trim()); }}
+            placeholder="e.g. Rough cut v1, Final draft…"
+            maxLength={80}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+          />
+          <p className="text-[11px] text-gray-400">
+            Saved locally in this browser. Load anytime from <strong>My Versions</strong>.
+          </p>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
+            Cancel
+          </button>
+          <button
+            onClick={() => { if (name.trim()) onSave(name.trim()); }}
+            disabled={!name.trim()}
+            className="px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-40 font-medium"
+          >
+            Save version
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VersionsDrawer({
+  snapshots,
+  onSaveNew,
+  onLoad,
+  onDelete,
+  onClose,
+}: {
+  snapshots: SnapshotEntry[];
+  onSaveNew: () => void;
+  onLoad: (s: SnapshotEntry) => void;
+  onDelete: (id: string) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div
+      className="fixed inset-0 z-40 bg-black/30 flex justify-end"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="presentation"
+    >
+      <div className="w-80 sm:w-96 bg-white h-full flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="My saved versions">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+          <FolderOpen className="w-4 h-4 text-brand-500 shrink-0" />
+          <p className="flex-1 font-semibold text-gray-800 text-sm">My Versions</p>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        <div className="p-3 border-b border-gray-50">
+          <button
+            type="button"
+            onClick={onSaveNew}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-sm font-semibold text-gray-500 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+          >
+            <BookmarkPlus className="w-4 h-4" /> Save current version
+          </button>
+        </div>
+        <p className="px-4 py-2 text-[11px] text-gray-400 border-b border-gray-50">
+          Versions are saved locally in your browser. Load any version to restore the timeline.
+        </p>
+        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1.5">
+          {snapshots.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <FolderOpen className="w-10 h-10 text-gray-200" />
+              <div>
+                <p className="text-sm font-semibold text-gray-500">No saved versions yet</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Click <strong>Save current version</strong> above to create a named snapshot of your timeline.
+                </p>
+              </div>
+            </div>
+          ) : (
+            [...snapshots].reverse().map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 group/snap"
+              >
+                <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+                  <BookmarkPlus className="w-3.5 h-3.5 text-brand-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-800 truncate">{s.name}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{new Date(s.savedAt).toLocaleString()}</p>
+                </div>
+                <button
+                  onClick={() => onLoad(s)}
+                  className="px-2.5 py-1 text-[11px] font-semibold bg-brand-600 text-white rounded-md hover:bg-brand-700 shrink-0"
+                >
+                  Load
+                </button>
+                <button
+                  onClick={() => onDelete(s.id)}
+                  className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/snap:opacity-100 transition-opacity shrink-0"
+                  title="Delete this version"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))
           )}
         </div>
       </div>
@@ -2828,6 +2991,21 @@ export default function EditorWorkspacePage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [librarySelecting, setLibrarySelecting] = useState<string | null>(null);
+  // Auto-save preference (persisted in localStorage; default OFF — user opt-in)
+  const [autoSave, setAutoSave] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('editor-autosave') === 'true';
+  });
+  // Named snapshots saved to localStorage per edit
+  const [snapshots, setSnapshots] = useState<SnapshotEntry[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(`editor-snapshots-${editId}`);
+      return raw ? (JSON.parse(raw) as SnapshotEntry[]) : [];
+    } catch { return []; }
+  });
+  const [showSnapshots, setShowSnapshots] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [binUploading, setBinUploading] = useState(false);
   const [binUrlImporting, setBinUrlImporting] = useState(false);
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -3032,13 +3210,13 @@ export default function EditorWorkspacePage() {
     }
   }, [project, timeline]);
 
-  // Debounced autosave (1.5s after last change)
+  // Debounced auto-save — only fires when the user has enabled it
   useEffect(() => {
-    if (!dirty || !timeline) return;
+    if (!autoSave || !dirty || !timeline) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => void handleSave(), 1500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [dirty, timeline]);
+  }, [dirty, timeline, autoSave]);
 
   const handleSave = async () => {
     if (!timeline) return;
@@ -3062,6 +3240,48 @@ export default function EditorWorkspacePage() {
       progressDone();
     }
   };
+
+  const toggleAutoSave = useCallback(() => {
+    setAutoSave((prev) => {
+      const next = !prev;
+      localStorage.setItem('editor-autosave', String(next));
+      addToast(`autosave-${Date.now()}`, next ? 'Auto-save enabled' : 'Auto-save disabled');
+      return next;
+    });
+  }, [addToast]);
+
+  const handleSaveSnapshot = useCallback((name: string) => {
+    if (!timeline) return;
+    const entry: SnapshotEntry = {
+      id: `snap-${Date.now()}`,
+      name,
+      savedAt: new Date().toISOString(),
+      timeline,
+    };
+    setSnapshots((prev) => {
+      const next = [...prev, entry].slice(-30); // keep last 30 versions
+      try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* storage full */ }
+      return next;
+    });
+    setShowSaveDialog(false);
+    addToast(`snap-saved-${Date.now()}`, `Version "${name}" saved to My Versions`);
+  }, [timeline, editId, addToast]);
+
+  const handleLoadSnapshot = useCallback((s: SnapshotEntry) => {
+    pushUndo();
+    setTimeline(s.timeline);
+    setDirty(true);
+    setShowSnapshots(false);
+    addToast(`snap-load-${Date.now()}`, `Loaded "${s.name}"`);
+  }, [pushUndo, addToast]);
+
+  const handleDeleteSnapshot = useCallback((id: string) => {
+    setSnapshots((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* */ }
+      return next;
+    });
+  }, [editId]);
 
   // skipHistory=true during pointer-move (drag/trim) so Ctrl+Z steps through
   // whole operations, not individual pixel positions.
@@ -3905,6 +4125,42 @@ export default function EditorWorkspacePage() {
           <HelpCircle className="w-3.5 h-3.5" />
           <span className="hidden md:inline">Guide</span>
         </Link>
+        {/* Auto-save toggle */}
+        <button
+          onClick={toggleAutoSave}
+          title={autoSave ? 'Auto-save ON — click to turn off' : 'Auto-save OFF — click to turn on'}
+          className={`hidden sm:flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs min-h-[44px] border transition-colors ${autoSave ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100' : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
+        >
+          <span className={`relative w-7 h-4 rounded-full flex items-center transition-colors shrink-0 ${autoSave ? 'bg-green-500' : 'bg-gray-300'}`}>
+            <span className={`absolute w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${autoSave ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+          </span>
+          <span className="hidden md:inline">Auto</span>
+        </button>
+
+        {/* My Versions (saved snapshots) */}
+        <button
+          onClick={() => setShowSnapshots(true)}
+          title="My saved versions"
+          className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 min-h-[44px] transition-colors"
+        >
+          <FolderOpen className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Versions</span>
+          {snapshots.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-600 text-[10px] font-bold leading-none">{snapshots.length}</span>
+          )}
+        </button>
+
+        {/* Save as (bookmark current state with a name) */}
+        <button
+          onClick={() => setShowSaveDialog(true)}
+          title="Save a named version"
+          className="flex items-center gap-1.5 px-2 py-2 border border-gray-200 text-gray-500 rounded-lg text-xs hover:bg-brand-50 hover:text-brand-600 hover:border-brand-200 min-h-[44px] transition-colors"
+        >
+          <BookmarkPlus className="w-3.5 h-3.5" />
+          <span className="hidden lg:inline">Save as</span>
+        </button>
+
+        {/* Save — syncs timeline to server */}
         <button
           onClick={() => void handleSave()}
           disabled={saving}
@@ -3913,7 +4169,7 @@ export default function EditorWorkspacePage() {
               ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600'
               : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
-          title={dirty ? 'Save changes' : 'No unsaved changes'}
+          title={dirty ? 'Save changes to server' : 'All changes saved'}
         >
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
           <span className="hidden sm:inline">Save</span>
@@ -4574,6 +4830,22 @@ export default function EditorWorkspacePage() {
           onSelect={handleLibrarySelect}
           onSelectProjectEntry={handleProjectBinSelect}
           selecting={librarySelecting}
+        />
+      )}
+      {showSnapshots && (
+        <VersionsDrawer
+          snapshots={snapshots}
+          onSaveNew={() => { setShowSnapshots(false); setShowSaveDialog(true); }}
+          onLoad={handleLoadSnapshot}
+          onDelete={handleDeleteSnapshot}
+          onClose={() => setShowSnapshots(false)}
+        />
+      )}
+      {showSaveDialog && (
+        <SnapshotSaveDialog
+          defaultName={project.title ? `${project.title} — ${new Date().toLocaleDateString()}` : `Version ${snapshots.length + 1}`}
+          onSave={handleSaveSnapshot}
+          onClose={() => setShowSaveDialog(false)}
         />
       )}
 
