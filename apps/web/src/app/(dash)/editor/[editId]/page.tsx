@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import {
   SlidersHorizontal, ChevronDown, ChevronRight, Clapperboard, Sparkles, KeyRound,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
+  Scissors, RotateCcw, RotateCw, Magnet, Undo2, Redo2,
 } from 'lucide-react';
 import {
   api,
@@ -51,6 +52,8 @@ function clamp(v: number, min: number, max: number): number {
 }
 
 const TRACK_H = 48; // px, also min touch target height
+const LABEL_W = 96; // px — matches w-24 track label width
+const SNAP_MS = 200; // snap threshold in ms at 40px/s
 const TRACK_COLORS: Record<string, string> = {
   VIDEO: 'bg-brand-500/80 border-brand-600 text-white',
   AUDIO: 'bg-emerald-500/70 border-emerald-600 text-white',
@@ -1879,44 +1882,81 @@ function TimelineTrack({
   durationMs,
   pxPerSec,
   selectedId,
+  snapPoints,
+  nameMap,
   onSelect,
   onMoveItem,
   onTrimItem,
+  onItemDragStart,
+  onDropFromBin,
 }: {
   track: EditTrack;
   durationMs: number;
   pxPerSec: number;
   selectedId: string | null;
+  snapPoints: number[];
+  nameMap: Map<string, string>;
   onSelect: (id: string) => void;
   onMoveItem: (itemId: string, newStartMs: number) => void;
   onTrimItem: (itemId: string, newStartMs: number, newEndMs: number) => void;
+  onItemDragStart: () => void;
+  onDropFromBin: (trackId: string, xInTrack: number) => void;
 }) {
-  const totalW = msToX(durationMs, pxPerSec);
+  const totalW = Math.max(msToX(durationMs, pxPerSec) + 200, 600);
+  const [dragOver, setDragOver] = useState(false);
 
   return (
-    <div className="flex items-center" style={{ minHeight: TRACK_H }}>
+    <div className="flex items-center border-b border-gray-800" style={{ minHeight: TRACK_H + 4 }}>
       {/* Track label */}
-      <div className="w-24 shrink-0 px-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wide truncate">
-        {track.label}
+      <div
+        className="shrink-0 flex items-center gap-1.5 px-2 border-r border-gray-700"
+        style={{ width: LABEL_W, height: TRACK_H + 4 }}
+      >
+        {track.kind === 'VIDEO' ? <Film className="w-3 h-3 text-violet-400 shrink-0" /> :
+         track.kind === 'AUDIO' ? <Volume2 className="w-3 h-3 text-emerald-400 shrink-0" /> :
+         <Type className="w-3 h-3 text-amber-400 shrink-0" />}
+        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate">{track.label}</span>
       </div>
       {/* Track lane */}
       <div
-        className="relative flex-1 bg-gray-50 border border-gray-100 rounded-lg overflow-hidden"
-        style={{ height: TRACK_H, width: totalW }}
+        className={`relative flex-none transition-colors ${dragOver ? 'bg-white/5' : 'bg-transparent'}`}
+        style={{ height: TRACK_H + 4, width: totalW }}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('text/binentryid')) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          setDragOver(false);
+          if (!e.dataTransfer.types.includes('text/binentryid')) return;
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          onDropFromBin(track.id, x);
+        }}
+        onClick={(e) => { if (e.target === e.currentTarget) onSelect(selectedId ?? ''); }}
       >
         {(track.items ?? []).map((item) => (
           <TimelineItem
             key={item.id}
             item={item}
             pxPerSec={pxPerSec}
-            trackH={TRACK_H}
+            trackH={TRACK_H + 4}
             selected={item.id === selectedId}
             colorClass={TRACK_COLORS[track.kind] ?? 'bg-gray-400/70 border-gray-500 text-white'}
+            snapPoints={snapPoints.filter((p) => p !== item.timelineStartMs && p !== item.timelineEndMs)}
+            label={item.sourceAssetId ? (nameMap.get(item.sourceAssetId) ?? item.properties?.text ?? item.kind.toLowerCase()) : (item.properties?.text ?? item.kind.toLowerCase())}
             onSelect={() => onSelect(item.id)}
             onMove={(newStartMs) => onMoveItem(item.id, newStartMs)}
             onTrim={(newStartMs, newEndMs) => onTrimItem(item.id, newStartMs, newEndMs)}
+            onDragStart={onItemDragStart}
           />
         ))}
+        {dragOver && (
+          <div className="absolute inset-0 border-2 border-dashed border-brand-400/50 rounded pointer-events-none" />
+        )}
       </div>
     </div>
   );
@@ -1930,80 +1970,101 @@ function TimelineItem({
   trackH,
   selected,
   colorClass,
+  snapPoints,
+  label,
   onSelect,
   onMove,
   onTrim,
+  onDragStart,
 }: {
   item: EditItem;
   pxPerSec: number;
   trackH: number;
   selected: boolean;
   colorClass: string;
+  snapPoints: number[];
+  label: string;
   onSelect: () => void;
   onMove: (newStartMs: number) => void;
   onTrim: (newStartMs: number, newEndMs: number) => void;
+  onDragStart?: () => void;
 }) {
   const left = msToX(item.timelineStartMs, pxPerSec);
-  const width = msToX(item.timelineEndMs - item.timelineStartMs, pxPerSec);
+  const width = Math.max(4, msToX(item.timelineEndMs - item.timelineStartMs, pxPerSec));
   const HANDLE_W = 8;
+  const durMs = item.timelineEndMs - item.timelineStartMs;
 
   const dragRef = useRef<{ startX: number; startMs: number; mode: 'move' | 'trim-left' | 'trim-right' } | null>(null);
+
+  function snapTo(ms: number): number {
+    const thresholdMs = (SNAP_MS / 40) * pxPerSec;
+    let best = ms;
+    let bestDist = thresholdMs;
+    for (const pt of snapPoints) {
+      const d = Math.abs(pt - ms);
+      if (d < bestDist) { bestDist = d; best = pt; }
+    }
+    return best;
+  }
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, mode: 'move' | 'trim-left' | 'trim-right') => {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = { startX: e.clientX, startMs: item.timelineStartMs, mode };
     onSelect();
-  }, [item.timelineStartMs, onSelect]);
+    onDragStart?.();
+  }, [item.timelineStartMs, onSelect, onDragStart]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragRef.current) return;
     const dx = e.clientX - dragRef.current.startX;
     const deltaMs = xToMs(dx, pxPerSec);
     if (dragRef.current.mode === 'move') {
-      const newStart = Math.max(0, dragRef.current.startMs + deltaMs);
+      const newStart = Math.max(0, snapTo(dragRef.current.startMs + deltaMs));
       onMove(newStart);
     } else if (dragRef.current.mode === 'trim-left') {
-      const newStart = clamp(dragRef.current.startMs + deltaMs, 0, item.timelineEndMs - 100);
+      const newStart = clamp(snapTo(dragRef.current.startMs + deltaMs), 0, item.timelineEndMs - 100);
       onTrim(newStart, item.timelineEndMs);
     } else {
-      const newEnd = clamp(item.timelineStartMs + (item.timelineEndMs - item.timelineStartMs) + deltaMs, item.timelineStartMs + 100, Infinity);
+      const newEnd = clamp(snapTo(item.timelineStartMs + (item.timelineEndMs - item.timelineStartMs) + deltaMs), item.timelineStartMs + 100, Infinity);
       onTrim(item.timelineStartMs, newEnd);
     }
-  }, [item.timelineStartMs, item.timelineEndMs, pxPerSec, onMove, onTrim]);
+  }, [item.timelineStartMs, item.timelineEndMs, pxPerSec, onMove, onTrim, snapPoints]);
 
   const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
 
-  const label = item.properties?.text ?? item.kind.toLowerCase();
-
   return (
     <div
-      style={{ left, width, height: trackH, position: 'absolute', top: 0 }}
-      className={`rounded border ${colorClass} ${selected ? 'ring-2 ring-white ring-offset-1' : ''} flex items-center overflow-hidden select-none touch-none`}
+      data-clip="1"
+      style={{ left, width, height: trackH - 4, position: 'absolute', top: 2 }}
+      className={`rounded border ${colorClass} ${selected ? 'ring-2 ring-white ring-offset-1 ring-offset-gray-900' : 'opacity-90'} flex items-center overflow-hidden select-none touch-none`}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
       {/* Left trim handle */}
       <div
-        className="absolute left-0 top-0 bottom-0 cursor-ew-resize z-10 flex items-center justify-center"
-        style={{ width: HANDLE_W, minHeight: 44 }}
+        className="absolute left-0 top-0 bottom-0 cursor-ew-resize z-10 flex items-center justify-center hover:bg-white/20"
+        style={{ width: HANDLE_W }}
         onPointerDown={(e) => onPointerDown(e, 'trim-left')}
       >
         <div className="w-0.5 h-4 bg-white/60 rounded-full" />
       </div>
       {/* Main body — drag to move */}
       <div
-        className="flex-1 h-full flex items-center px-3 cursor-grab active:cursor-grabbing overflow-hidden"
+        className="flex-1 h-full flex flex-col justify-center px-3 cursor-grab active:cursor-grabbing overflow-hidden"
         style={{ paddingLeft: HANDLE_W + 4, paddingRight: HANDLE_W + 4 }}
         onPointerDown={(e) => onPointerDown(e, 'move')}
       >
-        <span className="text-[11px] font-medium truncate">{label}</span>
+        <span className="text-[11px] font-medium truncate leading-tight">{label}</span>
+        {width > 48 && (
+          <span className="text-[9px] opacity-60 leading-tight">{fmtMs(durMs)}</span>
+        )}
       </div>
       {/* Right trim handle */}
       <div
-        className="absolute right-0 top-0 bottom-0 cursor-ew-resize z-10 flex items-center justify-center"
-        style={{ width: HANDLE_W, minHeight: 44 }}
+        className="absolute right-0 top-0 bottom-0 cursor-ew-resize z-10 flex items-center justify-center hover:bg-white/20"
+        style={{ width: HANDLE_W }}
         onPointerDown={(e) => onPointerDown(e, 'trim-right')}
       >
         <div className="w-0.5 h-4 bg-white/60 rounded-full" />
@@ -2038,10 +2099,12 @@ function BinEntry({
   entry,
   onAdd,
   onDelete,
+  onDragStart,
 }: {
   entry: MediaBinEntry;
   onAdd: (e: MediaBinEntry) => void;
   onDelete?: (id: string) => void;
+  onDragStart?: (entry: MediaBinEntry) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(entry.label);
@@ -2053,7 +2116,16 @@ function BinEntry({
   const isProcessing = !entry.versionId;
 
   return (
-    <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-2.5 py-2 hover:bg-gray-50 group">
+    <div
+      className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-2.5 py-2 hover:bg-gray-50 group"
+      draggable={!isProcessing}
+      onDragStart={(e) => {
+        if (isProcessing) { e.preventDefault(); return; }
+        e.dataTransfer.setData('text/binentryid', entry.id);
+        e.dataTransfer.effectAllowed = 'copy';
+        onDragStart?.(entry);
+      }}
+    >
       <span className="shrink-0">{KIND_ICON[entry.kind] ?? <Film className="w-3.5 h-3.5 text-gray-400" />}</span>
       <div className="flex-1 min-w-0">
         {editing ? (
@@ -2121,6 +2193,7 @@ function MediaBin({
   urlImporting,
   onOpenLibrary,
   onDeleteEntry,
+  onEntryDragStart,
 }: {
   entries: MediaBinEntry[];
   onAddToTimeline: (entry: MediaBinEntry) => void;
@@ -2130,6 +2203,7 @@ function MediaBin({
   urlImporting?: boolean;
   onOpenLibrary?: () => void;
   onDeleteEntry?: (id: string) => void;
+  onEntryDragStart?: (entry: MediaBinEntry) => void;
 }) {
   const [rendersOpen, setRendersOpen] = useState(false);
   const [showUrlBar, setShowUrlBar] = useState(false);
@@ -2251,7 +2325,7 @@ function MediaBin({
         {sources.length > 0 && (
           <>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-2 pb-1">Working Files</p>
-            {sources.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} />)}
+            {sources.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
 
@@ -2267,7 +2341,7 @@ function MediaBin({
               <span className="text-[9px] text-gray-400 font-medium">{renders.length} render{renders.length !== 1 ? 's' : ''}</span>
               <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform shrink-0 ${rendersOpen ? '' : '-rotate-90'}`} />
             </button>
-            {rendersOpen && renders.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} />)}
+            {rendersOpen && renders.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDragStart={onEntryDragStart} />)}
           </>
         )}
 
@@ -2275,7 +2349,7 @@ function MediaBin({
         {audios.length > 0 && (
           <>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Audio</p>
-            {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} />)}
+            {audios.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
 
@@ -2283,7 +2357,7 @@ function MediaBin({
         {images.length > 0 && (
           <>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-2 pt-3 pb-1">Images</p>
-            {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} />)}
+            {images.map((e) => <BinEntry key={e.id} entry={e} onAdd={onAddToTimeline} onDelete={onDeleteEntry} onDragStart={onEntryDragStart} />)}
           </>
         )}
       </div>
@@ -2340,6 +2414,15 @@ export default function EditorWorkspacePage() {
   const [binUploading, setBinUploading] = useState(false);
   const [binUrlImporting, setBinUrlImporting] = useState(false);
   const [binUploadError, setBinUploadError] = useState<string | null>(null);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const assetNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of mediaBin) m.set(e.id, e.label);
+    return m;
+  }, [mediaBin]);
 
   const handleBinUpload = useCallback(async (file: File) => {
     if (!project?.projectId) return;
@@ -2454,7 +2537,10 @@ export default function EditorWorkspacePage() {
   const activeVideoItemRef = useRef<EditItem | null>(null);
   const activeAudioItemRef = useRef<EditItem | null>(null);
   const audioSrcRef = useRef<string | null>(null);
+  const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const historyRef = useRef<EditTimeline[]>([]);
+  const historyIndexRef = useRef(-1);
 
   // Initialise timeline from server — normalise Prisma's default {} or null (no tracks)
   useEffect(() => {
@@ -2494,10 +2580,14 @@ export default function EditorWorkspacePage() {
   const updateTimeline = useCallback((updater: (tl: EditTimeline) => EditTimeline) => {
     setTimeline((prev) => {
       if (!prev) return prev;
-      // Guard tracks — Prisma default {} has no tracks; every updater needs the array.
       const safe: EditTimeline = { ...prev, tracks: prev.tracks ?? [] };
       const next = updater(safe);
       setDirty(true);
+      const newHist = historyRef.current.slice(0, historyIndexRef.current + 1).concat([next]);
+      historyRef.current = newHist;
+      historyIndexRef.current = newHist.length - 1;
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(false);
       return next;
     });
   }, []);
@@ -2600,19 +2690,105 @@ export default function EditorWorkspacePage() {
     });
   }, [updateTimeline]);
 
+  const handleUndo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return;
+    historyIndexRef.current -= 1;
+    const state = historyRef.current[historyIndexRef.current];
+    if (state) { setTimeline(state); setDirty(true); setCanUndo(historyIndexRef.current > 0); setCanRedo(true); }
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return;
+    historyIndexRef.current += 1;
+    const state = historyRef.current[historyIndexRef.current];
+    if (state) { setTimeline(state); setDirty(true); setCanUndo(true); setCanRedo(historyIndexRef.current < historyRef.current.length - 1); }
+  }, []);
+
+  // pushUndo: no-op; updateTimeline already records every change in historyRef.
+  // Called by TimelineItem onDragStart to signal intent (history entry captured on first move).
+  const pushUndo = useCallback(() => { /* history captured automatically by updateTimeline */ }, []);
+
+  const handleAddTrack = useCallback((kind: 'VIDEO' | 'AUDIO') => {
+    updateTimeline((tl) => {
+      const count = tl.tracks.filter((t) => t.kind === kind).length + 1;
+      const newTrack: EditTrack = {
+        id: `track-${kind.toLowerCase()}-${Date.now()}`,
+        kind,
+        label: `${kind.charAt(0) + kind.slice(1).toLowerCase()} ${count}`,
+        items: [],
+      };
+      return { ...tl, tracks: [...tl.tracks, newTrack] };
+    });
+  }, [updateTimeline]);
+
+  const handleSplitItem = useCallback((itemId: string, atMs: number) => {
+    updateTimeline((tl) => ({
+      ...tl,
+      tracks: tl.tracks.map((track) => ({
+        ...track,
+        items: (track.items ?? []).flatMap((item) => {
+          if (item.id !== itemId) return [item];
+          if (atMs <= item.timelineStartMs || atMs >= item.timelineEndMs) return [item];
+          const leftDur = atMs - item.timelineStartMs;
+          return [
+            { ...item, timelineEndMs: atMs },
+            {
+              ...item,
+              id: `item-${Date.now()}-r`,
+              timelineStartMs: atMs,
+              timelineEndMs: item.timelineEndMs,
+              sourceInMs: Math.round((item.sourceInMs ?? 0) + leftDur),
+            },
+          ];
+        }),
+      })),
+    }));
+  }, [updateTimeline]);
+
+  const handleSplitAtPlayhead = useCallback(() => {
+    const t = currentTimeMsRef.current;
+    updateTimeline((tl) => ({
+      ...tl,
+      tracks: tl.tracks.map((tr) => ({
+        ...tr,
+        items: tr.items.flatMap((it) => {
+          if (t <= it.timelineStartMs || t >= it.timelineEndMs) return [it];
+          const elapsed = t - it.timelineStartMs;
+          const left: EditItem = {
+            ...it,
+            id: `${it.id}-L`,
+            timelineEndMs: Math.round(t),
+            sourceOutMs: Math.round((it.sourceInMs ?? 0) + elapsed),
+          };
+          const right: EditItem = {
+            ...it,
+            id: `item-${Date.now()}-R`,
+            timelineStartMs: Math.round(t),
+            sourceInMs: Math.round((it.sourceInMs ?? 0) + elapsed),
+          };
+          return [left, right];
+        }),
+      })),
+    }));
+  }, [updateTimeline]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
-      if (selectedItemId) {
-        e.preventDefault();
-        handleDeleteItem(selectedItemId);
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedItemId) {
+        e.preventDefault(); handleDeleteItem(selectedItemId);
+      } else if (e.key === 's' || e.key === 'S') {
+        e.preventDefault(); handleSplitAtPlayhead();
+      } else if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        e.preventDefault(); handleUndo();
+      } else if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
+        e.preventDefault(); handleRedo();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedItemId, handleDeleteItem]);
+  }, [selectedItemId, handleDeleteItem, handleSplitAtPlayhead, handleUndo, handleRedo]);
 
   // Playback via rAF — video is synced directly in the tick (not via React effects)
   // so React state is only updated at ~30 fps for the seek bar / time display.
@@ -2816,6 +2992,30 @@ export default function EditorWorkspacePage() {
     ? (timeline?.tracks ?? []).flatMap((t) => t.items ?? []).find((it) => it.id === selectedItemId) ?? null
     : null;
 
+  // Drop from bin onto a specific track at a pixel position
+  const handleDropFromBin = useCallback((trackId: string, xInTrack: number) => {
+    const entry = draggedBinEntryRef.current;
+    if (!entry) return;
+    draggedBinEntryRef.current = null;
+    const dropMs = Math.max(0, Math.round(xToMs(xInTrack, pxPerSec)));
+    updateTimeline((tl) => {
+      const itemKind = binKindToItemKind(entry.kind);
+      const newItem: EditItem = {
+        id: `item-${Date.now()}`,
+        sourceAssetId: entry.id,
+        kind: itemKind,
+        timelineStartMs: dropMs,
+        timelineEndMs: dropMs + Math.max(1, Math.round(entry.durationMs || 5000)),
+      };
+      const newDuration = Math.max(tl.durationMs, newItem.timelineEndMs);
+      const track = tl.tracks.find((t) => t.id === trackId);
+      if (track) {
+        return { ...tl, durationMs: newDuration, tracks: tl.tracks.map((t) => t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t) };
+      }
+      return tl;
+    });
+  }, [pxPerSec, updateTimeline]);
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-gray-500 py-20 justify-center">
@@ -2841,6 +3041,18 @@ export default function EditorWorkspacePage() {
 
   const dur = timeline?.durationMs ?? 0;
   const totalTimelineW = msToX(dur || 60000, pxPerSec);
+
+  // All clip edge points for snapping (unique sorted list)
+  const allSnapPoints = useMemo(() => {
+    const pts = new Set<number>();
+    for (const tr of timeline?.tracks ?? []) {
+      for (const it of tr.items ?? []) {
+        pts.add(it.timelineStartMs);
+        pts.add(it.timelineEndMs);
+      }
+    }
+    return Array.from(pts).sort((a, b) => a - b);
+  }, [timeline]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -2965,6 +3177,7 @@ export default function EditorWorkspacePage() {
             urlImporting={binUrlImporting}
             onOpenLibrary={() => setShowLibrary(true)}
             onDeleteEntry={handleBinDeleteEntry}
+            onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
           />
           {binUploadError && (
             <p className="text-xs text-red-600 px-3 pb-2">{binUploadError}</p>
@@ -2991,6 +3204,7 @@ export default function EditorWorkspacePage() {
                 urlImporting={binUrlImporting}
                 onOpenLibrary={() => { setShowLibrary(true); setMobileBinOpen(false); }}
                 onDeleteEntry={handleBinDeleteEntry}
+                onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
               />
             </div>
           </div>
@@ -3151,51 +3365,173 @@ export default function EditorWorkspacePage() {
             </button>
           </div>
 
-          {/* Timeline */}
-          <div className="flex-1 overflow-auto bg-gray-50">
+          {/* Timeline — Professional dark multi-track editor */}
+          <div className="flex-1 overflow-hidden bg-gray-900 flex flex-col">
+            {/* Timeline toolbar */}
+            <div className="shrink-0 flex items-center gap-1 px-2 py-1 bg-gray-800 border-b border-gray-700">
+              <button
+                onClick={handleUndo}
+                disabled={!canUndo}
+                className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white"
+                title="Undo (Ctrl+Z)"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white"
+                title="Redo (Ctrl+Shift+Z)"
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+              </button>
+              <div className="w-px h-4 bg-white/20 mx-0.5" />
+              <button
+                onClick={() => selectedItemId ? handleSplitItem(selectedItemId, currentTimeMsRef.current) : handleSplitAtPlayhead()}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 text-white"
+                title="Split clip at playhead (S)"
+              >
+                <Scissors className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Split</span>
+              </button>
+              <button
+                onClick={() => selectedItemId && handleDeleteItem(selectedItemId)}
+                disabled={!selectedItemId}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-red-500/20 disabled:opacity-30 text-red-400"
+                title="Delete clip (Del)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+              <div className="flex-1" />
+              <button
+                onClick={() => handleAddTrack('VIDEO')}
+                className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-white/10 text-violet-400"
+                title="Add video track"
+              >
+                <Plus className="w-3 h-3" /><Film className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => handleAddTrack('AUDIO')}
+                className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-white/10 text-emerald-400"
+                title="Add audio track"
+              >
+                <Plus className="w-3 h-3" /><Volume2 className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Timeline scroll area */}
             {!timeline ? (
-              <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+              <div className="flex items-center justify-center flex-1 text-gray-400 text-sm">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading timeline…
               </div>
             ) : (timeline.tracks ?? []).length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400 text-sm gap-2">
+              <div className="flex flex-col items-center justify-center flex-1 text-gray-500 text-sm gap-2">
                 <Film className="w-8 h-8 opacity-30" />
-                <p>Add media from the bin to start editing</p>
+                <p>Drag media from the bin onto tracks, or click + to add clips</p>
+                <div className="flex gap-2 mt-1">
+                  <button onClick={() => handleAddTrack('VIDEO')} className="flex items-center gap-1 px-3 py-1.5 bg-violet-600/30 hover:bg-violet-600/50 text-violet-300 rounded text-xs">
+                    <Plus className="w-3 h-3" /><Film className="w-3 h-3" /> Add Video Track
+                  </button>
+                  <button onClick={() => handleAddTrack('AUDIO')} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded text-xs">
+                    <Plus className="w-3 h-3" /><Volume2 className="w-3 h-3" /> Add Audio Track
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="p-3 min-w-0 space-y-1.5">
-                {/* Time ruler */}
-                <div className="flex ml-24 overflow-hidden" style={{ width: totalTimelineW }}>
-                  {Array.from({ length: Math.ceil((dur || 60000) / 5000) }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="shrink-0 text-[9px] text-gray-400 border-l border-gray-200 pl-1"
-                      style={{ width: msToX(5000, pxPerSec) }}
-                    >
-                      {fmtMs(i * 5000)}
+              <div className="flex-1 overflow-auto">
+                {(() => {
+                  const totalW = Math.max(msToX(dur || 60000, pxPerSec) + 200, 600);
+                  const tickIntervalMs = (() => {
+                    const options = [500, 1000, 2000, 5000, 10000, 30000, 60000];
+                    return options.find((ms) => msToX(ms, pxPerSec) >= 50) ?? 60000;
+                  })();
+                  const tickCount = Math.ceil((dur || 60000) / tickIntervalMs) + 2;
+                  const snapPoints: number[] = [0, dur];
+                  for (const track of timeline.tracks ?? []) {
+                    for (const item of track.items ?? []) {
+                      snapPoints.push(item.timelineStartMs, item.timelineEndMs);
+                    }
+                  }
+                  return (
+                    <div className="relative" style={{ minWidth: LABEL_W + totalW + 16 }}>
+                      {/* Sticky ruler — click/drag to seek */}
+                      <div
+                        className="sticky top-0 z-20 flex bg-gray-800 border-b border-gray-700 cursor-col-resize select-none"
+                        style={{ height: 28 }}
+                        onPointerDown={(e) => {
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX - rect.left - LABEL_W;
+                          if (x < 0) return;
+                          const ms = Math.max(0, Math.round(xToMs(x, pxPerSec)));
+                          currentTimeMsRef.current = ms;
+                          setCurrentTimeMs(ms);
+                        }}
+                        onPointerMove={(e) => {
+                          if (e.buttons !== 1) return;
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX - rect.left - LABEL_W;
+                          if (x < 0) return;
+                          const ms = Math.max(0, Math.min(dur || 60000, Math.round(xToMs(x, pxPerSec))));
+                          currentTimeMsRef.current = ms;
+                          setCurrentTimeMs(ms);
+                        }}
+                      >
+                        <div style={{ width: LABEL_W }} className="shrink-0 border-r border-gray-700" />
+                        <div className="relative flex-1" style={{ width: totalW }}>
+                          {Array.from({ length: tickCount }).map((_, i) => {
+                            const ms = i * tickIntervalMs;
+                            return (
+                              <div
+                                key={i}
+                                className="absolute top-0 flex flex-col items-start pointer-events-none"
+                                style={{ left: msToX(ms, pxPerSec) }}
+                              >
+                                <div className="w-px h-2 bg-white/30 mt-1" />
+                                <span className="text-[9px] text-gray-400 pl-0.5 mt-0.5 whitespace-nowrap">{fmtMs(ms)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Playhead line — spans ruler + all tracks */}
+                      <div
+                        className="absolute top-0 bottom-0 z-30 pointer-events-none"
+                        style={{ left: LABEL_W + msToX(currentTimeMs, pxPerSec), width: 1 }}
+                      >
+                        <div className="w-full h-full bg-red-500 opacity-80" />
+                        <div
+                          className="absolute -left-1.5 w-3 h-3 bg-red-500 rotate-45"
+                          style={{ top: 22 }}
+                        />
+                      </div>
+
+                      {/* Tracks */}
+                      <div className="flex flex-col">
+                        {(timeline.tracks ?? []).map((track) => (
+                          <TimelineTrack
+                            key={track.id}
+                            track={track}
+                            durationMs={dur || 60000}
+                            pxPerSec={pxPerSec}
+                            selectedId={selectedItemId}
+                            snapPoints={snapPoints}
+                            onSelect={(id) => {
+                              setSelectedItemId(id || null);
+                              if (id && window.innerWidth < 1024) setMobileInspectorOpen(true);
+                            }}
+                            onMoveItem={handleMoveItem}
+                            onTrimItem={handleTrimItem}
+                            onItemDragStart={pushUndo}
+                            onDropFromBin={handleDropFromBin}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-                {/* Playhead */}
-                <div className="relative ml-24" style={{ width: totalTimelineW }}>
-                  <div
-                    className="absolute top-0 bottom-0 w-0.5 bg-brand-500 z-20 pointer-events-none"
-                    style={{ left: msToX(currentTimeMs, pxPerSec) }}
-                  />
-                </div>
-                {/* Tracks */}
-                {(timeline.tracks ?? []).map((track) => (
-                  <TimelineTrack
-                    key={track.id}
-                    track={track}
-                    durationMs={dur || 60000}
-                    pxPerSec={pxPerSec}
-                    selectedId={selectedItemId}
-                    onSelect={(id) => { setSelectedItemId(id); if (window.innerWidth < 1024) setMobileInspectorOpen(true); }}
-                    onMoveItem={handleMoveItem}
-                    onTrimItem={handleTrimItem}
-                  />
-                ))}
+                  );
+                })()}
               </div>
             )}
           </div>
