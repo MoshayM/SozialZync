@@ -4,9 +4,13 @@ import { useRouter } from 'next/navigation';
 import { Film, Loader2, AlertCircle } from 'lucide-react';
 import { api, type EditProject } from '@/lib/api';
 
+const MAX_ATTEMPTS = 4;
+const RETRY_DELAY_MS = 4000;
+
 function SmartRedirect() {
   const router = useRouter();
   const ran = useRef(false);
+  const [attempt, setAttempt] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,7 +26,7 @@ function SmartRedirect() {
       return;
     }
 
-    async function go() {
+    async function go(currentAttempt: number): Promise<void> {
       try {
         const { data: edits } = await api.editor.listMine();
         const arr: EditProject[] = Array.isArray(edits) ? edits : [];
@@ -36,15 +40,22 @@ function SmartRedirect() {
         const { data: edit } = await api.editor.createBlank({ title: 'New Edit' });
         router.replace(`/editor/${edit.id}`);
       } catch {
-        setError('Could not open the editor. Please try again.');
+        if (currentAttempt < MAX_ATTEMPTS) {
+          // Server may be waking up (cold start) — wait and retry
+          setAttempt(currentAttempt + 1);
+          setTimeout(() => void go(currentAttempt + 1), RETRY_DELAY_MS);
+        } else {
+          setError('Could not open the editor. Please try again.');
+        }
       }
     }
 
-    void go();
+    void go(1);
   }, [router]);
 
   function retry() {
     setError(null);
+    setAttempt(1);
     ran.current = false;
   }
 
@@ -80,7 +91,9 @@ function SmartRedirect() {
         <p className="font-semibold text-gray-800 text-lg">Opening Video Editor</p>
         <div className="flex items-center justify-center gap-2 mt-2 text-gray-400">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-sm">Loading your workspace&hellip;</span>
+          <span className="text-sm">
+            {attempt > 1 ? `Starting up… (attempt ${attempt}/${MAX_ATTEMPTS})` : 'Loading your workspace…'}
+          </span>
         </div>
       </div>
     </div>
