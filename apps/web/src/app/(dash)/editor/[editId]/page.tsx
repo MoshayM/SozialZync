@@ -3582,10 +3582,10 @@ export default function EditorWorkspacePage() {
           <Maximize2 className="w-4 h-4" />
         </button>
 
-        {/* AI Edit — desktop only; mobile access via Tools sheet */}
+        {/* AI Edit — visible on all screen sizes */}
         <button
           onClick={() => setShowAiEdit(true)}
-          className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 min-h-[44px]"
+          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 min-h-[44px]"
           title="AI edit"
         >
           <Wand2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI edit</span>
