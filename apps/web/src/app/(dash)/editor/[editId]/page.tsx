@@ -1907,6 +1907,8 @@ function TimelineTrack({
   onItemDragStart,
   onDropFromBin,
   onMuteItem,
+  onHideItem,
+  onDelinkItem,
 }: {
   track: EditTrack;
   durationMs: number;
@@ -1920,10 +1922,13 @@ function TimelineTrack({
   onItemDragStart: () => void;
   onDropFromBin: (trackId: string, xInTrack: number) => void;
   onMuteItem: (itemId: string) => void;
+  onHideItem: (itemId: string) => void;
+  onDelinkItem: (itemId: string) => void;
 }) {
   const totalW = Math.max(msToX(durationMs, pxPerSec) + 200, 600);
   const [dragOver, setDragOver] = useState(false);
   const trackMuted = (track.items ?? []).length > 0 && (track.items ?? []).every((it) => !!it.properties?.muted);
+  const trackHidden = (track.items ?? []).length > 0 && (track.items ?? []).every((it) => !!it.properties?.hidden);
 
   return (
     <div className="flex items-center border-b border-gray-800" style={{ minHeight: TRACK_H + 4 }}>
@@ -1936,11 +1941,20 @@ function TimelineTrack({
          track.kind === 'AUDIO' ? <Volume2 className="w-3 h-3 text-emerald-400 shrink-0" /> :
          <Type className="w-3 h-3 text-amber-400 shrink-0" />}
         <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate flex-1 min-w-0">{track.label}</span>
-        {(track.kind === 'VIDEO' || track.kind === 'AUDIO') && (track.items ?? []).length > 0 && (
+        {track.kind === 'VIDEO' && (track.items ?? []).length > 0 && (
           <button
-            onClick={() => { const targetMuted = !trackMuted; (track.items ?? []).forEach((it) => { if (!!it.properties?.muted !== targetMuted) onMuteItem(it.id); }); }}
+            onClick={() => { const target = !trackHidden; (track.items ?? []).forEach((it) => { if (!!it.properties?.hidden !== target) onHideItem(it.id); }); }}
             className="shrink-0 p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-white"
-            title={trackMuted ? 'Unmute track' : 'Mute track'}
+            title={trackHidden ? 'Show all clips' : 'Hide all clips'}
+          >
+            {trackHidden ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+          </button>
+        )}
+        {track.kind === 'AUDIO' && (track.items ?? []).length > 0 && (
+          <button
+            onClick={() => { const target = !trackMuted; (track.items ?? []).forEach((it) => { if (!!it.properties?.muted !== target) onMuteItem(it.id); }); }}
+            className="shrink-0 p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-white"
+            title={trackMuted ? 'Unmute all clips' : 'Mute all clips'}
           >
             {trackMuted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
           </button>
@@ -1995,7 +2009,9 @@ function TimelineTrack({
             onMove={(newStartMs) => onMoveItem(item.id, newStartMs)}
             onTrim={(newStartMs, newEndMs) => onTrimItem(item.id, newStartMs, newEndMs)}
             onDragStart={onItemDragStart}
-            onMuteToggle={() => onMuteItem(item.id)}
+            onMuteToggle={track.kind === 'AUDIO' ? () => onMuteItem(item.id) : undefined}
+            onHideToggle={track.kind === 'VIDEO' ? () => onHideItem(item.id) : undefined}
+            onDelinkItem={track.kind === 'AUDIO' && !!item.linkedItemId ? () => onDelinkItem(item.id) : undefined}
           />
         ))}
         {dragOver && (
@@ -2023,6 +2039,8 @@ function TimelineItem({
   onTrim,
   onDragStart,
   onMuteToggle,
+  onHideToggle,
+  onDelinkItem,
 }: {
   item: EditItem;
   pxPerSec: number;
@@ -2038,6 +2056,8 @@ function TimelineItem({
   onTrim: (newStartMs: number, newEndMs: number) => void;
   onDragStart?: () => void;
   onMuteToggle?: () => void;
+  onHideToggle?: () => void;
+  onDelinkItem?: () => void;
 }) {
   const left = msToX(item.timelineStartMs, pxPerSec);
   const width = Math.max(4, msToX(item.timelineEndMs - item.timelineStartMs, pxPerSec));
@@ -2095,14 +2115,17 @@ function TimelineItem({
 
   const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
 
-  const muted = !!item.properties?.muted;
+  const muted = !!item.properties?.muted;      // AUDIO clips: audio silenced
+  const hidden = !!item.properties?.hidden;    // VIDEO clips: frames hidden
   const isVideoTrack = trackKind === 'VIDEO';
 
   return (
     <div
       data-clip="1"
       style={{ left, width, height: trackH - 4, position: 'absolute', top: 2 }}
-      className={`group rounded border ${colorClass} ${muted ? 'opacity-50' : selected ? 'ring-2 ring-white ring-offset-1 ring-offset-gray-900' : 'opacity-90'} flex items-center overflow-hidden select-none touch-none`}
+      className={`group rounded border ${colorClass} ${
+        (isVideoTrack ? hidden : muted) ? 'opacity-40' : selected ? 'ring-2 ring-white ring-offset-1 ring-offset-gray-900' : 'opacity-90'
+      } flex items-center overflow-hidden select-none touch-none`}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
@@ -2132,36 +2155,53 @@ function TimelineItem({
         )}
         <div className="flex items-center gap-1 relative z-10">
           {isLinked && <Link2Off className="w-2.5 h-2.5 opacity-60 shrink-0" />}
-          {/* State indicator: eye-off for hidden video, volume-x for muted audio */}
-          {muted && (isVideoTrack
-            ? <EyeOff className="w-2.5 h-2.5 opacity-80 shrink-0" />
-            : <VolumeX className="w-2.5 h-2.5 opacity-80 shrink-0" />
-          )}
+          {/* State indicator */}
+          {isVideoTrack && hidden && <EyeOff className="w-2.5 h-2.5 opacity-80 shrink-0" />}
+          {!isVideoTrack && muted && <VolumeX className="w-2.5 h-2.5 opacity-80 shrink-0" />}
           <span className="text-[11px] font-medium truncate leading-tight">{label}</span>
         </div>
         {width > 48 && (
           <span className="text-[9px] opacity-60 leading-tight relative z-10">{fmtMs(durMs)}</span>
         )}
       </div>
-      {/* Toggle button — shown on hover. Video track: eye on/off. Audio track: speaker on/off. */}
+
+      {/* VIDEO TRACK: Eye/EyeOff toggle (show/hide clip frames) */}
+      {onHideToggle && width > 40 && (
+        <button
+          className="absolute top-0.5 right-8 p-0.5 rounded z-20 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onHideToggle(); }}
+          title={hidden ? 'Show clip' : 'Hide clip'}
+          aria-label={hidden ? 'Show clip' : 'Hide clip'}
+        >
+          {hidden ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+        </button>
+      )}
+
+      {/* AUDIO TRACK: Mute toggle + Delink button */}
       {onMuteToggle && width > 40 && (
         <button
           className="absolute top-0.5 right-8 p-0.5 rounded z-20 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onMuteToggle(); }}
-          title={isVideoTrack
-            ? (muted ? 'Show video clip' : 'Hide video clip')
-            : (muted ? 'Unmute clip' : 'Mute clip')}
-          aria-label={isVideoTrack
-            ? (muted ? 'Show video clip' : 'Hide video clip')
-            : (muted ? 'Unmute clip' : 'Mute clip')}
+          title={muted ? 'Unmute audio' : 'Mute audio'}
+          aria-label={muted ? 'Unmute audio' : 'Mute audio'}
         >
-          {isVideoTrack
-            ? (muted ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />)
-            : (muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />)
-          }
+          {muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
         </button>
       )}
+      {onDelinkItem && width > 56 && (
+        <button
+          className="absolute top-0.5 right-14 p-0.5 rounded z-20 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onDelinkItem(); }}
+          title="Detach audio from video"
+          aria-label="Detach audio from video"
+        >
+          <Link2Off className="w-2.5 h-2.5" />
+        </button>
+      )}
+
       {/* Right trim handle */}
       <div
         className="absolute right-0 top-0 bottom-0 cursor-ew-resize z-10 flex items-center justify-center hover:bg-white/20"
@@ -2975,6 +3015,43 @@ export default function EditorWorkspacePage() {
     }));
   }, [updateTimeline]);
 
+  // Toggle VIDEO clip visibility (eye on/off) — does NOT affect audio.
+  const handleHideItem = useCallback((itemId: string) => {
+    updateTimeline((tl) => ({
+      ...tl,
+      tracks: tl.tracks.map((tr) => ({
+        ...tr,
+        items: (tr.items ?? []).map((it) =>
+          it.id === itemId ? { ...it, properties: { ...it.properties, hidden: !it.properties?.hidden } } : it,
+        ),
+      })),
+    }));
+  }, [updateTimeline]);
+
+  // Remove the link between an AUDIO clip and its paired VIDEO clip.
+  const handleDelinkItem = useCallback((itemId: string) => {
+    updateTimeline((tl) => {
+      let pairedId: string | undefined;
+      for (const tr of tl.tracks) {
+        for (const it of (tr.items ?? [])) {
+          if (it.id === itemId) { pairedId = it.linkedItemId; }
+        }
+      }
+      return {
+        ...tl,
+        tracks: tl.tracks.map((tr) => ({
+          ...tr,
+          items: (tr.items ?? []).map((it) => {
+            if (it.id === itemId || (pairedId && it.id === pairedId)) {
+              return { ...it, linkedItemId: undefined };
+            }
+            return it;
+          }),
+        })),
+      };
+    });
+  }, [updateTimeline]);
+
   const handleGlobalMuteToggle = useCallback(() => {
     const next = !globalMutedRef.current;
     globalMutedRef.current = next;
@@ -3079,7 +3156,10 @@ export default function EditorWorkspacePage() {
         if (v.playbackRate !== rate) v.playbackRate = rate;
         const vol = clamp(item.properties?.volume ?? 1, 0, 1);
         v.volume = vol;
-        v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
+        // Audio muting is controlled by the AUDIO track clip (linkedAudio), not the VIDEO clip.
+        // The VIDEO clip's hidden/eye toggle does not silence audio.
+        const linkedAudio = activeLinkedAudioItemRef.current;
+        v.muted = globalMutedRef.current || !!linkedAudio?.properties?.muted;
         const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (t - item.timelineStartMs) * rate) / 1000);
         // Correct drift only when it exceeds 500 ms to avoid interrupting playback.
         if (Math.abs(v.currentTime - sourceSec) > 0.5) v.currentTime = sourceSec;
@@ -3138,7 +3218,8 @@ export default function EditorWorkspacePage() {
     if (vNow) {
       const vol = clamp(itemNow?.properties?.volume ?? 1, 0, 1);
       vNow.volume = vol;
-      vNow.muted = globalMutedRef.current || vol === 0 || !!itemNow?.properties?.muted;
+      const linkedAudioNow = activeLinkedAudioItemRef.current;
+      vNow.muted = globalMutedRef.current || !!linkedAudioNow?.properties?.muted;
       if (itemNow) vNow.playbackRate = itemNow.properties?.speed ?? 1;
       void vNow.play().catch(() => undefined);
     }
@@ -3932,6 +4013,8 @@ export default function EditorWorkspacePage() {
                                 onItemDragStart={pushUndo}
                                 onDropFromBin={handleDropFromBin}
                                 onMuteItem={handleMuteItem}
+                                onHideItem={handleHideItem}
+                                onDelinkItem={handleDelinkItem}
                               />
                             ))}
                           </div>

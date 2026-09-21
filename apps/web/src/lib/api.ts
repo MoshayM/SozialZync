@@ -1669,7 +1669,8 @@ export interface EditItemProperties {
   text?: string;
   fontSize?: number;
   color?: string;
-  muted?: boolean;       // silence this clip's audio in preview and render
+  muted?: boolean;       // AUDIO clips: silence audio in preview and render
+  hidden?: boolean;      // VIDEO clips: hide frames in preview and render (audio unaffected)
   // Phase 2 — all optional; Phase-1 items without these still work
   filters?: EditItemFilters;
   transitionIn?: EditItemTransition;
