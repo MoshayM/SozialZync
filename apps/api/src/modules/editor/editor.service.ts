@@ -1829,6 +1829,7 @@ Respond with JSON only:
       durationMs,
       previewPath: this.storage.resolve(r2Key),
       versionId: version.id,
+      locked: false,
     };
   }
 
