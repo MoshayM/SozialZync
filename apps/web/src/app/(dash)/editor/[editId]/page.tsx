@@ -1980,7 +1980,15 @@ function TimelineTrack({
                 : (TRACK_COLORS[track.kind] ?? 'bg-gray-400/70 border-gray-500 text-white')
             }
             snapPoints={snapPoints.filter((p) => p !== item.timelineStartMs && p !== item.timelineEndMs)}
-            label={item.sourceAssetId ? (nameMap.get(item.sourceAssetId) ?? item.properties?.text ?? item.kind.toLowerCase()) : (item.properties?.text ?? item.kind.toLowerCase())}
+            label={
+              // Linked AUDIO clips are visual-only companions to a video clip —
+              // show "Audio" instead of the video filename so users aren't confused.
+              (item.kind === 'AUDIO' && item.linkedItemId)
+                ? 'Audio'
+                : item.sourceAssetId
+                  ? (nameMap.get(item.sourceAssetId) ?? item.properties?.text ?? item.kind.toLowerCase())
+                  : (item.properties?.text ?? item.kind.toLowerCase())
+            }
             isLinked={!!item.linkedItemId}
             onSelect={() => onSelect(item.id)}
             onMove={(newStartMs) => onMoveItem(item.id, newStartMs)}
@@ -2629,11 +2637,6 @@ export default function EditorWorkspacePage() {
   // AudioContext kept alive for the session; resumed inside every Play gesture to
   // satisfy browser autoplay policy for <audio>-element standalone clips.
   const audioCtxRef = useRef<AudioContext | null>(null);
-  // Web Audio chain: <video> → MediaElementSource → GainNode → destination.
-  // Created once per video element in the Play gesture to bypass per-element
-  // autoplay restrictions — the AudioContext is unlocked by the gesture.
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const mediaSourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
   const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2792,14 +2795,18 @@ export default function EditorWorkspacePage() {
       const endMs = startMs + Math.max(1, Math.round(entry.durationMs || 5000));
       const ts = Date.now();
       const videoId = `item-${ts}-v`;
+      const audioId = `item-${ts}-a`;
 
-      // Primary clip (VIDEO or standalone AUDIO/IMAGE)
+      // Primary clip (VIDEO or standalone AUDIO/IMAGE).
+      // Video clips link to a companion AUDIO clip so users can see the
+      // audio track on the timeline; the video element carries the actual audio.
       const primaryItem: EditItem = {
         id: videoId,
         sourceAssetId: entry.id,
         kind: itemKind,
         timelineStartMs: startMs,
         timelineEndMs: endMs,
+        linkedItemId: itemKind === 'VIDEO' ? audioId : undefined,
       };
 
       let newTracks = [...tl.tracks];
@@ -2809,6 +2816,22 @@ export default function EditorWorkspacePage() {
         newTracks = newTracks.map((t) => t.id === primaryTrack.id ? { ...t, items: [...(t.items ?? []), primaryItem] } : t);
       } else {
         newTracks = [...newTracks, { id: `track-${ts}`, kind, label: kind === 'VIDEO' ? 'Video' : 'Audio', items: [primaryItem] }];
+      }
+
+      // Companion AUDIO clip — visual only; audio comes from the <video> element.
+      if (itemKind === 'VIDEO') {
+        const audioItem: EditItem = {
+          id: audioId,
+          sourceAssetId: entry.id,
+          kind: 'AUDIO',
+          timelineStartMs: startMs,
+          timelineEndMs: endMs,
+          linkedItemId: videoId,
+        };
+        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
+        newTracks = audioTrack
+          ? newTracks.map((t) => t.kind === 'AUDIO' ? { ...t, items: [...(t.items ?? []), audioItem] } : t)
+          : [...newTracks, { id: `track-audio-${ts}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
       }
 
       return { ...tl, durationMs: endMs, tracks: newTracks };
@@ -2941,12 +2964,9 @@ export default function EditorWorkspacePage() {
     const next = !globalMutedRef.current;
     globalMutedRef.current = next;
     setGlobalMuted(next);
-    // Apply via Web Audio gain node (video) and element mute (standalone audio)
-    if (gainNodeRef.current) {
-      const vol = clamp(activeVideoItemRef.current?.properties?.volume ?? 1, 0, 1);
-      gainNodeRef.current.gain.value = next ? 0 : vol;
-    }
+    const v = videoRef.current;
     const a = audioRef.current;
+    if (v) v.muted = next;
     if (a) a.muted = next;
   }, []);
 
@@ -3042,15 +3062,9 @@ export default function EditorWorkspacePage() {
       if (v && item) {
         const rate = item.properties?.speed ?? 1;
         if (v.playbackRate !== rate) v.playbackRate = rate;
-        // Volume/mute via Web Audio gain node — more reliable than v.muted/v.volume
-        // because the AudioContext was unlocked in the user-gesture context.
-        if (gainNodeRef.current) {
-          const vol = clamp(item.properties?.volume ?? 1, 0, 1);
-          const shouldMute = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
-          gainNodeRef.current.gain.value = shouldMute ? 0 : vol;
-        }
-        v.muted = false; // Web Audio graph handles volume/muting
-        v.volume = 1;
+        const vol = clamp(item.properties?.volume ?? 1, 0, 1);
+        v.volume = vol;
+        v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
         const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (t - item.timelineStartMs) * rate) / 1000);
         // Correct drift only when it exceeds 500 ms to avoid interrupting playback.
         if (Math.abs(v.currentTime - sourceSec) > 0.5) v.currentTime = sourceSec;
@@ -3093,29 +3107,10 @@ export default function EditorWorkspacePage() {
 
     setPlaying(true);
 
-    // ── Web Audio unlock (must happen inside the user-gesture click handler) ──
-    // Creating/resuming an AudioContext here satisfies the browser's autoplay
-    // policy. Once the context is running, audio flows through the gain node
-    // reliably even when v.play() is later called from requestAnimationFrame.
+    // Resume AudioContext for standalone audio clips (voice/music).
     if (typeof AudioContext !== 'undefined') {
       if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') void ctx.resume();
-
-      // Wire the <video> element into the Web Audio graph once per element.
-      // createMediaElementSource disconnects the element from browser default
-      // routing — all audio must flow through gain → destination to be heard.
-      const vEl = videoRef.current;
-      if (vEl && !mediaSourceNodeRef.current) {
-        try {
-          const src = ctx.createMediaElementSource(vEl);
-          const gain = ctx.createGain();
-          src.connect(gain);
-          gain.connect(ctx.destination);
-          mediaSourceNodeRef.current = src;
-          gainNodeRef.current = gain;
-        } catch { /* element already has a MediaElementSource on this context */ }
-      }
+      if (audioCtxRef.current.state === 'suspended') void audioCtxRef.current.resume();
     }
 
     const vNow = videoRef.current;
@@ -3123,15 +3118,12 @@ export default function EditorWorkspacePage() {
     const aNow = audioRef.current;
     const aItemNow = activeAudioItemRef.current; // standalone audio only
 
+    // Play <video> in the gesture context so the browser unlocks its audio track.
+    // v.muted must be false and v.volume > 0 BEFORE calling play().
     if (vNow) {
-      // Set initial gain before play() so audio starts at the right level.
-      if (gainNodeRef.current) {
-        const vol = clamp(itemNow?.properties?.volume ?? 1, 0, 1);
-        const shouldMute = globalMutedRef.current || vol === 0 || !!itemNow?.properties?.muted;
-        gainNodeRef.current.gain.value = shouldMute ? 0 : vol;
-      }
-      vNow.muted = false; // gain node controls volume; never mute the element
-      vNow.volume = 1;
+      const vol = clamp(itemNow?.properties?.volume ?? 1, 0, 1);
+      vNow.volume = vol;
+      vNow.muted = globalMutedRef.current || vol === 0 || !!itemNow?.properties?.muted;
       if (itemNow) vNow.playbackRate = itemNow.properties?.speed ?? 1;
       void vNow.play().catch(() => undefined);
     }
@@ -3279,13 +3271,8 @@ export default function EditorWorkspacePage() {
     const item = activeVideoItemRef.current;
     if (!item) return;
     const vol = clamp(item.properties?.volume ?? 1, 0, 1);
-    // Apply current gain; Web Audio handles volume (not v.muted)
-    if (gainNodeRef.current) {
-      const shouldMute = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
-      gainNodeRef.current.gain.value = shouldMute ? 0 : vol;
-    }
-    v.muted = false;
-    v.volume = 1;
+    v.volume = vol;
+    v.muted = globalMutedRef.current || vol === 0 || !!item.properties?.muted;
     void v.play().catch(() => undefined);
   }, [videoSrc, playing]);
 
@@ -3313,18 +3300,35 @@ export default function EditorWorkspacePage() {
       const endMs = dropMs + Math.max(1, Math.round(entry.durationMs || 5000));
       const ts = Date.now();
       const videoId = `item-${ts}-v`;
+      const audioId = `item-${ts}-a`;
       const newItem: EditItem = {
         id: videoId,
         sourceAssetId: entry.id,
         kind: itemKind,
         timelineStartMs: dropMs,
         timelineEndMs: endMs,
+        linkedItemId: itemKind === 'VIDEO' ? audioId : undefined,
       };
       const newDuration = Math.max(tl.durationMs, endMs);
       const dropTrack = tl.tracks.find((t) => t.id === trackId);
       if (!dropTrack) return tl;
 
       let newTracks = tl.tracks.map((t) => t.id === trackId ? { ...t, items: [...(t.items ?? []), newItem] } : t);
+
+      if (itemKind === 'VIDEO') {
+        const audioItem: EditItem = {
+          id: audioId,
+          sourceAssetId: entry.id,
+          kind: 'AUDIO',
+          timelineStartMs: dropMs,
+          timelineEndMs: endMs,
+          linkedItemId: videoId,
+        };
+        const audioTrack = newTracks.find((t) => t.kind === 'AUDIO');
+        newTracks = audioTrack
+          ? newTracks.map((t) => t.kind === 'AUDIO' ? { ...t, items: [...(t.items ?? []), audioItem] } : t)
+          : [...newTracks, { id: `track-audio-${ts}`, kind: 'AUDIO' as const, label: 'Audio', items: [audioItem] }];
+      }
 
       return { ...tl, durationMs: newDuration, tracks: newTracks };
     });
