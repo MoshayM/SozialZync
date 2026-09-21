@@ -2677,6 +2677,27 @@ export default function EditorWorkspacePage() {
     };
 
     setPlaying(true);
+
+    // Play immediately while still inside the click-handler user-gesture context.
+    // Browsers block audio when play() is called from a rAF callback because
+    // that fires after the gesture completes. Calling it here unlocks audio.
+    const vNow = videoRef.current;
+    const itemNow = activeVideoItemRef.current;
+    if (vNow && itemNow) {
+      const vol = clamp(itemNow.properties?.volume ?? 1, 0, 1);
+      vNow.volume = vol;
+      vNow.muted = false;
+      vNow.playbackRate = itemNow.properties?.speed ?? 1;
+      void vNow.play().catch(() => undefined);
+    }
+    const aNow = audioRef.current;
+    const aItemNow = activeAudioItemRef.current;
+    if (aNow && aItemNow && audioSrcRef.current) {
+      aNow.volume = 1;
+      aNow.muted = false;
+      void aNow.play().catch(() => undefined);
+    }
+
     rafRef.current = requestAnimationFrame(tick);
   }, [timeline]);
 
