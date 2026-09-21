@@ -2454,7 +2454,9 @@ export default function EditorWorkspacePage() {
   const [canRedo, setCanRedo] = useState(false);
   const [binPanelOpen, setBinPanelOpen] = useState(true);
   const [inspectorPanelOpen, setInspectorPanelOpen] = useState(true);
-  const [previewH, setPreviewH] = useState(200);
+  const [previewH, setPreviewH] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 640 ? 140 : 200,
+  );
 
   const assetNameMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -3144,9 +3146,14 @@ export default function EditorWorkspacePage() {
   const totalTimelineW = msToX(dur || 60000, pxPerSec);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="cf-editor-page flex flex-col h-full overflow-hidden">
+      {/* ── Phone banner — editor is usable but timeline works best on wider screens ── */}
+      <div className="sm:hidden shrink-0 bg-amber-50 border-b border-amber-200 px-3 py-2 flex items-center gap-2 text-xs text-amber-800">
+        <span className="text-base">💡</span>
+        <span>Tip: rotate to landscape or use a tablet/desktop for the full timeline editor.</span>
+      </div>
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 bg-white shrink-0 flex-wrap gap-y-2">
+      <div className="flex items-center gap-1.5 px-2 sm:px-4 py-2 border-b border-gray-100 bg-white shrink-0 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setShowHistory(true)}
           className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -3158,7 +3165,7 @@ export default function EditorWorkspacePage() {
         <p className="font-semibold text-gray-800 text-sm truncate flex-1 min-w-0">{project.title}</p>
 
         {dirty && (
-          <span className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 shrink-0">
+          <span className="hidden sm:inline text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 shrink-0">
             Unsaved
           </span>
         )}
@@ -3181,40 +3188,43 @@ export default function EditorWorkspacePage() {
 
         <button
           onClick={() => setShowAiEdit(true)}
-          className="flex items-center gap-1.5 px-3 py-2 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 min-h-[44px]"
+          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 min-h-[44px]"
+          title="AI edit"
         >
-          <Wand2 className="w-3.5 h-3.5" /> AI edit
+          <Wand2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI edit</span>
         </button>
         <Link
           href="/guide"
-          className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-500 rounded-lg text-xs hover:bg-gray-50 min-h-[44px]"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-500 rounded-lg text-xs hover:bg-gray-50 min-h-[44px]"
           title="How to use the editor"
         >
           <HelpCircle className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Guide</span>
+          <span className="hidden md:inline">Guide</span>
         </Link>
         <button
           onClick={() => void handleSave()}
           disabled={saving || !dirty}
-          className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-40 min-h-[44px]"
+          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-40 min-h-[44px]"
+          title="Save"
         >
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-          Save
+          <span className="hidden sm:inline">Save</span>
         </button>
         {canExport ? (
           <button
             onClick={() => setShowExport(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 min-h-[44px]"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 min-h-[44px]"
+            title="Export"
           >
-            <Download className="w-3.5 h-3.5" /> Export
+            <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
           </button>
         ) : (
           <Link
             href="/plans"
-            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50 min-h-[44px]"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50 min-h-[44px]"
             title="Pro plan required to export videos"
           >
-            <Lock className="w-3.5 h-3.5" /> Export (Pro)
+            <Lock className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
           </Link>
         )}
       </div>
@@ -3575,7 +3585,7 @@ export default function EditorWorkspacePage() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1 overflow-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
                 {(() => {
                   const totalW = Math.max(msToX(dur || 60000, pxPerSec) + 200, 600);
                   const tickIntervalMs = (() => {

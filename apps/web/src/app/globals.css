@@ -24,6 +24,16 @@
   }
 }
 
+/* ── Editor page: kill scrolling + bottom-pad so the editor owns h-full ─── */
+/* The video editor needs a fixed-height, non-scrolling container.            */
+/* CSS :has() is supported in all modern browsers (Chrome 105+, Safari 15.4+) */
+@media (max-width: 1023px) {
+  main:has(.cf-editor-page) {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+}
+
 /* ── Copilot full-page height (accounts for topbar + mobile nav) ─────────── */
 .cf-copilot-page {
   height: calc(100vh - 62px);
