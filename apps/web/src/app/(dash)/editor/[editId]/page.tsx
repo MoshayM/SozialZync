@@ -10,7 +10,7 @@ import {
   SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Sparkles, KeyRound, Link2Off,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
-  Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff,
+  Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2,
 } from 'lucide-react';
 import {
   api,
@@ -2548,9 +2548,13 @@ export default function EditorWorkspacePage() {
   const isAdmin = useIsAdmin();
   const canExport = isAdmin || planAtLeast(userPlan, 'PRO');
   const [aiAutoSuggest, setAiAutoSuggest] = useState(false);
-  // Mobile panel visibility
-  const [mobileBinOpen, setMobileBinOpen] = useState(false);
-  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
+  // Mobile bottom-sheet: which panel is open ('none' | 'media' | 'inspector' | 'tools')
+  const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools'>('none');
+  // Keep legacy vars so existing references compile
+  const mobileBinOpen = mobileSheet === 'media';
+  const mobileInspectorOpen = mobileSheet === 'inspector';
+  const setMobileBinOpen = (v: boolean) => setMobileSheet(v ? 'media' : 'none');
+  const setMobileInspectorOpen = (v: boolean) => setMobileSheet(v ? 'inspector' : 'none');
   // History + library drawers
   const [showHistory, setShowHistory] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
@@ -2565,9 +2569,12 @@ export default function EditorWorkspacePage() {
   const [canRedo, setCanRedo] = useState(false);
   const [binPanelOpen, setBinPanelOpen] = useState(true);
   const [inspectorPanelOpen, setInspectorPanelOpen] = useState(true);
-  const [previewH, setPreviewH] = useState(() =>
-    typeof window !== 'undefined' && window.innerWidth < 640 ? 140 : 200,
-  );
+  const [previewH, setPreviewH] = useState(() => {
+    if (typeof window === 'undefined') return 200;
+    // On mobile: 45% of viewport height for preview
+    if (window.innerWidth < 768) return Math.round(window.innerHeight * 0.38);
+    return 200;
+  });
 
   const assetNameMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -3471,11 +3478,6 @@ export default function EditorWorkspacePage() {
 
   return (
     <div className="cf-editor-page flex flex-col h-full overflow-hidden">
-      {/* ── Phone banner — editor is usable but timeline works best on wider screens ── */}
-      <div className="sm:hidden shrink-0 bg-amber-50 border-b border-amber-200 px-3 py-2 flex items-center gap-2 text-xs text-amber-800">
-        <span className="text-base">💡</span>
-        <span>Tip: rotate to landscape or use a tablet/desktop for the full timeline editor.</span>
-      </div>
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 px-2 sm:px-4 py-2 border-b border-gray-100 bg-white shrink-0 overflow-x-auto scrollbar-none">
         <button
@@ -3488,25 +3490,26 @@ export default function EditorWorkspacePage() {
         <Film className="w-4 h-4 text-brand-500 shrink-0" />
         <p className="font-semibold text-gray-800 text-sm truncate flex-1 min-w-0">{project.title}</p>
 
-        {/* Panel toggles — visible below xl (drawers) and on xl+ (inline collapse) */}
+        {/* Desktop-only panel toggles (xl+) */}
         <button
-          onClick={() => { if (window.innerWidth >= 1280) setBinPanelOpen(o => !o); else setMobileBinOpen(o => !o); }}
-          className="xl:hidden p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          onClick={() => setBinPanelOpen(o => !o)}
+          className="hidden xl:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] items-center justify-center"
           title="Media bin"
         >
           <Film className="w-4 h-4" />
         </button>
         <button
-          onClick={() => { if (window.innerWidth >= 1280) setInspectorPanelOpen(o => !o); else setMobileInspectorOpen(o => !o); }}
-          className="xl:hidden p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          onClick={() => setInspectorPanelOpen(o => !o)}
+          className="hidden xl:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] items-center justify-center"
           title="Inspector"
         >
           <Maximize2 className="w-4 h-4" />
         </button>
 
+        {/* AI Edit — desktop only; mobile access via Tools sheet */}
         <button
           onClick={() => setShowAiEdit(true)}
-          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 min-h-[44px]"
+          className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 min-h-[44px]"
           title="AI edit"
         >
           <Wand2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI edit</span>
@@ -3522,7 +3525,7 @@ export default function EditorWorkspacePage() {
         <button
           onClick={() => void handleSave()}
           disabled={saving}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs min-h-[44px] font-medium transition-colors disabled:opacity-40 ${
+          className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg text-xs min-h-[44px] font-medium transition-colors disabled:opacity-40 ${
             dirty
               ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600'
               : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -3530,7 +3533,7 @@ export default function EditorWorkspacePage() {
           title={dirty ? 'Save changes' : 'No unsaved changes'}
         >
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-          <span>Save</span>
+          <span className="hidden sm:inline">Save</span>
         </button>
         {canExport ? (
           <button
@@ -3616,31 +3619,49 @@ export default function EditorWorkspacePage() {
           )}
         </aside>
 
-        {/* Below-xl media bin slide-over */}
-        {mobileBinOpen && (
-          <div className="xl:hidden fixed inset-0 z-40 bg-black/30 flex" onClick={(e) => { if (e.target === e.currentTarget) setMobileBinOpen(false); }} role="presentation">
-            <div className="w-72 bg-white h-full flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="Media bin">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                <Film className="w-4 h-4 text-brand-500" />
-                <p className="text-sm font-semibold text-gray-800 flex-1">Media bin</p>
-                <button onClick={() => setMobileBinOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close media bin">
-                  <X className="w-4 h-4 text-gray-500" />
-                </button>
-              </div>
-              <MediaBin
-                entries={mediaBin}
-                onAddToTimeline={(e) => { handleAddToTimeline(e); setMobileBinOpen(false); }}
-                onUpload={handleBinUpload}
-                uploading={binUploading}
-                onImportUrl={handleBinUrlImport}
-                urlImporting={binUrlImporting}
-                onOpenLibrary={() => { setShowLibrary(true); setMobileBinOpen(false); }}
-                onDeleteEntry={handleBinDeleteEntry}
-                onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
-              />
-            </div>
-          </div>
+        {/* Mobile bottom sheets — media bin and inspector */}
+        {/* Backdrop */}
+        {mobileSheet !== 'none' && (
+          <div
+            className="lg:hidden fixed inset-0 z-40 bg-black/40"
+            onClick={() => setMobileSheet('none')}
+            role="presentation"
+          />
         )}
+
+        {/* Media bin bottom sheet */}
+        <div
+          className={`lg:hidden fixed left-0 right-0 bottom-14 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'media' ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ maxHeight: '70vh' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Media bin"
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-2 pb-1 shrink-0">
+            <div className="w-10 h-1 rounded-full bg-gray-300" />
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 shrink-0">
+            <Film className="w-4 h-4 text-brand-500" />
+            <p className="text-sm font-semibold text-gray-800 flex-1">Media</p>
+            <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            <MediaBin
+              entries={mediaBin}
+              onAddToTimeline={(e) => { handleAddToTimeline(e); setMobileSheet('none'); }}
+              onUpload={handleBinUpload}
+              uploading={binUploading}
+              onImportUrl={handleBinUrlImport}
+              urlImporting={binUrlImporting}
+              onOpenLibrary={() => { setShowLibrary(true); setMobileSheet('none'); }}
+              onDeleteEntry={handleBinDeleteEntry}
+              onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
+            />
+          </div>
+        </div>
 
         {/* ── Center: Preview + Timeline ───────────────────────────────── */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -3803,19 +3824,19 @@ export default function EditorWorkspacePage() {
             >
               {globalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
-            {/* Zoom controls */}
+            {/* Zoom controls — hidden on mobile (pinch-scroll the timeline instead) */}
             <button
               onClick={() => setPxPerSec((p) => Math.max(5, p - 10))}
-              className="p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="hidden sm:flex p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] items-center justify-center"
               title="Zoom out"
               aria-label="Zoom out"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="text-xs text-white/60 tabular-nums w-8 text-center">{pxPerSec}</span>
+            <span className="hidden sm:inline text-xs text-white/60 tabular-nums w-8 text-center">{pxPerSec}</span>
             <button
               onClick={() => setPxPerSec((p) => Math.min(200, p + 10))}
-              className="p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="hidden sm:flex p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] items-center justify-center"
               title="Zoom in"
               aria-label="Zoom in"
             >
@@ -3851,7 +3872,7 @@ export default function EditorWorkspacePage() {
           </div>
 
           {/* Timeline — Professional dark multi-track editor */}
-          <div className="flex-1 overflow-hidden bg-gray-900 flex flex-col">
+          <div className="flex-1 overflow-hidden bg-gray-900 flex flex-col" style={{ paddingBottom: 0 }}>
             {/* Timeline toolbar */}
             <div className="shrink-0 flex items-center gap-1 px-2 py-1 bg-gray-800 border-b border-gray-700">
               <button
@@ -4018,7 +4039,8 @@ export default function EditorWorkspacePage() {
                                 nameMap={assetNameMap}
                                 onSelect={(id) => {
                                   setSelectedItemId(id || null);
-                                  if (id && window.innerWidth < 1024) setMobileInspectorOpen(true);
+                                  // On mobile: open inspector sheet but DON'T cover the timeline
+                                  if (id && window.innerWidth < 1024) setMobileSheet('inspector');
                                 }}
                                 onMoveItem={handleMoveItem}
                                 onTrimItem={handleTrimItem}
@@ -4059,22 +4081,115 @@ export default function EditorWorkspacePage() {
           )}
         </aside>
 
-        {/* Below-xl inspector slide-over */}
-        {mobileInspectorOpen && (
-          <div className="xl:hidden fixed inset-0 z-40 bg-black/30 flex justify-end" onClick={(e) => { if (e.target === e.currentTarget) setMobileInspectorOpen(false); }} role="presentation">
-            <div className="w-72 bg-white h-full flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="Inspector">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                <Maximize2 className="w-4 h-4 text-gray-500" />
-                <p className="text-sm font-semibold text-gray-800 flex-1">Inspector</p>
-                <button onClick={() => setMobileInspectorOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close inspector">
-                  <X className="w-4 h-4 text-gray-500" />
-                </button>
-              </div>
-              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
-            </div>
+        {/* Inspector bottom sheet — only half height so timeline stays usable */}
+        <div
+          className={`lg:hidden fixed left-0 right-0 bottom-14 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'inspector' ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ maxHeight: '55vh' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Inspector"
+        >
+          <div className="flex justify-center pt-2 pb-1 shrink-0">
+            <div className="w-10 h-1 rounded-full bg-gray-300" />
           </div>
-        )}
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 shrink-0">
+            <Settings2 className="w-4 h-4 text-gray-500" />
+            <p className="text-sm font-semibold text-gray-800 flex-1">
+              {selectedItem ? `${selectedItem.kind.charAt(0) + selectedItem.kind.slice(1).toLowerCase()} Clip` : 'Inspector'}
+            </p>
+            <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close inspector">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+          </div>
+        </div>
+
+        {/* Tools bottom sheet — undo/redo/split/delete/snap */}
+        <div
+          className={`lg:hidden fixed left-0 right-0 bottom-14 z-50 bg-gray-900 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit tools"
+        >
+          <div className="flex justify-center pt-2 pb-1">
+            <div className="w-10 h-1 rounded-full bg-white/30" />
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10">
+            <Scissors className="w-4 h-4 text-white/70" />
+            <p className="text-sm font-semibold text-white flex-1">Tools</p>
+            <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-white/10" aria-label="Close tools">
+              <X className="w-4 h-4 text-white/70" />
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-3 px-4 py-4">
+            {[
+              { icon: <RotateCcw className="w-5 h-5" />, label: 'Undo', action: handleUndo, disabled: !canUndo, color: 'text-white' },
+              { icon: <RotateCw className="w-5 h-5" />, label: 'Redo', action: handleRedo, disabled: !canRedo, color: 'text-white' },
+              { icon: <Scissors className="w-5 h-5" />, label: 'Split', action: () => selectedItemId ? handleSplitItem(selectedItemId, currentTimeMsRef.current) : handleSplitAtPlayhead(), disabled: false, color: 'text-white' },
+              { icon: <Trash2 className="w-5 h-5" />, label: 'Delete', action: () => selectedItemId && handleDeleteItem(selectedItemId), disabled: !selectedItemId, color: 'text-red-400' },
+              { icon: <Magnet className="w-5 h-5" />, label: snapEnabled ? 'Snap On' : 'Snap Off', action: () => setSnapEnabled(s => !s), disabled: false, color: snapEnabled ? 'text-brand-400' : 'text-gray-400' },
+              { icon: <Film className="w-5 h-5" />, label: '+ Video', action: () => { handleAddTrack('VIDEO'); setMobileSheet('none'); }, disabled: false, color: 'text-violet-400' },
+              { icon: <Volume2 className="w-5 h-5" />, label: '+ Audio', action: () => { handleAddTrack('AUDIO'); setMobileSheet('none'); }, disabled: false, color: 'text-emerald-400' },
+              { icon: <Wand2 className="w-5 h-5" />, label: 'AI Edit', action: () => { setShowAiEdit(true); setMobileSheet('none'); }, disabled: false, color: 'text-brand-400' },
+            ].map((item, i) => (
+              <button
+                key={i}
+                onClick={() => { if (!item.disabled) item.action(); }}
+                disabled={item.disabled}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 transition-colors ${item.color}`}
+              >
+                {item.icon}
+                <span className="text-[10px] font-medium text-white/70 leading-tight text-center">{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="h-safe-bottom" style={{ height: 'env(safe-area-inset-bottom, 8px)' }} />
+        </div>
+
       </div>
+
+      {/* ── Mobile bottom tab bar ─────────────────────────────────────────── */}
+      <nav className="lg:hidden shrink-0 flex items-stretch bg-gray-950 border-t border-white/10" style={{ height: 56, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        {[
+          {
+            id: 'media' as const,
+            icon: <Film className="w-5 h-5" />,
+            label: 'Media',
+            badge: mediaBin.length > 0 ? mediaBin.length : undefined,
+          },
+          {
+            id: 'inspector' as const,
+            icon: <Settings2 className="w-5 h-5" />,
+            label: selectedItem ? selectedItem.kind.charAt(0) + selectedItem.kind.slice(1).toLowerCase() : 'Inspect',
+            badge: selectedItem ? undefined : undefined,
+          },
+          {
+            id: 'tools' as const,
+            icon: <Scissors className="w-5 h-5" />,
+            label: 'Tools',
+          },
+        ].map((tab) => {
+          const active = mobileSheet === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setMobileSheet(mobileSheet === tab.id ? 'none' : tab.id)}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors relative ${active ? 'text-brand-400' : 'text-gray-400 hover:text-gray-200'}`}
+            >
+              {tab.badge !== undefined && (
+                <span className="absolute top-2 right-1/4 w-4 h-4 rounded-full bg-brand-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {tab.badge > 9 ? '9+' : tab.badge}
+                </span>
+              )}
+              {tab.icon}
+              <span className="text-[10px] font-medium">{tab.label}</span>
+              {active && <div className="absolute top-0 left-1/4 right-1/4 h-0.5 rounded-full bg-brand-400" />}
+            </button>
+          );
+        })}
+      </nav>
 
       {/* Dialogs */}
       {showExport && <ExportDialog editId={editId} projectTitle={project.title} onClose={() => setShowExport(false)} onBeforeRender={handleSave} />}
