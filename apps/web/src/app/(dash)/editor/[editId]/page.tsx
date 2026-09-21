@@ -2403,9 +2403,20 @@ export default function EditorWorkspacePage() {
   }, [project?.projectId, editId, qc]);
 
   const handleBinDeleteEntry = useCallback(async (assetId: string) => {
+    setBinUploadError(null);
+    // Optimistic removal — item disappears immediately without waiting for Railway
+    const previous = qc.getQueryData<MediaBinEntry[]>(['editor-media-bin', editId]);
+    qc.setQueryData<MediaBinEntry[]>(
+      ['editor-media-bin', editId],
+      (old) => old?.filter((e) => e.id !== assetId) ?? [],
+    );
     try {
       await api.editor.removeBinEntry(editId, assetId);
-    } catch { /* silently ignore — asset may already be gone */ }
+    } catch {
+      // Restore on error and surface feedback
+      if (previous !== undefined) qc.setQueryData(['editor-media-bin', editId], previous);
+      setBinUploadError('Could not remove file — please try again');
+    }
     void qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
   }, [editId, qc]);
 

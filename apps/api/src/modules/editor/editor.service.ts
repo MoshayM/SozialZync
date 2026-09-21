@@ -643,9 +643,11 @@ export class EditorService {
   async removeFromBin(editId: string, assetId: string, userId: string): Promise<void> {
     const editProj = await this.assertEditProjectOwnership(editId, userId);
     const asset = await this.prisma.asset.findFirst({
-      where: { id: assetId, projectId: editProj.projectId, deletedAt: null },
+      where: { id: assetId, projectId: editProj.projectId },
+      select: { id: true, deletedAt: true },
     });
-    if (!asset) return; // already gone or not in this project — silently OK
+    if (!asset) throw new NotFoundException('Asset not found in this project');
+    if (asset.deletedAt !== null) return; // idempotent — already removed
     await this.prisma.asset.update({
       where: { id: assetId },
       data: { deletedAt: new Date() },
