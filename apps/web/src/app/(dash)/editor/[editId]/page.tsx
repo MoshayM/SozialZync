@@ -812,6 +812,51 @@ function ExportDialog({
   );
 }
 
+// ── Status Tray (background operation toasts) ─────────────────────────────────
+
+function StatusTray({
+  toasts,
+  onDismiss,
+}: {
+  toasts: Array<{ id: string; label: string; status: 'pending' | 'success' | 'error'; message?: string }>;
+  onDismiss: (id: string) => void;
+}) {
+  if (toasts.length === 0) return null;
+  return (
+    <div className="fixed bottom-[72px] lg:bottom-4 right-3 z-[70] flex flex-col gap-2 items-end pointer-events-none">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className={`pointer-events-auto flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl shadow-lg border text-sm max-w-[280px] w-full transition-all duration-300 ${
+            t.status === 'pending' ? 'bg-gray-900 border-white/10 text-white' :
+            t.status === 'success' ? 'bg-green-900 border-green-700/40 text-green-100' :
+            'bg-red-900 border-red-700/40 text-red-100'
+          }`}
+        >
+          <span className="shrink-0 mt-0.5">
+            {t.status === 'pending' && <Loader2 className="w-4 h-4 animate-spin text-white/60" />}
+            {t.status === 'success' && <CheckCircle2 className="w-4 h-4 text-green-400" />}
+            {t.status === 'error' && <AlertCircle className="w-4 h-4 text-red-400" />}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-xs leading-snug truncate">{t.label}</p>
+            {t.message && <p className="text-[11px] opacity-70 mt-0.5 leading-snug">{t.message}</p>}
+          </div>
+          {(t.status === 'error' || t.status === 'success') && (
+            <button
+              onClick={() => onDismiss(t.id)}
+              className="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+              aria-label="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── AI Edit Dialog ────────────────────────────────────────────────────────────
 
 /** Canned instruction used when the dialog opens in auto-suggest mode. */
@@ -2569,6 +2614,30 @@ export default function EditorWorkspacePage() {
     enabled: !!project,
   });
 
+  // ── Status tray (background operation toasts) ────────────────────────────────
+  const [toasts, setToasts] = useState<Array<{ id: string; label: string; status: 'pending' | 'success' | 'error'; message?: string }>>([]);
+  const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const addToast = useCallback((id: string, label: string) => {
+    setToasts((prev) => [...prev.filter((t) => t.id !== id), { id, label, status: 'pending' }]);
+  }, []);
+
+  const updateToast = useCallback((id: string, status: 'success' | 'error', message?: string) => {
+    setToasts((prev) => prev.map((t) => t.id === id ? { ...t, status, message } : t));
+    if (status === 'success') {
+      if (toastTimers.current[id]) clearTimeout(toastTimers.current[id]);
+      toastTimers.current[id] = setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+        delete toastTimers.current[id];
+      }, 3000);
+    }
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    if (toastTimers.current[id]) { clearTimeout(toastTimers.current[id]); delete toastTimers.current[id]; }
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   // Local timeline state (editable copy, synced from server initially)
   const [timeline, setTimeline] = useState<EditTimeline | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -2599,7 +2668,6 @@ export default function EditorWorkspacePage() {
   const [librarySelecting, setLibrarySelecting] = useState<string | null>(null);
   const [binUploading, setBinUploading] = useState(false);
   const [binUrlImporting, setBinUrlImporting] = useState(false);
-  const [binUploadError, setBinUploadError] = useState<string | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -2620,37 +2688,42 @@ export default function EditorWorkspacePage() {
 
   const handleBinUpload = useCallback(async (file: File) => {
     if (!project?.projectId) return;
+    const id = `upload-${Date.now()}`;
     setBinUploading(true);
-    setBinUploadError(null);
+    addToast(id, `Uploading ${file.name}`);
     try {
       await api.media.uploadMedia(file, project.projectId);
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
+      updateToast(id, 'success', `${file.name} added to Working Files`);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      setBinUploadError(e.response?.data?.message ?? 'Upload failed');
+      updateToast(id, 'error', e.response?.data?.message ?? 'Upload failed');
     } finally {
       setBinUploading(false);
     }
-  }, [project?.projectId, editId, qc]);
+  }, [project?.projectId, editId, qc, addToast, updateToast]);
 
   const handleBinUrlImport = useCallback(async (url: string) => {
     if (!project?.projectId) return;
+    const id = `import-url-${Date.now()}`;
     setBinUrlImporting(true);
-    setBinUploadError(null);
+    addToast(id, 'Importing video from URL…');
     try {
       await api.media.importVideoFromUrl(url, { projectId: project.projectId });
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
+      updateToast(id, 'success', 'Video added to Working Files');
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      setBinUploadError(e.response?.data?.message ?? 'Import failed');
+      updateToast(id, 'error', e.response?.data?.message ?? 'Import failed');
     } finally {
       setBinUrlImporting(false);
     }
-  }, [project?.projectId, editId, qc]);
+  }, [project?.projectId, editId, qc, addToast, updateToast]);
 
   const handleLibrarySelect = useCallback(async (video: LibraryVideo) => {
     setLibrarySelecting(video.id);
-    setBinUploadError(null);
+    const id = `import-lib-${video.id}`;
+    addToast(id, `Importing "${video.title}"…`);
     try {
       await api.media.importVideoFromUrl(
         `https://www.youtube.com/watch?v=${video.youtubeVideoId}`,
@@ -2658,18 +2731,20 @@ export default function EditorWorkspacePage() {
       );
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
       setShowLibrary(false);
+      updateToast(id, 'success', `"${video.title}" added to Working Files`);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      setBinUploadError(e.response?.data?.message ?? 'Import from library failed');
+      updateToast(id, 'error', e.response?.data?.message ?? 'Import from library failed');
     } finally {
       setLibrarySelecting(null);
     }
-  }, [project?.projectId, editId, qc]);
+  }, [project?.projectId, editId, qc, addToast, updateToast]);
 
   const handleProjectBinSelect = useCallback(async (entry: MediaBinEntry) => {
     if (!entry.versionId || !project?.projectId) return;
     setLibrarySelecting(entry.id);
-    setBinUploadError(null);
+    const id = `import-proj-${entry.id}`;
+    addToast(id, `Importing "${entry.label}"…`);
     try {
       const { data: { url } } = await api.media.versionSignedUrl(entry.versionId, 600);
       const absoluteUrl = url.startsWith('http')
@@ -2680,18 +2755,19 @@ export default function EditorWorkspacePage() {
       await api.media.importVideoFromUrl(absoluteUrl, { title: entry.label, projectId: project.projectId });
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
       setShowLibrary(false);
+      updateToast(id, 'success', `"${entry.label}" added to Working Files`);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      setBinUploadError(e.response?.data?.message ?? 'Import from project failed');
+      updateToast(id, 'error', e.response?.data?.message ?? 'Import from project failed');
     } finally {
       setLibrarySelecting(null);
     }
-  }, [project?.projectId, editId, qc]);
+  }, [project?.projectId, editId, qc, addToast, updateToast]);
 
   const handleBinDeleteEntry = useCallback(async (assetId: string) => {
-    setBinUploadError(null);
     if (!window.confirm('Remove this file? It will be permanently deleted from Cloudflare storage.')) return;
-    // Optimistic removal — item disappears immediately without waiting for Railway
+    const id = `delete-${assetId}`;
+    addToast(id, 'Removing file…');
     const previous = qc.getQueryData<MediaBinEntry[]>(['editor-media-bin', editId]);
     qc.setQueryData<MediaBinEntry[]>(
       ['editor-media-bin', editId],
@@ -2699,16 +2775,15 @@ export default function EditorWorkspacePage() {
     );
     try {
       await api.editor.removeBinEntry(editId, assetId);
+      updateToast(id, 'success', 'File deleted');
     } catch {
-      // Restore on error and surface feedback
       if (previous !== undefined) qc.setQueryData(['editor-media-bin', editId], previous);
-      setBinUploadError('Could not remove file — please try again');
+      updateToast(id, 'error', 'Could not remove file — please try again');
     }
     void qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
-  }, [editId, qc]);
+  }, [editId, qc, addToast, updateToast]);
 
   const handleBinLockEntry = useCallback(async (assetId: string, locked: boolean) => {
-    // Optimistic update
     qc.setQueryData<MediaBinEntry[]>(
       ['editor-media-bin', editId],
       (old) => old?.map((e) => e.id === assetId ? { ...e, locked } : e) ?? [],
@@ -2716,14 +2791,14 @@ export default function EditorWorkspacePage() {
     try {
       await api.editor.lockBinEntry(editId, assetId, locked);
     } catch {
-      // Revert on failure
       qc.setQueryData<MediaBinEntry[]>(
         ['editor-media-bin', editId],
         (old) => old?.map((e) => e.id === assetId ? { ...e, locked: !locked } : e) ?? [],
       );
-      setBinUploadError(locked ? 'Could not lock file — please try again' : 'Could not unlock file — please try again');
+      addToast(`lock-err-${Date.now()}`, locked ? 'Could not lock file' : 'Could not unlock file');
+      setTimeout(() => {}, 0); // trigger re-render
     }
-  }, [editId, qc]);
+  }, [editId, qc, addToast]);
 
   const handleNewEdit = useCallback(async () => {
     try {
@@ -2785,13 +2860,18 @@ export default function EditorWorkspacePage() {
     if (!timeline) return;
     setSaving(true);
     setSaveError(null);
+    const id = 'save';
+    addToast(id, 'Saving timeline…');
     try {
       await api.editor.saveTimeline(editId, timeline);
       setDirty(false);
       void qc.invalidateQueries({ queryKey: ['editor-project', editId] });
+      updateToast(id, 'success', 'All changes saved');
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      setSaveError(e.response?.data?.message ?? 'Save failed');
+      const msg = e.response?.data?.message ?? 'Save failed';
+      setSaveError(msg);
+      updateToast(id, 'error', msg);
     } finally {
       setSaving(false);
     }
@@ -3628,16 +3708,6 @@ export default function EditorWorkspacePage() {
         )}
       </div>
 
-      {saveError && (
-        <div className="px-4 py-2 bg-red-50 border-b border-red-100 text-xs text-red-700 flex items-center gap-1.5">
-          {saveError}
-          <button onClick={() => setSaveError(null)} className="ml-auto" aria-label="Dismiss error">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-
       {/* ── Main layout: left bin / center / right inspector ───────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
@@ -3669,9 +3739,6 @@ export default function EditorWorkspacePage() {
                 onLockEntry={handleBinLockEntry}
                 onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
               />
-              {binUploadError && (
-                <p className="text-xs text-red-600 px-3 pb-2">{binUploadError}</p>
-              )}
             </>
           )}
         </aside>
@@ -4279,6 +4346,9 @@ export default function EditorWorkspacePage() {
           selecting={librarySelecting}
         />
       )}
+
+      {/* Background-operation status tray */}
+      <StatusTray toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
