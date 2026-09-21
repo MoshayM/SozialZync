@@ -3044,6 +3044,18 @@ export default function EditorWorkspacePage() {
     });
   }, [pxPerSec, updateTimeline]);
 
+  // All clip edge points for snapping (unique sorted list) — must be before early returns (Rules of Hooks)
+  const allSnapPoints = useMemo(() => {
+    const pts = new Set<number>();
+    for (const tr of timeline?.tracks ?? []) {
+      for (const it of tr.items ?? []) {
+        pts.add(it.timelineStartMs);
+        pts.add(it.timelineEndMs);
+      }
+    }
+    return Array.from(pts).sort((a, b) => a - b);
+  }, [timeline]);
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-gray-500 py-20 justify-center">
@@ -3069,18 +3081,6 @@ export default function EditorWorkspacePage() {
 
   const dur = timeline?.durationMs ?? 0;
   const totalTimelineW = msToX(dur || 60000, pxPerSec);
-
-  // All clip edge points for snapping (unique sorted list)
-  const allSnapPoints = useMemo(() => {
-    const pts = new Set<number>();
-    for (const tr of timeline?.tracks ?? []) {
-      for (const it of tr.items ?? []) {
-        pts.add(it.timelineStartMs);
-        pts.add(it.timelineEndMs);
-      }
-    }
-    return Array.from(pts).sort((a, b) => a - b);
-  }, [timeline]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -3609,7 +3609,7 @@ export default function EditorWorkspacePage() {
           timeline={timeline}
           autoSuggest={aiAutoSuggest}
           onClose={() => { setShowAiEdit(false); setAiAutoSuggest(false); }}
-          onApplyTimeline={(t) => { setTimeline(t as EditTimeline); setDirty(true); setShowAiEdit(false); setAiAutoSuggest(false); }}
+          onApplyTimeline={(t) => { pushUndo(); setTimeline(t as EditTimeline); setDirty(true); setShowAiEdit(false); setAiAutoSuggest(false); }}
         />
       )}
       {showHistory && (
