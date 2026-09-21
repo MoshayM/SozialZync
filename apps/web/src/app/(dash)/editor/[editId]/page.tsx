@@ -10,7 +10,7 @@ import {
   SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Sparkles, KeyRound, Link2Off,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
-  Scissors, RotateCcw, RotateCw, Magnet, VolumeX,
+  Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff,
 } from 'lucide-react';
 import {
   api,
@@ -1990,6 +1990,7 @@ function TimelineTrack({
                   : (item.properties?.text ?? item.kind.toLowerCase())
             }
             isLinked={!!item.linkedItemId}
+            trackKind={track.kind}
             onSelect={() => onSelect(item.id)}
             onMove={(newStartMs) => onMoveItem(item.id, newStartMs)}
             onTrim={(newStartMs, newEndMs) => onTrimItem(item.id, newStartMs, newEndMs)}
@@ -2016,6 +2017,7 @@ function TimelineItem({
   snapPoints,
   label,
   isLinked,
+  trackKind,
   onSelect,
   onMove,
   onTrim,
@@ -2030,6 +2032,7 @@ function TimelineItem({
   snapPoints: number[];
   label: string;
   isLinked?: boolean;
+  trackKind?: string;
   onSelect: () => void;
   onMove: (newStartMs: number) => void;
   onTrim: (newStartMs: number, newEndMs: number) => void;
@@ -2093,6 +2096,7 @@ function TimelineItem({
   const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
 
   const muted = !!item.properties?.muted;
+  const isVideoTrack = trackKind === 'VIDEO';
 
   return (
     <div
@@ -2128,23 +2132,34 @@ function TimelineItem({
         )}
         <div className="flex items-center gap-1 relative z-10">
           {isLinked && <Link2Off className="w-2.5 h-2.5 opacity-60 shrink-0" />}
-          {muted && <VolumeX className="w-2.5 h-2.5 opacity-80 shrink-0" />}
+          {/* State indicator: eye-off for hidden video, volume-x for muted audio */}
+          {muted && (isVideoTrack
+            ? <EyeOff className="w-2.5 h-2.5 opacity-80 shrink-0" />
+            : <VolumeX className="w-2.5 h-2.5 opacity-80 shrink-0" />
+          )}
           <span className="text-[11px] font-medium truncate leading-tight">{label}</span>
         </div>
         {width > 48 && (
           <span className="text-[9px] opacity-60 leading-tight relative z-10">{fmtMs(durMs)}</span>
         )}
       </div>
-      {/* Mute toggle — shown on hover or when selected */}
+      {/* Toggle button — shown on hover. Video track: eye on/off. Audio track: speaker on/off. */}
       {onMuteToggle && width > 40 && (
         <button
           className="absolute top-0.5 right-8 p-0.5 rounded z-20 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onMuteToggle(); }}
-          title={muted ? 'Unmute clip' : 'Mute clip'}
-          aria-label={muted ? 'Unmute clip' : 'Mute clip'}
+          title={isVideoTrack
+            ? (muted ? 'Show video clip' : 'Hide video clip')
+            : (muted ? 'Unmute clip' : 'Mute clip')}
+          aria-label={isVideoTrack
+            ? (muted ? 'Show video clip' : 'Hide video clip')
+            : (muted ? 'Unmute clip' : 'Mute clip')}
         >
-          {muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
+          {isVideoTrack
+            ? (muted ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />)
+            : (muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />)
+          }
         </button>
       )}
       {/* Right trim handle */}
