@@ -397,6 +397,13 @@ export default function PublishCenterPage() {
 
   // Calendar state
   const [view, setView] = useState<ViewMode>('month');
+  const [listStatusFilter, setListStatusFilter] = useState<StatusTab>('all');
+
+  function goToList(status: StatusTab) {
+    setPageTab('calendar');
+    setView('list');
+    setListStatusFilter(status);
+  }
   const [selected, setSelected] = useState<TrackedVideo | null>(null);
   const [channelId, setChannelId] = useState<string>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem(CHANNEL_LS_KEY) ?? '';
@@ -492,13 +499,15 @@ export default function PublishCenterPage() {
           </div>
         )}
 
-        {/* Summary stats row */}
+        {/* Summary stats row — clickable to navigate to relevant tab/filter */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             tone="lilac"
             icon={<Clock className="w-5 h-5" />}
             label="Pending approvals"
             value={isLoading ? <div className="h-8 w-12 bg-gray-100 rounded-xl animate-pulse mt-0.5" /> : approvals.length}
+            onClick={() => setPageTab('pending')}
+            active={pageTab === 'pending'}
           />
           <StatCard
             tone="periwinkle"
@@ -507,6 +516,8 @@ export default function PublishCenterPage() {
             value={summaryLoading ? <div className="h-8 w-12 bg-gray-100 rounded-xl animate-pulse mt-0.5" /> : (summary?.scheduled ?? 0)}
             sub={summary ? `${summary.upcoming7d} in next 7 days` : undefined}
             subClassName="text-gray-600"
+            onClick={() => goToList('SCHEDULED')}
+            active={pageTab === 'calendar' && view === 'list' && listStatusFilter === 'SCHEDULED'}
           />
           <StatCard
             tone="pink"
@@ -515,6 +526,8 @@ export default function PublishCenterPage() {
             value={summaryLoading ? <div className="h-8 w-12 bg-gray-100 rounded-xl animate-pulse mt-0.5" /> : (summary?.published ?? 0)}
             sub={summary ? `${summary.publishedThisMonth} this month` : undefined}
             subClassName="text-gray-600"
+            onClick={() => goToList('PUBLISHED')}
+            active={pageTab === 'calendar' && view === 'list' && listStatusFilter === 'PUBLISHED'}
           />
           <StatCard
             tone="cream"
@@ -522,6 +535,8 @@ export default function PublishCenterPage() {
             label="Failed"
             value={summaryLoading ? <div className="h-8 w-12 bg-gray-100 rounded-xl animate-pulse mt-0.5" /> : (summary?.failed ?? 0)}
             subClassName="text-red-700"
+            onClick={() => goToList('FAILED')}
+            active={pageTab === 'calendar' && view === 'list' && listStatusFilter === 'FAILED'}
           />
         </div>
 
@@ -743,7 +758,7 @@ export default function PublishCenterPage() {
 
             {view === 'month'
               ? <MonthView channelId={channelId} onSelect={setSelected} />
-              : <ListView channelId={channelId} onSelect={setSelected} />}
+              : <ListView channelId={channelId} onSelect={setSelected} statusFilter={listStatusFilter} onStatusFilterChange={setListStatusFilter} />}
 
             {selected && <VideoDetailModal video={selected} onClose={() => { setSelected(null); }} />}
           </>
@@ -1175,8 +1190,15 @@ function MonthView({ channelId, onSelect }: { channelId: string; onSelect: (v: T
 
 // ── List view ─────────────────────────────────────────────────────────────────
 
-function ListView({ channelId, onSelect }: { channelId: string; onSelect: (v: TrackedVideo) => void }) {
-  const [statusTab, setStatusTab] = useState<StatusTab>('all');
+function ListView({ channelId, onSelect, statusFilter, onStatusFilterChange }: {
+  channelId: string;
+  onSelect: (v: TrackedVideo) => void;
+  statusFilter?: StatusTab;
+  onStatusFilterChange?: (s: StatusTab) => void;
+}) {
+  const [internalStatusTab, setInternalStatusTab] = useState<StatusTab>('all');
+  const statusTab = statusFilter ?? internalStatusTab;
+  const setStatusTab = onStatusFilterChange ?? setInternalStatusTab;
   const [searchInput, setSearchInput] = useState('');
   const q = useDebounced(searchInput, 300);
 
