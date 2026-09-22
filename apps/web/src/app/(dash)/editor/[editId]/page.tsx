@@ -804,7 +804,8 @@ function ExportDialog({
   const [renderStatus, setRenderStatus] = useState<RenderStatus | null>(null);
   const [downloadPath, setDownloadPath] = useState<string | null>(null);
   const [renderVersionId, setRenderVersionId] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  // null = idle, 0-100 = downloading, 101 = done
+  const [dlProgress, setDlProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -814,12 +815,30 @@ function ExportDialog({
       ? `/api/proxy/media/versions/${encodeURIComponent(renderVersionId)}/file`
       : downloadPath;
     if (!url) return;
-    setDownloading(true);
+    setDlProgress(0);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
       const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-      const blob = await res.blob();
+      const contentLength = parseInt(res.headers.get('content-length') ?? '0', 10);
+      const reader = res.body!.getReader();
+      const chunks: Uint8Array[] = [];
+      let received = 0;
+      let indeterminate = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        if (contentLength > 0) {
+          setDlProgress(Math.min(99, Math.round((received / contentLength) * 100)));
+        } else {
+          // No content-length header — animate to ~90% then hold
+          indeterminate = Math.min(90, indeterminate + Math.random() * 8 + 2);
+          setDlProgress(Math.round(indeterminate));
+        }
+      }
+      const blob = new Blob(chunks);
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = downloadFilename;
@@ -827,10 +846,11 @@ function ExportDialog({
       a.click();
       a.remove();
       URL.revokeObjectURL(a.href);
+      setDlProgress(101); // done state — show checkmark
+      setTimeout(() => setDlProgress(null), 1800);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Download failed');
-    } finally {
-      setDownloading(false);
+      setDlProgress(null);
     }
   };
   // Publish form
@@ -968,11 +988,39 @@ function ExportDialog({
                 <button
                   type="button"
                   onClick={handleDownload}
-                  disabled={downloading}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-60"
+                  disabled={dlProgress !== null}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:cursor-default transition-all"
+                  style={{ minWidth: 112 }}
                 >
-                  {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {downloading ? 'Downloading…' : 'Download'}
+                  {dlProgress === null && <><Download className="w-4 h-4" /> Download</>}
+                  {dlProgress !== null && dlProgress <= 100 && (() => {
+                    const r = 7, circ = 2 * Math.PI * r;
+                    const pct = dlProgress;
+                    return (
+                      <>
+                        <svg width="20" height="20" viewBox="0 0 20 20" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+                          <circle cx="10" cy="10" r={r} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
+                          <circle
+                            cx="10" cy="10" r={r} fill="none"
+                            stroke="white" strokeWidth="2.5" strokeLinecap="round"
+                            strokeDasharray={circ}
+                            strokeDashoffset={circ * (1 - pct / 100)}
+                            style={{ transition: 'stroke-dashoffset 0.15s ease' }}
+                          />
+                        </svg>
+                        <span className="tabular-nums">{pct}%</span>
+                      </>
+                    );
+                  })()}
+                  {dlProgress === 101 && (
+                    <>
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
+                        <circle cx="9" cy="9" r="8" fill="white" fillOpacity=".2" />
+                        <path d="M5 9l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Saved!
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
