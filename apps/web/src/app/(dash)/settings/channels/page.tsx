@@ -361,6 +361,7 @@ function ChannelsInner() {
   const [connectAccess, setConnectAccess] = useState<AccessLevel>('PUBLISH');
   const [showUrlForm, setShowUrlForm] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [urlAccess, setUrlAccess] = useState<AccessLevel>('READ_ONLY');
   const [libChannelId, setLibChannelId] = useState('');
   const [videoSearch, setVideoSearch] = useState('');
   const [videoType, setVideoType] = useState<VideoType>('all');
@@ -440,11 +441,12 @@ function ChannelsInner() {
   });
 
   const connectByUrlMutation = useMutation({
-    mutationFn: (url: string) => api.channels.connectByUrl(url),
-    onSuccess: () => {
+    mutationFn: ({ url, access }: { url: string; access: AccessLevel }) =>
+      api.channels.connectByUrl(url, access),
+    onSuccess: (_data, { access }) => {
       setUrlInput(''); setShowUrlForm(false);
       void qc.invalidateQueries({ queryKey: ['channels'] });
-      setBanner({ type: 'success', msg: 'Channel added (read-only).' });
+      setBanner({ type: 'success', msg: `Channel added (${ACCESS_LABEL[access]}).` });
     },
     onError: (e: unknown) => setBanner({
       type: 'error',
@@ -634,9 +636,9 @@ function ChannelsInner() {
                   </div>
                   <button
                     onClick={() => setShowUrlForm(v => !v)}
-                    className="mt-3 text-sm text-brand-600 hover:underline"
+                    className="mt-3 text-sm text-gray-500 hover:text-gray-700 hover:underline transition-colors"
                   >
-                    Or add by YouTube URL / @handle
+                    Or add by YouTube URL / @handle →
                   </button>
                 </div>
               ) : (
@@ -683,24 +685,63 @@ function ChannelsInner() {
 
               {/* URL form */}
               {showUrlForm && (
-                <div className="mt-3 bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-3">
-                  <p className="text-sm font-medium text-gray-700">Add channel by URL or @handle</p>
-                  <p className="text-xs text-gray-500">
-                    Added as read-only — you can view analytics but not publish.
-                  </p>
+                <div className="mt-3 bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Add channel by URL or @handle</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Choose how much access you need, then paste the channel link.</p>
+                  </div>
+
+                  {/* Access level selector */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Access level</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: 'FULL'      as AccessLevel, label: 'Full Access', desc: 'Publish, manage & analytics' },
+                        { value: 'PUBLISH'   as AccessLevel, label: 'Public',      desc: 'Publish & view public data'  },
+                        { value: 'READ_ONLY' as AccessLevel, label: 'Read Only',   desc: 'Analytics only, no publish'  },
+                      ]).map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setUrlAccess(opt.value)}
+                          className={`flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                            urlAccess === opt.value
+                              ? 'border-[#374151] bg-white shadow-sm'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <span className={`text-xs font-semibold ${urlAccess === opt.value ? 'text-gray-900' : 'text-gray-600'}`}>
+                            {opt.label}
+                          </span>
+                          <span className="text-[10px] text-gray-400 leading-tight">{opt.desc}</span>
+                          {urlAccess === opt.value && (
+                            <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#374151] self-end" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* URL input + Add */}
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={urlInput}
                       onChange={e => setUrlInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && urlInput.trim()) connectByUrlMutation.mutate(urlInput.trim()); }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && urlInput.trim())
+                          connectByUrlMutation.mutate({ url: urlInput.trim(), access: urlAccess });
+                      }}
                       placeholder="https://youtube.com/@channelname or @handle"
                       className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-brand-300"
                     />
                     <button
-                      onClick={() => { if (urlInput.trim()) connectByUrlMutation.mutate(urlInput.trim()); }}
+                      onClick={() => {
+                        if (urlInput.trim())
+                          connectByUrlMutation.mutate({ url: urlInput.trim(), access: urlAccess });
+                      }}
                       disabled={!urlInput.trim() || busy}
-                      className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+                      className="px-4 py-2 bg-[#374151] text-white rounded-xl text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 shrink-0 transition-colors"
                     >
                       {connectByUrlMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
                     </button>

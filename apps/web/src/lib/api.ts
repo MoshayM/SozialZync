@@ -991,7 +991,7 @@ export const api = {
     status: () => apiClient.get('/channels/status'),
     getAuthUrl: (access?: 'READ_ONLY' | 'PUBLISH' | 'FULL', returnTo?: string) =>
       apiClient.get(`/channels/auth-url${access ? `?access=${access}` : ''}${returnTo ? `${access ? '&' : '?'}returnTo=${encodeURIComponent(returnTo)}` : ''}`),
-    connectByUrl: (channelUrl: string) => apiClient.post('/channels/connect-by-url', { channelUrl }),
+    connectByUrl: (channelUrl: string, access?: 'READ_ONLY' | 'PUBLISH' | 'FULL') => apiClient.post('/channels/connect-by-url', { channelUrl, access }),
     disconnect: (id: string) => apiClient.delete(`/channels/${id}`),
     remove: (id: string) => apiClient.post(`/channels/${id}/remove`),
     refresh: (channelId: string) => apiClient.post('/channels/refresh', { channelId }),
