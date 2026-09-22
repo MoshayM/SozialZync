@@ -81,7 +81,7 @@ interface Channel {
 const PLATFORM_META: Record<string, { name: string; color: string; bg: string; initials: string; available: boolean }> = {
   youtube:   { name: 'YouTube',     color: '#FF0000', bg: '#fff5f5', initials: 'YT', available: true  },
   instagram: { name: 'Instagram',   color: '#E1306C', bg: '#fdf2f8', initials: 'IG', available: true  },
-  tiktok:    { name: 'TikTok',      color: '#010101', bg: '#f9fafb', initials: 'TK', available: true  },
+  tiktok:    { name: 'TikTok',      color: '#010101', bg: '#f9fafb', initials: 'TK', available: false },
   facebook:  { name: 'Facebook',    color: '#1877F2', bg: '#eff6ff', initials: 'FB', available: true  },
   linkedin:  { name: 'LinkedIn',    color: '#0A66C2', bg: '#eff6ff', initials: 'LI', available: true  },
   x:         { name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X',  available: false },
@@ -185,6 +185,7 @@ export default function PublishingAccountsPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [guideForPlatform, setGuideForPlatform] = useState<string | null>(null);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
+  const [tiktokAvailable, setTiktokAvailable] = useState(false);
 
   async function startOAuth(platformKey: string) {
     setConnectingPlatform(platformKey);
@@ -211,6 +212,13 @@ export default function PublishingAccountsPage() {
       setChannels(Array.isArray(channelRes.data) ? channelRes.data : []);
     } catch { /* non-fatal */ }
     finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/geo')
+      .then(r => r.json())
+      .then((d: { tiktokAvailable: boolean }) => { if (d.tiktokAvailable) setTiktokAvailable(true); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -314,6 +322,8 @@ export default function PublishingAccountsPage() {
             const isYT = platformId === 'youtube';
             const isIG = platformId === 'instagram';
             const isFB = platformId === 'facebook';
+            const isTK = platformId === 'tiktok';
+            const isAvailable = isTK ? tiktokAvailable : meta.available;
 
             return (
               <div key={platformId} className="rounded-2xl p-5" style={{ background: meta.bg, border: `1.5px solid ${meta.color}20` }}>
@@ -328,7 +338,7 @@ export default function PublishingAccountsPage() {
                         <p className="text-xs text-green-600 font-medium flex items-center gap-1">
                           <CheckCircle className="w-3 h-3" /> Connected{status.accountName ? ` · @${status.accountName}` : ''}
                         </p>
-                      ) : meta.available ? (
+                      ) : isAvailable ? (
                         <p className="text-xs text-gray-400 flex items-center gap-1">
                           <XCircle className="w-3 h-3" /> Not connected
                         </p>
@@ -399,6 +409,16 @@ export default function PublishingAccountsPage() {
                         {connectingPlatform === 'facebook' ? 'Opening…' : 'Connect'}
                       </button>
                     )
+                  ) : isTK && tiktokAvailable ? (
+                    <button
+                      onClick={() => void startOAuth('tiktok')}
+                      disabled={connectingPlatform === 'tiktok'}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0 disabled:opacity-60"
+                      style={{ background: '#010101' }}
+                    >
+                      {connectingPlatform === 'tiktok' ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                      {connectingPlatform === 'tiktok' ? 'Opening…' : 'Connect'}
+                    </button>
                   ) : (
                     <span className="text-[11px] bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full font-semibold shrink-0">Soon</span>
                   )}

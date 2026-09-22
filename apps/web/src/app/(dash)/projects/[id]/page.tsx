@@ -1972,6 +1972,7 @@ function AdRevenuePanel({ projectId }: { projectId: string }) {
 interface MultiPublishModalProps {
   videoTitle: string;
   channelConnected: boolean;
+  tiktokAvailable: boolean;
   onYouTube: () => void;
   onConnectYouTube: () => void;
   onClose: () => void;
@@ -1980,13 +1981,13 @@ interface MultiPublishModalProps {
 const ALL_PLATFORMS = [
   { id: 'youtube',   name: 'YouTube',    color: '#FF0000', bg: '#fff5f5', initials: 'YT',  available: true  },
   { id: 'instagram', name: 'Instagram',  color: '#E1306C', bg: '#fdf2f8', initials: 'IG',  available: false },
-  { id: 'tiktok',   name: 'TikTok',     color: '#010101', bg: '#f9fafb', initials: 'TK',  available: true  },
+  { id: 'tiktok',   name: 'TikTok',     color: '#010101', bg: '#f9fafb', initials: 'TK',  available: false },
   { id: 'facebook',  name: 'Facebook',   color: '#1877F2', bg: '#eff6ff', initials: 'FB',  available: false },
   { id: 'linkedin',  name: 'LinkedIn',   color: '#0A66C2', bg: '#eff6ff', initials: 'LI',  available: true  },
   { id: 'x',         name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X', available: false },
 ] as const;
 
-function MultiPublishModal({ videoTitle, channelConnected, onYouTube, onConnectYouTube, onClose }: MultiPublishModalProps) {
+function MultiPublishModal({ videoTitle, channelConnected, tiktokAvailable, onYouTube, onConnectYouTube, onClose }: MultiPublishModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
@@ -2007,6 +2008,7 @@ function MultiPublishModal({ videoTitle, channelConnected, onYouTube, onConnectY
           {ALL_PLATFORMS.map((p) => {
             const isYT = p.id === 'youtube';
             const connected = isYT ? channelConnected : false;
+            const isAvailable = p.id === 'tiktok' ? tiktokAvailable : p.available;
             return (
               <div
                 key={p.id}
@@ -2023,7 +2025,7 @@ function MultiPublishModal({ videoTitle, channelConnected, onYouTube, onConnectY
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{p.name}</p>
                     <p className="text-xs" style={{ color: connected ? '#16a34a' : '#9ca3af' }}>
-                      {connected ? 'Connected · Ready' : p.available ? 'Not connected' : 'Coming soon'}
+                      {connected ? 'Connected · Ready' : isAvailable ? 'Not connected' : 'Coming soon'}
                     </p>
                   </div>
                 </div>
@@ -2079,6 +2081,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
   const canPublishExternal = isAdminRole() || planAtLeast(userPlan, 'PRO');
   const [open, setOpen] = useState(false);
   const [showMultiPublish, setShowMultiPublish] = useState(false);
+  const [tiktokAvailable, setTiktokAvailable] = useState(false);
   const [showFreeBlocker, setShowFreeBlocker] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
   const [error, setError] = useState('');
@@ -2125,6 +2128,13 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
       }
     },
   });
+
+  useEffect(() => {
+    fetch('/api/geo')
+      .then(r => r.json())
+      .then((d: { tiktokAvailable: boolean }) => { if (d.tiktokAvailable) setTiktokAvailable(true); })
+      .catch(() => {});
+  }, []);
 
   // Auto-open publish modal when returning from OAuth (?publish=1)
   useEffect(() => {
@@ -2380,6 +2390,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
         <MultiPublishModal
           videoTitle={video?.title ?? 'Untitled'}
           channelConnected={!!data?.project?.channel?.active}
+          tiktokAvailable={tiktokAvailable}
           onYouTube={() => { setShowMultiPublish(false); setOpen(true); }}
           onConnectYouTube={() => void startOAuth(`/projects/${projectId}?publish=1`)}
           onClose={() => setShowMultiPublish(false)}

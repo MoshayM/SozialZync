@@ -127,7 +127,7 @@ const SOCIAL_PLATFORMS: Array<{
 }> = [
   { key: 'facebook',  name: 'Facebook',   icon: Facebook,     tile: 'bg-blue-50',       color: 'text-blue-600',  note: 'Pages & Reels publishing',        available: true  },
   { key: 'instagram', name: 'Instagram',  icon: Instagram,    tile: 'bg-pink-50',        color: 'text-pink-600',  note: 'Reels & Stories publishing',                              available: true  },
-  { key: 'tiktok',    name: 'TikTok',     icon: Music2,       tile: 'bg-gray-100',       color: 'text-gray-900',  note: 'Video publishing & analytics',    available: true  },
+  { key: 'tiktok',    name: 'TikTok',     icon: Music2,       tile: 'bg-gray-100',       color: 'text-gray-900',  note: 'Video publishing & analytics',    available: false },
   { key: 'x',         name: 'X (Twitter)',icon: XIcon,        tile: 'bg-black',          color: 'text-white',     note: 'Post & thread publishing',        available: false },
   { key: 'linkedin',  name: 'LinkedIn',   icon: LinkedInIcon, tile: 'bg-[#0A66C2]',      color: 'text-white',     note: 'Article & video publishing',      available: true  },
   { key: 'threads',   name: 'Threads',    icon: ThreadsIcon,  tile: 'bg-black',          color: 'text-white',     note: 'Short-form post publishing',      available: false },
@@ -291,6 +291,14 @@ function ChannelAccessContent() {
   // Access level for new Google connections; per-channel changes use changeAccessMutation
   const [connectAccess, setConnectAccess] = useState<AccessLevel>('PUBLISH');
   const [accessDrafts, setAccessDrafts] = useState<Record<string, AccessLevel>>({});
+  const [tiktokAvailable, setTiktokAvailable] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/geo')
+      .then(r => r.json())
+      .then((d: { tiktokAvailable: boolean }) => { if (d.tiktokAvailable) setTiktokAvailable(true); })
+      .catch(() => {}); // fail silently — TikTok stays hidden
+  }, []);
   // Set to true after OAuth callback redirect — we wait for channels to reload before showing success
   const pendingVerification = useRef(false);
 
@@ -959,6 +967,7 @@ function ChannelAccessContent() {
         </h2>
         <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
           {SOCIAL_PLATFORMS.map((p) => {
+            const isAvailable = p.key === 'tiktok' ? tiktokAvailable : p.available;
             const status = platformStatuses[p.key];
             const isConnected = status?.connected === true;
             const watches = status?.watches ?? [];
@@ -1006,7 +1015,7 @@ function ChannelAccessContent() {
                     </button>
 
                     {/* OAuth connect/disconnect */}
-                    {!p.available && !isConnected && (
+                    {!isAvailable && !isConnected && (
                       <span className="text-xs text-gray-400 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
                         OAuth soon
                       </span>
@@ -1022,7 +1031,7 @@ function ChannelAccessContent() {
                           : <LogOut className="w-4 h-4" />}
                         Disconnect
                       </button>
-                    ) : p.available ? (
+                    ) : isAvailable ? (
                       <button
                         disabled={connectingPlatform === p.key}
                         onClick={() => {
