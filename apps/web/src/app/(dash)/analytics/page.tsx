@@ -465,7 +465,7 @@ export default function AnalyticsPage() {
 
         {/* Tab bar — AI Analysis + AI Usage visible to SUPER_ADMIN/OWNER only */}
         <div style={{ borderBottom: '1px solid #e3ddf8' }}>
-          <div className="flex overflow-x-auto">
+          <div className="flex flex-wrap gap-x-1">
             {(['scorecard', 'analytics', 'usage', 'benchmark'] as const).map(v => {
               if (v === 'usage' && !isAdmin) return null;
               if (v === 'analytics' && !isAdmin) return null;
@@ -477,13 +477,13 @@ export default function AnalyticsPage() {
                   key={v}
                   onClick={() => !locked && setActiveView(v)}
                   title={locked ? 'Requires Pro plan' : undefined}
-                  className="flex items-center gap-1.5 px-5 pb-3 pt-2 text-sm font-semibold transition-colors border-b-2 -mb-px whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-5 pb-3 pt-2 text-sm font-semibold transition-colors border-b-2 -mb-px"
                   style={
                     activeView === v
                       ? { borderColor: '#374151', color: '#374151' }
                       : locked
-                      ? { borderColor: 'transparent', color: '#374151', cursor: 'not-allowed' }
-                      : { borderColor: 'transparent', color: '#374151' }
+                      ? { borderColor: 'transparent', color: '#9ca3af', cursor: 'not-allowed' }
+                      : { borderColor: 'transparent', color: '#6b7280' }
                   }
                 >
                   {label}
@@ -518,9 +518,9 @@ export default function AnalyticsPage() {
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Publishing</p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <StatCard tone="lilac" icon={<Video className="w-5 h-5" />} label="Published" value={scorecard.publishing?.published ?? '—'} sub="videos uploaded" subClassName="text-gray-600" />
-                    <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Scheduled" value={scorecard.publishing?.scheduled ?? '—'} sub="queued for publish" subClassName="text-gray-600" />
-                    <StatCard tone="pink" icon={<AlertTriangle className="w-5 h-5" />} label="Failed" value={scorecard.publishing?.failed ?? '—'} sub="publish errors" subClassName={scorecard.publishing?.failed ? 'text-red-500' : 'text-gray-600'} />
+                    <StatCard tone="lilac" icon={<Video className="w-5 h-5" />} label="Published" value={scorecard.publishing?.published ?? '—'} sub="videos uploaded" subClassName="text-gray-600" href="/library" />
+                    <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Scheduled" value={scorecard.publishing?.scheduled ?? '—'} sub="queued for publish" subClassName="text-gray-600" href="/publish" />
+                    <StatCard tone="pink" icon={<AlertTriangle className="w-5 h-5" />} label="Failed" value={scorecard.publishing?.failed ?? '—'} sub="publish errors" subClassName={scorecard.publishing?.failed ? 'text-red-500' : 'text-gray-600'} href="/monitor" />
                   </div>
                 </div>
 
@@ -528,9 +528,9 @@ export default function AnalyticsPage() {
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">AI Autonomy</p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <StatCard tone="periwinkle" icon={<BarChart2 className="w-5 h-5" />} label="Proposals" value={scorecard.calendar?.total ?? '—'} sub="calendar entries" subClassName="text-gray-600" />
-                    <StatCard tone="lilac" icon={<TrendingUp className="w-5 h-5" />} label="Approval Rate" value={scorecard.calendar ? `${Math.round(scorecard.calendar.approvalRate)}%` : '—'} sub="of proposals approved" subClassName={scorecard.calendar && scorecard.calendar.approvalRate >= 50 ? 'text-green-600' : 'text-amber-500'} />
-                    <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Upcoming (7d)" value={scorecard.calendar?.upcoming7d ?? '—'} sub="approved slots" subClassName="text-gray-600" />
+                    <StatCard tone="periwinkle" icon={<BarChart2 className="w-5 h-5" />} label="Proposals" value={scorecard.calendar?.total ?? '—'} sub="calendar entries" subClassName="text-gray-600" href="/calendar" />
+                    <StatCard tone="lilac" icon={<TrendingUp className="w-5 h-5" />} label="Approval Rate" value={scorecard.calendar ? `${Math.round(scorecard.calendar.approvalRate)}%` : '—'} sub="of proposals approved" subClassName={scorecard.calendar && scorecard.calendar.approvalRate >= 50 ? 'text-green-600' : 'text-amber-500'} href="/approvals" />
+                    <StatCard tone="cream" icon={<Gauge className="w-5 h-5" />} label="Upcoming (7d)" value={scorecard.calendar?.upcoming7d ?? '—'} sub="approved slots" subClassName="text-gray-600" href="/calendar" />
                   </div>
                 </div>
 
@@ -832,16 +832,9 @@ export default function AnalyticsPage() {
               <>
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { label: 'Subscribers', value: benchmark.channel.subscribers.toLocaleString() },
-                    { label: 'Videos', value: benchmark.channel.videoCount.toLocaleString() },
-                    { label: 'Avg Views', value: benchmark.channel.avgViews.toLocaleString() },
-                  ].map(stat => (
-                    <div key={stat.label} className="bg-white rounded-2xl p-5 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <p className="text-2xl font-black text-gray-900">{stat.value}</p>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mt-1">{stat.label}</p>
-                    </div>
-                  ))}
+                  <StatCard tone="lilac"      icon={<TrendingUp className="w-5 h-5" />}  label="Subscribers" value={benchmark.channel.subscribers.toLocaleString()} sub="your channel" />
+                  <StatCard tone="periwinkle" icon={<Video className="w-5 h-5" />}        label="Videos"      value={benchmark.channel.videoCount.toLocaleString()} sub="total uploaded" href="/library" />
+                  <StatCard tone="cream"      icon={<BarChart2 className="w-5 h-5" />}   label="Avg Views"   value={benchmark.channel.avgViews.toLocaleString()} sub="per video" />
                 </div>
 
                 {/* Percentile bar */}
