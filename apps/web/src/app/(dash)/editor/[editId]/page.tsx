@@ -4283,16 +4283,38 @@ export default function EditorWorkspacePage() {
   }
 
   if (loadError || !project) {
+    const httpStatus = (loadError as { response?: { status?: number } } | null)?.response?.status;
+    const apiMessage = (loadError as { response?: { data?: { message?: string } } } | null)?.response?.data?.message;
+    const is404 = httpStatus === 404;
+    const is403 = httpStatus === 403;
     return (
       <div className="p-8">
         <Link href="/editor" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-4">
           <ArrowLeft className="w-4 h-4" /> Video Editor
         </Link>
-        <JobErrorCard
-          error={(loadError as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not load this edit project'}
-          errorCode="JOB_FAILED"
-          onRetry={() => { void qc.invalidateQueries({ queryKey: ['editor-project', editId] }); }}
-        />
+        {is404 ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 max-w-md">
+            <p className="text-sm font-semibold text-amber-800 mb-1">Edit project not found</p>
+            <p className="text-xs text-amber-700 mb-3">This edit may have been deleted or the link is outdated.</p>
+            <Link href="/editor" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200">
+              <ArrowLeft className="w-3 h-3" /> Back to My Edits
+            </Link>
+          </div>
+        ) : is403 ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-5 max-w-md">
+            <p className="text-sm font-semibold text-red-800 mb-1">Access denied</p>
+            <p className="text-xs text-red-700 mb-3">You don&apos;t have permission to open this edit project.</p>
+            <Link href="/editor" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-800 hover:bg-red-200">
+              <ArrowLeft className="w-3 h-3" /> Back to My Edits
+            </Link>
+          </div>
+        ) : (
+          <JobErrorCard
+            error={apiMessage ?? 'Could not load this edit project'}
+            errorCode="JOB_FAILED"
+            onRetry={() => { void qc.invalidateQueries({ queryKey: ['editor-project', editId] }); }}
+          />
+        )}
       </div>
     );
   }
