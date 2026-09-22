@@ -1980,7 +1980,7 @@ interface MultiPublishModalProps {
 const ALL_PLATFORMS = [
   { id: 'youtube',   name: 'YouTube',    color: '#FF0000', bg: '#fff5f5', initials: 'YT',  available: true  },
   { id: 'instagram', name: 'Instagram',  color: '#E1306C', bg: '#fdf2f8', initials: 'IG',  available: false },
-  { id: 'tiktok',   name: 'TikTok',     color: '#010101', bg: '#f9fafb', initials: 'TK',  available: false },
+  { id: 'tiktok',   name: 'TikTok',     color: '#010101', bg: '#f9fafb', initials: 'TK',  available: true  },
   { id: 'facebook',  name: 'Facebook',   color: '#1877F2', bg: '#eff6ff', initials: 'FB',  available: false },
   { id: 'linkedin',  name: 'LinkedIn',   color: '#0A66C2', bg: '#eff6ff', initials: 'LI',  available: true  },
   { id: 'x',         name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X', available: false },
