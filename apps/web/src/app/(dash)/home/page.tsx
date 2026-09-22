@@ -582,10 +582,10 @@ export default function HomePage() {
 
         {/* ── STATS ROW ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard tone="lilac"      icon={<Youtube className="w-5 h-5" />}    label="Subscribers"      value={totalSubscribers > 0 ? formatCount(totalSubscribers) : channels.length} sub={totalSubscribers > 0 ? `${channels.length} channel${channels.length !== 1 ? 's' : ''}` : 'channels connected'} />
-          <StatCard tone="cream"      icon={<Zap className="w-5 h-5" />}        label="Active Projects"  value={activeProjects.length} sub={`of ${projects.length} total`} />
-          <StatCard tone="periwinkle" icon={<Video className="w-5 h-5" />}      label="Videos"           value={totalVideos} />
-          <StatCard tone="pink"       icon={<Activity className="w-5 h-5" />}   label="AI Jobs"          value={totalJobs} sub="across all projects" />
+          <StatCard tone="lilac"      icon={<Youtube className="w-5 h-5" />}    label="Subscribers"      value={totalSubscribers > 0 ? formatCount(totalSubscribers) : channels.length} sub={totalSubscribers > 0 ? `${channels.length} channel${channels.length !== 1 ? 's' : ''}` : 'channels connected'} href="/analytics" />
+          <StatCard tone="cream"      icon={<Zap className="w-5 h-5" />}        label="Active Projects"  value={activeProjects.length} sub={`of ${projects.length} total`} href="/projects" />
+          <StatCard tone="periwinkle" icon={<Video className="w-5 h-5" />}      label="Videos"           value={totalVideos} href="/library" />
+          <StatCard tone="pink"       icon={<Activity className="w-5 h-5" />}   label="AI Jobs"          value={totalJobs} sub="across all projects" href="/monitor" />
         </div>
 
         {/* ── AI CHANNEL INSIGHT ─────────────────────────────────────────── */}

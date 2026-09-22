@@ -1,5 +1,7 @@
-﻿'use client';
+'use client';
 import React from 'react';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 
 export type StatTone = 'lilac' | 'pink' | 'cream' | 'periwinkle';
 
@@ -10,13 +12,14 @@ const TONES: Record<StatTone, { cardBg: string; cardBorder: string; tileBg: stri
   periwinkle: { cardBg: '#eff6ff', cardBorder: '#bfdbfe', tileBg: '#3b82f6' },
 };
 
-export function StatCard({
+function StatCardInner({
   tone,
   icon,
   label,
   value,
   sub,
   subClassName = 'text-gray-600',
+  clickable = false,
 }: {
   tone: StatTone;
   icon: React.ReactNode;
@@ -24,24 +27,57 @@ export function StatCard({
   value: React.ReactNode;
   sub?: string;
   subClassName?: string;
+  clickable?: boolean;
 }) {
   const t = TONES[tone];
   return (
     <div
-      className="rounded-2xl p-5"
+      className={`rounded-2xl p-5 relative transition-all duration-200${clickable ? ' hover:shadow-md hover:-translate-y-0.5 cursor-pointer' : ''}`}
       style={{ background: t.cardBg, border: `1.5px solid ${t.cardBorder}` }}
     >
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center text-white mb-3 shrink-0"
-        style={{ background: t.tileBg }}
-      >
-        {icon}
+      <div className="flex items-start justify-between">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-white mb-3 shrink-0"
+          style={{ background: t.tileBg }}
+        >
+          {icon}
+        </div>
+        {clickable && (
+          <ChevronRight className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+        )}
       </div>
       <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-[0.06em]">{label}</p>
       <div className="text-3xl font-extrabold text-gray-900 mt-0.5 tabular-nums leading-none">{value}</div>
       {sub && <p className={`text-[12px] mt-2 font-medium ${subClassName}`}>{sub}</p>}
     </div>
   );
+}
+
+export function StatCard({
+  tone,
+  icon,
+  label,
+  value,
+  sub,
+  subClassName = 'text-gray-600',
+  href,
+}: {
+  tone: StatTone;
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  sub?: string;
+  subClassName?: string;
+  href?: string;
+}) {
+  if (href) {
+    return (
+      <Link href={href} className="block no-underline">
+        <StatCardInner tone={tone} icon={icon} label={label} value={value} sub={sub} subClassName={subClassName} clickable />
+      </Link>
+    );
+  }
+  return <StatCardInner tone={tone} icon={icon} label={label} value={value} sub={sub} subClassName={subClassName} />;
 }
 
 /** Rounded pastel bar chart (pure CSS, no chart lib). */
