@@ -530,10 +530,10 @@ export class EditorService {
       select: { id: true },
     });
     if (recent) return recent.id;
+    // channelId is nullable — create a standalone editor project even without a connected channel
     const channel = await this.prisma.channel.findFirst({ where: { userId }, select: { id: true } });
-    if (!channel) throw new BadRequestException('Connect a channel before creating an edit.');
     const created = await this.prisma.project.create({
-      data: { userId, channelId: channel.id, title: 'Video Editor', description: 'Container for standalone edits' },
+      data: { userId, channelId: channel?.id ?? null, title: 'Video Editor', description: 'Container for standalone edits' },
       select: { id: true },
     });
     return created.id;
