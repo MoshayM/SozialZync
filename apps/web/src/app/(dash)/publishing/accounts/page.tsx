@@ -167,7 +167,7 @@ function ConnectGuideModal({
             className="flex-1 px-4 py-2.5 text-white text-sm font-semibold rounded-xl transition-colors"
             style={{ background: guide.ctaColor }}
           >
-            Continue to Facebook →
+            Continue to {meta.name} →
           </button>
         </div>
       </div>
