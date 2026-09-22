@@ -233,7 +233,7 @@ function OnboardingWizard({
         <button
           type="button"
           onClick={() => onAdvance(current.href)}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] mb-3"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl font-semibold text-white text-sm transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] mb-3"
           style={{ background: 'linear-gradient(135deg,#374151,#1f2937)', boxShadow: '0 8px 24px -6px rgba(55,65,81,.45)' }}
         >
           {current.cta}

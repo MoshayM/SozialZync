@@ -216,7 +216,7 @@ export default function StrategyPage() {
             <button
               onClick={handleGenerate}
               disabled={loading || !channelId || !goal.trim()}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-white disabled:opacity-50 transition-opacity"
+              className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl font-semibold text-white disabled:opacity-50 transition-opacity"
               style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}

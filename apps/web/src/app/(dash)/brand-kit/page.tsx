@@ -334,7 +334,7 @@ export default function BrandKitPage() {
             <button
               onClick={save}
               disabled={saving}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl font-semibold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
               style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
             >
               {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}

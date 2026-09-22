@@ -517,7 +517,7 @@ function CharactersSection() {
                   </div>
                 )
               ))}
-              <button onClick={() => setTab('create')} className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-white"
+              <button onClick={() => setTab('create')} className="w-full py-2 rounded-2xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-white"
                 style={{ border: '2px dashed #e5e7eb', color: '#9ca3af' }}>
                 <Plus className="w-4 h-4" />Add another character
               </button>

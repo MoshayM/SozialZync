@@ -295,7 +295,7 @@ export default function ResearchPage() {
             type="button"
             onClick={() => { void research(); }}
             disabled={loading || !topic.trim()}
-            className="w-full py-3 disabled:opacity-50 rounded-2xl font-bold text-white flex items-center justify-center gap-2 transition-opacity"
+            className="w-full py-2.5 disabled:opacity-50 rounded-2xl font-semibold text-white flex items-center justify-center gap-2 transition-opacity"
             style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}

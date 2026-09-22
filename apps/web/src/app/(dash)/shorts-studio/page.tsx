@@ -741,7 +741,7 @@ export default function ShortsStudioPage() {
             <p className="text-gray-400 text-sm max-w-xs mb-8 leading-relaxed">Import a long-form video from your library to start clipping Shorts.</p>
             <button
               onClick={() => setPickerOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
               style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.30)' }}
             >
               <FolderDown className="w-4 h-4" /> Import videos from library
@@ -867,7 +867,7 @@ export default function ShortsStudioPage() {
                 {/* Import more */}
                 <button
                   onClick={() => setPickerOpen(true)}
-                  className="w-full py-3 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 hover:bg-[#f3f4f6]"
+                  className="w-full py-2 text-sm font-semibold rounded-2xl transition-all flex items-center justify-center gap-2 hover:bg-[#f3f4f6]"
                   style={{ border: '1.5px dashed #d1d5db', color: '#374151' }}
                 >
                   <FolderDown className="w-4 h-4" /> Import more from library

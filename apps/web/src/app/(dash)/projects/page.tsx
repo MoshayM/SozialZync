@@ -593,7 +593,7 @@ function ProjectsTab({
           </p>
           <button
             type="button" onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
             style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.30)' }}
           >
             <Plus className="w-4 h-4" /> Create first project

@@ -1056,7 +1056,7 @@ function ToolsSection({ selectedVoiceName, selectedTrackTitle }: {
       {/* Run button */}
       <button onClick={() => void runPipeline()}
         disabled={loading || enabledCount === 0 || !inputPath.trim()}
-        className="w-full py-3.5 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-40"
+        className="w-full py-2.5 rounded-2xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-40"
         style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}>
         {loading
           ? <><Loader2 className="w-4 h-4 animate-spin" />Processing…</>

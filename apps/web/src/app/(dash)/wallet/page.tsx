@@ -547,7 +547,7 @@ function WithdrawTab() {
           type="button"
           onClick={() => void submit()}
           disabled={submitting || !canEstimate || insufficientBalance}
-          className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
+          className="w-full py-2.5 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-40"
           style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
         >
           {submitting

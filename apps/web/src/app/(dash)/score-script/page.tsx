@@ -227,7 +227,7 @@ export default function ScoreScriptPage() {
             <button
               onClick={handleScore}
               disabled={loading || !scriptText.trim()}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-2xl font-semibold disabled:opacity-50 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-5 py-2.5 text-white rounded-2xl font-semibold disabled:opacity-50 transition-all"
               style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
