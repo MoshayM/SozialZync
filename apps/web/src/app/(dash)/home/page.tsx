@@ -975,10 +975,17 @@ export default function HomePage() {
             {/* Connected channels */}
             {channels.length > 0 && (
               <Card>
-                <SectionLabel icon={Youtube}>Connected Channels</SectionLabel>
-                <div className="space-y-3">
+                <div className="flex items-center justify-between mb-3">
+                  <SectionLabel icon={Youtube}>Connected Channels</SectionLabel>
+                  <Link href="/settings/channels" className="text-[13px] font-semibold hover:underline" style={{ color: '#374151' }}>Manage</Link>
+                </div>
+                <div className="space-y-1">
                   {channels.slice(0, 3).map((ch) => (
-                    <div key={ch.id} className="flex items-center gap-3">
+                    <Link
+                      key={ch.id}
+                      href="/settings/channels"
+                      className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors -mx-2"
+                    >
                       {ch.thumbnailUrl ? (
                         <img src={ch.thumbnailUrl} alt={ch.title} className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
                       ) : (
@@ -995,10 +1002,10 @@ export default function HomePage() {
                       {automation?.enabled && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 shrink-0">Auto</span>
                       )}
-                    </div>
+                    </Link>
                   ))}
                   {channels.length > 3 && (
-                    <Link href="/settings/channels" className="text-[13px] font-semibold hover:underline" style={{ color: '#374151' }}>
+                    <Link href="/settings/channels" className="text-[13px] font-semibold hover:underline pl-2" style={{ color: '#374151' }}>
                       +{channels.length - 3} more channels
                     </Link>
                   )}
