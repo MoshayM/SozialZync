@@ -703,7 +703,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         );
       }
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: 'calc(100vh - 180px)', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'thin' }}>
           {matches.map(({ href, icon: Icon, label, badge, action }, resultIdx) => {
             const isActive = !action && (
               href === '/studio'
