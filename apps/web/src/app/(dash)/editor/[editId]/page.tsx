@@ -38,7 +38,7 @@ import {
   type LibraryVideosPage,
 } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
-import { usePlanGate, useIsAdmin, planAtLeast } from '@/components/plan-gate';
+import { usePlanGate, useIsAdmin, planAtLeast, triggerUpgradeSheet } from '@/components/plan-gate';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -4489,13 +4489,13 @@ export default function EditorWorkspacePage() {
             <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
           </button>
         ) : (
-          <Link
-            href="/plans"
+          <button
+            onClick={() => triggerUpgradeSheet({ feature: 'Export Video', plan: 'PRO' })}
             className="flex items-center gap-1.5 px-2 sm:px-3 h-9 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50"
             title="Pro plan required to export videos"
           >
             <Lock className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
-          </Link>
+          </button>
         )}
         </div>{/* end right section */}
       </div>{/* end toolbar */}

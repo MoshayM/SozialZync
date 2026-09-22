@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ShieldCheck, ExternalLink, XCircle, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
-import { usePlanGate, useIsAdmin, planAtLeast } from '@/components/plan-gate';
+import { usePlanGate, useIsAdmin, planAtLeast, triggerUpgradeSheet } from '@/components/plan-gate';
 
 interface Topic {
   id: string;
@@ -310,13 +310,13 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
             Publish
           </button>
         ) : (
-          <Link
-            href="/plans"
+          <button
+            onClick={() => triggerUpgradeSheet({ feature: 'Publish to Platforms', plan: 'PRO' })}
             className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50"
             title="Pro plan required to publish to external platforms"
           >
             <Lock className="w-3.5 h-3.5" /> Pro only
-          </Link>
+          </button>
         )}
       </div>
 

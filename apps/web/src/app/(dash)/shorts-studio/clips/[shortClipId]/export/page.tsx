@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
-import { PlanGate, usePlanGate, planAtLeast, useIsAdmin } from '@/components/plan-gate';
+import { PlanGate, usePlanGate, planAtLeast, useIsAdmin, triggerUpgradeSheet } from '@/components/plan-gate';
 
 interface RenderStatus {
   clipStatus: string | null;
@@ -342,9 +342,9 @@ export default function ClipExportPage() {
                 <Download className="w-4 h-4" /> Download
               </button>
             ) : (
-              <Link href="/plans" className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-sm hover:bg-gray-50" title="Pro plan required to download">
+              <button onClick={() => triggerUpgradeSheet({ feature: 'Download Clip', plan: 'PRO' })} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-sm hover:bg-gray-50" title="Pro plan required to download">
                 <Lock className="w-4 h-4" /> Pro only
-              </Link>
+              </button>
             )}
           </>
         ) : (

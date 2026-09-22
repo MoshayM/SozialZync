@@ -11,11 +11,11 @@ import {
   Check, Copy, Download,
   RotateCcw, ArrowRightLeft, Timer, Trash2, Pause,
   FileText, RefreshCw, Film, Search, ShieldCheck, Tag, Image as ImageIcon,
-  Youtube, Send, X, Clapperboard, Sparkles, Award,
+  Youtube, Send, X, Clapperboard, Sparkles, Award, Lock,
 } from 'lucide-react';
 import type { ProjectPublishReady } from '@/lib/api';
 import { LoadingSteps } from '@/components/loading-steps';
-import { usePlanGate, isAdminRole, planAtLeast } from '@/components/plan-gate';
+import { usePlanGate, isAdminRole, planAtLeast, triggerUpgradeSheet } from '@/components/plan-gate';
 
 type PageTab = 'pipeline' | 'script' | 'storyboard' | 'seo' | 'checks';
 
@@ -1925,13 +1925,13 @@ function AdRevenuePanel({ projectId }: { projectId: string }) {
             {stats?.adRevenueEnabled ? 'Disable' : 'Enable for Browse'}
           </button>
         ) : (
-          <Link
-            href="/plans"
+          <button
+            onClick={() => triggerUpgradeSheet({ feature: 'Ad Revenue', plan: 'PRO' })}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
             style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
           >
-            Pro required
-          </Link>
+            <Lock className="w-3 h-3" /> Pro required
+          </button>
         )}
       </div>
 
@@ -2366,13 +2366,13 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
             </div>
             <button type="button" onClick={() => setShowFreeBlocker(false)} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-4 h-4" /></button>
           </div>
-          <a
-            href="/plans"
+          <button
+            onClick={() => { setShowFreeBlocker(false); triggerUpgradeSheet({ feature: 'Publish to YouTube & Social', plan: 'PRO' }); }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
           >
             Upgrade to Pro — $17/mo
-          </a>
+          </button>
         </div>
       )}
 

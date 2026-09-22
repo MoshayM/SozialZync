@@ -12,6 +12,7 @@ import {
   ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity, Globe, History,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
+import { UpgradeSheet } from '@/components/plan-gate';
 import { LogoMark } from '@/components/logo-mark';
 import { api, clearTokens, getRefreshToken, type AppNotification } from '@/lib/api';
 import { usePlan } from '@/lib/plan';
@@ -1406,6 +1407,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       </nav>
 
       <CopilotPanel />
+      <UpgradeSheet />
     </div>
   );
 }

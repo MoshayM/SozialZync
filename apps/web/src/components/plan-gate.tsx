@@ -1,7 +1,7 @@
-﻿'use client';
-import { useState, useEffect } from 'react';
+'use client';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Lock } from 'lucide-react';
+import { Lock, Crown, Check, X, Sparkles, Zap } from 'lucide-react';
 
 // ── Tier definitions ──────────────────────────────────────────────────────────
 
@@ -23,6 +23,34 @@ const PLAN_DESC: Record<Plan, string> = {
   ENTERPRISE: 'Admin-managed — organisation features, custom AI model training, and dedicated SLA.',
   AGENCY: 'Admin-managed — organisation features, custom AI model training, and dedicated SLA.',
 };
+const PLAN_BENEFITS: Record<Plan, string[]> = {
+  FREE: [],
+  PRO: [
+    'Export & download videos in Full HD',
+    'Publish to YouTube, TikTok & Instagram',
+    '80 AI content generations / hour',
+    'Unlimited projects & working files',
+    'Priority render queue',
+  ],
+  UNLIMITED: [
+    'Zero publish caps — post everywhere, always',
+    'Everything in Pro with no throttling',
+    'Fastest rendering priority',
+    'Unlimited AI quota',
+  ],
+  ENTERPRISE: [
+    'Team workspaces with role management',
+    'Custom AI model training',
+    'Dedicated SLA & support',
+    'Organisation-level billing',
+  ],
+  AGENCY: [
+    'Multi-client workspace management',
+    'White-label outputs',
+    'Custom AI model training',
+    'Agency billing & SLA',
+  ],
+};
 
 // ── Role helpers ──────────────────────────────────────────────────────────────
 
@@ -36,16 +64,13 @@ function parseToken(): { plan?: string; role?: string } {
   }
 }
 
-/** Returns true if the current user is a SUPER_ADMIN or OWNER — bypasses all plan gates. */
 export function isAdminRole(): boolean {
   const { role } = parseToken();
   if (role) return role === 'SUPER_ADMIN' || role === 'OWNER';
-  // Fallback: role cached by DashLayout from /me API response
   const cached = typeof window !== 'undefined' ? localStorage.getItem('cf_user_role') : null;
   return cached === 'SUPER_ADMIN' || cached === 'OWNER';
 }
 
-/** Hook version — safe for SSR (reads after mount). */
 export function useIsAdmin(): boolean {
   const [admin, setAdmin] = useState(false);
   useEffect(() => { setAdmin(isAdminRole()); }, []);
@@ -66,11 +91,147 @@ export function usePlanGate(): Plan {
   return plan;
 }
 
-/** Backward-compat alias used by analytics and other pages. */
 export const usePlan = usePlanGate;
 
 export function planAtLeast(userPlan: Plan, required: Plan): boolean {
   return PLAN_ORDER[userPlan] >= PLAN_ORDER[required];
+}
+
+// ── Upgrade sheet (global bottom sheet / modal) ───────────────────────────────
+
+interface SheetDetail {
+  feature?: string;
+  plan?: Plan;
+}
+
+/** Call from anywhere to pop the upgrade sheet without navigating away. */
+export function triggerUpgradeSheet(opts: SheetDetail = {}) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('zk:upgrade-sheet', { detail: opts }));
+}
+
+/**
+ * Mount once in the dash layout. Listens for `zk:upgrade-sheet` events and
+ * renders a bottom sheet (mobile) / centered modal (desktop).
+ */
+export function UpgradeSheet() {
+  const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState<SheetDetail>({});
+  const userPlan = usePlanGate();
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setDetail((e as CustomEvent<SheetDetail>).detail ?? {});
+      setOpen(true);
+    };
+    window.addEventListener('zk:upgrade-sheet', handler);
+    return () => window.removeEventListener('zk:upgrade-sheet', handler);
+  }, []);
+
+  const close = useCallback(() => setOpen(false), []);
+
+  const plan: Plan = detail.plan ?? 'PRO';
+  const benefits = PLAN_BENEFITS[plan];
+  const price = PLAN_PRICE[plan];
+  const label = PLAN_LABEL[plan];
+  const PlanIcon = plan === 'UNLIMITED' ? Sparkles : plan === 'ENTERPRISE' || plan === 'AGENCY' ? Zap : Crown;
+
+  if (!open) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-[9998] bg-black/50"
+        style={{ backdropFilter: 'blur(2px)' }}
+        onClick={close}
+      />
+
+      {/* Sheet — slides up from bottom on mobile, centered card on desktop */}
+      <div
+        className="fixed z-[9999] w-full sm:w-auto sm:min-w-[360px] sm:max-w-md
+                   bottom-0 sm:bottom-auto sm:top-1/2 sm:left-1/2
+                   sm:-translate-x-1/2 sm:-translate-y-1/2
+                   rounded-t-3xl sm:rounded-3xl overflow-hidden
+                   animate-in slide-in-from-bottom sm:zoom-in-95 duration-300"
+        style={{ background: '#fff', boxShadow: '0 -4px 40px rgba(0,0,0,0.18)' }}
+      >
+        {/* Drag handle (mobile only) */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+
+        {/* Close button */}
+        <button
+          onClick={close}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="px-6 pt-4 pb-8">
+          {/* Icon */}
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'linear-gradient(135deg, #374151, #7c5ae8)' }}
+          >
+            <PlanIcon className="w-7 h-7 text-white" />
+          </div>
+
+          {/* Headline */}
+          <p className="text-center text-[17px] font-extrabold text-gray-900 mb-1 leading-snug">
+            {detail.feature ? `Unlock ${detail.feature}` : `Upgrade to ${label}`}
+          </p>
+          <p className="text-center text-sm text-gray-500 mb-5">
+            {label}{price ? ` · ${price}` : ''} — billed monthly, cancel anytime
+          </p>
+
+          {/* Benefits */}
+          {benefits.length > 0 && (
+            <ul className="space-y-2.5 mb-6">
+              {benefits.map(b => (
+                <li key={b} className="flex items-start gap-2.5 text-sm text-gray-700">
+                  <span
+                    className="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
+                  >
+                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                  </span>
+                  {b}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* CTA */}
+          <Link
+            href={`/plans?feature=${encodeURIComponent(detail.feature ?? '')}&plan=${plan}`}
+            onClick={close}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{
+              background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)',
+              boxShadow: '0 4px 20px rgba(55,65,81,0.30)',
+            }}
+          >
+            <PlanIcon className="w-4 h-4" />
+            Upgrade to {label}
+            {price && <span className="opacity-75 font-medium text-xs">— {price}</span>}
+          </Link>
+
+          <button
+            onClick={close}
+            className="block w-full text-center text-xs text-gray-400 mt-3 hover:text-gray-600 transition-colors py-1"
+          >
+            Maybe later — keep using Free
+          </button>
+
+          <p className="text-center text-[11px] text-gray-400 mt-2">
+            Current plan: <span className="font-semibold">{PLAN_LABEL[userPlan]}</span>
+          </p>
+        </div>
+      </div>
+    </>
+  );
 }
 
 // ── PlanGate component ────────────────────────────────────────────────────────
@@ -79,20 +240,12 @@ interface PlanGateProps {
   requiredPlan: Plan;
   children?: React.ReactNode;
   featureLabel?: string;
-  /** Blur + dim the children when locked (default true). */
   preview?: boolean;
 }
 
-/**
- * Shows a locked overlay for users below the required plan tier.
- * SUPER_ADMIN / OWNER bypass all gates — they see everything.
- * The API always enforces the real gate; this is a UI affordance only.
- */
 export function PlanGate({ requiredPlan, children, featureLabel, preview = true }: PlanGateProps) {
   const userPlan = usePlanGate();
   const isAdmin  = useIsAdmin();
-
-  // Super Admin and Owner always have full access
   const allowed = isAdmin || planAtLeast(userPlan, requiredPlan);
 
   if (allowed) return <>{children}</>;
@@ -131,8 +284,8 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
           {PLAN_DESC[requiredPlan]}
         </p>
 
-        <Link
-          href="/plans"
+        <button
+          onClick={() => triggerUpgradeSheet({ feature: featureLabel, plan: requiredPlan })}
           className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
           style={{
             background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)',
@@ -140,7 +293,7 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
           }}
         >
           Upgrade to {PLAN_LABEL[requiredPlan]}
-        </Link>
+        </button>
 
         <p className="text-[11px] text-gray-600 mt-3">
           Current plan: <span className="font-semibold">{PLAN_LABEL[userPlan]}</span>
