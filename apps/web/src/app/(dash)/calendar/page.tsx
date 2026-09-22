@@ -457,6 +457,7 @@ export default function ContentCalendarPage() {
   const [editEntry, setEditEntry] = useState<(Partial<CalendarEntry> & { date: string }) | null>(null);
   const [showGenerate, setShowGenerate] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<EntryStatus | 'all'>('all');
   const today = todayStr();
 
   // Quick Schedule state
@@ -623,18 +624,41 @@ export default function ContentCalendarPage() {
               </div>
             </div>
 
-            {/* Stats bar */}
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { label: 'Total', value: stats.total, color: '#6366f1', bg: '#eef2ff' },
-                { label: 'Drafts', value: stats.drafts, color: '#f59e0b', bg: '#fffbeb' },
-                { label: 'Scheduled', value: stats.scheduled, color: '#374151', bg: '#f3f4f6' },
-                { label: 'Published', value: stats.published, color: '#10b981', bg: '#ecfdf5' },
-              ].map(s => (
-                <div key={s.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: s.bg, color: s.color }}>
-                  <span className="text-base font-extrabold">{s.value}</span>{s.label}
-                </div>
-              ))}
+            {/* Stats bar — clickable to filter calendar */}
+            <div className="flex gap-2 flex-wrap items-center">
+              {([
+                { label: 'Total', value: stats.total, color: '#6366f1', bg: '#eef2ff', filter: 'all' as const },
+                { label: 'Drafts', value: stats.drafts, color: '#f59e0b', bg: '#fffbeb', filter: 'draft' as const },
+                { label: 'Scheduled', value: stats.scheduled, color: '#374151', bg: '#f3f4f6', filter: 'scheduled' as const },
+                { label: 'Published', value: stats.published, color: '#10b981', bg: '#ecfdf5', filter: 'published' as const },
+              ] as const).map(s => {
+                const isActive = statusFilter === s.filter;
+                return (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => setStatusFilter(isActive && s.filter !== 'all' ? 'all' : s.filter)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 active:scale-[.97]"
+                    style={{
+                      background: s.bg,
+                      color: s.color,
+                      outline: isActive ? `2px solid ${s.color}` : '2px solid transparent',
+                      outlineOffset: '1px',
+                    }}
+                  >
+                    <span className="text-base font-extrabold">{s.value}</span>{s.label}
+                  </button>
+                );
+              })}
+              {statusFilter !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  className="text-xs text-gray-400 hover:text-gray-600 font-medium transition-colors"
+                >
+                  Clear filter
+                </button>
+              )}
             </div>
 
             {/* ── Month View ── */}
@@ -650,7 +674,7 @@ export default function ContentCalendarPage() {
                 <div className="grid grid-cols-7">
                   {grid.map((cell, idx) => {
                     if (!cell.date) return <div key={idx} className="min-h-[90px] border-b border-r border-[#f3f4f6]" />;
-                    const cellEntries = entries.filter(e => e.date === cell.date);
+                    const cellEntries = entries.filter(e => e.date === cell.date && (statusFilter === 'all' || e.status === statusFilter));
                     const isToday = cell.date === today;
                     const isExpanded = expandedDay === cell.date;
                     const visible = isExpanded ? cellEntries : cellEntries.slice(0, 3);
@@ -740,7 +764,7 @@ export default function ContentCalendarPage() {
                 </div>
                 <div className="grid grid-cols-7">
                   {weekDays.map(dateStr => {
-                    const dayEntries = entries.filter(e => e.date === dateStr);
+                    const dayEntries = entries.filter(e => e.date === dateStr && (statusFilter === 'all' || e.status === statusFilter));
                     const isToday = dateStr === today;
                     return (
                       <div
