@@ -11,7 +11,7 @@ import {
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
   Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
-  FolderOpen, BookmarkPlus,
+  FolderOpen, BookmarkPlus, Users, Globe,
 } from 'lucide-react';
 import {
   api,
@@ -617,7 +617,7 @@ function SnapshotSaveDialog({
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
           />
           <p className="text-[11px] text-gray-400">
-            Saved locally in this browser. Load anytime from <strong>My Versions</strong>.
+            Saved locally in this browser. Load anytime from <strong>Private Drafts</strong>.
           </p>
         </div>
         <div className="flex gap-2 justify-end">
@@ -667,10 +667,10 @@ function VersionsDrawer({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="presentation"
     >
-      <div className="w-80 sm:w-96 bg-white h-full flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="My saved versions">
+      <div className="w-80 sm:w-96 bg-white h-full flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="Private Drafts">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
           <FolderOpen className="w-4 h-4 text-brand-500 shrink-0" />
-          <p className="flex-1 font-semibold text-gray-800 text-sm">My Versions</p>
+          <p className="flex-1 font-semibold text-gray-800 text-sm">Private Drafts</p>
           <span className="text-[10px] text-gray-400 font-medium">{snapshots.length} saved</span>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 ml-1" aria-label="Close">
             <X className="w-4 h-4 text-gray-500" />
@@ -838,7 +838,7 @@ function ExportDialog({
           setDlProgress(Math.round(indeterminate));
         }
       }
-      const blob = new Blob(chunks);
+      const blob = new Blob(chunks as unknown as BlobPart[]);
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = downloadFilename;
@@ -853,11 +853,13 @@ function ExportDialog({
       setDlProgress(null);
     }
   };
-  // Publish form
-  const [showPublishForm, setShowPublishForm] = useState(false);
+  // Publish flow: null=hidden, 'choose'=platform picker, 'details'=fill details
+  const [pubStep, setPubStep] = useState<'choose' | 'details' | null>(null);
+  const [pubPlatform, setPubPlatform] = useState<string | null>(null);
   const [pubTitle, setPubTitle] = useState(projectTitle);
   const [pubDesc, setPubDesc] = useState('');
   const [pubTags, setPubTags] = useState('');
+  const [pubVisibility, setPubVisibility] = useState<'public' | 'unlisted' | 'private'>('public');
 
   const stopPoll = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -981,7 +983,7 @@ function ExportDialog({
             </div>
           )}
 
-          {renderStatus === 'READY' && (renderVersionId || downloadPath) && !showPublishForm && (
+          {renderStatus === 'READY' && (renderVersionId || downloadPath) && pubStep === null && (
             <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 space-y-3">
               <p className="text-sm text-green-800 font-medium">Render complete!</p>
               <div className="flex flex-wrap gap-2">
@@ -1024,7 +1026,7 @@ function ExportDialog({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowPublishForm(true)}
+                  onClick={() => setPubStep('choose')}
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700"
                 >
                   <Zap className="w-4 h-4" /> Send to Publish
@@ -1033,60 +1035,168 @@ function ExportDialog({
             </div>
           )}
 
-          {renderStatus === 'READY' && showPublishForm && (
-            <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-4 space-y-3">
-              <p className="text-sm font-semibold text-brand-800">Queue for Publishing</p>
-              <div>
-                <label className="text-xs font-medium text-gray-700 block mb-1">Title</label>
-                <input
-                  type="text"
-                  value={pubTitle}
-                  onChange={(e) => setPubTitle(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
-                  maxLength={100}
-                />
+          {/* ── Publish step 1: Platform picker ── */}
+          {renderStatus === 'READY' && pubStep === 'choose' && (() => {
+            const SOCIAL = [
+              { id: 'youtube', label: 'YouTube', bg: '#FF0000', abbr: 'YT' },
+              { id: 'instagram', label: 'Instagram', bg: '#E1306C', abbr: 'IG' },
+              { id: 'tiktok', label: 'TikTok', bg: '#010101', abbr: 'TK' },
+              { id: 'x', label: 'X (Twitter)', bg: '#1A1A1A', abbr: 'X' },
+              { id: 'linkedin', label: 'LinkedIn', bg: '#0A66C2', abbr: 'in' },
+              { id: 'facebook', label: 'Facebook', bg: '#1877F2', abbr: 'fb' },
+            ];
+            return (
+              <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setPubStep(null)} className="p-1 rounded-lg hover:bg-white/60 text-gray-500">
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <p className="text-sm font-semibold text-brand-900 flex-1">Where do you want to publish?</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2">Social Platforms</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SOCIAL.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { setPubPlatform(p.id); setPubStep('details'); }}
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white border border-gray-200 hover:border-brand-400 hover:shadow-sm transition-all group"
+                      >
+                        <span
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold"
+                          style={{ backgroundColor: p.bg }}
+                        >{p.abbr}</span>
+                        <span className="text-[11px] text-gray-600 font-medium leading-tight text-center">{p.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2">Save Internally</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { router.push(`/projects/${projectId}?publish=1&dest=private`); onClose(); }}
+                      className="flex items-center gap-2 p-3 rounded-xl bg-white border border-gray-200 hover:border-brand-400 hover:shadow-sm transition-all"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                        <Lock className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <p className="text-[12px] font-semibold text-gray-700">Private Draft</p>
+                        <p className="text-[10px] text-gray-400 leading-tight">Your workspace only</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { router.push(`/projects/${projectId}?publish=1&dest=team`); onClose(); }}
+                      className="flex items-center gap-2 p-3 rounded-xl bg-white border border-gray-200 hover:border-brand-400 hover:shadow-sm transition-all"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                        <Users className="w-4 h-4 text-brand-600" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <p className="text-[12px] font-semibold text-gray-700">Team Feed</p>
+                        <p className="text-[10px] text-gray-400 leading-tight">Share with your team</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700 block mb-1">Description</label>
-                <textarea
-                  value={pubDesc}
-                  onChange={(e) => setPubDesc(e.target.value)}
-                  rows={2}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
-                />
+            );
+          })()}
+
+          {/* ── Publish step 2: Details form ── */}
+          {renderStatus === 'READY' && pubStep === 'details' && (() => {
+            const SOCIAL_META: Record<string, { label: string; bg: string; abbr: string }> = {
+              youtube: { label: 'YouTube', bg: '#FF0000', abbr: 'YT' },
+              instagram: { label: 'Instagram', bg: '#E1306C', abbr: 'IG' },
+              tiktok: { label: 'TikTok', bg: '#010101', abbr: 'TK' },
+              x: { label: 'X (Twitter)', bg: '#1A1A1A', abbr: 'X' },
+              linkedin: { label: 'LinkedIn', bg: '#0A66C2', abbr: 'in' },
+              facebook: { label: 'Facebook', bg: '#1877F2', abbr: 'fb' },
+            };
+            const meta = pubPlatform ? SOCIAL_META[pubPlatform] : null;
+            return (
+              <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setPubStep('choose')} className="p-1 rounded-lg hover:bg-white/60 text-gray-500">
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  {meta && (
+                    <span className="w-6 h-6 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ backgroundColor: meta.bg }}>{meta.abbr}</span>
+                  )}
+                  <p className="text-sm font-semibold text-brand-900 flex-1">
+                    Publish to {meta?.label ?? pubPlatform}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={pubTitle}
+                    onChange={(e) => setPubTitle(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 bg-white"
+                    maxLength={100}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Description</label>
+                  <textarea
+                    value={pubDesc}
+                    onChange={(e) => setPubDesc(e.target.value)}
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">Tags (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={pubTags}
+                    onChange={(e) => setPubTags(e.target.value)}
+                    placeholder="tutorial, vlog, tips"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 bg-white"
+                  />
+                </div>
+                {(pubPlatform === 'youtube' || pubPlatform === 'facebook') && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-700 block mb-1">Visibility</label>
+                    <div className="flex gap-2">
+                      {(['public', 'unlisted', 'private'] as const).map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setPubVisibility(v)}
+                          className={`flex-1 py-1.5 rounded-lg border text-xs font-medium capitalize transition-all ${pubVisibility === v ? 'border-brand-400 bg-brand-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300'}`}
+                        >{v}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setPubStep('choose')}
+                    className="px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-white bg-white/50"
+                  >Back</button>
+                  <button
+                    type="button"
+                    disabled={!pubTitle.trim()}
+                    onClick={() => {
+                      const params = new URLSearchParams({ publish: '1', platform: pubPlatform ?? '', visibility: pubVisibility });
+                      router.push(`/projects/${projectId}?${params.toString()}`);
+                      onClose();
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
+                  >
+                    <Upload className="w-4 h-4" /> Publish Now
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700 block mb-1">Tags (comma-separated)</label>
-                <input
-                  type="text"
-                  value={pubTags}
-                  onChange={(e) => setPubTags(e.target.value)}
-                  placeholder="youtube, tutorial, vlog"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
-                />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowPublishForm(false)}
-                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  disabled={!pubTitle.trim()}
-                  onClick={() => {
-                    router.push(`/projects/${projectId}?publish=1`);
-                    onClose();
-                  }}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
-                >
-                  <Zap className="w-4 h-4" /> Send to Publish Queue
-                </button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {error && (
             <JobErrorCard
@@ -3828,7 +3938,7 @@ export default function EditorWorkspacePage() {
       return next;
     });
     setShowSaveDialog(false);
-    addToast(`snap-saved-${Date.now()}`, `Version "${name}" saved to My Versions`);
+    addToast(`snap-saved-${Date.now()}`, `Version "${name}" saved to Private Drafts`);
   }, [timeline, editId, addToast]);
 
   const handleLoadSnapshot = useCallback((s: SnapshotEntry) => {
@@ -4547,7 +4657,7 @@ export default function EditorWorkspacePage() {
                   </div>
                 </button>
 
-                {/* My Versions */}
+                {/* Private Drafts */}
                 <button
                   onClick={() => { setShowSaveMenu(false); setShowSnapshots(true); }}
                   className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-gray-50 transition-colors"
@@ -4556,7 +4666,7 @@ export default function EditorWorkspacePage() {
                     <FolderOpen className="w-3.5 h-3.5 text-gray-500" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-semibold text-gray-700">My Versions</p>
+                    <p className="font-semibold text-gray-700">Private Drafts</p>
                     <p className="text-[10px] text-gray-400">
                       {snapshots.length === 0 ? 'No saved versions' : `${snapshots.length} saved version${snapshots.length !== 1 ? 's' : ''}`}
                     </p>
