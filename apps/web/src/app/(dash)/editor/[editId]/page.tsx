@@ -2294,6 +2294,7 @@ function TimelineTrack({
   snapPoints,
   nameMap,
   onSelect,
+  onOpenInspector,
   onMoveItem,
   onTrimItem,
   onItemDragStart,
@@ -2311,6 +2312,7 @@ function TimelineTrack({
   snapPoints: number[];
   nameMap: Map<string, string>;
   onSelect: (id: string) => void;
+  onOpenInspector?: (id: string) => void;
   onMoveItem: (itemId: string, newStartMs: number) => void;
   onTrimItem: (itemId: string, newStartMs: number, newEndMs: number) => void;
   onItemDragStart: () => void;
@@ -2419,6 +2421,7 @@ function TimelineTrack({
             trackKind={track.kind}
             currentTrackId={track.id}
             onSelect={() => onSelect(item.id)}
+            onOpenInspector={onOpenInspector ? () => onOpenInspector(item.id) : undefined}
             onMove={(newStartMs) => onMoveItem(item.id, newStartMs)}
             onTrim={(newStartMs, newEndMs) => onTrimItem(item.id, newStartMs, newEndMs)}
             onDragStart={onItemDragStart}
@@ -2450,6 +2453,7 @@ function TimelineItem({
   trackKind,
   currentTrackId,
   onSelect,
+  onOpenInspector,
   onMove,
   onTrim,
   onDragStart,
@@ -2469,6 +2473,7 @@ function TimelineItem({
   trackKind?: string;
   currentTrackId?: string;
   onSelect: () => void;
+  onOpenInspector?: () => void;
   onMove: (newStartMs: number) => void;
   onTrim: (newStartMs: number, newEndMs: number) => void;
   onDragStart?: () => void;
@@ -2493,6 +2498,8 @@ function TimelineItem({
     targetTrackId: string | null;
     prevTargetEl: Element | null;
   } | null>(null);
+  // Long-press timer: fires on touch hold ≥500 ms without drag movement
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function snapTo(ms: number): number {
     const thresholdMs = (SNAP_MS / 40) * pxPerSec;
@@ -2518,11 +2525,22 @@ function TimelineItem({
       prevTargetEl: null,
     };
     onSelect();
+    // Touch long-press: hold ≥500 ms on the clip body without dragging → open inspector
+    if (e.pointerType === 'touch' && mode === 'move') {
+      if (longPressRef.current) clearTimeout(longPressRef.current);
+      longPressRef.current = setTimeout(() => {
+        longPressRef.current = null;
+        dragRef.current = null; // cancel drag so pointerUp is a no-op
+        onOpenInspector?.();
+      }, 500);
+    }
     onDragStart?.();
-  }, [item.timelineStartMs, item.timelineEndMs, onSelect, onDragStart]);
+  }, [item.timelineStartMs, item.timelineEndMs, onSelect, onOpenInspector, onDragStart]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragRef.current) return;
+    // Cancel long-press if the pointer moves (user is dragging, not holding)
+    if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
     const dx = e.clientX - dragRef.current.startX;
     const deltaMs = xToMs(dx, pxPerSec);
     const { origStartMs, origEndMs } = dragRef.current;
@@ -2559,6 +2577,8 @@ function TimelineItem({
   }, [pxPerSec, onMove, onTrim, onCrossTrackDrop, currentTrackId, snapPoints]);
 
   const onPointerUp = useCallback(() => {
+    // Cancel any pending long-press timer (normal tap completed)
+    if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
     if (dragRef.current) {
       // Clear cross-track highlight
       if (dragRef.current.prevTargetEl) {
@@ -2595,11 +2615,12 @@ function TimelineItem({
       >
         <div className="w-0.5 h-4 bg-white/60 rounded-full" />
       </div>
-      {/* Main body — drag to move */}
+      {/* Main body — drag to move; double-click/double-tap opens inspector */}
       <div
         className="flex-1 h-full flex flex-col justify-center cursor-grab active:cursor-grabbing overflow-hidden relative"
         style={{ paddingLeft: HANDLE_W + 4, paddingRight: HANDLE_W + 4 }}
         onPointerDown={(e) => onPointerDown(e, 'move')}
+        onDoubleClick={(e) => { e.stopPropagation(); onOpenInspector?.(); }}
       >
         {/* Waveform visual for audio clips */}
         {item.kind === 'AUDIO' && width > 32 && (
@@ -2656,6 +2677,20 @@ function TimelineItem({
           aria-label="Detach audio from video"
         >
           <Link2Off className="w-2.5 h-2.5" />
+        </button>
+      )}
+
+      {/* Edit / inspector button — appears only when clip is selected.
+          Gives touch users a reliable tap target beyond double-tap / long-press. */}
+      {selected && onOpenInspector && width > 32 && (
+        <button
+          className="absolute bottom-0.5 right-8 p-0.5 rounded z-20 bg-white/30 hover:bg-white/50 transition-colors"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onOpenInspector(); }}
+          title="Edit clip (double-tap or long-press also works)"
+          aria-label="Edit clip properties"
+        >
+          <Settings2 className="w-2.5 h-2.5" />
         </button>
       )}
 
@@ -4893,8 +4928,12 @@ export default function EditorWorkspacePage() {
                                 snapPoints={snapEnabled ? allSnapPoints : []}
                                 nameMap={assetNameMap}
                                 onSelect={(id) => {
+                                  // Single tap/click = select only. Inspector stays closed.
                                   setSelectedItemId(id || null);
-                                  // On mobile: open inspector sheet but DON'T cover the timeline
+                                }}
+                                onOpenInspector={(id) => {
+                                  // Double-tap / long-press / edit button = select + open inspector
+                                  setSelectedItemId(id || null);
                                   if (id && window.innerWidth < 1024) setMobileSheet('inspector');
                                 }}
                                 onMoveItem={handleMoveItem}
