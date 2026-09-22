@@ -1982,7 +1982,7 @@ const ALL_PLATFORMS = [
   { id: 'instagram', name: 'Instagram',  color: '#E1306C', bg: '#fdf2f8', initials: 'IG',  available: false },
   { id: 'tiktok',   name: 'TikTok',     color: '#010101', bg: '#f9fafb', initials: 'TK',  available: false },
   { id: 'facebook',  name: 'Facebook',   color: '#1877F2', bg: '#eff6ff', initials: 'FB',  available: false },
-  { id: 'linkedin',  name: 'LinkedIn',   color: '#0A66C2', bg: '#eff6ff', initials: 'LI',  available: false },
+  { id: 'linkedin',  name: 'LinkedIn',   color: '#0A66C2', bg: '#eff6ff', initials: 'LI',  available: true  },
   { id: 'x',         name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X', available: false },
 ] as const;
 
