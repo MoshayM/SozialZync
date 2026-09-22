@@ -284,6 +284,8 @@ export function MyContentSection() {
           <p className="text-[13px] text-gray-400 mb-4">
             {filter === 'public'
               ? 'Make a private video public to share it with the world.'
+              : filter === 'private'
+              ? 'Render a video in the editor to save it here as private content.'
               : 'Create your first video or upload existing content to get started.'}
           </p>
           <Link

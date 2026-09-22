@@ -24,10 +24,13 @@ export class MyContentController {
 
     const limit = Math.min(parseInt(take ?? '8', 10) || 8, 50);
 
+    // Only show projects with a completed render — separates finished content from
+    // editor work-in-progress snapshots (which live in localStorage as Private Drafts)
     const projects = await this.prisma.project.findMany({
       where: {
         userId: user.sub,
         isDemo: false,
+        renders: { some: { status: 'READY' } },
         ...(q ? { title: { contains: q, mode: 'insensitive' as const } } : {}),
         ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
       },
