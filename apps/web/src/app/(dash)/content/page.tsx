@@ -680,7 +680,15 @@ function ResearchTab({ ctx, onPlanSeries }: { ctx: ContentContext; onPlanSeries:
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Sources</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-500">Sources</p>
+              <button type="button" onClick={() => {
+                const ALL_SOURCES = ['YouTube', 'Google', 'Reddit', 'Twitter/X'] as const;
+                setSources(sources.length === ALL_SOURCES.length ? [] : [...ALL_SOURCES]);
+              }} className="text-[10px] font-semibold hover:underline" style={{ color: '#374151' }}>
+                {sources.length === 4 ? 'None' : 'All'}
+              </button>
+            </div>
             <div className="space-y-1.5">
               {(['YouTube', 'Google', 'Reddit', 'Twitter/X'] as const).map((src) => (
                 <label key={src} className="flex items-center gap-2 cursor-pointer group">
@@ -940,7 +948,14 @@ function RepurposeMode() {
         />
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Platforms</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Platforms</label>
+            <button type="button" onClick={() => setSelectedPlatforms(
+              selectedPlatforms.length === PLATFORMS.length ? [] : [...PLATFORMS]
+            )} className="text-[11px] font-semibold hover:underline" style={{ color: '#374151' }}>
+              {selectedPlatforms.length === PLATFORMS.length ? 'Clear all' : 'Select all'}
+            </button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {PLATFORMS.map((p) => (
               <button
