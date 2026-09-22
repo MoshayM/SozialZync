@@ -781,6 +781,7 @@ const QUALITIES: { value: RenderQuality; label: string; hint: string }[] = [
 
 function ExportDialog({
   editId,
+  projectId,
   projectTitle,
   onClose,
   onBeforeRender,
@@ -788,6 +789,7 @@ function ExportDialog({
   onRenderDone,
 }: {
   editId: string;
+  projectId: string;
   projectTitle: string;
   onClose: () => void;
   /** Called before enqueueing the render job — use this to flush any unsaved timeline changes. */
@@ -802,9 +804,35 @@ function ExportDialog({
   const [renderStatus, setRenderStatus] = useState<RenderStatus | null>(null);
   const [downloadPath, setDownloadPath] = useState<string | null>(null);
   const [renderVersionId, setRenderVersionId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleDownload = async () => {
+    const url = renderVersionId
+      ? `/api/proxy/media/versions/${encodeURIComponent(renderVersionId)}/file`
+      : downloadPath;
+    if (!url) return;
+    setDownloading(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('cf_token') : null;
+      const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = downloadFilename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Download failed');
+    } finally {
+      setDownloading(false);
+    }
+  };
   // Publish form
   const [showPublishForm, setShowPublishForm] = useState(false);
   const [pubTitle, setPubTitle] = useState(projectTitle);
@@ -937,13 +965,15 @@ function ExportDialog({
             <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 space-y-3">
               <p className="text-sm text-green-800 font-medium">Render complete!</p>
               <div className="flex flex-wrap gap-2">
-                <a
-                  href={renderVersionId ? `/api/proxy/media/versions/${encodeURIComponent(renderVersionId)}/file` : (downloadPath ?? '#')}
-                  download={downloadFilename}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-60"
                 >
-                  <Download className="w-4 h-4" /> Download
-                </a>
+                  {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {downloading ? 'Downloading…' : 'Download'}
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowPublishForm(true)}
@@ -999,14 +1029,7 @@ function ExportDialog({
                   type="button"
                   disabled={!pubTitle.trim()}
                   onClick={() => {
-                    const tags = pubTags.split(',').map((t) => t.trim()).filter(Boolean);
-                    const qs = new URLSearchParams({
-                      fromEdit: editId,
-                      title: pubTitle.trim(),
-                      description: pubDesc.trim(),
-                      tags: tags.join(','),
-                    });
-                    router.push(`/publishing?${qs.toString()}`);
+                    router.push(`/projects/${projectId}?publish=1`);
                     onClose();
                   }}
                   className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
@@ -5136,7 +5159,7 @@ export default function EditorWorkspacePage() {
       </nav>
 
       {/* Dialogs */}
-      {showExport && <ExportDialog editId={editId} projectTitle={project.title} onClose={() => setShowExport(false)} onBeforeRender={handleSave} onRenderStart={progressStart} onRenderDone={progressDone} />}
+      {showExport && <ExportDialog editId={editId} projectId={project.projectId} projectTitle={project.title} onClose={() => setShowExport(false)} onBeforeRender={handleSave} onRenderStart={progressStart} onRenderDone={progressDone} />}
       {showAiEdit && (
         <AiEditDialog
           editId={editId}
