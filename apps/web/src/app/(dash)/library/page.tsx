@@ -74,7 +74,7 @@ function VideoCard({ video, onMenuClick, menuOpen }: {
   menuOpen: boolean;
 }) {
   return (
-    <div className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all cursor-pointer">
+    <div className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer">
       {/* Thumbnail */}
       <div className="aspect-video relative overflow-hidden bg-gray-900">
         {video.thumbnailUrl ? (
@@ -102,30 +102,28 @@ function VideoCard({ video, onMenuClick, menuOpen }: {
       </div>
 
       {/* Body */}
-      <div className="p-3">
-        <p className="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug mb-1.5">{video.title}</p>
+      <div className="p-4">
+        <p className="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug mb-2">{video.title}</p>
 
-        <div className="flex items-center gap-3 text-[11px] text-gray-400">
-          <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{fmtCount(video.viewCount)}</span>
-          <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{fmtCount(video.likeCount)}</span>
-          <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{fmtCount(video.commentCount)}</span>
+        <div className="flex items-center gap-3 text-xs text-gray-400 mb-1">
+          <span className="flex items-center gap-1 shrink-0"><Eye className="w-3.5 h-3.5" />{fmtCount(video.viewCount)}</span>
+          <span className="flex items-center gap-1 shrink-0"><ThumbsUp className="w-3.5 h-3.5" />{fmtCount(video.likeCount)}</span>
+          <span className="flex items-center gap-1 shrink-0"><MessageCircle className="w-3.5 h-3.5" />{fmtCount(video.commentCount)}</span>
         </div>
 
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[11px] text-gray-400">{fmtDate(video.publishedAt)}</span>
-        </div>
+        <span className="block text-[11px] text-gray-400 mb-3">{fmtDate(video.publishedAt)}</span>
 
-        <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-gray-50">
+        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
           <a
             href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] font-semibold px-2.5 py-1 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+            className="text-xs font-semibold px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
             onClick={(e) => e.stopPropagation()}
           >
             View
           </a>
-          <button className="text-[11px] font-semibold px-2.5 py-1 border border-gray-200 text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+          <button className="text-xs font-semibold px-3 py-1.5 border border-gray-200 text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
             Repurpose
           </button>
           <div className="relative ml-auto">
@@ -133,10 +131,10 @@ function VideoCard({ video, onMenuClick, menuOpen }: {
               onClick={(e) => { e.stopPropagation(); onMenuClick(video.id); }}
               className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
             >
-              <MoreVertical className="w-3.5 h-3.5" />
+              <MoreVertical className="w-4 h-4" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 bottom-8 z-20 bg-white border border-gray-100 rounded-xl shadow-lg py-1 min-w-[140px]">
+              <div className="absolute right-0 bottom-9 z-20 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 min-w-[148px]">
                 {['View on YouTube', 'Repurpose with AI', 'Copy link'].map((action) => (
                   <button
                     key={action}
@@ -173,9 +171,9 @@ function PlaylistCard({ playlist }: { playlist: LibraryPlaylist }) {
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm text-gray-900 truncate">{playlist.title}</p>
         <p className="text-xs text-gray-400 mt-0.5">{playlist.itemCount} videos</p>
-        <div className="flex items-center gap-2 mt-2.5">
-          <button className="text-[11px] font-semibold px-2.5 py-1 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center gap-1">
-            <Layers className="w-3 h-3" /> View
+        <div className="flex items-center gap-2 mt-3">
+          <button className="text-xs font-semibold px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5" /> View
           </button>
         </div>
       </div>
@@ -294,37 +292,37 @@ export default function LibraryPage() {
       <div className="p-4 sm:p-6 pb-24 lg:pb-8">
 
         {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-gray-900">My Library</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Your channel videos and playlists.</p>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">My Library</h1>
+            <p className="text-sm text-gray-500 mt-1">Your channel videos and playlists.</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-none">
-              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 w-full sm:w-40 transition"
+                className="pl-9 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 w-40 sm:w-48 transition"
               />
             </div>
             <div className="relative">
               <button
                 onClick={() => setSortOpen((o) => !o)}
-                className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+                className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition whitespace-nowrap"
               >
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
                 {sort}
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
               </button>
               {sortOpen && (
-                <div className="absolute right-0 top-10 z-20 bg-white border border-gray-100 rounded-xl shadow-lg py-1 min-w-[130px]">
+                <div className="absolute right-0 top-10 z-20 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 min-w-[140px]">
                   {SORT_OPTIONS.map((opt) => (
                     <button
                       key={opt}
                       onClick={() => { setSort(opt); setSortOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition hover:bg-gray-50 ${sort === opt ? 'font-semibold text-gray-700' : 'text-gray-700'}`}
+                      className={`w-full text-left px-4 py-2 text-sm transition hover:bg-gray-50 ${sort === opt ? 'font-semibold text-gray-900' : 'text-gray-600'}`}
                     >
                       {opt}
                     </button>
@@ -335,7 +333,7 @@ export default function LibraryPage() {
             <button
               onClick={() => { if (!syncMutation.isPending) syncMutation.mutate(); }}
               disabled={syncMutation.isPending || !channelId}
-              className="flex items-center gap-1.5 h-9 px-4 text-sm font-semibold text-white bg-gray-600 rounded-xl hover:bg-gray-700 transition shadow-sm disabled:opacity-50"
+              className="flex items-center gap-1.5 h-9 px-4 text-sm font-semibold text-white bg-gray-700 rounded-xl hover:bg-gray-800 transition shadow-sm disabled:opacity-50 whitespace-nowrap"
             >
               {syncMutation.isPending
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -347,18 +345,18 @@ export default function LibraryPage() {
 
         {/* ── Channel selector ── */}
         {channelsLoading ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 shadow-sm animate-pulse h-16" />
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-5 shadow-sm animate-pulse h-16" />
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 shadow-sm">
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex flex-wrap gap-2 flex-1 min-w-0">
                 {channels.map((ch) => (
                   <button
                     key={ch.id}
                     onClick={() => setActiveChannelId(ch.id)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-sm font-medium transition ${
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition ${
                       ch.id === channelId
-                        ? 'bg-gray-600 text-white border-gray-600 shadow-sm'
+                        ? 'bg-gray-700 text-white border-gray-700 shadow-sm'
                         : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
@@ -372,15 +370,15 @@ export default function LibraryPage() {
                 ))}
               </div>
               {channel && (
-                <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0">
+                <div className="flex items-center gap-4 text-xs text-gray-500 sm:shrink-0">
                   {channel.subscriberCount != null && (
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" />
-                      {fmtCount(channel.subscriberCount)} subscribers
+                    <span className="flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 shrink-0" />
+                      <span className="font-medium">{fmtCount(channel.subscriberCount)}</span> subscribers
                     </span>
                   )}
                   <span className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full inline-block ${channel.lastSyncedAt ? 'bg-emerald-500 shadow shadow-emerald-300' : 'bg-gray-300'}`} />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${channel.lastSyncedAt ? 'bg-emerald-500 shadow shadow-emerald-300' : 'bg-gray-300'}`} />
                     {fmtSynced(channel.lastSyncedAt ?? null)}
                   </span>
                 </div>
@@ -390,25 +388,25 @@ export default function LibraryPage() {
         )}
 
         {/* ── Tab bar ── */}
-        <div className="border-b border-gray-200 mb-5 flex gap-0">
+        <div className="border-b border-gray-200 mb-6 flex gap-0">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative pb-3 px-1 mr-5 text-sm font-medium transition ${
-                activeTab === tab.id ? 'text-gray-700' : 'text-gray-500 hover:text-gray-700'
+              className={`relative pb-3 px-1 mr-6 text-sm font-semibold transition ${
+                activeTab === tab.id ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {tab.label}
               {tab.count != null && (
-                <span className={`ml-1.5 text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
-                  activeTab === tab.id ? 'bg-gray-100 text-gray-700' : 'bg-gray-100 text-gray-500'
+                <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                  activeTab === tab.id ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500'
                 }`}>
                   {tab.count}
                 </span>
               )}
               {activeTab === tab.id && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-600 rounded-t-sm" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-t-sm" />
               )}
             </button>
           ))}

@@ -121,10 +121,10 @@ function CopyChip({ text }: { text: string }) {
 }
 
 const inputCls =
-  'w-full border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 bg-white';
+  'w-full border border-[#e5e7eb] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 bg-white placeholder:text-gray-400';
 
 const primaryBtnCls =
-  'rounded-2xl font-bold text-white bg-gradient-to-br from-[#374151] to-[#7c5ae8] shadow-[0_4px_20px_rgba(55,65,81,0.35)] px-6 py-3 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2';
+  'rounded-xl font-semibold text-white bg-gradient-to-br from-[#374151] to-[#7c5ae8] shadow-[0_2px_12px_rgba(55,65,81,0.25)] px-5 py-2.5 text-sm hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2';
 
 // ── Collapsible list ──────────────────────────────────────────────────────────
 
@@ -1271,56 +1271,58 @@ function ContentStudioInner() {
   return (
     <div className="min-h-screen bg-[#f9fafb]">
       {/* Sticky context bar */}
-      <div className="sticky top-0 z-20 bg-[#f9fafb] border-b border-[#e5e7eb] pb-4 pt-2 mb-6 px-4 sm:px-6">
+      <div className="sticky top-0 z-20 bg-[#f9fafb] border-b border-[#e5e7eb] pb-4 pt-3 mb-6 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-gray-600" />
-            <h1 className="text-base font-bold text-gray-900">Content Studio</h1>
-            <span className="text-xs text-gray-400 hidden sm:inline">Your unified AI content workspace</span>
+            <Sparkles className="w-4 h-4 text-gray-600 shrink-0" />
+            <h1 className="text-base font-bold text-gray-900 leading-tight">Content Studio</h1>
+            <span className="text-xs text-gray-400 hidden sm:inline">— Your unified AI content workspace</span>
           </div>
 
-          {/* Row 1: niche + topic side-by-side on mobile, all inline on desktop */}
-          <div className="grid grid-cols-2 sm:flex gap-2">
+          {/* Context inputs: stacked on mobile, inline row on desktop */}
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
-              className={`${inputCls} col-span-1`}
+              className={inputCls}
               placeholder="Niche, e.g. Tech tutorials"
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
             />
             <input
-              className={`${inputCls} col-span-1`}
+              className={inputCls}
               placeholder="Topic (optional)"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
             />
-            <select
-              className="col-span-1 border border-[#e5e7eb] rounded-xl px-3 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 sm:w-24"
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-            >
-              {LANGS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-            <button
-              type="button"
-              onClick={applyContext}
-              className="col-span-1 rounded-2xl font-bold text-white bg-gradient-to-br from-[#374151] to-[#7c5ae8] shadow-[0_4px_20px_rgba(55,65,81,0.35)] px-5 py-3 text-sm hover:opacity-90 transition-opacity whitespace-nowrap"
-            >
-              Apply
-            </button>
+            <div className="flex gap-2">
+              <select
+                className="flex-1 sm:flex-none border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400 sm:w-24"
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+              >
+                {LANGS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+              <button
+                type="button"
+                onClick={applyContext}
+                className="flex-1 sm:flex-none rounded-xl font-semibold text-white bg-gradient-to-br from-[#374151] to-[#7c5ae8] shadow-[0_2px_12px_rgba(55,65,81,0.25)] px-5 py-2.5 text-sm hover:opacity-90 transition-opacity whitespace-nowrap"
+              >
+                Apply
+              </button>
+            </div>
           </div>
 
-          {/* Tabs — fully visible, no scroll */}
-          <div className="flex flex-wrap gap-2">
+          {/* Tabs */}
+          <div className="flex gap-2">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id)}
-                className="flex items-center gap-1.5 text-sm font-semibold transition-all"
+                className="flex items-center gap-1.5 text-sm font-semibold transition-all rounded-xl px-4 py-2"
                 style={
                   activeTab === t.id
-                    ? { background: '#f3f4f6', border: '2px solid #374151', color: '#374151', borderRadius: '0.75rem', padding: '0.5rem 1rem' }
-                    : { background: '#f9fafb', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '0.75rem', padding: '0.5rem 1rem' }
+                    ? { background: '#374151', color: '#ffffff', border: '1.5px solid #374151' }
+                    : { background: '#f3f4f6', color: '#374151', border: '1.5px solid #e5e7eb' }
                 }
               >
                 {t.icon}

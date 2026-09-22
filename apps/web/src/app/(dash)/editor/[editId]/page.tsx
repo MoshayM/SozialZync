@@ -1203,7 +1203,7 @@ function AiEditDialog({
         aria-modal="true"
         aria-label="AI edit assistant"
         className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-xl flex flex-col"
-        style={{ maxHeight: '90vh', minHeight: '420px' }}
+        style={{ maxHeight: 'min(90dvh, 90vh)', minHeight: 'min(420px, 70vh)' }}
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
@@ -1294,7 +1294,10 @@ function AiEditDialog({
         </div>
 
         {/* Input bar */}
-        <div className="shrink-0 px-4 pb-4 pt-2 border-t border-gray-100">
+        <div
+          className="shrink-0 px-4 pt-2 border-t border-gray-100"
+          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+        >
           <div className="flex gap-2 items-end">
             <textarea
               value={input}
@@ -1304,7 +1307,7 @@ function AiEditDialog({
               }}
               rows={2}
               placeholder="Add all clips to the timeline, extend music to cover the whole video…  (Enter to send)"
-              className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
+              className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 resize-none leading-relaxed"
             />
             <button
               onClick={() => void submit()}
@@ -4274,10 +4277,12 @@ export default function EditorWorkspacePage() {
         </div>
       )}
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1.5 px-2 sm:px-4 py-2 border-b border-gray-100 bg-white shrink-0 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-0 px-2 sm:px-4 border-b border-gray-100 bg-white shrink-0">
+        {/* Left scrollable section: back, title, panel toggles, AI edit, guide */}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto scrollbar-none py-1.5">
         <button
           onClick={() => setShowHistory(true)}
-          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 h-9 w-9 flex items-center justify-center shrink-0"
           title="My edits"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -4288,14 +4293,14 @@ export default function EditorWorkspacePage() {
         {/* Desktop-only panel toggles (xl+) */}
         <button
           onClick={() => setBinPanelOpen(o => !o)}
-          className="hidden xl:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] items-center justify-center"
+          className="hidden xl:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 h-9 w-9 items-center justify-center shrink-0"
           title="Media bin"
         >
           <Film className="w-4 h-4" />
         </button>
         <button
           onClick={() => setInspectorPanelOpen(o => !o)}
-          className="hidden xl:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 min-h-[44px] min-w-[44px] items-center justify-center"
+          className="hidden xl:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 h-9 w-9 items-center justify-center shrink-0"
           title="Inspector"
         >
           <Maximize2 className="w-4 h-4" />
@@ -4304,26 +4309,29 @@ export default function EditorWorkspacePage() {
         {/* AI Edit — visible on all screen sizes */}
         <button
           onClick={() => setShowAiEdit(true)}
-          className="flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 min-h-[44px]"
+          className="flex items-center gap-1.5 px-2 sm:px-3 h-9 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 shrink-0"
           title="AI edit"
         >
           <Wand2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI edit</span>
         </button>
         <Link
           href="/guide"
-          className="hidden sm:flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-500 rounded-lg text-xs hover:bg-gray-50 min-h-[44px]"
+          className="hidden sm:flex items-center gap-1.5 px-3 h-9 border border-gray-200 text-gray-500 rounded-lg text-xs hover:bg-gray-50 shrink-0"
           title="How to use the editor"
         >
           <HelpCircle className="w-3.5 h-3.5" />
           <span className="hidden md:inline">Guide</span>
         </Link>
+        </div>
+        {/* Right non-scrollable section: save group + export — kept outside overflow-x-auto so the dropdown is never clipped */}
+        <div className="flex items-center gap-1.5 shrink-0 py-1.5 pl-2 border-l border-gray-100 ml-1.5">
         {/* ── Save group: Save + dropdown (Save As / Auto-save / Versions) ── */}
         <div ref={saveMenuRef} className="relative flex items-center">
           {/* Primary Save button */}
           <button
             onClick={() => void handleSave()}
             disabled={saving}
-            className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-l-lg text-xs min-h-[44px] font-medium transition-colors disabled:opacity-40 border-r-0 ${
+            className={`flex items-center gap-1.5 px-2 sm:px-3 h-9 rounded-l-lg text-xs font-medium transition-colors disabled:opacity-40 border-r-0 ${
               dirty
                 ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600'
                 : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -4342,7 +4350,7 @@ export default function EditorWorkspacePage() {
           <button
             onClick={() => setShowSaveMenu((v) => !v)}
             title="Save options"
-            className={`flex items-center justify-center px-1.5 py-2 rounded-r-lg text-xs min-h-[44px] border transition-colors ${
+            className={`flex items-center justify-center px-1.5 h-9 rounded-r-lg text-xs border transition-colors ${
               dirty
                 ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600 border-l border-amber-400'
                 : 'border border-gray-200 text-gray-500 hover:bg-gray-50'
@@ -4412,7 +4420,7 @@ export default function EditorWorkspacePage() {
         {canExport ? (
           <button
             onClick={() => setShowExport(true)}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 min-h-[44px]"
+            className="flex items-center gap-1.5 px-2 sm:px-3 h-9 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700"
             title="Export"
           >
             <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
@@ -4420,13 +4428,14 @@ export default function EditorWorkspacePage() {
         ) : (
           <Link
             href="/plans"
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-2 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50 min-h-[44px]"
+            className="flex items-center gap-1.5 px-2 sm:px-3 h-9 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50"
             title="Pro plan required to export videos"
           >
             <Lock className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
           </Link>
         )}
-      </div>
+        </div>{/* end right section */}
+      </div>{/* end toolbar */}
 
       {/* ── Main layout: left bin / center / right inspector ───────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
