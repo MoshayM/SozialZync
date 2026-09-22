@@ -1,7 +1,7 @@
 ﻿'use client';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, Loader2, AlertCircle, CheckCircle2, Clock, RefreshCw, Filter, X, Zap, Play, ChevronDown } from 'lucide-react';
+import { Activity, Loader2, AlertCircle, CheckCircle2, Clock, RefreshCw, Filter, X, Play } from 'lucide-react';
 import Link from 'next/link';
 import { StatCard } from '@/components/stat-card';
 import { apiClient } from '@/lib/api';
@@ -184,40 +184,92 @@ export default function MonitorPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl p-4 flex flex-wrap items-center gap-3" style={{ border: '1.5px solid #e5e7eb' }}>
-          <Filter className="w-4 h-4 text-gray-600 shrink-0" />
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1 overflow-x-auto max-w-full">
-            {STATUS_FILTER_OPTIONS.map((s) => (
+        <div className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e5e7eb' }}>
+          {/* Status row */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-gray-500 shrink-0 mr-1">
+              <Filter className="w-3.5 h-3.5" /> Status
+            </span>
+            {STATUS_FILTER_OPTIONS.map((s) => {
+              const isActive = statusFilter === s;
+              const dotColor =
+                s === 'running'   ? '#3b82f6' :
+                s === 'pending'   ? '#d97706' :
+                s === 'completed' ? '#10b981' :
+                s === 'failed'    ? '#ef4444' : '#374151';
+              return (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all ${
+                    isActive
+                      ? 'text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                  style={isActive
+                    ? { background: dotColor, border: `1.5px solid ${dotColor}` }
+                    : { border: '1.5px solid #e5e7eb' }
+                  }
+                >
+                  {s !== 'all' && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: isActive ? 'rgba(255,255,255,0.8)' : dotColor }}
+                    />
+                  )}
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Type row — visible chips, only shown when types exist */}
+          {uniqueTypes.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500 shrink-0 mr-1">Type</span>
               <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1 text-xs font-medium rounded-2xl capitalize transition-colors whitespace-nowrap ${statusFilter === s ? 'bg-white shadow text-[#374151]' : 'text-gray-600 hover:text-gray-700'}`}
+                onClick={() => setTypeFilter('all')}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  typeFilter === 'all'
+                    ? 'bg-[#374151] text-white'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                }`}
+                style={typeFilter === 'all' ? {} : { border: '1.5px solid #e5e7eb' }}
               >
-                {s}
+                All
               </button>
-            ))}
-          </div>
-          <div className="relative">
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="bg-white rounded-2xl px-4 py-3 pr-8 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#374151]/20 appearance-none"
-              style={{ border: '1.5px solid #e3e0f0' }}
-            >
-              <option value="all">All types</option>
-              {uniqueTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600 pointer-events-none" />
-          </div>
-          {(statusFilter !== 'all' || typeFilter !== 'all') && (
-            <button
-              onClick={() => { setStatusFilter('all'); setTypeFilter('all'); }}
-              className="text-xs text-gray-600 hover:text-gray-700 flex items-center gap-1"
-            >
-              <X className="w-3 h-3" /> Clear
-            </button>
+              {uniqueTypes.map((t) => {
+                const isActive = typeFilter === t;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setTypeFilter(isActive ? 'all' : t)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all ${
+                      isActive
+                        ? 'bg-[#374151] text-white'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                    }`}
+                    style={isActive ? {} : { border: '1.5px solid #e5e7eb' }}
+                  >
+                    {t.replace(/_/g, ' ')}
+                  </button>
+                );
+              })}
+            </div>
           )}
-          <span className="ml-auto text-[10px] font-extrabold uppercase tracking-widest text-gray-600">{jobs.length} jobs</span>
+
+          {/* Footer row */}
+          <div className="flex items-center justify-between pt-1">
+            {(statusFilter !== 'all' || typeFilter !== 'all') ? (
+              <button
+                onClick={() => { setStatusFilter('all'); setTypeFilter('all'); }}
+                className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
+              >
+                <X className="w-3 h-3" /> Clear filters
+              </button>
+            ) : <span />}
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">{jobs.length} jobs</span>
+          </div>
         </div>
 
         {/* Jobs list */}
