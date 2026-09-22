@@ -2081,6 +2081,7 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
   const canPublishExternal = isAdminRole() || planAtLeast(userPlan, 'PRO');
   const [open, setOpen] = useState(false);
   const [showMultiPublish, setShowMultiPublish] = useState(false);
+  const [pendingPublishPlatform, setPendingPublishPlatform] = useState<string | null>(null);
   const [tiktokAvailable, setTiktokAvailable] = useState(false);
   const [showFreeBlocker, setShowFreeBlocker] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
@@ -2136,13 +2137,34 @@ function PublishFromRenderPanel({ projectId }: { projectId: string }) {
       .catch(() => {});
   }, []);
 
-  // Auto-open publish modal when returning from OAuth (?publish=1)
+  // Capture publish intent from URL (?publish=1&platform=youtube)
   useEffect(() => {
     if (searchParams.get('publish') === '1') {
-      setShowMultiPublish(true);
+      const platform = searchParams.get('platform');
       window.history.replaceState({}, '', `/projects/${projectId}`);
+      if (platform) {
+        setPendingPublishPlatform(platform);
+      } else {
+        setShowMultiPublish(true);
+      }
     }
   }, [searchParams, projectId]);
+
+  // Once project data is loaded, dispatch to the right platform action
+  useEffect(() => {
+    if (!pendingPublishPlatform || isLoading) return;
+    const platform = pendingPublishPlatform;
+    setPendingPublishPlatform(null);
+    if (platform === 'youtube') {
+      if (data?.project?.channel?.active) {
+        setOpen(true);
+      } else {
+        void startOAuth(`/projects/${projectId}?publish=1&platform=youtube`);
+      }
+    } else {
+      setShowMultiPublish(true);
+    }
+  }, [pendingPublishPlatform, isLoading, data, projectId]);
 
   const startOAuth = async (returnPath: string) => {
     try {

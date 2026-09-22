@@ -11,7 +11,7 @@ import {
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
   Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
-  FolderOpen, BookmarkPlus, Users, Globe,
+  FolderOpen, BookmarkPlus,
 } from 'lucide-react';
 import {
   api,
@@ -1070,37 +1070,6 @@ function ExportDialog({
                         <span className="text-[11px] text-gray-600 font-medium leading-tight text-center">{p.label}</span>
                       </button>
                     ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2">Save Internally</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => { router.push(`/projects/${projectId}?publish=1&dest=private`); onClose(); }}
-                      className="flex items-center gap-2 p-3 rounded-xl bg-white border border-gray-200 hover:border-brand-400 hover:shadow-sm transition-all"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                        <Lock className="w-4 h-4 text-gray-600" />
-                      </div>
-                      <div className="text-left min-w-0">
-                        <p className="text-[12px] font-semibold text-gray-700">Private Draft</p>
-                        <p className="text-[10px] text-gray-400 leading-tight">Your workspace only</p>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { router.push(`/projects/${projectId}?publish=1&dest=team`); onClose(); }}
-                      className="flex items-center gap-2 p-3 rounded-xl bg-white border border-gray-200 hover:border-brand-400 hover:shadow-sm transition-all"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
-                        <Users className="w-4 h-4 text-brand-600" />
-                      </div>
-                      <div className="text-left min-w-0">
-                        <p className="text-[12px] font-semibold text-gray-700">Team Feed</p>
-                        <p className="text-[10px] text-gray-400 leading-tight">Share with your team</p>
-                      </div>
-                    </button>
                   </div>
                 </div>
               </div>
