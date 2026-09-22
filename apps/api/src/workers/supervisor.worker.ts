@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -82,6 +82,8 @@ interface JobPayload {
 // whole queue; the shared AI semaphore still caps actual provider calls.
 @Processor(AGENT_QUEUE, { concurrency: 2 })
 export class SupervisorWorker extends WorkerHost {
+  private readonly logger = new Logger(SupervisorWorker.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly content: ContentService,
@@ -155,6 +157,7 @@ export class SupervisorWorker extends WorkerHost {
       }
     }
 
+    this.logger.log(`[job:${jobId}] type=${type} starting`);
     await this.prisma.agentJob.update({ where: { id: jobId }, data: { status: 'RUNNING', startedAt: new Date() } });
     this.events.emitJobUpdate(jobId, { status: 'RUNNING', type }, projectId);
 
@@ -269,6 +272,7 @@ export class SupervisorWorker extends WorkerHost {
       }
       return result;
     } catch (err) {
+      this.logger.error(`[job:${jobId}] type=${type} FAILED: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack : undefined);
       // §5.3 step 4: failed run → release the hold, debit nothing
       if (reservationId) {
         await this.walletService.releaseReservation(reservationId).catch(() => undefined);

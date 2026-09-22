@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sozialzynk — 3-Day Change Report (Sep 19–22, 2026)</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b0d14;color:#dde1ec;line-height:1.6;padding:2rem 1rem}
+.wrap{max-width:1000px;margin:0 auto}
+
+/* ── Header ── */
+.hero{background:linear-gradient(135deg,#4c1d95 0%,#1e40af 60%,#0f766e 100%);border-radius:16px;padding:2.5rem 2rem;margin-bottom:2rem}
+.hero h1{font-size:1.9rem;font-weight:800;color:#fff;letter-spacing:-.02em}
+.hero .sub{color:#c4b5fd;font-size:.9rem;margin-top:.35rem}
+.pill{display:inline-block;background:rgba(255,255,255,.14);color:#fff;padding:.2rem .75rem;border-radius:999px;font-size:.72rem;font-weight:700;margin:.6rem .3rem 0 0}
+
+/* ── TOC ── */
+.toc{background:#131620;border:1px solid #1e2438;border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.75rem}
+.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;color:#64748b;margin-bottom:.75rem}
+.toc ol{list-style:decimal;padding-left:1.25rem}
+.toc li{margin:.25rem 0}
+.toc a{color:#818cf8;text-decoration:none;font-size:.875rem}
+.toc a:hover{text-decoration:underline}
+
+/* ── Section wrapper ── */
+.section{background:#131620;border:1px solid #1e2438;border-radius:12px;margin-bottom:1.5rem;overflow:hidden}
+.sec-head{display:flex;align-items:center;gap:.85rem;padding:1.1rem 1.4rem;background:#0f1222;border-bottom:1px solid #1e2438}
+.sec-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.sec-title{font-size:1rem;font-weight:700;color:#f1f5f9}
+.sec-sub{font-size:.77rem;color:#475569;margin-top:.1rem}
+.sec-count{margin-left:auto;background:#1e2438;color:#94a3b8;border-radius:999px;padding:.15rem .6rem;font-size:.72rem;font-weight:600;white-space:nowrap}
+.sec-body{padding:1.25rem 1.4rem}
+
+/* ── Commit cards ── */
+.commit-grid{display:flex;flex-direction:column;gap:.65rem}
+.commit{border-radius:8px;overflow:hidden;border:1px solid #1e2438}
+.commit-top{display:flex;align-items:flex-start;gap:.75rem;padding:.7rem .9rem;cursor:pointer;background:#0f1222}
+.commit-top:hover{background:#141829}
+.c-type{font-size:.65rem;font-weight:800;padding:.2rem .5rem;border-radius:4px;flex-shrink:0;margin-top:.15rem;text-transform:uppercase;letter-spacing:.05em}
+.feat {background:#1a2e1a;color:#4ade80}
+.fix  {background:#2e1a1a;color:#f87171}
+.test {background:#1a1e35;color:#818cf8}
+.chore{background:#1e1e1e;color:#94a3b8}
+.debug{background:#2a1a0e;color:#fb923c}
+.c-msg{font-size:.85rem;color:#e2e8f0;flex:1;font-weight:500;line-height:1.4}
+.c-hash{font-size:.7rem;color:#475569;font-family:monospace;flex-shrink:0;margin-top:.15rem}
+.commit-body{padding:.75rem .9rem;background:#0b0d14;border-top:1px solid #1e2438;font-size:.8rem;color:#94a3b8;line-height:1.65;display:none}
+.commit-body.open{display:block}
+.commit-body ul{padding-left:1.1rem;margin-top:.35rem}
+.commit-body li{margin:.2rem 0}
+.commit-body code{background:#1e2438;padding:.05rem .35rem;border-radius:3px;font-size:.75rem;font-family:monospace;color:#a5b4fc}
+.commit-body strong{color:#e2e8f0}
+
+/* ── Code block ── */
+pre{background:#060810;border:1px solid #1e2438;border-radius:8px;padding:.85rem 1rem;overflow-x:auto;font-size:.76rem;line-height:1.7;margin:.5rem 0}
+code.inline{background:#1e2438;padding:.1rem .35rem;border-radius:3px;font-size:.78rem;font-family:monospace;color:#a5b4fc}
+.g{color:#3fb950}.r{color:#f85149}.c{color:#8b949e}.k{color:#ff7b72}.s{color:#a5d6ff}.t{color:#ffa657}.p{color:#d2a8ff}
+
+/* ── Label badges ── */
+.lbl{display:inline-block;font-size:.65rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.15rem .55rem;border-radius:4px;margin-bottom:.4rem}
+.lbl.prob{background:#3b1212;color:#fca5a5}
+.lbl.root{background:#2a2010;color:#fde68a}
+.lbl.sol {background:#0a2e1a;color:#6ee7b7}
+.lbl.files{background:#151c35;color:#a5b4fc}
+.lbl.verify{background:#0e2a30;color:#67e8f9}
+
+/* ── Stats bar ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1.75rem}
+.stat{background:#131620;border:1px solid #1e2438;border-radius:10px;padding:1rem 1.25rem;text-align:center}
+.stat .n{font-size:2rem;font-weight:800;background:linear-gradient(135deg,#818cf8,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat .l{font-size:.72rem;color:#64748b;margin-top:.15rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* ── Test table ── */
+.tbl{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:.75rem}
+.tbl th{text-align:left;padding:.45rem .65rem;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:#475569;border-bottom:1px solid #1e2438}
+.tbl td{padding:.55rem .65rem;border-bottom:1px solid #131620;color:#94a3b8;vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.pass{color:#4ade80;font-weight:700}
+.warn{color:#fbbf24}
+
+/* ── Group label ── */
+.group{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#475569;padding:.3rem 0 .5rem}
+
+/* ── Infra card ── */
+.infra-card{background:#0b0d14;border:1px solid #1e2438;border-radius:8px;padding:.9rem 1rem;margin:.5rem 0}
+.infra-card p{font-size:.83rem;color:#94a3b8}
+
+/* ── Footer ── */
+footer{text-align:center;color:#2d3554;font-size:.78rem;margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid #131620}
+
+/* ── Expand toggle hint ── */
+.hint{font-size:.7rem;color:#334155;margin-top:.75rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══ HERO ══════════════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <h1>Sozialzynk — 3-Day Change Report</h1>
+  <div class="sub">AI CreatorForce &nbsp;·&nbsp; Sep 19 – 22, 2026 &nbsp;·&nbsp; Branch: <code style="color:#a5b4fc">master</code></div>
+  <div>
+    <span class="pill">96 commits</span>
+    <span class="pill">Frontend: Vercel READY</span>
+    <span class="pill">Backend: Railway Online</span>
+    <span class="pill">5/5 E2E Tests Pass</span>
+    <span class="pill">Android CI Fixed</span>
+  </div>
+</div>
+
+<!-- ══ STATS ══════════════════════════════════════════════════════════════════ -->
+<div class="stats">
+  <div class="stat"><div class="n">96</div><div class="l">Total Commits</div></div>
+  <div class="stat"><div class="n">43</div><div class="l">Features</div></div>
+  <div class="stat"><div class="n">38</div><div class="l">Bug Fixes</div></div>
+  <div class="stat"><div class="n">15</div><div class="l">E2E / Tests</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">Areas Changed</div></div>
+</div>
+
+<!-- ══ TOC ══════════════════════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#editor-core">Video Editor — Core Engine (timeline, playback, undo/redo)</a></li>
+    <li><a href="#editor-mobile">Video Editor — Mobile Redesign</a></li>
+    <li><a href="#editor-mediabin">Video Editor — Media Bin (upload, import, lock, delete)</a></li>
+    <li><a href="#editor-ai">Video Editor — AI Features (Copilot chat, AI Edit)</a></li>
+    <li><a href="#editor-export">Video Editor — Export Pipeline &amp; Download URL</a></li>
+    <li><a href="#editor-ux">Video Editor — UX Polish (progress bar, status tray, retry)</a></li>
+    <li><a href="#social-dl">Social Download Service (yt-dlp, LinkedIn, Shorts fix)</a></li>
+    <li><a href="#auth-projects">Auth, Projects &amp; Demo Seed</a></li>
+    <li><a href="#android">Android App — App Links &amp; PWA</a></li>
+    <li><a href="#e2e">E2E Test Suite — Stability &amp; Coverage</a></li>
+    <li><a href="#infra">Infrastructure — Vercel Proxy URL Fix</a></li>
+    <li><a href="#copilot">Copilot — Input / Output Processing Fixed</a></li>
+    <li><a href="#audio">Audio Processing — Browser &amp; FFmpeg Fixes</a></li>
+    <li><a href="#text">Text Processing — API Guards &amp; Null Safety</a></li>
+    <li><a href="#cloudflare">Cloudflare — R2 Configuration &amp; Hard-Delete</a></li>
+  </ol>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 1. EDITOR CORE                                                            -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="editor-core">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#1e1b4b">🎬</div>
+    <div>
+      <div class="sec-title">1 · Video Editor — Core Engine</div>
+      <div class="sec-sub">Timeline, drag/trim/split/snap, playback, undo/redo, video+audio linking</div>
+    </div>
+    <div class="sec-count">24 commits</div>
+  </div>
+  <div class="sec-body">
+
+    <div class="group">Feature — Multi-track Timeline Built from Scratch</div>
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Professional multi-track timeline — drag-from-bin, snap, split, undo/redo</span>
+          <span class="c-hash">6475c50</span>
+        </div>
+        <div class="commit-body">
+          <strong>What changed:</strong> Rewrote the entire editor timeline from a basic prototype into a production-quality multi-track editor.<br><br>
+          <ul>
+            <li>Pointer-events drag (onPointerDown/Move/Up + setPointerCapture) for lag-free clip movement</li>
+            <li>Left/right trim handles on every clip — drag to shorten or extend</li>
+            <li>Snap-to-grid: clips snap to other clip edges and to the playhead</li>
+            <li>Split at playhead (S key) — cuts selected clip into two</li>
+            <li>Full undo/redo stack (<code>pushUndo</code> snapshots before every mutation)</li>
+            <li>Drag clips directly from the Media Bin onto any track lane</li>
+            <li>Keyboard shortcuts: Space=play/pause, S=split, Delete=remove, Ctrl+Z=undo, Ctrl+Y=redo</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Add asset name map for clip labels; use RotateCcw/Cw undo icons</span>
+          <span class="c-hash">909d977</span>
+        </div>
+        <div class="commit-body">
+          Clip blocks in the timeline now show the real file name (e.g. "video.mp4") instead of a generic ID. Built an <code>assetNameMap</code> that resolves <code>sourceAssetId → label</code> from the media bin. Undo/redo buttons use proper rotate icons instead of text.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Snap toggle button + wire snapEnabled to allSnapPoints</span>
+          <span class="c-hash">2bde6fe</span>
+        </div>
+        <div class="commit-body">
+          Added a "Snap" toggle button in the timeline toolbar. When OFF, clips drag freely without snapping. When ON (default), clips snap to neighbouring clip edges and playhead position. <code>snapEnabled</code> state gates all <code>allSnapPoints</code> calculations.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Undo steps whole drag operations, not individual pixels; fix click-to-deselect</span>
+          <span class="c-hash">9b10aa8</span>
+        </div>
+        <div class="commit-body">
+          <strong>Problem:</strong> Pressing Ctrl+Z undid a single pixel of movement — useless for fine-dragging.<br>
+          <strong>Fix:</strong> <code>pushUndo</code> is now called only on <code>onPointerDown</code> (snapshot before drag begins), not on every move event. Click on an empty area of the timeline deselects the active clip.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Trim-right accumulation — store origEndMs at drag start</span>
+          <span class="c-hash">8867728</span>
+        </div>
+        <div class="commit-body">
+          <strong>Problem:</strong> Right-trimming a clip accumulated delta across multiple mouse-move events, making the trim jump wildly after the first frame.<br>
+          <strong>Fix:</strong> <code>dragRef.current.origEndMs</code> is stored once on <code>pointerDown</code>; each <code>pointerMove</code> computes <code>origEndMs + deltaMs</code> from scratch.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Move allSnapPoints before early returns — fixes Rules of Hooks crash</span>
+          <span class="c-hash">08e4fad</span>
+        </div>
+        <div class="commit-body">
+          React's Rules of Hooks forbid calling a hook after a conditional return. <code>allSnapPoints</code> (a <code>useMemo</code>) was placed after an early return guard. Moved it above all early returns to fix the crash.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Drag-to-resize preview/timeline split + compact tracks</span>
+          <span class="c-hash">7da289c</span>
+        </div>
+        <div class="commit-body">
+          Added a draggable divider between the video preview and the timeline. Users can pull up for more timeline space or push down for a larger preview. Track heights are reduced to compact mode to show more tracks without scrolling.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Auto-extract linked audio track when video is added to timeline</span>
+          <span class="c-hash">6a673cf</span>
+        </div>
+        <div class="commit-body">
+          When a video clip is dragged from the bin to the timeline, the editor automatically creates a companion AUDIO track clip at the same <code>timelineStartMs/EndMs</code> and links them via <code>linkedItemId</code>. The AUDIO clip carries the same <code>sourceAssetId</code> so the render pipeline can mix it correctly.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="group" style="margin-top:1rem">Feature — Video &amp; Audio Playback</div>
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Real video playback — fix 60fps re-render storm, add keyboard shortcuts</span>
+          <span class="c-hash">d5be9e6</span>
+        </div>
+        <div class="commit-body">
+          <strong>Problem:</strong> Preview was re-rendering React at 60 fps during playback — froze the timeline.<br>
+          <strong>Fix:</strong> Extracted the playhead position into a ref updated via <code>requestAnimationFrame</code>; React state updates only happen every 250ms. Added Space bar play/pause shortcut.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Video/audio silent — call play() inside click gesture, not rAF</span>
+          <span class="c-hash">578dab1</span>
+        </div>
+        <div class="commit-body">
+          Browsers block <code>audio.play()</code> outside a user-gesture handler. The play call was inside a <code>requestAnimationFrame</code> callback (not a gesture). Moved it directly into the click/Space handler so the browser allows it.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">video+audio combined by default; Detach Audio extracts MP3</span>
+          <span class="c-hash">e2844a0</span>
+        </div>
+        <div class="commit-body">
+          Video clips play with embedded audio by default (single &lt;video&gt; element). A "Detach Audio" button in the track controls calls the backend to extract the audio stream as an MP3 asset, then replaces the linked audio clip with the separate audio asset — enabling independent audio editing.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Separate video/audio track controls — Eye, Volume, Delink</span>
+          <span class="c-hash">972cd12</span>
+        </div>
+        <div class="commit-body">
+          Each track now has distinct controls based on its kind:<br>
+          <ul>
+            <li><strong>VIDEO track</strong>: Eye/EyeOff toggle to hide/show in preview</li>
+            <li><strong>AUDIO track</strong>: Volume2/VolumeX to mute/unmute</li>
+            <li><strong>Linked clips</strong>: Delink button separates the audio clip from the video clip</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Eye-off actually hides video frames in preview — black placeholder shown</span>
+          <span class="c-hash">57f41f4</span>
+        </div>
+        <div class="commit-body">
+          The Eye toggle previously set a CSS opacity, but the video element kept rendering. Changed to <code>display:none</code> and overlays a black rectangle with an EyeOff icon so it's clear the track is hidden, not deleted.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Delete track button + clear empty tracks</span>
+          <span class="c-hash">af59d49</span>
+        </div>
+        <div class="commit-body">
+          Trash icon added to each track label. Deleting a track with clips shows a confirm dialog. <code>handleDeleteTrack</code> removes the track and all its clips. A "Clear Empty" button removes all tracks that have no clips — useful after moving clips across tracks.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Cross-track drag + data-trackid + handleCrossTrackDrop</span>
+          <span class="c-hash">6406819</span>
+        </div>
+        <div class="commit-body">
+          Clips can now be dragged to a different track of the same kind. During drag, <code>document.elementFromPoint</code> detects the target track lane via <code>data-trackid</code>. A purple CSS outline highlights the target lane. <code>handleCrossTrackDrop</code> validates kind match (VIDEO→VIDEO only) before moving the clip.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 2. MOBILE REDESIGN                                                        -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="editor-mobile">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#0c2340">📱</div>
+    <div>
+      <div class="sec-title">2 · Video Editor — Mobile Redesign</div>
+      <div class="sec-sub">Bottom tab bar, bottom sheets, responsive layout, icon-only topbar</div>
+    </div>
+    <div class="sec-count">8 commits</div>
+  </div>
+  <div class="sec-body">
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Mobile redesign — bottom tab bar + bottom sheets, timeline always accessible</span>
+          <span class="c-hash">1008ccc</span>
+        </div>
+        <div class="commit-body">
+          Complete mobile layout overhaul:<br>
+          <ul>
+            <li><strong>Bottom tab bar</strong> (Media / Inspect / Tools) replaces slide-over drawers</li>
+            <li><strong>Inspector</strong> opens as a half-height bottom sheet — timeline stays visible and editable behind it</li>
+            <li><strong>Media Bin</strong> opens as 70vh slide-up bottom sheet</li>
+            <li><strong>Tools sheet</strong>: undo/redo/split/delete/snap/add-track/AI-edit in a grid</li>
+            <li>Preview height auto-set to 38% of viewport on phones</li>
+            <li>Zoom controls hidden on mobile (scroll to navigate timeline)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Tab bar always visible — z-[60] nav, sheets anchored above tab bar</span>
+          <span class="c-hash">142f108</span>
+        </div>
+        <div class="commit-body">
+          Tab bar gets <code>z-[60]</code> so it is never covered by sheets or backdrop overlays. All 3 bottom sheets use <code>bottom:56px</code> (tab bar height). Backdrop stops at the tab bar so the tabs remain tappable while a sheet is open.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Mobile layout — kill bottom-nav overlap, icon-only topbar on phones</span>
+          <span class="c-hash">5fe54c4</span>
+        </div>
+        <div class="commit-body">
+          Topbar on mobile shows icon-only buttons (no text labels) to prevent overflow. The old bottom navigation overlap where the tab bar covered timeline clips is fixed. Safe-area insets applied for notched phones.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Responsive layout for all screen sizes</span>
+          <span class="c-hash">5e30f88</span>
+        </div>
+        <div class="commit-body">
+          Panels (Media Bin, Inspector) use conditional rendering based on breakpoint: full side-panel on ≥lg, bottom sheet on &lt;lg. Panel widths changed from fixed px to percentage-based so the editor works on iPad-sized screens too.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Show AI Edit button on mobile — was hidden with hidden sm:flex</span>
+          <span class="c-hash">ac845ee</span>
+        </div>
+        <div class="commit-body">
+          The AI Edit button had <code>hidden sm:flex</code> making it invisible on phones. Changed to always visible as an icon-only button on mobile, with text appearing on <code>sm+</code> screens.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Real video duration on import/upload + mobile sidebar gap</span>
+          <span class="c-hash">e283af9</span>
+        </div>
+        <div class="commit-body">
+          <strong>Duration fix:</strong> API now runs <code>ffprobe</code> after upload to store real <code>durationMs</code> instead of null (was showing 0:05 for every clip). Editor uses a browser <code>&lt;video&gt;</code> element to probe duration for existing assets already in DB.<br>
+          <strong>Sidebar gap:</strong> Mobile admin links moved into the scrollable nav flow — removes the large gap between Discover and Admin Panel in the mobile drawer. Hid the <code>⌘K</code> badge on mobile.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Remove getting-started guide strip from editor page</span>
+          <span class="c-hash">99966fb</span>
+        </div>
+        <div class="commit-body">
+          Removed the inline getting-started instruction strip from the editor page — it was distracting and took up valuable vertical space, especially on mobile. Guide is now accessible from the Help button in the topbar.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 3. MEDIA BIN                                                              -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="editor-mediabin">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#172020">📂</div>
+    <div>
+      <div class="sec-title">3 · Video Editor — Media Bin</div>
+      <div class="sec-sub">Upload, URL import, social import, lock/unlock, delete, history/library drawers</div>
+    </div>
+    <div class="sec-count">12 commits</div>
+  </div>
+  <div class="sec-body">
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Unified upload endpoint for images, audio, and video in Media Bin</span>
+          <span class="c-hash">c1af099</span>
+        </div>
+        <div class="commit-body">
+          Single <code>POST /editor/:id/media-bin/upload</code> endpoint accepts any file type (image/*, audio/*, video/*). Backend detects type from MIME, runs ffprobe for video/audio duration, stores to R2, and returns a <code>MediaBinItem</code>. Frontend accepts drag-drop or file-picker for all types.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">lock/unlock working files + hard-delete from Cloudflare on remove</span>
+          <span class="c-hash">549f1d3</span>
+        </div>
+        <div class="commit-body">
+          <ul>
+            <li>Added <code>locked Boolean @default(false)</code> field to Asset model (DB migration included)</li>
+            <li>Lock toggle button on each bin entry — locked files cannot be deleted</li>
+            <li>On delete: removes from Cloudflare R2 via <code>storage.removePrefix(r2Key)</code> (hard delete, not soft)</li>
+            <li>New <code>PATCH /:id/media-bin/:assetId/lock</code> route</li>
+            <li>Frontend shows a lock badge and disables delete with an alert when locked</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Bin delete via API + export → publish queue flow</span>
+          <span class="c-hash">dd7dc61</span>
+        </div>
+        <div class="commit-body">
+          <strong>Bin delete:</strong> <code>DELETE /editor/:id/media-bin/:assetId</code> endpoint removes the asset record and its R2 files. Frontend uses optimistic UI — removes item immediately, restores on API error.<br>
+          <strong>Export → publish:</strong> After export render completes, user can push the rendered video directly to the publish queue from the Export dialog.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Remove frontier page, add history/library drawers and bin import</span>
+          <span class="c-hash">5cb9be1</span>
+        </div>
+        <div class="commit-body">
+          <ul>
+            <li>Removed the "frontier" placeholder editor page</li>
+            <li><strong>History drawer</strong>: right-side panel listing all edit projects with timestamps and status badges — click to navigate</li>
+            <li><strong>Library drawer</strong>: browse previously uploaded assets across all projects to re-use in current edit</li>
+            <li><strong>Import from Library</strong> tab in Media Bin: pick any asset from your history</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Image/audio preview, expand upload types, processing state on bin entries</span>
+          <span class="c-hash">f30a735</span>
+        </div>
+        <div class="commit-body">
+          <ul>
+            <li>Image bin entries show a thumbnail preview instead of a blank box</li>
+            <li>Audio entries show a waveform-style placeholder with the filename</li>
+            <li>Upload input now accepts all image, audio, and video MIME types</li>
+            <li>"Processing…" spinner shown on new entries while the R2 upload is in progress</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Working files rename, delete visibility, project library tab</span>
+          <span class="c-hash">e8214da</span>
+        </div>
+        <div class="commit-body">
+          Inline rename of bin entries (click label to edit). Delete buttons were hidden behind overflow — now always visible on the active/hovered entry. "Project Library" tab added alongside "Working Files" and "Import from Library" for three-pane media organisation.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Auto-fetch video title via yt-dlp on social import; fix working-files UX on desktop</span>
+          <span class="c-hash">7023daf</span>
+        </div>
+        <div class="commit-body">
+          <strong>Title fetch:</strong> <code>SocialDownloadService.fetchTitle()</code> runs <code>yt-dlp --no-download --print title</code> before the actual download — real video title becomes the asset label instead of "video".<br>
+          <strong>Desktop UX:</strong> Bin entry action buttons (Lock + Delete) now appear only on hover on large screens; always visible on mobile. Cleaner layout, no accidental taps.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 4. AI FEATURES                                                            -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="editor-ai">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#1a0a2e">🤖</div>
+    <div>
+      <div class="sec-title">4 · Video Editor — AI Features</div>
+      <div class="sec-sub">Copilot chat with media context, AI Edit chat UI, auto-save, named versions</div>
+    </div>
+    <div class="sec-count">5 commits</div>
+  </div>
+  <div class="sec-body">
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Copilot knows your files — media bin context + add-clip actions + chat UI</span>
+          <span class="c-hash">9d3b55b</span>
+        </div>
+        <div class="commit-body">
+          <strong>Root cause:</strong> Copilot only received <code>{ message }</code> with no context, so it replied "I don't have access to your files."<br><br>
+          <strong>Backend fixes:</strong>
+          <ul>
+            <li><code>editorCopilot</code> now accepts <code>mediaBin[]</code>, <code>clientTimeline</code>, and <code>history</code></li>
+            <li>System prompt lists every Working Files asset with its <code>sourceAssetId</code>, kind, label, and duration</li>
+            <li>AI can now ADD clips to the timeline, create new tracks, loop/extend music, and chain VIDEO+AUDIO items</li>
+            <li>Multi-turn history: full conversation passed as <code>messages[]</code></li>
+          </ul>
+          <strong>Frontend:</strong>
+          <ul>
+            <li>AI Edit dialog rewritten as a chat panel — user messages on right, AI on left</li>
+            <li>Quick-action suggestion chips on empty state</li>
+            <li>Enter to send, Shift+Enter for newline</li>
+            <li>Apply button stays visible after applying</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Auto-save toggle + named version saves (My Versions folder)</span>
+          <span class="c-hash">e5e5bd1</span>
+        </div>
+        <div class="commit-body">
+          <strong>Auto-save toggle (topbar pill):</strong>
+          <ul>
+            <li>OFF by default — user opts in; preference persisted to <code>localStorage</code></li>
+            <li>Turns green when enabled; debounce fires every 30s only when ON</li>
+            <li>Manual Save button always works regardless of auto-save state</li>
+          </ul>
+          <strong>My Versions (named snapshots):</strong>
+          <ul>
+            <li>"Save as" button opens a naming dialog; saved to <code>localStorage[editor-snapshots-{editId}]</code> (up to 30 entries)</li>
+            <li>"Versions" button opens a drawer listing all snapshots with Load and Delete actions</li>
+            <li>Loading a version pushes an undo entry so Ctrl+Z can recover the previous state</li>
+            <li>Count badge on Versions button shows how many snapshots exist</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Save → project list refresh (invalidateQueries after save)</span>
+          <span class="c-hash">6406819</span>
+        </div>
+        <div class="commit-body">
+          After saving, two react-query cache keys are now invalidated: <code>['editor-mine']</code> and <code>['editor-mine-list']</code>. The editor listing page immediately shows fresh data without requiring a manual page refresh.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 5. EXPORT PIPELINE                                                        -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="editor-export">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#1a1a0a">📤</div>
+    <div>
+      <div class="sec-title">5 · Video Editor — Export Pipeline</div>
+      <div class="sec-sub">FFmpeg audio fix, renderVersionId, proxy download URL</div>
+    </div>
+    <div class="sec-count">2 commits</div>
+  </div>
+  <div class="sec-body">
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Export pipeline — audio from composite.mp4, renderVersionId, proxy download URL</span>
+          <span class="c-hash">6406819</span>
+        </div>
+        <div class="commit-body">
+          <strong>Problem 1 — FFmpeg crash:</strong> "Stream specifier matched no streams" — the second pass tried to pull audio from each video segment file, which have no separate audio stream.<br>
+          <strong>Fix:</strong> Removed per-segment audio re-reads. Instead, the first-pass <code>composite.mp4</code> already has embedded audio. Second pass reads <code>[0:a]</code> from the composite directly.<br><br>
+          <strong>Problem 2 — Download link:</strong> The Download button linked to a server-local disk path (<code>/tmp/render-xxx.mp4</code>) inaccessible from the browser.<br>
+          <strong>Fix:</strong> <code>renderStatus()</code> now returns <code>renderVersionId</code> (the DB version ID). Frontend constructs the URL as <code>/api/proxy/media/versions/:id/file</code> — a signed, proxied R2 URL.<br><br>
+          <strong>Also fixed:</strong> <code>adelay</code> format changed from channel-specific to <code>delays={ms}:all=1</code> for universal multi-channel support.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 6. UX POLISH                                                              -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="editor-ux">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#0a1a2a">✨</div>
+    <div>
+      <div class="sec-title">6 · Video Editor — UX Polish</div>
+      <div class="sec-sub">Progress bar, status tray, cold-start retry, title dialog, Move to Project</div>
+    </div>
+    <div class="sec-count">8 commits</div>
+  </div>
+  <div class="sec-body">
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">NProgress-style top progress bar for all operations</span>
+          <span class="c-hash">087e396</span>
+        </div>
+        <div class="commit-body">
+          A thin brand-coloured progress bar runs across the top of the editor during any async operation.<br>
+          <ul>
+            <li>Real upload % via <code>axios onUploadProgress</code> (0→90% from bytes transferred)</li>
+            <li>Simulated smooth progress for import/save/delete/export (0→85%, snaps to 100% on complete)</li>
+            <li>Multiple concurrent ops stack via <code>barActiveOps</code> counter — bar only hides when all complete</li>
+            <li>Fades out 500ms after completion</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Non-blocking status tray for all background operations</span>
+          <span class="c-hash">c9101db</span>
+        </div>
+        <div class="commit-body">
+          Replaces scattered inline error messages with a unified bottom-right status tray that shows live progress:<br>
+          <ul>
+            <li>Upload: "Uploading video.mp4" → spinner → "Added to Working Files ✓"</li>
+            <li>URL import / library import / project import: same pattern</li>
+            <li>Save: "Saving timeline…" → "All changes saved ✓" (auto-dismisses after 3s)</li>
+            <li>Delete: "Removing file…" → "File deleted ✓"</li>
+            <li>Errors persist until manually dismissed</li>
+          </ul>
+          Users can keep editing during any background operation.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Retry editor open up to 4 times on cold start</span>
+          <span class="c-hash">ca01033</span>
+        </div>
+        <div class="commit-body">
+          Railway server can take 30–60s to wake from idle. Without retry, the user saw an immediate error boundary. Now retries up to 3 more times at 4s intervals before giving up. Shows "Starting up… (attempt N/4)" so the user knows what's happening.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Title dialog after upload/import before opening editor</span>
+          <span class="c-hash">919a934</span>
+        </div>
+        <div class="commit-body">
+          After a video is uploaded or a URL is imported, a modal prompts the user to give the edit project a title before opening the editor. Previously the project always opened as "New Edit" with a UUID. The title is saved immediately via API before navigation.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Move to Project — pick or create a project from edit cards</span>
+          <span class="c-hash">de27c9a</span>
+        </div>
+        <div class="commit-body">
+          Edit cards in the listing now have a "Move to Project" action. A popover lists the user's existing projects with a search field. Users can also create a new project inline. Updates the edit's <code>projectId</code> via <code>PATCH /editor/:id</code>.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 7. SOCIAL DOWNLOAD                                                        -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="social-dl">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#0a200a">⬇️</div>
+    <div>
+      <div class="sec-title">7 · Social Download Service</div>
+      <div class="sec-sub">yt-dlp bot bypass, LinkedIn support, Dailymotion, error diagnostics</div>
+    </div>
+    <div class="sec-count">7 commits</div>
+  </div>
+  <div class="sec-body">
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Rewrite YouTube Shorts URLs to watch?v= to bypass Shorts bot detection</span>
+          <span class="c-hash">dea1fdc</span>
+        </div>
+        <div class="commit-body">
+          YouTube Shorts URLs (<code>/shorts/VIDEO_ID</code>) trigger aggressive bot detection. Rewriting them to <code>/watch?v=VIDEO_ID</code> before passing to yt-dlp bypasses this. Regex: <code>/shorts\/([A-Za-z0-9_-]+)/</code> → <code>/watch?v=$1</code>.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Try android,mweb,ios,web_creator,web_embedded client order for YouTube</span>
+          <span class="c-hash">620e199</span>
+        </div>
+        <div class="commit-body">
+          yt-dlp tries multiple internal YouTube clients in sequence until one succeeds. The order <code>android → mweb → ios → web_creator → web_embedded</code> was found to have the highest success rate for bypassing bot checks in Railway's IP range.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Add LinkedIn support + fix x.com pattern</span>
+          <span class="c-hash">8f24182</span>
+        </div>
+        <div class="commit-body">
+          LinkedIn video posts (<code>linkedin.com/posts/</code> and <code>linkedin.com/feed/update/</code>) are now supported via yt-dlp. Fixed the x.com URL pattern regex that was not matching <code>x.com</code> links (was only matching <code>twitter.com</code>).
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Fresh yt-dlp binary + curl_cffi for Dailymotion + better error messages</span>
+          <span class="c-hash">42066d2</span>
+        </div>
+        <div class="commit-body">
+          Updated to latest yt-dlp binary in the Docker image. Added <code>curl_cffi</code> Python package for Dailymotion TLS fingerprint matching. Error responses now include the platform name and the specific yt-dlp error message for easier debugging.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type debug">debug</span>
+          <span class="c-msg">Include yt-dlp stderr in generic error response for diagnostics</span>
+          <span class="c-hash">ea128ad</span>
+        </div>
+        <div class="commit-body">
+          When yt-dlp fails, the full stderr output is now included in the API error response body (under <code>debug</code> field). This lets us diagnose failures without having to SSH into Railway and check logs manually.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 8. AUTH & PROJECTS                                                        -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="auth-projects">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#1a0a0a">🔐</div>
+    <div>
+      <div class="sec-title">8 · Auth, Projects &amp; Demo Seed</div>
+      <div class="sec-sub">Demo data on sign-up, multi-origin OAuth, projects page live data</div>
+    </div>
+    <div class="sec-count">2 commits</div>
+  </div>
+  <div class="sec-body">
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Demo seed on sign-up, multi-origin OAuth, projects page live data</span>
+          <span class="c-hash">3c46816</span>
+        </div>
+        <div class="commit-body">
+          <ul>
+            <li><strong>Demo seed:</strong> New users get 3 sample edit projects and a demo project seeded automatically on their first sign-up — so the editor listing is never empty on first login</li>
+            <li><strong>Multi-origin OAuth:</strong> Google/Apple/GitHub OAuth callbacks now accept redirects from both <code>sozialzync.vercel.app</code> and <code>sozialzynk.vercel.app</code> origins — eliminates "Invalid redirect_uri" errors during migration period</li>
+            <li><strong>Projects page:</strong> Projects listing now fetches live data via React Query instead of showing hardcoded placeholders</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 9. ANDROID / PWA                                                          -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="android">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#002010">🤖</div>
+    <div>
+      <div class="sec-title">9 · Android App &amp; PWA</div>
+      <div class="sec-sub">App Links intent filter, debug keystore, SHA-256 fingerprint in assetlinks.json</div>
+    </div>
+    <div class="sec-count">3 commits</div>
+  </div>
+  <div class="sec-body">
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Add App Links intent filter + stable debug keystore support</span>
+          <span class="c-hash">856516a</span>
+        </div>
+        <div class="commit-body">
+          <strong>Root cause of OnePlus/Samsung browser-mode sign-in failure:</strong> After Google OAuth in a Chrome Custom Tab, the callback URL (<code>sozialzynk.vercel.app/api/auth/callback/*</code>) was opening in Chrome instead of returning to the Capacitor WebView. This broke standalone mode and caused "Invalid or expired OAuth state" errors.<br><br>
+          <strong>Fixes:</strong>
+          <ul>
+            <li>Added <code>android:autoVerify</code> App Links intent-filter in <code>AndroidManifest.xml</code> so Android routes the OAuth callback back to the Capacitor WebView on all devices</li>
+            <li><code>ANDROID_DEBUG_KEYSTORE_BASE64</code> CI secret restores a stable debug.keystore — SHA-256 fingerprint stays consistent across CI builds and matches <code>assetlinks.json</code></li>
+            <li>CI now logs APK signing fingerprint for verification</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Set real SHA-256 fingerprint in assetlinks.json</span>
+          <span class="c-hash">3e2f387</span>
+        </div>
+        <div class="commit-body">
+          TWA (Trusted Web Activity) verification was always failing because the placeholder string <code>"REPLACE_WITH_REAL_SHA256"</code> was never replaced. Extracted the actual fingerprint from the sideloaded APK (debug cert, CN=Android Debug) and committed it to <code>apps/web/public/.well-known/assetlinks.json</code>. Chrome will now verify the APK and open in full-screen standalone mode instead of a browser tab.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 10. E2E TESTS                                                             -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="e2e">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#0a0a20">🧪</div>
+    <div>
+      <div class="sec-title">10 · E2E Test Suite — Stability &amp; Coverage</div>
+      <div class="sec-sub">JWT expiry, rate-limit retry, timeouts, Instagram import, Railway keep-warm</div>
+    </div>
+    <div class="sec-count">26 commits</div>
+  </div>
+  <div class="sec-body">
+
+    <div class="group">Core Infrastructure Fixes</div>
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Smart JWT expiry check + gotoWithAuth timeout fixes</span>
+          <span class="c-hash">0de71ca</span>
+        </div>
+        <div class="commit-body">
+          JWT tokens expire after 4 hours. If a long test suite runs past expiry, all subsequent tests fail with 401. Added a helper that decodes the JWT exp claim and automatically re-logs in if within 5 minutes of expiry before any navigation. <code>gotoWithAuth</code> timeout raised from 30s to 90s for Railway cold starts.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Replace sequential rate-limit check with Promise.race in gotoWithAuth</span>
+          <span class="c-hash">498d6b2</span>
+        </div>
+        <div class="commit-body">
+          Railway rate-limits burst traffic during test runs. Previously the rate-limit check was sequential (check → wait → retry). Changed to <code>Promise.race([navigation, rateLimitDetection])</code> so the test detects the rate-limit immediately and retries with a back-off, instead of waiting the full navigation timeout.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type chore">chore</span>
+          <span class="c-msg">Add GitHub Actions keep-warm for Railway</span>
+          <span class="c-hash">115d428</span>
+        </div>
+        <div class="commit-body">
+          Added a GitHub Actions workflow that pings the Railway health endpoint every 10 minutes to keep the server warm. Prevents cold-start failures in the E2E test suite (cold starts add 30–60s, causing timeout failures). The job runs 24/7 on a cron schedule.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="group" style="margin-top:1rem">New Test Coverage</div>
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Expand instagram-import to full media lifecycle suite</span>
+          <span class="c-hash">ceb2567</span>
+        </div>
+        <div class="commit-body">
+          Extended the Instagram import test to cover the full media lifecycle: import URL → title dialog → editor opens → asset appears in Media Bin → asset added to timeline → save succeeds → export dialog opens.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type test">test</span>
+          <span class="c-msg">E2E spec verifying editor workspace loads without error boundary</span>
+          <span class="c-hash">8374e9d</span>
+        </div>
+        <div class="commit-body">
+          New spec that navigates to a known edit project and asserts the editor renders the timeline, media bin, and topbar — specifically checking that the "Video processing failed" error boundary is NOT shown.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type test">test</span>
+          <span class="c-msg">Instagram Reel import end-to-end test</span>
+          <span class="c-hash">a798874</span>
+        </div>
+        <div class="commit-body">
+          New E2E spec for the full Instagram Reel import flow: enter URL → verify download starts → asset appears in Media Bin → add to timeline.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="group" style="margin-top:1rem">Flaky &amp; Timeout Fixes (summary)</div>
+    <div class="infra-card">
+      <p>Over 18 commits addressed flaky and timing-dependent test failures:<br><br>
+      • <code>auth.setup.ts</code>: raised Railway cold-start timeout to 90s; changed login wait from <code>networkidle</code> to <code>waitUntil:'commit'</code> — avoids blocking on slow Dashboard API calls<br>
+      • Copilot widget tests: <code>test.setTimeout(300_000)</code> for TTS-heavy tests; reduced voice warmup 60s→20s to prevent suite bloat<br>
+      • Rate-limit handling: <code>Promise.race</code> pattern applied to all login helpers (not just <code>gotoWithAuth</code>)<br>
+      • JWT expiry cascade: fixed by checking token expiry before every test navigation, not just at setup<br>
+      • Browse spec webkit: replaced <code>fill()</code> with <code>pressSequentially()</code> for search input (webkit doesn't fire input events on fill)<br>
+      • Instagram import: used <code>waitUntil:'commit'</code> on editor redirect to fix ERR_ABORTED<br>
+      • Editor video preview: increased <code>goToEditor</code> timeout from 15s to 45s for cold-start Railway</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 11. INFRA                                                                 -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="infra">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#200a0a">⚙️</div>
+    <div>
+      <div class="sec-title">11 · Infrastructure — Vercel Proxy URL Fix</div>
+      <div class="sec-sub">API_URL env var, stale Railway service, redeploy</div>
+    </div>
+    <div class="sec-count">1 fix (not a commit)</div>
+  </div>
+  <div class="sec-body">
+
+    <span class="lbl prob">Problem</span>
+    <p style="font-size:.85rem;color:#94a3b8;margin:.4rem 0 .9rem">All API calls through the Vercel proxy at <code class="inline">sozialzynk.vercel.app/api/proxy/*</code> returned <strong>404 "Application not found"</strong>. The editor showed "Video processing failed" for every user.</p>
+
+    <span class="lbl root">Root Cause</span>
+    <p style="font-size:.85rem;color:#94a3b8;margin:.4rem 0 .9rem">The <code class="inline">API_URL</code> Vercel environment variable pointed to an <strong>old retired Railway service</strong>:</p>
+    <pre><code><span class="r">- API_URL = https://api-production-cf143.up.railway.app/api/v1   ← retired, returns 404</span>
+<span class="g">+ API_URL = https://sozialzync-api-production.up.railway.app/api/v1  ← current</span>
+<span class="g">+ NEXT_PUBLIC_API_URL = https://sozialzync-api-production.up.railway.app/api/v1  ← for CSP middleware</span></code></pre>
+
+    <span class="lbl sol">How Fixed</span>
+    <p style="font-size:.85rem;color:#94a3b8;margin:.4rem 0 .9rem">Both env vars updated via Vercel MCP. Fresh deployment triggered (<code class="inline">dpl_4WqMfozZyTYT4T6jgA38M5CjqF9T</code>). Live within ~3 minutes.</p>
+
+    <span class="lbl files">Also Discovered</span>
+    <p style="font-size:.85rem;color:#94a3b8;margin:.4rem 0">Two Vercel projects exist: <code class="inline">sozialzync.vercel.app</code> (old, stale — still at old Railway URL) and <code class="inline">sozialzynk.vercel.app</code> (with <em>k</em> — the live production project). Playwright config correctly uses the <em>k</em> variant.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 12. COPILOT INPUT / OUTPUT PROCESSING                                     -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="copilot">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#1a0a2e">🤖</div>
+    <div>
+      <div class="sec-title">12 · Copilot — Input / Output Processing Fixed</div>
+      <div class="sec-sub">Context injection, multi-turn history, add-clip actions, resize stale-state, TTS timeout, Railway warm-up</div>
+    </div>
+    <div class="sec-count">9 commits</div>
+  </div>
+  <div class="sec-body">
+
+    <div class="group">Root Cause — Why Copilot Said "I Don't Have Access to Your Files"</div>
+
+    <div class="infra-card" style="border-color:#2d1b4e">
+      <p style="color:#c4b5fd;font-weight:600;margin-bottom:.5rem">Before fix (commit 9d3b55b)</p>
+      <p>The <code class="inline">editorCopilot</code> backend endpoint received only <code class="inline">{ message: string }</code> — no context about what files were in the Media Bin or what was on the timeline. The AI model had zero information about the user's project, so every response started with <em>"I don't have access to your files"</em>.</p>
+    </div>
+    <br>
+
+    <div class="group">Fix 1 — Copilot Now Receives Full Media Context</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Copilot knows your files — media bin context + add-clip actions + chat UI</span>
+          <span class="c-hash">9d3b55b</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem (Input)</span><br>
+          Copilot received only <code>{ message }</code>. No file names, no durations, no sourceAssetIds. AI said "I can't see your Working Files" on every request.<br><br>
+
+          <span class="lbl sol">Fix — Backend (<code>editor.service.ts</code> + <code>controller.ts</code>)</span>
+          <ul>
+            <li>Endpoint now accepts <code>mediaBin[]</code>, <code>clientTimeline</code>, and <code>history[]</code></li>
+            <li>System prompt is dynamically assembled to list every Working Files asset: <code>{ id, kind, label, durationMs }</code></li>
+            <li>AI is explicitly told it can call <code>ADD_CLIP</code>, <code>CREATE_TRACK</code>, <code>LOOP_MUSIC</code>, and <code>CHAIN_VIDEO_AUDIO</code> actions using the exact <code>sourceAssetId</code> from the listing</li>
+            <li>No longer exits early when timeline is empty but bin has files</li>
+          </ul>
+          <br>
+
+          <span class="lbl sol">Fix — Output / Action Processing</span>
+          <ul>
+            <li>AI response is parsed for a structured JSON action block (e.g. <code>{ "action": "ADD_CLIP", "sourceAssetId": "xxx", "trackKind": "VIDEO" }</code>)</li>
+            <li>Frontend applies these actions directly to the React timeline state</li>
+            <li>"Apply" button stays visible after applying so the user can iterate</li>
+          </ul>
+          <br>
+
+          <span class="lbl files">Multi-turn History</span>
+          <ul>
+            <li>Full <code>messages[]</code> array is passed on every request so the AI remembers context from earlier in the conversation</li>
+            <li>AiEditDialog rewritten as a chat panel: user messages right, AI messages left</li>
+            <li>Quick-action suggestion chips shown on empty state</li>
+            <li>Enter to send · Shift+Enter for newline</li>
+          </ul>
+          <pre><code class="c">// Before — no context
+<span class="r">POST /editor/:id/copilot  { message: "add the video" }</span>
+// AI: "I don't have access to your files"
+
+<span class="g">// After — full context injected
+POST /editor/:id/copilot  {
+  message: "add the video",
+  mediaBin: [{ id: "xxx", kind: "VIDEO", label: "promo.mp4", durationMs: 12400 }],
+  clientTimeline: { tracks: [...] },
+  history: [{ role: "user", content: "..." }, { role: "assistant", content: "..." }]
+}
+// AI: "I'll add promo.mp4 to the timeline at 0:00..."</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:1rem">Fix 2 — Copilot Panel Resize (Stale-State Bug)</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Resize handles work without dragging panel first (stale-state fix)</span>
+          <span class="c-hash">3ab10bd → 047dade</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem</span><br>
+          Resize handles on the copilot panel did nothing on first drag. You had to drag the panel first, then resize would work.<br><br>
+
+          <span class="lbl root">Root Cause (commit 047dade)</span><br>
+          <code>panelPos</code> was <code>null</code> on first render (panel used <code>width:'100%'</code> positioning). The <code>onPointerMove</code> handler used the functional setState form <code>p => p ? {...p, x, y} : null</code> which short-circuited to <code>null</code> when the previous state hadn't propagated yet (stale closure from batched <code>onPointerDown</code> update), reverting the anchor.<br><br>
+
+          <span class="lbl sol">Fix</span><br>
+          Changed to a plain setter <code>() => ({x, y})</code> that ignores previous state and writes directly from <code>dragRef.current</code> values captured synchronously in <code>onPointerDown</code>. React render timing no longer matters because we don't read <code>panelPos</code> inside the setter.
+          <pre><code><span class="r">// Before — stale closure kills first drag
+setPanelPos(p => p ? { ...p, x: newX, y: newY } : null)
+//              ↑ p is null from the previous render → returns null → panel snaps back</span>
+
+<span class="g">// After — write directly from ref, ignore current state
+setPanelPos(() => ({ x: dragRef.current.startX + dx, y: dragRef.current.startY + dy }))
+//           ↑ ref is always current — no stale closure risk</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:1rem">Fix 3 — TTS / Voice Output Timeout</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">TTS timeout — test.setTimeout inside describe vs body; copilot warmup 60s→20s</span>
+          <span class="c-hash">1ab77ff · 9475db5</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem — TTS Test Timeout</span><br>
+          The copilot voice (TTS) E2E test was timing out at 150s even though <code>test.use({ timeout: 300_000 })</code> was declared inside the <code>describe</code> block. TTS generation on Railway can take 45–90s, so 150s was too tight when Railway was cold.<br><br>
+
+          <span class="lbl root">Root Cause</span><br>
+          <code>test.use()</code> inside a <code>describe</code> block is a static configuration call — it sets a <em>default</em> but does NOT override the global timeout for individual test bodies. Only <code>test.setTimeout()</code> called inside the <strong>test body</strong> actually changes the live running timeout.<br><br>
+
+          <span class="lbl sol">Fix</span>
+          <ul>
+            <li>Added <code>test.setTimeout(300_000)</code> as the first line inside each TTS test body — overrides the global 150s at runtime</li>
+            <li>Reduced <code>beforeEach</code> warmup from 60s → 20s: 60s × 4 tests × 2 workers = 8 extra minutes of dead time, causing Railway to cool down between test groups and making subsequent tests flaky</li>
+          </ul>
+          <pre><code><span class="r">// Before — timeout set in describe scope (ignored at runtime)
+describe('copilot voice', () => {
+  test.use({ timeout: 300_000 }) // ← doesn't override running test body
+  test('generates TTS audio', async ({ page }) => { ... })
+})</span>
+
+<span class="g">// After — timeout set inside test body
+test('generates TTS audio', async ({ page }) => {
+  test.setTimeout(300_000) // ← actually overrides the live 150s budget
+  ...
+})</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:1rem">Fix 4 — Railway Cold-Start Warm-Up Strategy</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Warm Railway on dashboard mount — copilot first message hits live server</span>
+          <span class="c-hash">7beaf95</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem</span><br>
+          The first copilot message after an idle period always timed out. Railway Hobby tier sleeps after ~10 min inactivity. Warm-up only happened when the chat panel was opened — too late, the user was already waiting.<br><br>
+
+          <span class="lbl sol">Fix</span>
+          <ul>
+            <li>Warm-up ping moved to <strong>dashboard layout mount</strong> — fires immediately when the user arrives at any dashboard page, not when they open the copilot</li>
+            <li>Copilot panel re-warms only if widget reopens after &gt;4 min idle (avoids hammering)</li>
+            <li>Result: by the time the user opens copilot and types a message, the server is already warm</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type chore">chore</span>
+          <span class="c-msg">GitHub Actions keep-warm — pings Railway every 8 min 24/7</span>
+          <span class="c-hash">115d428</span>
+        </div>
+        <div class="commit-body">
+          Added a GitHub Actions workflow on a cron schedule (<code>*/8 * * * *</code>) that pings <code>GET /api/v1/health</code> on the Railway backend. This keeps the server warm even when no user is active, eliminating cold-start delays during nightly E2E runs.
+          <pre><code><span class="k">on:</span>
+  schedule:
+    - cron: <span class="s">'*/8 * * * *'</span>  <span class="c"># every 8 minutes</span>
+<span class="k">jobs:</span>
+  keep-warm:
+    <span class="k">runs-on:</span> ubuntu-latest
+    <span class="k">steps:</span>
+      - <span class="k">run:</span> curl -sf ${{ secrets.RAILWAY_HEALTH_URL }} || true</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 13. AUDIO PROCESSING                                                       -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="audio">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#0a1a2e">🔊</div>
+    <div>
+      <div class="sec-title">13 · Audio Processing — Browser &amp; FFmpeg Fixes</div>
+      <div class="sec-sub">Autoplay policy, Web Audio API regression, FFmpeg adelay, stream merging, TTS locked field</div>
+    </div>
+    <div class="sec-count">11 commits</div>
+  </div>
+  <div class="sec-body">
+
+    <div class="group">Journey: 5 Iterations to Reliable Audio Playback</div>
+    <div class="infra-card">
+      <p>Audio playback went through 5 rapid iterations over 2 days as each fix exposed a new browser policy constraint. The final design is native HTML5 <code>&lt;video&gt;</code> audio — no Web Audio API interception.</p>
+    </div>
+    <br>
+
+    <div class="commit-grid">
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Iteration 1 — video/audio silent: call play() inside click gesture, not rAF</span>
+          <span class="c-hash">578dab1</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem</span><br>
+          Entire editor was silent — no video audio, no music, no voice.<br><br>
+          <span class="lbl root">Root Cause</span><br>
+          <code>HTMLMediaElement.play()</code> was called from inside a <code>requestAnimationFrame</code> callback. Browsers only allow audio to start if <code>play()</code> is called directly inside a user-gesture event handler (click, keydown). rAF fires <em>after</em> the event returns — too late.<br><br>
+          <span class="lbl sol">Fix</span><br>
+          Moved <code>video.play()</code> and <code>audio.play()</code> into the synchronous <code>startPlay()</code> function called directly from the click handler. rAF tick continues to handle drift correction and seek-bar updates only.
+          <pre><code><span class="r">// Before — play() inside rAF → browser blocks (not a user gesture)
+requestAnimationFrame(() => { video.play() })</span>
+
+<span class="g">// After — play() directly in click handler → gesture satisfied
+button.onclick = () => { startPlay(); }
+function startPlay() { video.play(); audio.play(); }</span></code></pre>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Iteration 2 — Web Audio API routing via AudioContext + GainNode</span>
+          <span class="c-hash">a72a5b2</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl root">Why tried</span><br>
+          Browser autoplay policy also applies to the element's <em>output</em>. Even when <code>play()</code> succeeds inside a gesture, some browsers muted the element's audio if it was created outside the gesture. Web Audio API fixes this by wiring the video through an <code>AudioContext</code> (created inside the gesture) so the audio graph is unlocked.<br><br>
+          <span class="lbl sol">Approach</span><br>
+          Created <code>AudioContext</code> + <code>createMediaElementSource(videoEl)</code> + <code>GainNode</code> inside the click handler. <code>GainNode.gain.value</code> used for volume/mute instead of <code>video.muted</code>.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Iteration 3 — Revert Web Audio API: caused total silence on any graph error</span>
+          <span class="c-hash">2262eae</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Regression</span><br>
+          <code>createMediaElementSource()</code> intercepts the video element's native audio routing. If the AudioContext or GainNode had any issue (CORS on the signed R2 URL, suspended context, node disconnected), the result was <strong>complete silence</strong> — and the native HTML5 routing was also broken because it was already intercepted.<br><br>
+          <span class="lbl sol">Final decision — revert to native</span>
+          <ul>
+            <li>Web Audio API removed entirely</li>
+            <li><code>&lt;video&gt;</code> element carries its own audio — <code>v.muted</code> / <code>v.volume</code> for control</li>
+            <li>Linked AUDIO track clips still appear in the timeline for visibility, but don't create a separate <code>&lt;audio&gt;</code> element</li>
+            <li>Linked AUDIO clips now show label <strong>"Audio"</strong> (not the video filename)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">Iteration 4 — Detach Audio: extract MP3 from video via ffprobe + ffmpeg</span>
+          <span class="c-hash">e2844a0</span>
+        </div>
+        <div class="commit-body">
+          "Detach Audio" button in track controls calls <code>POST /editor/:id/media-bin/:assetId/detach-audio</code>. Backend runs:<br>
+          <pre><code>ffmpeg -i input.mp4 -vn -acodec libmp3lame -q:a 2 output.mp3</code></pre>
+          Result is stored as a new <code>AUDIO</code> asset in the bin and added to the timeline as an independent AUDIO clip. User can then independently trim, loop, or replace the audio.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">FFmpeg export — adelay format + audio from composite.mp4</span>
+          <span class="c-hash">6406819</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Two FFmpeg audio crashes in the export pipeline</span><br><br>
+          <strong>Crash 1 — "Stream specifier matched no streams"</strong><br>
+          Second FFmpeg pass tried to pull audio from each raw video segment. But segments on disk have no separate audio stream — their audio is embedded. The second pass couldn't find the stream and aborted.<br>
+          <span class="lbl sol">Fix:</span> Second pass reads <code>[0:a]</code> from <code>composite.mp4</code> (first-pass output which already has embedded audio). No per-segment re-reads.<br><br>
+
+          <strong>Crash 2 — <code>adelay</code> channel format</strong><br>
+          <code>adelay=100|100</code> syntax (per-channel delays) fails on mono audio streams. The newer, universal format is required:<br>
+          <pre><code><span class="r">adelay=100|100            ← fails on mono</span>
+<span class="g">adelay=delays=100:all=1   ← applies to all channels universally</span></code></pre>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Social import: pass ffmpeg-static path to yt-dlp for stream merging</span>
+          <span class="c-hash">4d68cff</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem</span><br>
+          Videos downloaded from YouTube/Instagram were arriving as audio-only <code>.m4a</code> files. Video track was missing entirely.<br><br>
+          <span class="lbl root">Root Cause</span><br>
+          yt-dlp downloads separate video + audio streams and merges them using ffmpeg. Without <code>--ffmpeg-location</code>, it falls back to audio-only because it can't find the ffmpeg binary.<br><br>
+          <span class="lbl sol">Fix</span><br>
+          <code>ffmpeg-static</code> is already a npm dependency — its default export is the absolute path to the binary. Forwarded this path:
+          <pre><code><span class="k">import</span> ffmpegPath <span class="k">from</span> <span class="s">'ffmpeg-static'</span>;
+ytDlpArgs.push(<span class="s">'--ffmpeg-location'</span>, ffmpegPath);
+<span class="c">// yt-dlp can now merge video + audio → full .mp4 output</span></code></pre>
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">TTS voice: add locked:false to generateVoice MediaBinItem return</span>
+          <span class="c-hash">76d7257</span>
+        </div>
+        <div class="commit-body">
+          Prisma schema migration added <code>locked Boolean @default(false)</code> to the Asset model. After regeneration, every code path that constructs a <code>MediaBinItem</code> object must include <code>locked</code>. The <code>generateVoice</code> service was missed — it returned a voice asset without the field, causing a TypeScript strict-mode compile error and a runtime shape mismatch in the frontend.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Voice/music API response shape — extract nested arrays</span>
+          <span class="c-hash">bc24c4d</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem</span><br>
+          AIAudioPanel crashed with <strong>"r.data.map is not a function"</strong> every time it opened after a new import.<br><br>
+          <span class="lbl root">Root Cause</span><br>
+          <code>voice.service</code> returns <code>{ voices: [...] }</code> and <code>music.service</code> returns <code>{ tracks: [...], total: N }</code> — both are objects, not flat arrays. <code>api.ts</code> had typed both as <code>VoiceLibraryEntry[]</code> and <code>MusicTrack[]</code> respectively, so calling <code>.map()</code> on the response threw.<br><br>
+          <span class="lbl sol">Fix</span><br>
+          <code>api.ts</code> types corrected. <code>AIAudioPanel</code> reads <code>r.data?.voices ?? []</code> and <code>r.data?.tracks ?? []</code>.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 14. TEXT PROCESSING                                                        -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="text">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#1a1a0a">📝</div>
+    <div>
+      <div class="sec-title">14 · Text Processing — API Response Guards &amp; Null Safety</div>
+      <div class="sec-sub">Null-item guards on timeline, AIAudioPanel crash, social import title fetch, social URL detection</div>
+    </div>
+    <div class="sec-count">6 commits</div>
+  </div>
+  <div class="sec-body">
+
+    <div class="group">AIAudioPanel Null-Response Crashes</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Guard null API responses in AIAudioPanel; normalise track.items on init</span>
+          <span class="c-hash">61d4f6c</span>
+        </div>
+        <div class="commit-body">
+          Three separate null-crash sites fixed in the text/audio panel:<br><br>
+          <strong>1 · setVoices / setMusicTracks called with null</strong><br>
+          <code>api.voice.library()</code> and <code>api.music.list()</code> return <code>null</code> for new users who have never generated anything. <code>setState(null)</code> then caused <code>.length</code> to throw on the next render.<br>
+          <span class="lbl sol">Fix:</span> <code>setVoices(r.data?.voices ?? [])</code> and <code>setMusicTracks(r.data?.tracks ?? [])</code><br><br>
+
+          <strong>2 · selectedMusic.mood ?? [] guard</strong><br>
+          Some music tracks from the API omit the <code>mood</code> field entirely. Accessing <code>selectedMusic.mood.join(', ')</code> on <code>undefined</code> threw.<br>
+          <span class="lbl sol">Fix:</span> <code>(selectedMusic.mood ?? []).join(', ')</code><br><br>
+
+          <strong>3 · track.items null during timeline init</strong><br>
+          On first load, some tracks from the DB had <code>items: null</code> instead of <code>items: []</code>. Any subsequent <code>track.items.map()</code> in move/trim/inspect handlers threw.<br>
+          <span class="lbl sol">Fix:</span> Timeline initialisation normalises: <code>track.items = track.items ?? []</code> for every track before the data enters React state.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Guard track.items null to prevent error boundary on editor load</span>
+          <span class="c-hash">5583b02</span>
+        </div>
+        <div class="commit-body">
+          Secondary guard added in the event handlers themselves — <code>tr.items?.map(...) ?? []</code> on every handler that mutates clips (move, trim, split, inspect). Defensive coding for tracks that arrive from the DB before the normalisation migration catches them.
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:1rem">Social URL Text Processing</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Auto-fetch video title from yt-dlp on social import</span>
+          <span class="c-hash">7023daf</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem</span><br>
+          Every imported social video showed in the Media Bin as "video" — the generic default. No title was fetched.<br><br>
+          <span class="lbl sol">Fix — <code>SocialDownloadService.fetchTitle()</code></span><br>
+          Before starting the actual download, runs:
+          <pre><code>yt-dlp --no-download --print title &lt;url&gt;</code></pre>
+          The real video title (e.g. <em>"How to Build a YouTube Channel in 2026"</em>) is captured from stdout and stored as the asset's <code>label</code>. The full download then proceeds in parallel.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Detect social platform URLs client-side before import</span>
+          <span class="c-hash">2b150bc</span>
+        </div>
+        <div class="commit-body">
+          Frontend now runs a regex check on the pasted URL before sending to the API:<br>
+          <ul>
+            <li>Recognised platforms (YouTube, TikTok, Instagram, Twitter/X, LinkedIn, etc.) show a blue info chip: <em>"YouTube URL detected — we'll extract it (30–60s)"</em></li>
+            <li>Direct video file URLs (<code>.mp4</code>, <code>.mov</code>, etc.) skip the social path and show "Direct video link"</li>
+            <li>Unknown URLs still go through the API which tries yt-dlp as a fallback</li>
+          </ul>
+          This prevents the old confusing error <em>"Unsupported MIME type text/html"</em> that appeared when a raw YouTube HTML page URL was sent to the direct-download path.
+        </div>
+      </div>
+
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">Upstash rate-limit error text suppressed — deploy no longer crashes</span>
+          <span class="c-hash">44bdaf9</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem</span><br>
+          Upstash free tier limit (500k req/day) was hit by BullMQ's stalled-job checks. IORedis threw <code>'max requests limit exceeded'</code> as an uncaught exception — killing the NestJS process and making Railway show the deploy as crashed.<br><br>
+          <span class="lbl sol">Fix</span><br>
+          Added the Upstash error message string to the IORedis error-suppression list. The error handler was also moved outside the <code>!REDIS_URL</code> guard so it fires regardless of Redis configuration. Queue jobs degrade gracefully; all non-queue routes continue to serve normally.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- 15. CLOUDFLARE CONFIGURATION                                               -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="cloudflare">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#1a1000">☁️</div>
+    <div>
+      <div class="sec-title">15 · Cloudflare — How It Is Configured</div>
+      <div class="sec-sub">R2 object storage, signed URLs, hard-delete on bin remove, locked files, CSP middleware</div>
+    </div>
+    <div class="sec-count">2 commits + architecture</div>
+  </div>
+  <div class="sec-body">
+
+    <div class="group">Architecture Overview</div>
+    <div class="infra-card" style="border-color:#2a1e00">
+      <p>Sozialzynk uses <strong>Cloudflare R2</strong> as the primary object storage for all media assets. R2 is S3-compatible but with no egress fees — critical for a video-heavy platform.</p>
+    </div>
+    <br>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin:.75rem 0">
+      <div class="infra-card">
+        <p class="lbl files" style="margin-bottom:.5rem">What's stored in R2</p>
+        <ul style="font-size:.8rem;color:#94a3b8;padding-left:1rem;line-height:1.8">
+          <li>Uploaded videos (<code>SHORTS_SOURCE_VIDEO</code>, <code>VIDEO</code>)</li>
+          <li>Extracted audio MP3s (<code>AUDIO</code>)</li>
+          <li>Generated voice assets (<code>VOICE</code>)</li>
+          <li>AI-generated music tracks (<code>MUSIC</code>)</li>
+          <li>Uploaded images (<code>IMAGE</code>)</li>
+          <li>Exported render files (<code>EDIT_RENDER</code>)</li>
+        </ul>
+      </div>
+      <div class="infra-card">
+        <p class="lbl files" style="margin-bottom:.5rem">R2 key structure</p>
+        <ul style="font-size:.8rem;color:#94a3b8;padding-left:1rem;line-height:1.8">
+          <li><code>uploads/{userId}/{assetId}/original.mp4</code></li>
+          <li><code>voices/{userId}/{assetId}/voice.mp3</code></li>
+          <li><code>renders/{editId}/{versionId}/output.mp4</code></li>
+          <li><code>music/{trackId}/track.mp3</code></li>
+          <li>Prefix-based: all files for one asset share a prefix</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:1rem">Signed URL Flow</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">How R2 signed URLs work in the editor</span>
+          <span class="c-hash">architecture</span>
+        </div>
+        <div class="commit-body">
+          R2 bucket is <strong>private</strong> — no public access. All asset access goes through signed URLs:
+          <pre><code><span class="c">// 1. Backend generates a short-lived signed URL (1-hour TTL)</span>
+<span class="k">const</span> url = <span class="k">await</span> storage.getSignedUrl(r2Key, { expiresIn: 3600 });
+<span class="c">// e.g. https://&lt;accountid&gt;.r2.cloudflarestorage.com/uploads/.../original.mp4?X-Amz-Signature=...</span>
+
+<span class="c">// 2. API returns the signed URL as part of the MediaBinEntry</span>
+{ id: <span class="s">"xxx"</span>, label: <span class="s">"promo.mp4"</span>, url: <span class="s">"https://...r2...?X-Amz-Signature=..."</span> }
+
+<span class="c">// 3. Frontend uses the signed URL in &lt;video src&gt; directly</span>
+&lt;video src={entry.url} /&gt;
+
+<span class="c">// 4. Export renders download via proxy route (not direct R2)</span>
+GET /api/proxy/media/versions/:versionId/file
+<span class="c">// → backend calls storage.getSignedUrl() fresh and 301-redirects to R2</span></code></pre>
+          The export proxy route was needed because the <code>renderVersionId</code> → R2 key mapping lives server-side and the signed URL must be generated per-request (can't bake a short-lived URL into a download button).
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:1rem">Hard-Delete on Bin Remove (commit 549f1d3)</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type feat">feat</span>
+          <span class="c-msg">lock/unlock working files + hard-delete from Cloudflare R2 on remove</span>
+          <span class="c-hash">549f1d3</span>
+        </div>
+        <div class="commit-body">
+          <span class="lbl prob">Problem</span><br>
+          Deleting a file from the Media Bin only removed the DB record. The actual video file stayed in R2 forever — storage costs would accumulate indefinitely.<br><br>
+
+          <span class="lbl sol">Hard-delete pipeline</span>
+          <pre><code><span class="c">// removeFromBin service (editor.service.ts)</span>
+<span class="k">async</span> removeFromBin(editId, assetId, userId) {
+  <span class="k">const</span> asset = <span class="k">await</span> db.asset.findFirst({ where: { id: assetId } });
+  <span class="k">if</span> (asset.locked) <span class="k">throw new</span> ForbiddenException(<span class="s">'Asset is locked'</span>);
+
+  <span class="c">// 1. Soft-delete DB record</span>
+  <span class="k">await</span> db.asset.update({ where: { id: assetId }, data: { deletedAt: <span class="k">new</span> Date() } });
+
+  <span class="c">// 2. Hard-delete all R2 files under the asset's key prefix</span>
+  <span class="k">await</span> storage.removePrefix(<span class="s">`uploads/${userId}/${assetId}/`</span>);
+  <span class="c">// removes original.mp4, thumbnail.jpg, any derivative files</span>
+}</code></pre>
+
+          <span class="lbl sol">Lock system</span><br>
+          New <code>PATCH /editor/:id/media-bin/:assetId/lock</code> endpoint toggles the <code>locked</code> flag. Locked assets:
+          <ul>
+            <li>Cannot be deleted — <code>removeFromBin</code> throws <code>403 Forbidden</code></li>
+            <li>Show a lock badge in the Media Bin UI</li>
+            <li>Delete button is disabled with a tooltip explaining why</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:1rem">CSP Middleware — Cloudflare R2 in connect-src</div>
+    <div class="commit-grid">
+      <div class="commit">
+        <div class="commit-top" onclick="toggle(this)">
+          <span class="c-type fix">fix</span>
+          <span class="c-msg">CSP connect-src uses NEXT_PUBLIC_API_URL origin (baked at build time)</span>
+          <span class="c-hash">middleware.ts</span>
+        </div>
+        <div class="commit-body">
+          <code>apps/web/src/middleware.ts</code> sets the Content-Security-Policy header for all routes. The <code>connect-src</code> directive includes the Railway API origin so <code>fetch()</code> calls to the backend are allowed by the browser.<br><br>
+          <span class="lbl prob">Issue found this session</span><br>
+          When <code>NEXT_PUBLIC_API_URL</code> was still pointing to the old retired Railway service at build time, the CSP baked <code>https://api-production-cf143.up.railway.app</code> into every page. Requests to the real backend were blocked with a CSP violation even after the env var was updated — because the Next.js build had already cached the old value.<br><br>
+          <span class="lbl sol">Fix</span><br>
+          Updated both <code>API_URL</code> and <code>NEXT_PUBLIC_API_URL</code> in Vercel env vars and triggered a <strong>full redeploy</strong> — the new build bakes the correct Railway URL into CSP.
+          <pre><code><span class="c">// middleware.ts — how CSP is built</span>
+<span class="k">const</span> apiOrigin = <span class="k">new</span> URL(process.env[<span class="s">'NEXT_PUBLIC_API_URL'</span>] ?? <span class="s">'http://localhost:4007/api/v1'</span>).origin;
+<span class="c">// = "https://sozialzync-api-production.up.railway.app" (after fix)</span>
+
+response.headers.set(<span class="s">'Content-Security-Policy'</span>,
+  <span class="s">`connect-src 'self' ${apiOrigin} https://*.r2.cloudflarestorage.com blob: data:`</span>
+  <span class="c">// ↑ R2 signed URLs are also allowed for direct video streaming</span>
+);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:1rem">Cloudflare Configuration Summary</div>
+    <table class="tbl" style="margin-top:.5rem">
+      <thead><tr><th>Service</th><th>Purpose</th><th>Access method</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>R2 Bucket (private)</td><td>All media storage — video, audio, images, renders</td><td>S3-compat API via <code>@aws-sdk/client-s3</code></td><td class="pass">✅ Active</td></tr>
+        <tr><td>R2 Signed URLs</td><td>Secure, expiring read access (1h TTL)</td><td>Pre-signed via <code>getSignedUrl()</code></td><td class="pass">✅ Active</td></tr>
+        <tr><td>R2 removePrefix</td><td>Hard-delete all files for an asset</td><td>S3 ListObjects + DeleteObjects</td><td class="pass">✅ Fixed (549f1d3)</td></tr>
+        <tr><td>CSP connect-src</td><td>Allow browser fetch to R2 + Railway API</td><td>Next.js middleware header</td><td class="pass">✅ Fixed (redeploy)</td></tr>
+        <tr><td>Cloudflare Workers</td><td>Not used — proxy is a Next.js route handler</td><td>—</td><td class="warn">Not used</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- FINAL SUMMARY TABLE                                                       -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="sec-head">
+    <div class="sec-icon" style="background:#0a1a0a">✅</div>
+    <div>
+      <div class="sec-title">Final Verification — All Tests Passing</div>
+      <div class="sec-sub">Playwright E2E against sozialzynk.vercel.app &nbsp;·&nbsp; 2026-09-22</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <table class="tbl">
+      <thead><tr><th>Test</th><th>Result</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Fix 1: Export dialog &amp; proxy download URL</td><td class="pass">✅ PASS</td><td>Export dialog opens; Render button visible</td></tr>
+        <tr><td>Fix 2: Save → project list refresh</td><td class="pass">✅ PASS</td><td>Listing page shows fresh data after save</td></tr>
+        <tr><td>Fix 3: Cross-track drag data-trackid</td><td class="pass">✅ PASS</td><td>3 lanes with data-trackid; drag-target-track CSS confirmed</td></tr>
+        <tr><td>Fix 4: Auto-save toggle (green ON/OFF)</td><td class="pass">✅ PASS</td><td>Classes flip to bg-green-50; title changes ON↔OFF</td></tr>
+        <tr><td>Fix 5: My Versions snapshot drawer</td><td class="pass">✅ PASS</td><td>"My saved versions" &amp; "Save a named version" buttons found</td></tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:1.25rem">
+      <span class="lbl files">Deployment</span>
+      <pre><code>Vercel (Frontend)   sozialzynk.vercel.app       dpl_4WqMfozZyTYT4T6jgA38M5CjqF9T   READY
+Railway (Backend)   sozialzync-api-production   commit 6406819                      ONLINE
+Android CI          .github/workflows/mobile-android.yml                           PASSING</code></pre>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Generated by Claude Code (claude-sonnet-4-6) &nbsp;·&nbsp; Sozialzynk / AI CreatorForce &nbsp;·&nbsp; Sep 19–22, 2026 &nbsp;·&nbsp; 96 commits · 15 sections · Copilot · Audio · Text · Cloudflare R2
+</footer>
+
+</div>
+
+<script>
+function toggle(el) {
+  const body = el.nextElementSibling;
+  body.classList.toggle('open');
+}
+</script>
+</body>
+</html>

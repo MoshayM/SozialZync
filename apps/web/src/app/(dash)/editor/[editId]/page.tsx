@@ -2863,7 +2863,7 @@ function MediaBin({
   onAddToTimeline: (entry: MediaBinEntry) => void;
   onUpload?: (file: File) => void;
   uploading?: boolean;
-  onImportUrl?: (url: string) => void;
+  onImportUrl?: (url: string, confirmOwnership?: boolean) => void;
   urlImporting?: boolean;
   onOpenLibrary?: () => void;
   onDeleteEntry?: (id: string) => void;
@@ -2873,7 +2873,11 @@ function MediaBin({
   const [rendersOpen, setRendersOpen] = useState(false);
   const [showUrlBar, setShowUrlBar] = useState(false);
   const [urlValue, setUrlValue] = useState('');
+  const [ownershipConfirmed, setOwnershipConfirmed] = useState(false);
   const [binSearch, setBinSearch] = useState('');
+
+  const NON_YT_SOCIAL = /tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|linkedin\.com|twitch\.tv|vimeo\.com|dailymotion\.com|reddit\.com|bilibili\.com/i;
+  const isNonYtSocial = NON_YT_SOCIAL.test(urlValue);
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const SOURCE_KINDS  = new Set(['VIDEO', 'RENDER_SOURCE', 'SHORTS_SOURCE_VIDEO']);
@@ -2899,8 +2903,9 @@ function MediaBin({
   function submitUrl() {
     const u = urlValue.trim();
     if (!u || !onImportUrl) return;
-    onImportUrl(u);
+    onImportUrl(u, isNonYtSocial ? ownershipConfirmed : undefined);
     setUrlValue('');
+    setOwnershipConfirmed(false);
     setShowUrlBar(false);
   }
 
@@ -2937,15 +2942,28 @@ function MediaBin({
               <button
                 type="button"
                 onClick={submitUrl}
-                disabled={urlImporting || !urlValue.trim()}
+                disabled={urlImporting || !urlValue.trim() || (isNonYtSocial && !ownershipConfirmed)}
                 className="px-2 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
               >
                 {urlImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Go'}
               </button>
-              <button type="button" onClick={() => { setShowUrlBar(false); setUrlValue(''); }} className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-500 hover:bg-gray-50">
+              <button type="button" onClick={() => { setShowUrlBar(false); setUrlValue(''); setOwnershipConfirmed(false); }} className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-500 hover:bg-gray-50">
                 <X className="w-3 h-3" />
               </button>
             </div>
+            {isNonYtSocial && (
+              <label className="flex items-start gap-2 px-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ownershipConfirmed}
+                  onChange={(e) => setOwnershipConfirmed(e.target.checked)}
+                  className="mt-0.5 accent-brand-600"
+                />
+                <span className="text-[10px] text-amber-700 leading-tight">
+                  I confirm this video belongs to my account and I have the right to download it.
+                </span>
+              </label>
+            )}
             <p className="text-[10px] text-gray-400 px-1">Supports YouTube, Instagram, TikTok, Twitter/X, LinkedIn, and direct video/image links</p>
           </>
         ) : (
@@ -3247,14 +3265,14 @@ export default function EditorWorkspacePage() {
     }
   }, [project?.projectId, editId, qc, addToast, updateToast, progressStart, progressSet, progressDone]);
 
-  const handleBinUrlImport = useCallback(async (url: string) => {
+  const handleBinUrlImport = useCallback(async (url: string, confirmOwnership?: boolean) => {
     if (!project?.projectId) return;
     const id = `import-url-${Date.now()}`;
     setBinUrlImporting(true);
     addToast(id, 'Importing video from URL…');
     progressStart();
     try {
-      await api.media.importVideoFromUrl(url, { projectId: project.projectId });
+      await api.media.importVideoFromUrl(url, { projectId: project.projectId, confirmOwnership });
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
       updateToast(id, 'success', 'Video added to Working Files');
     } catch (err) {
@@ -3274,7 +3292,7 @@ export default function EditorWorkspacePage() {
     try {
       await api.media.importVideoFromUrl(
         `https://www.youtube.com/watch?v=${video.youtubeVideoId}`,
-        { title: video.title, projectId: project?.projectId },
+        { title: video.title, projectId: project?.projectId, confirmOwnership: true },
       );
       await qc.invalidateQueries({ queryKey: ['editor-media-bin', editId] });
       setShowLibrary(false);

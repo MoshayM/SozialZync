@@ -191,7 +191,8 @@ export class ChannelSyncService {
         do {
           const plRes = await youtube.playlists.list({
             part: ['snippet', 'contentDetails'],
-            mine: true,
+            // mine=true requires OAuth; for API-key (read-only) channels use channelId instead
+            ...(ch.encryptedTokens && !ch.readOnly ? { mine: true } : { channelId: ch.youtubeChannelId }),
             maxResults: 50,
             ...(pageToken ? { pageToken } : {}),
           });

@@ -1147,7 +1147,7 @@ export const api = {
         { headers: { 'Content-Type': 'multipart/form-data' } },
       );
     },
-    importVideoFromUrl: (url: string, opts?: { title?: string; projectId?: string }) =>
+    importVideoFromUrl: (url: string, opts?: { title?: string; projectId?: string; confirmOwnership?: boolean }) =>
       apiClient.post<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }>(
         '/media/video/import-from-url',
         { url, ...opts },

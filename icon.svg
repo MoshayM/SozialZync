@@ -1,0 +1,22 @@
+<svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background so logo is always visible regardless of OS theme -->
+  <rect width="512" height="512" fill="#111827"/>
+
+  <!-- Z — white, same paths, viewBox gives ~22% natural padding on each side -->
+  <g transform="translate(-20, 0)">
+    <path d="M96 148H280L96 364H280"
+          stroke="#F9FAFB"
+          stroke-width="38"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+  </g>
+
+  <!-- k — medium gray -->
+  <g transform="translate(-20, 0)">
+    <path d="M318 148V364M318 256L416 148M318 256L416 364"
+          stroke="#9CA3AF"
+          stroke-width="32"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+  </g>
+</svg>

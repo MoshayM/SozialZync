@@ -21,6 +21,26 @@ import { SocialDownloadService } from './social-download.service';
 import { SignedMediaOrJwtGuard } from './signed-media.guard';
 import { clampTtl, signMedia, signingSecret } from './signed-url.util';
 
+/**
+ * Extract the YouTube video ID from any known YouTube URL format.
+ * Returns null for non-YouTube or unrecognised URLs.
+ */
+function extractYouTubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^(www\.|m\.)/, '');
+    if (host === 'youtu.be') return u.pathname.slice(1).split('/')[0] ?? null;
+    if (host === 'youtube.com') {
+      // /watch?v=ID  |  /shorts/ID  |  /embed/ID  |  /v/ID
+      const v = u.searchParams.get('v');
+      if (v) return v;
+      const seg = u.pathname.split('/').filter(Boolean);
+      if (['shorts', 'embed', 'v'].includes(seg[0] ?? '') && seg[1]) return seg[1];
+    }
+  } catch { /* invalid URL */ }
+  return null;
+}
+
 const MIME_BY_EXT: Record<string, string> = {
   mp4: 'video/mp4', mp3: 'audio/mpeg', wav: 'audio/wav', png: 'image/png',
   jpg: 'image/jpeg', srt: 'text/plain', vtt: 'text/vtt', md: 'text/markdown',
@@ -210,7 +230,7 @@ export class MediaController {
    */
   @Post('video/import-from-url')
   async importVideoFromUrl(
-    @Body() body: { url?: string; title?: string; projectId?: string },
+    @Body() body: { url?: string; title?: string; projectId?: string; confirmOwnership?: boolean },
     @CurrentUser() user: JwtPayload,
   ): Promise<{ assetId: string; versionId: string; projectId: string; sizeBytes: number; filename: string }> {
     const rawUrl = (body.url ?? '').trim();
@@ -220,6 +240,31 @@ export class MediaController {
 
     // ── Social platform URLs → yt-dlp ────────────────────────────────────────
     if (this.socialDl.isSocialUrl(rawUrl)) {
+      const ytVideoId = extractYouTubeVideoId(rawUrl);
+
+      if (ytVideoId) {
+        // YouTube ToS §5.H: verify the video belongs to the user's connected channel.
+        const owned = await this.prisma.libraryVideo.findFirst({
+          where: { youtubeVideoId: ytVideoId, channel: { userId: user.sub } },
+          select: { id: true },
+        });
+        if (!owned) {
+          throw new ForbiddenException(
+            'You can only import videos from your own connected YouTube channels. ' +
+            'Connect the channel first via Settings → Channels, then sync your library.',
+          );
+        }
+      } else {
+        // Non-YouTube social platforms (TikTok, Instagram, X, etc.):
+        // no automated ownership check is possible, so require explicit user confirmation.
+        if (!body.confirmOwnership) {
+          throw new ForbiddenException(
+            'You must confirm this video belongs to your account before importing. ' +
+            'Check the ownership confirmation box and try again.',
+          );
+        }
+      }
+
       const { buffer, filename, mimeType } = await this.socialDl.download(rawUrl, body.title);
       const safeFilename = sanitizeFilename(filename);
       const platform = this.socialDl.platformLabel(rawUrl) ?? 'social';
