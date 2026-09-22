@@ -158,14 +158,15 @@ export class XPlatformProvider implements IPlatformProvider {
     const mediaCategory = isVideo ? 'tweet_video' : 'tweet_image';
 
     if (!isVideo || buffer.byteLength <= CHUNK_SIZE) {
-      // Single upload for images or small videos
-      const FormData = (await import('form-data')).default;
-      const form = new FormData();
-      form.append('media', buffer, { filename: isVideo ? 'video.mp4' : 'image.jpg', contentType: mediaType });
-      form.append('media_category', mediaCategory);
-      const resp = await axios.post<{ media_id_string: string }>(X_UPLOAD, form, {
-        headers: { ...form.getHeaders(), Authorization: `Bearer ${accessToken}` },
-      });
+      // Single upload via media_data (base64) — no form-data dependency
+      const resp = await axios.post<{ media_id_string: string }>(
+        X_UPLOAD,
+        new URLSearchParams({
+          media_data: buffer.toString('base64'),
+          media_category: mediaCategory,
+        }).toString(),
+        { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/x-www-form-urlencoded' } },
+      );
       return resp.data.media_id_string;
     }
 
@@ -194,19 +195,20 @@ export class XPlatformProvider implements IPlatformProvider {
     );
     const mediaId = initResp.data.media_id_string;
 
-    // APPEND chunks
+    // APPEND chunks — use media_data (base64) to avoid binary multipart
     const chunks = Math.ceil(buffer.byteLength / CHUNK_SIZE);
     for (let i = 0; i < chunks; i++) {
       const chunk = buffer.subarray(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-      const FormData = (await import('form-data')).default;
-      const form = new FormData();
-      form.append('command', 'APPEND');
-      form.append('media_id', mediaId);
-      form.append('segment_index', String(i));
-      form.append('media', chunk, { filename: 'chunk', contentType: mediaType });
-      await axios.post(X_UPLOAD, form, {
-        headers: { ...form.getHeaders(), Authorization: `Bearer ${accessToken}` },
-      });
+      await axios.post(
+        X_UPLOAD,
+        new URLSearchParams({
+          command: 'APPEND',
+          media_id: mediaId,
+          segment_index: String(i),
+          media_data: chunk.toString('base64'),
+        }).toString(),
+        { headers },
+      );
     }
 
     // FINALIZE
