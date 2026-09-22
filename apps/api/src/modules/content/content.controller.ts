@@ -10,6 +10,10 @@ class ResearchDto {
   @IsString() topic!: string;
   @IsOptional() @IsString() niche?: string;
   @IsOptional() @IsString() targetLang?: string;
+  // depth and sources are sent by the frontend UI but not yet consumed by the service;
+  // declared here so forbidNonWhitelisted does not reject the request with 400.
+  @IsOptional() @IsString() depth?: string;
+  @IsOptional() @IsArray() sources?: string[];
 }
 
 class RepurposeDto {
