@@ -11,7 +11,7 @@ import {
   Check, Copy, Download,
   RotateCcw, ArrowRightLeft, Timer, Trash2, Pause,
   FileText, RefreshCw, Film, Search, ShieldCheck, Tag, Image as ImageIcon,
-  Youtube, Send, X, Clapperboard, Sparkles, Award, Lock,
+  Youtube, Send, X, Clapperboard, Sparkles, Award,
 } from 'lucide-react';
 import type { ProjectPublishReady } from '@/lib/api';
 import { LoadingSteps } from '@/components/loading-steps';
@@ -1930,7 +1930,7 @@ function AdRevenuePanel({ projectId }: { projectId: string }) {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
             style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
           >
-            <Lock className="w-3 h-3" /> Pro required
+            Enable for Browse
           </button>
         )}
       </div>

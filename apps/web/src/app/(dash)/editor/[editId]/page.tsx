@@ -4494,7 +4494,7 @@ export default function EditorWorkspacePage() {
             className="flex items-center gap-1.5 px-2 sm:px-3 h-9 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50"
             title="Pro plan required to export videos"
           >
-            <Lock className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
+            <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
           </button>
         )}
         </div>{/* end right section */}

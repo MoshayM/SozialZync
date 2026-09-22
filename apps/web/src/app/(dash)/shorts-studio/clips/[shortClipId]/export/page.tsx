@@ -343,7 +343,7 @@ export default function ClipExportPage() {
               </button>
             ) : (
               <button onClick={() => triggerUpgradeSheet({ feature: 'Download Clip', plan: 'PRO' })} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-sm hover:bg-gray-50" title="Pro plan required to download">
-                <Lock className="w-4 h-4" /> Pro only
+                <Download className="w-4 h-4" /> Download
               </button>
             )}
           </>
