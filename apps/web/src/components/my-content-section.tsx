@@ -179,6 +179,13 @@ export function MyContentSection() {
     },
   });
 
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => api.myContent.delete(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['my-content'] });
+    },
+  });
+
   const items = data?.data.items ?? [];
   const isEmpty = !isLoading && !isError && items.length === 0;
   const showSkeleton = isLoading;
@@ -335,7 +342,7 @@ export function MyContentSection() {
                     item={item}
                     onMakePublic={() => visibilityMut.mutate({ id: item.id, isPublic: true })}
                     onMakePrivate={() => visibilityMut.mutate({ id: item.id, isPublic: false })}
-                    onDelete={() => { /* TODO: delete mutation */ }}
+                    onDelete={() => { if (window.confirm(`Delete "${item.title}"? This permanently removes it from all sections.`)) deleteMut.mutate(item.id); }}
                   />
                 </div>
               </div>

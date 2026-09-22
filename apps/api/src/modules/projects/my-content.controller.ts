@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Body, Param, Query, UseGuards, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
@@ -81,5 +81,14 @@ export class MyContentController {
   @Get(':id/share-url')
   getShareUrl(@Param('id') id: string, @CurrentUser() _user: JwtPayload) {
     return { shareUrl: null };
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const project = await this.prisma.project.findUnique({ where: { id } });
+    if (!project) throw new NotFoundException('Content not found');
+    if (project.userId !== user.sub) throw new ForbiddenException('Not your content');
+    await this.prisma.project.delete({ where: { id } });
+    return { ok: true };
   }
 }

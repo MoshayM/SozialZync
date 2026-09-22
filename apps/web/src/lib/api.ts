@@ -1395,6 +1395,8 @@ export const api = {
       apiClient.patch<{ id: string; isPublic: boolean; shareUrl: string | null }>(`/my-content/${id}/visibility`, { isPublic }),
     getShareUrl: (id: string) =>
       apiClient.get<{ shareUrl: string }>(`/my-content/${id}/share-url`),
+    delete: (id: string) =>
+      apiClient.delete<{ ok: boolean }>(`/my-content/${id}`),
   },
   admin: {
     enterpriseMetrics: () => apiClient.get<EnterpriseMetrics>('/admin/analytics/enterprise'),

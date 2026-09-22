@@ -745,7 +745,7 @@ function VersionsDrawer({
                 <button
                   onClick={() => onDelete(s.id)}
                   className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/snap:opacity-100 transition-opacity shrink-0"
-                  title="Delete this version"
+                  title="Delete permanently (removes from My Content too)"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -3919,12 +3919,17 @@ export default function EditorWorkspacePage() {
   }, [pushUndo, addToast]);
 
   const handleDeleteSnapshot = useCallback((id: string) => {
+    if (!window.confirm('Delete this saved version? It will be permanently removed from Private Drafts and My Content.')) return;
     setSnapshots((prev) => {
       const next = prev.filter((s) => s.id !== id);
       try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* */ }
       return next;
     });
-  }, [editId]);
+    // Full DB delete so it's also removed from My Content Private
+    if (project?.projectId) {
+      void api.myContent.delete(project.projectId).catch(() => null);
+    }
+  }, [editId, project?.projectId]);
 
   const handleAddTrack = useCallback((kind: 'VIDEO' | 'AUDIO') => {
     updateTimeline((tl) => {
