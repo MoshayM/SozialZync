@@ -12,7 +12,7 @@ type Server = any;
 type Socket = any;
 
 @WebSocketGateway({
-  cors: { origin: process.env['WEB_URL'] ?? 'http://localhost:3007', credentials: true },
+  cors: { origin: (process.env['WEB_URL'] ?? 'http://localhost:3007').split(',').map(o => o.trim()).filter(Boolean), credentials: true },
   namespace: '/events',
 })
 export class EventsGateway {

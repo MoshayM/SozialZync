@@ -57,7 +57,7 @@ export class TikTokOAuthController {
     @Query('error') error: string,
     @Res() res: Response,
   ) {
-    const webUrl = process.env['WEB_URL'] ?? process.env['NEXT_PUBLIC_WEB_URL'] ?? 'http://localhost:3007';
+    const webUrl = (process.env['WEB_URL'] ?? process.env['NEXT_PUBLIC_WEB_URL'] ?? 'http://localhost:3007').split(',')[0].trim();
     const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/tiktok/callback`;
 

@@ -24,7 +24,7 @@ class RefreshDto {
   @IsString() channelId!: string;
 }
 
-const WEB_URL = process.env['WEB_URL'] ?? 'http://localhost:3007';
+const WEB_URL = (process.env['WEB_URL'] ?? 'http://localhost:3007').split(',')[0].trim();
 // Strip any trailing /api/v1 so we can always append it consistently,
 // regardless of whether the env var includes it or not.
 const API_URL = (process.env['API_URL'] ?? 'http://localhost:4007').replace(/\/api\/v1\/?$/, '');
