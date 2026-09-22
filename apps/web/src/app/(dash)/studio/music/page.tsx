@@ -1,6 +1,6 @@
 ﻿'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Loader2, Trash2, Music, Plus, X, Play, Pause, Download, Search, TrendingUp, ChevronDown, Sparkles } from 'lucide-react';
+import { Loader2, Trash2, Music, Plus, X, Play, Pause, Download, Search, TrendingUp, Sparkles } from 'lucide-react';
 import { AiMediaPicker } from '@/components/ai-media-picker';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -161,6 +161,7 @@ export default function MusicLibraryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [licenseFilter, setLicenseFilter] = useState('');
   const [moodFilter, setMoodFilter] = useState('');
   const [durationFilter, setDurationFilter] = useState('');
@@ -183,15 +184,13 @@ export default function MusicLibraryPage() {
   const [discoverError, setDiscoverError] = useState<string | null>(null);
   const [importingId, setImportingId] = useState<string | null>(null);
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
-  const [showGenreFilter, setShowGenreFilter] = useState(false);
-  const [showMoodFilter, setShowMoodFilter] = useState(false);
 
   // ── Library fetch ─────────────────────────────────────────────────────────
   const fetchTracks = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const p = new URLSearchParams();
-      if (search) p.set('search', search);
+      if (debouncedSearch) p.set('search', debouncedSearch);
       if (licenseFilter) p.set('license', licenseFilter);
       if (moodFilter) p.set('mood', moodFilter);
       const { minDuration, maxDuration } = durationRange(durationFilter);
@@ -208,7 +207,7 @@ export default function MusicLibraryPage() {
       setTracks(data.tracks); setTotal(data.total);
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load tracks'); }
     finally { setLoading(false); }
-  }, [search, licenseFilter, moodFilter, durationFilter]);
+  }, [debouncedSearch, licenseFilter, moodFilter, durationFilter]);
 
   const fetchMoods = useCallback(async () => {
     try {
@@ -219,6 +218,11 @@ export default function MusicLibraryPage() {
 
   useEffect(() => { void fetchTracks(); }, [fetchTracks]);
   useEffect(() => { void fetchMoods(); }, [fetchMoods]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   // ── Discover fetch ────────────────────────────────────────────────────────
   const fetchDiscover = useCallback(async (isSearch = false) => {
@@ -425,26 +429,52 @@ export default function MusicLibraryPage() {
             )}
 
             {/* Search + filters */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className="space-y-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tracks…"
-                  className="bg-white rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3ddf8', width: 200 }} />
-                <div className="flex flex-wrap gap-1.5">
-                  {LICENSE_FILTER_CHIPS.map(chip => (
-                    <button key={chip.value} onClick={() => setLicenseFilter(chip.value)}
-                      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                      style={licenseFilter === chip.value ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' } : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-                {availableMoods.length > 0 && (
-                  <select value={moodFilter} onChange={e => setMoodFilter(e.target.value)}
-                    className="bg-white rounded-xl px-3 py-1.5 text-xs font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: moodFilter ? '#374151' : '#6b7280' }}>
-                    <option value="">All moods</option>
-                    {availableMoods.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                )}
+                  className="w-full bg-white rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20" style={{ border: '1.5px solid #e3ddf8' }} />
+              </div>
+              {/* License pills */}
+              <div className="flex flex-wrap gap-1.5">
+                {LICENSE_FILTER_CHIPS.map(chip => (
+                  <button key={chip.value} type="button" onClick={() => setLicenseFilter(chip.value)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={licenseFilter === chip.value ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' } : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+              {/* Mood pills */}
+              <div className="flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => setMoodFilter('')}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                  style={moodFilter === '' ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' } : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                  All moods
+                </button>
+                {(availableMoods.length > 0 ? availableMoods : MOOD_OPTIONS).map(m => (
+                  <button key={m} type="button" onClick={() => setMoodFilter(moodFilter === m ? '' : m)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all"
+                    style={moodFilter === m ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' } : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+              {/* Duration pills */}
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { value: '', label: 'Any length' },
+                  { value: 'short', label: 'Short <1m' },
+                  { value: 'medium', label: 'Medium 1-3m' },
+                  { value: 'long', label: 'Long 3m+' },
+                ] as { value: string; label: string }[]).map(d => (
+                  <button key={d.value} type="button" onClick={() => setDurationFilter(d.value)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={durationFilter === d.value ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' } : { background: '#fff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                    {d.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -509,66 +539,69 @@ export default function MusicLibraryPage() {
                 </button>
               </div>
 
-              {/* Filters row */}
-              <div className="flex flex-wrap gap-2 items-center">
-                {/* Source */}
-                <select value={discoverSource} onChange={e => setDiscoverSource(e.target.value as 'all' | 'jamendo' | 'pixabay')}
-                  className="bg-[#faf9ff] rounded-xl px-3 py-1.5 text-xs font-semibold outline-none" style={{ border: '1.5px solid #e3ddf8', color: '#374151' }}>
-                  {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-
-                {/* Genre dropdown */}
-                <div className="relative">
-                  <button onClick={() => setShowGenreFilter(v => !v)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                    style={{ background: discoverGenre ? '#374151' : '#faf9ff', color: discoverGenre ? '#fff' : '#6b7280', border: '1.5px solid #e3ddf8' }}>
-                    {discoverGenre || 'Genre'}<ChevronDown className="w-3 h-3" />
-                  </button>
-                  {showGenreFilter && (
-                    <div className="absolute top-full mt-1 left-0 z-20 bg-white rounded-xl shadow-lg p-2 flex flex-wrap gap-1 min-w-[200px]" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <button onClick={() => { setDiscoverGenre(''); setShowGenreFilter(false); }} className="px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50">All</button>
-                      {GENRE_OPTIONS.map(g => (
-                        <button key={g} onClick={() => { setDiscoverGenre(g); setShowGenreFilter(false); }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all"
-                          style={discoverGenre === g ? { background: '#374151', color: '#fff' } : { color: '#374151', background: '#f3f4f6' }}>
-                          {g}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              {/* Filters */}
+              <div className="space-y-3">
+                {/* Source pills */}
+                <div className="flex flex-wrap gap-1.5">
+                  {SOURCE_OPTIONS.map(o => (
+                    <button key={o.value} type="button"
+                      onClick={() => setDiscoverSource(o.value as 'all' | 'jamendo' | 'pixabay')}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                      style={discoverSource === o.value
+                        ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' }
+                        : { background: '#faf9ff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                      {o.label}
+                    </button>
+                  ))}
                 </div>
-
-                {/* Mood dropdown */}
-                <div className="relative">
-                  <button onClick={() => setShowMoodFilter(v => !v)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold"
-                    style={{ background: discoverMood ? '#374151' : '#faf9ff', color: discoverMood ? '#fff' : '#6b7280', border: '1.5px solid #e3ddf8' }}>
-                    {discoverMood || 'Mood'}<ChevronDown className="w-3 h-3" />
-                  </button>
-                  {showMoodFilter && (
-                    <div className="absolute top-full mt-1 left-0 z-20 bg-white rounded-xl shadow-lg p-2 flex flex-wrap gap-1 min-w-[200px]" style={{ border: '1.5px solid #e3ddf8' }}>
-                      <button onClick={() => { setDiscoverMood(''); setShowMoodFilter(false); }} className="px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50">All</button>
-                      {MOOD_OPTIONS.map(m => (
-                        <button key={m} onClick={() => { setDiscoverMood(m); setShowMoodFilter(false); }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all"
-                          style={discoverMood === m ? { background: '#374151', color: '#fff' } : { color: '#374151', background: '#f3f4f6' }}>
-                          {m}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                {/* Genre pills */}
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Genre</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" onClick={() => setDiscoverGenre('')}
+                      className="px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+                      style={discoverGenre === '' ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' } : { background: '#faf9ff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                      All
+                    </button>
+                    {GENRE_OPTIONS.map(g => (
+                      <button key={g} type="button"
+                        onClick={() => setDiscoverGenre(discoverGenre === g ? '' : g)}
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold capitalize transition-all"
+                        style={discoverGenre === g
+                          ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' }
+                          : { background: '#faf9ff', color: '#374151', border: '1.5px solid #e3ddf8' }}>
+                        {g}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-
+                {/* Mood pills */}
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Mood</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" onClick={() => setDiscoverMood('')}
+                      className="px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+                      style={discoverMood === '' ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' } : { background: '#faf9ff', color: '#6b7280', border: '1.5px solid #e3ddf8' }}>
+                      All
+                    </button>
+                    {MOOD_OPTIONS.map(m => (
+                      <button key={m} type="button"
+                        onClick={() => setDiscoverMood(discoverMood === m ? '' : m)}
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold capitalize transition-all"
+                        style={discoverMood === m
+                          ? { background: '#374151', color: '#fff', border: '1.5px solid #374151' }
+                          : { background: '#faf9ff', color: '#374151', border: '1.5px solid #e3ddf8' }}>
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {(discoverGenre || discoverMood || discoverQuery) && (
-                  <button onClick={() => { setDiscoverQuery(''); setDiscoverGenre(''); setDiscoverMood(''); void fetchDiscover(); }}
-                    className="px-2.5 py-1.5 rounded-xl text-xs text-gray-500 hover:bg-gray-100 transition-colors" style={{ border: '1.5px solid #e3ddf8' }}>
-                    Clear
+                  <button type="button" onClick={() => { setDiscoverQuery(''); setDiscoverGenre(''); setDiscoverMood(''); void fetchDiscover(); }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors" style={{ border: '1.5px solid #e3ddf8' }}>
+                    Clear all filters
                   </button>
                 )}
-
-                <span className="ml-auto text-xs text-gray-400 hidden sm:block">
-                  Sources: Jamendo (Creative Commons) · Pixabay (Royalty-Free)
-                </span>
               </div>
             </div>
 
