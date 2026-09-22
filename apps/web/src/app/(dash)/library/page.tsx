@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
-  RefreshCw, Search, ChevronDown, Play, Eye, ThumbsUp,
-  MessageCircle, MoreVertical, Users, PlusCircle, Layers,
+  RefreshCw, Search, Play, Eye, ThumbsUp,
+  MessageCircle, Users, PlusCircle, Layers,
   ListVideo, Youtube, Loader2, AlertCircle,
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -68,15 +68,14 @@ function fmtSynced(s: string | null): string {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function VideoCard({ video, onMenuClick, menuOpen }: {
+function VideoCard({ video }: {
   video: LibraryVideo;
-  onMenuClick: (id: string) => void;
-  menuOpen: boolean;
 }) {
+  const ytUrl = `https://youtube.com/watch?v=${video.youtubeVideoId}`;
   return (
-    <div className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer">
-      {/* Thumbnail */}
-      <div className="aspect-video relative overflow-hidden bg-gray-900">
+    <div className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all">
+      {/* Thumbnail — links to YouTube */}
+      <a href={ytUrl} target="_blank" rel="noopener noreferrer" className="block aspect-video relative overflow-hidden bg-gray-900">
         {video.thumbnailUrl ? (
           <img src={video.thumbnailUrl} alt={video.title} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
@@ -99,11 +98,13 @@ function VideoCard({ video, onMenuClick, menuOpen }: {
             <Play className="w-4 h-4 text-gray-900 ml-0.5" />
           </div>
         </div>
-      </div>
+      </a>
 
       {/* Body */}
       <div className="p-4">
-        <p className="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug mb-2">{video.title}</p>
+        <a href={ytUrl} target="_blank" rel="noopener noreferrer" className="block font-semibold text-sm text-gray-900 line-clamp-2 leading-snug mb-2 hover:text-gray-700 transition-colors">
+          {video.title}
+        </a>
 
         <div className="flex items-center gap-3 text-xs text-gray-400 mb-1">
           <span className="flex items-center gap-1 shrink-0"><Eye className="w-3.5 h-3.5" />{fmtCount(video.viewCount)}</span>
@@ -115,38 +116,19 @@ function VideoCard({ video, onMenuClick, menuOpen }: {
 
         <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
           <a
-            href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
+            href={ytUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs font-semibold px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-            onClick={(e) => e.stopPropagation()}
           >
             View
           </a>
-          <button className="text-xs font-semibold px-3 py-1.5 border border-gray-200 text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+          <Link
+            href="/repurpose"
+            className="text-xs font-semibold px-3 py-1.5 border border-gray-200 text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+          >
             Repurpose
-          </button>
-          <div className="relative ml-auto">
-            <button
-              onClick={(e) => { e.stopPropagation(); onMenuClick(video.id); }}
-              className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 bottom-9 z-20 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 min-w-[148px]">
-                {['View on YouTube', 'Repurpose with AI', 'Copy link'].map((action) => (
-                  <button
-                    key={action}
-                    onClick={() => onMenuClick('')}
-                    className="w-full text-left px-4 py-2 text-xs text-gray-700 transition hover:bg-gray-50"
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          </Link>
         </div>
       </div>
     </div>
@@ -154,8 +136,9 @@ function VideoCard({ video, onMenuClick, menuOpen }: {
 }
 
 function PlaylistCard({ playlist }: { playlist: LibraryPlaylist }) {
+  const ytUrl = `https://youtube.com/playlist?list=${playlist.youtubePlaylistId}`;
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-lg transition-all cursor-pointer group">
+    <a href={ytUrl} target="_blank" rel="noopener noreferrer" className="group block bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-lg hover:-translate-y-0.5 transition-all">
       <div className="relative w-20 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
         {playlist.thumbnailUrl ? (
           <img src={playlist.thumbnailUrl} alt={playlist.title} className="w-full h-full object-cover" />
@@ -169,15 +152,13 @@ function PlaylistCard({ playlist }: { playlist: LibraryPlaylist }) {
         </span>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm text-gray-900 truncate">{playlist.title}</p>
+        <p className="font-semibold text-sm text-gray-900 truncate group-hover:text-gray-700 transition-colors">{playlist.title}</p>
         <p className="text-xs text-gray-400 mt-0.5">{playlist.itemCount} videos</p>
-        <div className="flex items-center gap-2 mt-3">
-          <button className="text-xs font-semibold px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5" /> View
-          </button>
+        <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-gray-500 group-hover:text-gray-700 transition-colors">
+          <Layers className="w-3.5 h-3.5" /> View on YouTube
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -204,8 +185,6 @@ export default function LibraryPage() {
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('Newest');
-  const [sortOpen, setSortOpen] = useState(false);
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   // ── Channels ────────────────────────────────────────────────────────────────
   const { data: channelsRaw, isLoading: channelsLoading } = useQuery({
@@ -252,10 +231,6 @@ export default function LibraryPage() {
       void qc.invalidateQueries({ queryKey: ['library-playlists'] });
     },
   });
-
-  const handleMenuClick = useCallback((id: string) => {
-    setOpenMenu((prev) => (prev === id ? null : id));
-  }, []);
 
   const videos = videosPage?.data ?? [];
   const playlists = playlistsPage?.data ?? [];
@@ -307,28 +282,6 @@ export default function LibraryPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 pr-3 h-9 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 w-40 sm:w-48 transition"
               />
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => setSortOpen((o) => !o)}
-                className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition whitespace-nowrap"
-              >
-                {sort}
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-              </button>
-              {sortOpen && (
-                <div className="absolute right-0 top-10 z-20 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 min-w-[140px]">
-                  {SORT_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => { setSort(opt); setSortOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition hover:bg-gray-50 ${sort === opt ? 'font-semibold text-gray-900' : 'text-gray-600'}`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
             <button
               onClick={() => { if (!syncMutation.isPending) syncMutation.mutate(); }}
@@ -384,6 +337,49 @@ export default function LibraryPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Stats + Sort ── */}
+        {!channelsLoading && channelId && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            {/* Quick stats */}
+            <div className="flex flex-wrap items-center gap-2">
+              {videos.length > 0 && (
+                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-semibold text-gray-700">
+                  <Play className="w-3.5 h-3.5 text-gray-400" /> {videos.length} videos
+                </span>
+              )}
+              {playlists.length > 0 && (
+                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-semibold text-gray-700">
+                  <ListVideo className="w-3.5 h-3.5 text-gray-400" /> {playlists.length} playlists
+                </span>
+              )}
+              {videos.some(v => v.kind === 'short') && (
+                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-100 rounded-full text-xs font-semibold text-red-600">
+                  {videos.filter(v => v.kind === 'short').length} Shorts
+                </span>
+              )}
+            </div>
+            {/* Sort pills — visible, no dropdown */}
+            {activeTab === 'videos' && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mr-1">Sort</span>
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setSort(opt)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                      sort === opt
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -468,12 +464,7 @@ export default function LibraryPage() {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {videos.map((video) => (
-                    <VideoCard
-                      key={video.id}
-                      video={video}
-                      onMenuClick={handleMenuClick}
-                      menuOpen={openMenu === video.id}
-                    />
+                    <VideoCard key={video.id} video={video} />
                   ))}
                 </div>
                 {videosPage?.nextCursor && (
@@ -529,10 +520,6 @@ export default function LibraryPage() {
 
       </div>
 
-      {/* Click-away for dropdowns */}
-      {(sortOpen || openMenu !== null) && (
-        <div className="fixed inset-0 z-10" onClick={() => { setSortOpen(false); setOpenMenu(null); }} />
-      )}
     </div>
   );
 }
