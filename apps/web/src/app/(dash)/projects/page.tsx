@@ -528,8 +528,8 @@ function ProjectsTab({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard tone="lilac"      icon={<FolderOpen className="w-5 h-5" />} label="Projects"   value={projects.length} />
           <StatCard tone="periwinkle" icon={<PlayCircle className="w-5 h-5" />} label="Active"     value={activeCount} sub="in production" />
-          <StatCard tone="cream"      icon={<Zap className="w-5 h-5" />}        label="Agent Jobs" value={totalJobs} sub="across all projects" />
-          <StatCard tone="pink"       icon={<Video className="w-5 h-5" />}      label="Videos"     value={totalVideos} />
+          <StatCard tone="cream"      icon={<Zap className="w-5 h-5" />}        label="Agent Jobs" value={totalJobs} sub="across all projects" href="/monitor" />
+          <StatCard tone="pink"       icon={<Video className="w-5 h-5" />}      label="Videos"     value={totalVideos} href="/library" />
         </div>
       )}
 
