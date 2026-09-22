@@ -605,20 +605,20 @@ function SettingsContent() {
               ))}
 
               {/* Add passkey row */}
-              <div className="px-4 py-3 flex items-center gap-2">
+              <div className="px-4 py-3 flex items-center gap-3">
                 <input
                   type="text"
                   value={passkeyName}
                   onChange={(e) => setPasskeyName(e.target.value)}
                   placeholder="Name this passkey (optional)"
-                  className="flex-1 text-sm px-3 py-2 rounded-xl bg-[#faf9ff] outline-none focus:ring-2 ring-[#374151]"
+                  className="flex-1 min-w-0 text-sm px-3 py-2.5 rounded-xl bg-[#faf9ff] outline-none focus:ring-2 ring-[#374151]"
                   style={{ border: '1.5px solid #e5e7eb' }}
                 />
                 <button
                   type="button"
                   onClick={() => { void handleAddPasskey(); }}
                   disabled={addingPasskey}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-white text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold text-white text-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
                   style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' }}
                 >
                   {addingPasskey ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}

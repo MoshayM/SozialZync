@@ -198,13 +198,13 @@ export function MyContentSection() {
 
   return (
     <div className="mb-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-[15px] font-semibold text-gray-900 flex items-center gap-2">
-            <Film className="w-4 h-4 text-purple-500" />
-            My Content
-          </h2>
+      {/* Header — two rows: title / (filters + view-all) */}
+      <div className="mb-4 space-y-2">
+        <h2 className="text-[15px] font-semibold text-gray-900 flex items-center gap-2">
+          <Film className="w-4 h-4 text-purple-500" />
+          My Content
+        </h2>
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1 p-0.5 rounded-xl" style={{ background: '#f3f4f6' }}>
             {(['all', 'private', 'public'] as const).map(f => (
               <button
@@ -222,14 +222,14 @@ export function MyContentSection() {
               </button>
             ))}
           </div>
+          <Link
+            href="/projects"
+            className="text-[13px] font-semibold hover:underline shrink-0"
+            style={{ color: '#374151' }}
+          >
+            View all →
+          </Link>
         </div>
-        <Link
-          href="/projects"
-          className="text-[13px] font-semibold hover:underline"
-          style={{ color: '#374151' }}
-        >
-          View all →
-        </Link>
       </div>
 
       {/* Content permission callout */}
