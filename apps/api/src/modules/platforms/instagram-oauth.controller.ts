@@ -56,24 +56,24 @@ export class InstagramOAuthController {
     return { received: true };
   }
 
-  @Get('auth')
-  startOAuth(
-    @Query('userId') userId: string,
+  @Get('auth-url')
+  @UseGuards(JwtAuthGuard)
+  getAuthUrl(
+    @CurrentUser() user: JwtPayload,
     @Query('returnTo') returnTo: string,
-    @Res() res: Response,
   ) {
     const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/instagram/callback`;
-    const state = Buffer.from(JSON.stringify({ userId, returnTo })).toString('base64');
+    const state = Buffer.from(JSON.stringify({ userId: user.sub, returnTo })).toString('base64');
     const params = new URLSearchParams({
       client_id: process.env['FACEBOOK_APP_ID'] ?? '',
       redirect_uri: redirectUri,
       scope: IG_SCOPES,
       response_type: 'code',
-      auth_type: 'rerequest',   // force FB to re-show permission checkboxes
+      auth_type: 'rerequest',
       state,
     });
-    res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`);
+    return { url: `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}` };
   }
 
   @Delete('disconnect')

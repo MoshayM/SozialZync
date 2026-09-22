@@ -22,16 +22,15 @@ export class TikTokOAuthController {
     private readonly enc: TokenEncryptionService,
   ) {}
 
-  @Get('auth')
-  startOAuth(
-    @Query('userId') userId: string,
+  @Get('auth-url')
+  @UseGuards(JwtAuthGuard)
+  getAuthUrl(
+    @CurrentUser() user: JwtPayload,
     @Query('returnTo') returnTo: string,
-    @Res() res: Response,
   ) {
     const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/tiktok/callback`;
-    const state = Buffer.from(JSON.stringify({ userId, returnTo })).toString('base64url');
-
+    const state = Buffer.from(JSON.stringify({ userId: user.sub, returnTo })).toString('base64url');
     const params = new URLSearchParams({
       client_key: process.env['TIKTOK_CLIENT_KEY'] ?? '',
       redirect_uri: redirectUri,
@@ -39,7 +38,7 @@ export class TikTokOAuthController {
       scope: TT_SCOPES,
       state,
     });
-    res.redirect(`${TT_AUTH}?${params.toString()}`);
+    return { url: `${TT_AUTH}?${params.toString()}` };
   }
 
   @Delete('disconnect')

@@ -87,7 +87,6 @@ const PLATFORM_META: Record<string, { name: string; color: string; bg: string; i
   x:         { name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X',  available: false },
 };
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
 
 async function startYouTubeOAuth() {
   try {
@@ -98,29 +97,27 @@ async function startYouTubeOAuth() {
   } catch { /* ignore */ }
 }
 
-function getUserIdFromToken(): string {
-  try {
-    const token = localStorage.getItem('cf_token');
-    if (!token) return '';
-    const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { sub?: string };
-    return payload.sub ?? '';
-  } catch { return ''; }
-}
 
-function startInstagramOAuth() {
-  const userId = getUserIdFromToken();
-  if (!userId) return;
-  window.location.href = `${API_URL}/platforms/instagram/auth?userId=${encodeURIComponent(userId)}&returnTo=${encodeURIComponent('/publishing/accounts')}`;
+async function startInstagramOAuth() {
+  try {
+    const r = await apiClient.get<{ url: string }>('/platforms/instagram/auth-url', {
+      params: { returnTo: '/publishing/accounts' },
+    });
+    window.location.href = r.data.url;
+  } catch { /* ignore */ }
 }
 
 async function disconnectInstagram() {
   try { await apiClient.delete('/platforms/instagram/disconnect'); } catch { /* ignore */ }
 }
 
-function startFacebookOAuth() {
-  const userId = getUserIdFromToken();
-  if (!userId) return;
-  window.location.href = `${API_URL}/platforms/facebook/auth?userId=${encodeURIComponent(userId)}&returnTo=${encodeURIComponent('/publishing/accounts')}`;
+async function startFacebookOAuth() {
+  try {
+    const r = await apiClient.get<{ url: string }>('/platforms/facebook/auth-url', {
+      params: { returnTo: '/publishing/accounts' },
+    });
+    window.location.href = r.data.url;
+  } catch { /* ignore */ }
 }
 
 async function disconnectFacebook() {

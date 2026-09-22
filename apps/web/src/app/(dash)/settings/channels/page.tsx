@@ -39,7 +39,6 @@ type VideoSort  = 'recent' | 'title';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 const ACCESS_BADGE: Record<AccessLevel, string> = {
   READ_ONLY: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -301,14 +300,14 @@ interface SocialRowProps {
 function SocialRow({ name, platformKey, icon, status, onDisconnect }: SocialRowProps) {
   const isConnected = status?.connected === true;
 
-  function handleConnect() {
+  async function handleConnect() {
     if (typeof window === 'undefined') return;
-    const token = localStorage.getItem('cf_token');
-    if (!token) return;
-    let userId: string | null = null;
-    try { userId = (JSON.parse(atob(token.split('.')[1] ?? '')) as { sub?: string }).sub ?? null; } catch { /* ignore */ }
-    if (!userId) return;
-    window.location.href = `${API_URL}/platforms/${platformKey}/auth?userId=${encodeURIComponent(userId)}&returnTo=${encodeURIComponent('/settings/channels?tab=connections')}`;
+    try {
+      const r = await apiClient.get<{ url: string }>(`/platforms/${platformKey}/auth-url`, {
+        params: { returnTo: '/settings/channels?tab=connections' },
+      });
+      window.location.href = r.data.url;
+    } catch { /* ignore */ }
   }
 
   return (

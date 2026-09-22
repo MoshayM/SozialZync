@@ -1,4 +1,4 @@
-import { Controller, Get, Delete, Query, Res, UseGuards, Logger, HttpCode, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Delete, Query, Res, UseGuards, Logger, HttpCode, Post, Body, Headers, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { Response } from 'express';
 import axios from 'axios';
@@ -52,15 +52,15 @@ export class FacebookOAuthController {
     return { received: true };
   }
 
-  @Get('auth')
-  startOAuth(
-    @Query('userId') userId: string,
+  @Get('auth-url')
+  @UseGuards(JwtAuthGuard)
+  getAuthUrl(
+    @CurrentUser() user: JwtPayload,
     @Query('returnTo') returnTo: string,
-    @Res() res: Response,
   ) {
     const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/facebook/callback`;
-    const state = Buffer.from(JSON.stringify({ userId, returnTo })).toString('base64');
+    const state = Buffer.from(JSON.stringify({ userId: user.sub, returnTo })).toString('base64');
     const params = new URLSearchParams({
       client_id: process.env['FACEBOOK_APP_ID'] ?? '',
       redirect_uri: redirectUri,
@@ -68,7 +68,7 @@ export class FacebookOAuthController {
       response_type: 'code',
       state,
     });
-    res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`);
+    return { url: `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}` };
   }
 
   @Delete('disconnect')

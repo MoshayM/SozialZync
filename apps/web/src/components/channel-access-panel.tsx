@@ -75,7 +75,6 @@ const OAUTH_ERRORS: Record<string, string> = {
   invalid_state: 'Session expired. Please try connecting again.',
 };
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
 
 interface WatchAccount {
   id: string;
@@ -110,19 +109,13 @@ const ThreadsIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-function getUserIdFromJwt(): string {
+async function startPlatformOAuth(platformKey: string) {
   try {
-    const token = localStorage.getItem('cf_token');
-    if (!token) return '';
-    const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { sub?: string };
-    return payload.sub ?? '';
-  } catch { return ''; }
-}
-
-function startPlatformOAuth(platformKey: string) {
-  const userId = getUserIdFromJwt();
-  if (!userId) return;
-  window.location.href = `${API_URL}/platforms/${platformKey}/auth?userId=${encodeURIComponent(userId)}&returnTo=${encodeURIComponent('/settings/channels')}`;
+    const r = await apiClient.get<{ url: string }>(`/platforms/${platformKey}/auth-url`, {
+      params: { returnTo: '/settings/channels' },
+    });
+    window.location.href = r.data.url;
+  } catch { /* ignore */ }
 }
 
 const SOCIAL_PLATFORMS: Array<{
