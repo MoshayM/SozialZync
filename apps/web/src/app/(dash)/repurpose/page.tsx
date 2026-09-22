@@ -288,23 +288,39 @@ export default function RepurposePage() {
             </div>
 
             <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-              <h2 className="font-semibold text-gray-800 text-sm mb-3">Target Platforms</h2>
-              <div className="space-y-2">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-gray-800 text-sm">Target Platforms</h2>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedPlatforms(
+                      selectedPlatforms.size === ALL_PLATFORMS.length
+                        ? new Set()
+                        : new Set(ALL_PLATFORMS)
+                    )
+                  }
+                  className="text-[11px] font-semibold hover:underline"
+                  style={{ color: '#374151' }}
+                >
+                  {selectedPlatforms.size === ALL_PLATFORMS.length ? 'Clear all' : 'Select all'}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
                 {ALL_PLATFORMS.map((p) => {
                   const meta = PLATFORM_META[p];
                   const Icon = meta.icon;
                   const selected = selectedPlatforms.has(p);
                   return (
-                    <label key={p} className={`flex items-center gap-3 p-2.5 rounded-2xl border cursor-pointer transition-all ${selected ? `${meta.bg} ${meta.border}` : 'border-transparent hover:bg-gray-50'}`}>
+                    <label key={p} className={`flex items-center gap-2 p-2.5 rounded-2xl border cursor-pointer transition-all ${selected ? `${meta.bg} ${meta.border}` : 'border-gray-100 hover:bg-gray-50'}`}>
                       <input
                         type="checkbox"
                         checked={selected}
                         onChange={() => togglePlatform(p)}
                         className="sr-only"
                       />
-                      <Icon className={`w-4 h-4 ${selected ? meta.color : 'text-gray-400'}`} />
-                      <span className={`text-sm font-medium ${selected ? meta.color : 'text-gray-600'}`}>{meta.label}</span>
-                      {selected && <Check className={`w-3.5 h-3.5 ml-auto ${meta.color}`} />}
+                      <Icon className={`w-4 h-4 shrink-0 ${selected ? meta.color : 'text-gray-400'}`} />
+                      <span className={`text-xs font-medium truncate ${selected ? meta.color : 'text-gray-600'}`}>{meta.label}</span>
+                      {selected && <Check className={`w-3 h-3 ml-auto shrink-0 ${meta.color}`} />}
                     </label>
                   );
                 })}
