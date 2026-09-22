@@ -5,11 +5,11 @@ import { ChevronRight } from 'lucide-react';
 
 export type StatTone = 'lilac' | 'pink' | 'cream' | 'periwinkle';
 
-const TONES: Record<StatTone, { cardBg: string; cardBorder: string; tileBg: string }> = {
-  lilac:      { cardBg: '#f3f4f6', cardBorder: '#e3ddf8', tileBg: '#374151' },
-  pink:       { cardBg: '#fdf2f8', cardBorder: '#f9d0ea', tileBg: '#e0196e' },
-  cream:      { cardBg: '#fefce8', cardBorder: '#fde68a', tileBg: '#d97706' },
-  periwinkle: { cardBg: '#eff6ff', cardBorder: '#bfdbfe', tileBg: '#3b82f6' },
+const TONES: Record<StatTone, { cardBg: string; cardBorder: string; tileBg: string; activeBorder: string }> = {
+  lilac:      { cardBg: '#f3f4f6', cardBorder: '#e3ddf8', tileBg: '#374151', activeBorder: '#7c5ae8' },
+  pink:       { cardBg: '#fdf2f8', cardBorder: '#f9d0ea', tileBg: '#e0196e', activeBorder: '#e0196e' },
+  cream:      { cardBg: '#fefce8', cardBorder: '#fde68a', tileBg: '#d97706', activeBorder: '#d97706' },
+  periwinkle: { cardBg: '#eff6ff', cardBorder: '#bfdbfe', tileBg: '#3b82f6', activeBorder: '#3b82f6' },
 };
 
 function StatCardInner({
@@ -20,6 +20,8 @@ function StatCardInner({
   sub,
   subClassName = 'text-gray-600',
   clickable = false,
+  active = false,
+  showChevron = true,
 }: {
   tone: StatTone;
   icon: React.ReactNode;
@@ -28,12 +30,18 @@ function StatCardInner({
   sub?: string;
   subClassName?: string;
   clickable?: boolean;
+  active?: boolean;
+  showChevron?: boolean;
 }) {
   const t = TONES[tone];
   return (
     <div
       className={`rounded-2xl p-5 relative transition-all duration-200${clickable ? ' hover:shadow-md hover:-translate-y-0.5 cursor-pointer' : ''}`}
-      style={{ background: t.cardBg, border: `1.5px solid ${t.cardBorder}` }}
+      style={{
+        background: t.cardBg,
+        border: active ? `2px solid ${t.activeBorder}` : `1.5px solid ${t.cardBorder}`,
+        boxShadow: active ? `0 0 0 3px ${t.activeBorder}22` : undefined,
+      }}
     >
       <div className="flex items-start justify-between">
         <div
@@ -42,7 +50,7 @@ function StatCardInner({
         >
           {icon}
         </div>
-        {clickable && (
+        {clickable && showChevron && (
           <ChevronRight className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
         )}
       </div>
@@ -61,6 +69,8 @@ export function StatCard({
   sub,
   subClassName = 'text-gray-600',
   href,
+  onClick,
+  active,
 }: {
   tone: StatTone;
   icon: React.ReactNode;
@@ -69,12 +79,21 @@ export function StatCard({
   sub?: string;
   subClassName?: string;
   href?: string;
+  onClick?: () => void;
+  active?: boolean;
 }) {
   if (href) {
     return (
       <Link href={href} className="block no-underline">
         <StatCardInner tone={tone} icon={icon} label={label} value={value} sub={sub} subClassName={subClassName} clickable />
       </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="block w-full text-left">
+        <StatCardInner tone={tone} icon={icon} label={label} value={value} sub={sub} subClassName={subClassName} clickable active={active} showChevron={false} />
+      </button>
     );
   }
   return <StatCardInner tone={tone} icon={icon} label={label} value={value} sub={sub} subClassName={subClassName} />;

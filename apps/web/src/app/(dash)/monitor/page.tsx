@@ -139,7 +139,7 @@ export default function MonitorPage() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats — click to filter */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             tone="periwinkle"
@@ -148,6 +148,8 @@ export default function MonitorPage() {
             value={running}
             sub={running > 0 ? 'Active now' : 'Idle'}
             subClassName={running > 0 ? 'text-blue-700' : 'text-gray-600'}
+            onClick={() => setStatusFilter(statusFilter === 'running' ? 'all' : 'running')}
+            active={statusFilter === 'running'}
           />
           <StatCard
             tone="cream"
@@ -156,6 +158,8 @@ export default function MonitorPage() {
             value={queued}
             sub="Pending dispatch"
             subClassName="text-yellow-700"
+            onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+            active={statusFilter === 'pending'}
           />
           <StatCard
             tone="lilac"
@@ -164,6 +168,8 @@ export default function MonitorPage() {
             value={doneToday}
             sub="Completed since midnight"
             subClassName="text-green-700"
+            onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
+            active={statusFilter === 'completed'}
           />
           <StatCard
             tone="pink"
@@ -172,6 +178,8 @@ export default function MonitorPage() {
             value={failedToday}
             sub={failedToday > 0 ? 'Needs attention' : 'All clear'}
             subClassName={failedToday > 0 ? 'text-red-700' : 'text-green-700'}
+            onClick={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
+            active={statusFilter === 'failed'}
           />
         </div>
 
