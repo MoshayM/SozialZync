@@ -996,6 +996,9 @@ export const api = {
     remove: (id: string) => apiClient.post(`/channels/${id}/remove`),
     refresh: (channelId: string) => apiClient.post('/channels/refresh', { channelId }),
   },
+  platforms: {
+    connectionStatus: () => apiClient.get('/platforms/connection-status'),
+  },
   projects: {
     list: (opts?: { cursor?: string; limit?: number }) => {
       const sp = new URLSearchParams();
