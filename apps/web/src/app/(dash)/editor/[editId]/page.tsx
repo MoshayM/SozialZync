@@ -3072,6 +3072,7 @@ function MediaBin({
 
 export default function EditorWorkspacePage() {
   const { editId } = useParams<{ editId: string }>();
+  const router = useRouter();
   const qc = useQueryClient();
 
   // Load edit project
@@ -4287,6 +4288,19 @@ export default function EditorWorkspacePage() {
     const apiMessage = (loadError as { response?: { data?: { message?: string } } } | null)?.response?.data?.message;
     const is404 = httpStatus === 404;
     const is403 = httpStatus === 403;
+
+    // 403 = stale or wrong-account editId (most common for free users after a re-login).
+    // Clear the cached ID so the /editor redirect page creates a fresh blank edit.
+    if (is403) {
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('lastEditorId');
+      router.replace('/editor');
+      return (
+        <div className="flex items-center gap-2 text-gray-500 py-20 justify-center">
+          <Loader2 className="w-6 h-6 animate-spin" /> Opening editor…
+        </div>
+      );
+    }
+
     return (
       <div className="p-8">
         <Link href="/editor" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-4">
@@ -4297,14 +4311,6 @@ export default function EditorWorkspacePage() {
             <p className="text-sm font-semibold text-amber-800 mb-1">Edit project not found</p>
             <p className="text-xs text-amber-700 mb-3">This edit may have been deleted or the link is outdated.</p>
             <Link href="/editor" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200">
-              <ArrowLeft className="w-3 h-3" /> Back to My Edits
-            </Link>
-          </div>
-        ) : is403 ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-5 max-w-md">
-            <p className="text-sm font-semibold text-red-800 mb-1">Access denied</p>
-            <p className="text-xs text-red-700 mb-3">You don&apos;t have permission to open this edit project.</p>
-            <Link href="/editor" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-800 hover:bg-red-200">
               <ArrowLeft className="w-3 h-3" /> Back to My Edits
             </Link>
           </div>
