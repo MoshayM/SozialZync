@@ -457,6 +457,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   /* Desktop sidebar collapsed to icon-only rail */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState('');
+  const [activeResultIdx, setActiveResultIdx] = useState(-1);
+  const [recentPages, setRecentPages] = useState<string[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
@@ -501,6 +504,42 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  /* Load recent pages from localStorage on mount */
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cf_recent_pages');
+      setRecentPages(stored ? JSON.parse(stored) as string[] : []);
+    } catch { /* ignore */ }
+  }, []);
+
+  /* Track visited nav pages automatically via pathname changes */
+  useEffect(() => {
+    const allItems = [...NAV_SECTIONS.flatMap(s => s.items), ...BOTTOM_ITEMS];
+    const item = allItems.find(i => {
+      if (i.href === '/studio') return pathname === '/studio' || pathname.startsWith('/studio/') || pathname.startsWith('/shorts-studio');
+      return pathname === i.href || pathname.startsWith(i.href + '/');
+    });
+    if (!item) return;
+    setRecentPages(prev => {
+      const next = [item.href, ...prev.filter(h => h !== item.href)].slice(0, 5);
+      try { localStorage.setItem('cf_recent_pages', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, [pathname]);
+
+  /* ⌘K / Ctrl+K — focus sidebar search from anywhere in the dashboard */
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setMobileMenuOpen(true);
+        setTimeout(() => searchInputRef.current?.focus(), 50);
+      }
+    }
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   /* Prevent body scroll when mobile drawer is open */
   useEffect(() => {
@@ -636,49 +675,52 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       }
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {matches.map(({ href, icon: Icon, label, badge, action }) => {
+          {matches.map(({ href, icon: Icon, label, badge, action }, resultIdx) => {
             const isActive = !action && (
               href === '/studio'
                 ? (pathname === '/studio' || pathname.startsWith('/studio/') || pathname.startsWith('/shorts-studio'))
                 : (pathname === href || pathname.startsWith(href + '/'))
             );
+            const isKbActive = resultIdx === activeResultIdx;
             const itemStyle: React.CSSProperties = {
               gap: '11px', padding: '10px 12px', borderRadius: '11px',
-              fontSize: '14px', fontWeight: isActive ? 600 : 500,
-              letterSpacing: isActive ? '-.15px' : '-.05px',
+              fontSize: '14px', fontWeight: (isActive || isKbActive) ? 600 : 500,
+              letterSpacing: (isActive || isKbActive) ? '-.15px' : '-.05px',
               textDecoration: 'none', justifyContent: 'flex-start',
-              background: isActive ? '#f3f4f6' : 'transparent',
-              color: isActive ? '#111827' : '#374151',
+              background: isKbActive ? '#ebe6fb' : isActive ? '#f3f4f6' : 'transparent',
+              color: (isActive || isKbActive) ? '#111827' : '#374151',
               transition: 'background 180ms ease, color 180ms ease',
+              outline: isKbActive ? '2px solid #c4b5f4' : 'none',
+              outlineOffset: '-2px',
             };
             // Highlight matching portion of label
-            const idx = label.toLowerCase().indexOf(q);
-            const labelNode = idx >= 0 ? (
+            const matchIdx = label.toLowerCase().indexOf(q);
+            const labelNode = matchIdx >= 0 ? (
               <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {label.slice(0, idx)}
+                {label.slice(0, matchIdx)}
                 <mark style={{ background: '#fef08a', color: '#111827', borderRadius: '2px', padding: '0 1px' }}>
-                  {label.slice(idx, idx + q.length)}
+                  {label.slice(matchIdx, matchIdx + q.length)}
                 </mark>
-                {label.slice(idx + q.length)}
+                {label.slice(matchIdx + q.length)}
               </span>
             ) : (
               <span style={{ flex: '1 1 auto', whiteSpace: 'nowrap', overflow: 'hidden' }}>{label}</span>
             );
-            const hoverOn  = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = '#f3f4f6'; } };
-            const hoverOff = (e: React.MouseEvent) => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; } };
+            const hoverOn  = (e: React.MouseEvent) => { if (!isActive && !isKbActive) { const el = e.currentTarget as HTMLElement; el.style.background = '#f3f4f6'; } };
+            const hoverOff = (e: React.MouseEvent) => { if (!isActive && !isKbActive) { const el = e.currentTarget as HTMLElement; el.style.background = isKbActive ? '#ebe6fb' : 'transparent'; } };
             return action ? (
-              <button key={href} type="button" onClick={() => { action(); opts.onNavClick?.(); setSidebarSearch(''); }}
+              <button key={href} type="button" onClick={() => { action(); opts.onNavClick?.(); setSidebarSearch(''); setActiveResultIdx(-1); }}
                 className="flex items-center w-full border-none cursor-pointer"
                 style={{ ...itemStyle, fontFamily: 'inherit' }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
-                <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#111827' : '#9ca3af' }} />
+                <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: (isActive || isKbActive) ? '#111827' : '#9ca3af' }} />
                 {labelNode}
                 {badge && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '99px', color: '#fff', background: badge === 'NEW' ? 'linear-gradient(135deg,#10B981,#059669)' : badge === 'AI' ? 'rgba(55,65,81,.18)' : 'linear-gradient(135deg,#F59E0B,#D97706)' }}>{badge}</span>}
               </button>
             ) : (
               <Link key={href} href={href} className="flex items-center" style={itemStyle}
                 onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                onClick={() => { opts.onNavClick?.(); setSidebarSearch(''); }}>
-                <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: isActive ? '#111827' : '#9ca3af' }} />
+                onClick={() => { opts.onNavClick?.(); setSidebarSearch(''); setActiveResultIdx(-1); }}>
+                <Icon style={{ width: '18px', height: '18px', flexShrink: 0, color: (isActive || isKbActive) ? '#111827' : '#9ca3af' }} />
                 {labelNode}
                 {badge && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '99px', color: '#fff', background: badge === 'NEW' ? 'linear-gradient(135deg,#10B981,#059669)' : badge === 'AI' ? 'rgba(55,65,81,.18)' : 'linear-gradient(135deg,#F59E0B,#D97706)' }}>{badge}</span>}
               </Link>
@@ -1176,9 +1218,32 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
               <div style={{ padding: '2px 2px 8px', position: 'relative' }}>
                 <Search style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '13px', height: '13px', color: '#9ca3af', pointerEvents: 'none' }} />
                 <input
+                  ref={searchInputRef}
                   type="search"
                   value={sidebarSearch}
-                  onChange={e => setSidebarSearch(e.target.value)}
+                  onChange={e => { setSidebarSearch(e.target.value); setActiveResultIdx(-1); }}
+                  onKeyDown={e => {
+                    const q2 = sidebarSearch.trim().toLowerCase();
+                    const allItems = NAV_SECTIONS.flatMap(s => s.items);
+                    const ms = q2 ? allItems.filter(i => i.label.toLowerCase().includes(q2)) : [];
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setActiveResultIdx(i => Math.min(i + 1, ms.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setActiveResultIdx(i => Math.max(i - 1, 0));
+                    } else if (e.key === 'Enter' && activeResultIdx >= 0) {
+                      const item = ms[activeResultIdx];
+                      if (item) {
+                        e.preventDefault();
+                        if (item.action) { item.action(); } else { router.push(item.href); }
+                        setSidebarSearch(''); setActiveResultIdx(-1); setMobileMenuOpen(false);
+                      }
+                    } else if (e.key === 'Escape') {
+                      setSidebarSearch(''); setActiveResultIdx(-1);
+                      (e.currentTarget as HTMLInputElement).blur();
+                    }
+                  }}
                   placeholder="Quick search…"
                   style={{
                     width: '100%', boxSizing: 'border-box',
@@ -1219,6 +1284,39 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 )}
               </div>
             )}
+            {/* Recent pages — shown when sidebar is expanded and search is empty */}
+            {!sidebarCollapsed && !sidebarSearch && recentPages.length > 0 && (() => {
+              const allItems = [...NAV_SECTIONS.flatMap(s => s.items), ...BOTTOM_ITEMS];
+              const recent = recentPages.map(href => allItems.find(i => i.href === href)).filter(Boolean) as typeof allItems;
+              if (recent.length === 0) return null;
+              return (
+                <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #f3f4f6' }}>
+                  <p style={{ padding: '2px 12px 5px', fontSize: '10.5px', fontWeight: 600, letterSpacing: '.07em', color: '#9ca3af', textTransform: 'uppercase' }}>Recent</p>
+                  {recent.map(item => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    return (
+                      <Link key={item.href} href={item.href} className="flex items-center"
+                        style={{
+                          gap: '11px', padding: '8px 12px', borderRadius: '11px',
+                          fontSize: '13.5px', fontWeight: isActive ? 600 : 500,
+                          textDecoration: 'none',
+                          background: isActive ? '#f3f4f6' : 'transparent',
+                          color: isActive ? '#111827' : '#374151',
+                          transition: 'background 180ms ease',
+                        }}
+                        onClick={() => setMobileMenuOpen(false)}
+                        onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
+                        onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                      >
+                        <Icon style={{ width: '16px', height: '16px', flexShrink: 0, color: isActive ? '#111827' : '#9ca3af' }} />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })()}
             {renderNavSections({
               collapsed: sidebarCollapsed,
               onNavClick: () => setMobileMenuOpen(false),
