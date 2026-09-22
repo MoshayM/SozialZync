@@ -3,7 +3,7 @@ import {
   UseGuards, Redirect, HttpCode, Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsOptional, IsIn } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TierRateLimit } from '../../common/guards/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -17,6 +17,7 @@ class ConnectDto {
 
 class ConnectByUrlDto {
   @IsString() channelUrl!: string;
+  @IsOptional() @IsIn(['READ_ONLY', 'PUBLISH', 'FULL']) access?: 'READ_ONLY' | 'PUBLISH' | 'FULL';
 }
 
 class RefreshDto {
@@ -109,7 +110,7 @@ export class ChannelsController {
 
   @Post('connect-by-url')
   connectByUrl(@Body() dto: ConnectByUrlDto, @CurrentUser() user: JwtPayload) {
-    return this.svc.connectChannelByUrl(user.sub, dto.channelUrl);
+    return this.svc.connectChannelByUrl(user.sub, dto.channelUrl, dto.access);
   }
 
   @Post('connect')

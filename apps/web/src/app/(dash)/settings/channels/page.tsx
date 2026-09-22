@@ -150,12 +150,13 @@ function ChannelCard({ ch, onDisconnect, onRemove, onRefresh, onReconnect, busy 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-gray-900 truncate">{ch.title ?? 'Unknown Channel'}</p>
-            {ch.readOnly ? (
-              <span className="text-xs bg-gray-100 text-gray-600 border border-gray-200 rounded-full px-2 py-0.5">Read-only</span>
-            ) : isActive ? (
+            {isActive ? (
               <span className={`text-xs border rounded-full px-2 py-0.5 ${ACCESS_BADGE[access]}`}>{ACCESS_LABEL[access]}</span>
             ) : (
               <span className="text-xs bg-gray-100 text-gray-500 border border-gray-200 rounded-full px-2 py-0.5">Signed out</span>
+            )}
+            {ch.readOnly && access !== 'READ_ONLY' && (
+              <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">OAuth needed</span>
             )}
           </div>
 
@@ -229,9 +230,9 @@ function ChannelCard({ ch, onDisconnect, onRemove, onRefresh, onReconnect, busy 
               </button>
             )}
 
-            {/* URL-added channel: no Google session exists — prompt a fresh Google sign-in */}
+            {/* URL-added channel: no Google session exists — prompt a fresh Google sign-in at desired access level */}
             {isActive && ch.readOnly && (
-              <button onClick={() => onReconnect('PUBLISH')} disabled={busy}
+              <button onClick={() => onReconnect(access === 'READ_ONLY' ? 'PUBLISH' : access)} disabled={busy}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-sm rounded-xl hover:bg-red-700 disabled:opacity-40 transition-colors">
                 <Youtube className="w-3.5 h-3.5" /> Connect with Google
               </button>

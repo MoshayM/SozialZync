@@ -380,8 +380,8 @@ export class ChannelsService implements OnModuleInit {
     return { success: true };
   }
 
-  async connectChannelByUrl(userId: string, channelUrl: string) {
-    this.logger.log(`[URL] Connecting channel by URL — userId=${userId} url="${channelUrl}"`);
+  async connectChannelByUrl(userId: string, channelUrl: string, access: ChannelAccessLevel = 'READ_ONLY') {
+    this.logger.log(`[URL] Connecting channel by URL — userId=${userId} url="${channelUrl}" access="${access}"`);
 
     const parsed = parseYouTubeChannelInput(channelUrl);
     const apiKey = process.env['YOUTUBE_API_KEY'];
@@ -433,6 +433,7 @@ export class ChannelsService implements OnModuleInit {
 
     this.logger.log(`[URL] Channel found — id="${data.youtubeChannelId}" title="${data.title}"`);
 
+    const desiredScopes = ACCESS_PRESETS[access];
     const now = new Date();
     const saved = await this.prisma.channel.upsert({
       where: { youtubeChannelId: data.youtubeChannelId },
@@ -444,6 +445,7 @@ export class ChannelsService implements OnModuleInit {
         customUrl: data.handle,
         subscriberCount: data.subscriberCount,
         videoCount: data.videoCount,
+        scopes: desiredScopes,
         readOnly: true,
         active: true,
         lastSyncedAt: now,
@@ -455,11 +457,12 @@ export class ChannelsService implements OnModuleInit {
         customUrl: data.handle,
         subscriberCount: data.subscriberCount,
         videoCount: data.videoCount,
+        scopes: desiredScopes,
         active: true,
         lastSyncedAt: now,
       },
     });
-    this.logger.log(`[URL] Read-only channel saved — channelId=${saved.id}`);
+    this.logger.log(`[URL] Channel saved — channelId=${saved.id} access=${access}`);
     return { ...saved, readOnly: true };
   }
 
@@ -477,11 +480,14 @@ export class ChannelsService implements OnModuleInit {
     // exactly what the app is allowed to do with their channel.
     // tokenExpired = active:false AND encryptedTokens was cleared (invalid_grant path).
     // This distinguishes OAuth expiry from a manual disconnect (which keeps encryptedTokens).
-    return rows.map(({ encryptedTokens, ...ch }) => ({
-      ...ch,
-      accessLevel: ch.readOnly ? 'READ_ONLY' : accessLevelFromScopes(ch.scopes ?? []),
-      tokenExpired: !ch.active && !encryptedTokens,
-    }));
+    return rows.map(({ encryptedTokens, ...ch }) => {
+      const lvl = accessLevelFromScopes(ch.scopes ?? []);
+      return {
+        ...ch,
+        accessLevel: lvl === 'NONE' ? 'READ_ONLY' : lvl,
+        tokenExpired: !ch.active && !encryptedTokens,
+      };
+    });
   }
 
   async getStatus(userId: string) {
