@@ -299,15 +299,22 @@ interface SocialRowProps {
 
 function SocialRow({ name, platformKey, icon, status, onDisconnect }: SocialRowProps) {
   const isConnected = status?.connected === true;
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState('');
 
   async function handleConnect() {
     if (typeof window === 'undefined') return;
+    setConnecting(true);
+    setConnectError('');
     try {
       const r = await apiClient.get<{ url: string }>(`/platforms/${platformKey}/auth-url`, {
         params: { returnTo: '/settings/channels?tab=connections' },
       });
       window.location.href = r.data.url;
-    } catch { /* ignore */ }
+    } catch {
+      setConnecting(false);
+      setConnectError(`Could not open ${name} authorization. Please try again.`);
+    }
   }
 
   return (
@@ -322,6 +329,8 @@ function SocialRow({ name, platformKey, icon, status, onDisconnect }: SocialRowP
             <CheckCircle className="w-3 h-3" />
             Connected{status?.accountName ? ` · ${status.accountName}` : ''}
           </p>
+        ) : connectError ? (
+          <p className="text-xs text-red-500 mt-0.5">{connectError}</p>
         ) : (
           <p className="text-xs text-gray-400 mt-0.5">Not connected</p>
         )}
@@ -335,10 +344,12 @@ function SocialRow({ name, platformKey, icon, status, onDisconnect }: SocialRowP
         </button>
       ) : (
         <button
-          onClick={handleConnect}
-          className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-xl hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-colors shrink-0"
+          onClick={() => void handleConnect()}
+          disabled={connecting}
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-sm rounded-xl hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-colors shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <PlusCircle className="w-4 h-4" /> Connect
+          {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
+          {connecting ? 'Opening…' : 'Connect'}
         </button>
       )}
     </div>

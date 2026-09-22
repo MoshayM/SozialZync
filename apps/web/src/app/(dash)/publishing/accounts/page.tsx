@@ -88,36 +88,8 @@ const PLATFORM_META: Record<string, { name: string; color: string; bg: string; i
 };
 
 
-async function startYouTubeOAuth() {
-  try {
-    const r = await apiClient.get<{ url: string }>('/channels/auth-url', {
-      params: { access: 'PUBLISH', returnTo: '/publishing/accounts?connected=1' },
-    });
-    window.location.href = r.data.url;
-  } catch { /* ignore */ }
-}
-
-
-async function startInstagramOAuth() {
-  try {
-    const r = await apiClient.get<{ url: string }>('/platforms/instagram/auth-url', {
-      params: { returnTo: '/publishing/accounts' },
-    });
-    window.location.href = r.data.url;
-  } catch { /* ignore */ }
-}
-
 async function disconnectInstagram() {
   try { await apiClient.delete('/platforms/instagram/disconnect'); } catch { /* ignore */ }
-}
-
-async function startFacebookOAuth() {
-  try {
-    const r = await apiClient.get<{ url: string }>('/platforms/facebook/auth-url', {
-      params: { returnTo: '/publishing/accounts' },
-    });
-    window.location.href = r.data.url;
-  } catch { /* ignore */ }
 }
 
 async function disconnectFacebook() {
@@ -212,6 +184,21 @@ export default function PublishingAccountsPage() {
   const [savedErrorCode, setSavedErrorCode] = useState('');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [guideForPlatform, setGuideForPlatform] = useState<string | null>(null);
+  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
+
+  async function startOAuth(platformKey: string) {
+    setConnectingPlatform(platformKey);
+    try {
+      const endpoint = platformKey === 'youtube'
+        ? { url: '/channels/auth-url', params: { access: 'PUBLISH', returnTo: '/publishing/accounts?connected=1' } }
+        : { url: `/platforms/${platformKey}/auth-url`, params: { returnTo: '/publishing/accounts' } };
+      const r = await apiClient.get<{ url: string }>(endpoint.url, { params: endpoint.params });
+      window.location.href = r.data.url;
+    } catch {
+      setConnectingPlatform(null);
+      setErrorMsg(`Could not open ${platformKey} authorization. Please try again.`);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -361,11 +348,13 @@ export default function PublishingAccountsPage() {
                       </a>
                     ) : (
                       <button
-                        onClick={() => void startYouTubeOAuth()}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0"
+                        onClick={() => void startOAuth('youtube')}
+                        disabled={connectingPlatform === 'youtube'}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0 disabled:opacity-60"
                         style={{ background: '#FF0000' }}
                       >
-                        Connect
+                        {connectingPlatform === 'youtube' ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                        {connectingPlatform === 'youtube' ? 'Opening…' : 'Connect'}
                       </button>
                     )
                   ) : isIG ? (
@@ -381,10 +370,12 @@ export default function PublishingAccountsPage() {
                     ) : (
                       <button
                         onClick={() => setGuideForPlatform('instagram')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0"
+                        disabled={connectingPlatform === 'instagram'}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0 disabled:opacity-60"
                         style={{ background: '#E1306C' }}
                       >
-                        Connect
+                        {connectingPlatform === 'instagram' ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                        {connectingPlatform === 'instagram' ? 'Opening…' : 'Connect'}
                       </button>
                     )
                   ) : isFB ? (
@@ -400,10 +391,12 @@ export default function PublishingAccountsPage() {
                     ) : (
                       <button
                         onClick={() => setGuideForPlatform('facebook')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0"
+                        disabled={connectingPlatform === 'facebook'}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0 disabled:opacity-60"
                         style={{ background: '#1877F2' }}
                       >
-                        Connect
+                        {connectingPlatform === 'facebook' ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                        {connectingPlatform === 'facebook' ? 'Opening…' : 'Connect'}
                       </button>
                     )
                   ) : (
@@ -452,8 +445,7 @@ export default function PublishingAccountsPage() {
           onConfirm={() => {
             const p = guideForPlatform;
             setGuideForPlatform(null);
-            if (p === 'instagram') startInstagramOAuth();
-            else if (p === 'facebook') startFacebookOAuth();
+            void startOAuth(p);
           }}
           onCancel={() => setGuideForPlatform(null)}
         />

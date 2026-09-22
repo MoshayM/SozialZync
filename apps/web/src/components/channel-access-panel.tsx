@@ -109,13 +109,11 @@ const ThreadsIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-async function startPlatformOAuth(platformKey: string) {
-  try {
-    const r = await apiClient.get<{ url: string }>(`/platforms/${platformKey}/auth-url`, {
-      params: { returnTo: '/settings/channels' },
-    });
-    window.location.href = r.data.url;
-  } catch { /* ignore */ }
+async function fetchPlatformOAuthUrl(platformKey: string): Promise<string> {
+  const r = await apiClient.get<{ url: string }>(`/platforms/${platformKey}/auth-url`, {
+    params: { returnTo: '/settings/channels' },
+  });
+  return r.data.url;
 }
 
 const SOCIAL_PLATFORMS: Array<{
@@ -256,7 +254,7 @@ function ConnectGuideModal({
             className="flex-1 px-4 py-2.5 text-white text-sm font-semibold rounded-xl transition-colors"
             style={{ background: guide.ctaColor }}
           >
-            Continue to Facebook →
+            Continue to {platform.name} →
           </button>
         </div>
       </div>
@@ -437,6 +435,18 @@ function ChannelAccessContent() {
   });
 
   const [invalidGrantChannelId, setInvalidGrantChannelId] = useState<string | null>(null);
+  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
+
+  async function startPlatformOAuth(platformKey: string) {
+    setConnectingPlatform(platformKey);
+    try {
+      const url = await fetchPlatformOAuthUrl(platformKey);
+      window.location.href = url;
+    } catch {
+      setConnectingPlatform(null);
+      setBanner({ type: 'error', message: `Could not start ${platformKey} connection. Please try again.` });
+    }
+  }
 
   const refreshTokenMutation = useMutation({
     mutationFn: (channelId: string) => api.channels.refresh(channelId),
@@ -1014,14 +1024,17 @@ function ChannelAccessContent() {
                       </button>
                     ) : p.available ? (
                       <button
+                        disabled={connectingPlatform === p.key}
                         onClick={() => {
                           if (PLATFORM_GUIDE[p.key]) setGuideForPlatform(p.key);
-                          else startPlatformOAuth(p.key);
+                          else void startPlatformOAuth(p.key);
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-300 text-brand-700 text-sm rounded-lg hover:bg-brand-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <PlusCircle className="w-4 h-4" />
-                        Connect
+                        {connectingPlatform === p.key
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <PlusCircle className="w-4 h-4" />}
+                        {connectingPlatform === p.key ? 'Opening…' : 'Connect'}
                       </button>
                     ) : null}
                   </div>
@@ -1090,7 +1103,7 @@ function ChannelAccessContent() {
           onConfirm={() => {
             const key = guideForPlatform;
             setGuideForPlatform(null);
-            startPlatformOAuth(key);
+            void startPlatformOAuth(key);
           }}
           onCancel={() => setGuideForPlatform(null)}
         />
