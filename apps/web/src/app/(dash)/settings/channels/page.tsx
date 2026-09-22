@@ -826,14 +826,21 @@ function ChannelsInner() {
                           </button>
                         ))}
                       </div>
-                      <select
-                        value={videoSort}
-                        onChange={e => setVideoSort(e.target.value as VideoSort)}
-                        className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 bg-white"
-                      >
-                        <option value="recent">Recent first</option>
-                        <option value="title">Title A–Z</option>
-                      </select>
+                      <div className="flex gap-1">
+                        {([
+                          { value: 'recent', label: 'Recent' },
+                          { value: 'title',  label: 'A–Z'    },
+                        ] as { value: VideoSort; label: string }[]).map(s => (
+                          <button key={s.value} type="button" onClick={() => setVideoSort(s.value)}
+                            className={`px-3 py-2 text-sm font-medium rounded-xl transition-all ${
+                              videoSort === s.value
+                                ? 'bg-[#374151] text-white'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}>
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     {videosLoading ? (
                       <div className="flex justify-center py-16">
