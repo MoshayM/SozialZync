@@ -79,6 +79,32 @@ const BOTTOM_ITEMS: NavItem[] = [
   { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];
 
+/* Every searchable destination in the app — used by the quick search */
+const ALL_SEARCHABLE_PAGES: NavItem[] = [
+  { href: '/home',              icon: Home,           label: 'Home' },
+  { href: '/projects',          icon: FolderOpen,     label: 'Projects' },
+  { href: '/editor',            icon: Film,           label: 'Video Editing' },
+  { href: '/shorts-studio',     icon: Scissors,       label: 'Shorts Studio' },
+  { href: '/studio',            icon: Layers,         label: 'Studio' },
+  { href: '/content',           icon: Compass,        label: 'Content Studio' },
+  { href: '/repurpose',         icon: ArrowRightLeft, label: 'Repurpose Content' },
+  { href: '/studio/music',      icon: Sparkles,       label: 'Music Library' },
+  { href: '/calendar',          icon: Calendar,       label: 'Content Calendar' },
+  { href: '/publish',           icon: Upload,         label: 'Publish Hub' },
+  { href: '/library',           icon: BookOpen,       label: 'Library' },
+  { href: '/approvals',         icon: ShieldCheck,    label: 'Approvals' },
+  { href: '/insights',          icon: BarChart2,      label: 'Analytics' },
+  { href: '/automation',        icon: Zap,            label: 'Automation' },
+  { href: '/browse',            icon: Globe,          label: 'Public Feed' },
+  { href: '/watch-history',     icon: History,        label: 'Watch History' },
+  { href: '/settings',          icon: Settings,       label: 'Settings' },
+  { href: '/settings/channels', icon: Link2,          label: 'Channel Settings' },
+  { href: '/brand-kit',         icon: Palette,        label: 'Brand Kit' },
+  { href: '/wallet',            icon: Wallet,         label: 'Earnings' },
+  { href: '/plans',             icon: Crown,          label: 'Plans' },
+  { href: '/guide',             icon: HelpCircle,     label: 'Guide' },
+];
+
 /* Mobile bottom nav — 2 left + Create CTA (true centre) + 1 right + More */
 const MOBILE_NAV_LEFT = [
   { href: '/home',     icon: Home,       label: 'Home' },
@@ -458,7 +484,6 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState('');
   const [activeResultIdx, setActiveResultIdx] = useState(-1);
-  const [recentPages, setRecentPages] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isOffline, setIsOffline] = useState(false);
 
@@ -503,29 +528,6 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   /* Close mobile drawer on route change */
   useEffect(() => {
     setMobileMenuOpen(false);
-  }, [pathname]);
-
-  /* Load recent pages from localStorage on mount */
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('cf_recent_pages');
-      setRecentPages(stored ? JSON.parse(stored) as string[] : []);
-    } catch { /* ignore */ }
-  }, []);
-
-  /* Track visited nav pages automatically via pathname changes */
-  useEffect(() => {
-    const allItems = [...NAV_SECTIONS.flatMap(s => s.items), ...BOTTOM_ITEMS];
-    const item = allItems.find(i => {
-      if (i.href === '/studio') return pathname === '/studio' || pathname.startsWith('/studio/') || pathname.startsWith('/shorts-studio');
-      return pathname === i.href || pathname.startsWith(i.href + '/');
-    });
-    if (!item) return;
-    setRecentPages(prev => {
-      const next = [item.href, ...prev.filter(h => h !== item.href)].slice(0, 5);
-      try { localStorage.setItem('cf_recent_pages', JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
   }, [pathname]);
 
   /* ⌘K / Ctrl+K — focus sidebar search from anywhere in the dashboard */
@@ -664,8 +666,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
     // ── Filtered view when search is active ──────────────────────────────────
     if (q && !opts.collapsed) {
-      const allItems = NAV_SECTIONS.flatMap(s => s.items);
-      const matches = allItems.filter(i => i.label.toLowerCase().includes(q));
+      const matches = ALL_SEARCHABLE_PAGES.filter(i => i.label.toLowerCase().includes(q));
       if (matches.length === 0) {
         return (
           <div style={{ padding: '20px 12px', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>
@@ -1224,8 +1225,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                   onChange={e => { setSidebarSearch(e.target.value); setActiveResultIdx(-1); }}
                   onKeyDown={e => {
                     const q2 = sidebarSearch.trim().toLowerCase();
-                    const allItems = NAV_SECTIONS.flatMap(s => s.items);
-                    const ms = q2 ? allItems.filter(i => i.label.toLowerCase().includes(q2)) : [];
+                    const ms = q2 ? ALL_SEARCHABLE_PAGES.filter(i => i.label.toLowerCase().includes(q2)) : [];
                     if (e.key === 'ArrowDown') {
                       e.preventDefault();
                       setActiveResultIdx(i => Math.min(i + 1, ms.length - 1));
@@ -1284,39 +1284,6 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 )}
               </div>
             )}
-            {/* Recent pages — shown when sidebar is expanded and search is empty */}
-            {!sidebarCollapsed && !sidebarSearch && recentPages.length > 0 && (() => {
-              const allItems = [...NAV_SECTIONS.flatMap(s => s.items), ...BOTTOM_ITEMS];
-              const recent = recentPages.map(href => allItems.find(i => i.href === href)).filter(Boolean) as typeof allItems;
-              if (recent.length === 0) return null;
-              return (
-                <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #f3f4f6' }}>
-                  <p style={{ padding: '2px 12px 5px', fontSize: '10.5px', fontWeight: 600, letterSpacing: '.07em', color: '#9ca3af', textTransform: 'uppercase' }}>Recent</p>
-                  {recent.map(item => {
-                    const Icon = item.icon;
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                    return (
-                      <Link key={item.href} href={item.href} className="flex items-center"
-                        style={{
-                          gap: '11px', padding: '8px 12px', borderRadius: '11px',
-                          fontSize: '13.5px', fontWeight: isActive ? 600 : 500,
-                          textDecoration: 'none',
-                          background: isActive ? '#f3f4f6' : 'transparent',
-                          color: isActive ? '#111827' : '#374151',
-                          transition: 'background 180ms ease',
-                        }}
-                        onClick={() => setMobileMenuOpen(false)}
-                        onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#f3f4f6'; }}
-                        onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                      >
-                        <Icon style={{ width: '16px', height: '16px', flexShrink: 0, color: isActive ? '#111827' : '#9ca3af' }} />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              );
-            })()}
             {renderNavSections({
               collapsed: sidebarCollapsed,
               onNavClick: () => setMobileMenuOpen(false),
