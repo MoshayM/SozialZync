@@ -1984,7 +1984,7 @@ const ALL_PLATFORMS = [
   { id: 'tiktok',   name: 'TikTok',     color: '#010101', bg: '#f9fafb', initials: 'TK',  available: false },
   { id: 'facebook',  name: 'Facebook',   color: '#1877F2', bg: '#eff6ff', initials: 'FB',  available: false },
   { id: 'linkedin',  name: 'LinkedIn',   color: '#0A66C2', bg: '#eff6ff', initials: 'LI',  available: true  },
-  { id: 'x',         name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X', available: false },
+  { id: 'x',         name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X', available: true  },
 ] as const;
 
 function MultiPublishModal({ videoTitle, channelConnected, tiktokAvailable, onYouTube, onConnectYouTube, onClose }: MultiPublishModalProps) {

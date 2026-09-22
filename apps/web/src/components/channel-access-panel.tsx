@@ -128,7 +128,7 @@ const SOCIAL_PLATFORMS: Array<{
   { key: 'facebook',  name: 'Facebook',   icon: Facebook,     tile: 'bg-blue-50',       color: 'text-blue-600',  note: 'Pages & Reels publishing',        available: true  },
   { key: 'instagram', name: 'Instagram',  icon: Instagram,    tile: 'bg-pink-50',        color: 'text-pink-600',  note: 'Reels & Stories publishing',                              available: true  },
   { key: 'tiktok',    name: 'TikTok',     icon: Music2,       tile: 'bg-gray-100',       color: 'text-gray-900',  note: 'Video publishing & analytics',    available: false },
-  { key: 'x',         name: 'X (Twitter)',icon: XIcon,        tile: 'bg-black',          color: 'text-white',     note: 'Post & thread publishing',        available: false },
+  { key: 'x',         name: 'X (Twitter)',icon: XIcon,        tile: 'bg-black',          color: 'text-white',     note: 'Post & thread publishing',        available: true  },
   { key: 'linkedin',  name: 'LinkedIn',   icon: LinkedInIcon, tile: 'bg-[#0A66C2]',      color: 'text-white',     note: 'Article & video publishing',      available: true  },
   { key: 'threads',   name: 'Threads',    icon: ThreadsIcon,  tile: 'bg-black',          color: 'text-white',     note: 'Short-form post publishing',      available: false },
 ];

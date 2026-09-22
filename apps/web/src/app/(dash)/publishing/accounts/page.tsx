@@ -10,6 +10,8 @@ const OAUTH_ERRORS: Record<string, string> = {
   no_instagram_business_account: 'Your Instagram account must be a Business or Creator account linked to a Facebook Page. Go to Instagram → Settings → Account → Switch to Professional Account, then retry.',
   instagram_auth_failed: 'Instagram connection failed. Please try again.',
   facebook_auth_failed: 'Facebook connection failed. Please try again.',
+  x_auth_failed: 'X (Twitter) connection failed. Please try again.',
+  linkedin_auth_failed: 'LinkedIn connection failed. Please try again.',
   invalid_state: 'Session expired. Please try connecting again.',
   access_denied: 'Connection cancelled.',
 };
@@ -84,7 +86,7 @@ const PLATFORM_META: Record<string, { name: string; color: string; bg: string; i
   tiktok:    { name: 'TikTok',      color: '#010101', bg: '#f9fafb', initials: 'TK', available: false },
   facebook:  { name: 'Facebook',    color: '#1877F2', bg: '#eff6ff', initials: 'FB', available: true  },
   linkedin:  { name: 'LinkedIn',    color: '#0A66C2', bg: '#eff6ff', initials: 'LI', available: true  },
-  x:         { name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X',  available: false },
+  x:         { name: 'X (Twitter)', color: '#000000', bg: '#f9fafb', initials: 'X',  available: true  },
 };
 
 
@@ -323,6 +325,7 @@ export default function PublishingAccountsPage() {
             const isIG = platformId === 'instagram';
             const isFB = platformId === 'facebook';
             const isTK = platformId === 'tiktok';
+            const isX  = platformId === 'x';
             const isAvailable = isTK ? tiktokAvailable : meta.available;
 
             return (
@@ -418,6 +421,16 @@ export default function PublishingAccountsPage() {
                     >
                       {connectingPlatform === 'tiktok' ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                       {connectingPlatform === 'tiktok' ? 'Opening…' : 'Connect'}
+                    </button>
+                  ) : isX && meta.available ? (
+                    <button
+                      onClick={() => void startOAuth('x')}
+                      disabled={connectingPlatform === 'x'}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0 disabled:opacity-60"
+                      style={{ background: '#000000' }}
+                    >
+                      {connectingPlatform === 'x' ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                      {connectingPlatform === 'x' ? 'Opening…' : 'Connect'}
                     </button>
                   ) : (
                     <span className="text-[11px] bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full font-semibold shrink-0">Soon</span>
