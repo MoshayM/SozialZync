@@ -10,6 +10,7 @@ import {
   WifiOff, Layers, Link2, Plus, Sparkles, Compass,
   Calendar, FlaskConical, Shield, Scissors,
   ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity, Globe, History,
+  Mic,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { UpgradeSheet } from '@/components/plan-gate';
@@ -81,28 +82,55 @@ const BOTTOM_ITEMS: NavItem[] = [
 
 /* Every searchable destination in the app — used by the quick search */
 const ALL_SEARCHABLE_PAGES: NavItem[] = [
-  { href: '/home',              icon: Home,           label: 'Home' },
-  { href: '/projects',          icon: FolderOpen,     label: 'Projects' },
-  { href: '/editor',            icon: Film,           label: 'Video Editing' },
-  { href: '/shorts-studio',     icon: Scissors,       label: 'Shorts Studio' },
-  { href: '/studio',            icon: Layers,         label: 'Studio' },
-  { href: '/content',           icon: Compass,        label: 'Content Studio' },
-  { href: '/repurpose',         icon: ArrowRightLeft, label: 'Repurpose Content' },
-  { href: '/studio/music',      icon: Sparkles,       label: 'Music Library' },
-  { href: '/calendar',          icon: Calendar,       label: 'Content Calendar' },
-  { href: '/publish',           icon: Upload,         label: 'Publish Hub' },
-  { href: '/library',           icon: BookOpen,       label: 'Library' },
-  { href: '/approvals',         icon: ShieldCheck,    label: 'Approvals' },
-  { href: '/insights',          icon: BarChart2,      label: 'Analytics' },
-  { href: '/automation',        icon: Zap,            label: 'Automation' },
-  { href: '/browse',            icon: Globe,          label: 'Public Feed' },
-  { href: '/watch-history',     icon: History,        label: 'Watch History' },
-  { href: '/settings',          icon: Settings,       label: 'Settings' },
-  { href: '/settings/channels', icon: Link2,          label: 'Channel Settings' },
-  { href: '/brand-kit',         icon: Palette,        label: 'Brand Kit' },
-  { href: '/wallet',            icon: Wallet,         label: 'Earnings' },
-  { href: '/plans',             icon: Crown,          label: 'Plans' },
-  { href: '/guide',             icon: HelpCircle,     label: 'Guide' },
+  // Core
+  { href: '/home',                  icon: Home,           label: 'Home' },
+  { href: '/projects',              icon: FolderOpen,     label: 'Projects' },
+  // Create
+  { href: '/editor',                icon: Film,           label: 'Video Editing' },
+  { href: '/shorts-studio',         icon: Scissors,       label: 'Shorts Studio' },
+  { href: '/content',               icon: Compass,        label: 'Content Studio' },
+  { href: '/repurpose',             icon: ArrowRightLeft, label: 'Repurpose Content' },
+  { href: '/research',              icon: BookOpen,       label: 'Research' },
+  { href: '/series-planner',        icon: ListOrdered,    label: 'Series Planner' },
+  { href: '/score-script',          icon: Award,          label: 'Script Scorer' },
+  { href: '/discover',              icon: Compass,        label: 'Discover' },
+  // Studio
+  { href: '/studio',                icon: Layers,         label: 'Studio' },
+  { href: '/studio/assets',         icon: Layers,         label: 'Image Library' },
+  { href: '/studio/assets',         icon: Sparkles,       label: 'AI Thumbnails' },
+  { href: '/studio/characters',     icon: Bot,            label: 'Characters' },
+  { href: '/studio/audio',          icon: Mic,            label: 'Audio Studio' },
+  { href: '/studio/voices',         icon: Mic,            label: 'AI Voices' },
+  { href: '/studio/music',          icon: Sparkles,       label: 'Music Library' },
+  // Publish Hub
+  { href: '/publish',               icon: Upload,         label: 'Publish Hub' },
+  { href: '/publish',               icon: Sparkles,       label: 'AI Planner' },
+  { href: '/publish',               icon: Calendar,       label: 'Publish Center' },
+  { href: '/ab-testing',            icon: FlaskConical,   label: 'A/B Testing' },
+  { href: '/publishing',            icon: Upload,         label: 'Publishing Tracker' },
+  { href: '/calendar',              icon: Calendar,       label: 'Content Calendar' },
+  { href: '/library',               icon: BookOpen,       label: 'Library' },
+  { href: '/approvals',             icon: ShieldCheck,    label: 'Approvals' },
+  // Insights Hub
+  { href: '/insights',              icon: BarChart2,      label: 'Insights Hub' },
+  { href: '/analytics',             icon: BarChart2,      label: 'Analytics' },
+  { href: '/strategy',              icon: Target,         label: 'Strategy' },
+  { href: '/growth',                icon: Gift,           label: 'Growth' },
+  { href: '/monitor',               icon: Activity,       label: 'Monitor' },
+  // Automation
+  { href: '/automation',            icon: Zap,            label: 'Automation' },
+  { href: '/autonomy',              icon: Sparkles,       label: 'AI Autopilot' },
+  // Explore
+  { href: '/browse',                icon: Globe,          label: 'Public Feed' },
+  { href: '/watch-history',         icon: History,        label: 'Watch History' },
+  // Account & Settings
+  { href: '/settings',              icon: Settings,       label: 'Settings' },
+  { href: '/settings/channels',     icon: Link2,          label: 'Channel Settings' },
+  { href: '/brand-kit',             icon: Palette,        label: 'Brand Kit' },
+  { href: '/wallet',                icon: Wallet,         label: 'Earnings' },
+  { href: '/plans',                 icon: Crown,          label: 'Plans' },
+  { href: '/guide',                 icon: HelpCircle,     label: 'Guide' },
+  { href: '/copilot',               icon: Bot,            label: 'AI Copilot' },
 ];
 
 /* Mobile bottom nav — 2 left + Create CTA (true centre) + 1 right + More */
