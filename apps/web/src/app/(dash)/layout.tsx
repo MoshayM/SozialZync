@@ -10,7 +10,7 @@ import {
   WifiOff, Layers, Link2, Plus, Sparkles, Compass,
   Calendar, FlaskConical, Shield, Scissors,
   ArrowRightLeft, ListOrdered, Award, BookOpen, Gift, Target, Activity, Globe, History,
-  Mic,
+  Mic, Code,
 } from 'lucide-react';
 import { CopilotPanel } from '@/components/copilot-panel';
 import { UpgradeSheet } from '@/components/plan-gate';
@@ -123,14 +123,30 @@ const ALL_SEARCHABLE_PAGES: NavItem[] = [
   // Explore
   { href: '/browse',                icon: Globe,          label: 'Public Feed' },
   { href: '/watch-history',         icon: History,        label: 'Watch History' },
-  // Account & Settings
-  { href: '/settings',              icon: Settings,       label: 'Settings' },
-  { href: '/settings/channels',     icon: Link2,          label: 'Channel Settings' },
-  { href: '/brand-kit',             icon: Palette,        label: 'Brand Kit' },
-  { href: '/wallet',                icon: Wallet,         label: 'Earnings' },
-  { href: '/plans',                 icon: Crown,          label: 'Plans' },
-  { href: '/guide',                 icon: HelpCircle,     label: 'Guide' },
-  { href: '/copilot',               icon: Bot,            label: 'AI Copilot' },
+  // Account & Notifications
+  { href: '/notifications',                icon: Bell,          label: 'Notifications' },
+  { href: '/orgs',                         icon: Building2,     label: 'Organization' },
+  { href: '/channel-access',               icon: Shield,        label: 'Channel Access' },
+  { href: '/developer',                    icon: Code,          label: 'Developer Portal' },
+  // Publishing sub-pages
+  { href: '/publishing/accounts',          icon: Link2,         label: 'Connected Accounts' },
+  // Settings
+  { href: '/settings',                     icon: Settings,      label: 'Settings' },
+  { href: '/settings/channels',            icon: Link2,         label: 'Channel Settings' },
+  { href: '/settings/ai-providers',        icon: Bot,           label: 'AI Providers' },
+  { href: '/settings/ai-infrastructure',   icon: Sparkles,      label: 'AI Cost Control' },
+  { href: '/settings/models',              icon: Sparkles,      label: 'AI Models' },
+  { href: '/settings/gpu',                 icon: Zap,           label: 'GPU & Hardware' },
+  { href: '/settings/provider-health',     icon: Activity,      label: 'Provider Health' },
+  { href: '/settings/queue',               icon: ListOrdered,   label: 'Queue Manager' },
+  { href: '/settings/storage',             icon: Layers,        label: 'Storage' },
+  // Account
+  { href: '/brand-kit',                    icon: Palette,       label: 'Brand Kit' },
+  { href: '/wallet',                       icon: Wallet,        label: 'Earnings' },
+  { href: '/plans',                        icon: Crown,         label: 'Plans' },
+  { href: '/guide',                        icon: HelpCircle,    label: 'Guide' },
+  { href: '/guide/self-hosted',            icon: HelpCircle,    label: 'Self-Hosted AI Guide' },
+  { href: '/copilot',                      icon: Bot,           label: 'AI Copilot' },
 ];
 
 /* Mobile bottom nav — 2 left + Create CTA (true centre) + 1 right + More */
