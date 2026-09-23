@@ -1462,23 +1462,13 @@ function PreviewLoadingOverlay({ playing, onToggle }: { playing: boolean; onTogg
 
 // ── Circular progress ring ────────────────────────────────────────────────────
 
-function CircularProgress({
-  pct,
-  size = 40,
-  playing,
-  onToggle,
-}: {
-  pct: number;
-  size?: number;
-  playing?: boolean;
-  onToggle?: () => void;
-}) {
+function CircularProgress({ pct, size = 36 }: { pct: number; size?: number }) {
   const r = (size - 4) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - Math.min(100, Math.max(0, pct)) / 100);
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2.5" />
         <circle
           cx={size / 2} cy={size / 2} r={r}
@@ -1491,24 +1481,12 @@ function CircularProgress({
           style={{ transition: 'stroke-dashoffset 0.25s ease-out' }}
         />
       </svg>
-      {onToggle != null ? (
-        <button
-          onClick={onToggle}
-          className="absolute inset-0 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-          aria-label={playing ? 'Pause' : 'Play'}
-        >
-          {playing
-            ? <Pause className="text-white" style={{ width: size * 0.38, height: size * 0.38 }} />
-            : <Play className="text-white" style={{ width: size * 0.38, height: size * 0.38 }} />}
-        </button>
-      ) : (
-        <span
-          className="absolute inset-0 flex items-center justify-center font-bold text-white"
-          style={{ fontSize: size <= 28 ? 7 : 9, letterSpacing: '-0.3px' }}
-        >
-          {Math.min(99, Math.round(pct))}
-        </span>
-      )}
+      <span
+        className="absolute inset-0 flex items-center justify-center font-bold text-white"
+        style={{ fontSize: 8, letterSpacing: '-0.3px' }}
+      >
+        {Math.min(99, Math.round(pct))}%
+      </span>
     </div>
   );
 }
@@ -1518,14 +1496,10 @@ function CircularProgress({
 function StatusTray({
   toasts,
   savePct,
-  playing,
-  onTogglePlay,
   onDismiss,
 }: {
   toasts: Array<{ id: string; label: string; status: 'pending' | 'success' | 'error'; message?: string }>;
   savePct: number;
-  playing: boolean;
-  onTogglePlay: () => void;
   onDismiss: (id: string) => void;
 }) {
   if (toasts.length === 0) return null;
@@ -1541,7 +1515,7 @@ function StatusTray({
           }`}
         >
           <span className="shrink-0">
-            {t.status === 'pending' && <CircularProgress pct={savePct} playing={playing} onToggle={onTogglePlay} />}
+            {t.status === 'pending' && <CircularProgress pct={savePct} />}
             {t.status === 'success' && <CheckCircle2 className="w-4 h-4 text-green-400" />}
             {t.status === 'error' && <AlertCircle className="w-4 h-4 text-red-400" />}
           </span>
@@ -4269,8 +4243,10 @@ export default function EditorWorkspacePage() {
     });
     setDirty(true);
     setShowSnapshots(false);
-    addToast(`snap-load-${Date.now()}`, `Loaded "${s.name}"`);
-  }, [addToast]);
+    const loadId = `snap-load-${Date.now()}`;
+    addToast(loadId, `Loaded "${s.name}"`);
+    updateToast(loadId, 'success');
+  }, [addToast, updateToast]);
 
   const handleDeleteSnapshot = useCallback((id: string) => {
     if (!window.confirm('Delete this saved version? It will be permanently removed from Private Drafts and My Content.')) return;
@@ -4284,6 +4260,8 @@ export default function EditorWorkspacePage() {
   }, [editId]);
 
   const handleMoveSnapshot = useCallback(async (s: SnapshotEntry) => {
+    const id = `snap-moved-${Date.now()}`;
+    addToast(id, `Moving "${s.name}" to Private Content…`);
     try {
       await api.editor.setStatus(editId, 'PRIVATE_CONTENT');
       setSnapshots((prev) => {
@@ -4293,11 +4271,11 @@ export default function EditorWorkspacePage() {
         try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* */ }
         return next;
       });
-      addToast(`snap-moved-${Date.now()}`, `"${s.name}" moved to Private Content`);
+      updateToast(id, 'success', `"${s.name}" moved to Private Content`);
     } catch {
-      addToast(`snap-move-err-${Date.now()}`, 'Failed to move to Private Content');
+      updateToast(id, 'error', 'Failed to move to Private Content');
     }
-  }, [editId, addToast]);
+  }, [editId, addToast, updateToast]);
 
   const handleAddTrack = useCallback((kind: 'VIDEO' | 'AUDIO') => {
     updateTimeline((tl) => {
@@ -5711,7 +5689,7 @@ export default function EditorWorkspacePage() {
       )}
 
       {/* Background-operation status tray */}
-      <StatusTray toasts={toasts} savePct={barPct} playing={playing} onTogglePlay={() => playing ? stopPlay() : startPlay()} onDismiss={dismissToast} />
+      <StatusTray toasts={toasts} savePct={barPct} onDismiss={dismissToast} />
     </div>
   );
 }
