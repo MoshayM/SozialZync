@@ -306,24 +306,27 @@ export function MyContentSection() {
       {!showSkeleton && !isError && items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item, i) => {
-            const isDraft = item.source === 'edit_draft';
+            // A draft with a completed render is treated as a playable video
+            const isUnrenderedDraft = item.source === 'edit_draft' && !item.playUrl;
+            const isDraft = item.source === 'edit_draft'; // for badge / action display
+            const canPlay = !!item.playUrl;
             return (
               <div key={item.id}
                 className="rounded-2xl overflow-hidden group relative transition-all hover:-translate-y-0.5"
                 style={{
                   background: '#fff',
-                  border: isDraft ? '1.5px solid #fde68a' : '1.5px solid #e3ddf8',
+                  border: isUnrenderedDraft ? '1.5px solid #fde68a' : '1.5px solid #e3ddf8',
                   boxShadow: '0 1px 4px rgba(0,0,0,.04)',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isDraft ? '#f59e0b' : 'rgba(55,65,81,.35)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isDraft ? '#fde68a' : '#e3ddf8'; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isUnrenderedDraft ? '#f59e0b' : 'rgba(55,65,81,.35)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isUnrenderedDraft ? '#fde68a' : '#e3ddf8'; }}
               >
                 {/* Thumbnail */}
                 <div className="aspect-video relative flex items-center justify-center overflow-hidden"
                   style={{ background: item.thumbnailUrl ? undefined : placeholderGrad(i) }}>
                   {item.thumbnailUrl
                     ? <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                    : <span className="text-3xl">{isDraft ? '📝' : placeholderIcon(i)}</span>
+                    : <span className="text-3xl">{isUnrenderedDraft ? '📝' : placeholderIcon(i)}</span>
                   }
                   {fmtDuration(item.duration) && (
                     <span className="absolute bottom-1.5 right-1.5 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-md"
@@ -331,15 +334,21 @@ export function MyContentSection() {
                       {fmtDuration(item.duration)}
                     </span>
                   )}
-                  {/* Play overlay — only for non-drafts */}
-                  {!isDraft && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ background: 'rgba(0,0,0,.35)' }}>
+                  {/* Play overlay — for any item that has a playable URL */}
+                  {canPlay && (
+                    <a
+                      href={item.playUrl!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: 'rgba(0,0,0,.35)' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="w-10 h-10 rounded-full flex items-center justify-center"
                         style={{ background: 'rgba(255,255,255,.9)' }}>
                         <Play className="w-4 h-4 text-gray-800 ml-0.5" />
                       </div>
-                    </div>
+                    </a>
                   )}
                   {/* Context menu */}
                   <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">

@@ -6,6 +6,7 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { signMedia, signingSecret } from '../media/signed-url.util';
 
 // @reason: EditProject is not in the generated Prisma client yet — accessed via dynamic key
 const ep = (p: PrismaService) => (p as unknown as Record<string, unknown>)['editProject'] as {
@@ -20,9 +21,21 @@ interface EditProjectRow {
   projectId: string;
   title: string;
   status: string;
+  renderAssetId: string | null;
+  renderStatus: string;
+  durationMs: number;
   updatedAt: Date;
   createdAt: Date;
-  project?: { userId: string };
+  project?: {
+    userId: string;
+    importedVideos?: { thumbnailUrl: string | null }[];
+  };
+}
+
+function makeVersionSignedUrl(versionId: string): string {
+  const exp = Math.floor(Date.now() / 1000) + 3600; // 1-hour TTL
+  const sig = signMedia(`version:${versionId}`, exp, signingSecret());
+  return `/api/v1/media/versions/${versionId}/file?exp=${exp}&sig=${sig}`;
 }
 
 @ApiTags('my-content')
@@ -47,6 +60,7 @@ export class MyContentController {
       title: string;
       type: string;
       thumbnailUrl: string | null;
+      playUrl: string | null;
       isPublic: boolean;
       shareUrl: string | null;
       duration: number | null;
@@ -85,6 +99,7 @@ export class MyContentController {
           title: p.title,
           type: 'VIDEO',
           thumbnailUrl: null,
+          playUrl: null,
           isPublic: false,
           shareUrl: null,
           duration: p.renders[0]?.durationMs != null ? Math.round(p.renders[0].durationMs / 1000) : null,
@@ -110,26 +125,61 @@ export class MyContentController {
         project: { userId: user.sub },
         ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}),
       },
-      include: { project: true },
+      include: {
+        project: {
+          include: {
+            // Grab the first imported video thumbnail as a proxy for the source clip
+            importedVideos: {
+              where: { thumbnailUrl: { not: null } },
+              take: 1,
+              select: { thumbnailUrl: true },
+            },
+          },
+        },
+      },
       orderBy: { updatedAt: 'desc' },
       take: limit,
-    })) as (EditProjectRow & { project: { userId: string } })[];
+    })) as EditProjectRow[];
 
-    for (const ep of editDrafts) {
+    // Batch-fetch the latest render asset version for items with a completed render
+    const renderAssetIds = editDrafts
+      .filter((e) => e.renderStatus === 'READY' && e.renderAssetId)
+      .map((e) => e.renderAssetId as string);
+
+    // assetId → versionId (latest version only)
+    const renderVersionMap = new Map<string, string>();
+    if (renderAssetIds.length > 0) {
+      const versions = await this.prisma.assetVersion.findMany({
+        where: { assetId: { in: renderAssetIds } },
+        orderBy: { version: 'desc' },
+        select: { id: true, assetId: true },
+      });
+      for (const v of versions) {
+        if (!renderVersionMap.has(v.assetId)) renderVersionMap.set(v.assetId, v.id);
+      }
+    }
+
+    for (const e of editDrafts) {
+      const hasRender = e.renderStatus === 'READY' && !!e.renderAssetId;
+      const versionId = e.renderAssetId ? renderVersionMap.get(e.renderAssetId) : undefined;
+      const playUrl = hasRender && versionId ? makeVersionSignedUrl(versionId) : null;
+      const sourceThumbnail = e.project?.importedVideos?.[0]?.thumbnailUrl ?? null;
+
       items.push({
-        id: ep.id,
-        title: ep.title,
-        type: 'DRAFT',
-        thumbnailUrl: null,
-        isPublic: ep.status === 'PUBLIC_CONTENT',
+        id: e.id,
+        title: e.title,
+        type: hasRender ? 'VIDEO' : 'DRAFT',
+        thumbnailUrl: sourceThumbnail,
+        playUrl,
+        isPublic: e.status === 'PUBLIC_CONTENT',
         shareUrl: null,
-        duration: null,
+        duration: e.durationMs ? Math.round(e.durationMs / 1000) : null,
         viewCount: null,
-        createdAt: ep.createdAt.toISOString(),
-        updatedAt: ep.updatedAt.toISOString(),
-        projectId: ep.projectId,
+        createdAt: e.createdAt.toISOString(),
+        updatedAt: e.updatedAt.toISOString(),
+        projectId: e.projectId,
         source: 'edit_draft',
-        editId: ep.id,
+        editId: e.id,
       });
     }
 

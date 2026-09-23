@@ -1611,6 +1611,7 @@ export interface MyContentItem {
   title: string;
   type: 'VIDEO' | 'SHORT' | 'REEL' | 'IMAGE' | 'DRAFT' | string;
   thumbnailUrl: string | null;
+  playUrl: string | null;
   isPublic: boolean;
   shareUrl: string | null;
   duration: number | null;
