@@ -80,7 +80,7 @@ export class TranscriptService {
       const hasWhisper = !!process.env['OPENAI_API_KEY'];
       throw new TranscriptionError(
         hasWhisper
-          ? 'No caption track found for this video (checked YouTube captions and public auto-captions). Speech-to-text also failed — ensure the video source file is accessible.'
+          ? 'No caption track found for this video (checked YouTube captions and public auto-captions). Speech-to-text (Whisper) also failed — check Railway logs for the specific error (timeout, API key, or connectivity).'
           : 'No caption track found for this video. Set OPENAI_API_KEY in your environment to enable speech-to-text (Whisper) as a fallback.',
       );
     }
@@ -133,8 +133,10 @@ export class TranscriptService {
       const cues: TranscriptCueDTO[] = [];
       let offsetMs = 0;
       for (let i = 0; i < chunks.length; i++) {
-        onLog?.(`Transcribing audio ${i + 1}/${chunks.length} (Whisper)…`);
         const audio = await fsp.readFile(path.join(tmpDir, chunks[i]!));
+        const sizeMb = (audio.length / 1024 / 1024).toFixed(1);
+        onLog?.(`Transcribing audio ${i + 1}/${chunks.length} (${sizeMb} MB, Whisper)…`);
+        this.logger.log(`Whisper chunk ${i + 1}/${chunks.length}: ${sizeMb} MB`);
         if (audio.length > 25 * 1024 * 1024) {
           this.logger.warn(`Chunk ${chunks[i]} exceeds Whisper's 25 MB limit — skipping`);
           offsetMs += 1_200_000;
@@ -145,8 +147,10 @@ export class TranscriptService {
         form.append('model', 'whisper-1');
         form.append('response_format', 'verbose_json');
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+        // 15 min: upload + OpenAI processing for a 20-min chunk can be slow on Railway
+        const timeoutId = setTimeout(() => controller.abort(), 15 * 60 * 1000);
         let res: Response;
+        const chunkStart = Date.now();
         try {
           res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
@@ -155,18 +159,21 @@ export class TranscriptService {
             signal: controller.signal,
           });
         } catch (fetchErr) {
+          const elapsed = Math.round((Date.now() - chunkStart) / 1000);
           const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
-          this.logger.warn(`Whisper API network error on chunk ${i + 1}: ${msg}`);
-          onLog?.(`Warning: Whisper network error on chunk ${i + 1} — ${msg}`);
+          const isTimeout = msg.includes('aborted') || msg.includes('abort');
+          this.logger.warn(`Whisper chunk ${i + 1} ${isTimeout ? 'timed out' : 'network error'} after ${elapsed}s: ${msg}`);
+          onLog?.(`Warning: Whisper ${isTimeout ? 'timed out' : 'network error'} on chunk ${i + 1} (${elapsed}s elapsed)`);
           return cues.length > 0 ? cues : null;
         } finally {
           clearTimeout(timeoutId);
         }
         if (!res.ok) {
           const body = await res.text().catch(() => '');
-          this.logger.warn(`Whisper API error ${res.status}: ${body.slice(0, 300)}`);
+          this.logger.warn(`Whisper API error ${res.status} on chunk ${i + 1}: ${body.slice(0, 300)}`);
           return cues.length > 0 ? cues : null;
         }
+        this.logger.log(`Whisper chunk ${i + 1} done in ${Math.round((Date.now() - chunkStart) / 1000)}s`);
         const json = (await res.json()) as { segments?: WhisperSegment[]; duration?: number };
         for (const s of json.segments ?? []) {
           if (s.text.trim().length === 0) continue;

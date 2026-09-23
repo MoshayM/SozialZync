@@ -52,7 +52,7 @@ const CODE_COPY: Record<JobErrorCode, ErrorCopy> = {
   TRANSCRIPTION_FAILED: {
     title: 'Transcript generation failed',
     desc: null, // use job error sentence — it explains the specific reason
-    fix: 'If this video has no captions, set OPENAI_API_KEY in your server environment to enable Whisper speech-to-text as a fallback.',
+    fix: 'If this video has no captions, verify OPENAI_API_KEY is set in your Railway environment. Check Railway logs for "Whisper" to see the specific error (timeout, connectivity, or key issue).',
   },
   SCENE_DETECTION_FAILED: {
     title: 'Scene detection failed',
