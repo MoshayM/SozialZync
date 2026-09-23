@@ -452,11 +452,19 @@ function HistoryDrawer({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, isCurrent: boolean) {
     setDeleting(id);
     try {
       await api.editor.deleteProject(id);
-      void refetch();
+      if (isCurrent) {
+        // Navigate away before the list refreshes — pick the first remaining edit or go to blank
+        const remaining = edits.filter((e) => e.id !== id);
+        const next = remaining[0];
+        router.push(next ? `/editor/${next.id}` : '/editor');
+        onClose();
+      } else {
+        void refetch();
+      }
     } catch { /* silently ignore */ } finally {
       setDeleting(null);
     }
@@ -545,17 +553,15 @@ function HistoryDrawer({
                     </div>
                   </div>
                 </button>
-                {!isCurrent && (
-                  <button
-                    type="button"
-                    disabled={deleting === p.id}
-                    onClick={() => void handleDelete(p.id)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
-                    title="Delete this edit"
-                  >
-                    {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  disabled={deleting === p.id}
+                  onClick={() => void handleDelete(p.id, isCurrent)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
+                  title="Delete this edit"
+                >
+                  {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                </button>
               </div>
             );
           })}
