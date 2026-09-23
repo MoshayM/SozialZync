@@ -3566,14 +3566,16 @@ export default function EditorWorkspacePage() {
       if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('lastEditorId', editId);
       return r.data;
     },
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 
-  // Load media bin — normalise null response (empty project) to []
+  // Load media bin in parallel with project (only needs editId, not project data)
   const { data: mediaBin = [] } = useQuery<MediaBinEntry[]>({
     queryKey: ['editor-media-bin', editId],
     queryFn: () => api.editor.mediaBin(editId).then((r) => r.data ?? []),
-    enabled: !!project,
+    staleTime: 30_000,
+    enabled: !!editId,
   });
 
   // ── Status tray (background operation toasts) ────────────────────────────────

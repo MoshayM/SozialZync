@@ -330,9 +330,13 @@ export class EditorService {
   }
 
   private async assertEditProjectOwnership(id: string, userId: string): Promise<EditProjectRow> {
-    const row = (await ep(this.prisma).findUnique({ where: { id } })) as EditProjectRow | null;
+    // Single query: fetch EditProject + parent project userId in one round-trip
+    const row = (await ep(this.prisma).findUnique({
+      where: { id },
+      include: { project: { select: { userId: true } } },
+    })) as (EditProjectRow & { project: { userId: string } | null }) | null;
     if (!row) throw new NotFoundException('EditProject not found');
-    await this.assertProjectOwnership(row.projectId, userId);
+    if (!row.project || row.project.userId !== userId) throw new ForbiddenException('Access denied');
     return row;
   }
 
