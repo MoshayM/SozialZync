@@ -1366,6 +1366,50 @@ function ExportDialog({
   );
 }
 
+// ── Editor loading screen ─────────────────────────────────────────────────────
+
+function EditorLoadingScreen() {
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    let v = 0;
+    const t = setInterval(() => {
+      v = Math.min(90, v + (90 - v) * 0.09 + 0.5);
+      setPct(Math.floor(v));
+      if (v >= 89.5) clearInterval(t);
+    }, 120);
+    return () => clearInterval(t);
+  }, []);
+
+  const size = 64;
+  const r = (size - 6) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - pct / 100);
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 py-32 select-none">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e5e7eb" strokeWidth="4" />
+          <circle
+            cx={size / 2} cy={size / 2} r={r}
+            fill="none"
+            stroke="#7c3aed"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 0.2s ease-out' }}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700">
+          {pct}
+        </span>
+      </div>
+      <p className="text-sm text-gray-500 font-medium">Loading editor…</p>
+    </div>
+  );
+}
+
 // ── Circular progress ring ────────────────────────────────────────────────────
 
 function CircularProgress({ pct, size = 28 }: { pct: number; size?: number }) {
@@ -4696,11 +4740,7 @@ export default function EditorWorkspacePage() {
   }, [timeline]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-gray-500 py-20 justify-center">
-        <Loader2 className="w-6 h-6 animate-spin" /> Loading editor…
-      </div>
-    );
+    return <EditorLoadingScreen />;
   }
 
   if (loadError || !project) {
@@ -4714,11 +4754,7 @@ export default function EditorWorkspacePage() {
     if (is403) {
       if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('lastEditorId');
       router.replace('/editor');
-      return (
-        <div className="flex items-center gap-2 text-gray-500 py-20 justify-center">
-          <Loader2 className="w-6 h-6 animate-spin" /> Opening editor…
-        </div>
-      );
+      return <EditorLoadingScreen />;
     }
 
     return (
