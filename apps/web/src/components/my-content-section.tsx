@@ -173,7 +173,8 @@ export function MyContentSection() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: ({ id, source, editId }: { id: string; source?: string; editId?: string }) => {
+    // @reason: two branches return different AxiosResponse generics; Promise<unknown> unifies them
+    mutationFn: ({ id, source, editId }: { id: string; source?: string; editId?: string }): Promise<unknown> => {
       if (source === 'edit_draft' && editId) {
         return api.myContent.deleteEditDraft(editId);
       }
