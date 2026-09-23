@@ -120,9 +120,12 @@ export class TranscriptService {
       // ~20-minute chunks; chunk timestamps are stitched using the exact
       // audio duration Whisper reports back per chunk.
       onLog?.('Extracting audio track…');
+      // 600s (10 min) chunks: each ~5 MB, Whisper processes in ~60-90s
+      // — safely under Railway's 300s outbound connection timeout.
+      // (20-min/1200s chunks can exceed 300s and get cut by Railway's network layer.)
       await withFfmpegRetries(() => runFfmpeg([
         '-i', sourcePath, '-vn', '-ac', '1', '-b:a', '64k',
-        '-f', 'segment', '-segment_time', '1200', '-reset_timestamps', '1',
+        '-f', 'segment', '-segment_time', '600', '-reset_timestamps', '1',
         path.join(tmpDir, 'chunk-%03d.mp3'),
       ])).catch((err: unknown) => {
         throw new TranscriptionError('Audio extraction for transcription failed.', { message: err instanceof Error ? err.message.slice(0, 500) : String(err) });
@@ -139,7 +142,7 @@ export class TranscriptService {
         this.logger.log(`Whisper chunk ${i + 1}/${chunks.length}: ${sizeMb} MB`);
         if (audio.length > 25 * 1024 * 1024) {
           this.logger.warn(`Chunk ${chunks[i]} exceeds Whisper's 25 MB limit — skipping`);
-          offsetMs += 1_200_000;
+          offsetMs += 600_000;
           continue;
         }
         const form = new FormData();
@@ -147,8 +150,9 @@ export class TranscriptService {
         form.append('model', 'whisper-1');
         form.append('response_format', 'verbose_json');
         const controller = new AbortController();
-        // 15 min: upload + OpenAI processing for a 20-min chunk can be slow on Railway
-        const timeoutId = setTimeout(() => controller.abort(), 15 * 60 * 1000);
+        // 4 min: 10-min chunks should process in 60-90s; 240s gives headroom
+        // without hitting Railway's 300s outbound connection cutoff.
+        const timeoutId = setTimeout(() => controller.abort(), 4 * 60 * 1000);
         let res: Response;
         const chunkStart = Date.now();
         try {
@@ -183,7 +187,7 @@ export class TranscriptService {
             text: s.text.trim(),
           });
         }
-        offsetMs += json.duration ? Math.round(json.duration * 1000) : 1_200_000;
+        offsetMs += json.duration ? Math.round(json.duration * 1000) : 600_000;
       }
       return cues.length > 0 ? cues : null;
     } finally {
