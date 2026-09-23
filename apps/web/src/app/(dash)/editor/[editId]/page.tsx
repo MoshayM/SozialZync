@@ -1415,7 +1415,7 @@ function EditorLoadingScreen() {
 // key={item.id} on the parent forces a remount — and restarts the sim — each
 // time the selected clip changes.
 
-function PreviewLoadingOverlay() {
+function PreviewLoadingOverlay({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
   const [pct, setPct] = useState(0);
   useEffect(() => {
     let v = 0;
@@ -1427,7 +1427,7 @@ function PreviewLoadingOverlay() {
     return () => clearInterval(t);
   }, []);
 
-  const size = 56;
+  const size = 64;
   const r = (size - 6) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - pct / 100);
@@ -1435,7 +1435,7 @@ function PreviewLoadingOverlay() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 z-10">
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
           <circle
             cx={size / 2} cy={size / 2} r={r}
@@ -1445,9 +1445,15 @@ function PreviewLoadingOverlay() {
             style={{ transition: 'stroke-dashoffset 0.18s ease-out' }}
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">
-          {pct}
-        </span>
+        <button
+          onClick={onToggle}
+          className="absolute inset-0 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+          aria-label={playing ? 'Pause' : 'Play'}
+        >
+          {playing
+            ? <Pause className="w-5 h-5 text-white" />
+            : <Play className="w-5 h-5 text-white" />}
+        </button>
       </div>
       <p className="text-[11px] text-white/50">Loading preview…</p>
     </div>
@@ -5092,7 +5098,11 @@ export default function EditorWorkspacePage() {
             </audio>
 
             {activeTimelineItem && !displaySrc && (
-              <PreviewLoadingOverlay key={activeTimelineItem.id} />
+              <PreviewLoadingOverlay
+                key={activeTimelineItem.id}
+                playing={playing}
+                onToggle={() => playing ? stopPlay() : startPlay()}
+              />
             )}
             {isActiveImage && displaySrc ? (
               <>
