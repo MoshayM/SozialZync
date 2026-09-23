@@ -1348,6 +1348,16 @@ export const api = {
       scheduledAt?: string;
       containsSyntheticMedia?: boolean;
     }) => apiClient.post<{ youtubeVideoId: string }>('/publishing/publish', payload),
+    queueEditor: (payload: {
+      editId: string;
+      channelId: string;
+      title: string;
+      description: string;
+      tags: string[];
+      scheduledAt?: string;
+    }) => apiClient.post<{ approvalId: string; videoId: string }>('/publishing/queue-editor', payload),
+    cancelEditor: (approvalId: string) =>
+      apiClient.post(`/publishing/cancel-editor/${encodeURIComponent(approvalId)}`),
   },
   trial: {
     status: () => apiClient.get<TrialStatusResponse>('/trial/status'),

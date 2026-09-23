@@ -880,13 +880,54 @@ function ExportDialog({
       setDlProgress(null);
     }
   };
-  // Publish flow: null=hidden, 'choose'=platform picker, 'details'=fill details
-  const [pubStep, setPubStep] = useState<'choose' | 'details' | null>(null);
+  // Publish flow: null=hidden, 'choose'=platform picker, 'account'=account selector, 'details'=fill details
+  const [pubStep, setPubStep] = useState<'choose' | 'account' | 'details' | null>(null);
   const [pubPlatform, setPubPlatform] = useState<string | null>(null);
+  const [pubChannelId, setPubChannelId] = useState<string | null>(null);
   const [pubTitle, setPubTitle] = useState(projectTitle);
   const [pubDesc, setPubDesc] = useState('');
   const [pubTags, setPubTags] = useState('');
   const [pubVisibility, setPubVisibility] = useState<'public' | 'unlisted' | 'private'>('public');
+  const [pubSchedule, setPubSchedule] = useState<'now' | 'later'>('now');
+  const [pubScheduledAt, setPubScheduledAt] = useState('');
+  const [pubQueuing, setPubQueuing] = useState(false);
+  const [pubQueued, setPubQueued] = useState(false);
+  const [pubQueueError, setPubQueueError] = useState<string | null>(null);
+
+  // Fetch connected channels when account-selection step is active for YouTube
+  const { data: ytChannels = [] } = useQuery<Array<{ id: string; title: string; active: boolean | null }>>({
+    queryKey: ['channels'],
+    queryFn: () => api.channels.list().then((r) => r.data as Array<{ id: string; title: string; active: boolean | null }>),
+    enabled: pubStep === 'account' && pubPlatform === 'youtube',
+  });
+
+  const handleQueuePublish = async () => {
+    if (!pubPlatform || !pubChannelId) return;
+    setPubQueuing(true);
+    setPubQueueError(null);
+    try {
+      await api.publishing.queueEditor({
+        editId,
+        channelId: pubChannelId,
+        title: pubTitle.trim() || projectTitle,
+        description: pubDesc,
+        tags: pubTags.split(',').map((t) => t.trim()).filter(Boolean),
+        ...(pubSchedule === 'later' && pubScheduledAt
+          ? { scheduledAt: new Date(pubScheduledAt).toISOString() }
+          : {}),
+      });
+      setPubQueued(true);
+      setTimeout(() => {
+        router.push('/publish?tab=publish-center');
+        onClose();
+      }, 1200);
+    } catch (e) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setPubQueueError(err.response?.data?.message ?? 'Failed to queue for publish');
+    } finally {
+      setPubQueuing(false);
+    }
+  };
 
   const stopPoll = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -1087,7 +1128,7 @@ function ExportDialog({
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => { setPubPlatform(p.id); setPubStep('details'); }}
+                        onClick={() => { setPubPlatform(p.id); setPubChannelId(null); setPubStep('account'); }}
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white border border-gray-200 hover:border-brand-400 hover:shadow-sm transition-all group"
                       >
                         <span
@@ -1103,6 +1144,69 @@ function ExportDialog({
             );
           })()}
 
+          {/* ── Publish step 1b: Account selector ── */}
+          {renderStatus === 'READY' && pubStep === 'account' && (() => {
+            const SOCIAL_LABELS: Record<string, string> = {
+              youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok',
+              x: 'X (Twitter)', linkedin: 'LinkedIn', facebook: 'Facebook',
+            };
+            const activeChannels = ytChannels.filter((c) => c.active !== false);
+            return (
+              <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setPubStep('choose')} className="p-1 rounded-lg hover:bg-white/60 text-gray-500">
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <p className="text-sm font-semibold text-brand-900 flex-1">
+                    Select {SOCIAL_LABELS[pubPlatform ?? ''] ?? pubPlatform} account
+                  </p>
+                </div>
+                {pubPlatform === 'youtube' ? (
+                  activeChannels.length === 0 ? (
+                    <div className="text-center py-3 space-y-2">
+                      <p className="text-sm text-gray-600">No YouTube channels connected.</p>
+                      <a href="/channel-access" className="text-xs font-semibold text-brand-600 hover:underline">
+                        Connect a channel →
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {activeChannels.map((ch) => (
+                        <button
+                          key={ch.id}
+                          type="button"
+                          onClick={() => { setPubChannelId(ch.id); setPubStep('details'); }}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm text-left transition-all ${
+                            pubChannelId === ch.id
+                              ? 'border-brand-400 bg-white shadow-sm font-semibold text-gray-900'
+                              : 'border-gray-200 bg-white hover:border-brand-300 text-gray-700'
+                          }`}
+                        >
+                          <span className="w-7 h-7 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">YT</span>
+                          <span className="truncate flex-1">{ch.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-500">
+                      Direct publishing for {SOCIAL_LABELS[pubPlatform ?? ''] ?? pubPlatform} is coming soon.
+                      Your content will be queued for manual publishing.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setPubChannelId('manual'); setPubStep('details'); }}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-brand-300 text-sm text-gray-700 text-left"
+                    >
+                      Continue →
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* ── Publish step 2: Details form ── */}
           {renderStatus === 'READY' && pubStep === 'details' && (() => {
             const SOCIAL_META: Record<string, { label: string; bg: string; abbr: string }> = {
@@ -1114,10 +1218,13 @@ function ExportDialog({
               facebook: { label: 'Facebook', bg: '#1877F2', abbr: 'fb' },
             };
             const meta = pubPlatform ? SOCIAL_META[pubPlatform] : null;
+            // Minimum 31 min from now for YouTube scheduling
+            const minDt = new Date(Date.now() + 31 * 60 * 1000);
+            const minDtLocal = new Date(minDt.getTime() - minDt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             return (
               <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => setPubStep('choose')} className="p-1 rounded-lg hover:bg-white/60 text-gray-500">
+                  <button type="button" onClick={() => setPubStep('account')} className="p-1 rounded-lg hover:bg-white/60 text-gray-500">
                     <ArrowLeft className="w-4 h-4" />
                   </button>
                   {meta && (
@@ -1171,23 +1278,53 @@ function ExportDialog({
                     </div>
                   </div>
                 )}
+                {/* Scheduling */}
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">When to publish</label>
+                  <div className="flex gap-2 mb-2">
+                    {(['now', 'later'] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setPubSchedule(s)}
+                        className={`flex-1 py-1.5 rounded-lg border text-xs font-medium transition-all ${pubSchedule === s ? 'border-brand-400 bg-brand-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300'}`}
+                      >
+                        {s === 'now' ? 'Publish Now' : 'Schedule'}
+                      </button>
+                    ))}
+                  </div>
+                  {pubSchedule === 'later' && (
+                    <input
+                      type="datetime-local"
+                      value={pubScheduledAt}
+                      min={minDtLocal}
+                      onChange={(e) => setPubScheduledAt(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 bg-white"
+                    />
+                  )}
+                </div>
+                {pubQueueError && (
+                  <p className="text-xs text-red-600">{pubQueueError}</p>
+                )}
+                {pubQueued && (
+                  <p className="text-xs text-green-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Queued! Redirecting to Publish Hub…
+                  </p>
+                )}
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setPubStep('choose')}
+                    onClick={() => setPubStep('account')}
                     className="px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-white bg-white/50"
                   >Back</button>
                   <button
                     type="button"
-                    disabled={!pubTitle.trim()}
-                    onClick={() => {
-                      const params = new URLSearchParams({ publish: '1', platform: pubPlatform ?? '', visibility: pubVisibility });
-                      router.push(`/projects/${projectId}?${params.toString()}`);
-                      onClose();
-                    }}
+                    disabled={!pubTitle.trim() || pubQueuing || pubQueued || (pubSchedule === 'later' && !pubScheduledAt)}
+                    onClick={() => void handleQueuePublish()}
                     className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
                   >
-                    <Upload className="w-4 h-4" /> Publish Now
+                    {pubQueuing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {pubQueuing ? 'Queuing…' : 'Send to Publish Hub'}
                   </button>
                 </div>
               </div>

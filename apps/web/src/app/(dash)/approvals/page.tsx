@@ -76,6 +76,23 @@ function isShortsExport(type: string, result: unknown): result is ShortsExportRe
   return type === 'SHORTS_EXPORT' && !!result && typeof result === 'object';
 }
 
+interface EditorPublishResult {
+  subtype: 'EDITOR_PUBLISH';
+  editId: string;
+  videoId: string;
+  r2Key: string;
+  channelId: string;
+  channelTitle: string;
+  title: string;
+  description: string;
+  tags: string[];
+  scheduledAt?: string | null;
+}
+
+function isEditorPublish(result: unknown): result is EditorPublishResult {
+  return !!result && typeof result === 'object' && (result as Record<string, unknown>).subtype === 'EDITOR_PUBLISH';
+}
+
 function useBlobUrl(versionId: string | null | undefined): string | null {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -394,6 +411,9 @@ export default function PublishCenterPage() {
   const [openRows, setOpenRows] = useState<Set<string>>(new Set());
   const [scheduleOpenFor, setScheduleOpenFor] = useState<string | null>(null);
   const [scheduledSuccess, setScheduledSuccess] = useState<string | null>(null);
+  const [editorPublishingId, setEditorPublishingId] = useState<string | null>(null);
+  const [editorPublishError, setEditorPublishError] = useState<Record<string, string>>({});
+  const [editorScheduleFor, setEditorScheduleFor] = useState<string | null>(null);
 
   // Calendar state
   const [view, setView] = useState<ViewMode>('month');
@@ -474,6 +494,47 @@ export default function PublishCenterPage() {
       router.push(`/shorts-studio/clips/${data.shortClipId}/edit`);
     },
   });
+
+  const cancelEditorMutation = useMutation({
+    mutationFn: (approvalId: string) => api.publishing.cancelEditor(approvalId),
+    onSuccess: (_, approvalId) => {
+      qc.setQueryData<Approval[]>(['approvals'], (old) => (old ?? []).filter((a) => a.id !== approvalId));
+      void qc.invalidateQueries({ queryKey: ['approvals-history'] });
+    },
+  });
+
+  async function handleEditorApproveAndPublish(a: Approval, scheduledAt?: string) {
+    const result = a.job.result as EditorPublishResult;
+    setEditorPublishingId(a.id);
+    setEditorPublishError((e) => ({ ...e, [a.id]: '' }));
+    try {
+      await api.approvals.approve(a.id, notes[a.id], scheduledAt);
+      await api.publishing.publish({
+        videoId: result.videoId,
+        channelId: result.channelId,
+        title: result.title,
+        description: result.description,
+        tags: result.tags,
+        approvalId: a.id,
+        scheduledAt,
+        r2Key: result.r2Key,
+      });
+      qc.setQueryData<Approval[]>(['approvals'], (old) => (old ?? []).filter((ap) => ap.id !== a.id));
+      void qc.invalidateQueries({ queryKey: ['approvals-history'] });
+      void qc.invalidateQueries({ queryKey: ['scheduler-summary', channelId] });
+      setEditorScheduleFor(null);
+      const msg = scheduledAt
+        ? `Scheduled! Your video will publish on ${new Date(scheduledAt).toLocaleString()}.`
+        : 'Video sent to YouTube! It may take a few minutes to appear.';
+      setScheduledSuccess(msg);
+      setTimeout(() => setScheduledSuccess(null), 8000);
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Publish failed — please try again';
+      setEditorPublishError((e) => ({ ...e, [a.id]: msg }));
+    } finally {
+      setEditorPublishingId(null);
+    }
+  }
 
   // Tab button style helper
   const tabStyle = (active: boolean): React.CSSProperties =>
@@ -599,7 +660,87 @@ export default function PublishCenterPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {approvals.map((a) => (
+                {/* ── Editor publish items (green border) ── */}
+                {approvals.filter((a) => isEditorPublish(a.job.result)).map((a) => {
+                  const ep = a.job.result as EditorPublishResult;
+                  const isPub = editorPublishingId === a.id;
+                  const err = editorPublishError[a.id];
+                  const schedOpen = editorScheduleFor === a.id;
+                  return (
+                    <div key={a.id} className="bg-white rounded-2xl p-6" style={{ border: '1.5px solid #86efac' }}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: '#dcfce7', color: '#15803d' }}>Ready to Publish</span>
+                          </div>
+                          <h3 className="font-semibold text-gray-900">{ep.title}</h3>
+                          <p className="text-sm text-gray-400">{ep.channelTitle} · Editor export</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm" style={{ color: '#c2410c' }}>
+                          <Clock className="w-4 h-4" />
+                          Expires {new Date(a.expiresAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      {ep.description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-3">{ep.description}</p>
+                      )}
+                      {ep.tags.length > 0 && (
+                        <p className="flex items-center gap-1 flex-wrap mb-3">
+                          <Tag className="w-3 h-3 text-gray-400" />
+                          {ep.tags.slice(0, 8).map((t) => (
+                            <span key={t} className="px-1.5 py-0.5 rounded text-[11px]" style={{ background: '#f3f4f6', color: '#374151' }}>{t}</span>
+                          ))}
+                        </p>
+                      )}
+                      <div className="flex gap-3 flex-wrap">
+                        <button
+                          onClick={() => void handleEditorApproveAndPublish(a)}
+                          disabled={isPub || schedOpen}
+                          className="flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                          style={{ background: '#15803d', boxShadow: '0 4px 16px rgba(21,128,61,0.25)' }}
+                        >
+                          {isPub && !schedOpen ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                          Approve &amp; Publish Now
+                        </button>
+                        <button
+                          onClick={() => setEditorScheduleFor((p) => p === a.id ? null : a.id)}
+                          disabled={isPub}
+                          className="flex items-center gap-2 px-4 py-2 rounded-2xl font-bold hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                          style={{
+                            background: schedOpen ? '#1d4ed8' : 'white',
+                            color: schedOpen ? 'white' : '#1d4ed8',
+                            border: '1.5px solid #bfdbfe',
+                            boxShadow: schedOpen ? '0 4px 16px rgba(29,78,216,0.25)' : undefined,
+                          }}
+                        >
+                          <CalendarClock className="w-4 h-4" />
+                          Schedule
+                        </button>
+                        <button
+                          onClick={() => cancelEditorMutation.mutate(a.id)}
+                          disabled={isPub || cancelEditorMutation.isPending}
+                          className="flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all"
+                          style={{ border: '1.5px solid #e3ddf8' }}
+                        >
+                          {cancelEditorMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                          Remove
+                        </button>
+                      </div>
+                      {schedOpen && (
+                        <SchedulePanel
+                          approvalId={a.id}
+                          onConfirm={(_, scheduledAt) => void handleEditorApproveAndPublish(a, scheduledAt)}
+                          onCancel={() => setEditorScheduleFor(null)}
+                          isPending={isPub}
+                        />
+                      )}
+                      {err && <p className="text-xs text-red-600 mt-2">{err}</p>}
+                    </div>
+                  );
+                })}
+
+                {/* ── AI pipeline approval items ── */}
+                {approvals.filter((a) => !isEditorPublish(a.job.result)).map((a) => (
                   <div key={a.id} className="bg-white rounded-2xl p-6" style={{ border: '1.5px solid #e3ddf8' }}>
                     <div className="flex items-start justify-between mb-4">
                       <div>
@@ -632,7 +773,6 @@ export default function PublishCenterPage() {
                     </div>
 
                     <div className="flex gap-3 flex-wrap">
-                      {/* Approve & Publish Now */}
                       <button
                         onClick={() => approveMutation.mutate({ id: a.id })}
                         disabled={approveMutation.isPending || scheduleOpenFor === a.id}
@@ -645,7 +785,6 @@ export default function PublishCenterPage() {
                         Approve &amp; Publish Now
                       </button>
 
-                      {/* Schedule button — only for Shorts exports that go to YouTube */}
                       {isShortsExport(a.job.type, a.job.result) && (
                         <button
                           onClick={() => setScheduleOpenFor((prev) => prev === a.id ? null : a.id)}
@@ -687,7 +826,6 @@ export default function PublishCenterPage() {
                       )}
                     </div>
 
-                    {/* Inline schedule panel */}
                     {scheduleOpenFor === a.id && (
                       <SchedulePanel
                         approvalId={a.id}

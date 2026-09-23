@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, Param, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards, ForbiddenException, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString, IsOptional, IsArray, IsDateString, IsIn, IsInt, Min, Max, IsBoolean } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
@@ -34,6 +34,15 @@ class ListTrackedVideosDto {
   @IsOptional() @IsString() q?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) take?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) skip?: number;
+}
+
+class QueueEditorDto {
+  @IsString() editId!: string;
+  @IsString() channelId!: string;
+  @IsString() title!: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsArray() tags?: string[];
+  @IsOptional() @IsDateString() scheduledAt?: string;
 }
 
 @ApiTags('publishing')
@@ -92,5 +101,27 @@ export class PublishingController {
       },
       dto.approvalId,
     );
+  }
+
+  @Post('queue-editor')
+  @TierRateLimit({ bucket: 'publish', windowSecs: 2592000, limits: { FREE: 10, STARTER: 50, PRO: 9999, AGENCY: 9999, default: 10 } })
+  queueEditor(@Body() dto: QueueEditorDto, @CurrentUser() user: JwtPayload) {
+    return this.svc.queueEditorPublish(
+      {
+        editId: dto.editId,
+        channelId: dto.channelId,
+        title: dto.title,
+        description: dto.description ?? '',
+        tags: dto.tags ?? [],
+        scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
+      },
+      user.sub,
+    );
+  }
+
+  @Post('cancel-editor/:approvalId')
+  @HttpCode(204)
+  cancelEditor(@Param('approvalId') approvalId: string, @CurrentUser() user: JwtPayload) {
+    return this.svc.cancelEditorPublish(approvalId, user.sub);
   }
 }

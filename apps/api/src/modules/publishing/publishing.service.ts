@@ -1,10 +1,15 @@
-import { Injectable, ForbiddenException, BadRequestException, Logger, HttpException } from '@nestjs/common';
+import { Injectable, ForbiddenException, BadRequestException, NotFoundException, Logger, HttpException } from '@nestjs/common';
 import { createReadStream } from 'fs';
 import type { youtube_v3 } from 'googleapis';
 import type { Prisma, VideoStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ChannelsService } from '../channels/channels.service';
 import { StorageService } from '../media/storage.service';
+
+// @reason: EditProject not in generated Prisma client — same dynamic accessor pattern as editor.service.ts
+const ep = (p: PrismaService) => (p as unknown as Record<string, unknown>)['editProject'] as {
+  findUnique: (args: unknown) => Promise<unknown | null>;
+};
 
 /**
  * YouTube A/S (Altered or Synthetic) disclosure — googleapis@144 typings
@@ -391,5 +396,136 @@ export class PublishingService {
       video: video ?? null,
       canPublish: !!(render && approvalValid),
     };
+  }
+
+  /**
+   * Queue an editor-rendered video for human review and publish.
+   * Creates a Video(PENDING_APPROVAL) + synthetic AgentJob + Approval(PENDING).
+   * The Approval shows in the Publish Hub pending section; "Approve & Publish" triggers the upload.
+   */
+  async queueEditorPublish(
+    opts: {
+      editId: string;
+      channelId: string;
+      title: string;
+      description: string;
+      tags: string[];
+      scheduledAt?: Date;
+    },
+    userId: string,
+  ): Promise<{ approvalId: string; videoId: string }> {
+    // Verify edit project ownership via its parent project
+    const editProject = (await ep(this.prisma).findUnique({
+      where: { id: opts.editId },
+      include: { project: { select: { id: true, userId: true } } },
+    })) as {
+      id: string;
+      renderAssetId: string | null;
+      renderStatus: string;
+      project: { id: string; userId: string };
+    } | null;
+
+    if (!editProject || editProject.project.userId !== userId) {
+      throw new ForbiddenException('Edit project not found or access denied');
+    }
+    if (editProject.renderStatus !== 'READY') {
+      throw new BadRequestException('Render not complete. Please render the video before sending to publish.');
+    }
+
+    // Verify the channel belongs to this user
+    const channel = await this.prisma.channel.findFirst({ where: { id: opts.channelId, userId } });
+    if (!channel) throw new ForbiddenException('Channel not found or not yours');
+
+    // Get r2Key from the rendered asset
+    const r2Key = editProject.renderAssetId
+      ? await this.prisma.asset
+          .findUnique({
+            where: { id: editProject.renderAssetId },
+            include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
+          })
+          .then((a) => a?.versions[0]?.r2Key ?? null)
+      : null;
+    if (!r2Key) throw new BadRequestException('No completed render found. Please render the video first.');
+
+    const projectId = editProject.project.id;
+
+    // Create pending Video record
+    const video = await this.prisma.video.create({
+      data: {
+        projectId,
+        channelId: opts.channelId,
+        title: opts.title,
+        description: opts.description,
+        tags: opts.tags,
+        scheduledAt: opts.scheduledAt ?? null,
+        status: 'PENDING_APPROVAL',
+        viewCount: 0,
+        likeCount: 0,
+        commentCount: 0,
+      },
+    });
+
+    // @reason: EDITOR_PUBLISH not in JobType enum; EDIT_RENDER is the closest existing type.
+    //          result.subtype='EDITOR_PUBLISH' differentiates these in the Publish Hub frontend.
+    const job = await this.prisma.agentJob.create({
+      data: {
+        projectId,
+        type: 'EDIT_RENDER',
+        status: 'COMPLETED',
+        payload: {},
+        result: {
+          subtype: 'EDITOR_PUBLISH',
+          editId: opts.editId,
+          videoId: video.id,
+          r2Key,
+          channelId: opts.channelId,
+          channelTitle: channel.title,
+          title: opts.title,
+          description: opts.description,
+          tags: opts.tags,
+          scheduledAt: opts.scheduledAt?.toISOString() ?? null,
+        },
+        completedAt: new Date(),
+      },
+    });
+
+    const approval = await this.prisma.approval.create({
+      data: {
+        projectId,
+        jobId: job.id,
+        status: 'PENDING',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      },
+    });
+
+    this.logger.log(`[QueueEditor] Queued editor video — editId=${opts.editId} videoId=${video.id} approvalId=${approval.id}`);
+
+    return { approvalId: approval.id, videoId: video.id };
+  }
+
+  /** Cancel a queued editor publish: rejects the approval and resets the video to DRAFT. */
+  async cancelEditorPublish(approvalId: string, userId: string): Promise<void> {
+    const approval = await this.prisma.approval.findFirst({
+      where: { id: approvalId, status: 'PENDING', project: { userId } },
+      include: { job: { select: { result: true } } },
+    });
+    if (!approval) throw new NotFoundException('Pending approval not found');
+
+    const result = approval.job?.result as { videoId?: string; subtype?: string } | null;
+    if (result?.subtype !== 'EDITOR_PUBLISH') throw new BadRequestException('Not an editor publish item');
+
+    await this.prisma.approval.update({
+      where: { id: approvalId },
+      data: { status: 'REJECTED', reviewedBy: userId, reviewedAt: new Date(), notes: 'Cancelled by user' },
+    });
+
+    if (result.videoId) {
+      await this.prisma.video
+        .updateMany({
+          where: { id: result.videoId, status: 'PENDING_APPROVAL' },
+          data: { status: 'DRAFT' },
+        })
+        .catch(() => null); // non-fatal
+    }
   }
 }
