@@ -1366,13 +1366,49 @@ function ExportDialog({
   );
 }
 
+// ── Circular progress ring ────────────────────────────────────────────────────
+
+function CircularProgress({ pct, size = 28 }: { pct: number; size?: number }) {
+  const r = (size - 4) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.min(100, Math.max(0, pct)) / 100);
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+        {/* Track */}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2.5" />
+        {/* Arc */}
+        <circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none"
+          stroke="rgba(255,255,255,0.9)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.25s ease-out' }}
+        />
+      </svg>
+      {/* Percentage label in the centre */}
+      <span
+        className="absolute inset-0 flex items-center justify-center font-bold text-white"
+        style={{ fontSize: size <= 28 ? 7 : 9, letterSpacing: '-0.3px' }}
+      >
+        {Math.min(99, Math.round(pct))}
+      </span>
+    </div>
+  );
+}
+
 // ── Status Tray (background operation toasts) ─────────────────────────────────
 
 function StatusTray({
   toasts,
+  savePct,
   onDismiss,
 }: {
   toasts: Array<{ id: string; label: string; status: 'pending' | 'success' | 'error'; message?: string }>;
+  savePct: number;
   onDismiss: (id: string) => void;
 }) {
   if (toasts.length === 0) return null;
@@ -1381,19 +1417,22 @@ function StatusTray({
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`pointer-events-auto flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl shadow-lg border text-sm max-w-[280px] w-full transition-all duration-300 ${
+          className={`pointer-events-auto flex items-center gap-2.5 px-3 py-2.5 rounded-xl shadow-lg border text-sm max-w-[300px] w-full transition-all duration-300 ${
             t.status === 'pending' ? 'bg-gray-900 border-white/10 text-white' :
             t.status === 'success' ? 'bg-green-900 border-green-700/40 text-green-100' :
             'bg-red-900 border-red-700/40 text-red-100'
           }`}
         >
-          <span className="shrink-0 mt-0.5">
-            {t.status === 'pending' && <Loader2 className="w-4 h-4 animate-spin text-white/60" />}
+          <span className="shrink-0">
+            {t.status === 'pending' && <CircularProgress pct={savePct} />}
             {t.status === 'success' && <CheckCircle2 className="w-4 h-4 text-green-400" />}
             {t.status === 'error' && <AlertCircle className="w-4 h-4 text-red-400" />}
           </span>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-xs leading-snug truncate">{t.label}</p>
+            {t.status === 'pending' && (
+              <p className="text-[10px] text-white/40 mt-0.5">{savePct < 90 ? 'Uploading…' : 'Finishing…'}</p>
+            )}
             {t.message && <p className="text-[11px] opacity-70 mt-0.5 leading-snug">{t.message}</p>}
           </div>
           {(t.status === 'error' || t.status === 'success') && (
@@ -5557,7 +5596,7 @@ export default function EditorWorkspacePage() {
       )}
 
       {/* Background-operation status tray */}
-      <StatusTray toasts={toasts} onDismiss={dismissToast} />
+      <StatusTray toasts={toasts} savePct={barPct} onDismiss={dismissToast} />
     </div>
   );
 }
