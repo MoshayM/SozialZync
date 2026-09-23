@@ -572,6 +572,7 @@ type SnapshotEntry = {
   name: string;
   savedAt: string;
   timeline: EditTimeline;
+  movedAt?: string;
 };
 
 function SnapshotSaveDialog({
@@ -642,12 +643,14 @@ function VersionsDrawer({
   onSaveNew,
   onLoad,
   onDelete,
+  onMove,
   onClose,
 }: {
   snapshots: SnapshotEntry[];
   onSaveNew: () => void;
   onLoad: (s: SnapshotEntry) => void;
   onDelete: (id: string) => void;
+  onMove: (s: SnapshotEntry) => void;
   onClose: () => void;
 }) {
   const [vSearch, setVSearch] = useState('');
@@ -727,28 +730,52 @@ function VersionsDrawer({
             filtered.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-2.5 p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 group/snap"
+                className="flex flex-col gap-2 p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-gray-50"
               >
-                <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
-                  <BookmarkPlus className="w-3.5 h-3.5 text-brand-500" />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+                    <BookmarkPlus className="w-3.5 h-3.5 text-brand-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-xs font-semibold text-gray-800 truncate">{s.name}</p>
+                      {s.movedAt && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 shrink-0">
+                          In My Content
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{new Date(s.savedAt).toLocaleString()}</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-800 truncate">{s.name}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{new Date(s.savedAt).toLocaleString()}</p>
+                <div className="flex items-center gap-1.5 pl-10">
+                  <button
+                    onClick={() => onLoad(s)}
+                    className="px-2.5 py-1 text-[11px] font-semibold bg-brand-600 text-white rounded-md hover:bg-brand-700 shrink-0"
+                  >
+                    Load
+                  </button>
+                  {!s.movedAt ? (
+                    <button
+                      onClick={() => onMove(s)}
+                      className="px-2.5 py-1 text-[11px] font-semibold border border-gray-200 text-gray-600 rounded-md hover:bg-gray-100 shrink-0 flex items-center gap-1"
+                      title="Move this draft to My Content → Private"
+                    >
+                      <ArrowRight className="w-3 h-3" /> Move to Private
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-green-600 font-medium flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Saved to My Content
+                    </span>
+                  )}
+                  <button
+                    onClick={() => onDelete(s.id)}
+                    className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 ml-auto shrink-0"
+                    title="Delete permanently"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => onLoad(s)}
-                  className="px-2.5 py-1 text-[11px] font-semibold bg-brand-600 text-white rounded-md hover:bg-brand-700 shrink-0"
-                >
-                  Load
-                </button>
-                <button
-                  onClick={() => onDelete(s.id)}
-                  className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/snap:opacity-100 transition-opacity shrink-0"
-                  title="Delete permanently (removes from My Content too)"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
               </div>
             ))
           )}
@@ -3911,12 +3938,22 @@ export default function EditorWorkspacePage() {
   }, [timeline, editId, addToast]);
 
   const handleLoadSnapshot = useCallback((s: SnapshotEntry) => {
-    pushUndo();
-    setTimeline(s.timeline);
+    // Single state update: push current to history AND set new timeline (avoids double render)
+    setTimeline((curr) => {
+      if (curr) {
+        const base = historyRef.current.slice(0, historyIndexRef.current + 1);
+        const newHist = [...base, curr].slice(-50);
+        historyRef.current = newHist;
+        historyIndexRef.current = newHist.length - 1;
+        setCanUndo(true);
+        setCanRedo(false);
+      }
+      return s.timeline;
+    });
     setDirty(true);
     setShowSnapshots(false);
     addToast(`snap-load-${Date.now()}`, `Loaded "${s.name}"`);
-  }, [pushUndo, addToast]);
+  }, [addToast]);
 
   const handleDeleteSnapshot = useCallback((id: string) => {
     if (!window.confirm('Delete this saved version? It will be permanently removed from Private Drafts and My Content.')) return;
@@ -3925,11 +3962,25 @@ export default function EditorWorkspacePage() {
       try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* */ }
       return next;
     });
-    // Full DB delete so it's also removed from My Content Private
-    if (project?.projectId) {
-      void api.myContent.delete(project.projectId).catch(() => null);
+    // Reset edit project status so it's removed from My Content Private
+    void api.editor.setStatus(editId, 'DRAFT').catch(() => null);
+  }, [editId]);
+
+  const handleMoveSnapshot = useCallback(async (s: SnapshotEntry) => {
+    try {
+      await api.editor.setStatus(editId, 'PRIVATE_CONTENT');
+      setSnapshots((prev) => {
+        const next = prev.map((snap) =>
+          snap.id === s.id ? { ...snap, movedAt: new Date().toISOString() } : snap
+        );
+        try { localStorage.setItem(`editor-snapshots-${editId}`, JSON.stringify(next)); } catch { /* */ }
+        return next;
+      });
+      addToast(`snap-moved-${Date.now()}`, `"${s.name}" moved to Private Content`);
+    } catch {
+      addToast(`snap-move-err-${Date.now()}`, 'Failed to move to Private Content');
     }
-  }, [editId, project?.projectId]);
+  }, [editId, addToast]);
 
   const handleAddTrack = useCallback((kind: 'VIDEO' | 'AUDIO') => {
     updateTimeline((tl) => {
@@ -5323,6 +5374,7 @@ export default function EditorWorkspacePage() {
           onSaveNew={() => { setShowSnapshots(false); setShowSaveDialog(true); }}
           onLoad={handleLoadSnapshot}
           onDelete={handleDeleteSnapshot}
+          onMove={handleMoveSnapshot}
           onClose={() => setShowSnapshots(false)}
         />
       )}

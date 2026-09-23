@@ -118,6 +118,17 @@ export class EditorController {
     return this.editor.updateEditProject(id, user.sub, body);
   }
 
+  /** Mark edit project status — use 'PRIVATE_CONTENT' to move to My Content Private */
+  @Patch(':id/status')
+  async setStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!body.status) throw new BadRequestException('status is required');
+    return this.editor.setEditProjectStatus(id, user.sub, body.status);
+  }
+
   /** Delete an EditProject — removes timeline and settings; source media is unaffected */
   @Delete(':id')
   @HttpCode(204)

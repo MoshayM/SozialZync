@@ -592,6 +592,15 @@ export class EditorService {
     return updated as EditProjectRow;
   }
 
+  async setEditProjectStatus(id: string, userId: string, status: string): Promise<EditProjectRow> {
+    await this.assertEditProjectOwnership(id, userId);
+    const updated = await ep(this.prisma).update({
+      where: { id },
+      data: { status },
+    });
+    return updated as EditProjectRow;
+  }
+
   // ── Delete ───────────────────────────────────────────────────────────────────
 
   async deleteEditProject(id: string, userId: string): Promise<void> {

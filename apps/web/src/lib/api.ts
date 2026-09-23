@@ -1397,6 +1397,10 @@ export const api = {
       apiClient.get<{ shareUrl: string }>(`/my-content/${id}/share-url`),
     delete: (id: string) =>
       apiClient.delete<{ ok: boolean }>(`/my-content/${id}`),
+    deleteEditDraft: (editId: string) =>
+      apiClient.delete<void>(`/my-content/edit-draft/${editId}`),
+    setEditDraftVisibility: (editId: string, isPublic: boolean) =>
+      apiClient.patch<{ id: string; isPublic: boolean }>(`/my-content/edit-draft/${editId}/visibility`, { isPublic }),
   },
   admin: {
     enterpriseMetrics: () => apiClient.get<EnterpriseMetrics>('/admin/analytics/enterprise'),
@@ -1499,6 +1503,8 @@ export const api = {
     }) => apiClient.post<{ assetVersionId: string; durationMs: number }>(`/editor/${editId}/audio/enhance-asset`, body),
     update: (editId: string, data: { title?: string; projectId?: string }) =>
       apiClient.patch<EditProject>(`/editor/${editId}`, data),
+    setStatus: (editId: string, status: string) =>
+      apiClient.patch<EditProject>(`/editor/${editId}/status`, { status }),
     deleteProject: (editId: string) =>
       apiClient.delete<void>(`/editor/${editId}`),
     removeBinEntry: (editId: string, assetId: string) =>
@@ -1593,7 +1599,7 @@ export interface AdminUser {
 export interface MyContentItem {
   id: string;
   title: string;
-  type: 'VIDEO' | 'SHORT' | 'REEL' | 'IMAGE' | string;
+  type: 'VIDEO' | 'SHORT' | 'REEL' | 'IMAGE' | 'DRAFT' | string;
   thumbnailUrl: string | null;
   isPublic: boolean;
   shareUrl: string | null;
@@ -1602,6 +1608,8 @@ export interface MyContentItem {
   createdAt: string;
   updatedAt: string;
   projectId: string | null;
+  source?: 'project' | 'edit_draft';
+  editId?: string;
 }
 
 export interface AdminPublicContent {

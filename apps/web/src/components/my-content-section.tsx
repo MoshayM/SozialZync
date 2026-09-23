@@ -1,12 +1,12 @@
-﻿'use client';
-import { useState, useCallback, useRef, useEffect } from 'react';
+'use client';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api, type MyContentItem } from '@/lib/api';
 import {
   Film, Lock, Globe, MoreVertical, Play, Pencil, Download,
-  Share2, BarChart2, EyeOff, Send, Trash2, X, Link2, CheckCircle2,
-  Plus, Loader2,
+  Share2, BarChart2, EyeOff, Send, Trash2, Link2, CheckCircle2,
+  Plus, Loader2, FileEdit,
 } from 'lucide-react';
 
 // ── Gradient palettes for placeholder thumbnails ───────────────────────────────
@@ -34,7 +34,15 @@ function fmtDuration(secs: number | null | undefined) {
 }
 
 // ── Privacy badge ─────────────────────────────────────────────────────────────
-function PrivacyBadge({ isPublic }: { isPublic: boolean }) {
+function PrivacyBadge({ isPublic, isDraft }: { isPublic: boolean; isDraft?: boolean }) {
+  if (isDraft) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold"
+        style={{ background: 'rgba(234,179,8,.12)', color: '#854d0e' }}>
+        <FileEdit className="w-2.5 h-2.5" /> Draft
+      </span>
+    );
+  }
   return isPublic ? (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold"
       style={{ background: 'rgba(5,150,105,.1)', color: '#059669' }}>
@@ -45,26 +53,6 @@ function PrivacyBadge({ isPublic }: { isPublic: boolean }) {
       style={{ background: 'rgba(55,65,81,.1)', color: '#374151' }}>
       <Lock className="w-2.5 h-2.5" /> Private
     </span>
-  );
-}
-
-// ── Copy-to-clipboard helper ──────────────────────────────────────────────────
-function CopyButton({ url }: { url: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        await navigator.clipboard.writeText(url).catch(() => null);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
-      }}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-      style={{ background: 'rgba(8,145,178,.08)', color: '#0891B2', border: '1px solid rgba(8,145,178,.22)' }}
-    >
-      {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-      {copied ? 'Copied!' : 'Copy Link'}
-    </button>
   );
 }
 
@@ -79,6 +67,7 @@ interface MenuProps {
 function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const isDraft = item.source === 'edit_draft';
 
   useEffect(() => {
     if (!open) return;
@@ -120,12 +109,13 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
       {open && (
         <div className="absolute right-0 top-9 bg-white rounded-2xl py-1.5 min-w-[175px] shadow-xl z-30"
           style={{ border: '1.5px solid #e3ddf8' }}>
-          {mi(() => null, <Play className="w-3.5 h-3.5" />, 'Watch / Preview')}
-          {!item.isPublic && mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Edit in Editor')}
-          {!item.isPublic && mi(() => null, <Send className="w-3.5 h-3.5 text-purple-600" />, 'Publish to Channel')}
-          {!item.isPublic && mi(() => null, <Download className="w-3.5 h-3.5" />, 'Download Original')}
+          {!isDraft && mi(() => null, <Play className="w-3.5 h-3.5" />, 'Watch / Preview')}
+          {!isDraft && !item.isPublic && mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Edit in Editor')}
+          {!isDraft && !item.isPublic && mi(() => null, <Send className="w-3.5 h-3.5 text-purple-600" />, 'Publish to Channel')}
+          {!isDraft && !item.isPublic && mi(() => null, <Download className="w-3.5 h-3.5" />, 'Download Original')}
+          {isDraft && mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Open in Editor')}
           <div className="h-px bg-gray-100 my-1" />
-          {item.isPublic && item.shareUrl && (
+          {!isDraft && item.isPublic && item.shareUrl && (
             <button
               type="button"
               onClick={async (e) => { e.stopPropagation(); setOpen(false); await navigator.clipboard.writeText(item.shareUrl!).catch(() => null); }}
@@ -137,17 +127,16 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
               <Share2 className="w-3.5 h-3.5" /> Share Link / Copy URL
             </button>
           )}
-          {mi(() => null, <BarChart2 className="w-3.5 h-3.5" />, 'Analytics')}
+          {!isDraft && mi(() => null, <BarChart2 className="w-3.5 h-3.5" />, 'Analytics')}
           <div className="h-px bg-gray-100 my-1" />
           {!item.isPublic
-            ? mi(onMakePublic, <Globe className="w-3.5 h-3.5" />, 'Make Public')
+            ? mi(onMakePublic, <Globe className="w-3.5 h-3.5" />, isDraft ? 'Push to Public' : 'Make Public')
             : mi(onMakePrivate, <EyeOff className="w-3.5 h-3.5" />, 'Move to Private')
           }
           <div className="h-px bg-gray-100 my-1" />
           {mi(onDelete, <Trash2 className="w-3.5 h-3.5" />, 'Delete', true)}
 
-          {/* Greyed-out disabled actions for public content */}
-          {item.isPublic && (
+          {!isDraft && item.isPublic && (
             <>
               <div className="h-px bg-gray-100 my-1" />
               {mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Edit — move to Private first', false, true)}
@@ -172,15 +161,24 @@ export function MyContentSection() {
   });
 
   const visibilityMut = useMutation({
-    mutationFn: ({ id, isPublic }: { id: string; isPublic: boolean }) =>
-      api.myContent.setVisibility(id, isPublic),
+    mutationFn: ({ id, isPublic, source, editId }: { id: string; isPublic: boolean; source?: string; editId?: string }) => {
+      if (source === 'edit_draft' && editId) {
+        return api.myContent.setEditDraftVisibility(editId, isPublic);
+      }
+      return api.myContent.setVisibility(id, isPublic);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['my-content'] });
     },
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => api.myContent.delete(id),
+    mutationFn: ({ id, source, editId }: { id: string; source?: string; editId?: string }) => {
+      if (source === 'edit_draft' && editId) {
+        return api.myContent.deleteEditDraft(editId);
+      }
+      return api.myContent.delete(id);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['my-content'] });
     },
@@ -190,7 +188,6 @@ export function MyContentSection() {
   const isEmpty = !isLoading && !isError && items.length === 0;
   const showSkeleton = isLoading;
 
-  // Skeleton cards
   function SkeletonCard() {
     return (
       <div className="rounded-2xl overflow-hidden animate-pulse" style={{ border: '1.5px solid #e3ddf8' }}>
@@ -205,7 +202,7 @@ export function MyContentSection() {
 
   return (
     <div className="mb-8">
-      {/* Header — two rows: title / (filters + view-all) */}
+      {/* Header */}
       <div className="mb-4 space-y-2">
         <h2 className="text-[15px] font-semibold text-gray-900 flex items-center gap-2">
           <Film className="w-4 h-4 text-purple-500" />
@@ -292,95 +289,151 @@ export function MyContentSection() {
             {filter === 'public'
               ? 'Make a private video public to share it with the world.'
               : filter === 'private'
-              ? 'Render a video in the editor to save it here as private content.'
+              ? 'Save a draft in the editor or render a video to see it here.'
               : 'Create your first video or upload existing content to get started.'}
           </p>
           <Link
-            href="/projects"
+            href="/editor"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-colors"
             style={{ background: '#374151' }}
           >
-            <Plus className="w-3.5 h-3.5" /> Create Content
+            <Plus className="w-3.5 h-3.5" /> Open Editor
           </Link>
         </div>
       )}
 
       {!showSkeleton && !isError && items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {items.map((item, i) => (
-            <div key={item.id}
-              className="rounded-2xl overflow-hidden group relative transition-all hover:-translate-y-0.5"
-              style={{ background: '#fff', border: '1.5px solid #e3ddf8', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(55,65,81,.35)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e3ddf8'; }}
-            >
-              {/* Thumbnail */}
-              <div className="aspect-video relative flex items-center justify-center overflow-hidden"
-                style={{ background: item.thumbnailUrl ? undefined : placeholderGrad(i) }}>
-                {item.thumbnailUrl
-                  ? <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                  : <span className="text-3xl">{placeholderIcon(i)}</span>
-                }
-                {/* Duration badge */}
-                {fmtDuration(item.duration) && (
-                  <span className="absolute bottom-1.5 right-1.5 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-md"
-                    style={{ background: 'rgba(0,0,0,.8)' }}>
-                    {fmtDuration(item.duration)}
-                  </span>
-                )}
-                {/* Play overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ background: 'rgba(0,0,0,.35)' }}>
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(255,255,255,.9)' }}>
-                    <Play className="w-4 h-4 text-gray-800 ml-0.5" />
+          {items.map((item, i) => {
+            const isDraft = item.source === 'edit_draft';
+            return (
+              <div key={item.id}
+                className="rounded-2xl overflow-hidden group relative transition-all hover:-translate-y-0.5"
+                style={{
+                  background: '#fff',
+                  border: isDraft ? '1.5px solid #fde68a' : '1.5px solid #e3ddf8',
+                  boxShadow: '0 1px 4px rgba(0,0,0,.04)',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isDraft ? '#f59e0b' : 'rgba(55,65,81,.35)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isDraft ? '#fde68a' : '#e3ddf8'; }}
+              >
+                {/* Thumbnail */}
+                <div className="aspect-video relative flex items-center justify-center overflow-hidden"
+                  style={{ background: item.thumbnailUrl ? undefined : placeholderGrad(i) }}>
+                  {item.thumbnailUrl
+                    ? <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                    : <span className="text-3xl">{isDraft ? '📝' : placeholderIcon(i)}</span>
+                  }
+                  {fmtDuration(item.duration) && (
+                    <span className="absolute bottom-1.5 right-1.5 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-md"
+                      style={{ background: 'rgba(0,0,0,.8)' }}>
+                      {fmtDuration(item.duration)}
+                    </span>
+                  )}
+                  {/* Play overlay — only for non-drafts */}
+                  {!isDraft && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: 'rgba(0,0,0,.35)' }}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ background: 'rgba(255,255,255,.9)' }}>
+                        <Play className="w-4 h-4 text-gray-800 ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                  {/* Context menu */}
+                  <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <ContentMenu
+                      item={item}
+                      onMakePublic={() => visibilityMut.mutate({ id: item.id, isPublic: true, source: item.source, editId: item.editId })}
+                      onMakePrivate={() => visibilityMut.mutate({ id: item.id, isPublic: false, source: item.source, editId: item.editId })}
+                      onDelete={() => {
+                        const label = isDraft ? 'draft' : 'content item';
+                        if (window.confirm(`Delete "${item.title}"? This permanently removes this ${label}.`)) {
+                          deleteMut.mutate({ id: item.id, source: item.source, editId: item.editId });
+                        }
+                      }}
+                    />
                   </div>
                 </div>
-                {/* Context menu (top-right on hover) */}
-                <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  <ContentMenu
-                    item={item}
-                    onMakePublic={() => visibilityMut.mutate({ id: item.id, isPublic: true })}
-                    onMakePrivate={() => visibilityMut.mutate({ id: item.id, isPublic: false })}
-                    onDelete={() => { if (window.confirm(`Delete "${item.title}"? This permanently removes it from all sections.`)) deleteMut.mutate(item.id); }}
-                  />
-                </div>
-              </div>
 
-              {/* Body */}
-              <div className="p-3.5">
-                <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">{item.title}</p>
-                <div className="flex items-center justify-between gap-2">
-                  <PrivacyBadge isPublic={item.isPublic} />
-                  {item.isPublic && item.shareUrl
-                    ? (
+                {/* Body */}
+                <div className="p-3.5">
+                  <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">{item.title}</p>
+
+                  {/* Inline action row — always visible */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <PrivacyBadge isPublic={item.isPublic} isDraft={isDraft} />
+
+                    {/* Delete — always visible for drafts */}
+                    {isDraft && (
                       <button
                         type="button"
-                        onClick={async () => { await navigator.clipboard.writeText(item.shareUrl!).catch(() => null); }}
-                        className="text-[12px] font-semibold flex items-center gap-1 transition-colors"
-                        style={{ color: '#0891B2' }}
+                        onClick={() => {
+                          if (window.confirm(`Delete draft "${item.title}"?`)) {
+                            deleteMut.mutate({ id: item.id, source: item.source, editId: item.editId });
+                          }
+                        }}
+                        disabled={deleteMut.isPending}
+                        className="text-[11px] font-semibold flex items-center gap-0.5 transition-colors hover:text-red-600 disabled:opacity-50 ml-auto"
+                        style={{ color: '#ef4444' }}
                       >
-                        <Share2 className="w-3 h-3" /> Share
+                        {deleteMut.isPending
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Trash2 className="w-3 h-3" />
+                        }
                       </button>
-                    ) : !item.isPublic ? (
+                    )}
+
+                    {/* Push to Public — inline for private items */}
+                    {!item.isPublic && (
                       <button
                         type="button"
-                        onClick={() => visibilityMut.mutate({ id: item.id, isPublic: true })}
+                        onClick={() => visibilityMut.mutate({ id: item.id, isPublic: true, source: item.source, editId: item.editId })}
                         disabled={visibilityMut.isPending}
                         className="text-[12px] font-semibold flex items-center gap-1 transition-colors hover:text-purple-600 disabled:opacity-50"
-                        style={{ color: '#9CA3AF' }}
+                        style={{ color: isDraft ? '#d97706' : '#9CA3AF', marginLeft: isDraft ? '0' : 'auto' }}
                       >
                         {visibilityMut.isPending
                           ? <Loader2 className="w-3 h-3 animate-spin" />
                           : <Globe className="w-3 h-3" />
                         }
-                        Make Public
+                        {isDraft ? 'Push Public' : 'Make Public'}
                       </button>
-                    ) : null}
+                    )}
+
+                    {/* Share — for public items with shareUrl */}
+                    {item.isPublic && item.shareUrl && (
+                      <button
+                        type="button"
+                        onClick={async () => { await navigator.clipboard.writeText(item.shareUrl!).catch(() => null); }}
+                        className="text-[12px] font-semibold flex items-center gap-1 transition-colors ml-auto"
+                        style={{ color: '#0891B2' }}
+                      >
+                        <Share2 className="w-3 h-3" /> Share
+                      </button>
+                    )}
+
+                    {/* Link copy for public content with no shareUrl */}
+                    {item.isPublic && !item.shareUrl && (
+                      <button
+                        type="button"
+                        onClick={() => visibilityMut.mutate({ id: item.id, isPublic: false, source: item.source, editId: item.editId })}
+                        disabled={visibilityMut.isPending}
+                        className="text-[12px] font-semibold flex items-center gap-1 transition-colors hover:text-gray-600 disabled:opacity-50 ml-auto"
+                        style={{ color: '#9CA3AF' }}
+                      >
+                        {visibilityMut.isPending
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <EyeOff className="w-3 h-3" />
+                        }
+                        Make Private
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Upload / Create card */}
           <Link href="/projects"
