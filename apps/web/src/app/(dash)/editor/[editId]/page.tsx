@@ -550,7 +550,7 @@ function HistoryDrawer({
                     type="button"
                     disabled={deleting === p.id}
                     onClick={() => void handleDelete(p.id)}
-                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
                     title="Delete this edit"
                   >
                     {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
@@ -1408,9 +1408,11 @@ function StatusTray({
 // ── AI Edit Dialog ────────────────────────────────────────────────────────────
 
 const AUTO_EDIT_INSTRUCTION =
-  'Analyze this video edit and suggest an automatic edit plan: silent sections to trim, ' +
-  'filler words to cut, pacing improvements, and any title/text overlays or transitions ' +
-  'that would improve it. List each suggested edit with timestamps so I can apply them.';
+  'I just opened this video in the editor from Shorts Studio. ' +
+  'Use the transcript (if available) to identify filler words, repeated phrases, and long pauses to cut. ' +
+  'Then produce an edited timeline that: (1) trims those dead sections using sourceInMs/sourceOutMs and splits the clip where needed, ' +
+  '(2) adds a fade-in transition at the start, (3) adds a title text overlay in the first 3 seconds. ' +
+  'Apply these changes directly and return the updated timeline JSON now.';
 
 type ChatMsg =
   | { role: 'user'; text: string }
@@ -1483,13 +1485,25 @@ function AiEditDialog({
     }
   };
 
-  // Auto-suggest: fire once when opened from "Video Edit" on an imported video
+  // Auto-suggest: fire once when opened from "Video Edit" on an imported video.
+  // Wait for mediaBin to load so the AI has file context; fall back after 1.5 s
+  // in case the project genuinely has no files yet.
   useEffect(() => {
     if (!autoSuggest || autoRan.current || timeline === undefined) return;
-    autoRan.current = true;
-    void submit(AUTO_EDIT_INSTRUCTION, []);
+    if (mediaBin.length > 0) {
+      autoRan.current = true;
+      void submit(AUTO_EDIT_INSTRUCTION, []);
+      return;
+    }
+    const t = setTimeout(() => {
+      if (!autoRan.current) {
+        autoRan.current = true;
+        void submit(AUTO_EDIT_INSTRUCTION, []);
+      }
+    }, 1500);
+    return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSuggest, timeline]);
+  }, [autoSuggest, timeline, mediaBin]);
 
   const binSummary =
     mediaBin.length === 0
@@ -5487,7 +5501,20 @@ export default function EditorWorkspacePage() {
           mediaBin={mediaBin}
           autoSuggest={aiAutoSuggest}
           onClose={() => { setShowAiEdit(false); setAiAutoSuggest(false); }}
-          onApplyTimeline={(t) => { pushUndo(); setTimeline(t as EditTimeline); setDirty(true); }}
+          onApplyTimeline={(t) => {
+            pushUndo();
+            const applied = t as EditTimeline;
+            setTimeline(applied);
+            setDirty(true);
+            // Auto-save AI edits to Private Drafts (fire-and-forget; non-fatal)
+            void api.editor.saveTimeline(editId, applied)
+              .then(() => api.editor.setStatus(editId, 'PRIVATE_CONTENT'))
+              .then(() => {
+                void qc.invalidateQueries({ queryKey: ['editor-mine'] });
+                void qc.invalidateQueries({ queryKey: ['editor-mine-list'] });
+              })
+              .catch(() => undefined);
+          }}
         />
       )}
       {showHistory && (

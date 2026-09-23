@@ -422,33 +422,22 @@ export class EditorService {
       }
     }
 
-    // Seed a single-VIDEO-track timeline with one item spanning the full source
-    const seedTimeline: EditTimeline = {
-      width,
-      height,
-      fps: 30,
-      durationMs,
-      tracks: [
-        {
-          id: 'track-video-0',
-          kind: 'VIDEO',
-          label: 'Video',
-          items: sourceAssetId
-            ? [
-                {
-                  id: 'item-0',
-                  sourceAssetId,
-                  kind: 'VIDEO',
-                  timelineStartMs: 0,
-                  timelineEndMs: durationMs || 1,
-                  sourceInMs: 0,
-                  sourceOutMs: durationMs || undefined,
-                },
-              ]
-            : [],
-        },
-      ],
-    };
+    // Seed a VIDEO track + companion AUDIO track so the editor shows audio from the start.
+    const dur = durationMs || 1;
+    // @reason: EditItem in compiled dist omits linkedItemId; cast through object to attach it.
+    const seedTracks: EditTimeline['tracks'] = sourceAssetId
+      ? [
+          {
+            id: 'track-video-0', kind: 'VIDEO', label: 'Video',
+            items: [{ id: 'item-0-v', sourceAssetId, kind: 'VIDEO', timelineStartMs: 0, timelineEndMs: dur, sourceInMs: 0, sourceOutMs: durationMs || undefined, linkedItemId: 'item-0-a' } as object as EditTimeline['tracks'][number]['items'][number]],
+          },
+          {
+            id: 'track-audio-0', kind: 'AUDIO', label: 'Audio',
+            items: [{ id: 'item-0-a', sourceAssetId, kind: 'AUDIO', timelineStartMs: 0, timelineEndMs: dur, sourceInMs: 0, sourceOutMs: durationMs || undefined, linkedItemId: 'item-0-v' } as object as EditTimeline['tracks'][number]['items'][number]],
+          },
+        ]
+      : [{ id: 'track-video-0', kind: 'VIDEO', label: 'Video', items: [] }];
+    const seedTimeline: EditTimeline = { width, height, fps: 30, durationMs, tracks: seedTracks };
 
      
     const row = (await ep(this.prisma).create({
@@ -904,6 +893,24 @@ export class EditorService {
       };
     }
 
+    // Fetch transcript from any ImportedVideo in this project (for smart content-aware edits).
+    const editProjectId = ep.projectId;
+    const importedWithTranscript = await this.prisma.importedVideo.findFirst({
+      where: { projectId: editProjectId, transcriptSegments: { some: {} } },
+      include: {
+        transcriptSegments: {
+          orderBy: { startMs: 'asc' },
+          take: 300,
+          select: { startMs: true, endMs: true, text: true },
+        },
+      },
+    });
+    const transcriptSection = importedWithTranscript?.transcriptSegments?.length
+      ? `### Video Transcript (use timestamps to suggest precise trims/cuts)\n${importedWithTranscript.transcriptSegments
+          .map((s) => `[${(s.startMs / 1000).toFixed(1)}s–${(s.endMs / 1000).toFixed(1)}s] ${s.text}`)
+          .join('\n')}`
+      : null;
+
     const binSection =
       binItems.length > 0
         ? `### Media Bin — Files You Can Add to the Timeline
@@ -935,18 +942,24 @@ Your job is to understand the user's editing intent and produce a correctly modi
 ${timelineSection}
 
 ${binSection}
+${transcriptSection ? `\n${transcriptSection}` : ''}
 
 ## WHAT YOU CAN DO
 
 **1. Modify existing clips** (adjust timing, trim, or apply properties):
   - Move in time: change timelineStartMs and timelineEndMs (integers, ms)
-  - Trim source: sourceInMs / sourceOutMs
+  - Trim source: sourceInMs / sourceOutMs (trim the clip itself, not its timeline position)
   - Properties: volume(0-2), speed(0.1-10), opacity(0-1), scale(0.1-3), x/y(pixels)
   - Filters: { brightness: -1..1, contrast: 0..2, saturation: 0..3, grayscale: bool, blur: 0..20 }
   - Transition: transitionIn: { type: 'fade'|'dissolve'|'slide', durationMs: integer }
   - Audio controls: fadeInMs(0-5000), fadeOutMs(0-5000), gainDb(-60..12), duckUnderVoice(bool)
 
-**2. Add new clips from the Media Bin** (use the exact id as sourceAssetId):
+**2. Split a clip** to cut out a section (e.g. remove filler words at 15s–22s from a 60s clip):
+  - Create two items from the same sourceAssetId: first item ends at the cut-in; second starts at cut-out
+  - Shift second item (and all later items) left so there is no gap between them
+  - Adjust sourceInMs/sourceOutMs accordingly to reflect the correct source range
+
+**3. Add new clips from the Media Bin** (use the exact id as sourceAssetId):
   - VIDEO/IMAGE assets → kind: "VIDEO", add to a VIDEO track
   - MUSIC/VOICE assets → kind: "AUDIO", add to an AUDIO track
   - ⚠️ When adding a VIDEO clip you MUST ALSO add a companion AUDIO item at the same
@@ -954,10 +967,10 @@ ${binSection}
     and the AUDIO item gets linkedItemId = the VIDEO item's id.
   - Generate unique item ids like "item-<timestamp>-v" and "item-<timestamp>-a".
 
-**3. Create new tracks** when no suitable track exists:
+**4. Create new tracks** when no suitable track exists:
   - Give a unique id (e.g. "track-v1", "track-audio-2"), kind ("VIDEO"|"AUDIO"), and label.
 
-**4. Loop / extend background music** to cover the full video duration:
+**5. Loop / extend background music** to cover the full video duration:
   - Add multiple instances of the same MUSIC asset back-to-back (each with a unique item id).
 
 ## RULES
@@ -967,6 +980,7 @@ ${binSection}
 4. timelineEndMs must always be greater than timelineStartMs for every item.
 5. Return the COMPLETE modified timeline including ALL tracks and ALL items.
 6. If the user is only asking a question (not requesting an edit), return timeline as null.
+${transcriptSection ? '7. When trimming based on the transcript, use precise ms values derived from the segment timestamps above.' : ''}
 
 ## RESPONSE FORMAT — valid JSON only, no markdown fences
 { "reply": "1-2 sentence plain-English description of the changes", "timeline": <complete timeline JSON> | null }`;
