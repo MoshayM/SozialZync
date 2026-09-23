@@ -1570,7 +1570,13 @@ function AiEditDialog({
   onApplyTimeline: (t: unknown) => void;
 }) {
   const [input, setInput] = useState(autoSuggest ? AUTO_EDIT_INSTRUCTION : '');
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const storageKey = `ai-edit-history-${editId}`;
+  const [messages, setMessages] = useState<ChatMsg[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+      return saved ? (JSON.parse(saved) as ChatMsg[]).slice(-50) : [];
+    } catch { return []; }
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoRan = useRef(false);
@@ -1585,6 +1591,12 @@ function AiEditDialog({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, busy]);
+
+  // Persist history to localStorage whenever messages change (cap at 50)
+  useEffect(() => {
+    if (messages.length === 0) return;
+    try { localStorage.setItem(storageKey, JSON.stringify(messages.slice(-50))); } catch { /* ignore */ }
+  }, [messages, storageKey]);
 
   // Build history for the API from current messages array
   const historyForApi = (msgs: ChatMsg[]) =>
@@ -1678,6 +1690,15 @@ function AiEditDialog({
             <p className="text-sm font-semibold text-gray-900 leading-tight">AI Edit</p>
             <p className="text-[10px] text-gray-400 truncate">{binSummary}</p>
           </div>
+          {messages.length > 0 && (
+            <button
+              onClick={() => { setMessages([]); try { localStorage.removeItem(storageKey); } catch { /* ignore */ } }}
+              className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 shrink-0"
+              title="Clear conversation history"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 shrink-0">
             <X className="w-4 h-4" />
           </button>

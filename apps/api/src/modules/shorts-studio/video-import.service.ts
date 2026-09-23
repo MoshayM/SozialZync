@@ -176,7 +176,9 @@ export class VideoImportService {
 
     const sourceAsset = video.sourceAsset;
     const existingKey = sourceAsset?.versions[0]?.r2Key;
-    if (sourceAsset && existingKey && this.storage.exists(existingKey)) {
+    // ensure() restores from R2 cloud storage on a cache miss (e.g. after an ephemeral-disk restart).
+    // Falls back to a plain exists() check when STORAGE_BACKEND is not r2.
+    if (sourceAsset && existingKey && await this.storage.ensure(existingKey)) {
       // Pre-fix imports may hold an AV1 source (see YTDLP_FORMAT) — decoding
       // stages can't finish on those, so re-acquire an H.264 rendition as a
       // new version of the same asset. Failure keeps the AV1 source usable.
@@ -327,8 +329,16 @@ export class VideoImportService {
       include: { sourceAsset: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } } },
     });
     const key = video?.sourceAsset?.versions[0]?.r2Key;
-    if (!key || !this.storage.exists(key)) {
+    if (!key) {
       throw new BadRequestException('Source video is not downloaded yet — run the import pipeline first');
+    }
+    // Restore from R2 cloud storage if the local cache was evicted (e.g. ephemeral disk restart).
+    await this.storage.ensure(key);
+    if (!this.storage.exists(key)) {
+      throw new ImportPipelineError(
+        'Source video file was lost from temporary storage and could not be restored. Re-run the import pipeline to re-download it, or configure STORAGE_BACKEND=r2 for persistent storage.',
+        { r2Key: key, importedVideoId },
+      );
     }
     return this.storage.resolve(key);
   }
@@ -365,6 +375,7 @@ export class VideoImportService {
           // (common for South Asian content). Avoid "all" — it triggers ~150
           // auto-translation fetches and gets rate-limited (429).
           '--sub-langs', '.*-orig,en,hi,as,bn,ta,te,ml,kn,mr,gu,pa,ur,ne,si,zh,ko,ja,ar,ru,fr,de,es,pt',
+          ...this.cookiesArgs(),
           ...this.jsRuntimeArgs(),
           ...(ffmpeg ? ['--ffmpeg-location', ffmpeg] : []),
           '-o', path.join(tmpDir, 'subs'),
@@ -393,6 +404,11 @@ export class VideoImportService {
     }
   }
 
+  private cookiesArgs(): string[] {
+    const file = process.env['YOUTUBE_COOKIES_FILE'];
+    return file ? ['--cookies', file] : [];
+  }
+
   private runYtDlp(youtubeVideoId: string, outPath: string, format: string = YTDLP_FORMAT): Promise<void> {
     const bin = this.ytDlpBin();
     // yt-dlp needs ffmpeg to merge separate video+audio streams; hand it the
@@ -403,6 +419,7 @@ export class VideoImportService {
       '-f', format,
       '--merge-output-format', 'mp4',
       '--no-playlist',
+      ...this.cookiesArgs(),
       ...this.jsRuntimeArgs(),
       ...(ffmpeg ? ['--ffmpeg-location', ffmpeg] : []),
       '-o', outPath,
