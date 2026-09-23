@@ -144,11 +144,24 @@ export class TranscriptService {
         form.append('file', new Blob([audio], { type: 'audio/mpeg' }), 'audio.mp3');
         form.append('model', 'whisper-1');
         form.append('response_format', 'verbose_json');
-        const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${apiKey}` },
-          body: form,
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+        let res: Response;
+        try {
+          res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}` },
+            body: form,
+            signal: controller.signal,
+          });
+        } catch (fetchErr) {
+          const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+          this.logger.warn(`Whisper API network error on chunk ${i + 1}: ${msg}`);
+          onLog?.(`Warning: Whisper network error on chunk ${i + 1} — ${msg}`);
+          return cues.length > 0 ? cues : null;
+        } finally {
+          clearTimeout(timeoutId);
+        }
         if (!res.ok) {
           const body = await res.text().catch(() => '');
           this.logger.warn(`Whisper API error ${res.status}: ${body.slice(0, 300)}`);
