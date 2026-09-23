@@ -1256,7 +1256,12 @@ export async function embedTexts(texts: string[]): Promise<EmbeddingResult> {
       while (!response) {
         for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
           try {
-            response = await client.embeddings.create({ model, input: batchTexts, dimensions: EMBEDDING_DIMS });
+            // gemini-embedding-001 already outputs 768 dims by default; passing
+            // `dimensions` via the OpenAI-compat shim causes a 400 error on Gemini.
+            const createArgs = activeProvider === 'gemini'
+              ? { model, input: batchTexts }
+              : { model, input: batchTexts, dimensions: EMBEDDING_DIMS };
+            response = await client.embeddings.create(createArgs);
             break;
           } catch (err) {
             lastErr = err;

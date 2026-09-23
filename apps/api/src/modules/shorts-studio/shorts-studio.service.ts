@@ -91,7 +91,7 @@ export class ShortsStudioService {
         payload: { path: ['importedVideoId'], equals: importedVideoId },
       },
       orderBy: { createdAt: 'desc' },
-      select: { id: true, type: true, status: true, error: true, createdAt: true, completedAt: true },
+      select: { id: true, type: true, status: true, error: true, errorCode: true, createdAt: true, completedAt: true },
     });
     const latestByType = new Map<string, (typeof jobs)[number]>();
     for (const j of jobs) if (!latestByType.has(j.type)) latestByType.set(j.type, j);

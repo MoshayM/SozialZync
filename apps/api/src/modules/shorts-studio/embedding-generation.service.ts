@@ -60,18 +60,18 @@ export class EmbeddingGenerationService {
         const status = (err as { status?: number }).status ?? 0;
         const msg = err instanceof Error ? err.message : String(err);
         const isQuota = status === 429 || /quota|rate.?limit/i.test(msg);
-        if (isQuota) {
-          this.logger.warn(`[EmbeddingGeneration] Quota exhausted — skipping chunk ${i + 1}–${i + chunk.length} (will retry on next run): ${msg}`);
-          onLog?.(`Warning: quota exhausted for chunk ${i + 1}–${i + chunk.length}, skipping (semantic search will be partial)`);
-          skippedChunks++;
-        } else {
-          throw err;
-        }
+        // Treat all provider errors (quota, bad params, auth, network) as non-fatal
+        // so that a missing key or unsupported parameter never fails the parent pipeline.
+        // Semantic search degrades gracefully — clips and analysis are already done.
+        const logSuffix = isQuota ? '(will retry on next run)' : `(error: ${msg.slice(0, 120)})`;
+        this.logger.warn(`[EmbeddingGeneration] Skipping chunk ${i + 1}–${i + chunk.length} ${logSuffix}`);
+        onLog?.(`Warning: chunk ${i + 1}–${i + chunk.length} skipped — semantic search will be partial ${logSuffix}`);
+        skippedChunks++;
       }
     }
 
     if (skippedChunks > 0) {
-      onLog?.(`Embedding generation partial — ${done} embedded, ${skippedChunks} chunk(s) skipped due to quota (re-run to complete)`);
+      onLog?.(`Embedding generation partial — ${done} embedded, ${skippedChunks} chunk(s) skipped (re-run after fixing API key/quota to complete)`);
     } else {
       onLog?.(`Embedding generation complete — ${done} new (${total} total, ${tokensIn} tokens)`);
     }
