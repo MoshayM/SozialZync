@@ -77,8 +77,11 @@ export class TranscriptService {
         where: { id: importedVideoId },
         data: { transcriptStatus: 'FAILED' },
       });
-      throw new Error(
-        'Transcript unavailable: no caption track (owner or public auto-captions) and speech-to-text failed or is not configured (OPENAI_API_KEY).',
+      const hasWhisper = !!process.env['OPENAI_API_KEY'];
+      throw new TranscriptionError(
+        hasWhisper
+          ? 'No caption track found for this video (checked YouTube captions and public auto-captions). Speech-to-text also failed — ensure the video source file is accessible.'
+          : 'No caption track found for this video. Set OPENAI_API_KEY in your environment to enable speech-to-text (Whisper) as a fallback.',
       );
     }
 

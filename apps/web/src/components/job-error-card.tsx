@@ -51,8 +51,8 @@ const CODE_COPY: Record<JobErrorCode, ErrorCopy> = {
   },
   TRANSCRIPTION_FAILED: {
     title: 'Transcript generation failed',
-    desc: 'Something went wrong while generating the transcript.',
-    fix: 'Retry — if it keeps failing, report it.',
+    desc: null, // use job error sentence — it explains the specific reason
+    fix: 'If this video has no captions, set OPENAI_API_KEY in your server environment to enable Whisper speech-to-text as a fallback.',
   },
   SCENE_DETECTION_FAILED: {
     title: 'Scene detection failed',

@@ -359,9 +359,12 @@ export class VideoImportService {
           '--skip-download', '--no-playlist',
           '--write-subs', '--write-auto-subs',
           '--sub-format', 'srt/best',
-          // Original spoken track + English only — requesting all languages
-          // walks every auto-translation (~150) and gets rate-limited (429)
-          '--sub-langs', '.*-orig,en',
+          // Fetch the primary spoken track + common language codes.
+          // ".*-orig" matches YouTube's auto-caption label for the original language.
+          // Explicit codes cover videos where YouTube labels them without "-orig"
+          // (common for South Asian content). Avoid "all" — it triggers ~150
+          // auto-translation fetches and gets rate-limited (429).
+          '--sub-langs', '.*-orig,en,hi,as,bn,ta,te,ml,kn,mr,gu,pa,ur,ne,si,zh,ko,ja,ar,ru,fr,de,es,pt',
           ...this.jsRuntimeArgs(),
           ...(ffmpeg ? ['--ffmpeg-location', ffmpeg] : []),
           '-o', path.join(tmpDir, 'subs'),
