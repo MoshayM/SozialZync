@@ -1410,6 +1410,50 @@ function EditorLoadingScreen() {
   );
 }
 
+// ── Preview loading overlay ───────────────────────────────────────────────────
+// Shown while the signed media URL for the active clip is being fetched.
+// key={item.id} on the parent forces a remount — and restarts the sim — each
+// time the selected clip changes.
+
+function PreviewLoadingOverlay() {
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    let v = 0;
+    const t = setInterval(() => {
+      v = Math.min(90, v + (90 - v) * 0.1 + 0.6);
+      setPct(Math.floor(v));
+      if (v >= 89.5) clearInterval(t);
+    }, 100);
+    return () => clearInterval(t);
+  }, []);
+
+  const size = 56;
+  const r = (size - 6) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - pct / 100);
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 z-10">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
+          <circle
+            cx={size / 2} cy={size / 2} r={r}
+            fill="none" stroke="rgba(255,255,255,0.85)"
+            strokeWidth="4" strokeLinecap="round"
+            strokeDasharray={circ} strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 0.18s ease-out' }}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">
+          {pct}
+        </span>
+      </div>
+      <p className="text-[11px] text-white/50">Loading preview…</p>
+    </div>
+  );
+}
+
 // ── Circular progress ring ────────────────────────────────────────────────────
 
 function CircularProgress({ pct, size = 28 }: { pct: number; size?: number }) {
@@ -5048,9 +5092,7 @@ export default function EditorWorkspacePage() {
             </audio>
 
             {activeTimelineItem && !displaySrc && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
-                <Loader2 className="w-8 h-8 animate-spin text-white/70" />
-              </div>
+              <PreviewLoadingOverlay key={activeTimelineItem.id} />
             )}
             {isActiveImage && displaySrc ? (
               <>
