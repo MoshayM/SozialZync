@@ -1462,16 +1462,24 @@ function PreviewLoadingOverlay({ playing, onToggle }: { playing: boolean; onTogg
 
 // ── Circular progress ring ────────────────────────────────────────────────────
 
-function CircularProgress({ pct, size = 28 }: { pct: number; size?: number }) {
+function CircularProgress({
+  pct,
+  size = 40,
+  playing,
+  onToggle,
+}: {
+  pct: number;
+  size?: number;
+  playing?: boolean;
+  onToggle?: () => void;
+}) {
   const r = (size - 4) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - Math.min(100, Math.max(0, pct)) / 100);
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-        {/* Track */}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2.5" />
-        {/* Arc */}
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none"
@@ -1483,13 +1491,24 @@ function CircularProgress({ pct, size = 28 }: { pct: number; size?: number }) {
           style={{ transition: 'stroke-dashoffset 0.25s ease-out' }}
         />
       </svg>
-      {/* Percentage label in the centre */}
-      <span
-        className="absolute inset-0 flex items-center justify-center font-bold text-white"
-        style={{ fontSize: size <= 28 ? 7 : 9, letterSpacing: '-0.3px' }}
-      >
-        {Math.min(99, Math.round(pct))}
-      </span>
+      {onToggle != null ? (
+        <button
+          onClick={onToggle}
+          className="absolute inset-0 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+          aria-label={playing ? 'Pause' : 'Play'}
+        >
+          {playing
+            ? <Pause className="text-white" style={{ width: size * 0.38, height: size * 0.38 }} />
+            : <Play className="text-white" style={{ width: size * 0.38, height: size * 0.38 }} />}
+        </button>
+      ) : (
+        <span
+          className="absolute inset-0 flex items-center justify-center font-bold text-white"
+          style={{ fontSize: size <= 28 ? 7 : 9, letterSpacing: '-0.3px' }}
+        >
+          {Math.min(99, Math.round(pct))}
+        </span>
+      )}
     </div>
   );
 }
@@ -1499,10 +1518,14 @@ function CircularProgress({ pct, size = 28 }: { pct: number; size?: number }) {
 function StatusTray({
   toasts,
   savePct,
+  playing,
+  onTogglePlay,
   onDismiss,
 }: {
   toasts: Array<{ id: string; label: string; status: 'pending' | 'success' | 'error'; message?: string }>;
   savePct: number;
+  playing: boolean;
+  onTogglePlay: () => void;
   onDismiss: (id: string) => void;
 }) {
   if (toasts.length === 0) return null;
@@ -1518,7 +1541,7 @@ function StatusTray({
           }`}
         >
           <span className="shrink-0">
-            {t.status === 'pending' && <CircularProgress pct={savePct} />}
+            {t.status === 'pending' && <CircularProgress pct={savePct} playing={playing} onToggle={onTogglePlay} />}
             {t.status === 'success' && <CheckCircle2 className="w-4 h-4 text-green-400" />}
             {t.status === 'error' && <AlertCircle className="w-4 h-4 text-red-400" />}
           </span>
@@ -4205,10 +4228,12 @@ export default function EditorWorkspacePage() {
     setAutoSave((prev) => {
       const next = !prev;
       localStorage.setItem('editor-autosave', String(next));
-      addToast(`autosave-${Date.now()}`, next ? 'Auto-save enabled' : 'Auto-save disabled');
+      const id = `autosave-${Date.now()}`;
+      addToast(id, next ? 'Auto-save enabled' : 'Auto-save disabled');
+      updateToast(id, 'success');
       return next;
     });
-  }, [addToast]);
+  }, [addToast, updateToast]);
 
   const handleSaveSnapshot = useCallback((name: string) => {
     if (!timeline) return;
@@ -4224,8 +4249,10 @@ export default function EditorWorkspacePage() {
       return next;
     });
     setShowSaveDialog(false);
-    addToast(`snap-saved-${Date.now()}`, `Version "${name}" saved to Private Drafts`);
-  }, [timeline, editId, addToast]);
+    const toastId = `snap-saved-${Date.now()}`;
+    addToast(toastId, `Version "${name}" saved to Private Drafts`);
+    updateToast(toastId, 'success');
+  }, [timeline, editId, addToast, updateToast]);
 
   const handleLoadSnapshot = useCallback((s: SnapshotEntry) => {
     // Single state update: push current to history AND set new timeline (avoids double render)
@@ -5684,7 +5711,7 @@ export default function EditorWorkspacePage() {
       )}
 
       {/* Background-operation status tray */}
-      <StatusTray toasts={toasts} savePct={barPct} onDismiss={dismissToast} />
+      <StatusTray toasts={toasts} savePct={barPct} playing={playing} onTogglePlay={() => playing ? stopPlay() : startPlay()} onDismiss={dismissToast} />
     </div>
   );
 }
