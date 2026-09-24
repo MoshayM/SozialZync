@@ -15,7 +15,7 @@ setup('authenticate', async ({ page }) => {
   await page.waitForSelector('input[type="email"]', { timeout: 30_000 });
   await page.locator('input[type="email"]').first().fill(EMAIL);
   await page.locator('input[type="password"]').first().fill(PASS);
-  await page.getByRole('button', { name: /^sign in$/i }).click();
+  await page.getByRole('button', { name: /sign in with password/i }).click();
   // Allow 90s — Railway cold start can take 30-45s on the Hobby plan.
   // 'commit' waits only for URL change (not full dashboard load) so Railway
   // data calls on /home don't push us past the timeout.
