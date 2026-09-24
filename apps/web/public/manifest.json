@@ -1,0 +1,36 @@
+{
+  "name": "SozialZynk — AI Creator Platform",
+  "short_name": "SozialZynk",
+  "description": "AI-powered creator platform. Research, script, create, and publish across all your channels from one intelligent workspace.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#374151",
+  "categories": ["productivity", "social", "entertainment"],
+  "lang": "en",
+  "icons": [
+    { "src": "/logo-16.png",  "sizes": "16x16",   "type": "image/png" },
+    { "src": "/logo-32.png",  "sizes": "32x32",   "type": "image/png" },
+    { "src": "/logo-64.png",  "sizes": "64x64",   "type": "image/png" },
+    { "src": "/logo-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/logo-256.png", "sizes": "256x256", "type": "image/png" },
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Shorts Studio",
+      "short_name": "Shorts",
+      "url": "/shorts-studio",
+      "icons": [{ "src": "/logo-64.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Content",
+      "short_name": "Content",
+      "url": "/my-content",
+      "icons": [{ "src": "/logo-64.png", "sizes": "96x96" }]
+    }
+  ]
+}

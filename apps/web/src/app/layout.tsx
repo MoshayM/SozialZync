@@ -25,6 +25,7 @@ export const metadata: Metadata = {
       '20x2oPxrc3-nfmlnB5dz2twvqPdANOn7RknKbCeQpck',
     ],
   },
+  manifest: '/manifest.json',
   title: { default: 'SozialZynk', template: '%s · SozialZynk' },
   description: 'AI-powered creator platform. Research, script, create, and publish across all your channels — from one intelligent workspace.',
   applicationName: 'SozialZynk',
