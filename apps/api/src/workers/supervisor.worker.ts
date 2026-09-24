@@ -1576,7 +1576,13 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
       case 'SHORTS_EXPORT': {
         const shortClipId = payload['shortClipId'] as string;
         if (!shortClipId) throw new Error('SHORTS_EXPORT requires payload.shortClipId');
-        return this.shortsExport.exportClip(shortClipId, (m) => this.log(jobId, projectId, m));
+        await this.shortsExport.exportClip(shortClipId, (m) => this.log(jobId, projectId, m));
+        if (payload['autoPublish']) {
+          const scheduledAtStr = payload['scheduledAt'] as string | undefined;
+          const scheduledAt = scheduledAtStr ? new Date(scheduledAtStr) : undefined;
+          await this.shortsExport.autoApproveAndPublish(shortClipId, projectId, scheduledAt, (m) => this.log(jobId, projectId, m));
+        }
+        return;
       }
 
       case 'SHORTS_PUBLISH': {

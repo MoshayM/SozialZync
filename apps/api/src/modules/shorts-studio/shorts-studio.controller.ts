@@ -420,4 +420,25 @@ export class ShortsStudioController {
   async saveToPrivate(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
     return this.shorts.saveToPrivate(shortClipId, user.sub);
   }
+
+  /** One-click publish: export → auto-approve → enqueue publish. No separate approval UI. */
+  @Post('clips/:shortClipId/quick-publish')
+  async quickPublish(
+    @Param('shortClipId') shortClipId: string,
+    @Body() body: { scheduledAt?: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const isElevated = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
+    if (!isElevated && (user.plan ?? 'FREE') === 'FREE') {
+      throw new ForbiddenException('Publishing requires a Pro plan — upgrade to unlock.');
+    }
+    const clip = await this.shorts.assertClipOwnership(shortClipId, user.sub);
+    const rs = await this.shorts.renderStatus(shortClipId);
+    if (!rs.render) throw new BadRequestException('Clip must be rendered before publishing');
+    return this.jobs.enqueue(clip.projectId, 'SHORTS_EXPORT', {
+      shortClipId,
+      autoPublish: true,
+      scheduledAt: body.scheduledAt,
+    });
+  }
 }

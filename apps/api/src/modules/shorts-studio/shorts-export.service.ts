@@ -5,6 +5,7 @@ import { ApprovalsService } from '../approvals/approvals.service';
 import { ComplianceService } from '../compliance/compliance.service';
 import { PublishingService } from '../publishing/publishing.service';
 import { YouTubeReadService } from './youtube-read.service';
+import { JobsService } from '../jobs/jobs.service';
 import { CLIP_TYPE_PRESETS } from './clip-type-presets';
 import { MediaPipelineError, YoutubeAuthFailedError } from '../media/media.errors';
 
@@ -34,6 +35,7 @@ export class ShortsExportService {
     private readonly compliance: ComplianceService,
     private readonly publishing: PublishingService,
     private readonly youtubeRead: YouTubeReadService,
+    private readonly jobs: JobsService,
   ) {}
 
   private async buildMetadata(shortClipId: string): Promise<ClipMetadata> {
@@ -393,5 +395,29 @@ export class ShortsExportService {
       // Metadata read is best-effort — publishing proceeds without the field.
     }
     return null;
+  }
+
+  /** Auto-approve + enqueue publish — used by quickPublish (no separate approval UI). */
+  async autoApproveAndPublish(shortClipId: string, projectId: string, scheduledAt?: Date, onLog?: (msg: string) => void) {
+    const clip = await this.prisma.shortClip.findUniqueOrThrow({ where: { id: shortClipId } });
+    const exportJob = await this.latestExportJob(clip);
+    if (!exportJob) { onLog?.('No export job found — skipping auto-publish'); return; }
+    // Create an approval and immediately approve it (compliance check runs inside SHORTS_PUBLISH)
+    const approval = await this.approvals.createApproval(projectId, exportJob.id);
+    await this.approvals.approve(approval.id, projectId, 'Auto-approved via quick-publish');
+    const history = await this.prisma.shortsExportHistory.findFirst({
+      where: { shortClipId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!history) { onLog?.('No export history — skipping auto-publish'); return; }
+    await this.prisma.shortClip.update({ where: { id: shortClipId }, data: { status: 'APPROVED' } });
+    const delayMs = scheduledAt ? Math.max(0, scheduledAt.getTime() - Date.now()) : 0;
+    await this.jobs.enqueue(
+      projectId,
+      'SHORTS_PUBLISH',
+      { shortClipId, approvalId: approval.id, exportId: history.id, ...(scheduledAt ? { scheduledAt: scheduledAt.toISOString() } : {}) },
+      { delayMs },
+    );
+    onLog?.(`Quick-publish enqueued for ${shortClipId}`);
   }
 }

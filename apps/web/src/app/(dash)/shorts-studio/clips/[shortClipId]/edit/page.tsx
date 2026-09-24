@@ -718,6 +718,29 @@ export default function TimelineEditorPage() {
             )}
           </div>
 
+          {/* Studio Tools */}
+          <div className="mt-4 pt-3 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Studio Tools</p>
+            <div className="space-y-1">
+              {([
+                ['/image-studio?ref=editor', '🖼️', 'Image Studio'],
+                ['/music-studio?ref=editor', '🎵', 'Music Studio'],
+                ['/ai-thumbnails?ref=editor', '✨', 'AI Thumbnails'],
+                ['/voices?ref=editor', '🎙️', 'Voices'],
+              ] as const).map(([href, icon, label]) => (
+                <Link
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors"
+                >
+                  <span>{icon}</span> {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           {suggestions && (
             <div className="mt-4 pt-3 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-600 mb-2">

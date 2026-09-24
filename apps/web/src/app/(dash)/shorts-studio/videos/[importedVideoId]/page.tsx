@@ -1,12 +1,11 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ShieldCheck, ExternalLink, XCircle, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
-import { usePlanGate, useIsAdmin, planAtLeast, triggerUpgradeSheet } from '@/components/plan-gate';
 
 interface Topic {
   id: string;
@@ -134,94 +133,6 @@ function scoreColor(v: number): string {
   if (v >= 70) return 'text-green-600';
   if (v >= 40) return 'text-amber-600';
   return 'text-gray-500';
-}
-
-type FlowPhase =
-  | { step: 'idle' }
-  | { step: 'working'; label: string }
-  | { step: 'awaiting-approval' }
-  | { step: 'published'; url: string }
-  | { step: 'error'; message: string };
-
-/**
- * One-click publish: clip → captions → render → export → approval request,
- * then auto-publishes the moment the review is approved on /approvals.
- * Every backend stage self-skips when already satisfied, so re-clicking
- * resumes an interrupted flow instead of redoing work.
- */
-function usePublishFlow(highlightId: string, types: string[], qc: ReturnType<typeof useQueryClient>) {
-  const [phase, setPhase] = useState<FlowPhase>({ step: 'idle' });
-  const cancelled = useRef(false);
-
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-  const waitJob = useCallback(async (jobId: string, label: string) => {
-    setPhase({ step: 'working', label });
-    for (;;) {
-      if (cancelled.current) throw new Error('cancelled');
-      const job = (await api.jobs.get(jobId)).data as { status: string; error?: string; errorCode?: string | null; retryable?: boolean };
-      if (job.status === 'COMPLETED') return;
-      if (job.status === 'FAILED') throw new Error(job.error ?? `${label} failed`);
-      await sleep(4000);
-    }
-  }, []);
-
-  const run = useCallback(async () => {
-    cancelled.current = false;
-    // Use the first selected type for the publish pipeline; default to YOUTUBE_SHORTS if none selected.
-    const primaryType = types[0] ?? 'YOUTUBE_SHORTS';
-    try {
-      setPhase({ step: 'working', label: 'Creating clip…' });
-      const clips = (await api.shortsStudio.generateClips(highlightId, types.length > 0 ? types : ['YOUTUBE_SHORTS'])).data as Array<{ id: string }>;
-      // Prefer the clip that matches the primary platform type
-      const clipId = (clips[0])!.id;
-      void qc.invalidateQueries({ queryKey: ['shorts-clips'] });
-
-      const captionJob = (await api.shortsStudio.generateCaptions(clipId)).data as { id: string };
-      await waitJob(captionJob.id, 'Generating captions…');
-
-      const renderJob = (await api.shortsStudio.render(clipId)).data as { id: string };
-      await waitJob(renderJob.id, `Rendering ${primaryType.replace(/_/g, ' ').toLowerCase()}…`);
-
-      const exportJob = (await api.shortsStudio.exportClip(clipId)).data as { id: string };
-      await waitJob(exportJob.id, 'Building export package…');
-
-      await api.shortsStudio.requestPublish(clipId);
-      setPhase({ step: 'awaiting-approval' });
-
-      // Poll the approval; auto-publish once the human review lands
-      for (;;) {
-        if (cancelled.current) throw new Error('cancelled');
-        const s = (await api.shortsStudio.publishStatus(clipId)).data as {
-          approval: { status: string } | null;
-          publishJob: { status: string; result?: { url?: string } } | null;
-        };
-        if (s.publishJob?.status === 'COMPLETED' && s.publishJob.result?.url) {
-          setPhase({ step: 'published', url: s.publishJob.result.url });
-          void qc.invalidateQueries({ queryKey: ['shorts-clips'] });
-          return;
-        }
-        if (s.approval?.status === 'REJECTED') throw new Error('Review was rejected on the Approvals page');
-        if (s.approval?.status === 'APPROVED' && (!s.publishJob || s.publishJob.status === 'FAILED')) {
-          const pub = (await api.shortsStudio.publish(clipId)).data as { id: string };
-          await waitJob(pub.id, 'Publishing…');
-          const done = (await api.shortsStudio.publishStatus(clipId)).data as { publishJob: { result?: { url?: string } } | null };
-          setPhase({ step: 'published', url: done.publishJob?.result?.url ?? '' });
-          void qc.invalidateQueries({ queryKey: ['shorts-clips'] });
-          return;
-        }
-        setPhase({ step: 'awaiting-approval' });
-        await sleep(8000);
-      }
-    } catch (err) {
-      if ((err as Error).message !== 'cancelled') {
-        const e = err as { response?: { data?: { message?: string } }; message?: string };
-        setPhase({ step: 'error', message: e.response?.data?.message ?? e.message ?? 'Publish flow failed' });
-      }
-    }
-  }, [highlightId, types, qc, waitJob]);
-
-  return { phase, run };
 }
 
 /** Lightweight video preview modal for a rendered clip. */
@@ -415,33 +326,9 @@ function ClipsList({ clips, qc }: { clips: Clip[]; qc: ReturnType<typeof useQuer
   );
 }
 
-/** Tiny status chip shown in the collapsed row while a publish flow runs. */
-function PhaseChip({ phase }: { phase: FlowPhase }) {
-  if (phase.step === 'working') {
-    return <span className="flex items-center gap-1 px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-[11px] shrink-0"><Loader2 className="w-3 h-3 animate-spin" /> {phase.label}</span>;
-  }
-  if (phase.step === 'awaiting-approval') {
-    return <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[11px] shrink-0"><ShieldCheck className="w-3 h-3" /> awaiting review</span>;
-  }
-  if (phase.step === 'published') {
-    return <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[11px] shrink-0"><CheckCircle2 className="w-3 h-3" /> published</span>;
-  }
-  if (phase.step === 'error') {
-    return <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-[11px] shrink-0"><XCircle className="w-3 h-3" /> failed</span>;
-  }
-  return null;
-}
-
 function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onToggle: () => void }) {
   const qc = useQueryClient();
   const [types, setTypes] = useState<string[]>(['YOUTUBE_SHORTS']);
-  const [generated, setGenerated] = useState(false);
-  const [confirmPublish, setConfirmPublish] = useState(false);
-  const { phase, run } = usePublishFlow(h.id, types, qc);
-  const userPlan = usePlanGate();
-  const isAdmin = useIsAdmin();
-  const canPublish = isAdmin || planAtLeast(userPlan, 'PRO');
-
   const { data: channelsRaw } = useQuery({
     queryKey: ['channels'],
     queryFn: () => api.channels.list().then((r) => r.data as Channel[]),
@@ -483,14 +370,13 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
     }
     return [{ key: t, label: platformLabel, sub: 'Not connected', avatarUrl: null, connected: false }];
   });
-  const allConnected = publishTargets.length > 0 && publishTargets.every((t) => t.connected);
-
-  const generate = useMutation({
-    mutationFn: () => api.shortsStudio.generateClips(h.id, types),
-    onSuccess: () => {
-      setGenerated(true);
-      void qc.invalidateQueries({ queryKey: ['shorts-clips'] });
+  const createClip = useMutation({
+    mutationFn: async () => {
+      const clips = await api.shortsStudio.generateClips(h.id, types).then((r) => r.data as Array<{ id: string; clipType: string }>);
+      await Promise.allSettled(clips.map((c) => api.shortsStudio.render(c.id)));
+      return clips;
     },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['shorts-clips'] }),
   });
 
   return (
@@ -509,7 +395,7 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
           {h.topicSegment.category.replace(/_/g, ' ')}
         </span>
         <p className="font-semibold text-gray-900 text-sm truncate flex-1 min-w-0">{h.titleSuggestion}</p>
-        <PhaseChip phase={phase} />
+        {createClip.isSuccess && <span className="flex items-center gap-1 px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-[11px] shrink-0"><Loader2 className="w-3 h-3 animate-spin" /> rendering</span>}
         <span className="text-xs text-gray-500 shrink-0">{fmt(h.topicSegment.startMs)}–{fmt(h.topicSegment.endMs)}</span>
       </div>
 
@@ -529,157 +415,62 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
         ))}
       </div>
 
-      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-50 flex-wrap">
-        {CLIP_TYPES.map(({ value, label }) => (
-          <label key={value} className="flex items-center gap-1.5 text-xs text-gray-600">
-            <input
-              type="checkbox"
-              checked={types.includes(value)}
-              onChange={(e) => setTypes((t) => (e.target.checked ? [...t, value] : t.filter((x) => x !== value)))}
-              className="rounded border-gray-300"
-            />
-            {label}
-          </label>
-        ))}
-        <button
-          onClick={() => generate.mutate()}
-          disabled={generate.isPending || types.length === 0 || generated}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 disabled:opacity-50"
-        >
-          {generate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            : generated ? <CheckCircle2 className="w-3.5 h-3.5" />
-            : <Scissors className="w-3.5 h-3.5" />}
-          {generated ? 'Clips created' : 'Generate clips'}
-        </button>
-        {canPublish ? (
-          <button
-            onClick={() => setConfirmPublish(true)}
-            disabled={phase.step === 'working' || phase.step === 'awaiting-approval' || phase.step === 'published' || types.length === 0}
-            title="Select platform(s) above, then confirm which account to publish to"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 disabled:opacity-50"
-          >
-            {phase.step === 'working' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            Publish
-          </button>
-        ) : (
-          <button
-            onClick={() => triggerUpgradeSheet({ feature: 'Publish to Platforms', plan: 'PRO' })}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-xs hover:bg-gray-50"
-            title="Pro plan required to publish to external platforms"
-          >
-            <Upload className="w-3.5 h-3.5" /> Publish
-          </button>
-        )}
-
-        {/* Publish confirmation: show connected channel & confirm */}
-        {confirmPublish && (
-          <div
-            role="presentation"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
-            onClick={(e) => { if (e.target === e.currentTarget) setConfirmPublish(false); }}
-          >
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="font-bold text-gray-900">Confirm publish</h3>
-                <button type="button" onClick={() => setConfirmPublish(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="w-4 h-4 text-gray-600" /></button>
+      <div className="mt-4 pt-3 border-t border-gray-50">
+        {/* Platform selection */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {CLIP_TYPES.map(({ value, label }) => (
+            <label key={value} className="flex items-center gap-1.5 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                checked={types.includes(value)}
+                onChange={(e) => setTypes((t) => (e.target.checked ? [...t, value] : t.filter((x) => x !== value)))}
+                className="rounded border-gray-300"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        {/* Per-platform account status — compact dots */}
+        {publishTargets.length > 0 && (
+          <div className="flex flex-col gap-1 mb-3">
+            {publishTargets.map((pt) => (
+              <div key={pt.key} className="flex items-center gap-1.5 text-xs">
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${pt.connected ? 'bg-green-400' : 'bg-amber-400'}`} />
+                <span className="text-gray-500">{pt.sub}:</span>
+                <span className={`font-medium ${pt.connected ? 'text-gray-700' : 'text-amber-600'}`}>{pt.label}</span>
+                {!pt.connected && (
+                  <Link href="/settings/platforms" className="text-brand-600 underline text-[10px]">Connect →</Link>
+                )}
               </div>
-              <div className="px-5 py-4 space-y-3">
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Platforms</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {types.map((t) => (
-                      <span key={t} className="px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-[11px] font-medium">
-                        {CLIP_TYPES.find((c) => c.value === t)?.label ?? t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Publish to</p>
-                  {publishTargets.length === 0 ? (
-                    <p className="text-xs text-gray-500">No external platforms selected.</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {publishTargets.map((pt) => (
-                        <div key={pt.key} className={`flex items-center gap-2 p-2 rounded-xl border ${pt.connected ? 'bg-gray-50 border-gray-100' : 'bg-amber-50 border-amber-100'}`}>
-                          {pt.avatarUrl && <img src={pt.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />}
-                          {!pt.avatarUrl && (
-                            <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
-                              <span className="text-[10px] font-bold text-brand-600">{pt.sub.slice(0, 2).toUpperCase()}</span>
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-900 truncate">{pt.label}</p>
-                            <p className="text-[10px] text-gray-500">{pt.sub}</p>
-                          </div>
-                          {pt.connected
-                            ? <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                            : <Link href="/settings/platforms" onClick={() => setConfirmPublish(false)} className="text-[10px] text-amber-700 underline shrink-0">Connect →</Link>
-                          }
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px] text-amber-700 bg-amber-50 rounded-xl px-3 py-2 flex items-start gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                  Video will go through render → compliance check → your approval before it's published.
-                </p>
-              </div>
-              <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
-                <button type="button" onClick={() => setConfirmPublish(false)} className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
-                <button
-                  type="button"
-                  onClick={() => { setConfirmPublish(false); void run(); }}
-                  disabled={!allConnected}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
-                >
-                  <Upload className="w-3.5 h-3.5" /> Start publish
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
+        )}
+        {/* Create Clip CTA — generates clips and auto-triggers render */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => createClip.mutate()}
+            disabled={createClip.isPending || types.length === 0}
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 shadow-sm"
+          >
+            {createClip.isPending
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating clips…</>
+              : createClip.isSuccess
+              ? <><CheckCircle2 className="w-3.5 h-3.5" /> Clips created — rendering</>
+              : <><Scissors className="w-3.5 h-3.5" /> Create Clip</>}
+          </button>
+          {createClip.isError && (
+            <span className="text-xs text-red-600">
+              {(createClip.error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to create clips'}
+            </span>
+          )}
+        </div>
+        {createClip.isSuccess && (
+          <p className="text-xs text-brand-600 mt-1.5 flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" /> Rendering in background — clips appear in the Clips section below when ready
+          </p>
         )}
       </div>
 
-      {phase.step === 'working' && (
-        <p className="text-xs text-brand-700 mt-2 flex items-center gap-1.5">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> {phase.label}
-        </p>
-      )}
-      {phase.step === 'awaiting-approval' && (
-        <p className="text-xs text-amber-700 mt-2 flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          Ready — waiting for your review on the{' '}
-          <Link href="/approvals" className="underline font-medium">Approvals page</Link>. Publishes automatically once approved.
-        </p>
-      )}
-      {phase.step === 'published' && (
-        <p className="text-xs text-green-700 mt-2 flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5" /> Published!
-          {phase.url && (
-            <a href={phase.url} target="_blank" rel="noreferrer" className="underline font-medium flex items-center gap-0.5">
-              Watch on YouTube <ExternalLink className="w-3 h-3" />
-            </a>
-          )}
-        </p>
-      )}
-      {phase.step === 'error' && (
-        <JobErrorCard
-          error={`${phase.message} — click Publish to resume (finished steps are skipped).`}
-          errorCode="JOB_FAILED"
-          onRetry={() => void run()}
-          className="mt-2"
-        />
-      )}
-      {generate.isError && (
-        <JobErrorCard
-          error={(generate.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to generate clips'}
-          errorCode="JOB_FAILED"
-          onRetry={() => generate.mutate()}
-          className="mt-2"
-        />
-      )}
       </div>
       )}
     </div>
@@ -744,6 +535,11 @@ export default function ShortsVideoDetailPage() {
   const { data: clips = [] } = useQuery<Clip[]>({
     queryKey: ['shorts-clips', importedVideoId],
     queryFn: () => api.shortsStudio.videoClips(importedVideoId).then((r) => r.data as Clip[]),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data?.some((c) => c.status === 'RENDERING' || c.status === 'CANDIDATE')) return 5000;
+      return false;
+    },
   });
 
   const loading = loadingTopics || loadingHighlights;
