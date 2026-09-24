@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 
@@ -135,6 +135,75 @@ function scoreColor(v: number): string {
   return 'text-gray-500';
 }
 
+/**
+ * SVG circular progress ring with an optional pause button in the center.
+ * Pass `percent` for a determinate ring; omit it for a spinning indeterminate arc.
+ */
+function CircularProgress({
+  size = 56,
+  strokeWidth = 5,
+  percent,
+  label,
+  onPause,
+}: {
+  size?: number;
+  strokeWidth?: number;
+  percent?: number;
+  label?: string;
+  onPause?: () => void;
+}) {
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const indeterminate = percent === undefined;
+  const offset = indeterminate ? circ * 0.75 : circ * (1 - Math.min(100, Math.max(0, percent)) / 100);
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative" style={{ width: size, height: size }}>
+        {/* Outer div fixes -90° start (12 o'clock); SVG itself spins when indeterminate */}
+        <div style={{ transform: 'rotate(-90deg)', transformOrigin: 'center', width: size, height: size, position: 'absolute', inset: 0 }}>
+          <svg width={size} height={size} className={indeterminate ? 'animate-spin' : ''} style={{ transformOrigin: 'center' }}>
+            {/* Track */}
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={strokeWidth} stroke="#f3f0ff" />
+            {/* Progress arc */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              strokeWidth={strokeWidth}
+              strokeDasharray={circ}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              stroke="#7c3aed"
+              style={{ transition: indeterminate ? 'none' : 'stroke-dashoffset 0.4s ease' }}
+            />
+          </svg>
+        </div>
+        {/* Center overlay: pause button or percentage — not rotated */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          {onPause ? (
+            <button
+              type="button"
+              onClick={onPause}
+              title="Pause"
+              className="flex items-center justify-center rounded-full hover:bg-brand-50 transition-colors"
+              style={{ width: size * 0.55, height: size * 0.55 }}
+            >
+              <Pause style={{ width: size * 0.28, height: size * 0.28 }} className="text-brand-700 fill-brand-700" />
+            </button>
+          ) : !indeterminate ? (
+            <span className="font-bold text-brand-700" style={{ fontSize: size * 0.22 }}>
+              {Math.round(percent!)}%
+            </span>
+          ) : null}
+        </div>
+      </div>
+      {label && <p className="text-[11px] text-gray-500 text-center leading-tight max-w-[80px]">{label}</p>}
+    </div>
+  );
+}
+
 /** Lightweight video preview modal for a rendered clip. */
 function VideoPreviewModal({ clipId, title, onClose }: { clipId: string; title: string; onClose: () => void }) {
   const { data, isLoading, isError } = useQuery({
@@ -189,13 +258,21 @@ function VideoPreviewModal({ clipId, title, onClose }: { clipId: string; title: 
 }
 
 /** Clips list with Preview, Re-edit, Save to Private, Export actions. */
-function ClipsList({ clips, qc }: { clips: Clip[]; qc: ReturnType<typeof useQueryClient> }) {
+function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnType<typeof useQueryClient>; importedVideoId: string }) {
   const [openClips, setOpenClips] = useState<Set<string>>(new Set());
   const [previewClipId, setPreviewClipId] = useState<string | null>(null);
 
   const saveToPrivate = useMutation({
     mutationFn: (clipId: string) => api.shortsStudio.saveToPrivate(clipId),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['my-content'] }),
+  });
+
+  const pauseRender = useMutation({
+    mutationFn: async (clipId: string) => {
+      const rs = await api.shortsStudio.renderStatus(clipId).then((r) => r.data as { renderJob?: { jobId?: string } | null });
+      if (rs.renderJob?.jobId) await api.jobs.pause(rs.renderJob.jobId);
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] }),
   });
 
   const previewClip = previewClipId ? clips.find((c) => c.id === previewClipId) : null;
@@ -249,9 +326,20 @@ function ClipsList({ clips, qc }: { clips: Clip[]; qc: ReturnType<typeof useQuer
                 <p className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
                   {c.topicSegment?.highlight?.titleSuggestion ?? c.topicSegment?.title ?? c.chapter?.title ?? 'Clip'}
                 </p>
-                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${statusColor}`}>
-                  {c.status.replace(/_/g, ' ').toLowerCase()}
-                </span>
+                {c.status === 'RENDERING' ? (
+                  <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                    <CircularProgress
+                      size={36}
+                      strokeWidth={3.5}
+                      label="rendering"
+                      onPause={() => pauseRender.mutate(c.id)}
+                    />
+                  </div>
+                ) : (
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${statusColor}`}>
+                    {c.status.replace(/_/g, ' ').toLowerCase()}
+                  </span>
+                )}
                 <span className="text-[11px] text-gray-500 shrink-0">{c.timeline ? fmt(c.timeline.durationMs) : '—'}</span>
               </div>
               {open && (
@@ -395,7 +483,11 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
           {h.topicSegment.category.replace(/_/g, ' ')}
         </span>
         <p className="font-semibold text-gray-900 text-sm truncate flex-1 min-w-0">{h.titleSuggestion}</p>
-        {createClip.isSuccess && <span className="flex items-center gap-1 px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-[11px] shrink-0"><Loader2 className="w-3 h-3 animate-spin" /> rendering</span>}
+        {(createClip.isPending || createClip.isSuccess) && (
+          <div className="shrink-0">
+            <CircularProgress size={32} strokeWidth={3} label={createClip.isPending ? 'creating' : 'rendering'} />
+          </div>
+        )}
         <span className="text-xs text-gray-500 shrink-0">{fmt(h.topicSegment.startMs)}–{fmt(h.topicSegment.endMs)}</span>
       </div>
 
@@ -445,25 +537,33 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
             ))}
           </div>
         )}
-        {/* Create Clip CTA — generates clips and auto-triggers render */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => createClip.mutate()}
-            disabled={createClip.isPending || types.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 shadow-sm"
-          >
-            {createClip.isPending
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating clips…</>
-              : createClip.isSuccess
-              ? <><CheckCircle2 className="w-3.5 h-3.5" /> Clips created — rendering</>
-              : <><Scissors className="w-3.5 h-3.5" /> Create Clip</>}
-          </button>
-          {createClip.isError && (
-            <span className="text-xs text-red-600">
-              {(createClip.error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to create clips'}
-            </span>
-          )}
-        </div>
+        {/* Create Clip CTA — shows circular progress while generating/rendering */}
+        {createClip.isPending ? (
+          <div className="flex items-center gap-4 py-1">
+            <CircularProgress size={64} strokeWidth={5} label="Creating clips…" />
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Generating clips</p>
+              <p className="text-xs text-gray-500 mt-0.5">Splitting highlight & queuing render…</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => createClip.mutate()}
+              disabled={types.length === 0}
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 shadow-sm"
+            >
+              {createClip.isSuccess
+                ? <><CheckCircle2 className="w-3.5 h-3.5" /> Clips created — rendering</>
+                : <><Scissors className="w-3.5 h-3.5" /> Create Clip</>}
+            </button>
+            {createClip.isError && (
+              <span className="text-xs text-red-600">
+                {(createClip.error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to create clips'}
+              </span>
+            )}
+          </div>
+        )}
         {createClip.isSuccess && (
           <p className="text-xs text-brand-600 mt-1.5 flex items-center gap-1">
             <Loader2 className="w-3 h-3 animate-spin" /> Rendering in background — clips appear in the Clips section below when ready
@@ -604,7 +704,7 @@ export default function ShortsVideoDetailPage() {
             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[11px] font-medium">{clips.length}</span>
           </div>
           {clipsOpen && (
-            <ClipsList clips={clips} qc={qc} />
+            <ClipsList clips={clips} qc={qc} importedVideoId={importedVideoId} />
           )}
         </section>
       )}
