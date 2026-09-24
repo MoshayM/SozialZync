@@ -300,6 +300,60 @@ function VideoPreviewModal({ clipId, title, onClose }: { clipId: string; title: 
   );
 }
 
+/** Polls publish-status for a queued clip and shows live inline progress. */
+function ClipPublishStatus({ clipId }: { clipId: string }) {
+  const { data } = useQuery({
+    queryKey: ['publish-status', clipId],
+    queryFn: () => api.shortsStudio.publishStatus(clipId).then((r) => r.data as {
+      clipStatus: string | null;
+      publishJob: { status: string; error?: string | null; result?: Record<string, unknown> | null } | null;
+    }),
+    refetchInterval: 5000,
+    staleTime: 0,
+  });
+
+  const jobStatus = data?.publishJob?.status;
+  const clipStatus = data?.clipStatus;
+  const youtubeId = data?.publishJob?.result?.['youtubeVideoId'] as string | undefined;
+  const error = data?.publishJob?.error;
+
+  if (clipStatus === 'PUBLISHED' && youtubeId) {
+    return (
+      <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        Published to YouTube —{' '}
+        <a href={`https://youtube.com/shorts/${youtubeId}`} target="_blank" rel="noopener noreferrer" className="underline font-medium">View ↗</a>
+        {' · '}
+        <Link href="/publish" className="underline font-medium" onClick={(e) => e.stopPropagation()}>Publish Hub</Link>
+      </p>
+    );
+  }
+
+  if (jobStatus === 'FAILED' || clipStatus === 'FAILED') {
+    return (
+      <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+        <AlertCircle className="w-3 h-3 shrink-0" />
+        {error ?? 'Publish failed —'}{' '}
+        <Link href="/publish" className="underline font-medium" onClick={(e) => e.stopPropagation()}>view in Publish Hub</Link>
+      </p>
+    );
+  }
+
+  const statusLabel =
+    jobStatus === 'RUNNING' ? 'Uploading to YouTube…' :
+    jobStatus === 'PENDING' ? 'Queued — waiting for worker…' :
+    clipStatus === 'RENDERING' ? 'Rendering clip…' :
+    'Queued for processing…';
+
+  return (
+    <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+      {statusLabel}{' '}
+      <Link href="/publish" className="underline font-medium" onClick={(e) => e.stopPropagation()}>Publish Hub</Link>
+    </p>
+  );
+}
+
 /** Clips list with Preview, Re-edit, Save to Private, Publish, Download actions. */
 function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnType<typeof useQueryClient>; importedVideoId: string }) {
   const [openClips, setOpenClips] = useState<Set<string>>(new Set());
@@ -508,12 +562,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                       {(saveToPrivate.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save to private'}
                     </p>
                   )}
-                  {publishedClips.has(c.id) && (
-                    <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Publish queued —{' '}
-                      <Link href="/publish" className="underline font-medium" onClick={(e) => e.stopPropagation()}>view in Publish Hub</Link>
-                    </p>
-                  )}
+                  {publishedClips.has(c.id) && <ClipPublishStatus clipId={c.id} />}
                 </div>
               )}
             </div>
