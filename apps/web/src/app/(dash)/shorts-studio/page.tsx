@@ -582,7 +582,7 @@ export default function ShortsStudioPage() {
   const [openVideoIds, setOpenVideoIds] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen]   = useState(false);
 
-  const { data: channels = [] } = useQuery<Channel[]>({
+  const { data: channels = [], isLoading: channelsLoading } = useQuery<Channel[]>({
     queryKey: ['channels'],
     queryFn: () => api.channels.list().then((r) => r.data as Channel[]),
   });
@@ -599,7 +599,7 @@ export default function ShortsStudioPage() {
     if (id) localStorage.setItem(CHANNEL_LS_KEY, id);
   };
 
-  const { data: imported = [] } = useQuery<ImportedVideo[]>({
+  const { data: imported = [], isLoading: importedLoading } = useQuery<ImportedVideo[]>({
     queryKey: ['shorts-imported', channelId],
     queryFn: () => api.shortsStudio.listImported(channelId).then((r) => r.data as ImportedVideo[]),
     enabled: !!channelId,
@@ -698,8 +698,17 @@ export default function ShortsStudioPage() {
           ))}
         </div>
 
-        {/* ── No channel selected (or free user) ───────────────────── */}
-        {(isFreeTier || !channelId) && (
+        {/* ── Loading skeleton while channels are fetching ─────────── */}
+        {!isFreeTier && channelsLoading && (
+          <div className="bg-white rounded-3xl py-20 flex flex-col items-center gap-4 animate-pulse" style={{ border: '1.5px solid #e3ddf8' }}>
+            <div className="w-20 h-20 rounded-3xl bg-gray-100" />
+            <div className="h-5 w-44 rounded-full bg-gray-100" />
+            <div className="h-3 w-64 rounded-full bg-gray-100" />
+          </div>
+        )}
+
+        {/* ── No channel selected (or free user) — only after data loaded ─ */}
+        {(isFreeTier || (!channelsLoading && !channelId)) && (
           <div className="bg-white rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
               ✂️
@@ -731,8 +740,17 @@ export default function ShortsStudioPage() {
           </div>
         )}
 
-        {/* ── Channel selected but no imports ─────────────────────── */}
-        {!isFreeTier && channelId && imported.length === 0 && (
+        {/* ── Loading skeleton while imported videos are fetching ───── */}
+        {!isFreeTier && channelId && importedLoading && (
+          <div className="bg-white rounded-3xl py-20 flex flex-col items-center gap-4 animate-pulse" style={{ border: '1.5px solid #e3ddf8' }}>
+            <div className="w-20 h-20 rounded-3xl bg-gray-100" />
+            <div className="h-5 w-36 rounded-full bg-gray-100" />
+            <div className="h-3 w-56 rounded-full bg-gray-100" />
+          </div>
+        )}
+
+        {/* ── Channel selected but no imports — only after data loaded ─ */}
+        {!isFreeTier && channelId && !importedLoading && imported.length === 0 && (
           <div className="bg-white rounded-3xl flex flex-col items-center justify-center py-20 px-6 text-center" style={{ border: '1.5px solid #e3ddf8' }}>
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6" style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
               📥
@@ -750,7 +768,7 @@ export default function ShortsStudioPage() {
         )}
 
         {/* ── Imported videos section ──────────────────────────────── */}
-        {!isFreeTier && channelId && imported.length > 0 && (
+        {!isFreeTier && channelId && !importedLoading && imported.length > 0 && (
           <section className="space-y-2">
             {/* Section bar */}
             <div
