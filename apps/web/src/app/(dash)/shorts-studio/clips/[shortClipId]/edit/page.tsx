@@ -131,9 +131,13 @@ export default function TimelineEditorPage() {
       .find((i) => i.sourceAsset?.versions[0])?.sourceAsset?.versions[0]?.id;
     if (!versionId) return;
     let cancelled = false;
+    // Strip /api/v1 suffix so we can prepend the full backend base to the
+    // signed URL — this lets the browser stream directly from Railway instead
+    // of going through Vercel's proxy (which doesn't forward Range headers).
+    const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
     void apiClient
       .get<{ url: string }>(`/media/versions/${versionId}/editor-url`)
-      .then((r) => { if (!cancelled) setVideoUrl(r.data.url); })
+      .then((r) => { if (!cancelled) setVideoUrl(`${apiBase}${r.data.url}`); })
       .catch(() => setVideoUrl(null));
     return () => { cancelled = true; };
   }, [clip]);
