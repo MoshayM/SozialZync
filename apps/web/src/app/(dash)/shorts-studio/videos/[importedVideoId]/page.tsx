@@ -97,9 +97,12 @@ const DIMENSIONS: Array<{ key: keyof Highlight; label: string }> = [
 ];
 
 const CLIP_TYPES = [
-  { value: 'YOUTUBE_SHORTS', label: 'YouTube Shorts' },
-  { value: 'TIKTOK', label: 'TikTok' },
-  { value: 'INSTAGRAM_REELS', label: 'Instagram Reels' },
+  { value: 'YOUTUBE_SHORTS',    label: 'YouTube Shorts' },
+  { value: 'TIKTOK',           label: 'TikTok' },
+  { value: 'INSTAGRAM_REELS',  label: 'Instagram Reels' },
+  { value: 'FACEBOOK_REELS',   label: 'Facebook Reels' },
+  { value: 'LINKEDIN_CLIPS',   label: 'LinkedIn' },
+  { value: 'PODCAST_HIGHLIGHTS', label: 'Podcast Highlight' },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
