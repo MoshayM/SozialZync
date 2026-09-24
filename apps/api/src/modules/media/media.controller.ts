@@ -560,6 +560,23 @@ export class MediaController {
     });
   }
 
+  /** Short-lived streaming URL for the editor preview (no export-plan restriction). */
+  @Get('versions/:versionId/editor-url')
+  async versionEditorUrl(
+    @Param('versionId') versionId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const version = await this.prisma.assetVersion.findUnique({
+      where: { id: versionId },
+      select: { r2Key: true, asset: { select: { project: { select: { userId: true } } } } },
+    });
+    if (!version?.r2Key || version.asset.project.userId !== user.sub) {
+      throw new NotFoundException('Asset file not found');
+    }
+    // 10-minute TTL — enough for an editing session, short enough to limit exposure.
+    return this.issueSignedUrl(`version:${versionId}`, `/media/versions/${versionId}/file`, '600');
+  }
+
   /** Expiring capability URL for an asset-version file (docs4/09). */
   @Get('versions/:versionId/signed-url')
   async versionSignedUrl(

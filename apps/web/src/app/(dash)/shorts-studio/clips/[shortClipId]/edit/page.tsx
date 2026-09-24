@@ -121,26 +121,21 @@ export default function TimelineEditorPage() {
     }
   }, [captionPending, clip]);
 
-  // Source video blob (streams through the authed media endpoint)
+  // Source video — get a short-lived signed URL so the browser can stream
+  // it natively (supports Range requests / seeking) without downloading the
+  // whole file first as a blob.
   useEffect(() => {
     const versionId = clip?.timeline.tracks
+      .filter((t) => t.type === 'VIDEO')
       .flatMap((t) => t.items)
       .find((i) => i.sourceAsset?.versions[0])?.sourceAsset?.versions[0]?.id;
     if (!versionId) return;
-    let url: string | null = null;
     let cancelled = false;
     void apiClient
-      .get(`/media/versions/${versionId}/file`, { responseType: 'blob' })
-      .then((r) => {
-        if (cancelled) return;
-        url = URL.createObjectURL(r.data as Blob);
-        setVideoUrl(url);
-      })
+      .get<{ url: string }>(`/media/versions/${versionId}/editor-url`)
+      .then((r) => { if (!cancelled) setVideoUrl(r.data.url); })
       .catch(() => setVideoUrl(null));
-    return () => {
-      cancelled = true;
-      if (url) URL.revokeObjectURL(url);
-    };
+    return () => { cancelled = true; };
   }, [clip]);
 
   // ── Persistence ─────────────────────────────────────────────────────────────
@@ -645,16 +640,22 @@ export default function TimelineEditorPage() {
                 <div key={track.id} className="relative border-b border-gray-100" style={{ height: TRACK_H }} onMouseDown={() => setSelectedId(null)}>
                   <span className="absolute left-1 top-1 text-[9px] uppercase tracking-wide text-gray-300 z-0">{track.type}</span>
                   {track.type === 'CAPTION'
-                    ? timeline.captions.map((c) => (
-                      <div
-                        key={c.id}
-                        className="absolute top-2 bottom-2 rounded-md bg-amber-400/70 border border-amber-500 px-1 overflow-hidden"
-                        style={{ left: (c.startMs / 1000) * pxPerSec, width: Math.max(2, ((c.endMs - c.startMs) / 1000) * pxPerSec) }}
-                        title={c.text}
-                      >
-                        <span className="text-[9px] text-amber-950 whitespace-nowrap">{c.emoji ? `${c.emoji} ` : ''}{c.text}</span>
-                      </div>
-                    ))
+                    ? timeline.captions.length === 0
+                      ? <span className="absolute inset-0 flex items-center pl-10 text-[10px] text-gray-300 italic">No captions yet — use Generate captions →</span>
+                      : timeline.captions.map((c) => (
+                        <div
+                          key={c.id}
+                          className="absolute top-2 bottom-2 rounded-md bg-amber-400/70 border border-amber-500 px-1 overflow-hidden"
+                          style={{ left: (c.startMs / 1000) * pxPerSec, width: Math.max(2, ((c.endMs - c.startMs) / 1000) * pxPerSec) }}
+                          title={c.text}
+                        >
+                          <span className="text-[9px] text-amber-950 whitespace-nowrap">{c.emoji ? `${c.emoji} ` : ''}{c.text}</span>
+                        </div>
+                      ))
+                    : track.items.length === 0 && track.type !== 'VIDEO'
+                    ? <span className="absolute inset-0 flex items-center pl-10 border border-dashed border-gray-200 rounded mx-1 my-1.5 text-[10px] text-gray-300 italic">
+                        {track.type === 'AUDIO' ? 'Voice-over — add via Studio Tools' : track.type === 'MUSIC' ? 'Music — add via Studio Tools' : 'Empty'}
+                      </span>
                     : track.items.map((item) => (
                       // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface
                       <div
