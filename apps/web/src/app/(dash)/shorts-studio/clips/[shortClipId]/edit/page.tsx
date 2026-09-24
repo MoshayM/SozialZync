@@ -8,6 +8,7 @@ import {
   ZoomIn, ZoomOut, Wand2, Captions, Check, X, Save, Clapperboard,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
+import { StudioToolPanels } from './StudioToolPanels';
 
 // ── Types mirroring the timeline API ─────────────────────────────────────────
 
@@ -718,30 +719,17 @@ export default function TimelineEditorPage() {
             )}
           </div>
 
-          {/* Studio Tools */}
-          <div className="mt-4 pt-3 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Studio Tools</p>
-            <div className="space-y-1">
-              {([
-                ['/studio/assets',     '🖼️', 'Image Studio'],
-                ['/studio/music',      '🎵', 'Music Studio'],
-                ['/studio/audio',      '🎧', 'Audio Studio'],
-                ['/studio/voices',     '🎙️', 'Voice Library'],
-                ['/studio/characters', '🤖', 'Characters'],
-                ['/studio',            '✨', 'AI Thumbnails'],
-              ] as [string, string, string][]).map(([href, icon, label]) => (
-                <Link
-                  key={href}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors"
-                >
-                  <span>{icon}</span> {label}
-                </Link>
-              ))}
-            </div>
-          </div>
+          <StudioToolPanels
+            timelineId={timeline.id}
+            shortClipId={shortClipId}
+            captionsText={timeline.captions.map((c) => c.text).join(' ')}
+            audioVersionId={
+              timeline.tracks
+                .find((t) => t.type === 'AUDIO')
+                ?.items[0]
+                ?.sourceAsset?.versions[0]?.id
+            }
+          />
 
           {suggestions && (
             <div className="mt-4 pt-3 border-t border-gray-100">
