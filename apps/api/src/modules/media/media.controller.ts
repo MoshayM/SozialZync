@@ -540,10 +540,20 @@ export class MediaController {
     if (!version?.r2Key || !authorized) {
       throw new NotFoundException('Asset file not found');
     }
-    // ensure() downloads from R2 on cache miss (no-op for local-only driver)
+    const name = version.r2Key.split('/').pop() ?? 'file';
+    // When R2 is configured, stream directly from R2 without downloading to ephemeral disk first.
+    // This eliminates the "full file download before first byte" delay on cold Railway instances.
+    if ('streamFromR2' in this.storage && typeof (this.storage as { streamFromR2?: unknown }).streamFromR2 === 'function') {
+      const r2Stream = await (this.storage as { streamFromR2: (k: string) => Promise<import('stream').Readable | null> }).streamFromR2(version.r2Key);
+      if (!r2Stream) throw new NotFoundException('Asset file not found');
+      return new StreamableFile(r2Stream as import('stream').Readable, {
+        type: mimeFor(name),
+        disposition: `inline; filename="${name}"`,
+      });
+    }
+    // Local storage driver — ensure file is present then stream from disk
     const available = await this.storage.ensure(version.r2Key);
     if (!available) throw new NotFoundException('Asset file not found');
-    const name = version.r2Key.split('/').pop() ?? 'file';
     return new StreamableFile(this.storage.stream(version.r2Key), {
       type: mimeFor(name),
       disposition: `inline; filename="${name}"`,

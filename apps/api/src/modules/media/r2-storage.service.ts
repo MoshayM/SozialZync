@@ -183,6 +183,18 @@ export class R2StorageService extends StorageService {
     }
   }
 
+  /** Stream a file directly from R2 without downloading to local disk. Returns null if key not found. */
+  async streamFromR2(key: string): Promise<import('stream').Readable | null> {
+    try {
+      const response = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+      return response.Body as import('stream').Readable;
+    } catch (err) {
+      const code = (err as { name?: string }).name;
+      if (code === 'NoSuchKey' || code === 'NotFound') return null;
+      throw err;
+    }
+  }
+
   private async _uploadFile(key: string, absPath: string): Promise<void> {
     const upload = new Upload({
       client: this.s3,
