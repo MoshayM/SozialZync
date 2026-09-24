@@ -449,6 +449,42 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
   });
   const channels = Array.isArray(channelsRaw) ? channelsRaw : [];
 
+  const { data: platformStatusRaw } = useQuery({
+    queryKey: ['platform-connection-status'],
+    queryFn: () => api.platforms.connectionStatus().then((r) => r.data as Record<string, { connected: boolean; accountName?: string; accountId?: string }>),
+    staleTime: 2 * 60 * 1000,
+  });
+  const platformStatus = platformStatusRaw ?? {};
+
+  /** Maps clip type → platform key used in connectionStatus. Empty = internal/no external account. */
+  const CLIP_PLATFORM_MAP: Record<string, string> = {
+    YOUTUBE_SHORTS: 'youtube',
+    INSTAGRAM_REELS: 'instagram',
+    TIKTOK: 'tiktok',
+    LINKEDIN_CLIPS: 'linkedin',
+    FACEBOOK_REELS: 'facebook',
+    PODCAST_HIGHLIGHTS: '',
+    SMALL_VIDEO: '',
+  };
+
+  const publishTargets = types.flatMap((t) => {
+    const platformId = CLIP_PLATFORM_MAP[t] ?? '';
+    const platformLabel = CLIP_TYPES.find((c) => c.value === t)?.label ?? t.replace(/_/g, ' ');
+    if (!platformId) return [];
+    if (platformId === 'youtube') {
+      const ch = channels[0];
+      return ch
+        ? [{ key: t, label: ch.title, sub: 'YouTube', avatarUrl: ch.thumbnailUrl ?? null, connected: true }]
+        : [{ key: t, label: 'YouTube', sub: 'No channel connected', avatarUrl: null, connected: false }];
+    }
+    const status = platformStatus[platformId];
+    if (status?.connected) {
+      return [{ key: t, label: status.accountName ?? platformId, sub: platformLabel, avatarUrl: null, connected: true }];
+    }
+    return [{ key: t, label: platformLabel, sub: 'Not connected', avatarUrl: null, connected: false }];
+  });
+  const allConnected = publishTargets.length > 0 && publishTargets.every((t) => t.connected);
+
   const generate = useMutation({
     mutationFn: () => api.shortsStudio.generateClips(h.id, types),
     onSuccess: () => {
@@ -560,21 +596,29 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Publish to</p>
-                  {channels.length > 0 ? (
+                  {publishTargets.length === 0 ? (
+                    <p className="text-xs text-gray-500">No external platforms selected.</p>
+                  ) : (
                     <div className="space-y-1.5">
-                      {channels.slice(0, 3).map((ch) => (
-                        <div key={ch.id} className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 border border-gray-100">
-                          {ch.thumbnailUrl && <img src={ch.thumbnailUrl} alt="" className="w-7 h-7 rounded-full object-cover" />}
+                      {publishTargets.map((pt) => (
+                        <div key={pt.key} className={`flex items-center gap-2 p-2 rounded-xl border ${pt.connected ? 'bg-gray-50 border-gray-100' : 'bg-amber-50 border-amber-100'}`}>
+                          {pt.avatarUrl && <img src={pt.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />}
+                          {!pt.avatarUrl && (
+                            <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                              <span className="text-[10px] font-bold text-brand-600">{pt.sub.slice(0, 2).toUpperCase()}</span>
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-900 truncate">{ch.title}</p>
-                            <p className="text-[10px] text-gray-500">{ch.platform}</p>
+                            <p className="text-xs font-semibold text-gray-900 truncate">{pt.label}</p>
+                            <p className="text-[10px] text-gray-500">{pt.sub}</p>
                           </div>
-                          <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                          {pt.connected
+                            ? <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                            : <Link href="/settings/platforms" onClick={() => setConfirmPublish(false)} className="text-[10px] text-amber-700 underline shrink-0">Connect →</Link>
+                          }
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-xs text-gray-500">No channels connected — <Link href="/settings/channels" className="text-brand-600 underline">connect one first</Link></p>
                   )}
                 </div>
                 <p className="text-[11px] text-amber-700 bg-amber-50 rounded-xl px-3 py-2 flex items-start gap-1.5">
@@ -587,7 +631,7 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
                 <button
                   type="button"
                   onClick={() => { setConfirmPublish(false); void run(); }}
-                  disabled={channels.length === 0}
+                  disabled={!allConnected}
                   className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
                 >
                   <Upload className="w-3.5 h-3.5" /> Start publish
