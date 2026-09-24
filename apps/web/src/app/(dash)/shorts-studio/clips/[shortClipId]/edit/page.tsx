@@ -723,11 +723,13 @@ export default function TimelineEditorPage() {
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Studio Tools</p>
             <div className="space-y-1">
               {([
-                ['/image-studio?ref=editor', '🖼️', 'Image Studio'],
-                ['/music-studio?ref=editor', '🎵', 'Music Studio'],
-                ['/ai-thumbnails?ref=editor', '✨', 'AI Thumbnails'],
-                ['/voices?ref=editor', '🎙️', 'Voices'],
-              ] as const).map(([href, icon, label]) => (
+                ['/studio/assets',     '🖼️', 'Image Studio'],
+                ['/studio/music',      '🎵', 'Music Studio'],
+                ['/studio/audio',      '🎧', 'Audio Studio'],
+                ['/studio/voices',     '🎙️', 'Voice Library'],
+                ['/studio/characters', '🤖', 'Characters'],
+                ['/studio',            '✨', 'AI Thumbnails'],
+              ] as [string, string, string][]).map(([href, icon, label]) => (
                 <Link
                   key={href}
                   href={href}
