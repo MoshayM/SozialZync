@@ -28,6 +28,12 @@ class ImportVideoDto {
   @IsString() youtubeVideoId!: string;
 }
 
+class ImportLocalDto {
+  @IsString() channelId!: string;
+  @IsString() assetVersionId!: string;
+  @IsString() title!: string;
+}
+
 const CLIP_TYPES = ['YOUTUBE_SHORTS', 'INSTAGRAM_REELS', 'TIKTOK', 'LINKEDIN_CLIPS', 'FACEBOOK_REELS', 'PODCAST_HIGHLIGHTS'] as const;
 
 class GenerateClipsDto {
@@ -93,6 +99,11 @@ export class ShortsStudioController {
     if (dto.channelId) return this.videoImport.importFromChannel(user.sub, dto.channelId, dto.youtubeVideoId);
     if (dto.projectId) return this.videoImport.importVideo(user.sub, dto.projectId, dto.youtubeVideoId);
     throw new BadRequestException('Provide channelId or projectId');
+  }
+
+  @Post('videos/import-local')
+  async importLocal(@Body() dto: ImportLocalDto, @CurrentUser() user: JwtPayload) {
+    return this.videoImport.importLocal(user.sub, dto.channelId, dto.assetVersionId, dto.title);
   }
 
   @Get('projects/:projectId/videos')

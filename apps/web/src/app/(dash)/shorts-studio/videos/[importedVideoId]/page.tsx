@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
+import { usePlan } from '@/lib/plan';
 
 interface Topic {
   id: string;
@@ -298,14 +299,41 @@ function VideoPreviewModal({ clipId, title, onClose }: { clipId: string; title: 
   );
 }
 
-/** Clips list with Preview, Re-edit, Save to Private, Export actions. */
+/** Clips list with Preview, Re-edit, Save to Private, Publish, Download actions. */
 function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnType<typeof useQueryClient>; importedVideoId: string }) {
   const [openClips, setOpenClips] = useState<Set<string>>(new Set());
   const [previewClipId, setPreviewClipId] = useState<string | null>(null);
+  const [publishedClips, setPublishedClips] = useState<Set<string>>(new Set());
+  const [savedClips, setSavedClips] = useState<Set<string>>(new Set());
+  const { isPro, isUnlimited, isEnterprise } = usePlan();
+  const canDownload = isPro || isUnlimited || isEnterprise;
 
   const saveToPrivate = useMutation({
     mutationFn: (clipId: string) => api.shortsStudio.saveToPrivate(clipId),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['my-content'] }),
+    onSuccess: (_d, clipId) => {
+      setSavedClips((prev) => new Set(prev).add(clipId));
+      void qc.invalidateQueries({ queryKey: ['my-content'] });
+    },
+  });
+
+  const publishClip = useMutation({
+    mutationFn: (clipId: string) => api.shortsStudio.quickPublish(clipId),
+    onSuccess: (_d, clipId) => {
+      setPublishedClips((prev) => new Set(prev).add(clipId));
+      void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+    },
+  });
+
+  const downloadClip = useMutation({
+    mutationFn: async (clipId: string) => {
+      const { data } = await api.shortsStudio.previewUrl(clipId);
+      const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
+      const fullUrl = `${apiBase}${data.url}`;
+      const a = document.createElement('a');
+      a.href = fullUrl;
+      a.download = `clip-${clipId}.mp4`;
+      a.click();
+    },
   });
 
   const pauseRender = useMutation({
@@ -415,10 +443,10 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                     {isRendered && (
                       <button
                         type="button"
-                        disabled={saveToPrivate.isPending}
+                        disabled={saveToPrivate.isPending && saveToPrivate.variables === c.id}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (saveToPrivate.variables === c.id && saveToPrivate.isSuccess) return;
+                          if (savedClips.has(c.id)) return;
                           saveToPrivate.mutate(c.id);
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50"
@@ -426,23 +454,65 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                       >
                         {saveToPrivate.isPending && saveToPrivate.variables === c.id
                           ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : saveToPrivate.isSuccess && saveToPrivate.variables === c.id
+                          : savedClips.has(c.id)
                           ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
                           : <FolderDown className="w-3.5 h-3.5" />}
-                        {saveToPrivate.isSuccess && saveToPrivate.variables === c.id ? 'Saved!' : 'Save to Private'}
+                        {savedClips.has(c.id) ? 'Saved!' : 'Save to Private'}
                       </button>
                     )}
-                    <Link
-                      href={`/shorts-studio/clips/${c.id}/export`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50"
-                    >
-                      <Clapperboard className="w-3.5 h-3.5" /> Export
-                    </Link>
+                    {/* Publish — direct publish to connected channel */}
+                    {isRendered && (
+                      <button
+                        type="button"
+                        disabled={publishClip.isPending && publishClip.variables === c.id || publishedClips.has(c.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!publishedClips.has(c.id)) publishClip.mutate(c.id);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-colors"
+                        style={publishedClips.has(c.id)
+                          ? { background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }
+                          : { background: '#374151', color: 'white', border: '1px solid #374151' }}
+                        title="Publish directly to your connected channel"
+                      >
+                        {publishClip.isPending && publishClip.variables === c.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : publishedClips.has(c.id)
+                          ? <CheckCircle2 className="w-3.5 h-3.5" />
+                          : <Upload className="w-3.5 h-3.5" />}
+                        {publishedClips.has(c.id) ? 'Queued!' : 'Publish'}
+                      </button>
+                    )}
+                    {/* Download — Pro+ only, requires Save to Private first */}
+                    {isRendered && canDownload && (
+                      <button
+                        type="button"
+                        disabled={!savedClips.has(c.id) || (downloadClip.isPending && downloadClip.variables === c.id)}
+                        onClick={(e) => { e.stopPropagation(); downloadClip.mutate(c.id); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={savedClips.has(c.id) ? 'Download rendered video' : 'Save to Private first to enable download'}
+                      >
+                        {downloadClip.isPending && downloadClip.variables === c.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Download className="w-3.5 h-3.5" />}
+                        Download
+                      </button>
+                    )}
                   </div>
                   {saveToPrivate.isError && saveToPrivate.variables === c.id && (
                     <p className="text-xs text-red-600 mt-2">
                       {(saveToPrivate.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save to private'}
+                    </p>
+                  )}
+                  {publishClip.isError && publishClip.variables === c.id && (
+                    <p className="text-xs text-red-600 mt-2">
+                      {(publishClip.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Publish failed — check Publish Hub'}
+                    </p>
+                  )}
+                  {publishedClips.has(c.id) && (
+                    <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Publish queued —{' '}
+                      <Link href="/publish" className="underline font-medium" onClick={(e) => e.stopPropagation()}>view in Publish Hub</Link>
                     </p>
                   )}
                 </div>
@@ -504,8 +574,9 @@ function MiniRenderBar({ clipIds }: { clipIds: string[] }) {
 /**
  * A button-shaped progress bar that fills left→right as rendering progresses.
  * Click toggles pause / resume for all queued render jobs.
+ * When done, shows "Clips ready" — clicking it calls onClipsReady() to scroll to the Clips section.
  */
-function RenderProgressButton({ clipIds }: { clipIds: string[] }) {
+function RenderProgressButton({ clipIds, onClipsReady }: { clipIds: string[]; onClipsReady?: () => void }) {
   const qc = useQueryClient();
   const [paused, setPaused] = useState(false);
   const notifiedDone = useRef(false);
@@ -543,9 +614,13 @@ function RenderProgressButton({ clipIds }: { clipIds: string[] }) {
 
   if (allDone) {
     return (
-      <div className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold shadow-sm">
-        <CheckCircle2 className="w-3.5 h-3.5" /> Clips ready — see below
-      </div>
+      <button
+        type="button"
+        onClick={onClipsReady}
+        className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-green-700 transition-colors"
+      >
+        <CheckCircle2 className="w-3.5 h-3.5" /> Clips ready
+      </button>
     );
   }
 
@@ -581,7 +656,7 @@ function RenderProgressButton({ clipIds }: { clipIds: string[] }) {
   );
 }
 
-function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onToggle: () => void }) {
+function HighlightCard({ h, open, onToggle, onClipsReady }: { h: Highlight; open: boolean; onToggle: () => void; onClipsReady?: () => void }) {
   const qc = useQueryClient();
   const [types, setTypes] = useState<string[]>(['YOUTUBE_SHORTS']);
   const { data: channelsRaw } = useQuery({
@@ -719,7 +794,7 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
             </div>
           </div>
         ) : createClip.isSuccess && (createClip.data?.length ?? 0) > 0 ? (
-          <RenderProgressButton clipIds={(createClip.data ?? []).map((c) => c.id)} />
+          <RenderProgressButton clipIds={(createClip.data ?? []).map((c) => c.id)} onClipsReady={onClipsReady} />
         ) : (
           <div className="flex items-center gap-2 flex-wrap">
             <button
@@ -755,6 +830,14 @@ export default function ShortsVideoDetailPage() {
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [chapterTitleDraft, setChapterTitleDraft] = useState('');
   const [clipsOpen, setClipsOpen] = useState(true);
+  const clipsRef = useRef<HTMLElement>(null);
+
+  const scrollToClips = () => {
+    setClipsOpen(true);
+    setTimeout(() => {
+      clipsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
 
   const { data: topics = [], isLoading: loadingTopics } = useQuery<Topic[]>({
     queryKey: ['shorts-topics', importedVideoId],
@@ -856,7 +939,7 @@ export default function ShortsVideoDetailPage() {
       </div>
 
       {clips.length > 0 && (
-        <section className="mb-6">
+        <section ref={clipsRef} className="mb-6">
           <div
             onClick={() => setClipsOpen((o) => !o)}
             role="button"
@@ -909,6 +992,7 @@ export default function ShortsVideoDetailPage() {
                 if (next.has(h.id)) next.delete(h.id); else next.add(h.id);
                 return next;
               })}
+              onClipsReady={scrollToClips}
             />
           ))}
         </div>

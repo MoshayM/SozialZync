@@ -145,6 +145,40 @@ export class VideoImportService {
     });
   }
 
+  /**
+   * Import a locally-uploaded video file into Shorts Studio.
+   * The asset version must already exist (uploaded via /media/video/upload).
+   * VIDEO_IMPORT stage is satisfied immediately since sourceAssetId is pre-set.
+   */
+  async importLocal(userId: string, channelId: string, assetVersionId: string, title: string) {
+    const channel = await this.prisma.channel.findFirst({
+      where: { id: channelId, userId },
+      select: { id: true, title: true },
+    });
+    if (!channel) throw new NotFoundException('Channel not found');
+
+    const version = await this.prisma.assetVersion.findFirst({
+      where: { id: assetVersionId, asset: { project: { userId } } },
+      select: { id: true, durationMs: true, asset: { select: { id: true } } },
+    });
+    if (!version) throw new NotFoundException('Asset version not found');
+
+    const syntheticVideoId = `local_${assetVersionId.replace(/-/g, '').slice(0, 20)}`;
+    const project = await this.resolveShortsProject(userId, channelId, channel.title);
+
+    return this.prisma.importedVideo.upsert({
+      where: { projectId_youtubeVideoId: { projectId: project.id, youtubeVideoId: syntheticVideoId } },
+      create: {
+        projectId: project.id,
+        youtubeVideoId: syntheticVideoId,
+        title,
+        durationMs: version.durationMs ?? 0,
+        sourceAssetId: version.asset.id,
+      },
+      update: { title, durationMs: version.durationMs ?? 0 },
+    });
+  }
+
   /** Find or create the channel's Shorts Studio container project. */
   private async resolveShortsProject(userId: string, channelId: string, channelTitle: string) {
     const existing = await this.prisma.project.findFirst({

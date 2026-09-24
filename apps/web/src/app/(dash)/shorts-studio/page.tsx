@@ -1,12 +1,12 @@
 ﻿'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Clapperboard, Loader2, Download, Wand2, CheckCircle2, XCircle,
   Clock, Film, Captions, Sparkles, ChevronDown, ChevronRight,
-  Search, X, FolderDown, ListVideo, Trash2, Scissors,
+  Search, X, FolderDown, ListVideo, Trash2, Scissors, Upload, Link2, HardDrive,
 } from 'lucide-react';
 import { api, type LibraryVideo, type LibraryPlaylist, type LibraryVideosPage, type LibraryPlaylistsPage, type LibraryPlaylistItemsPage } from '@/lib/api';
 import { usePlan } from '@/lib/plan';
@@ -572,6 +572,227 @@ function LibraryImportModal({
   );
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function extractYouTubeId(input: string): string | null {
+  const trimmed = input.trim();
+  try {
+    const url = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1).split('?')[0] ?? null;
+    if (url.hostname.includes('youtube.com')) {
+      const v = url.searchParams.get('v');
+      if (v) return v;
+      const match = url.pathname.match(/\/(?:shorts|embed|v)\/([A-Za-z0-9_-]{11})/);
+      if (match?.[1]) return match[1];
+    }
+  } catch { /* not a URL — treat as a bare ID */ }
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  return null;
+}
+
+// ── URL import modal ──────────────────────────────────────────────────────────
+
+function UrlImportModal({ channelId, onClose, onImported }: {
+  channelId: string; onClose: () => void; onImported: () => void;
+}) {
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const importMutation = useMutation({
+    mutationFn: async () => {
+      const videoId = extractYouTubeId(url);
+      if (!videoId) throw new Error('Please enter a valid YouTube URL or video ID.');
+      await api.shortsStudio.importVideo(channelId, videoId);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['shorts-imported', channelId] });
+      onImported();
+    },
+    onError: (err) => {
+      const msg = (err as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ?? (err as { message?: string }).message ?? 'Import failed';
+      setError(msg);
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,10,40,0.65)', backdropFilter: 'blur(4px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Import from YouTube URL"
+        className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+        style={{ border: '1.5px solid #e3ddf8' }}
+      >
+        <div className="flex items-center gap-3 px-6 py-5" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#f3f4f6' }}>
+            <Link2 className="w-4 h-4" style={{ color: '#374151' }} />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-base font-extrabold text-gray-900">Import from YouTube URL</h2>
+            <p className="text-xs text-gray-400">Paste a YouTube video URL or video ID</p>
+          </div>
+          <button onClick={onClose} aria-label="Close"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors text-lg leading-none">×</button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => { setUrl(e.target.value); setError(null); }}
+            placeholder="https://youtube.com/watch?v=... or video ID"
+            className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151]"
+            onKeyDown={(e) => { if (e.key === 'Enter' && !importMutation.isPending) importMutation.mutate(); }}
+            autoFocus
+          />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </div>
+        <div className="px-6 py-4 flex justify-end gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
+          <button onClick={onClose}
+            className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors">Cancel</button>
+          <button
+            onClick={() => importMutation.mutate()}
+            disabled={!url.trim() || importMutation.isPending}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
+          >
+            {importMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Import
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Local file upload modal ───────────────────────────────────────────────────
+
+function LocalUploadModal({ channelId, onClose, onImported }: {
+  channelId: string; onClose: () => void; onImported: () => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const uploadMutation = useMutation({
+    mutationFn: async () => {
+      if (!file) throw new Error('No file selected');
+      setUploadProgress(10);
+      const uploadResult = await api.media.uploadVideo(file).then((r) => r.data);
+      setUploadProgress(60);
+      await api.shortsStudio.importLocal(channelId, uploadResult.versionId, file.name.replace(/\.[^.]+$/, ''));
+      setUploadProgress(100);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['shorts-imported', channelId] });
+      onImported();
+    },
+    onError: (err) => {
+      setUploadProgress(null);
+      const msg = (err as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ?? (err as { message?: string }).message ?? 'Upload failed';
+      setError(msg);
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,10,40,0.65)', backdropFilter: 'blur(4px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Upload local video"
+        className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+        style={{ border: '1.5px solid #e3ddf8' }}
+      >
+        <div className="flex items-center gap-3 px-6 py-5" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#f3f4f6' }}>
+            <HardDrive className="w-4 h-4" style={{ color: '#374151' }} />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-base font-extrabold text-gray-900">Upload from local files</h2>
+            <p className="text-xs text-gray-400">MP4, MOV or WebM — up to 2 GB</p>
+          </div>
+          <button onClick={onClose} aria-label="Close"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors text-lg leading-none">×</button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <div
+            onClick={() => fileRef.current?.click()}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setFile(f); setError(null); } }}
+            onDragOver={(e) => e.preventDefault()}
+            className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[#374151] hover:bg-gray-50 transition-all"
+          >
+            <Upload className="w-8 h-8 text-gray-300" />
+            {file ? (
+              <div className="text-center">
+                <p className="text-sm font-semibold text-gray-800">{file.name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-sm font-semibold text-gray-700">Drop video here or click to browse</p>
+                <p className="text-xs text-gray-400 mt-0.5">MP4, MOV, WebM</p>
+              </div>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="video/mp4,video/quicktime,video/webm,video/*"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFile(f); setError(null); } }}
+          />
+          {uploadProgress !== null && uploadProgress < 100 && (
+            <div className="space-y-1">
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${uploadProgress}%`, background: 'linear-gradient(90deg, #374151, #7c5ae8)' }} />
+              </div>
+              <p className="text-xs text-gray-400 text-center">{uploadProgress < 60 ? 'Uploading…' : 'Importing…'}</p>
+            </div>
+          )}
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </div>
+        <div className="px-6 py-4 flex justify-end gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
+          <button onClick={onClose}
+            className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors">Cancel</button>
+          <button
+            onClick={() => uploadMutation.mutate()}
+            disabled={!file || uploadMutation.isPending}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
+          >
+            {uploadMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            Upload & Import
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ShortsStudioPage() {
@@ -581,6 +802,8 @@ export default function ShortsStudioPage() {
   const [importedOpen, setImportedOpen] = useState(true);
   const [openVideoIds, setOpenVideoIds] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen]   = useState(false);
+  const [urlModalOpen, setUrlModalOpen] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   const { data: channels = [], isLoading: channelsLoading } = useQuery<Channel[]>({
     queryKey: ['channels'],
@@ -756,14 +979,30 @@ export default function ShortsStudioPage() {
               📥
             </div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-2">No videos yet</h2>
-            <p className="text-gray-400 text-sm max-w-xs mb-8 leading-relaxed">Import a long-form video from your library to start clipping Shorts.</p>
-            <button
-              onClick={() => setPickerOpen(true)}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.30)' }}
-            >
-              <FolderDown className="w-4 h-4" /> Import videos from library
-            </button>
+            <p className="text-gray-400 text-sm max-w-xs mb-6 leading-relaxed">Import a long-form video to start clipping Shorts.</p>
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.30)' }}
+              >
+                <FolderDown className="w-4 h-4" /> From library
+              </button>
+              <button
+                onClick={() => setUploadModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:border-[#374151]/40 active:scale-[0.98]"
+                style={{ border: '1.5px solid #e3ddf8', color: '#374151', background: 'white' }}
+              >
+                <HardDrive className="w-4 h-4" /> Upload file
+              </button>
+              <button
+                onClick={() => setUrlModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:border-[#374151]/40 active:scale-[0.98]"
+                style={{ border: '1.5px solid #e3ddf8', color: '#374151', background: 'white' }}
+              >
+                <Link2 className="w-4 h-4" /> Import URL
+              </button>
+            </div>
           </div>
         )}
 
@@ -882,14 +1121,30 @@ export default function ShortsStudioPage() {
                   );
                 })}
 
-                {/* Import more */}
-                <button
-                  onClick={() => setPickerOpen(true)}
-                  className="w-full py-2 text-sm font-semibold rounded-2xl transition-all flex items-center justify-center gap-2 hover:bg-[#f3f4f6]"
-                  style={{ border: '1.5px dashed #d1d5db', color: '#374151' }}
-                >
-                  <FolderDown className="w-4 h-4" /> Import more from library
-                </button>
+                {/* Import more — three options */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setPickerOpen(true)}
+                    className="py-2 text-xs font-semibold rounded-2xl transition-all flex items-center justify-center gap-1.5 hover:bg-[#f3f4f6]"
+                    style={{ border: '1.5px dashed #d1d5db', color: '#374151' }}
+                  >
+                    <FolderDown className="w-3.5 h-3.5" /> From library
+                  </button>
+                  <button
+                    onClick={() => setUploadModalOpen(true)}
+                    className="py-2 text-xs font-semibold rounded-2xl transition-all flex items-center justify-center gap-1.5 hover:bg-[#f3f4f6]"
+                    style={{ border: '1.5px dashed #d1d5db', color: '#374151' }}
+                  >
+                    <HardDrive className="w-3.5 h-3.5" /> Upload file
+                  </button>
+                  <button
+                    onClick={() => setUrlModalOpen(true)}
+                    className="py-2 text-xs font-semibold rounded-2xl transition-all flex items-center justify-center gap-1.5 hover:bg-[#f3f4f6]"
+                    style={{ border: '1.5px dashed #d1d5db', color: '#374151' }}
+                  >
+                    <Link2 className="w-3.5 h-3.5" /> Import URL
+                  </button>
+                </div>
               </>
             )}
           </section>
@@ -901,6 +1156,20 @@ export default function ShortsStudioPage() {
           channelId={channelId}
           importedYoutubeIds={importedIds}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+      {urlModalOpen && channelId && (
+        <UrlImportModal
+          channelId={channelId}
+          onClose={() => setUrlModalOpen(false)}
+          onImported={() => setUrlModalOpen(false)}
+        />
+      )}
+      {uploadModalOpen && channelId && (
+        <LocalUploadModal
+          channelId={channelId}
+          onClose={() => setUploadModalOpen(false)}
+          onImported={() => setUploadModalOpen(false)}
         />
       )}
     </div>

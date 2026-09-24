@@ -1169,6 +1169,8 @@ export const api = {
   shortsStudio: {
     importVideo: (channelId: string, youtubeVideoId: string) =>
       apiClient.post('/shorts-studio/videos/import', { channelId, youtubeVideoId }),
+    importLocal: (channelId: string, assetVersionId: string, title: string) =>
+      apiClient.post('/shorts-studio/videos/import-local', { channelId, assetVersionId, title }),
     listImported: (channelId: string) =>
       apiClient.get(`/shorts-studio/channels/${channelId}/imported`),
     deleteImported: (importedVideoId: string) =>
