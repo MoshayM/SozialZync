@@ -591,7 +591,13 @@ export default function TimelineEditorPage() {
           <div className="bg-black rounded-2xl overflow-hidden flex items-center justify-center relative" style={{ height: 320 }}>
             {videoUrl ? (
               // eslint-disable-next-line jsx-a11y/media-has-caption -- AI-generated preview; caption track not produced
-              <video ref={videoRef} src={videoUrl} className="h-full" onEnded={() => setPlaying(false)} />
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                className="h-full"
+                onLoadedMetadata={() => seekVideo(0)}
+                onEnded={() => setPlaying(false)}
+              />
             ) : (
               <p className="text-gray-500 text-sm">Preview unavailable — source video not downloaded</p>
             )}
