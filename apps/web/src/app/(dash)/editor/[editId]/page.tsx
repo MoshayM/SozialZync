@@ -1554,6 +1554,15 @@ type ChatMsg =
   | { role: 'user'; text: string }
   | { role: 'assistant'; text: string; pendingTimeline?: unknown | null };
 
+// @reason: SpeechRecognition interface is absent from TypeScript's DOM lib (still experimental)
+interface SpeechRecognitionLike {
+  continuous: boolean; interimResults: boolean; lang: string;
+  onresult: ((e: { results: SpeechRecognitionResultList }) => void) | null;
+  onend: (() => void) | null; onerror: (() => void) | null;
+  start(): void; stop(): void;
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
 function AiEditDialog({
   editId,
   timeline,
@@ -1581,6 +1590,40 @@ function AiEditDialog({
   const [error, setError] = useState<string | null>(null);
   const autoRan = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  function toggleVoice() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    // @reason: window.SpeechRecognition and webkitSpeechRecognition absent from TS Window type
+    const w = typeof window !== 'undefined'
+      ? (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor })
+      : null;
+    const SR = w?.SpeechRecognition ?? w?.webkitSpeechRecognition ?? null;
+    if (!SR) { setError('Voice input requires Chrome or Edge.'); return; }
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = 'en-US';
+    rec.onresult = (e) => {
+      const parts: string[] = [];
+      for (let i = 0; i < e.results.length; i++) {
+        const alt = e.results[i]?.[0];
+        if (alt) parts.push(alt.transcript);
+      }
+      const transcript = parts.join(' ').trim();
+      setInput((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript));
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setListening(true);
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -1794,6 +1837,18 @@ function AiEditDialog({
               placeholder="Add all clips to the timeline, extend music to cover the whole video…  (Enter to send)"
               className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 resize-none leading-relaxed"
             />
+            <button
+              onClick={toggleVoice}
+              type="button"
+              disabled={busy}
+              className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 mb-0.5 transition-colors disabled:opacity-40 ${
+                listening ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+              aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+              title={listening ? 'Listening… click to stop' : 'Voice input (Chrome / Edge)'}
+            >
+              <Mic className="w-4 h-4" />
+            </button>
             <button
               onClick={() => void submit()}
               disabled={!input.trim() || busy}
