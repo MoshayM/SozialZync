@@ -408,4 +408,16 @@ export class ShortsStudioController {
     await this.shorts.assertClipOwnership(shortClipId, user.sub);
     return this.exports.publishState(shortClipId);
   }
+
+  // ── Preview URL & Private Content ───────────────────────────────────────────
+
+  @Get('clips/:shortClipId/preview-url')
+  async previewUrl(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
+    return this.shorts.getPreviewUrl(shortClipId, user.sub);
+  }
+
+  @Post('clips/:shortClipId/save-to-private')
+  async saveToPrivate(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
+    return this.shorts.saveToPrivate(shortClipId, user.sub);
+  }
 }

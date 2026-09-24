@@ -1,9 +1,9 @@
 'use client';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ShieldCheck, ExternalLink, XCircle, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ShieldCheck, ExternalLink, XCircle, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { usePlanGate, useIsAdmin, planAtLeast, triggerUpgradeSheet } from '@/components/plan-gate';
@@ -64,6 +64,15 @@ interface Clip {
   topicSegment: { title: string; highlight: { titleSuggestion: string; finalScore: number } | null } | null;
   chapter: { title: string } | null;
   timeline: { id: string; durationMs: number; _count: { captions: number } } | null;
+  renderAsset: { id: string; versions: Array<{ id: string; durationMs: number | null }> } | null;
+}
+
+interface Channel {
+  id: string;
+  title: string;
+  platform: string;
+  thumbnailUrl?: string | null;
+  connected?: boolean;
 }
 
 interface Highlight {
@@ -140,7 +149,7 @@ type FlowPhase =
  * Every backend stage self-skips when already satisfied, so re-clicking
  * resumes an interrupted flow instead of redoing work.
  */
-function usePublishFlow(highlightId: string, qc: ReturnType<typeof useQueryClient>) {
+function usePublishFlow(highlightId: string, types: string[], qc: ReturnType<typeof useQueryClient>) {
   const [phase, setPhase] = useState<FlowPhase>({ step: 'idle' });
   const cancelled = useRef(false);
 
@@ -159,17 +168,20 @@ function usePublishFlow(highlightId: string, qc: ReturnType<typeof useQueryClien
 
   const run = useCallback(async () => {
     cancelled.current = false;
+    // Use the first selected type for the publish pipeline; default to YOUTUBE_SHORTS if none selected.
+    const primaryType = types[0] ?? 'YOUTUBE_SHORTS';
     try {
       setPhase({ step: 'working', label: 'Creating clip…' });
-      const clips = (await api.shortsStudio.generateClips(highlightId, ['YOUTUBE_SHORTS'])).data as Array<{ id: string }>;
-      const clipId = clips[0]!.id;
+      const clips = (await api.shortsStudio.generateClips(highlightId, types.length > 0 ? types : ['YOUTUBE_SHORTS'])).data as Array<{ id: string }>;
+      // Prefer the clip that matches the primary platform type
+      const clipId = (clips[0])!.id;
       void qc.invalidateQueries({ queryKey: ['shorts-clips'] });
 
       const captionJob = (await api.shortsStudio.generateCaptions(clipId)).data as { id: string };
       await waitJob(captionJob.id, 'Generating captions…');
 
       const renderJob = (await api.shortsStudio.render(clipId)).data as { id: string };
-      await waitJob(renderJob.id, 'Rendering vertical video…');
+      await waitJob(renderJob.id, `Rendering ${primaryType.replace(/_/g, ' ').toLowerCase()}…`);
 
       const exportJob = (await api.shortsStudio.exportClip(clipId)).data as { id: string };
       await waitJob(exportJob.id, 'Building export package…');
@@ -186,14 +198,16 @@ function usePublishFlow(highlightId: string, qc: ReturnType<typeof useQueryClien
         };
         if (s.publishJob?.status === 'COMPLETED' && s.publishJob.result?.url) {
           setPhase({ step: 'published', url: s.publishJob.result.url });
+          void qc.invalidateQueries({ queryKey: ['shorts-clips'] });
           return;
         }
         if (s.approval?.status === 'REJECTED') throw new Error('Review was rejected on the Approvals page');
         if (s.approval?.status === 'APPROVED' && (!s.publishJob || s.publishJob.status === 'FAILED')) {
           const pub = (await api.shortsStudio.publish(clipId)).data as { id: string };
-          await waitJob(pub.id, 'Publishing to YouTube…');
+          await waitJob(pub.id, 'Publishing…');
           const done = (await api.shortsStudio.publishStatus(clipId)).data as { publishJob: { result?: { url?: string } } | null };
           setPhase({ step: 'published', url: done.publishJob?.result?.url ?? '' });
+          void qc.invalidateQueries({ queryKey: ['shorts-clips'] });
           return;
         }
         setPhase({ step: 'awaiting-approval' });
@@ -205,9 +219,200 @@ function usePublishFlow(highlightId: string, qc: ReturnType<typeof useQueryClien
         setPhase({ step: 'error', message: e.response?.data?.message ?? e.message ?? 'Publish flow failed' });
       }
     }
-  }, [highlightId, qc, waitJob]);
+  }, [highlightId, types, qc, waitJob]);
 
   return { phase, run };
+}
+
+/** Lightweight video preview modal for a rendered clip. */
+function VideoPreviewModal({ clipId, title, onClose }: { clipId: string; title: string; onClose: () => void }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['clip-preview-url', clipId],
+    queryFn: () => api.shortsStudio.previewUrl(clipId).then((r) => r.data),
+    staleTime: 50 * 60 * 1000, // 50 min — URL TTL is 60 min
+  });
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const apiBase = process.env['NEXT_PUBLIC_API_URL'] ?? '';
+
+  return (
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl overflow-hidden shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <p className="font-semibold text-gray-900 text-sm truncate flex-1">{title}</p>
+          <button type="button" onClick={onClose} className="ml-2 p-1 rounded-lg hover:bg-gray-100 transition-colors">
+            <X className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+        <div className="aspect-[9/16] bg-black flex items-center justify-center" style={{ maxHeight: '70vh' }}>
+          {isLoading && <Loader2 className="w-8 h-8 text-white animate-spin" />}
+          {isError && (
+            <div className="text-center text-white px-4">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
+              <p className="text-sm">Clip not rendered yet. Run the Publish flow to render it first.</p>
+            </div>
+          )}
+          {data?.url && (
+            <video
+              src={`${apiBase}${data.url}`}
+              controls
+              autoPlay
+              playsInline
+              className="w-full h-full object-contain"
+              style={{ maxHeight: '70vh' }}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Clips list with Preview, Re-edit, Save to Private, Export actions. */
+function ClipsList({ clips, qc }: { clips: Clip[]; qc: ReturnType<typeof useQueryClient> }) {
+  const [openClips, setOpenClips] = useState<Set<string>>(new Set());
+  const [previewClipId, setPreviewClipId] = useState<string | null>(null);
+
+  const saveToPrivate = useMutation({
+    mutationFn: (clipId: string) => api.shortsStudio.saveToPrivate(clipId),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['my-content'] }),
+  });
+
+  const previewClip = previewClipId ? clips.find((c) => c.id === previewClipId) : null;
+
+  return (
+    <>
+      {previewClipId && previewClip && (
+        <VideoPreviewModal
+          clipId={previewClipId}
+          title={previewClip.topicSegment?.highlight?.titleSuggestion ?? previewClip.topicSegment?.title ?? previewClip.chapter?.title ?? 'Clip'}
+          onClose={() => setPreviewClipId(null)}
+        />
+      )}
+      {clips.length > 0 && (
+        <div className="flex justify-end mb-1">
+          <button
+            onClick={() => setOpenClips((prev) => prev.size === clips.length ? new Set() : new Set(clips.map((c) => c.id)))}
+            className="text-xs text-brand-600 hover:underline"
+          >
+            {openClips.size === clips.length ? 'Collapse all' : 'Expand all'}
+          </button>
+        </div>
+      )}
+      <div className="space-y-2">
+        {clips.map((c) => {
+          const open = openClips.has(c.id);
+          const toggle = () => setOpenClips((prev) => {
+            const next = new Set(prev);
+            if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+            return next;
+          });
+          const published = c.status === 'PUBLISHED';
+          const isRendered = !!c.renderAsset?.versions[0];
+          const statusColors: Record<string, string> = {
+            PUBLISHED: 'bg-green-100 text-green-700',
+            RENDERED: 'bg-blue-100 text-blue-700',
+            RENDERING: 'bg-amber-100 text-amber-700',
+            CANDIDATE: 'bg-gray-100 text-gray-600',
+          };
+          const statusColor = statusColors[c.status] ?? 'bg-gray-100 text-gray-600';
+          return (
+            <div key={c.id} className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+              <div
+                onClick={toggle}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
+                className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+              >
+                {open ? <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />}
+                <p className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
+                  {c.topicSegment?.highlight?.titleSuggestion ?? c.topicSegment?.title ?? c.chapter?.title ?? 'Clip'}
+                </p>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${statusColor}`}>
+                  {c.status.replace(/_/g, ' ').toLowerCase()}
+                </span>
+                <span className="text-[11px] text-gray-500 shrink-0">{c.timeline ? fmt(c.timeline.durationMs) : '—'}</span>
+              </div>
+              {open && (
+                <div className="px-4 pb-4 pt-2 border-t border-gray-50">
+                  <div className="text-xs text-gray-500 space-y-0.5 mb-3">
+                    <p><span className="text-gray-500">Platform:</span> <span className="font-medium text-gray-700">{CLIP_TYPES.find((t) => t.value === c.clipType)?.label ?? c.clipType.replace(/_/g, ' ')}</span></p>
+                    <p><span className="text-gray-500">Source range:</span> {fmt(c.sourceStartMs)}–{fmt(c.sourceEndMs)}</p>
+                    <p><span className="text-gray-500">Captions:</span> {c.timeline?._count.captions ? `${c.timeline._count.captions} lines` : 'none yet'}</p>
+                    {c.topicSegment?.highlight && (
+                      <p><span className="text-gray-500">Highlight score:</span> {Math.round(c.topicSegment.highlight.finalScore)}</p>
+                    )}
+                    {c.chapter && <p><span className="text-gray-500">From chapter:</span> {c.chapter.title}</p>}
+                    {isRendered && <p className="text-green-600 font-medium">✓ Rendered — ready to preview</p>}
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {isRendered && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setPreviewClipId(c.id); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700"
+                      >
+                        <Play className="w-3.5 h-3.5" /> Preview
+                      </button>
+                    )}
+                    <Link
+                      href={`/shorts-studio/clips/${c.id}/edit`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Re-edit
+                    </Link>
+                    {isRendered && (
+                      <button
+                        type="button"
+                        disabled={saveToPrivate.isPending}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (saveToPrivate.variables === c.id && saveToPrivate.isSuccess) return;
+                          saveToPrivate.mutate(c.id);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50"
+                        title="Save rendered short to My Content → Private"
+                      >
+                        {saveToPrivate.isPending && saveToPrivate.variables === c.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : saveToPrivate.isSuccess && saveToPrivate.variables === c.id
+                          ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                          : <FolderDown className="w-3.5 h-3.5" />}
+                        {saveToPrivate.isSuccess && saveToPrivate.variables === c.id ? 'Saved!' : 'Save to Private'}
+                      </button>
+                    )}
+                    <Link
+                      href={`/shorts-studio/clips/${c.id}/export`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50"
+                    >
+                      <Clapperboard className="w-3.5 h-3.5" /> Export
+                    </Link>
+                  </div>
+                  {saveToPrivate.isError && saveToPrivate.variables === c.id && (
+                    <p className="text-xs text-red-600 mt-2">
+                      {(saveToPrivate.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save to private'}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
 }
 
 /** Tiny status chip shown in the collapsed row while a publish flow runs. */
@@ -231,10 +436,18 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
   const qc = useQueryClient();
   const [types, setTypes] = useState<string[]>(['YOUTUBE_SHORTS']);
   const [generated, setGenerated] = useState(false);
-  const { phase, run } = usePublishFlow(h.id, qc);
+  const [confirmPublish, setConfirmPublish] = useState(false);
+  const { phase, run } = usePublishFlow(h.id, types, qc);
   const userPlan = usePlanGate();
   const isAdmin = useIsAdmin();
   const canPublish = isAdmin || planAtLeast(userPlan, 'PRO');
+
+  const { data: channelsRaw } = useQuery({
+    queryKey: ['channels'],
+    queryFn: () => api.channels.list().then((r) => r.data as Channel[]),
+    staleTime: 5 * 60 * 1000,
+  });
+  const channels = Array.isArray(channelsRaw) ? channelsRaw : [];
 
   const generate = useMutation({
     mutationFn: () => api.shortsStudio.generateClips(h.id, types),
@@ -304,9 +517,9 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
         </button>
         {canPublish ? (
           <button
-            onClick={() => void run()}
-            disabled={phase.step === 'working' || phase.step === 'awaiting-approval' || phase.step === 'published'}
-            title="Clip → captions → render → export, then publishes automatically after your approval"
+            onClick={() => setConfirmPublish(true)}
+            disabled={phase.step === 'working' || phase.step === 'awaiting-approval' || phase.step === 'published' || types.length === 0}
+            title="Select platform(s) above, then confirm which account to publish to"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 disabled:opacity-50"
           >
             {phase.step === 'working' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
@@ -320,6 +533,68 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
           >
             <Upload className="w-3.5 h-3.5" /> Publish
           </button>
+        )}
+
+        {/* Publish confirmation: show connected channel & confirm */}
+        {confirmPublish && (
+          <div
+            role="presentation"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+            onClick={(e) => { if (e.target === e.currentTarget) setConfirmPublish(false); }}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="font-bold text-gray-900">Confirm publish</h3>
+                <button type="button" onClick={() => setConfirmPublish(false)} className="p-1 rounded-lg hover:bg-gray-100"><X className="w-4 h-4 text-gray-600" /></button>
+              </div>
+              <div className="px-5 py-4 space-y-3">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Platforms</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {types.map((t) => (
+                      <span key={t} className="px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-[11px] font-medium">
+                        {CLIP_TYPES.find((c) => c.value === t)?.label ?? t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Publish to</p>
+                  {channels.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {channels.slice(0, 3).map((ch) => (
+                        <div key={ch.id} className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 border border-gray-100">
+                          {ch.thumbnailUrl && <img src={ch.thumbnailUrl} alt="" className="w-7 h-7 rounded-full object-cover" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-gray-900 truncate">{ch.title}</p>
+                            <p className="text-[10px] text-gray-500">{ch.platform}</p>
+                          </div>
+                          <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500">No channels connected — <Link href="/settings/channels" className="text-brand-600 underline">connect one first</Link></p>
+                  )}
+                </div>
+                <p className="text-[11px] text-amber-700 bg-amber-50 rounded-xl px-3 py-2 flex items-start gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  Video will go through render → compliance check → your approval before it's published.
+                </p>
+              </div>
+              <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
+                <button type="button" onClick={() => setConfirmPublish(false)} className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => { setConfirmPublish(false); void run(); }}
+                  disabled={channels.length === 0}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
+                >
+                  <Upload className="w-3.5 h-3.5" /> Start publish
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -378,7 +653,6 @@ export default function ShortsVideoDetailPage() {
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [chapterTitleDraft, setChapterTitleDraft] = useState('');
   const [clipsOpen, setClipsOpen] = useState(true);
-  const [openClips, setOpenClips] = useState<Set<string>>(new Set());
 
   const { data: topics = [], isLoading: loadingTopics } = useQuery<Topic[]>({
     queryKey: ['shorts-topics', importedVideoId],
@@ -488,81 +762,9 @@ export default function ShortsVideoDetailPage() {
               <Clapperboard className="w-4 h-4" /> Clips
             </h2>
             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[11px] font-medium">{clips.length}</span>
-            {clipsOpen && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenClips((prev) => prev.size === clips.length ? new Set() : new Set(clips.map((c) => c.id)));
-                }}
-                className="ml-auto text-xs text-brand-600 hover:underline"
-              >
-                {openClips.size === clips.length ? 'Collapse all' : 'Expand all'}
-              </button>
-            )}
           </div>
           {clipsOpen && (
-            <div className="space-y-2 mt-2">
-              {clips.map((c) => {
-                const open = openClips.has(c.id);
-                const toggle = () => setOpenClips((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
-                  return next;
-                });
-                const published = c.status === 'PUBLISHED';
-                return (
-                  <div key={c.id} className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
-                    <div
-                      onClick={toggle}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
-                      className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                    >
-                      {open ? <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />}
-                      <p className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
-                        {c.topicSegment?.highlight?.titleSuggestion ?? c.topicSegment?.title ?? c.chapter?.title ?? 'Clip'}
-                      </p>
-                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {c.status.replace(/_/g, ' ').toLowerCase()}
-                      </span>
-                      <span className="text-[11px] text-gray-500 shrink-0">{c.timeline ? fmt(c.timeline.durationMs) : '—'}</span>
-                    </div>
-                    {open && (
-                      <div className="px-4 pb-4 pt-2 border-t border-gray-50 flex items-center gap-4 flex-wrap">
-                        <div className="text-xs text-gray-500 space-y-0.5 flex-1 min-w-[220px]">
-                          <p><span className="text-gray-500">Platform:</span> {c.clipType.replace(/_/g, ' ')}</p>
-                          <p><span className="text-gray-500">Source range:</span> {fmt(c.sourceStartMs)}–{fmt(c.sourceEndMs)}</p>
-                          <p><span className="text-gray-500">Captions:</span> {c.timeline?._count.captions ? `${c.timeline._count.captions} lines` : 'none yet'}</p>
-                          {c.topicSegment?.highlight && (
-                            <p><span className="text-gray-500">Highlight score:</span> {Math.round(c.topicSegment.highlight.finalScore)}</p>
-                          )}
-                          {c.chapter && (
-                            <p><span className="text-gray-500">From chapter:</span> {c.chapter.title}</p>
-                          )}
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                          <Link
-                            href={`/shorts-studio/clips/${c.id}/edit`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700"
-                          >
-                            <Pencil className="w-3.5 h-3.5" /> Edit
-                          </Link>
-                          <Link
-                            href={`/shorts-studio/clips/${c.id}/export`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50"
-                          >
-                            <Clapperboard className="w-3.5 h-3.5" /> Export
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <ClipsList clips={clips} qc={qc} />
           )}
         </section>
       )}

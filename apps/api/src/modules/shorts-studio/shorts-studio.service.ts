@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { signMedia, signingSecret } from '../media/signed-url.util';
 
 /** Job types run by the shorts-import pipeline, in order (ai.md Section 3.1). */
 export const SHORTS_IMPORT_STAGES = [
@@ -267,7 +268,70 @@ export class ShortsStudioService {
         topicSegment: { select: { id: true, title: true, highlight: { select: { id: true, titleSuggestion: true, finalScore: true } } } },
         chapter: { select: { id: true, title: true } },
         timeline: { select: { id: true, durationMs: true, _count: { select: { captions: true } } } },
+        renderAsset: { select: { id: true, versions: { orderBy: { version: 'desc' }, take: 1, select: { id: true, durationMs: true } } } },
       },
     });
+  }
+
+  /** Return a 1-hour signed URL for the clip's rendered video. */
+  async getPreviewUrl(clipId: string, userId: string) {
+    await this.assertClipOwnership(clipId, userId);
+    const clip = await this.prisma.shortClip.findUnique({
+      where: { id: clipId },
+      include: { renderAsset: { include: { versions: { orderBy: { version: 'desc' }, take: 1, select: { id: true, durationMs: true } } } } },
+    });
+    const version = clip?.renderAsset?.versions[0];
+    if (!version) throw new BadRequestException('Clip has not been rendered yet');
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const sig = signMedia(`version:${version.id}`, exp, signingSecret());
+    return {
+      url: `/api/v1/media/versions/${version.id}/file?exp=${exp}&sig=${sig}`,
+      expiresAt: new Date(exp * 1000).toISOString(),
+      durationMs: version.durationMs,
+    };
+  }
+
+  /** Save a rendered short clip into My Content → Private. */
+  async saveToPrivate(clipId: string, userId: string) {
+    await this.assertClipOwnership(clipId, userId);
+    const clip = await this.prisma.shortClip.findUnique({
+      where: { id: clipId },
+      include: {
+        renderAsset: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } },
+        topicSegment: { include: { highlight: { select: { titleSuggestion: true } } } },
+        chapter: { select: { title: true } },
+        project: { select: { userId: true } },
+      },
+    });
+    if (!clip) throw new NotFoundException('Clip not found');
+    if (clip.project.userId !== userId) throw new ForbiddenException('Not your clip');
+    if (!clip.renderAsset?.versions[0]) throw new BadRequestException('Clip must be rendered before saving to private content');
+
+    const title = (
+      clip.topicSegment?.highlight?.titleSuggestion ??
+      clip.topicSegment?.title ??
+      clip.chapter?.title ??
+      'Short clip'
+    ).slice(0, 180);
+
+    const renderVersion = clip.renderAsset.versions[0];
+    // @reason: EditProject is accessed via dynamic key — pending Prisma migration
+    const ep = (this.prisma as unknown as Record<string, unknown>)['editProject'] as {
+      create: (args: unknown) => Promise<{ id: string }>;
+    };
+    const editProject = await ep.create({
+      data: {
+        projectId: clip.projectId,
+        title: `Short: ${title}`,
+        status: 'PRIVATE_CONTENT',
+        renderAssetId: clip.renderAsset.id,
+        renderStatus: 'READY',
+        durationMs: renderVersion.durationMs ?? 0,
+        width: clip.clipType === 'PODCAST_HIGHLIGHTS' ? 1920 : clip.clipType === 'LINKEDIN_CLIPS' ? 1080 : 1080,
+        height: clip.clipType === 'PODCAST_HIGHLIGHTS' ? 1080 : clip.clipType === 'LINKEDIN_CLIPS' ? 1080 : 1920,
+        fps: 30,
+      },
+    });
+    return { id: (editProject as { id: string }).id };
   }
 }

@@ -62,7 +62,8 @@ export class ShortsRenderService {
     // Skip when the existing render is newer than the last timeline edit.
     // When `force` is true (user explicitly clicked Re-render) always proceed.
     const existingKey = clip.renderAsset?.versions[0]?.r2Key;
-    if (!force && existingKey && this.storage.exists(existingKey) && clip.renderAsset!.createdAt > clip.timeline.updatedAt) {
+    const existingPresent = existingKey ? await this.storage.ensure(existingKey) : false;
+    if (!force && existingKey && existingPresent && clip.renderAsset!.createdAt > clip.timeline.updatedAt) {
       onLog?.('Render is up to date — reusing existing output');
       return { skipped: true, assetId: clip.renderAssetId, key: existingKey };
     }
@@ -79,7 +80,8 @@ export class ShortsRenderService {
 
       const sourceItem = clip.timeline.tracks.flatMap((t) => t.items).find((i) => i.sourceAsset?.versions[0]?.r2Key);
       const sourceKey = sourceItem?.sourceAsset?.versions[0]?.r2Key;
-      if (!sourceKey || !this.storage.exists(sourceKey)) {
+      const sourcePresent = sourceKey ? await this.storage.ensure(sourceKey) : false;
+      if (!sourceKey || !sourcePresent) {
         throw new BadRequestException('Source video file is missing — re-run the import pipeline');
       }
       const sourcePath = this.storage.resolve(sourceKey);

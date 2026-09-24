@@ -1245,6 +1245,10 @@ export const api = {
       apiClient.post(`/shorts-studio/clips/${shortClipId}/publish`, scheduledAt ? { scheduledAt } : {}),
     publishStatus: (shortClipId: string) =>
       apiClient.get(`/shorts-studio/clips/${shortClipId}/publish-status`),
+    previewUrl: (shortClipId: string) =>
+      apiClient.get<{ url: string; expiresAt: string; durationMs: number | null }>(`/shorts-studio/clips/${shortClipId}/preview-url`),
+    saveToPrivate: (shortClipId: string) =>
+      apiClient.post<{ id: string }>(`/shorts-studio/clips/${shortClipId}/save-to-private`),
   },
   library: {
     syncStart: (channelId: string) =>

@@ -65,7 +65,8 @@ export class ShortsExportService {
     });
     if (!clip) throw new NotFoundException('Clip not found');
     const renderVersion = clip.renderAsset?.versions[0];
-    if (!renderVersion?.r2Key || !this.storage.exists(renderVersion.r2Key)) {
+    const renderPresent = renderVersion?.r2Key ? await this.storage.ensure(renderVersion.r2Key) : false;
+    if (!renderVersion?.r2Key || !renderPresent) {
       throw new BadRequestException('Clip is not rendered yet — render it before exporting');
     }
 
