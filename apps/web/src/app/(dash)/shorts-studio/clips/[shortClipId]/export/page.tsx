@@ -262,7 +262,7 @@ export default function ClipExportPage() {
   });
 
   const videoUrl = useBlobUrl(status?.render?.versionId);
-  const rendering = status?.clipStatus === 'RENDERING' || status?.renderJob?.status === 'RUNNING' || status?.renderJob?.status === 'CHECKPOINTED';
+  const rendering = renderMutation.isPending || status?.clipStatus === 'RENDERING' || status?.renderJob?.status === 'QUEUED' || status?.renderJob?.status === 'RUNNING' || status?.renderJob?.status === 'CHECKPOINTED';
   const renderFailed = status?.renderJob?.status === 'FAILED';
   const checkpoint = status?.renderJob?.checkpointData;
   const timelineStale = status?.timelineStale === true;
