@@ -328,12 +328,29 @@ function CardMenu({ onRename, onDelete }: { onRename: () => void; onDelete: () =
 
 function RenameModal({ project, onClose, onSuccess }: { project: Project; onClose: () => void; onSuccess: () => void }) {
   const [title, setTitle] = useState(project.title);
+  const [lang, setLang] = useState(project.targetLang ?? 'en');
+  const [langSearch, setLangSearch] = useState('');
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close lang dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) setLangMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const renameMutation = useMutation({
-    mutationFn: () => api.projects.update(project.id, { title }),
+    mutationFn: () => api.projects.update(project.id, { title, targetLang: lang }),
     onSuccess: () => { onSuccess(); onClose(); },
   });
-  const unchanged = title.trim() === project.title.trim();
+  const unchanged = title.trim() === project.title.trim() && lang === (project.targetLang ?? 'en');
   const disabled = !title.trim() || unchanged || renameMutation.isPending;
+
+  const selectedLang = LANGUAGES.find(l => l.code === lang);
+  const filteredLangs = LANGUAGES.filter(l => l.name.toLowerCase().includes(langSearch.toLowerCase()));
 
   return (
     <div
@@ -346,12 +363,12 @@ function RenameModal({ project, onClose, onSuccess }: { project: Project; onClos
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden" style={{ border: '1.5px solid #e3ddf8' }}>
         <div className="px-7 py-5 flex items-center justify-between" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
           <div>
-            <h2 className="text-lg font-extrabold text-gray-900">Rename project</h2>
-            <p className="text-xs text-gray-600 mt-0.5">Update the title for this project</p>
+            <h2 className="text-lg font-extrabold text-gray-900">Edit project</h2>
+            <p className="text-xs text-gray-600 mt-0.5">Update the title or content language</p>
           </div>
           <button type="button" onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-colors text-lg leading-none">×</button>
         </div>
-        <div className="px-7 py-6">
+        <div className="px-7 py-6 space-y-4">
           <Field label="Project title">
             <input
               value={title}
@@ -359,6 +376,49 @@ function RenameModal({ project, onClose, onSuccess }: { project: Project; onClos
               onKeyDown={(e) => { if (e.key === 'Enter' && !disabled) renameMutation.mutate(); }}
               className={inputCls} style={inputStyle} placeholder="Enter a title…"
             />
+          </Field>
+          <Field label="Content Language" hint="AI generates scripts and research in this language">
+            <div className="relative" ref={langMenuRef}>
+              <button
+                type="button"
+                onClick={() => { setLangMenuOpen(o => !o); setLangSearch(''); }}
+                className={`${inputCls} pr-10 text-left cursor-pointer flex items-center gap-2`}
+                style={inputStyle}
+              >
+                {selectedLang
+                  ? <><span>{selectedLang.flag}</span><span>{selectedLang.name}</span></>
+                  : <span className="text-gray-400">{lang}</span>}
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+              </button>
+              {langMenuOpen && (
+                <div className="absolute z-50 mt-1 w-full rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden" style={{ maxHeight: 260 }}>
+                  <div className="p-2 border-b border-gray-100">
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search language…"
+                      value={langSearch}
+                      onChange={e => setLangSearch(e.target.value)}
+                      className="w-full px-3 py-1.5 text-sm rounded-xl border border-gray-200 outline-none focus:border-violet-400"
+                    />
+                  </div>
+                  <div className="overflow-y-auto" style={{ maxHeight: 200 }}>
+                    {filteredLangs.map(l => (
+                      <button
+                        key={l.code} type="button"
+                        onClick={() => { setLang(l.code); setLangMenuOpen(false); setLangSearch(''); }}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-violet-50 transition-colors ${lang === l.code ? 'bg-violet-50 font-semibold text-violet-700' : 'text-gray-700'}`}
+                      >
+                        <span className="text-base">{l.flag}</span>{l.name}
+                      </button>
+                    ))}
+                    {filteredLangs.length === 0 && (
+                      <p className="px-4 py-3 text-sm text-gray-400">No languages found</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </Field>
         </div>
         <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
