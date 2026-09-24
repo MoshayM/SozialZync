@@ -3740,11 +3740,13 @@ export default function EditorWorkspacePage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [librarySelecting, setLibrarySelecting] = useState<string | null>(null);
-  // Auto-save preference (persisted in localStorage; default OFF — user opt-in)
+  // Auto-save preference — default ON; user can disable via the Save menu
   const [autoSave, setAutoSave] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('editor-autosave') === 'true';
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('editor-autosave') !== 'false';
   });
+  // Brief "Saved ✓" confirmation flash after a successful autosave
+  const [savedRecently, setSavedRecently] = useState(false);
   // Named snapshots saved to localStorage per edit
   const [snapshots, setSnapshots] = useState<SnapshotEntry[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -3961,11 +3963,11 @@ export default function EditorWorkspacePage() {
     }
   }, [project, timeline]);
 
-  // Debounced auto-save — only fires when the user has enabled it
+  // Debounced auto-save — 5 s after last change; quiet when autosave is off
   useEffect(() => {
     if (!autoSave || !dirty || !timeline) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => void handleSave(), 1500);
+    debounceRef.current = setTimeout(() => void handleSave(), 5000);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [dirty, timeline, autoSave]);
 
@@ -3979,6 +3981,8 @@ export default function EditorWorkspacePage() {
     try {
       await api.editor.saveTimeline(editId, timeline);
       setDirty(false);
+      setSavedRecently(true);
+      setTimeout(() => setSavedRecently(false), 3000);
       void qc.invalidateQueries({ queryKey: ['editor-project', editId] });
       void qc.invalidateQueries({ queryKey: ['editor-mine'] });
       void qc.invalidateQueries({ queryKey: ['editor-mine-list'] });
@@ -4979,24 +4983,34 @@ export default function EditorWorkspacePage() {
         <div className="flex items-center gap-1.5 shrink-0 py-1.5 pl-2 border-l border-gray-100 ml-1.5">
         {/* ── Save group: Save + dropdown (Save As / Auto-save / Versions) ── */}
         <div ref={saveMenuRef} className="relative flex items-center">
-          {/* Primary Save button */}
+          {/* Primary Save button — calm status indicator when autosave is on */}
           <button
             onClick={() => void handleSave()}
             disabled={saving}
-            className={`flex items-center gap-1.5 px-2 sm:px-3 h-9 rounded-l-lg text-xs font-medium transition-colors disabled:opacity-40 border-r-0 ${
-              dirty
-                ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600'
-                : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+            className={`flex items-center gap-1.5 px-2 sm:px-3 h-9 rounded-l-lg text-xs font-medium transition-all disabled:opacity-40 border-r-0 ${
+              saving
+                ? 'border border-gray-200 text-gray-400'
+                : autoSave
+                  ? savedRecently
+                    ? 'border border-green-200 text-green-600 bg-green-50'
+                    : dirty
+                      ? 'border border-gray-200 text-gray-500 hover:bg-gray-50'
+                      : 'border border-gray-200 text-gray-400 hover:bg-gray-50'
+                  : dirty
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-600'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
-            title={dirty ? 'Save changes to server' : 'All changes saved'}
+            title={saving ? 'Saving…' : dirty ? 'Save changes (Ctrl+S)' : 'All changes saved'}
           >
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">Save</span>
-            {autoSave && (
-              <span className="hidden md:flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-700 text-[9px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />Auto
-              </span>
-            )}
+            {saving
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : savedRecently
+                ? <CheckCircle2 className="w-3.5 h-3.5" />
+                : <Save className="w-3.5 h-3.5" />
+            }
+            <span className="hidden sm:inline">
+              {saving ? 'Saving…' : savedRecently ? 'Saved' : 'Save'}
+            </span>
           </button>
           {/* Dropdown trigger */}
           <button
@@ -5026,7 +5040,7 @@ export default function EditorWorkspacePage() {
                   </span>
                   <div className="flex-1 text-left">
                     <p className="font-semibold text-gray-700">Auto-save</p>
-                    <p className="text-[10px] text-gray-400">{autoSave ? 'On — saves every 30 s' : 'Off — click to enable'}</p>
+                    <p className="text-[10px] text-gray-400">{autoSave ? 'On — saves 5 s after changes' : 'Off — manual save only'}</p>
                   </div>
                   {autoSave && <span className="text-green-500 text-[9px] font-bold uppercase tracking-wide">ON</span>}
                 </button>
