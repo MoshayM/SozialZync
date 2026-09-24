@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
@@ -414,6 +414,132 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   );
 }
 
+// ── Render progress helpers ───────────────────────────────────────────────────
+
+interface ClipRenderStatus {
+  clipStatus: string | null;
+  renderJob: { id: string; jobId: string; status: string; checkpointData: unknown } | null;
+  render: { assetId: string; versionId: string } | null;
+}
+
+function clipProgress(s: ClipRenderStatus | undefined): number {
+  if (!s) return 0;
+  if (s.render || s.clipStatus === 'RENDERED') return 100;
+  const cp = s.renderJob?.checkpointData as { pass?: number; segmentsDone?: number; total?: number; done?: boolean } | null | undefined;
+  if (!cp) return s.renderJob?.status === 'RUNNING' ? 5 : 0;
+  if (cp.pass === 2) return cp.done ? 100 : 75;
+  if (cp.pass === 1 && cp.total) return Math.round((Math.min(cp.segmentsDone ?? 0, cp.total) / cp.total) * 50);
+  return 5;
+}
+
+/** Tiny inline pill for the collapsed header — shows rendering % without interaction. */
+function MiniRenderBar({ clipIds }: { clipIds: string[] }) {
+  const statuses = useQueries({
+    queries: clipIds.map((id) => ({
+      queryKey: ['render-status', id] as const,
+      queryFn: () => api.shortsStudio.renderStatus(id).then((r) => r.data as ClipRenderStatus),
+      refetchInterval: 2500,
+      staleTime: 0,
+    })),
+  });
+  const allDone = clipIds.length > 0 && statuses.every((s) => s.data?.render || s.data?.clipStatus === 'RENDERED');
+  const pct = statuses.length
+    ? Math.round(statuses.reduce((sum, s) => sum + clipProgress(s.data), 0) / statuses.length)
+    : 0;
+
+  if (allDone) return (
+    <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[11px] font-medium shrink-0">
+      <CheckCircle2 className="w-3 h-3" /> done
+    </span>
+  );
+  return (
+    <span className="relative overflow-hidden flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 min-w-[72px]" style={{ background: '#5b21b6', color: '#fff' }}>
+      <span className="absolute inset-y-0 left-0 transition-all duration-700" style={{ width: `${Math.max(8, pct)}%`, background: '#7c3aed' }} />
+      <span className="relative z-10 whitespace-nowrap">{pct >= 5 ? `rendering ${pct}%` : 'rendering…'}</span>
+    </span>
+  );
+}
+
+/**
+ * A button-shaped progress bar that fills left→right as rendering progresses.
+ * Click toggles pause / resume for all queued render jobs.
+ */
+function RenderProgressButton({ clipIds }: { clipIds: string[] }) {
+  const qc = useQueryClient();
+  const [paused, setPaused] = useState(false);
+  const notifiedDone = useRef(false);
+
+  const statuses = useQueries({
+    queries: clipIds.map((id) => ({
+      queryKey: ['render-status', id] as const,
+      queryFn: () => api.shortsStudio.renderStatus(id).then((r) => r.data as ClipRenderStatus),
+      refetchInterval: paused ? false : 2500,
+      staleTime: 0,
+    })),
+  });
+
+  const allDone = clipIds.length > 0 && statuses.every((s) => s.data?.render || s.data?.clipStatus === 'RENDERED');
+  const pct = statuses.length
+    ? Math.round(statuses.reduce((sum, s) => sum + clipProgress(s.data), 0) / statuses.length)
+    : 0;
+
+  useEffect(() => {
+    if (allDone && !notifiedDone.current) {
+      notifiedDone.current = true;
+      void qc.invalidateQueries({ queryKey: ['shorts-clips'] });
+    }
+  }, [allDone, qc]);
+
+  const toggle = useMutation({
+    mutationFn: async () => {
+      const jobIds = statuses.map((s) => s.data?.renderJob?.jobId).filter(Boolean) as string[];
+      await Promise.allSettled(
+        jobIds.map((id) => paused ? api.jobs.resume(id) : api.jobs.pause(id)),
+      );
+      setPaused((p) => !p);
+    },
+  });
+
+  if (allDone) {
+    return (
+      <div className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold shadow-sm">
+        <CheckCircle2 className="w-3.5 h-3.5" /> Clips ready — see below
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => toggle.mutate()}
+      disabled={toggle.isPending}
+      title={paused ? 'Click to resume rendering' : 'Click to pause rendering'}
+      className="relative overflow-hidden flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm min-w-[196px] select-none"
+      style={{ background: '#5b21b6' }}
+    >
+      {/* Filling bar — sweeps left→right, slightly lighter so progress is visible */}
+      <div
+        className="absolute inset-y-0 left-0 transition-all duration-700 ease-out"
+        style={{ width: `${Math.max(4, pct)}%`, background: '#7c3aed' }}
+      />
+      {/* Content on top */}
+      <span className="relative z-10 flex items-center gap-1.5 whitespace-nowrap">
+        {paused ? (
+          <><Play className="w-3.5 h-3.5 fill-white" /> Paused — click to resume</>
+        ) : pct >= 5 ? (
+          <><Pause className="w-3.5 h-3.5" /> Rendering {pct}%</>
+        ) : (
+          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Starting render…</>
+        )}
+      </span>
+      {/* Right-side percent readout */}
+      {!paused && pct >= 5 && (
+        <span className="relative z-10 ml-auto text-[10px] font-normal opacity-80 pl-2">{pct}%</span>
+      )}
+    </button>
+  );
+}
+
 function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onToggle: () => void }) {
   const qc = useQueryClient();
   const [types, setTypes] = useState<string[]>(['YOUTUBE_SHORTS']);
@@ -483,9 +609,14 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
           {h.topicSegment.category.replace(/_/g, ' ')}
         </span>
         <p className="font-semibold text-gray-900 text-sm truncate flex-1 min-w-0">{h.titleSuggestion}</p>
-        {(createClip.isPending || createClip.isSuccess) && (
+        {createClip.isPending && (
           <div className="shrink-0">
-            <CircularProgress size={32} strokeWidth={3} label={createClip.isPending ? 'creating' : 'rendering'} />
+            <CircularProgress size={32} strokeWidth={3} label="creating" />
+          </div>
+        )}
+        {createClip.isSuccess && (createClip.data?.length ?? 0) > 0 && (
+          <div className="shrink-0 flex items-center gap-1">
+            <MiniRenderBar clipIds={(createClip.data ?? []).map((c) => c.id)} />
           </div>
         )}
         <span className="text-xs text-gray-500 shrink-0">{fmt(h.topicSegment.startMs)}–{fmt(h.topicSegment.endMs)}</span>
@@ -537,7 +668,7 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
             ))}
           </div>
         )}
-        {/* Create Clip CTA — shows circular progress while generating/rendering */}
+        {/* Create Clip CTA — circular progress while generating, filling bar while rendering */}
         {createClip.isPending ? (
           <div className="flex items-center gap-4 py-1">
             <CircularProgress size={64} strokeWidth={5} label="Creating clips…" />
@@ -546,6 +677,8 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
               <p className="text-xs text-gray-500 mt-0.5">Splitting highlight & queuing render…</p>
             </div>
           </div>
+        ) : createClip.isSuccess && (createClip.data?.length ?? 0) > 0 ? (
+          <RenderProgressButton clipIds={(createClip.data ?? []).map((c) => c.id)} />
         ) : (
           <div className="flex items-center gap-2 flex-wrap">
             <button
@@ -553,9 +686,7 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
               disabled={types.length === 0}
               className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 shadow-sm"
             >
-              {createClip.isSuccess
-                ? <><CheckCircle2 className="w-3.5 h-3.5" /> Clips created — rendering</>
-                : <><Scissors className="w-3.5 h-3.5" /> Create Clip</>}
+              <Scissors className="w-3.5 h-3.5" /> Create Clip
             </button>
             {createClip.isError && (
               <span className="text-xs text-red-600">
@@ -563,11 +694,6 @@ function HighlightCard({ h, open, onToggle }: { h: Highlight; open: boolean; onT
               </span>
             )}
           </div>
-        )}
-        {createClip.isSuccess && (
-          <p className="text-xs text-brand-600 mt-1.5 flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin" /> Rendering in background — clips appear in the Clips section below when ready
-          </p>
         )}
       </div>
 
