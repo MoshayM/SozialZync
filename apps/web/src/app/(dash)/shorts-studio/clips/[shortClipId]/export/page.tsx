@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, Clapperboard, Download, Lock, Star, RefreshCw, CheckCircle2, Upload,
   ShieldCheck, Package, ExternalLink, AlertTriangle, CalendarClock, XCircle, X,
-  CheckCheck, Clock, ShieldAlert, Wifi,
+  CheckCheck, Clock, ShieldAlert, Wifi, Pause, Play,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
@@ -14,7 +14,7 @@ import { PlanGate, usePlanGate, planAtLeast, useIsAdmin, triggerUpgradeSheet } f
 
 interface RenderStatus {
   clipStatus: string | null;
-  renderJob: { status: 'QUEUED' | 'RUNNING' | 'CHECKPOINTED' | 'COMPLETE' | 'FAILED'; ffmpegPass: number; checkpointData: { segmentsDone?: number; total?: number } | null } | null;
+  renderJob: { id?: string; jobId?: string; status: 'QUEUED' | 'RUNNING' | 'CHECKPOINTED' | 'COMPLETE' | 'FAILED'; ffmpegPass: number; checkpointData: { segmentsDone?: number; total?: number } | null } | null;
   render: { assetId: string; versionId: string; sizeBytes: number; durationMs: number | null } | null;
   timelineStale: boolean;
 }
@@ -241,6 +241,15 @@ export default function ClipExportPage() {
     mutationFn: () => api.shortsStudio.render(shortClipId),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['render-status', shortClipId] }); },
   });
+  const [renderPaused, setRenderPaused] = useState(false);
+  const pauseRenderMutation = useMutation({
+    mutationFn: () => { const jid = status?.renderJob?.jobId; return jid ? api.jobs.pause(jid) : Promise.resolve(null); },
+    onSuccess: () => setRenderPaused(true),
+  });
+  const resumeRenderMutation = useMutation({
+    mutationFn: () => { const jid = status?.renderJob?.jobId; return jid ? api.jobs.resume(jid) : Promise.resolve(null); },
+    onSuccess: () => setRenderPaused(false),
+  });
   const pickThumb = useMutation({
     mutationFn: (id: string) => api.shortsStudio.setPrimaryThumbnail(id),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['clip-thumbs', shortClipId] }); },
@@ -257,6 +266,15 @@ export default function ClipExportPage() {
   const renderFailed = status?.renderJob?.status === 'FAILED';
   const checkpoint = status?.renderJob?.checkpointData;
   const timelineStale = status?.timelineStale === true;
+  const renderPct = (() => {
+    if (!rendering) return 0;
+    const pass = status?.renderJob?.ffmpegPass ?? 1;
+    if (pass === 2) return 75;
+    if (checkpoint?.total && checkpoint.segmentsDone !== undefined) {
+      return Math.round((Math.min(checkpoint.segmentsDone, checkpoint.total) / checkpoint.total) * 50);
+    }
+    return 5;
+  })();
 
   const download = async () => {
     if (!status?.render) return;
@@ -291,14 +309,34 @@ export default function ClipExportPage() {
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Clapperboard className="w-6 h-6 text-brand-600" /> Export &amp; Publish
         </h1>
-        <button
-          onClick={() => { void renderMutation.mutate(); }}
-          disabled={renderMutation.isPending || rendering}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-50 text-sm font-semibold transition-colors"
-        >
-          {rendering || renderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          {status?.render ? 'Re-render' : 'Render clip'}
-        </button>
+        {rendering ? (
+          <button
+            type="button"
+            onClick={() => { if (renderPaused) resumeRenderMutation.mutate(); else pauseRenderMutation.mutate(); }}
+            disabled={pauseRenderMutation.isPending || resumeRenderMutation.isPending}
+            title={renderPaused ? 'Click to resume' : 'Click to pause'}
+            className="relative overflow-hidden flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white min-w-[180px]"
+            style={{ background: '#5b21b6' }}
+          >
+            <div className="absolute inset-y-0 left-0 transition-all duration-700 ease-out" style={{ width: `${Math.max(4, renderPct)}%`, background: '#7c3aed' }} />
+            <span className="relative z-10 flex items-center gap-1.5 whitespace-nowrap">
+              {renderPaused
+                ? <><Play className="w-4 h-4 fill-white" /> Paused — resume</>
+                : renderPct >= 5
+                ? <><Pause className="w-4 h-4" /> Rendering {renderPct}%</>
+                : <><Loader2 className="w-4 h-4 animate-spin" /> Starting…</>}
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={() => { void renderMutation.mutate(); }}
+            disabled={renderMutation.isPending}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-50 text-sm font-semibold transition-colors"
+          >
+            {renderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            {status?.render ? 'Re-render' : 'Render clip'}
+          </button>
+        )}
       </div>
 
       {/* Stale render warning */}

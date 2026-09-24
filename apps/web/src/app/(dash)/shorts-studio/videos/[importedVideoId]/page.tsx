@@ -145,12 +145,14 @@ function CircularProgress({
   percent,
   label,
   onPause,
+  isPaused = false,
 }: {
   size?: number;
   strokeWidth?: number;
   percent?: number;
   label?: string;
   onPause?: () => void;
+  isPaused?: boolean;
 }) {
   const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
@@ -186,11 +188,13 @@ function CircularProgress({
             <button
               type="button"
               onClick={onPause}
-              title="Pause"
+              title={isPaused ? 'Resume' : 'Pause'}
               className="flex items-center justify-center rounded-full hover:bg-brand-50 transition-colors"
               style={{ width: size * 0.55, height: size * 0.55 }}
             >
-              <Pause style={{ width: size * 0.28, height: size * 0.28 }} className="text-brand-700 fill-brand-700" />
+              {isPaused
+                ? <Play style={{ width: size * 0.28, height: size * 0.28 }} className="text-brand-700 fill-brand-700" />
+                : <Pause style={{ width: size * 0.28, height: size * 0.28 }} className="text-brand-700 fill-brand-700" />}
             </button>
           ) : !indeterminate ? (
             <span className="font-bold text-brand-700" style={{ fontSize: size * 0.22 }}>
@@ -209,8 +213,13 @@ function VideoPreviewModal({ clipId, title, onClose }: { clipId: string; title: 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['clip-preview-url', clipId],
     queryFn: () => api.shortsStudio.previewUrl(clipId).then((r) => r.data),
-    staleTime: 50 * 60 * 1000, // 50 min — URL TTL is 60 min
+    staleTime: 50 * 60 * 1000,
   });
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [bufferPct, setBufferPct] = useState(0);
+  const [canPlay, setCanPlay] = useState(false);
+  const [videoPaused, setVideoPaused] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -218,7 +227,17 @@ function VideoPreviewModal({ clipId, title, onClose }: { clipId: string; title: 
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  const apiBase = process.env['NEXT_PUBLIC_API_URL'] ?? '';
+  // NEXT_PUBLIC_API_URL already includes "/api/v1"; data.url starts with "/api/v1/..." — strip suffix to avoid double path
+  const rawBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
+  const src = data?.url ? `${rawBase}${data.url}` : null;
+  const showOverlay = isLoading || (!!src && !canPlay);
+
+  const togglePlayPause = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) void v.play();
+    else v.pause();
+  };
 
   return (
     <div
@@ -233,22 +252,44 @@ function VideoPreviewModal({ clipId, title, onClose }: { clipId: string; title: 
             <X className="w-4 h-4 text-gray-600" />
           </button>
         </div>
-        <div className="aspect-[9/16] bg-black flex items-center justify-center" style={{ maxHeight: '70vh' }}>
-          {isLoading && <Loader2 className="w-8 h-8 text-white animate-spin" />}
+        <div className="aspect-[9/16] bg-black relative flex items-center justify-center" style={{ maxHeight: '70vh' }}>
+          {/* Circular progress overlay while fetching URL or buffering */}
+          {showOverlay && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black">
+              <CircularProgress
+                size={80}
+                strokeWidth={6}
+                percent={isLoading ? undefined : bufferPct}
+                label={isLoading ? 'Loading…' : 'Buffering…'}
+                onPause={src ? togglePlayPause : undefined}
+                isPaused={videoPaused}
+              />
+            </div>
+          )}
           {isError && (
             <div className="text-center text-white px-4">
               <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
               <p className="text-sm">Clip not rendered yet. Run the Publish flow to render it first.</p>
             </div>
           )}
-          {data?.url && (
+          {src && !isError && (
             <video
-              src={`${apiBase}${data.url}`}
+              ref={videoRef}
+              src={src}
               controls
               autoPlay
               playsInline
-              className="w-full h-full object-contain"
-              style={{ maxHeight: '70vh' }}
+              className="w-full h-full object-contain transition-opacity duration-500"
+              style={{ maxHeight: '70vh', opacity: canPlay ? 1 : 0 }}
+              onProgress={() => {
+                const v = videoRef.current;
+                if (!v?.duration) return;
+                if (v.buffered.length > 0) setBufferPct(Math.round((v.buffered.end(v.buffered.length - 1) / v.duration) * 100));
+              }}
+              onCanPlay={() => setCanPlay(true)}
+              onLoadedData={() => setCanPlay(true)}
+              onPause={() => setVideoPaused(true)}
+              onPlay={() => { setVideoPaused(false); if (!canPlay) setCanPlay(true); }}
             />
           )}
         </div>
