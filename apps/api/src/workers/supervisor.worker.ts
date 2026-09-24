@@ -1580,7 +1580,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         if (payload['autoPublish']) {
           const scheduledAtStr = payload['scheduledAt'] as string | undefined;
           const scheduledAt = scheduledAtStr ? new Date(scheduledAtStr) : undefined;
-          await this.shortsExport.autoApproveAndPublish(shortClipId, projectId, scheduledAt, (m) => this.log(jobId, projectId, m));
+          const metaOverride = payload['metaOverride'] as Parameters<typeof this.shortsExport.autoApproveAndPublish>[4];
+          await this.shortsExport.autoApproveAndPublish(shortClipId, projectId, scheduledAt, (m) => this.log(jobId, projectId, m), metaOverride);
         }
         return;
       }
@@ -1591,10 +1592,11 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const exportId = payload['exportId'] as string;
         const scheduledAtStr = payload['scheduledAt'] as string | undefined;
         const scheduledAt = scheduledAtStr ? new Date(scheduledAtStr) : undefined;
+        const metaOverride = payload['metaOverride'] as Parameters<typeof this.shortsExport.publishClip>[5];
         if (!shortClipId || !approvalId || !exportId) {
           throw new Error('SHORTS_PUBLISH requires payload.shortClipId, approvalId and exportId');
         }
-        return this.shortsExport.publishClip(shortClipId, approvalId, exportId, scheduledAt, (m) => this.log(jobId, projectId, m));
+        return this.shortsExport.publishClip(shortClipId, approvalId, exportId, scheduledAt, (m) => this.log(jobId, projectId, m), metaOverride);
       }
 
       case 'SHORTS_ANALYZE': {

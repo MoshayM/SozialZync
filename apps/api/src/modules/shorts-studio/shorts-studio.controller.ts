@@ -420,7 +420,13 @@ export class ShortsStudioController {
     return this.exports.publishState(shortClipId);
   }
 
-  // ── Preview URL & Private Content ───────────────────────────────────────────
+  // ── Publish Meta & Preview URL & Private Content ────────────────────────────
+
+  @Get('clips/:shortClipId/publish-meta')
+  async publishMeta(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
+    await this.shorts.assertClipOwnership(shortClipId, user.sub);
+    return this.exports.getPublishMeta(shortClipId);
+  }
 
   @Get('clips/:shortClipId/preview-url')
   async previewUrl(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
@@ -436,7 +442,7 @@ export class ShortsStudioController {
   @Post('clips/:shortClipId/quick-publish')
   async quickPublish(
     @Param('shortClipId') shortClipId: string,
-    @Body() body: { scheduledAt?: string },
+    @Body() body: { scheduledAt?: string; title?: string; description?: string; tags?: string[]; language?: string; subtitleLanguage?: string },
     @CurrentUser() user: JwtPayload,
   ) {
     const isElevated = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
@@ -446,10 +452,14 @@ export class ShortsStudioController {
     const clip = await this.shorts.assertClipOwnership(shortClipId, user.sub);
     const rs = await this.shorts.renderStatus(shortClipId);
     if (!rs.render) throw new BadRequestException('Clip must be rendered before publishing');
+    const metaOverride = (body.title || body.description || body.tags)
+      ? { title: body.title, description: body.description, tags: body.tags }
+      : undefined;
     return this.jobs.enqueue(clip.projectId, 'SHORTS_EXPORT', {
       shortClipId,
       autoPublish: true,
       scheduledAt: body.scheduledAt,
+      ...(metaOverride ? { metaOverride } : {}),
     });
   }
 }

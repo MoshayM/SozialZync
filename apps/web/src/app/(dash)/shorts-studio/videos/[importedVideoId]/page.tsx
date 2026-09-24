@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2,
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { usePlan } from '@/lib/plan';
+import { PublishConfirmModal } from '../../PublishConfirmModal';
 
 interface Topic {
   id: string;
@@ -305,6 +306,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const [previewClipId, setPreviewClipId] = useState<string | null>(null);
   const [publishedClips, setPublishedClips] = useState<Set<string>>(new Set());
   const [savedClips, setSavedClips] = useState<Set<string>>(new Set());
+  const [publishModalClipId, setPublishModalClipId] = useState<string | null>(null);
   const { isPro, isUnlimited, isEnterprise } = usePlan();
   const canDownload = isPro || isUnlimited || isEnterprise;
 
@@ -313,14 +315,6 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
     onSuccess: (_d, clipId) => {
       setSavedClips((prev) => new Set(prev).add(clipId));
       void qc.invalidateQueries({ queryKey: ['my-content'] });
-    },
-  });
-
-  const publishClip = useMutation({
-    mutationFn: (clipId: string) => api.shortsStudio.quickPublish(clipId),
-    onSuccess: (_d, clipId) => {
-      setPublishedClips((prev) => new Set(prev).add(clipId));
-      void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
     },
   });
 
@@ -345,6 +339,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   });
 
   const previewClip = previewClipId ? clips.find((c) => c.id === previewClipId) : null;
+  const publishModalClip = publishModalClipId ? clips.find((c) => c.id === publishModalClipId) : null;
 
   return (
     <>
@@ -353,6 +348,17 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
           clipId={previewClipId}
           title={previewClip.topicSegment?.highlight?.titleSuggestion ?? previewClip.topicSegment?.title ?? previewClip.chapter?.title ?? 'Clip'}
           onClose={() => setPreviewClipId(null)}
+        />
+      )}
+      {publishModalClipId && publishModalClip && (
+        <PublishConfirmModal
+          clipId={publishModalClipId}
+          clipTitle={publishModalClip.topicSegment?.highlight?.titleSuggestion ?? publishModalClip.topicSegment?.title ?? publishModalClip.chapter?.title ?? 'Clip'}
+          onClose={() => setPublishModalClipId(null)}
+          onPublished={(id: string) => {
+            setPublishedClips((prev) => new Set(prev).add(id));
+            void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+          }}
         />
       )}
       {clips.length > 0 && (
@@ -460,24 +466,22 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                         {savedClips.has(c.id) ? 'Saved!' : 'Save to Private'}
                       </button>
                     )}
-                    {/* Publish — direct publish to connected channel */}
+                    {/* Publish — opens confirm modal */}
                     {isRendered && (
                       <button
                         type="button"
-                        disabled={publishClip.isPending && publishClip.variables === c.id || publishedClips.has(c.id)}
+                        disabled={publishedClips.has(c.id)}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!publishedClips.has(c.id)) publishClip.mutate(c.id);
+                          if (!publishedClips.has(c.id)) setPublishModalClipId(c.id);
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
                         style={publishedClips.has(c.id)
                           ? { background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }
                           : { background: '#374151', color: 'white', border: '1px solid #374151' }}
-                        title="Publish directly to your connected channel"
+                        title={publishedClips.has(c.id) ? 'Already queued for publishing' : 'Review & publish to your connected channel'}
                       >
-                        {publishClip.isPending && publishClip.variables === c.id
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : publishedClips.has(c.id)
+                        {publishedClips.has(c.id)
                           ? <CheckCircle2 className="w-3.5 h-3.5" />
                           : <Upload className="w-3.5 h-3.5" />}
                         {publishedClips.has(c.id) ? 'Queued!' : 'Publish'}
@@ -502,11 +506,6 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                   {saveToPrivate.isError && saveToPrivate.variables === c.id && (
                     <p className="text-xs text-red-600 mt-2">
                       {(saveToPrivate.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save to private'}
-                    </p>
-                  )}
-                  {publishClip.isError && publishClip.variables === c.id && (
-                    <p className="text-xs text-red-600 mt-2">
-                      {(publishClip.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Publish failed — check Publish Hub'}
                     </p>
                   )}
                   {publishedClips.has(c.id) && (

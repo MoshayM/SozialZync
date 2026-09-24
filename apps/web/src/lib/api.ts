@@ -1243,8 +1243,10 @@ export const api = {
       apiClient.post(`/shorts-studio/clips/${shortClipId}/export`),
     requestPublish: (shortClipId: string) =>
       apiClient.post(`/shorts-studio/clips/${shortClipId}/request-publish`),
-    quickPublish: (shortClipId: string, scheduledAt?: string) =>
-      apiClient.post(`/shorts-studio/clips/${shortClipId}/quick-publish`, { scheduledAt }),
+    publishMeta: (shortClipId: string) =>
+      apiClient.get(`/shorts-studio/clips/${shortClipId}/publish-meta`),
+    quickPublish: (shortClipId: string, meta?: { scheduledAt?: string; title?: string; description?: string; tags?: string[]; language?: string; subtitleLanguage?: string }) =>
+      apiClient.post(`/shorts-studio/clips/${shortClipId}/quick-publish`, meta ?? {}),
     publish: (shortClipId: string, scheduledAt?: string) =>
       apiClient.post(`/shorts-studio/clips/${shortClipId}/publish`, scheduledAt ? { scheduledAt } : {}),
     publishStatus: (shortClipId: string) =>

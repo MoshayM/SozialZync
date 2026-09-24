@@ -38,19 +38,52 @@ export class ShortsExportService {
     private readonly jobs: JobsService,
   ) {}
 
-  private async buildMetadata(shortClipId: string): Promise<ClipMetadata> {
+  async buildMetadata(shortClipId: string, override?: Partial<ClipMetadata>): Promise<ClipMetadata> {
     const clip = await this.prisma.shortClip.findUniqueOrThrow({
       where: { id: shortClipId },
       include: { topicSegment: { include: { highlight: true } }, chapter: true },
     });
-    // Metadata follows provenance: highlight/topic for Shorts, chapter for Small Videos
     const h = clip.topicSegment?.highlight;
     const keywords = h?.keywords ?? clip.chapter?.keyPoints ?? [];
     const hashtags = keywords.slice(0, 5).map((k) => `#${k.replace(/\s+/g, '')}`).join(' ');
-    return {
+    const auto: ClipMetadata = {
       title: (h?.titleSuggestion ?? clip.topicSegment?.title ?? clip.chapter?.title ?? 'Clip').slice(0, 100),
       description: [clip.topicSegment?.summary ?? clip.chapter?.summary ?? '', '', hashtags].join('\n').trim(),
       tags: keywords.slice(0, 15),
+    };
+    return {
+      title: (override?.title ?? auto.title).slice(0, 100),
+      description: override?.description ?? auto.description,
+      tags: override?.tags ?? auto.tags,
+    };
+  }
+
+  /** Returns AI-generated metadata + original audio language for the publish confirm modal. */
+  async getPublishMeta(shortClipId: string) {
+    const [metadata, clip] = await Promise.all([
+      this.buildMetadata(shortClipId),
+      this.prisma.shortClip.findUnique({
+        where: { id: shortClipId },
+        select: {
+          clipType: true,
+          topicSegment: { select: { importedVideoId: true } },
+          chapter: { select: { importedVideoId: true } },
+        },
+      }),
+    ]);
+    const importedVideoId = clip?.topicSegment?.importedVideoId ?? clip?.chapter?.importedVideoId ?? null;
+    const importedVideo = importedVideoId
+      ? await this.prisma.importedVideo.findUnique({
+          where: { id: importedVideoId },
+          select: { originalAudioLanguage: true },
+        })
+      : null;
+    return {
+      title: metadata.title,
+      description: metadata.description,
+      tags: metadata.tags,
+      originalLanguage: importedVideo?.originalAudioLanguage ?? null,
+      clipType: clip?.clipType ?? 'YOUTUBE_SHORTS',
     };
   }
 
@@ -230,7 +263,7 @@ export class ShortsExportService {
   }
 
   /** SHORTS_PUBLISH job body: compliance gate → YouTube upload → history. */
-  async publishClip(shortClipId: string, approvalId: string, exportId: string, scheduledAt?: Date, onLog?: (msg: string) => void) {
+  async publishClip(shortClipId: string, approvalId: string, exportId: string, scheduledAt?: Date, onLog?: (msg: string) => void, metaOverride?: Partial<ClipMetadata>) {
     // Load clip + export history in parallel
     const [clip, history] = await Promise.all([
       this.prisma.shortClip.findUniqueOrThrow({
@@ -253,7 +286,7 @@ export class ShortsExportService {
 
     // Build metadata + ensure the export file is available locally (R2 download if needed) in parallel
     const [metadata, fileReady] = await Promise.all([
-      this.buildMetadata(shortClipId),
+      this.buildMetadata(shortClipId, metaOverride),
       this.storage.ensure(exportKey),
     ]);
     if (!fileReady) throw new BadRequestException('Export package file is missing — re-run the export');
@@ -398,7 +431,7 @@ export class ShortsExportService {
   }
 
   /** Auto-approve + enqueue publish — used by quickPublish (no separate approval UI). */
-  async autoApproveAndPublish(shortClipId: string, projectId: string, scheduledAt?: Date, onLog?: (msg: string) => void) {
+  async autoApproveAndPublish(shortClipId: string, projectId: string, scheduledAt?: Date, onLog?: (msg: string) => void, metaOverride?: Partial<ClipMetadata>) {
     const clip = await this.prisma.shortClip.findUniqueOrThrow({ where: { id: shortClipId } });
     const exportJob = await this.latestExportJob(clip);
     if (!exportJob) { onLog?.('No export job found — skipping auto-publish'); return; }
@@ -415,7 +448,7 @@ export class ShortsExportService {
     await this.jobs.enqueue(
       projectId,
       'SHORTS_PUBLISH',
-      { shortClipId, approvalId: approval.id, exportId: history.id, ...(scheduledAt ? { scheduledAt: scheduledAt.toISOString() } : {}) },
+      { shortClipId, approvalId: approval.id, exportId: history.id, ...(scheduledAt ? { scheduledAt: scheduledAt.toISOString() } : {}), ...(metaOverride ? { metaOverride } : {}) },
       { delayMs },
     );
     onLog?.(`Quick-publish enqueued for ${shortClipId}`);
