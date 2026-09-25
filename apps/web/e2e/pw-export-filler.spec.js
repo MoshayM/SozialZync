@@ -122,7 +122,7 @@ test('export page shows filler progress button when rendering', async ({ page })
 
   // Verify the filler div (progress sweep) exists inside the button
   const fillerBar = fillerBtn.locator('div.absolute.inset-y-0');
-  const fillerBarAttached = await fillerBar.isAttached().catch(() => false);
+  const fillerBarAttached = await fillerBar.count().then(c => c > 0).catch(() => false);
   if (fillerBarAttached) {
     console.log('✅ Filler progress bar div present inside button');
   } else {
