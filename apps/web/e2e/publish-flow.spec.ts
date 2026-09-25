@@ -597,23 +597,26 @@ test.describe('API endpoint health checks', () => {
 test.describe('Recent UI fixes smoke tests', () => {
 
   test('15 — Shorts Studio home has all 3 import buttons', async ({ page }) => {
-    test.setTimeout(20_000);
+    test.setTimeout(90_000);
     await page.goto('/shorts-studio');
-    await page.waitForLoadState('networkidle');
+    // networkidle alone isn't enough — Railway API responses arrive after the initial HTML.
+    // Wait up to 40s for any one import button to appear, then check the rest.
+    const anyImportBtn = page.getByRole('button', {
+      name: /library|from library|upload.*file|import.*(url|link)|URL/i,
+    }).first();
+    const appeared = await anyImportBtn.waitFor({ timeout: 40_000 }).then(() => true).catch(() => false);
     await shot(page, '15-shorts-home');
 
-    // Look for the 3-button grid (From library / Upload file / Import URL)
     const fromLibraryBtn = page.getByRole('button', { name: /library|from library/i }).first();
     const uploadBtn = page.getByRole('button', { name: /upload.*file|Upload file/i }).first();
     const urlBtn = page.getByRole('button', { name: /import.*(url|link)|URL/i }).first();
 
-    const libVisible = await fromLibraryBtn.isVisible({ timeout: 8_000 }).catch(() => false);
-    const uploadVisible = await uploadBtn.isVisible({ timeout: 3_000 }).catch(() => false);
-    const urlVisible = await urlBtn.isVisible({ timeout: 3_000 }).catch(() => false);
+    const libVisible = await fromLibraryBtn.isVisible().catch(() => false);
+    const uploadVisible = await uploadBtn.isVisible().catch(() => false);
+    const urlVisible = await urlBtn.isVisible().catch(() => false);
 
     console.log(`Import buttons — Library: ${libVisible}, Upload: ${uploadVisible}, URL: ${urlVisible}`);
-    // At least one should be present (others may require a video selected first)
-    expect(libVisible || uploadVisible || urlVisible).toBe(true);
+    expect(appeared || libVisible || uploadVisible || urlVisible).toBe(true);
     console.log('✅ Import buttons present in Shorts Studio');
   });
 
