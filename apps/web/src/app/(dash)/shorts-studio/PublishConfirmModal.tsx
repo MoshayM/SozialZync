@@ -291,7 +291,9 @@ function ThumbnailSection({
                 {generate.isPending ? 'Generating…' : 'Generate AI Thumbnails'}
               </button>
               {generate.isError && (
-                <p className="text-[11px] text-red-500">Failed — ensure clip is rendered first.</p>
+                <p className="text-[11px] text-red-500">
+                  {(generate.error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Thumbnail generation failed — please try again.'}
+                </p>
               )}
             </div>
           ) : (
@@ -384,27 +386,89 @@ function ThumbnailSection({
   );
 }
 
-// ── Schedule section (Issue 4) ────────────────────────────────────────────────
+// ── Schedule section (Issue 3) ───────────────────────────────────────────────
 
 type SchedMode = 'now' | 'suggested' | 'custom';
 
+/** Platform-specific peak engagement time slots — used as client-side fallback. */
+function getPlatformSuggestions(clipType: string): Array<{ label: string; iso: string }> {
+  const SLOTS: Record<string, Array<{ dayOfWeek: number; hour: number; reason: string }>> = {
+    YOUTUBE_SHORTS: [
+      { dayOfWeek: 2, hour: 18, reason: 'Wed 6 PM · peak Shorts feed browsing' },
+      { dayOfWeek: 5, hour: 17, reason: 'Fri 5 PM · end-of-week engagement spike' },
+      { dayOfWeek: 6, hour: 15, reason: 'Sat 3 PM · weekend discovery window' },
+      { dayOfWeek: 0, hour: 11, reason: 'Sun 11 AM · morning scrolling peak' },
+    ],
+    TIKTOK: [
+      { dayOfWeek: 2, hour: 9,  reason: 'Tue 9 AM · For You Page morning push' },
+      { dayOfWeek: 4, hour: 19, reason: 'Thu 7 PM · prime-time For You window' },
+      { dayOfWeek: 6, hour: 11, reason: 'Sat 11 AM · weekend top engagement' },
+    ],
+    INSTAGRAM_REELS: [
+      { dayOfWeek: 1, hour: 9,  reason: 'Mon 9 AM · Reels morning distribution' },
+      { dayOfWeek: 3, hour: 12, reason: 'Wed 12 PM · lunch-break scroll' },
+      { dayOfWeek: 5, hour: 19, reason: 'Fri 7 PM · pre-weekend ramp-up' },
+    ],
+    LINKEDIN_CLIPS: [
+      { dayOfWeek: 2, hour: 8,  reason: 'Tue 8 AM · professional feed open' },
+      { dayOfWeek: 3, hour: 12, reason: 'Wed 12 PM · lunch-hour decision makers' },
+      { dayOfWeek: 4, hour: 9,  reason: 'Thu 9 AM · peak LinkedIn engagement' },
+    ],
+    FACEBOOK_REELS: [
+      { dayOfWeek: 3, hour: 13, reason: 'Wed 1 PM · mid-week peak reach' },
+      { dayOfWeek: 5, hour: 14, reason: 'Fri 2 PM · weekend warm-up window' },
+      { dayOfWeek: 6, hour: 12, reason: 'Sat 12 PM · family browsing peak' },
+    ],
+  };
+
+  const now = new Date();
+  const slots = SLOTS[clipType] ?? SLOTS['YOUTUBE_SHORTS']!;
+  const results: Array<{ label: string; iso: string; ts: number }> = [];
+
+  for (const { dayOfWeek, hour, reason } of slots) {
+    const d = new Date(now);
+    d.setHours(hour, 0, 0, 0);
+    const diff = (dayOfWeek - now.getDay() + 7) % 7;
+    // If same day but time already passed (or within 30 min), push to next week
+    if (diff === 0 && d.getTime() <= now.getTime() + 30 * 60 * 1000) {
+      d.setDate(d.getDate() + 7);
+    } else {
+      d.setDate(d.getDate() + diff);
+    }
+    const dayStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    results.push({ label: `${dayStr} at ${timeStr} · ${reason}`, iso: d.toISOString(), ts: d.getTime() });
+  }
+
+  return results
+    .sort((a, b) => a.ts - b.ts)
+    .slice(0, 3)
+    .map(({ label, iso }) => ({ label, iso }));
+}
+
 function ScheduleSection({
   clipId,
+  platform,
   onChange,
 }: {
   clipId: string;
+  platform: string;
   onChange: (iso: string | undefined) => void;
 }) {
   const [mode, setMode] = useState<SchedMode>('now');
   const [selectedSlot, setSelectedSlot] = useState<string | undefined>();
   const [customVal, setCustomVal] = useState('');
 
-  const { data: slots = [], isLoading: slotsLoading } = useQuery({
+  const { data: apiSlots = [], isLoading: slotsLoading } = useQuery({
     queryKey: ['schedule-slots', clipId],
-    queryFn: () => api.shortsStudio.scheduleSlots(clipId).then((r) => r.data),
+    queryFn: () => api.shortsStudio.scheduleSlots(clipId).then((r) => r.data as Array<{ label: string; iso: string }>),
     staleTime: 10 * 60 * 1000,
     enabled: mode === 'suggested',
   });
+
+  // Use API slots if available, otherwise fall back to client-side platform suggestions
+  const slots = apiSlots.length > 0 ? apiSlots : getPlatformSuggestions(platform);
+  const usingFallback = !slotsLoading && apiSlots.length === 0;
 
   const handleModeChange = (m: SchedMode) => {
     setMode(m);
@@ -445,12 +509,10 @@ function ScheduleSection({
         <div className="space-y-1.5">
           {slotsLoading ? (
             <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading suggestions…
+              <Loader2 className="w-4 h-4 animate-spin" /> Analysing your calendar…
             </div>
-          ) : slots.length === 0 ? (
-            <p className="text-xs text-gray-400">No suggestions — use Custom.</p>
           ) : (
-            slots.map((s: { label: string; iso: string }) => (
+            slots.map((s) => (
               <button
                 key={s.iso}
                 type="button"
@@ -468,7 +530,9 @@ function ScheduleSection({
               </button>
             ))
           )}
-          <p className="text-[10px] text-gray-400 px-1">Based on YouTube Shorts peak engagement.</p>
+          <p className="text-[10px] text-gray-400 px-1">
+            {usingFallback ? 'AI-suggested times based on platform peak engagement.' : 'From your AI Planner & channel analytics.'}
+          </p>
         </div>
       )}
 
@@ -615,7 +679,7 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
                   <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" /> When to publish
                   </p>
-                  <ScheduleSection clipId={clipId} onChange={setScheduledAt} />
+                  <ScheduleSection clipId={clipId} platform={meta?.clipType ?? 'YOUTUBE_SHORTS'} onChange={setScheduledAt} />
                 </div>
 
                 {meta?.originalLanguage && (
@@ -763,13 +827,8 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
               I confirm this content complies with <strong>{spec.name}</strong> community guidelines and copyright policies, and I have the rights to publish it.
             </span>
           </label>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] text-gray-400">
-              {scheduledAt
-                ? `Scheduled for ${new Date(scheduledAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
-                : 'Publishes immediately after compliance check'}
-            </p>
-            <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}
@@ -782,12 +841,17 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
                 onClick={() => publish.mutate()}
                 disabled={!canSubmit}
                 className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: canSubmit ? spec.color : undefined, backgroundColor: canSubmit ? undefined : '#9ca3af' }}
+                style={{ backgroundColor: canSubmit ? spec.color : '#9ca3af' }}
               >
                 {publish.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 {scheduledAt ? 'Schedule' : 'Confirm & Publish'}
               </button>
             </div>
+            <p className="text-[11px] text-gray-400 text-center">
+              {scheduledAt
+                ? `Scheduled for ${new Date(scheduledAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+                : 'Publishes immediately after compliance check'}
+            </p>
           </div>
         </div>
       </div>

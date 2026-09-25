@@ -6,7 +6,6 @@ import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/rea
 import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
-import { usePlan } from '@/lib/plan';
 import { PublishConfirmModal } from '../../PublishConfirmModal';
 
 interface Topic {
@@ -361,26 +360,12 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const [publishedClips, setPublishedClips] = useState<Set<string>>(new Set());
   const [savedClips, setSavedClips] = useState<Set<string>>(new Set());
   const [publishModalClipId, setPublishModalClipId] = useState<string | null>(null);
-  const { isPro, isUnlimited, isEnterprise } = usePlan();
-  const canDownload = isPro || isUnlimited || isEnterprise;
 
   const saveToPrivate = useMutation({
     mutationFn: (clipId: string) => api.shortsStudio.saveToPrivate(clipId),
     onSuccess: (_d, clipId) => {
       setSavedClips((prev) => new Set(prev).add(clipId));
       void qc.invalidateQueries({ queryKey: ['my-content'] });
-    },
-  });
-
-  const downloadClip = useMutation({
-    mutationFn: async (clipId: string) => {
-      const { data } = await api.shortsStudio.previewUrl(clipId);
-      const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
-      const fullUrl = `${apiBase}${data.url}`;
-      const a = document.createElement('a');
-      a.href = fullUrl;
-      a.download = `clip-${clipId}.mp4`;
-      a.click();
     },
   });
 
@@ -541,21 +526,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                         {publishedClips.has(c.id) ? 'Queued!' : 'Publish'}
                       </button>
                     )}
-                    {/* Download — Pro+ only, requires Save to Private first */}
-                    {isRendered && canDownload && (
-                      <button
-                        type="button"
-                        disabled={!savedClips.has(c.id) || (downloadClip.isPending && downloadClip.variables === c.id)}
-                        onClick={(e) => { e.stopPropagation(); downloadClip.mutate(c.id); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                        title={savedClips.has(c.id) ? 'Download rendered video' : 'Save to Private first to enable download'}
-                      >
-                        {downloadClip.isPending && downloadClip.variables === c.id
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : <Download className="w-3.5 h-3.5" />}
-                        Download
-                      </button>
-                    )}
+
                   </div>
                   {saveToPrivate.isError && saveToPrivate.variables === c.id && (
                     <p className="text-xs text-red-600 mt-2">
