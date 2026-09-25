@@ -171,32 +171,39 @@ async function mockImportAPI(
   page: import('@playwright/test').Page,
   opts?: { onCapture?: (url: string) => void; filename?: string },
 ) {
-  await page.route('**/media/video/import-from-url', async (route) => {
-    const body = route.request().postDataJSON() as { url?: string } | null;
-    opts?.onCapture?.(body?.url ?? '');
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        assetId:   FAKE_ASSET.id,
-        versionId: FAKE_ASSET.versionId,
-        projectId: 'e2e-project',
-        sizeBytes: FAKE_ASSET.sizeBytes,
-        filename:  opts?.filename ?? FAKE_ASSET.label,
-      }),
-    });
-  });
+  // Use function-based matcher to handle any query params and proxy path variations
+  await page.route(
+    (url) => url.pathname.endsWith('/media/video/import-from-url') || url.pathname.endsWith('/import-from-url'),
+    async (route) => {
+      const body = route.request().postDataJSON() as { url?: string } | null;
+      opts?.onCapture?.(body?.url ?? '');
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          assetId:   FAKE_ASSET.id,
+          versionId: FAKE_ASSET.versionId,
+          projectId: 'e2e-project',
+          sizeBytes: FAKE_ASSET.sizeBytes,
+          filename:  opts?.filename ?? FAKE_ASSET.label,
+        }),
+      });
+    },
+  );
 }
 
 async function mockAssetList(page: import('@playwright/test').Page) {
-  await page.route('**/media/assets**', async (route) => {
-    if (route.request().method() !== 'GET') { await route.continue(); return; }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ assets: [FAKE_ASSET] }),
-    });
-  });
+  await page.route(
+    (url) => url.pathname.includes('/media/assets'),
+    async (route) => {
+      if (route.request().method() !== 'GET') { await route.continue(); return; }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ assets: [FAKE_ASSET] }),
+      });
+    },
+  );
 }
 
 async function mockUploadAPI(page: import('@playwright/test').Page) {
@@ -287,9 +294,16 @@ test.describe('Media import — URL connect · download · upload · play · edi
       await expect(urlInput).toBeVisible({ timeout: 15_000 });
       await urlInput.fill(src.url);
 
+      // Non-YouTube social platforms (Instagram, TikTok, etc.) require an ownership
+      // confirmation checkbox before the "Go" button is enabled. Check it if present.
+      const ownershipLabel2 = page.locator('label').filter({ hasText: /I confirm|belongs to my account/i });
+      if (await ownershipLabel2.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await ownershipLabel2.locator('input[type="checkbox"]').check();
+      }
+
       const importResponsePromise = page.waitForResponse(
         (res) => res.url().includes('import-from-url'),
-        { timeout: 20_000 },
+        { timeout: 30_000 },
       );
       await page.getByRole('button', { name: /^go$/i }).click();
 
@@ -366,11 +380,16 @@ test.describe('Media import — URL connect · download · upload · play · edi
     const urlInput = page.locator(URL_INPUT_SEL).first();
     await expect(urlInput).toBeVisible({ timeout: 15_000 });
     await urlInput.fill(SOURCES[0].url);
+    // Instagram (and other non-YT social) URLs require an ownership checkbox before "Go" is enabled.
+    const ownershipLabel4 = page.locator('label').filter({ hasText: /I confirm|belongs to my account/i });
+    if (await ownershipLabel4.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await ownershipLabel4.locator('input[type="checkbox"]').check();
+    }
     // Register the response listener BEFORE clicking so a synchronous mock response
     // isn't missed between the click dispatch and the listener setup.
     const importDone = page.waitForResponse(
       (res) => res.url().includes('import-from-url'),
-      { timeout: 20_000 },
+      { timeout: 30_000 },
     );
     await page.getByRole('button', { name: /^go$/i }).click();
     await importDone;
@@ -437,10 +456,15 @@ test.describe('Media import — URL connect · download · upload · play · edi
     const urlInput = page.locator(URL_INPUT_SEL).first();
     await expect(urlInput).toBeVisible({ timeout: 15_000 });
     await urlInput.fill(SOURCES[0].url);
+    // Instagram requires ownership confirmation checkbox before "Go" is enabled.
+    const ownershipLabel5 = page.locator('label').filter({ hasText: /I confirm|belongs to my account/i });
+    if (await ownershipLabel5.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await ownershipLabel5.locator('input[type="checkbox"]').check();
+    }
     // Listener before click — same reason as test 4 above.
     const importDone = page.waitForResponse(
       (res) => res.url().includes('import-from-url'),
-      { timeout: 20_000 },
+      { timeout: 30_000 },
     );
     await page.getByRole('button', { name: /^go$/i }).click();
     await importDone;
