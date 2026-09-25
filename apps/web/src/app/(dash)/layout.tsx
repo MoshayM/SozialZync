@@ -908,7 +908,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       />
 
       {/* ── TOPBAR ──────────────────────────────────────────────────────── */}
-      <header className="flex items-center gap-2 sm:gap-3.5 px-3 sm:px-[22px] py-[11px] bg-white border-b border-[#ECECF3] shrink-0 z-[30]">
+      <header className="flex items-center gap-2 sm:gap-3.5 px-3 sm:px-[22px] py-[11px] bg-white border-b border-[#ECECF3] shrink-0 z-[40]">
 
         {/* Hamburger */}
         <button

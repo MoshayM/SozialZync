@@ -1,9 +1,9 @@
-'use client';
-import { useEffect, useRef, useState } from 'react';
+﻿'use client';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { usePlan } from '@/lib/plan';
@@ -1306,7 +1306,7 @@ export default function ShortsVideoDetailPage() {
           {searchVideo.data && !searchVideo.data.needsEmbeddings && (
             <div className="space-y-2">
               {searchVideo.data.results.length === 0 && (
-                <p className="text-center text-gray-500 py-12">No close matches for “{searchVideo.data.query}”.</p>
+                <p className="text-center text-gray-500 py-12">No close matches for "{searchVideo.data.query}".</p>
               )}
               {searchVideo.data.results.map((r) => (
                 <div key={r.segmentId} className="bg-white border border-gray-100 rounded-xl shadow-sm px-4 py-3 flex items-start gap-3">
@@ -1347,6 +1347,262 @@ export default function ShortsVideoDetailPage() {
   );
 }
 
+// ── Social assets helpers ─────────────────────────────────────────────────────
+
+function generateQuoteCardPng(quote: string, attribution: string | null | undefined): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const SIZE = 1080;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { reject(new Error('Canvas not supported')); return; }
+
+    // Background gradient
+    const bg = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+    bg.addColorStop(0, '#0f0a1e');
+    bg.addColorStop(0.55, '#16082e');
+    bg.addColorStop(1, '#0a0618');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Subtle radial glow centre
+    const glow = ctx.createRadialGradient(SIZE / 2, SIZE / 2, 0, SIZE / 2, SIZE / 2, SIZE * 0.55);
+    glow.addColorStop(0, 'rgba(139,92,246,0.14)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Large decorative opening-quote mark
+    ctx.fillStyle = 'rgba(139,92,246,0.28)';
+    ctx.font = 'bold 300px Georgia, "Times New Roman", serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText('“', 52, 40);
+
+    // Wrap quote text
+    const FONT_SIZE = 58;
+    const LINE_H = 80;
+    const MAX_W = 880;
+    ctx.font = `bold ${FONT_SIZE}px Georgia, "Times New Roman", serif`;
+    const words = quote.trim().split(/\s+/);
+    const lines: string[] = [];
+    let cur = '';
+    for (const word of words) {
+      const test = cur ? `${cur} ${word}` : word;
+      if (ctx.measureText(test).width > MAX_W && cur) { lines.push(cur); cur = word; }
+      else cur = test;
+    }
+    if (cur) lines.push(cur);
+    const MAX_LINES = 9;
+    if (lines.length > MAX_LINES) {
+      lines.length = MAX_LINES;
+      lines[MAX_LINES - 1] = (lines[MAX_LINES - 1]!).slice(0, -3) + '…';
+    }
+
+    // Draw quote lines, vertically centered
+    const totalH = lines.length * LINE_H;
+    let y = (SIZE - totalH) / 2 + 55;
+    ctx.fillStyle = '#ffffff';
+    for (const line of lines) {
+      const w = ctx.measureText(line).width;
+      ctx.fillText(line, (SIZE - w) / 2, y);
+      y += LINE_H;
+    }
+
+    // Attribution
+    const attrText = attribution ? `— ${attribution}` : '';
+    if (attrText) {
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = `400 36px -apple-system, "Segoe UI", Arial, sans-serif`;
+      const aw = ctx.measureText(attrText).width;
+      ctx.fillText(attrText, (SIZE - aw) / 2, SIZE - 140);
+    }
+
+    // Accent bar
+    const barGrad = ctx.createLinearGradient(SIZE / 2 - 140, 0, SIZE / 2 + 140, 0);
+    barGrad.addColorStop(0, 'rgba(139,92,246,0)');
+    barGrad.addColorStop(0.5, 'rgba(139,92,246,0.85)');
+    barGrad.addColorStop(1, 'rgba(139,92,246,0)');
+    ctx.fillStyle = barGrad;
+    ctx.fillRect(SIZE / 2 - 140, SIZE - 76, 280, 3);
+
+    canvas.toBlob((b) => { if (b) resolve(b); else reject(new Error('PNG generation failed')); }, 'image/png');
+  });
+}
+
+function inlineFormat(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>;
+    return part;
+  });
+}
+
+function MarkdownView({ content, maxH = 'max-h-96' }: { content: string; maxH?: string }) {
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+  let ulItems: React.ReactNode[] = [];
+  let olItems: React.ReactNode[] = [];
+
+  const flushList = (key: string) => {
+    if (ulItems.length) { elements.push(<ul key={`ul${key}`} className="list-disc pl-5 my-2 space-y-0.5 text-xs text-gray-700">{ulItems}</ul>); ulItems = []; }
+    if (olItems.length) { elements.push(<ol key={`ol${key}`} className="list-decimal pl-5 my-2 space-y-0.5 text-xs text-gray-700">{olItems}</ol>); olItems = []; }
+  };
+
+  lines.forEach((raw, i) => {
+    const line = raw.trim();
+    const key = String(i);
+    if (line.startsWith('# ')) {
+      flushList(key);
+      elements.push(<h2 key={key} className="font-extrabold text-base text-gray-900 mt-5 mb-1.5">{inlineFormat(line.slice(2))}</h2>);
+    } else if (line.startsWith('## ')) {
+      flushList(key);
+      elements.push(<h3 key={key} className="font-bold text-sm text-gray-900 mt-4 mb-1">{inlineFormat(line.slice(3))}</h3>);
+    } else if (line.startsWith('### ')) {
+      flushList(key);
+      elements.push(<h4 key={key} className="font-semibold text-xs text-gray-800 mt-3 mb-0.5 uppercase tracking-wide">{inlineFormat(line.slice(4))}</h4>);
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      olItems.length && flushList(key);
+      ulItems.push(<li key={key}>{inlineFormat(line.slice(2))}</li>);
+    } else if (/^\d+\.\s/.test(line)) {
+      ulItems.length && flushList(key);
+      olItems.push(<li key={key}>{inlineFormat(line.replace(/^\d+\.\s*/, ''))}</li>);
+    } else if (line === '') {
+      flushList(key);
+    } else if (line.startsWith('---') || line.startsWith('***')) {
+      flushList(key);
+      elements.push(<hr key={key} className="border-gray-200 my-3" />);
+    } else {
+      flushList(key);
+      elements.push(<p key={key} className="text-xs text-gray-700 my-1 leading-relaxed">{inlineFormat(line)}</p>);
+    }
+  });
+  flushList('end');
+
+  return <div className={`overflow-y-auto pr-1 ${maxH}`}>{elements}</div>;
+}
+
+const SLIDE_GRADIENTS = [
+  ['#7c3aed', '#4f46e5'],
+  ['#2563eb', '#4f46e5'],
+  ['#059669', '#0d9488'],
+  ['#e11d48', '#db2777'],
+  ['#d97706', '#ea580c'],
+  ['#0891b2', '#2563eb'],
+  ['#9333ea', '#7c3aed'],
+  ['#0284c7', '#0369a1'],
+];
+
+function CarouselViewer({ slides, title, onCopy }: {
+  slides: Array<{ heading: string; body: string }>;
+  title: string;
+  onCopy: () => void;
+}) {
+  const [idx, setIdx] = useState(0);
+  const total = slides.length;
+  if (total === 0) return null;
+  const slide = slides[idx]!;
+  const [c1, c2] = SLIDE_GRADIENTS[idx % SLIDE_GRADIENTS.length]!;
+
+  return (
+    <div className="space-y-4">
+      {/* Visual slide card */}
+      <div
+        className="relative rounded-2xl overflow-hidden text-white select-none"
+        style={{ background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`, aspectRatio: '1/1', maxWidth: 380, margin: '0 auto' }}
+      >
+        {/* Decorative circles */}
+        <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-white/10 pointer-events-none" />
+        <div className="absolute -left-6 -bottom-6 w-28 h-28 rounded-full bg-white/10 pointer-events-none" />
+
+        <div className="relative inset-0 p-7 flex flex-col h-full">
+          {/* Header row */}
+          <div className="flex items-start justify-between mb-6">
+            <p className="text-xs font-bold uppercase tracking-widest opacity-60 leading-tight max-w-[70%]">{title}</p>
+            <span className="text-xs font-bold opacity-50 shrink-0 ml-2">{idx + 1} / {total}</span>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 flex flex-col justify-center">
+            <h3 className="text-xl font-extrabold leading-tight mb-3">{slide.heading}</h3>
+            <p className="text-sm leading-relaxed opacity-90">{slide.body}</p>
+          </div>
+
+          {/* Dot strip */}
+          <div className="flex gap-1 mt-6">
+            {slides.map((_, i) => (
+              <div key={i} className={`h-1 rounded-full transition-all ${i === idx ? 'bg-white w-5' : 'bg-white/40 w-2'}`} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation controls */}
+      <div className="flex items-center justify-center gap-3">
+        <button
+          onClick={() => setIdx(i => Math.max(0, i - 1))}
+          disabled={idx === 0}
+          className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-all"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="flex gap-1.5 items-center">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
+              className={`rounded-full transition-all ${i === idx ? 'w-5 h-2 bg-brand-600' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'}`}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+        <button
+          onClick={() => setIdx(i => Math.min(total - 1, i + 1))}
+          disabled={idx === total - 1}
+          className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-all"
+          aria-label="Next slide"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* All slides text (collapsed) */}
+      <details className="group rounded-lg border border-gray-100 bg-gray-50 overflow-hidden">
+        <summary className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-gray-600 cursor-pointer hover:text-gray-800 select-none list-none">
+          <ChevronRight className="w-3.5 h-3.5 transition-transform group-open:rotate-90 shrink-0" />
+          View all {total} slides as text
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onCopy(); }}
+            className="ml-auto inline-flex items-center gap-1 text-brand-600 hover:text-brand-800"
+          >
+            <Copy className="w-3 h-3" /> Copy all
+          </button>
+        </summary>
+        <ol className="px-4 pb-4 space-y-3">
+          {slides.map((s, i) => (
+            <li key={i} className="flex gap-2.5">
+              <span
+                className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white mt-0.5"
+                style={{ background: SLIDE_GRADIENTS[i % SLIDE_GRADIENTS.length]![0] }}
+              >
+                {i + 1}
+              </span>
+              <div>
+                <p className="text-xs font-semibold text-gray-900">{s.heading}</p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{s.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </details>
+    </div>
+  );
+}
+
+// ── Main Social Tab ───────────────────────────────────────────────────────────
+
 function SocialTab({ pieces, onGenerate, generating, queued }: {
   pieces: SocialPiece[];
   onGenerate: () => void;
@@ -1355,28 +1611,33 @@ function SocialTab({ pieces, onGenerate, generating, queued }: {
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [renderingId, setRenderingId] = useState<string | null>(null);
+
   const downloadCard = async (piece: SocialPiece) => {
     setRenderingId(piece.id);
     try {
-      const { data } = await api.shortsStudio.renderQuoteCard(piece.id);
-      const { versionId } = data as { versionId: string };
-      const file = await api.shortsStudio.mediaVersionFile(versionId);
-      const url = URL.createObjectURL(file.data as Blob);
+      const blob = await generateQuoteCardPng(piece.content.quote ?? '', piece.content.attribution);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `quote-card-${piece.id}.png`;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (err) {
+      console.error('PNG generation failed', err);
     } finally {
       setRenderingId(null);
     }
   };
+
   const copy = (id: string, text: string) => {
     void navigator.clipboard.writeText(text).then(() => {
       setCopiedId(id);
       setTimeout(() => setCopiedId((c) => (c === id ? null : c)), 1500);
     });
   };
+
   const CopyBtn = ({ id, text }: { id: string; text: string }) => (
     <button
       onClick={() => copy(id, text)}
@@ -1391,16 +1652,19 @@ function SocialTab({ pieces, onGenerate, generating, queued }: {
   if (pieces.length === 0) {
     return (
       <div className="text-center py-16">
-        <p className="text-gray-500 mb-4">No social content yet.</p>
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <Share2 className="w-7 h-7 text-white" />
+        </div>
+        <p className="font-semibold text-gray-800 mb-1">No social content yet</p>
+        <p className="text-xs text-gray-500 mb-4 max-w-xs mx-auto">Generate a complete social pack: quote cards, carousel, blog post, and newsletter — one AI call.</p>
         <button
           onClick={onGenerate}
           disabled={generating || queued}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 shadow-sm"
         >
-          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           {queued ? 'Generating — check back shortly' : 'Generate social pack'}
         </button>
-        <p className="text-xs text-gray-500 mt-2">Quote cards, a carousel, a blog post, and a newsletter — one batched AI call.</p>
       </div>
     );
   }
@@ -1412,25 +1676,38 @@ function SocialTab({ pieces, onGenerate, generating, queued }: {
 
   return (
     <div className="space-y-6">
+
+      {/* ── Quote Cards ────────────────────────────────────────────────────── */}
       {quotes.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">Quote cards</h2>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-4 rounded-full bg-gradient-to-b from-violet-500 to-purple-700" />
+            <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Quote Cards</h2>
+          </div>
           <div className="grid sm:grid-cols-2 gap-3">
             {quotes.map((q) => (
-              <div key={q.id} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-                <p className="text-sm text-gray-800 italic">“{q.content.quote}”</p>
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-[11px] text-gray-500">
+              <div key={q.id} className="group bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow p-4 flex flex-col gap-3">
+                {/* Preview card */}
+                <div
+                  className="relative rounded-xl overflow-hidden flex items-center justify-center p-5 text-white text-center"
+                  style={{ background: 'linear-gradient(135deg, #0f0a1e 0%, #16082e 100%)', minHeight: 130 }}
+                >
+                  <span className="absolute top-2 left-3 text-5xl font-bold leading-none" style={{ color: 'rgba(139,92,246,0.5)' }}>&ldquo;</span>
+                  <p className="relative text-xs leading-relaxed italic font-medium">{q.content.quote}</p>
+                </div>
+                {/* Meta + actions */}
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-gray-400 truncate max-w-[60%]">
                     {q.content.attribution ? `${q.content.attribution} · ` : ''}{q.content.startMs != null ? fmt(q.content.startMs) : ''}
                   </p>
-                  <span className="flex items-center gap-3">
+                  <span className="flex items-center gap-2.5">
                     <button
                       onClick={() => void downloadCard(q)}
                       disabled={renderingId === q.id}
-                      className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 disabled:opacity-50"
-                      title="Render and download a 1080×1080 PNG"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-800 disabled:opacity-50 px-2.5 py-1 rounded-lg hover:bg-brand-50 transition-colors"
+                      title="Download as 1080×1080 PNG"
                     >
-                      {renderingId === q.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                      {renderingId === q.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                       PNG
                     </button>
                     <CopyBtn id={q.id} text={q.content.quote ?? ''} />
@@ -1442,42 +1719,60 @@ function SocialTab({ pieces, onGenerate, generating, queued }: {
         </section>
       )}
 
+      {/* ── Carousel ───────────────────────────────────────────────────────── */}
       {carousel?.content.slides && (
         <section className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Carousel — {carousel.title}</h2>
-            <CopyBtn id={carousel.id} text={carousel.content.slides.map((s, i) => `${i + 1}. ${s.heading}\n${s.body}`).join('\n\n')} />
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600" />
+            <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex-1">Carousel</h2>
           </div>
-          <ol className="space-y-2">
-            {carousel.content.slides.map((s, i) => (
-              <li key={i} className="text-sm">
-                <span className="font-medium text-gray-900">{i + 1}. {s.heading}</span>
-                <p className="text-gray-600 text-xs mt-0.5">{s.body}</p>
-              </li>
-            ))}
-          </ol>
+          <CarouselViewer
+            slides={carousel.content.slides}
+            title={carousel.title}
+            onCopy={() => copy(carousel.id, carousel.content.slides!.map((s, i) => `Slide ${i + 1}: ${s.heading}\n${s.body}`).join('\n\n'))}
+          />
+          {copiedId === carousel.id && (
+            <p className="text-xs text-emerald-600 font-semibold text-center mt-2 flex items-center justify-center gap-1">
+              <Check className="w-3.5 h-3.5" /> Copied all slides
+            </p>
+          )}
         </section>
       )}
 
+      {/* ── Blog Post ──────────────────────────────────────────────────────── */}
       {blog && (
-        <section className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Blog post — {blog.title}</h2>
+        <section className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+            <div className="w-1.5 h-4 rounded-full bg-gradient-to-b from-emerald-500 to-teal-600" />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Blog Post</h2>
+              <p className="text-[11px] text-gray-500 truncate">{blog.title}</p>
+            </div>
             <CopyBtn id={blog.id} text={blog.content.markdown ?? ''} />
           </div>
-          <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans max-h-96 overflow-y-auto">{blog.content.markdown}</pre>
+          <div className="px-5 py-4">
+            <MarkdownView content={blog.content.markdown ?? ''} maxH="max-h-[420px]" />
+          </div>
         </section>
       )}
 
+      {/* ── Newsletter ─────────────────────────────────────────────────────── */}
       {newsletter && (
-        <section className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Newsletter — {newsletter.content.subject}</h2>
+        <section className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+            <div className="w-1.5 h-4 rounded-full bg-gradient-to-b from-amber-500 to-orange-600" />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Newsletter</h2>
+              <p className="text-[11px] text-gray-500 truncate">Subject: {newsletter.content.subject}</p>
+            </div>
             <CopyBtn id={newsletter.id} text={newsletter.content.markdown ?? ''} />
           </div>
-          <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans max-h-72 overflow-y-auto">{newsletter.content.markdown}</pre>
+          <div className="px-5 py-4 bg-amber-50/40">
+            <MarkdownView content={newsletter.content.markdown ?? ''} maxH="max-h-72" />
+          </div>
         </section>
       )}
+
     </div>
   );
 }
