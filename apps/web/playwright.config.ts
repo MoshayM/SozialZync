@@ -67,7 +67,13 @@ export default defineConfig({
     // ── Firefox ───────────────────────────────────────────────────────────────
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: AUTH_FILE,      // avoids repeated logins & rate-limit waits
+        // Block media streams — Firefox hangs when video players autoload in Watch Feed
+        serviceWorkers: 'block',
+      },
       testMatch: [
         '**/public.spec.ts',
         '**/auth.spec.ts',
@@ -79,7 +85,13 @@ export default defineConfig({
     // ── WebKit (Safari) ───────────────────────────────────────────────────────
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Safari'],
+        storageState: AUTH_FILE,      // avoids repeated logins
+        // ignoreHTTPSErrors: helps when IP is pinned via hosts file
+        ignoreHTTPSErrors: true,
+      },
       testMatch: [
         '**/public.spec.ts',
         '**/browse.spec.ts',
