@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { promises as fsp, existsSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -132,5 +132,75 @@ export class ThumbnailGenerationService {
       this.prisma.shortsThumbnail.update({ where: { id: thumbnailId }, data: { isPrimary: true } }),
     ]);
     return { success: true };
+  }
+
+  /** Re-generate thumbnails from the already-rendered clip file (force=true clears existing ones first). */
+  async regenerate(shortClipId: string, userId: string) {
+    const clip = await this.prisma.shortClip.findFirst({
+      where: { id: shortClipId, project: { userId } },
+      include: {
+        renderAsset: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } },
+      },
+    });
+    if (!clip) throw new NotFoundException('Clip not found');
+    const renderKey = clip.renderAsset?.versions[0]?.r2Key;
+    if (!renderKey) throw new BadRequestException('Clip must be rendered before generating thumbnails');
+
+    const available = await this.storage.ensure(renderKey);
+    if (!available) throw new BadRequestException('Render file unavailable — re-render the clip first');
+
+    // Clear existing thumbnails so ensureThumbnails runs fresh
+    const existing = await this.prisma.shortsThumbnail.findMany({ where: { shortClipId }, select: { assetId: true, id: true } });
+    if (existing.length > 0) {
+      await this.prisma.shortsThumbnail.deleteMany({ where: { shortClipId } });
+      await this.prisma.asset.deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } });
+    }
+
+    return this.ensureThumbnails(shortClipId, this.storage.resolve(renderKey));
+  }
+
+  /** Upload a user-provided image as a custom thumbnail (JPEG/PNG/WEBP, max 10 MB). */
+  async uploadCustom(shortClipId: string, userId: string, buffer: Buffer, mimeType: string) {
+    if (buffer.length > 10 * 1024 * 1024) throw new BadRequestException('Thumbnail must be ≤ 10 MB');
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(mimeType)) throw new BadRequestException('Thumbnail must be JPEG, PNG, or WebP');
+
+    const clip = await this.prisma.shortClip.findFirst({
+      where: { id: shortClipId, project: { userId } },
+      select: { id: true, projectId: true },
+    });
+    if (!clip) throw new NotFoundException('Clip not found');
+
+    const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+    const asset = await this.prisma.asset.create({
+      data: { projectId: clip.projectId, kind: 'SHORTS_THUMBNAIL', label: `Custom thumbnail: ${clip.id}`, status: 'READY' },
+    });
+    const key = `thumbnails/shorts/${clip.projectId}/${asset.id}.${ext}`;
+    await this.storage.put(key, buffer);
+    const version = await this.prisma.assetVersion.create({
+      data: { assetId: asset.id, version: 1, r2Key: key, provider: 'user-upload', sizeBytes: BigInt(buffer.length) },
+    });
+    await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
+
+    // Make the uploaded thumbnail primary, demote all others
+    await this.prisma.$transaction([
+      this.prisma.shortsThumbnail.updateMany({ where: { shortClipId }, data: { isPrimary: false } }),
+      this.prisma.shortsThumbnail.create({ data: { shortClipId, assetId: asset.id, isPrimary: true } }),
+    ]);
+
+    return { id: asset.id, key, versionId: version.id };
+  }
+
+  /** Resolved local path + R2 key for the primary thumbnail of a clip, or null. */
+  async primaryThumbnailPath(shortClipId: string): Promise<{ localPath: string; r2Key: string } | null> {
+    const thumb = await this.prisma.shortsThumbnail.findFirst({
+      where: { shortClipId, isPrimary: true },
+      include: { asset: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } } },
+    });
+    const r2Key = thumb?.asset.versions[0]?.r2Key;
+    if (!r2Key) return null;
+    const available = await this.storage.ensure(r2Key);
+    if (!available) return null;
+    return { localPath: this.storage.resolve(r2Key), r2Key };
   }
 }

@@ -1237,15 +1237,26 @@ export const api = {
       apiClient.get(`/shorts-studio/clips/${shortClipId}/render-status`),
     thumbnails: (shortClipId: string) =>
       apiClient.get(`/shorts-studio/clips/${shortClipId}/thumbnails`),
+    generateThumbnails: (shortClipId: string) =>
+      apiClient.post(`/shorts-studio/clips/${shortClipId}/thumbnails/generate`),
+    uploadThumbnail: (shortClipId: string, file: File) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return apiClient.post(`/shorts-studio/clips/${shortClipId}/thumbnails/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
     setPrimaryThumbnail: (thumbnailId: string) =>
       apiClient.post(`/shorts-studio/thumbnails/${thumbnailId}/set-primary`),
+    publishQueue: () =>
+      apiClient.get<{ id: string; status: string; title: string; channelTitle: string | null; projectId: string; updatedAt: string }[]>('/shorts-studio/clips/queued'),
+    scheduleSlots: (shortClipId: string) =>
+      apiClient.get<{ label: string; iso: string }[]>(`/shorts-studio/clips/${shortClipId}/schedule-suggestions`),
     exportClip: (shortClipId: string) =>
       apiClient.post(`/shorts-studio/clips/${shortClipId}/export`),
     requestPublish: (shortClipId: string) =>
       apiClient.post(`/shorts-studio/clips/${shortClipId}/request-publish`),
     publishMeta: (shortClipId: string) =>
       apiClient.get(`/shorts-studio/clips/${shortClipId}/publish-meta`),
-    quickPublish: (shortClipId: string, meta?: { scheduledAt?: string; title?: string; description?: string; tags?: string[]; language?: string; subtitleLanguage?: string }) =>
+    quickPublish: (shortClipId: string, meta?: { scheduledAt?: string; title?: string; description?: string; tags?: string[]; language?: string; subtitleLanguage?: string; thumbnailId?: string }) =>
       apiClient.post(`/shorts-studio/clips/${shortClipId}/quick-publish`, meta ?? {}),
     publish: (shortClipId: string, scheduledAt?: string) =>
       apiClient.post(`/shorts-studio/clips/${shortClipId}/publish`, scheduledAt ? { scheduledAt } : {}),

@@ -5,6 +5,7 @@ import { ApprovalsService } from '../approvals/approvals.service';
 import { ComplianceService } from '../compliance/compliance.service';
 import { PublishingService } from '../publishing/publishing.service';
 import { YouTubeReadService } from './youtube-read.service';
+import { ThumbnailGenerationService } from './thumbnail-generation.service';
 import { JobsService } from '../jobs/jobs.service';
 import { CLIP_TYPE_PRESETS } from './clip-type-presets';
 import { MediaPipelineError, YoutubeAuthFailedError } from '../media/media.errors';
@@ -35,6 +36,7 @@ export class ShortsExportService {
     private readonly compliance: ComplianceService,
     private readonly publishing: PublishingService,
     private readonly youtubeRead: YouTubeReadService,
+    private readonly thumbnails: ThumbnailGenerationService,
     private readonly jobs: JobsService,
   ) {}
 
@@ -263,7 +265,7 @@ export class ShortsExportService {
   }
 
   /** SHORTS_PUBLISH job body: compliance gate → YouTube upload → history. */
-  async publishClip(shortClipId: string, approvalId: string, exportId: string, scheduledAt?: Date, onLog?: (msg: string) => void, metaOverride?: Partial<ClipMetadata>) {
+  async publishClip(shortClipId: string, approvalId: string, exportId: string, scheduledAt?: Date, onLog?: (msg: string) => void, metaOverride?: Partial<ClipMetadata>, thumbnailId?: string) {
     // Load clip + export history in parallel
     const [clip, history] = await Promise.all([
       this.prisma.shortClip.findUniqueOrThrow({
@@ -349,6 +351,21 @@ export class ShortsExportService {
       onLog?.('AI disclosure: timeline uses generated voice/music/imagery — setting the "Altered or synthetic content" label');
     }
 
+    // Resolve thumbnail path: use explicitly selected thumbnail, then fall back to primary
+    const thumbLookupId = thumbnailId ?? undefined;
+    const thumbnailPath = await this.thumbnails.primaryThumbnailPath(shortClipId).then(async (primary) => {
+      if (!thumbLookupId) return primary?.localPath ?? null;
+      // If user selected a specific thumbnail, set it primary first then use it
+      const selected = await this.prisma.shortsThumbnail.findFirst({
+        where: { id: thumbLookupId, shortClipId },
+        include: { asset: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } } },
+      });
+      const selectedKey = selected?.asset.versions[0]?.r2Key;
+      if (!selectedKey) return primary?.localPath ?? null;
+      const ok = await this.storage.ensure(selectedKey);
+      return ok ? this.storage.resolve(selectedKey) : (primary?.localPath ?? null);
+    });
+
     onLog?.(scheduledAt ? `Scheduling YouTube upload for ${scheduledAt.toISOString()}…` : 'Uploading to YouTube…');
     let youtubeVideoId: string;
     try {
@@ -362,6 +379,7 @@ export class ShortsExportService {
         ...(originalAudioLanguage ? { defaultAudioLanguage: originalAudioLanguage } : {}),
         containsSyntheticMedia,
         ...(scheduledAt ? { scheduledAt } : {}),
+        ...(thumbnailPath ? { thumbnailFilePath: thumbnailPath } : {}),
       }, approvalId);
     } catch (err) {
       if (err instanceof HttpException) {
@@ -431,7 +449,7 @@ export class ShortsExportService {
   }
 
   /** Auto-approve + enqueue publish — used by quickPublish (no separate approval UI). */
-  async autoApproveAndPublish(shortClipId: string, projectId: string, scheduledAt?: Date, onLog?: (msg: string) => void, metaOverride?: Partial<ClipMetadata>) {
+  async autoApproveAndPublish(shortClipId: string, projectId: string, scheduledAt?: Date, onLog?: (msg: string) => void, metaOverride?: Partial<ClipMetadata>, thumbnailId?: string) {
     const clip = await this.prisma.shortClip.findUniqueOrThrow({ where: { id: shortClipId } });
     const exportJob = await this.latestExportJob(clip);
     if (!exportJob) { onLog?.('No export job found — skipping auto-publish'); return; }
@@ -448,9 +466,85 @@ export class ShortsExportService {
     await this.jobs.enqueue(
       projectId,
       'SHORTS_PUBLISH',
-      { shortClipId, approvalId: approval.id, exportId: history.id, ...(scheduledAt ? { scheduledAt: scheduledAt.toISOString() } : {}), ...(metaOverride ? { metaOverride } : {}) },
+      {
+        shortClipId,
+        approvalId: approval.id,
+        exportId: history.id,
+        ...(scheduledAt ? { scheduledAt: scheduledAt.toISOString() } : {}),
+        ...(metaOverride ? { metaOverride } : {}),
+        ...(thumbnailId ? { thumbnailId } : {}),
+      },
       { delayMs },
     );
     onLog?.(`Quick-publish enqueued for ${shortClipId}`);
+  }
+
+  /** Clips currently in the publish pipeline (QUEUED / PROCESSING / APPROVED) for the user. */
+  async getQueuedClips(userId: string) {
+    const clips = await this.prisma.shortClip.findMany({
+      where: {
+        status: { in: ['QUEUED', 'PROCESSING', 'APPROVED'] as const },
+        project: { userId },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        status: true,
+        updatedAt: true,
+        topicSegment: { select: { title: true } },
+        chapter: { select: { title: true } },
+        project: { select: { id: true, channel: { select: { title: true } } } },
+        thumbnails: {
+          where: { isPrimary: true },
+          take: 1,
+          include: { asset: { include: { versions: { take: 1, orderBy: { version: 'desc' }, select: { id: true, r2Key: true } } } } },
+        },
+      },
+    });
+    return clips.map((c) => ({
+      id: c.id,
+      status: c.status,
+      updatedAt: c.updatedAt,
+      title: c.topicSegment?.title ?? c.chapter?.title ?? 'Clip',
+      channelTitle: c.project.channel?.title ?? null,
+      projectId: c.project.id,
+      thumbnailKey: c.thumbnails[0]?.asset.versions[0]?.r2Key ?? null,
+    }));
+  }
+
+  /** Return 3 optimal publish schedule slots based on YouTube Shorts best practices. */
+  getScheduleSuggestions(): { label: string; iso: string }[] {
+    const now = new Date();
+    // Best times by day-of-week: Tue–Thu → 2pm & 8pm, Mon/Fri → 5pm, Sat/Sun → 10am & 3pm
+    const BEST_HOURS: Record<number, number[]> = {
+      0: [10, 15], // Sun
+      1: [14, 17], // Mon
+      2: [14, 20], // Tue
+      3: [14, 20], // Wed
+      4: [14, 20], // Thu
+      5: [17, 20], // Fri
+      6: [10, 15], // Sat
+    };
+    const slots: { label: string; iso: string }[] = [];
+    let d = new Date(now);
+    d.setSeconds(0, 0);
+    // Walk forward up to 14 days to find 3 slots that are at least 2 hours away
+    while (slots.length < 3 && d.getTime() - now.getTime() < 14 * 24 * 3600 * 1000) {
+      const hours = BEST_HOURS[d.getDay()] ?? [14, 20];
+      for (const h of hours) {
+        if (slots.length >= 3) break;
+        const candidate = new Date(d);
+        candidate.setHours(h, 0, 0, 0);
+        if (candidate.getTime() - now.getTime() >= 2 * 3600 * 1000) {
+          const day = candidate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          const time = candidate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          slots.push({ label: `${day} at ${time}`, iso: candidate.toISOString() });
+        }
+      }
+      d.setDate(d.getDate() + 1);
+      d.setHours(0, 0, 0, 0);
+    }
+    return slots;
   }
 }

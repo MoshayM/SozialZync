@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, BadRequestException, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, BadRequestException, ForbiddenException, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { IsString, IsArray, IsIn, IsOptional, IsDateString } from 'class-validator';
 import type { ClipType } from '@prisma/client';
 import { ApplyCommandsSchema, AssistCapabilitySchema } from '@cf/shared';
@@ -355,9 +356,38 @@ export class ShortsStudioController {
     return this.thumbnails.listForClip(shortClipId);
   }
 
+  @Post('clips/:shortClipId/thumbnails/generate')
+  async generateThumbnails(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
+    return this.thumbnails.regenerate(shortClipId, user.sub);
+  }
+
+  @Post('clips/:shortClipId/thumbnails/upload')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  async uploadThumbnail(
+    @Param('shortClipId') shortClipId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    return this.thumbnails.uploadCustom(shortClipId, user.sub, file.buffer, file.mimetype);
+  }
+
   @Post('thumbnails/:thumbnailId/set-primary')
   async setPrimaryThumbnail(@Param('thumbnailId') thumbnailId: string, @CurrentUser() user: JwtPayload) {
     return this.thumbnails.setPrimary(thumbnailId, user.sub);
+  }
+
+  /** Publish queue: in-flight clips (QUEUED / PROCESSING / APPROVED) for the calling user. */
+  @Get('clips/queued')
+  async publishQueue(@CurrentUser() user: JwtPayload) {
+    return this.exports.getQueuedClips(user.sub);
+  }
+
+  /** AI-suggested publish schedule: 3 optimal slots based on platform best-practices. */
+  @Get('clips/:shortClipId/schedule-suggestions')
+  async scheduleSuggestions(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
+    await this.shorts.assertClipOwnership(shortClipId, user.sub);
+    return this.exports.getScheduleSuggestions();
   }
 
   // ── Export & Publish (18.6, 18.7) ───────────────────────────────────────────
@@ -442,7 +472,7 @@ export class ShortsStudioController {
   @Post('clips/:shortClipId/quick-publish')
   async quickPublish(
     @Param('shortClipId') shortClipId: string,
-    @Body() body: { scheduledAt?: string; title?: string; description?: string; tags?: string[]; language?: string; subtitleLanguage?: string },
+    @Body() body: { scheduledAt?: string; title?: string; description?: string; tags?: string[]; language?: string; subtitleLanguage?: string; thumbnailId?: string },
     @CurrentUser() user: JwtPayload,
   ) {
     const isElevated = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
@@ -459,6 +489,7 @@ export class ShortsStudioController {
       shortClipId,
       autoPublish: true,
       scheduledAt: body.scheduledAt,
+      thumbnailId: body.thumbnailId,
       ...(metaOverride ? { metaOverride } : {}),
     });
   }

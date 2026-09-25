@@ -2,10 +2,12 @@
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, Sparkles, FlaskConical, Plus, Loader2, CheckCircle2, Circle } from 'lucide-react';
+import {
+  CalendarClock, Sparkles, FlaskConical, Plus, Loader2, CheckCircle2,
+  Circle, Clock, AlertCircle, ExternalLink, RefreshCw, Video,
+} from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import ApprovalsPage from '../approvals/page';
 import AutonomyPage from '../autonomy/page';
 import AbTestingPage from '../ab-testing/page';
 
@@ -167,6 +169,241 @@ function ConnectedPlatformsBar() {
   );
 }
 
+// ── Status badge helpers ──────────────────────────────────────────────────────
+
+const CLIP_STATUS_STYLE: Record<string, string> = {
+  QUEUED:     'bg-blue-50 text-blue-700 border-blue-200',
+  PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200',
+  RENDERING:  'bg-amber-50 text-amber-700 border-amber-200',
+  APPROVED:   'bg-emerald-50 text-emerald-700 border-emerald-200',
+  PUBLISHED:  'bg-green-50 text-green-700 border-green-200',
+  FAILED:     'bg-red-50 text-red-700 border-red-200',
+  SCHEDULED:  'bg-purple-50 text-purple-700 border-purple-200',
+};
+
+const CLIP_STATUS_LABEL: Record<string, string> = {
+  QUEUED:     'Queued',
+  PROCESSING: 'Processing',
+  RENDERING:  'Rendering',
+  APPROVED:   'Approved',
+  PUBLISHED:  'Published',
+  FAILED:     'Failed',
+  SCHEDULED:  'Scheduled',
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const style = CLIP_STATUS_STYLE[status] ?? 'bg-gray-50 text-gray-600 border-gray-200';
+  const label = CLIP_STATUS_LABEL[status] ?? status;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${style}`}>
+      {(status === 'QUEUED' || status === 'PROCESSING' || status === 'RENDERING') && (
+        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+      )}
+      {status === 'PUBLISHED' && <CheckCircle2 className="w-2.5 h-2.5" />}
+      {status === 'FAILED' && <AlertCircle className="w-2.5 h-2.5" />}
+      {status === 'SCHEDULED' && <Clock className="w-2.5 h-2.5" />}
+      {label}
+    </span>
+  );
+}
+
+// ── Publish Center Panel (Issue 2 & 3) ───────────────────────────────────────
+
+interface QueuedClip {
+  id: string;
+  status: string;
+  title: string;
+  channelTitle: string | null;
+  projectId: string;
+  updatedAt: string;
+}
+
+interface PublishedVideo {
+  id: string;
+  title?: string | null;
+  status: string;
+  platform?: string | null;
+  youtubeVideoId?: string | null;
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  createdAt: string;
+}
+
+function PublishCenterPanel() {
+  // In-flight clips (QUEUED / PROCESSING / APPROVED)
+  const { data: queue = [], isLoading: queueLoading, refetch: refetchQueue } = useQuery<QueuedClip[]>({
+    queryKey: ['publish-queue'],
+    queryFn: () => api.shortsStudio.publishQueue().then((r) => r.data),
+    refetchInterval: 8_000,
+    staleTime: 5_000,
+  });
+
+  // Completed / scheduled / failed videos
+  const { data: videosPage, isLoading: videosLoading } = useQuery({
+    queryKey: ['published-videos'],
+    queryFn: () => api.publishing.listVideos({ take: 20 }).then((r) => r.data),
+    refetchInterval: 30_000,
+    staleTime: 20_000,
+  });
+
+  const videos: PublishedVideo[] = (videosPage as { data?: PublishedVideo[] } | undefined)?.data ?? [];
+
+  const isLoading = queueLoading && videosLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-gray-400">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        <span className="text-sm">Loading…</span>
+      </div>
+    );
+  }
+
+  const hasActivity = queue.length > 0 || videos.length > 0;
+
+  return (
+    <div className="p-5 sm:p-7 space-y-6">
+
+      {/* In-flight section */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-500" /> In Progress
+            {queue.length > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                {queue.length}
+              </span>
+            )}
+          </h2>
+          <button
+            type="button"
+            onClick={() => void refetchQueue()}
+            className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" /> Refresh
+          </button>
+        </div>
+
+        {queueLoading ? (
+          <div className="flex items-center gap-2 text-xs text-gray-400 py-4">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading in-progress items…
+          </div>
+        ) : queue.length === 0 ? (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-xs text-gray-400">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            No clips currently in progress.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {queue.map((clip) => (
+              <div
+                key={clip.id}
+                className="flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Video className="w-4 h-4 text-gray-300 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{clip.title}</p>
+                    {clip.channelTitle && (
+                      <p className="text-[11px] text-gray-400 truncate">{clip.channelTitle}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <StatusBadge status={clip.status} />
+                  <span className="text-[10px] text-gray-400 hidden sm:block">
+                    {new Date(clip.updatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                  <Link
+                    href={`/shorts-studio?project=${clip.projectId}`}
+                    className="text-[11px] text-gray-400 hover:text-brand-600 transition-colors"
+                  >
+                    View
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Published / Scheduled / Failed videos */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Published &amp; Scheduled
+          </h2>
+          <Link href="/publishing" className="text-[11px] text-brand-600 hover:text-brand-700 font-medium transition-colors">
+            View all →
+          </Link>
+        </div>
+
+        {videosLoading ? (
+          <div className="flex items-center gap-2 text-xs text-gray-400 py-4">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading published content…
+          </div>
+        ) : videos.length === 0 ? (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-xs text-gray-400">
+            <Video className="w-4 h-4 shrink-0" />
+            No published or scheduled videos yet. Confirm &amp; publish a clip from Shorts Studio.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {videos.map((v) => (
+              <div
+                key={v.id}
+                className="flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Video className="w-4 h-4 text-gray-300 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{v.title ?? 'Untitled'}</p>
+                    <p className="text-[11px] text-gray-400">
+                      {v.status === 'SCHEDULED' && v.scheduledAt
+                        ? `Scheduled: ${new Date(v.scheduledAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+                        : v.publishedAt
+                        ? `Published: ${new Date(v.publishedAt).toLocaleString('en-US', { month: 'short', day: 'numeric' })}`
+                        : `Created: ${new Date(v.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric' })}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <StatusBadge status={v.status} />
+                  {v.youtubeVideoId && (
+                    <a
+                      href={`https://www.youtube.com/shorts/${v.youtubeVideoId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 rounded hover:bg-gray-100 transition-colors"
+                      title="View on YouTube"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-gray-400 hover:text-brand-600" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {!hasActivity && (
+        <div className="text-center py-10 text-gray-400">
+          <Video className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">Nothing here yet.</p>
+          <p className="text-xs mt-1">
+            Go to{' '}
+            <Link href="/shorts-studio" className="text-brand-600 underline">
+              Shorts Studio
+            </Link>{' '}
+            and click Publish on a rendered clip.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PublishContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -232,7 +469,7 @@ function PublishContent() {
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
       {activeTab === 'ai-planner'     && <AutonomyPage />}
-      {activeTab === 'publish-center' && <ApprovalsPage />}
+      {activeTab === 'publish-center' && <PublishCenterPanel />}
       {activeTab === 'ab-testing'     && <AbTestingPage />}
     </div>
   );

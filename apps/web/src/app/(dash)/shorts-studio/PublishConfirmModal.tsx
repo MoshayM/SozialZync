@@ -1,9 +1,10 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   X, Loader2, CheckCircle2, AlertCircle, Calendar, Globe, Subtitles,
   Hash, ChevronDown, ChevronUp, Zap, Upload, Info,
+  Sparkles, ImagePlus, Clock, CalendarClock, RefreshCw, Image,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -190,44 +191,296 @@ function CharCounter({ val, max }: { val: string; max: number }) {
   return <span className={`text-[10px] tabular-nums ${color}`}>{len}/{max}</span>;
 }
 
-// ── Thumbnail grid ────────────────────────────────────────────────────────────
+// ── Thumbnail section (Issue 1) ───────────────────────────────────────────────
 
-interface Thumbnail { id: string; url: string; isPrimary: boolean; timestamp?: number }
+type ThumbMode = 'keep' | 'ai' | 'upload';
 
-function ThumbnailPicker({ clipId, selectedId, onSelect }: { clipId: string; selectedId: string | null; onSelect: (id: string, url: string) => void }) {
-  const { data, isLoading } = useQuery({
+interface Thumbnail { id: string; url: string; isPrimary: boolean; }
+
+function ThumbnailSection({
+  clipId,
+  selectedId,
+  onSelect,
+}: {
+  clipId: string;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  const qc = useQueryClient();
+  const [mode, setMode] = useState<ThumbMode>('keep');
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const { data: thumbs = [], isLoading: thumbsLoading, refetch: refetchThumbs } = useQuery({
     queryKey: ['thumbnails', clipId],
     queryFn: () => api.shortsStudio.thumbnails(clipId).then((r) => r.data as Thumbnail[]),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
 
-  if (isLoading) return <div className="flex items-center justify-center h-32 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /></div>;
-  if (!data?.length) return <p className="text-xs text-gray-500 italic">No thumbnails generated yet — default frame will be used.</p>;
+  const generate = useMutation({
+    mutationFn: () => api.shortsStudio.generateThumbnails(clipId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['thumbnails', clipId] });
+      void refetchThumbs();
+    },
+  });
+
+  const upload = useMutation({
+    mutationFn: (file: File) => api.shortsStudio.uploadThumbnail(clipId, file),
+    onSuccess: (res) => {
+      void qc.invalidateQueries({ queryKey: ['thumbnails', clipId] });
+      void refetchThumbs();
+      onSelect((res.data as { id: string }).id);
+    },
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadPreview(URL.createObjectURL(file));
+    upload.mutate(file);
+  };
+
+  const ModeBtn = ({ m, label, Icon }: { m: ThumbMode; label: string; Icon: React.ComponentType<{ className?: string }> }) => (
+    <button
+      type="button"
+      onClick={() => { setMode(m); if (m === 'keep') onSelect(null); }}
+      className={[
+        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
+        mode === m
+          ? 'bg-gray-900 text-white border-gray-900'
+          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300',
+      ].join(' ')}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      {label}
+    </button>
+  );
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {data.map((t) => {
-        const active = selectedId ? selectedId === t.id : t.isPrimary;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onSelect(t.id, t.url)}
-            className={`relative rounded-lg overflow-hidden border-2 transition-all ${active ? 'border-brand-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={t.url} alt="Thumbnail" className="w-full aspect-[9/16] object-cover" />
-            {active && (
-              <div className="absolute inset-0 bg-brand-600/10 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-brand-600 drop-shadow" />
+    <div className="space-y-3">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <ModeBtn m="keep" label="Keep Default" Icon={Image} />
+        <ModeBtn m="ai" label="AI Generate" Icon={Sparkles} />
+        <ModeBtn m="upload" label="Upload" Icon={ImagePlus} />
+      </div>
+
+      {mode === 'keep' && (
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+          <p className="text-xs text-gray-600">Default video frame will be used.</p>
+        </div>
+      )}
+
+      {mode === 'ai' && (
+        <div className="space-y-2">
+          {thumbsLoading ? (
+            <div className="flex items-center justify-center h-24 text-gray-400">
+              <Loader2 className="w-5 h-5 animate-spin" />
+            </div>
+          ) : thumbs.length === 0 ? (
+            <div className="text-center py-4 space-y-2">
+              <p className="text-xs text-gray-500">No thumbnails generated yet.</p>
+              <button
+                type="button"
+                onClick={() => generate.mutate()}
+                disabled={generate.isPending}
+                className="flex items-center gap-2 mx-auto px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              >
+                {generate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {generate.isPending ? 'Generating…' : 'Generate AI Thumbnails'}
+              </button>
+              {generate.isError && (
+                <p className="text-[11px] text-red-500">Failed — ensure clip is rendered first.</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                {thumbs.map((t) => {
+                  const active = selectedId === t.id || (!selectedId && t.isPrimary);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => onSelect(t.id)}
+                      className={`relative rounded-lg overflow-hidden border-2 transition-all ${active ? 'border-brand-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={t.url} alt="Thumbnail" className="w-full aspect-[9/16] object-cover" />
+                      {active && (
+                        <div className="absolute inset-0 bg-brand-600/10 flex items-center justify-center">
+                          <CheckCircle2 className="w-6 h-6 text-brand-600 drop-shadow" />
+                        </div>
+                      )}
+                      {t.isPrimary && !active && (
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded">AI pick</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            )}
-            {t.isPrimary && !active && (
-              <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded">AI pick</span>
-            )}
-          </button>
-        );
-      })}
+              <button
+                type="button"
+                onClick={() => generate.mutate()}
+                disabled={generate.isPending}
+                className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <RefreshCw className={`w-3 h-3 ${generate.isPending ? 'animate-spin' : ''}`} />
+                Regenerate
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === 'upload' && (
+        <div className="space-y-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          {upload.isPending ? (
+            <div className="flex items-center gap-2 justify-center h-24 text-gray-400">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-xs">Uploading…</span>
+            </div>
+          ) : uploadPreview ? (
+            <div className="flex items-center gap-3">
+              <div className="relative w-20 rounded-lg overflow-hidden border-2 border-brand-500 shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={uploadPreview} alt="Custom thumbnail" className="w-full aspect-[9/16] object-cover" />
+                <div className="absolute inset-0 bg-brand-600/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-brand-600" />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                Replace
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="w-full flex flex-col items-center gap-2 py-5 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+            >
+              <ImagePlus className="w-6 h-6 text-gray-400" />
+              <span className="text-xs text-gray-500">Click to upload JPEG / PNG / WebP · Max 10 MB</span>
+            </button>
+          )}
+          {upload.isError && (
+            <p className="text-[11px] text-red-500">Upload failed — check file type and size.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Schedule section (Issue 4) ────────────────────────────────────────────────
+
+type SchedMode = 'now' | 'suggested' | 'custom';
+
+function ScheduleSection({
+  clipId,
+  onChange,
+}: {
+  clipId: string;
+  onChange: (iso: string | undefined) => void;
+}) {
+  const [mode, setMode] = useState<SchedMode>('now');
+  const [selectedSlot, setSelectedSlot] = useState<string | undefined>();
+  const [customVal, setCustomVal] = useState('');
+
+  const { data: slots = [], isLoading: slotsLoading } = useQuery({
+    queryKey: ['schedule-slots', clipId],
+    queryFn: () => api.shortsStudio.scheduleSlots(clipId).then((r) => r.data),
+    staleTime: 10 * 60 * 1000,
+    enabled: mode === 'suggested',
+  });
+
+  const handleModeChange = (m: SchedMode) => {
+    setMode(m);
+    if (m === 'now') { onChange(undefined); }
+    else if (m === 'suggested') { onChange(selectedSlot); }
+    else { onChange(customVal ? new Date(customVal).toISOString() : undefined); }
+  };
+
+  const ModeBtn = ({ m, label, Icon }: { m: SchedMode; label: string; Icon: React.ComponentType<{ className?: string }> }) => (
+    <button
+      type="button"
+      onClick={() => handleModeChange(m)}
+      className={[
+        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
+        mode === m
+          ? 'bg-gray-900 text-white border-gray-900'
+          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300',
+      ].join(' ')}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <ModeBtn m="now" label="Publish Now" Icon={Clock} />
+        <ModeBtn m="suggested" label="Best Time" Icon={Sparkles} />
+        <ModeBtn m="custom" label="Custom" Icon={CalendarClock} />
+      </div>
+
+      {mode === 'now' && (
+        <p className="text-[11px] text-gray-400 px-1">Publishes immediately after compliance check.</p>
+      )}
+
+      {mode === 'suggested' && (
+        <div className="space-y-1.5">
+          {slotsLoading ? (
+            <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading suggestions…
+            </div>
+          ) : slots.length === 0 ? (
+            <p className="text-xs text-gray-400">No suggestions — use Custom.</p>
+          ) : (
+            slots.map((s: { label: string; iso: string }) => (
+              <button
+                key={s.iso}
+                type="button"
+                onClick={() => { setSelectedSlot(s.iso); onChange(s.iso); }}
+                className={[
+                  'w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all text-left',
+                  selectedSlot === s.iso
+                    ? 'border-brand-500 bg-brand-50 text-brand-700'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                ].join(' ')}
+              >
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                {s.label}
+                {selectedSlot === s.iso && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-brand-500" />}
+              </button>
+            ))
+          )}
+          <p className="text-[10px] text-gray-400 px-1">Based on YouTube Shorts peak engagement.</p>
+        </div>
+      )}
+
+      {mode === 'custom' && (
+        <input
+          type="datetime-local"
+          value={customVal}
+          min={new Date(Date.now() + 5 * 60 * 1000).toISOString().slice(0, 16)}
+          onChange={(e) => { setCustomVal(e.target.value); onChange(e.target.value ? new Date(e.target.value).toISOString() : undefined); }}
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
+        />
+      )}
     </div>
   );
 }
@@ -255,21 +508,19 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
   const [tags, setTags] = useState<string[]>([]);
   const [language, setLanguage] = useState('en');
   const [subtitleLang, setSubtitleLang] = useState('auto');
-  const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState('');
+  const [scheduledAt, setScheduledAt] = useState<string | undefined>();
   const [confirmed, setConfirmed] = useState(false);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [selectedThumbId, setSelectedThumbId] = useState<string | null>(null);
-  const [selectedThumbUrl, setSelectedThumbUrl] = useState<string | null>(null);
 
-  // Fetch AI-generated metadata
   const { data: meta, isLoading: metaLoading, isError: metaError } = useQuery({
     queryKey: ['publish-meta', clipId],
     queryFn: () => api.shortsStudio.publishMeta(clipId).then((r) => r.data as PublishMeta),
     staleTime: 60 * 1000,
   });
 
-  // Populate form fields once meta loads
+  const spec: PlatformSpec = PLATFORM[meta?.clipType ?? 'YOUTUBE_SHORTS'] ?? PLATFORM['YOUTUBE_SHORTS']!;
+
   useEffect(() => {
     if (!meta) return;
     setTitle(meta.title);
@@ -278,9 +529,6 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meta]);
 
-  const spec: PlatformSpec = PLATFORM[meta?.clipType ?? 'YOUTUBE_SHORTS'] ?? PLATFORM['YOUTUBE_SHORTS']!;
-
-  // Escape key
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
@@ -295,7 +543,8 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
         tags: tags.length ? tags : undefined,
         language,
         subtitleLanguage: subtitleLang,
-        scheduledAt: scheduleEnabled && scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+        scheduledAt,
+        thumbnailId: selectedThumbId ?? undefined,
       }),
     onSuccess: () => {
       onPublished(clipId);
@@ -346,34 +595,45 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
           ) : (
             <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
 
-              {/* Left: thumbnail + original info */}
-              <div className="md:w-56 shrink-0 p-5 space-y-4">
+              {/* Left column: thumbnail + schedule */}
+              <div className="md:w-64 shrink-0 p-5 space-y-5">
+
+                {/* Thumbnail (Issue 1) */}
                 <div>
-                  <p className="text-xs font-medium text-gray-600 mb-2">Thumbnail</p>
-                  <ThumbnailPicker
+                  <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                    <Image className="w-3.5 h-3.5" /> Thumbnail
+                  </p>
+                  <ThumbnailSection
                     clipId={clipId}
                     selectedId={selectedThumbId}
-                    onSelect={(id, url) => { setSelectedThumbId(id); setSelectedThumbUrl(url); }}
+                    onSelect={setSelectedThumbId}
                   />
                 </div>
-                {selectedThumbUrl && (
-                  <p className="text-[10px] text-brand-600">✓ Thumbnail selected</p>
-                )}
+
+                {/* Schedule (Issue 4) */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" /> When to publish
+                  </p>
+                  <ScheduleSection clipId={clipId} onChange={setScheduledAt} />
+                </div>
+
                 {meta?.originalLanguage && (
-                  <div className="pt-1">
+                  <div>
                     <p className="text-xs font-medium text-gray-600 mb-1">Original video language</p>
                     <p className="text-xs text-gray-700 bg-gray-50 rounded-lg px-2 py-1.5">
                       {LANGUAGES.find((l) => l.code === meta.originalLanguage)?.label ?? meta.originalLanguage}
                     </p>
                   </div>
                 )}
-                <div className="pt-1 text-[11px] text-gray-400 space-y-1">
+
+                <div className="text-[11px] text-gray-400 space-y-1">
                   <p className="flex items-center gap-1"><Info className="w-3 h-3" /> Platform: {spec.name}</p>
                   <p className="flex items-center gap-1"><Hash className="w-3 h-3" /> Max {spec.maxHashtags} hashtags</p>
                 </div>
               </div>
 
-              {/* Right: editable fields */}
+              {/* Right column: editable fields */}
               <div className="flex-1 p-5 space-y-4 min-w-0">
 
                 {/* Title */}
@@ -458,36 +718,6 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
                   </div>
                 </div>
 
-                {/* Schedule */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <label className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" /> Schedule
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={scheduleEnabled}
-                        onChange={(e) => setScheduleEnabled(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded text-brand-600"
-                      />
-                      <span className="text-xs text-gray-600">Publish at a specific time</span>
-                    </label>
-                  </div>
-                  {scheduleEnabled && (
-                    <input
-                      type="datetime-local"
-                      value={scheduledAt}
-                      min={new Date(Date.now() + 5 * 60 * 1000).toISOString().slice(0, 16)}
-                      onChange={(e) => setScheduledAt(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
-                    />
-                  )}
-                  {!scheduleEnabled && (
-                    <p className="text-[11px] text-gray-400">Will publish immediately after compliance check.</p>
-                  )}
-                </div>
-
                 {/* Platform tips */}
                 <div className="border border-gray-100 rounded-xl overflow-hidden">
                   <button
@@ -533,24 +763,31 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
               I confirm this content complies with <strong>{spec.name}</strong> community guidelines and copyright policies, and I have the rights to publish it.
             </span>
           </label>
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => publish.mutate()}
-              disabled={!canSubmit}
-              className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: canSubmit ? spec.color : undefined, backgroundColor: canSubmit ? undefined : '#9ca3af' }}
-            >
-              {publish.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {scheduleEnabled ? 'Schedule' : 'Confirm & Publish'}
-            </button>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] text-gray-400">
+              {scheduledAt
+                ? `Scheduled for ${new Date(scheduledAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+                : 'Publishes immediately after compliance check'}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => publish.mutate()}
+                disabled={!canSubmit}
+                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: canSubmit ? spec.color : undefined, backgroundColor: canSubmit ? undefined : '#9ca3af' }}
+              >
+                {publish.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {scheduledAt ? 'Schedule' : 'Confirm & Publish'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

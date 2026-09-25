@@ -54,6 +54,8 @@ export interface PublishOptions {
    * disclosure line to the description.
    */
   containsSyntheticMedia?: boolean;
+  /** Absolute local path to a JPEG/PNG thumbnail to upload via thumbnails.set() after video insert. */
+  thumbnailFilePath?: string;
 }
 
 @Injectable()
@@ -150,6 +152,19 @@ export class PublishingService {
 
     const youtubeVideoId = res!.data.id!;
     this.logger.log(`[Publish] Upload complete — youtubeVideoId=${youtubeVideoId}`);
+
+    // Upload custom thumbnail if provided (non-fatal — video is already on YouTube)
+    if (opts.thumbnailFilePath) {
+      try {
+        await youtube.thumbnails.set({
+          videoId: youtubeVideoId,
+          media: { mimeType: 'image/jpeg', body: createReadStream(opts.thumbnailFilePath) },
+        });
+        this.logger.log(`[Publish] Thumbnail uploaded — youtubeVideoId=${youtubeVideoId}`);
+      } catch (thumbErr) {
+        this.logger.warn(`[Publish] Thumbnail upload failed (non-fatal) — ${thumbErr instanceof Error ? thumbErr.message : thumbErr}`);
+      }
+    }
 
     const video = await this.prisma.video.update({
       where: { id: opts.videoId },
