@@ -35,12 +35,11 @@ async function loginWithPassword(page: import('@playwright/test').Page) {
   // where fill() doesn't trigger React's onChange.
   async function fillAndSubmit() {
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
-    const f = page.locator('form').filter({
-      has: page.locator('button').filter({ hasText: /sign in with password/i }),
-    });
-    await f.locator('input[type="email"]').pressSequentially('sozialzync@gmail.com', { delay: 20 });
-    await f.locator('input[type="password"]').pressSequentially('Admin@123', { delay: 20 });
-    const btn = f.locator('button').filter({ hasText: /sign in with password/i });
+    // Use direct locators — the form filter was timing out in Firefox because the
+    // complex filter chain failed to resolve during React's post-mount re-render.
+    await page.locator('input[type="email"]').first().pressSequentially('sozialzync@gmail.com', { delay: 20 });
+    await page.locator('input[type="password"]').first().pressSequentially('Admin@123', { delay: 20 });
+    const btn = page.locator('button').filter({ hasText: /sign in with password/i });
     await expect(btn).toBeEnabled({ timeout: 8_000 });
     await btn.click();
   }

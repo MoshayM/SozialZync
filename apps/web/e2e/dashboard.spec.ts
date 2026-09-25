@@ -14,7 +14,9 @@ async function loginAs(page: Page, email: string, pass: string) {
   // Inputs use placeholder only — locate by type
   await page.locator('input[type="email"]').first().fill(email);
   await page.locator('input[type="password"]').first().fill(pass);
-  await page.getByRole('button', { name: /sign in with password/i }).click();
+  const btn = page.getByRole('button', { name: /sign in with password/i });
+  await expect(btn).toBeEnabled({ timeout: 30_000 });
+  await btn.click();
   await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 20_000 });
 }
 

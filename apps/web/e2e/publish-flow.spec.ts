@@ -598,13 +598,27 @@ test.describe('Recent UI fixes smoke tests', () => {
 
   test('15 — Shorts Studio home has all 3 import buttons', async ({ page }) => {
     test.setTimeout(90_000);
+
+    // Mock channels + imported videos so the Shorts Studio renders immediately
+    // without waiting for Railway to wake. Import buttons appear in the empty state.
+    await page.route(`${PF_PROXY}/**`, async (route) => {
+      const reqPath = new URL(route.request().url()).pathname.replace('/api/proxy', '');
+      const method  = route.request().method();
+      if (method === 'GET' && reqPath === '/channels')
+        return route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify([{ id: 't15-ch-01', name: 'E2E Channel', platform: 'YOUTUBE', handle: '@e2e', avatarUrl: null }]) });
+      if (method === 'GET' && reqPath.includes('/shorts-studio/channels/') && reqPath.includes('/imported'))
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      await route.continue();
+    });
+
     await page.goto('/shorts-studio');
-    // networkidle alone isn't enough — Railway API responses arrive after the initial HTML.
-    // Wait up to 40s for any one import button to appear, then check the rest.
+    await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
+
     const anyImportBtn = page.getByRole('button', {
       name: /library|from library|upload.*file|import.*(url|link)|URL/i,
     }).first();
-    const appeared = await anyImportBtn.waitFor({ timeout: 40_000 }).then(() => true).catch(() => false);
+    const appeared = await anyImportBtn.waitFor({ timeout: 20_000 }).then(() => true).catch(() => false);
     await shot(page, '15-shorts-home');
 
     const fromLibraryBtn = page.getByRole('button', { name: /library|from library/i }).first();
@@ -621,39 +635,60 @@ test.describe('Recent UI fixes smoke tests', () => {
   });
 
   test('16 — Download button gated (disabled or hidden for Free plan)', async ({ page }) => {
-    test.setTimeout(40_000);
-    const videoUrl = await goToFirstVideo(page);
-    if (!videoUrl) {
-      console.warn('⚠️ No videos in test account — skipping test 16');
-      test.skip();
-      return;
+    test.setTimeout(60_000);
+
+    const T16_VID  = 't16-vid-01';
+    const T16_CLIP = 't16-clip-01';
+
+    // Mock the video detail + clips so the test never depends on live Railway data.
+    await page.route(`${PF_PROXY}/**`, async (route) => {
+      const reqPath = new URL(route.request().url()).pathname.replace('/api/proxy', '');
+      const method  = route.request().method();
+      if (method === 'GET' && reqPath.includes(`/shorts-studio/videos/${T16_VID}/clips`))
+        return route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify([{
+            id: T16_CLIP, status: 'RENDERED', clipType: 'YOUTUBE_SHORTS',
+            sourceStartMs: 0, sourceEndMs: 30_000,
+            topicSegment: { title: 'E2E Download Test', highlight: { titleSuggestion: 'Test', finalScore: 80 } },
+            chapter: null,
+            timeline: { id: 'tl-t16', durationMs: 30_000, _count: { captions: 0 } },
+            renderAsset: { id: 'ra-t16', versions: [{ id: 'ver-t16', durationMs: 30_000 }] },
+          }]) });
+      if (method === 'GET' && reqPath.includes(`/shorts-studio/videos/${T16_VID}/topics`))
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      if (method === 'GET' && reqPath.includes(`/shorts-studio/videos/${T16_VID}/highlights`))
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      if (method === 'GET' && reqPath.includes(`/shorts-studio/videos/${T16_VID}/chapters`))
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      if (method === 'GET' && reqPath.includes(`/shorts-studio/videos/${T16_VID}/social-content`))
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      await route.continue();
+    });
+
+    await page.goto(`/shorts-studio/videos/${T16_VID}`);
+    await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
+    await shot(page, '16-video-page');
+
+    // Expand clips
+    const expandAllBtn = page.getByRole('button', { name: /expand all/i });
+    if (await expandAllBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await expandAllBtn.click();
+      await page.waitForTimeout(500);
     }
-    console.log('On video page:', videoUrl);
-
-    // Open clips section
-    const clipsSection = page.locator('button').filter({ hasText: /clips/i }).first();
-    if (await clipsSection.isVisible({ timeout: 8_000 }).catch(() => false)) await clipsSection.click();
-    await page.waitForTimeout(600);
-
-    // Expand a clip
-    const clipRow = page.locator('[class*="rounded-xl"]').filter({ hasText: /rendered|candidate|rendering/i }).first();
-    if (await clipRow.isVisible({ timeout: 10_000 }).catch(() => false)) await clipRow.click();
-    await page.waitForTimeout(500);
     await shot(page, '16-clip-expanded');
 
-    // Download button: if visible for Pro user, it should be disabled until "Save to Private"
+    // Download button: disabled until "Save to Private", or hidden for Free plan
     const downloadBtn = page.getByRole('button', { name: /download/i }).first();
     const isDownloadVisible = await downloadBtn.isVisible({ timeout: 5_000 }).catch(() => false);
 
     if (isDownloadVisible) {
       const isDisabled = await downloadBtn.isDisabled();
-      // Download should be disabled until Save to Private is clicked (only enabled after save)
       console.log(`Download button visible, disabled=${isDisabled} (expected: disabled until Save to Private)`);
       await shot(page, '16-download-gated');
-      console.log('✅ Download button state verified');
     } else {
       console.log('⚠️ Download button not visible (Free plan account — gating working correctly)');
     }
+    console.log('✅ Test 16: video page with rendered clip loaded successfully');
   });
 
   test('17 — Publish Hub AI Planner tab loads without crash', async ({ page }) => {

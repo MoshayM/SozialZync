@@ -29,7 +29,9 @@ const FAKE_EDIT_PROJECT = {
   height: 1080,
   fps: 30,
   durationMs: 60_000,
-  timeline: { width: 1920, height: 1080, fps: 30, durationMs: 60_000, tracks: [] },
+  timeline: { width: 1920, height: 1080, fps: 30, durationMs: 60_000, tracks: [
+    { id: 'track-01', kind: 'VIDEO', label: 'Video 1', items: [] },
+  ] },
   renderAssetId: null,
   renderStatus: null,
   lastEditedAt: '2026-09-01T00:00:00.000Z',
