@@ -1,5 +1,18 @@
 import { test, expect } from '@playwright/test';
 
+// Stub HTMLVideoElement playback in Firefox/WebKit so Watch Feed UI renders
+// without ARIA-tree hangs from video autoplay. Runs before every test in the file.
+test.beforeEach(async ({ page, browserName }) => {
+  if (browserName !== 'chromium') {
+    await page.addInitScript(() => {
+      const noop = () => {};
+      Object.defineProperty(HTMLVideoElement.prototype, 'play',  { configurable: true, value: () => Promise.resolve() });
+      Object.defineProperty(HTMLVideoElement.prototype, 'load',  { configurable: true, value: noop });
+      Object.defineProperty(HTMLVideoElement.prototype, 'pause', { configurable: true, value: noop });
+    });
+  }
+});
+
 // ── Browse page — public (no auth required) ───────────────────────────────────
 
 test.describe('Browse page — public access', () => {
@@ -94,10 +107,7 @@ test.describe('Browse page — feed mode', () => {
     await expect(page.getByRole('button', { name: /watch feed/i })).toBeVisible();
   });
 
-  // Watch Feed tests open a video player. Firefox/WebKit on Windows can hang
-  // during video autoplay — skip these browsers for feed-interaction tests.
-  test('clicking Watch Feed opens fullscreen feed', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('clicking Watch Feed opens fullscreen feed', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
     // Feed overlay should be present (dialog)
@@ -105,8 +115,7 @@ test.describe('Browse page — feed mode', () => {
     await expect(dialog).toBeVisible({ timeout: 5_000 });
   });
 
-  test('feed has close button', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('feed has close button', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
     // Wait for the feed overlay to appear
@@ -115,8 +124,7 @@ test.describe('Browse page — feed mode', () => {
     await expect(closeBtn).toBeVisible({ timeout: 5_000 });
   });
 
-  test('Escape closes feed', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('Escape closes feed', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
@@ -124,8 +132,7 @@ test.describe('Browse page — feed mode', () => {
     await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 5_000 });
   });
 
-  test('clicking a video thumbnail opens feed at that item', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('clicking a video thumbnail opens feed at that item', async ({ page }) => {
     await page.goto('/browse');
     // Click a thumbnail card in the grid
     await page.locator('main .group.cursor-pointer').first().click();
@@ -133,8 +140,7 @@ test.describe('Browse page — feed mode', () => {
     await expect(dialog).toBeVisible({ timeout: 5_000 });
   });
 
-  test('feed shows item count indicator', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('feed shows item count indicator', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 8_000 });
@@ -142,8 +148,7 @@ test.describe('Browse page — feed mode', () => {
     await expect(page.locator('[role="dialog"]').getByText(/^1 \/ \d+$/).first()).toBeVisible({ timeout: 5_000 });
   });
 
-  test('keyboard ArrowDown navigates to next item', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('keyboard ArrowDown navigates to next item', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
     const feed = page.locator('[role="dialog"]');
@@ -156,8 +161,7 @@ test.describe('Browse page — feed mode', () => {
     await expect(feed.getByText(/^2 \/ \d+$/).first()).toBeVisible({ timeout: 5_000 });
   });
 
-  test('feed right-action column has like, comment, share, save buttons', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('feed right-action column has like, comment, share, save buttons', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
     const feed = page.locator('[role="dialog"]');
@@ -169,8 +173,7 @@ test.describe('Browse page — feed mode', () => {
     await expect(feed.getByRole('button', { name: /^save$/i }).first()).toBeVisible({ timeout: 5_000 });
   });
 
-  test('like button toggles state', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('like button toggles state', async ({ page }) => {
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();
     const feed = page.locator('[role="dialog"]');
@@ -235,8 +238,7 @@ test.describe('Browse page — responsive layout', () => {
     expect(box?.x).toBeGreaterThanOrEqual(0);
   });
 
-  test('Watch Feed full-screen on mobile', async ({ page, browserName }) => {
-    if (browserName !== 'chromium') test.skip();
+  test('Watch Feed full-screen on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/browse');
     await page.getByRole('button', { name: /watch feed/i }).click();

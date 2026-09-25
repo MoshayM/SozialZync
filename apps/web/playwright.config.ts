@@ -71,8 +71,13 @@ export default defineConfig({
       use: {
         ...devices['Desktop Firefox'],
         storageState: AUTH_FILE,      // avoids repeated logins & rate-limit waits
-        // Block media streams — Firefox hangs when video players autoload in Watch Feed
         serviceWorkers: 'block',
+        launchOptions: {
+          firefoxUserPrefs: {
+            'media.autoplay.default': 5,          // block all autoplay (0=allow, 5=block)
+            'media.autoplay.allow-muted': false,  // also block muted autoplay
+          },
+        },
       },
       testMatch: [
         '**/public.spec.ts',
