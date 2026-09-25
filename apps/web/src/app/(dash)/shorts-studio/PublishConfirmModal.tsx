@@ -531,7 +531,7 @@ function ScheduleSection({
             ))
           )}
           <p className="text-[10px] text-gray-400 px-1">
-            {usingFallback ? 'AI-suggested times based on platform peak engagement.' : 'From your AI Planner & channel analytics.'}
+            {usingFallback ? 'AI-suggested times based on platform peak engagement.' : 'AI-suggested times based on peak engagement & your channel analytics.'}
           </p>
         </div>
       )}
