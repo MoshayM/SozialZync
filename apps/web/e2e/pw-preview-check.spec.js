@@ -2,12 +2,13 @@
  * Quick check: open preview modal on a rendered clip and verify video plays correctly.
  */
 const { test, expect } = require('@playwright/test');
+const { gotoWithRetry } = require('./net-retry');
 
 test.use({ storageState: 'e2e/.auth.json' });
 
 test('preview modal plays video on a rendered clip', async ({ page }) => {
   // Navigate to Shorts Studio
-  await page.goto('/shorts-studio', { waitUntil: 'networkidle' });
+  await gotoWithRetry(page, '/shorts-studio', { waitUntil: 'networkidle' });
 
   // Expand the first video row that is Ready
   const videoRow = page.locator('div[role="button"]').filter({ hasText: 'Ready' }).first();

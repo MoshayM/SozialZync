@@ -6,6 +6,7 @@
  * the Shorts Studio listing page or Railway returning "Ready" videos.
  */
 const { test, expect } = require('@playwright/test');
+const { gotoWithRetry } = require('./net-retry');
 
 const PROXY      = 'https://sozialzynk.vercel.app/api/proxy';
 const CLIP_ID    = 'e2e-clip-01';
@@ -54,7 +55,7 @@ test('editor preview loads and seeks to clip start', async ({ page }) => {
   });
 
   // ── 2. Navigate directly to the clip editor ──────────────────────────────
-  await page.goto(`/shorts-studio/clips/${CLIP_ID}/edit`);
+  await gotoWithRetry(page, `/shorts-studio/clips/${CLIP_ID}/edit`);
   await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
   await page.screenshot({ path: 'pw-editor-02-loading.png' });
 

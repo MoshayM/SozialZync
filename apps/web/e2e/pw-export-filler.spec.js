@@ -7,6 +7,7 @@
  * that makes the filler progress button appear.
  */
 const { test, expect } = require('@playwright/test');
+const { gotoWithRetry } = require('./net-retry');
 
 const PROXY   = 'https://sozialzynk.vercel.app/api/proxy';
 const CLIP_ID = 'e2e-clip-01';
@@ -88,7 +89,7 @@ test('export page shows filler progress button when rendering', async ({ page })
   });
 
   // ── Navigate directly to the export page ─────────────────────────────────
-  await page.goto(`/shorts-studio/clips/${CLIP_ID}/export`);
+  await gotoWithRetry(page, `/shorts-studio/clips/${CLIP_ID}/export`);
   await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
   await page.screenshot({ path: 'pw-export-02-page.png' });
   console.log('✅ Export page loaded:', page.url());

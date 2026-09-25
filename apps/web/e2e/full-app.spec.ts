@@ -7,6 +7,7 @@
  */
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { gotoWithRetry } from './net-retry';
 
 const AUTH_FILE = path.join(__dirname, '.auth.json');
 
@@ -15,7 +16,7 @@ const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
 
 /** Navigate to `path` with inline JWT-expiry recovery for late-running authenticated tests. */
 async function gotoWithAuth(page: import('@playwright/test').Page, path: string) {
-  await page.goto(path);
+  await gotoWithRetry(page,path);
   // Client-side auth guard fires via useEffect after React hydration — can take up to ~10s
   // on slow Vercel cold starts. 3s was too short and caused false negatives (guard fired
   // after gotoWithAuth returned, causing mid-test redirects).
@@ -41,7 +42,7 @@ async function gotoWithAuth(page: import('@playwright/test').Page, path: string)
   ]);
 
   if (navigated) {
-    await page.goto(path);
+    await gotoWithRetry(page,path);
     return;
   }
 
@@ -51,14 +52,14 @@ async function gotoWithAuth(page: import('@playwright/test').Page, path: string)
     // 120 s clears a typical 2-minute rate-limit window.
     await page.waitForTimeout(120_000);
     // Re-navigate to reset form state, then re-submit fresh credentials.
-    await page.goto('/login');
+    await gotoWithRetry(page,'/login');
     await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
     await page.getByRole('button', { name: /sign in with password/i }).click();
   }
   // Railway should now be warm and rate-limit cleared — 120 s covers cold-start overhead.
   await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 120_000, waitUntil: 'commit' });
-  await page.goto(path);
+  await gotoWithRetry(page,path);
 }
 
 // ── 1. PUBLIC PAGES (no auth needed) ──────────────────────────────────────────
@@ -67,13 +68,13 @@ test.describe('Public — landing + auth pages', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test('root redirects away from bare domain', async ({ page }) => {
-    await page.goto('/');
+    await gotoWithRetry(page,'/');
     await page.waitForURL(/browse|login|home/, { timeout: 15_000 }).catch(() => {});
     expect(page.url()).not.toMatch(/^https?:\/\/[^/]+\/?$/);
   });
 
   test('login page renders correctly', async ({ page }) => {
-    await page.goto('/login');
+    await gotoWithRetry(page,'/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('input[type="email"]').first()).toBeVisible();
     await expect(page.locator('input[type="password"]').first()).toBeVisible();
@@ -83,7 +84,7 @@ test.describe('Public — landing + auth pages', () => {
   });
 
   test('login sign-in button disabled until both fields filled', async ({ page }) => {
-    await page.goto('/login');
+    await gotoWithRetry(page,'/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     const btn = page.getByRole('button', { name: /sign in with password/i });
     await expect(btn).toBeDisabled();
@@ -94,46 +95,46 @@ test.describe('Public — landing + auth pages', () => {
   });
 
   test('register page renders', async ({ page }) => {
-    await page.goto('/register');
+    await gotoWithRetry(page,'/register');
     await expect(page.getByRole('heading', { name: /create your account/i })).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('input[type="email"]').first()).toBeVisible();
   });
 
   test('register → login link works', async ({ page }) => {
-    await page.goto('/register');
+    await gotoWithRetry(page,'/register');
     await expect(page.getByRole('heading', { name: /create your account/i })).toBeVisible({ timeout: 20_000 });
     await page.getByRole('link', { name: /sign in/i }).first().click();
     await expect(page).toHaveURL(/login/);
   });
 
   test('forgot-password page renders', async ({ page }) => {
-    await page.goto('/forgot-password');
+    await gotoWithRetry(page,'/forgot-password');
     await expect(page.locator('input[type="email"]').first()).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: /send|reset|email/i })).toBeVisible();
   });
 
   test('login → forgot password link works', async ({ page }) => {
-    await page.goto('/login');
+    await gotoWithRetry(page,'/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     await page.getByRole('link', { name: /forgot password/i }).click();
     await expect(page).toHaveURL(/forgot-password/);
   });
 
   test('browse page loads without auth', async ({ page }) => {
-    await page.goto('/browse');
+    await gotoWithRetry(page,'/browse');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('header')).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: 'e2e/full-browse.png' });
   });
 
   test('privacy page loads', async ({ page }) => {
-    await page.goto('/privacy');
+    await gotoWithRetry(page,'/privacy');
     await expect(page).not.toHaveURL(/404|not.found/i);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('terms page loads', async ({ page }) => {
-    await page.goto('/terms');
+    await gotoWithRetry(page,'/terms');
     await expect(page).not.toHaveURL(/404|not.found/i);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
   });
@@ -151,7 +152,7 @@ test.describe('Auth protection — unauthenticated redirects', () => {
   ];
   for (const route of PROTECTED) {
     test(`${route} redirects to login`, async ({ page }) => {
-      await page.goto(route);
+      await gotoWithRetry(page,route);
       await page.waitForURL(/login/, { timeout: 20_000 }).catch(() => {});
       expect(page.url()).toMatch(/login/);
     });
@@ -163,96 +164,96 @@ test.describe('Auth protection — unauthenticated redirects', () => {
 
 test.describe('Authenticated — core pages load', () => {
   test('home dashboard renders', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page,'/home');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('aside, nav').first()).toBeVisible();
     await page.screenshot({ path: 'e2e/full-home.png' });
   });
 
   test('sidebar navigation links present', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page,'/home');
     await expect(page.locator('a[href="/projects"]').first()).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('a[href="/home"]').first()).toBeVisible();
   });
 
   test('projects page loads', async ({ page }) => {
-    await page.goto('/projects');
+    await gotoWithRetry(page,'/projects');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
     await page.screenshot({ path: 'e2e/full-projects.png' });
   });
 
   test('new project button visible', async ({ page }) => {
-    await page.goto('/projects');
+    await gotoWithRetry(page,'/projects');
     await expect(page.getByRole('button', { name: /new project/i })).toBeVisible({ timeout: 20_000 });
   });
 
   test('create project modal opens', async ({ page }) => {
-    await page.goto('/projects');
+    await gotoWithRetry(page,'/projects');
     await page.getByRole('button', { name: /new project/i }).click();
     await expect(page.locator('[role="dialog"], form').first()).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: 'e2e/full-create-project-modal.png' });
   });
 
   test('insights page loads', async ({ page }) => {
-    await page.goto('/insights');
+    await gotoWithRetry(page,'/insights');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('publish page loads', async ({ page }) => {
-    await page.goto('/publish');
+    await gotoWithRetry(page,'/publish');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('calendar page loads', async ({ page }) => {
-    await page.goto('/calendar');
+    await gotoWithRetry(page,'/calendar');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('library page loads', async ({ page }) => {
-    await page.goto('/library');
+    await gotoWithRetry(page,'/library');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
     await page.screenshot({ path: 'e2e/full-library.png' });
   });
 
   test('editor page loads', async ({ page }) => {
-    await page.goto('/editor');
+    await gotoWithRetry(page,'/editor');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2, textarea, [class*="editor"]').first()).toBeVisible({ timeout: 25_000 });
     await page.screenshot({ path: 'e2e/full-editor.png' });
   });
 
   test('/copilot redirects to /home (widget lives there)', async ({ page }) => {
-    await page.goto('/copilot');
+    await gotoWithRetry(page,'/copilot');
     await expect(page).toHaveURL(/home/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('copilot widget trigger button present on home page', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page,'/home');
     // The .cf-copilot-widget div starts hidden; the trigger button is always visible
     await expect(page.locator('[title="Ask Copilot"]')).toBeVisible({ timeout: 20_000 });
   });
 
   test('plans page heading visible', async ({ page }) => {
-    await page.goto('/plans');
+    await gotoWithRetry(page,'/plans');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.getByRole('heading', { name: /plans|pricing/i })).toBeVisible({ timeout: 20_000 });
     await page.screenshot({ path: 'e2e/full-plans.png' });
   });
 
   test('wallet page loads', async ({ page }) => {
-    await page.goto('/wallet');
+    await gotoWithRetry(page,'/wallet');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('admin page accessible for admin', async ({ page }) => {
-    await page.goto('/admin');
+    await gotoWithRetry(page,'/admin');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
     await page.screenshot({ path: 'e2e/full-admin.png' });
@@ -263,13 +264,13 @@ test.describe('Authenticated — core pages load', () => {
 
 test.describe('Authenticated — settings', () => {
   test('settings root loads', async ({ page }) => {
-    await page.goto('/settings');
+    await gotoWithRetry(page,'/settings');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('settings/channels — heading visible', async ({ page }) => {
-    await page.goto('/settings/channels');
+    await gotoWithRetry(page,'/settings/channels');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.getByRole('heading', { name: /channels/i })).toBeVisible({ timeout: 25_000 });
     await page.screenshot({ path: 'e2e/full-settings-channels.png' });
@@ -285,25 +286,25 @@ test.describe('Authenticated — settings', () => {
   });
 
   test('settings/ai-infrastructure loads', async ({ page }) => {
-    await page.goto('/settings/ai-infrastructure');
+    await gotoWithRetry(page,'/settings/ai-infrastructure');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('settings/ai-providers loads', async ({ page }) => {
-    await page.goto('/settings/ai-providers');
+    await gotoWithRetry(page,'/settings/ai-providers');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('settings/models loads', async ({ page }) => {
-    await page.goto('/settings/models');
+    await gotoWithRetry(page,'/settings/models');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('settings/storage loads', async ({ page }) => {
-    await page.goto('/settings/storage');
+    await gotoWithRetry(page,'/settings/storage');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
@@ -333,7 +334,7 @@ test.describe('API connectivity', () => {
 
 test.describe('Authenticated — navigation flows', () => {
   test('sidebar: home → projects via link', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page,'/home');
     await expect(page.locator('a[href="/projects"]').first()).toBeVisible({ timeout: 20_000 });
     await page.locator('a[href="/projects"]').first().click();
     await expect(page).toHaveURL(/projects/, { timeout: 20_000 });
@@ -342,19 +343,19 @@ test.describe('Authenticated — navigation flows', () => {
 
   test('insights page navigates correctly', async ({ page }) => {
     // The "Grow" sidebar section is collapsible — test page navigation directly
-    await page.goto('/insights');
+    await gotoWithRetry(page,'/insights');
     await expect(page).not.toHaveURL(/login/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('topbar renders', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page,'/home');
     await expect(page.locator('header, [class*="topbar"], [class*="header"]').first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('browser back works between pages', async ({ page }) => {
-    await page.goto('/home');
-    await page.goto('/projects');
+    await gotoWithRetry(page,'/home');
+    await gotoWithRetry(page,'/projects');
     await page.goBack();
     await expect(page).toHaveURL(/home/);
   });
@@ -364,12 +365,12 @@ test.describe('Authenticated — navigation flows', () => {
 
 test.describe('Authenticated — copilot widget', () => {
   test('copilot trigger button visible on home', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page,'/home');
     await expect(page.locator('[title="Ask Copilot"]')).toBeVisible({ timeout: 20_000 });
   });
 
   test('clicking Ask Copilot opens widget', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page,'/home');
     const trigger = page.locator('[title="Ask Copilot"]');
     await expect(trigger).toBeVisible({ timeout: 20_000 });
     await trigger.click();
@@ -426,19 +427,19 @@ test.describe('Responsive — mobile viewport', () => {
   });
 
   test('login renders on mobile', async ({ page }) => {
-    await page.goto('/login');
+    await gotoWithRetry(page,'/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     await page.screenshot({ path: 'e2e/full-mobile-login.png' });
   });
 
   test('browse renders on mobile', async ({ page }) => {
-    await page.goto('/browse');
+    await gotoWithRetry(page,'/browse');
     await expect(page.locator('header')).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: 'e2e/full-mobile-browse.png' });
   });
 
   test('brand panel hidden on mobile login', async ({ page }) => {
-    await page.goto('/login');
+    await gotoWithRetry(page,'/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('.lg\\:flex').first()).toBeHidden();
   });
@@ -450,7 +451,7 @@ test.describe('404 and error handling', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test('unknown route shows 404 or redirects gracefully', async ({ page }) => {
-    await page.goto('/this-page-does-not-exist-xyz-99999');
+    await gotoWithRetry(page,'/this-page-does-not-exist-xyz-99999');
     await expect(page.locator('body')).toBeVisible();
     const text = await page.locator('body').innerText();
     expect(text.length).toBeGreaterThan(10);
@@ -463,7 +464,7 @@ test.describe('Layout and visual sanity', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test('login page — no horizontal scroll', async ({ page }) => {
-    await page.goto('/login');
+    await gotoWithRetry(page,'/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     const clientW = await page.evaluate(() => document.documentElement.clientWidth);
@@ -471,7 +472,7 @@ test.describe('Layout and visual sanity', () => {
   });
 
   test('browse page — no horizontal scroll', async ({ page }) => {
-    await page.goto('/browse');
+    await gotoWithRetry(page,'/browse');
     await expect(page.locator('header')).toBeVisible({ timeout: 15_000 });
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     const clientW = await page.evaluate(() => document.documentElement.clientWidth);
@@ -481,7 +482,7 @@ test.describe('Layout and visual sanity', () => {
   test('login page — no critical console errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
-    await page.goto('/login');
+    await gotoWithRetry(page,'/login');
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(2000);
     const critical = errors.filter(e =>

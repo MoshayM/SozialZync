@@ -16,6 +16,7 @@
 import { test, expect, Page, Route } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
+import { gotoWithRetry } from './net-retry';
 
 const SCREENSHOT_DIR = path.join(__dirname, '..', 'pw-thumb-sched');
 
@@ -148,7 +149,7 @@ async function openPublishModal(
   await installMocks(page, opts);
 
   // Navigate directly — no real video needed; all API calls are mocked
-  await page.goto(`/shorts-studio/videos/${FAKE_VIDEO_ID}`);
+  await gotoWithRetry(page, `/shorts-studio/videos/${FAKE_VIDEO_ID}`);
   // Give React Query time to process mock responses and re-render
   await page.waitForTimeout(4000);
   await shot(page, '_after-nav');
