@@ -20,10 +20,8 @@ import { GrowthModule } from '../modules/growth/growth.module';
 import { AssetsModule } from '../modules/assets/assets.module';
 import { MediaModule } from '../modules/media/media.module';
 import { ShortsStudioModule } from '../modules/shorts-studio/shorts-studio.module';
-import { WalletModule } from '../modules/wallet/wallet.module';
 import { AiOpsModule } from '../modules/ai-ops/ai-ops.module';
 import { OrgsModule } from '../modules/orgs/orgs.module';
-import { TrialModule } from '../modules/trial/trial.module';
 import { GatewayModule } from '../gateway/gateway.module';
 import { ChannelsModule } from '../modules/channels/channels.module';
 import { AutomationModule } from '../modules/automation/automation.module';
@@ -50,10 +48,8 @@ import { EditorModule } from '../modules/editor/editor.module';
     AssetsModule,
     MediaModule,
     ShortsStudioModule,
-    WalletModule,
     AiOpsModule,
     OrgsModule,
-    TrialModule,
     GatewayModule,
     ChannelsModule,
     MetricsModule,

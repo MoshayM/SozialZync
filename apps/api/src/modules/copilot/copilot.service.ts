@@ -17,15 +17,11 @@ import { SmallVideoGenerationService } from '../shorts-studio/small-video-genera
 import { ChapterSyncService } from '../shorts-studio/chapter-sync.service';
 import { IntentCacheService } from './intent-cache.service';
 import { newAccumulator, runWithAiContext } from '../../common/ai-usage.context';
-import { WalletService, billingEnforced, creditsForCost } from '../wallet/wallet.service';
-import { PricingService } from '../ai-ops/pricing.service';
-import { OrgsService } from '../orgs/orgs.service';
 import { TrendService } from '../trend/trend.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { BenchmarkService } from '../analytics/benchmark.service';
 import { PlanExecutorService } from './plan-executor.service';
 import { SessionMemoryService } from './session-memory.service';
-import { randomUUID } from 'crypto';
 
 const MAX_PLAN_STEPS = 5;
 
@@ -166,12 +162,6 @@ export interface CopilotResponse {
   language?: string;
   executed?: { action: string; result: unknown };
   needsConfirmation?: CopilotCommand;
-  /**
-   * Credit quote shown WITH the confirmation gate (docs4/49 transparent-AI:
-   * a paid action is accepted against a visible estimate). Resolved from the
-   * pricing rules; null when no rule prices this action (cost varies by usage).
-   */
-  estimatedCredits?: number | null;
   /** True when the intent was resolved from the phrase cache — zero tokens (§12). */
   fromCache?: boolean;
   /** LLM tokens this turn actually consumed (0 on cache hits). */
@@ -208,9 +198,6 @@ export class CopilotService {
     private readonly smallVideos: SmallVideoGenerationService,
     private readonly chapterSync: ChapterSyncService,
     private readonly intentCache: IntentCacheService,
-    private readonly walletService: WalletService,
-    private readonly pricingService: PricingService,
-    private readonly orgs: OrgsService,
     private readonly trendService: TrendService,
     private readonly calendarService: CalendarService,
     private readonly benchmarkService: BenchmarkService,
@@ -281,38 +268,7 @@ export class CopilotService {
       const pendingNote = req.pendingCommand
         ? `\n\nPENDING CONFIRMATION: this command awaits the user's yes/no: ${JSON.stringify(req.pendingCommand)}. If their latest message confirms it (yes/haan/ok/go ahead, any language), return EXACTLY that command. If they decline, set command to null and acknowledge.`
         : '';
-      // §5.3 reserve→settle around the one LLM call of this turn (cache hits
-      // never get here — zero tokens, zero holds).
       const accumulator = newAccumulator();
-      let reservationId: string | null = null;
-      // Phase 5 §7 price lock: rule price quoted here IS the settle amount
-      let lockedPrice: { creditCost: number; ruleId: string } | null = null;
-      // Phase 5 §10: when set, the hold sits on the org shared wallet and the
-      // team/org budget must be reconciled on settle/release.
-      let orgBilling: { orgId: string; teamId: string | null; reserved: number } | null = null;
-      if (billingEnforced()) {
-        lockedPrice = await this.pricingService.resolvePrice({ action: 'chat' }).catch(() => null);
-        const estimate = lockedPrice?.creditCost ?? Math.max(1, Number(process.env['COPILOT_RESERVE_CREDITS']) || 5);
-        if (req.orgId) {
-          // Org billing: orgSpend gates SPEND role + budget, holds on the org
-          // wallet, and records budget consumption for the reserved amount.
-          const spend = await this.orgs.orgSpend(userId, req.orgId, {
-            amount: estimate,
-            action: 'chat',
-            memberUserId: userId,
-          });
-          if (spend.status === 'NEEDS_APPROVAL') {
-            // Managers were notified inside orgSpend; the turn cannot proceed
-            // until one approves and the user retries.
-            throw new BadRequestException('ORG_APPROVAL_REQUIRED');
-          }
-          reservationId = spend.reservationId;
-          orgBilling = { orgId: req.orgId, teamId: spend.teamId, reserved: estimate };
-        } else {
-          const reservation = await this.walletService.reserve(userId, estimate, `copilot:${randomUUID()}`, 'AI_REQUEST');
-          reservationId = reservation.id;
-        }
-      }
       // Build the message array for the LLM. The context block MUST be merged
       // into the last user message — Anthropic (and most providers) reject
       // consecutive same-role messages, so adding a second 'user' turn after
@@ -328,43 +284,15 @@ export class CopilotService {
           ? rawMsgs.map((m, i) => i === lastUserIdx ? { ...m, content: sanitizedLastText + contextSuffix } : m)
           : [...rawMsgs, { role: 'user', content: `CONTEXT:\n${context}${pendingNote}` }];
 
-      try {
-        decision = await runWithAiContext({ userId, accumulator }, () => callAIStructured(
-          llmMessages,
-          CopilotDecisionSchema,
-          {
-            systemPrompt: COPILOT_SYSTEM,
-            maxTokens: 1024,
-            onUsage: (e) => { tokensUsed += e.tokensIn + e.tokensOut; },
-          },
-        ));
-      } catch (err) {
-        if (reservationId) {
-          await this.walletService.releaseReservation(reservationId).catch(() => undefined);
-          // The hold debited nothing — roll the budget consumption back too.
-          if (orgBilling) {
-            await this.orgs
-              .recordConsumption(orgBilling.orgId, orgBilling.teamId ?? undefined, -orgBilling.reserved)
-              .catch(() => undefined);
-          }
-        }
-        throw err;
-      }
-      if (reservationId) {
-        const settleCredits = lockedPrice ? lockedPrice.creditCost : creditsForCost(accumulator.costUsd);
-        await this.walletService.settleReservation(reservationId, settleCredits, {
-          source: 'copilot',
-          ...(lockedPrice ? { priceLocked: true, pricingRuleId: lockedPrice.ruleId } : {}),
-          ...(orgBilling ? { orgId: orgBilling.orgId, memberUserId: userId } : {}),
-        }).catch((e) => this.logger.warn(`copilot settle failed: ${e instanceof Error ? e.message : String(e)}`));
-        // Budget consumption was recorded for the reserved estimate — adjust
-        // to what actually settled so the period reflects real spend.
-        if (orgBilling && settleCredits !== orgBilling.reserved) {
-          await this.orgs
-            .recordConsumption(orgBilling.orgId, orgBilling.teamId ?? undefined, settleCredits - orgBilling.reserved)
-            .catch(() => undefined);
-        }
-      }
+      decision = await runWithAiContext({ userId, accumulator }, () => callAIStructured(
+        llmMessages,
+        CopilotDecisionSchema,
+        {
+          systemPrompt: COPILOT_SYSTEM,
+          maxTokens: 1024,
+          onUsage: (e) => { tokensUsed += e.tokensIn + e.tokensOut; },
+        },
+      ));
       if (!req.pendingCommand) await this.intentCache.maybeStore(sanitizedLastText, decision);
     }
 
@@ -396,17 +324,11 @@ export class CopilotService {
     // cache hits included: only the LLM interpretation is reused, never the gate.
     if (!confirmsPending && EXPENSIVE_ACTIONS.includes(decision.command.action)) {
       await this.record(userId, decision.command.action, decision.command, 'NEEDS_CONFIRMATION', { source, fromCache, tokensUsed, lastUserText }, false);
-      // Quote the action so the confirmation is an acceptance of a visible
-      // estimate (transparent-AI invariant); null → no rule, cost varies.
-      const quote = await this.pricingService
-        .resolvePrice({ action: decision.command.action })
-        .catch(() => null);
       const planId = decision.plan ? this.planExecutor.startPlan(userId, decision.plan) : undefined;
       return {
         reply: decision.reply,
         language: decision.language,
         needsConfirmation: decision.command,
-        estimatedCredits: quote?.creditCost ?? null,
         fromCache,
         tokensUsed,
         ...(decision.plan ? { plan: decision.plan } : {}),

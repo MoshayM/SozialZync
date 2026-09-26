@@ -15,7 +15,6 @@ import { Request as ExpressRequest } from 'express';
 import { IsObject, IsOptional, IsString } from 'class-validator';
 import { JobTypeSchema, type JobType } from '@cf/shared';
 import { DeveloperKeyGuard, PaidAction, RequireScope } from './developer-key.guard';
-import { WalletService } from '../wallet/wallet.service';
 import { ChannelsService } from '../channels/channels.service';
 import { ProjectsService } from '../projects/projects.service';
 import { JobsService } from '../jobs/jobs.service';
@@ -49,7 +48,6 @@ class DevEnqueueDto {
 @UseGuards(DeveloperKeyGuard)
 export class DevApiController {
   constructor(
-    private readonly wallet: WalletService,
     private readonly channels: ChannelsService,
     private readonly projects: ProjectsService,
     private readonly jobs: JobsService,
@@ -60,13 +58,6 @@ export class DevApiController {
   me(@Request() req: ExpressRequest & { user: DevKeyUser }) {
     const { sub: userId, scopes, sandbox } = req.user;
     return { userId, scopes, sandbox };
-  }
-
-  /** Returns the caller's wallet balance. Requires scope: wallet:read */
-  @Get('wallet/balance')
-  @RequireScope('wallet:read')
-  async walletBalance(@Request() req: ExpressRequest & { user: DevKeyUser }) {
-    return this.wallet.getBalance(req.user.sub);
   }
 
   /** Returns the caller's channels (id + title only). Requires scope: channels:read */

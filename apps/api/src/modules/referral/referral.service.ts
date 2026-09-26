@@ -1,19 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { WalletService } from '../wallet/wallet.service';
 import { randomBytes } from 'crypto';
-
-const REFERRER_CREDITS = 50;
-const REFERRED_CREDITS = 25;
 
 @Injectable()
 export class ReferralService {
   private readonly logger = new Logger(ReferralService.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly wallet: WalletService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getOrCreateCode(userId: string): Promise<{ code: string }> {
     const existing = await this.prisma.referralCode.findUnique({ where: { userId } });
@@ -37,7 +30,7 @@ export class ReferralService {
       return { ok: false, message: 'You have already used a referral code.' };
     }
 
-    const referral = await this.prisma.referral.create({
+    await this.prisma.referral.create({
       data: {
         referrerId: referralCode.userId,
         referredId: userId,
@@ -51,26 +44,8 @@ export class ReferralService {
       data: { usesCount: { increment: 1 } },
     });
 
-    // Grant credits to referred user
-    await this.wallet.credit(userId, {
-      entryType: 'REFERRAL',
-      referenceType: 'REFERRAL',
-      referenceId: referral.id,
-      amount: REFERRED_CREDITS,
-      idempotencyKey: `referral:referred:${referral.id}`,
-    });
-
-    // Grant credits to referrer
-    await this.wallet.credit(referralCode.userId, {
-      entryType: 'REFERRAL',
-      referenceType: 'REFERRAL',
-      referenceId: referral.id,
-      amount: REFERRER_CREDITS,
-      idempotencyKey: `referral:referrer:${referral.id}`,
-    });
-
     this.logger.log(`Referral redeemed: referrer=${referralCode.userId} referred=${userId} code=${code}`);
-    return { ok: true, message: `You've been referred! ${REFERRED_CREDITS} credits added to your wallet.` };
+    return { ok: true, message: "You've been referred! Welcome to SozialZynk." };
   }
 
   async getEarnings(userId: string) {
@@ -78,21 +53,17 @@ export class ReferralService {
       this.prisma.referralCode.findUnique({ where: { userId } }),
       this.prisma.referral.findMany({
         where: { referrerId: userId },
-        include: { rewards: { where: { beneficiaryId: userId } } },
         orderBy: { createdAt: 'desc' },
       }),
     ]);
-    const totalCredits = referrals.flatMap((r) => r.rewards).reduce((s, rw) => s + rw.credits, 0);
     return {
       code: codeRow?.code ?? null,
-      totalCredits,
       qualifiedCount: referrals.filter((r) => r.status === 'QUALIFIED' || r.status === 'REWARDED').length,
       pendingCount: referrals.filter((r) => r.status === 'PENDING').length,
       flaggedCount: referrals.filter((r) => r.status === 'FLAGGED').length,
       referrals: referrals.map((r) => ({
         id: r.id,
         status: r.status,
-        reward: r.rewards.reduce((s, rw) => s + rw.credits, 0),
         createdAt: r.createdAt.toISOString(),
       })),
     };

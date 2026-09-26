@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { WalletService } from '../wallet/wallet.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 // ── Pure helpers (exported for tests) ────────────────────────────────────────
@@ -87,133 +86,6 @@ export function rolloverWindows(
   return windows;
 }
 
-/**
- * Parse the reservation idempotency key written by orgSpend:
- * `org-spend:{orgId}:{memberUserId}:{action}:{ts}`.
- *
- * The action segment may itself contain ':' — orgId/memberUserId are cuids
- * (no ':') and the trailing segment is a numeric timestamp, so everything
- * between index 2 and the final segment is the action.  Returns null for
- * keys not produced by orgSpend.
- */
-export function parseOrgSpendKey(
-  key: string,
-): { orgId: string; memberUserId: string; action: string } | null {
-  const parts = key.split(':');
-  if (parts.length < 5 || parts[0] !== 'org-spend') return null;
-  const ts = parts[parts.length - 1];
-  if (!/^\d+$/.test(ts)) return null;
-  return {
-    orgId: parts[1],
-    memberUserId: parts[2],
-    action: parts.slice(3, -1).join(':'),
-  };
-}
-
-export interface UsageReportRow {
-  userId: string;
-  email: string | null;
-  teamId: string | null;
-  role: string;
-  actions: Record<string, { credits: number; count: number }>;
-  totalCredits: number;
-  count: number;
-}
-
-/**
- * Roll up org-wallet reservations into per-member usage rows (spec §10).
- *
- * Credits counted: settledCredits for SETTLED holds (the real debit),
- * reserved amount for still-HELD ones.  RELEASED holds are expected to be
- * filtered out by the caller (credits were returned).  Reservations whose
- * member is no longer in the org still appear (role 'REMOVED') — usage
- * history must not vanish with a membership.
- */
-export function buildUsageReport(
-  reservations: Array<{ idempotencyKey: string; amount: number; status: string; settledCredits: number | null }>,
-  members: Array<{ userId: string; teamId: string | null; role: string; email: string | null }>,
-): { byMember: UsageReportRow[]; totalCredits: number; reservationCount: number } {
-  const memberIndex = new Map(members.map((m) => [m.userId, m]));
-  const rows = new Map<string, UsageReportRow>();
-  let totalCredits = 0;
-  let reservationCount = 0;
-
-  for (const r of reservations) {
-    const parsed = parseOrgSpendKey(r.idempotencyKey);
-    if (!parsed) continue;
-
-    const credits = r.status === 'SETTLED' ? (r.settledCredits ?? r.amount) : r.amount;
-    const member = memberIndex.get(parsed.memberUserId);
-
-    let row = rows.get(parsed.memberUserId);
-    if (!row) {
-      row = {
-        userId: parsed.memberUserId,
-        email: member?.email ?? null,
-        teamId: member?.teamId ?? null,
-        role: member?.role ?? 'REMOVED',
-        actions: {},
-        totalCredits: 0,
-        count: 0,
-      };
-      rows.set(parsed.memberUserId, row);
-    }
-
-    const bucket = (row.actions[parsed.action] ??= { credits: 0, count: 0 });
-    bucket.credits += credits;
-    bucket.count += 1;
-    row.totalCredits += credits;
-    row.count += 1;
-    totalCredits += credits;
-    reservationCount += 1;
-  }
-
-  return {
-    byMember: [...rows.values()].sort((a, b) => b.totalCredits - a.totalCredits),
-    totalCredits,
-    reservationCount,
-  };
-}
-
-/** Flatten a usage report into CSV (one row per member × action). */
-export function usageReportCsv(report: { byMember: UsageReportRow[] }): string {
-  const esc = (v: string | null) => {
-    const s = v ?? '';
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const lines = ['userId,email,teamId,role,action,credits,count'];
-  for (const row of report.byMember) {
-    for (const [action, agg] of Object.entries(row.actions)) {
-      lines.push(
-        [esc(row.userId), esc(row.email), esc(row.teamId), esc(row.role), esc(action), agg.credits, agg.count].join(','),
-      );
-    }
-  }
-  return lines.join('\n') + '\n';
-}
-
-export type SpendDecision = 'ALLOW' | 'BLOCK_BUDGET' | 'NEEDS_APPROVAL';
-
-/**
- * Determine whether a spend of `amount` credits should be allowed.
- *
- * Precedence (most restrictive first):
- *   1. hardCap && amount > remaining → BLOCK_BUDGET (not enough budget)
- *   2. approvalRequired && amount >= approvalThreshold → NEEDS_APPROVAL
- *   3. else → ALLOW  (soft-cap overspend is permitted; caller notifies manager)
- */
-export function spendDecision(args: {
-  hardCap: boolean;
-  remaining: number;
-  amount: number;
-  approvalRequired: boolean;
-  approvalThreshold: number;
-}): SpendDecision {
-  if (args.hardCap && args.amount > args.remaining) return 'BLOCK_BUDGET';
-  if (args.approvalRequired && args.amount >= args.approvalThreshold) return 'NEEDS_APPROVAL';
-  return 'ALLOW';
-}
-
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
 export interface AddMemberDto {
@@ -231,15 +103,7 @@ export interface SetBudgetDto {
   hardCap?: boolean;
 }
 
-export interface OrgSpendDto {
-  amount: number;
-  action: string;
-  memberUserId: string;
-}
-
 // ── Service ───────────────────────────────────────────────────────────────────
-
-const ORG_APPROVAL_THRESHOLD_DEFAULT = 100;
 
 @Injectable()
 export class OrgsService {
@@ -247,16 +111,11 @@ export class OrgsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly walletService: WalletService,
     private readonly notifications: NotificationsService,
   ) {}
 
   // ── Org lifecycle ──────────────────────────────────────────────────────────
 
-  /**
-   * Create an org, add the creator as ORG_ADMIN, and provision the org wallet.
-   * All three writes happen in a single transaction.
-   */
   async create(ownerUserId: string, name: string, billingEmail?: string) {
     return this.prisma.$transaction(async (tx) => {
       const org = await tx.organization.create({
@@ -266,9 +125,6 @@ export class OrgsService {
       await tx.orgMembership.create({
         data: { orgId: org.id, userId: ownerUserId, role: 'ORG_ADMIN' },
       });
-
-      // Provision the org shared wallet inside the same transaction.
-      await tx.wallet.create({ data: { orgId: org.id } });
 
       this.logger.log(`[orgs] created org ${org.id} owner=${ownerUserId}`);
       return org;
@@ -414,237 +270,9 @@ export class OrgsService {
     const idx = currentPeriodFor(periods, now);
     const period = idx >= 0 ? periods[idx] : null;
 
-    const wallet = await this.prisma.wallet.findUnique({ where: { orgId } });
-
     return {
       period,
       remaining: period ? remainingCredits(period.allocatedCredits, period.consumedCredits) : null,
-      orgBalance: wallet?.balanceCredits ?? 0,
-    };
-  }
-
-  // ── Org spend (main integration point) ───────────────────────────────────
-
-  /**
-   * Gate and execute a credit spend against the org wallet.
-   *
-   * Flow:
-   *   1. Resolve the member's membership (+ teamId for budget scope).
-   *   2. Find the current BudgetPeriod for (org, teamId|org-wide).
-   *   3. Run spendDecision.
-   *   4a. ALLOW        → reserve on org wallet + recordConsumption.
-   *   4b. NEEDS_APPROVAL → notify manager + return status (no reservation).
-   *      Deviation from spec §10: the existing Approval model is tightly coupled
-   *      to AgentJob/Project (project.userId ownership check) and cannot cleanly
-   *      represent org-scoped spend approvals.  Instead we: (a) return
-   *      { status: 'NEEDS_APPROVAL' } to the caller; (b) notify all
-   *      TEAM_MANAGER/ORG_ADMIN members in the team; (c) write an audit log row.
-   *      If a dedicated org approval table is added later, wire it here.
-   *   4c. BLOCK_BUDGET → throw BadRequestException('ORG_BUDGET_EXCEEDED').
-   *
-   * After a successful reserve, soft-cap (non-hard-cap) overspend also fires a
-   * manager notification.
-   */
-  async orgSpend(
-    actorId: string,
-    orgId: string,
-    dto: OrgSpendDto,
-  ): Promise<
-    { status: 'ALLOWED'; reservationId: string; teamId: string | null } | { status: 'NEEDS_APPROVAL' }
-  > {
-    // 1. Resolve membership
-    const membership = await this.prisma.orgMembership.findUnique({
-      where: { orgId_userId: { orgId, userId: dto.memberUserId } },
-    });
-    if (!membership) throw new NotFoundException('Member is not part of this organisation');
-
-    if (!orgRoleAllows(membership.role, 'SPEND')) {
-      throw new ForbiddenException('Member role does not permit spending');
-    }
-
-    // 2. Current budget period (team-scoped first, then org-wide fallback)
-    const now = new Date();
-    let period = await this.currentPeriod(orgId, membership.teamId ?? undefined, now);
-    if (!period) {
-      period = await this.currentPeriod(orgId, undefined, now);
-    }
-
-    // 3. Spend decision
-    const approvalThreshold =
-      Math.max(1, Number(process.env['ORG_APPROVAL_THRESHOLD_CREDITS']) || ORG_APPROVAL_THRESHOLD_DEFAULT);
-
-    const remaining = period ? remainingCredits(period.allocatedCredits, period.consumedCredits) : Infinity;
-    const hardCap = period?.hardCap ?? false;
-
-    const decision = spendDecision({
-      hardCap,
-      remaining: remaining === Infinity ? Number.MAX_SAFE_INTEGER : remaining,
-      amount: dto.amount,
-      approvalRequired: membership.approvalRequired,
-      approvalThreshold,
-    });
-
-    if (decision === 'BLOCK_BUDGET') {
-      throw new BadRequestException('ORG_BUDGET_EXCEEDED');
-    }
-
-    if (decision === 'NEEDS_APPROVAL') {
-      // Notify managers (non-fatal)
-      await this.notifyManagers(orgId, membership.teamId ?? undefined, {
-        type: 'org.spend.approval_required',
-        title: 'Spend approval required',
-        body: `A ${dto.amount}-credit action (${dto.action}) needs approval`,
-        meta: { orgId, memberUserId: dto.memberUserId, amount: dto.amount, action: dto.action },
-      });
-
-      this.logger.log(
-        `[orgs] orgSpend NEEDS_APPROVAL org=${orgId} member=${dto.memberUserId} amount=${dto.amount}`,
-      );
-      return { status: 'NEEDS_APPROVAL' };
-    }
-
-    // 4a. ALLOW — reserve on the org wallet
-    const orgWallet = await this.walletService.ensureOrgWallet(orgId);
-    // Random digits keep the tail numeric (parseOrgSpendKey contract) while
-    // preventing same-millisecond key collisions from reusing a hold.
-    const nonce = Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0');
-    const idempotencyKey = `org-spend:${orgId}:${dto.memberUserId}:${dto.action}:${Date.now()}${nonce}`;
-    const reservation = await this.walletService.reserveForWallet(
-      orgWallet.id,
-      dto.amount,
-      idempotencyKey,
-      'AI_REQUEST',
-      dto.action,
-    );
-
-    // Record consumption against the current budget period
-    if (period) {
-      await this.recordConsumption(orgId, membership.teamId ?? undefined, dto.amount);
-    }
-
-    // Soft-cap overspend notification (period exists, not hard-cap, but over budget)
-    if (period && !hardCap && dto.amount > remaining) {
-      await this.notifyManagers(orgId, membership.teamId ?? undefined, {
-        type: 'org.budget.softcap',
-        title: 'Budget soft cap exceeded',
-        body: `Org budget soft cap has been exceeded by ${dto.amount - remaining} credits`,
-        meta: { orgId, teamId: membership.teamId, amount: dto.amount, remaining },
-      });
-    }
-
-    // 80% consumed threshold notification
-    if (period) {
-      const newConsumed = period.consumedCredits + dto.amount;
-      const pct = (newConsumed / period.allocatedCredits) * 100;
-      if (pct >= 80) {
-        await this.notifyAdmins(orgId, {
-          type: 'org.budget.alert',
-          title: 'Budget 80% consumed',
-          body: `Organisation budget is ${Math.round(pct)}% consumed`,
-          meta: { orgId, teamId: period.teamId, pct, consumed: newConsumed, allocated: period.allocatedCredits },
-        });
-      }
-    }
-
-    this.logger.log(
-      `[orgs] orgSpend ALLOWED org=${orgId} member=${dto.memberUserId} amount=${dto.amount} reservation=${reservation.id}`,
-    );
-    return { status: 'ALLOWED', reservationId: reservation.id, teamId: membership.teamId };
-  }
-
-  /**
-   * Adjust consumedCredits on the current budget period (negative delta =
-   * rollback, e.g. a released hold or a settle below the reserved estimate).
-   *
-   * Resolves the period with the SAME fallback as the spend gate — the
-   * member's team period first, then the org-wide one — so consumption lands
-   * on the period that actually gated the spend. (Previously a team member
-   * gated by the org-wide fallback never had consumption recorded at all.)
-   */
-  async recordConsumption(orgId: string, teamId: string | undefined, credits: number) {
-    if (credits === 0) return;
-    const now = new Date();
-    let period = await this.currentPeriod(orgId, teamId, now);
-    if (!period && teamId) period = await this.currentPeriod(orgId, undefined, now);
-    if (!period) return;
-    await this.prisma.budgetPeriod.update({
-      where: { id: period.id },
-      data: { consumedCredits: { increment: credits } },
-    });
-  }
-
-  // ── Usage reports (spec §10) ──────────────────────────────────────────────
-
-  /**
-   * Per-member usage rolled up from the org wallet's reservations
-   * (spec §10 "usage reports per team/department/member").
-   *
-   * Requires VIEW_REPORTS (ORG_ADMIN / BILLING_ADMIN / TEAM_MANAGER).
-   * RELEASED holds are excluded — those credits were returned.
-   * `teamId` filters rows to members of that team (usage by ex-members of the
-   * team is attributed by their CURRENT membership, the ledger has no
-   * historical team snapshot — documented limitation).
-   */
-  async usageReport(
-    actorId: string,
-    orgId: string,
-    opts: { from?: Date; to?: Date; teamId?: string } = {},
-  ) {
-    await this.requireOrgAction(actorId, orgId, 'VIEW_REPORTS');
-
-    const wallet = await this.prisma.wallet.findUnique({ where: { orgId } });
-    if (!wallet) throw new NotFoundException('Organisation wallet not found');
-
-    const [reservations, memberships] = await Promise.all([
-      this.prisma.creditReservation.findMany({
-        where: {
-          walletId: wallet.id,
-          status: { in: ['HELD', 'SETTLED'] },
-          idempotencyKey: { startsWith: `org-spend:${orgId}:` },
-          ...(opts.from || opts.to
-            ? { createdAt: { ...(opts.from ? { gte: opts.from } : {}), ...(opts.to ? { lt: opts.to } : {}) } }
-            : {}),
-        },
-        select: { idempotencyKey: true, amount: true, status: true, settledCredits: true },
-      }),
-      this.prisma.orgMembership.findMany({
-        where: { orgId },
-        select: { userId: true, teamId: true, role: true },
-      }),
-    ]);
-
-    // OrgMembership has no user relation — resolve emails by id.
-    const users = await this.prisma.user.findMany({
-      where: { id: { in: memberships.map((m) => m.userId) } },
-      select: { id: true, email: true },
-    });
-    const emailById = new Map(users.map((u) => [u.id, u.email]));
-
-    const members = memberships.map((m) => ({
-      userId: m.userId,
-      teamId: m.teamId,
-      role: m.role,
-      email: emailById.get(m.userId) ?? null,
-    }));
-
-    const report = buildUsageReport(reservations, members);
-
-    const byMember = opts.teamId
-      ? report.byMember.filter((r) => r.teamId === opts.teamId)
-      : report.byMember;
-
-    return {
-      orgId,
-      from: opts.from ?? null,
-      to: opts.to ?? null,
-      teamId: opts.teamId ?? null,
-      byMember,
-      totalCredits: opts.teamId
-        ? byMember.reduce((s, r) => s + r.totalCredits, 0)
-        : report.totalCredits,
-      reservationCount: opts.teamId
-        ? byMember.reduce((s, r) => s + r.count, 0)
-        : report.reservationCount,
     };
   }
 

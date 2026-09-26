@@ -1,9 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { embedTexts } from '@cf/shared';
-import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { newAccumulator, runWithAiContext } from '../../common/ai-usage.context';
-import { WalletService, billingEnforced, creditsForCost } from '../wallet/wallet.service';
 
 export interface RankedSegment<T> {
   item: T;
@@ -44,10 +42,7 @@ export function rankBySimilarity<T>(
  */
 @Injectable()
 export class SemanticSearchService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly wallet: WalletService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async search(importedVideoId: string, query: string, limit = 10, userId?: string) {
     const video = await this.prisma.importedVideo.findUnique({ where: { id: importedVideoId } });
@@ -63,28 +58,9 @@ export class SemanticSearchService {
       return { query, results: [], embeddedSegments: 0, totalSegments, needsEmbeddings: totalSegments > 0 };
     }
 
-    // §5.3/§9.1 fail closed: a query embedding is a real (tiny) spend
-    if (billingEnforced() && userId) {
-      const { available } = await this.wallet.availableCredits(userId);
-      if (available < 1) throw new BadRequestException('INSUFFICIENT_CREDITS');
-    }
-
-    // Query embeddings run outside any job — attribute them to the video here
     const accumulator = newAccumulator();
     const { embeddings } = await runWithAiContext({ importedVideoId, userId, accumulator }, () => embedTexts([query]));
 
-    // Post-hoc debit (no hold — the call is sub-second); min 1 credit, and
-    // never fail the search the user already paid the provider for
-    if (billingEnforced() && userId && accumulator.costUsd > 0) {
-      await this.wallet.debit(userId, {
-        entryType: 'USAGE_DEBIT',
-        amount: Math.max(1, creditsForCost(accumulator.costUsd)),
-        referenceType: 'AI_REQUEST',
-        referenceId: importedVideoId,
-        idempotencyKey: `search:${randomUUID()}`,
-        metadata: { kind: 'semantic-search', costUsd: accumulator.costUsd },
-      }).catch(() => undefined);
-    }
     const ranked = rankBySimilarity(
       embeddings[0]!,
       segments.map((s) => ({ item: s, vector: s.embedding })),
@@ -123,11 +99,6 @@ export class SemanticSearchService {
    * pgvector deviation note in docs/video-hub.md).
    */
   async searchLibrary(userId: string, query: string, limitVideos = 5, limitPerVideo = 3) {
-    if (billingEnforced()) {
-      const { available } = await this.wallet.availableCredits(userId);
-      if (available < 1) throw new BadRequestException('INSUFFICIENT_CREDITS');
-    }
-
     const segments = await this.prisma.transcriptSegment.findMany({
       where: { embedding: { isEmpty: false }, importedVideo: { project: { userId } } },
       select: {
@@ -141,15 +112,6 @@ export class SemanticSearchService {
 
     const accumulator = newAccumulator();
     const { embeddings } = await runWithAiContext({ userId, accumulator }, () => embedTexts([query]));
-    if (billingEnforced() && accumulator.costUsd > 0) {
-      await this.wallet.debit(userId, {
-        entryType: 'USAGE_DEBIT',
-        amount: Math.max(1, creditsForCost(accumulator.costUsd)),
-        referenceType: 'AI_REQUEST',
-        idempotencyKey: `library-search:${randomUUID()}`,
-        metadata: { kind: 'library-search', costUsd: accumulator.costUsd },
-      }).catch(() => undefined);
-    }
 
     const ranked = rankBySimilarity(
       embeddings[0]!,

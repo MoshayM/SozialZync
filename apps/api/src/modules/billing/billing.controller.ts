@@ -67,7 +67,7 @@ export class BillingController {
   @UseGuards(JwtAuthGuard)
   @Get('portal')
   getBillingPortal(@CurrentUser() user: JwtPayload, @Query('returnUrl') returnUrl: string) {
-    return this.svc.getBillingPortalUrl(user.sub, returnUrl ?? '/wallet');
+    return this.svc.getBillingPortalUrl(user.sub, returnUrl ?? '/billing');
   }
 
   @Post('webhook')

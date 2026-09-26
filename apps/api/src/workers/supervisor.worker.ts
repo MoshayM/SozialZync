@@ -41,10 +41,6 @@ import { buildSrt, buildVtt, fitCuesToDuration } from '../modules/media/subtitle
 import { planPipeline, partitionResume, batchStages, estimateRemainingSecs, OPTIONAL_SHORTS_STAGES, type PipelineScope, type PipelineStage } from './pipeline-plan';
 import { newAccumulator, runWithAiContext } from '../common/ai-usage.context';
 import { runWithCorrelationId } from '../common/correlation.context';
-import { WalletService, billingEnforced, creditsForCost } from '../modules/wallet/wallet.service';
-import { PricingService } from '../modules/ai-ops/pricing.service';
-import { OrgsService } from '../modules/orgs/orgs.service';
-import { TrialLimitsService } from '../modules/trial/trial-limits.service';
 import { EventsGateway } from '../gateway/events.gateway';
 import { AGENT_QUEUE } from '../modules/jobs/jobs.module';
 import { callAIStructured } from '@cf/shared';
@@ -116,10 +112,6 @@ export class SupervisorWorker extends WorkerHost {
     private readonly captionGeneration: CaptionGenerationService,
     private readonly shortsRender: ShortsRenderService,
     private readonly shortsExport: ShortsExportService,
-    private readonly walletService: WalletService,
-    private readonly pricingService: PricingService,
-    private readonly orgs: OrgsService,
-    private readonly trialLimits: TrialLimitsService,
     private readonly events: EventsGateway,
     private readonly channelSync: ChannelSyncService,
     private readonly metrics: MetricsService,
@@ -161,96 +153,14 @@ export class SupervisorWorker extends WorkerHost {
     await this.prisma.agentJob.update({ where: { id: jobId }, data: { status: 'RUNNING', startedAt: new Date() } });
     this.events.emitJobUpdate(jobId, { status: 'RUNNING', type }, projectId);
 
-    // §5.3 reserve→settle: hold credits before AI runs (opt-in via
-    // BILLING_ENFORCE_CREDITS). Insufficient credits fail the job here,
-    // before any provider spend.
     const accumulator = newAccumulator();
-    let reservationId: string | null = null;
-    let holdUserId: string | null = null;
-    // Phase 5 §10: when the project bills an org, the hold sits on the org
-    // shared wallet and budget consumption must be reconciled on settle/release.
-    let orgBilling: { orgId: string; teamId: string | null; reserved: number } | null = null;
-    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { userId: true, billingOrgId: true } });
-
-    // Phase 6 §7: trial feature gate — server-side, before any spend.
-    // Non-trial users pass through untouched.
-    if (project) {
-      try {
-        await this.trialLimits.assertAllowed(project.userId, 'daily_ai_requests');
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        await this.prisma.agentJob.update({
-          where: { id: jobId },
-          data: { status: 'FAILED', error: msg, completedAt: new Date() },
-        });
-        this.events.emitJobFailed(jobId, msg, projectId);
-        throw err;
-      }
-    }
-
-    // Phase 5 §7: a matching pricing rule QUOTES the price here and LOCKS it —
-    // the settle uses this exact amount, never a mid-flight recalculation.
-    let lockedPrice: { creditCost: number; ruleId: string } | null = null;
-    if (billingEnforced()) {
-      if (project) {
-        holdUserId = project.userId;
-        lockedPrice = await this.pricingService.resolvePrice({ action: type }).catch(() => null);
-        const estimate = lockedPrice?.creditCost ?? Math.max(1, Number(process.env['JOB_RESERVE_CREDITS']) || 50);
-        try {
-          if (project.billingOrgId) {
-            // Org billing: orgSpend gates SPEND role + team/org budget and
-            // holds on the org shared wallet (same pattern as copilot turns).
-            const spend = await this.orgs.orgSpend(holdUserId, project.billingOrgId, {
-              amount: estimate,
-              action: type,
-              memberUserId: holdUserId,
-            });
-            if (spend.status === 'NEEDS_APPROVAL') {
-              // Managers were notified inside orgSpend; the job cannot run
-              // until one approves and the user re-enqueues it.
-              throw new Error('ORG_APPROVAL_REQUIRED: spend exceeds your approval threshold — a manager has been notified');
-            }
-            reservationId = spend.reservationId;
-            orgBilling = { orgId: project.billingOrgId, teamId: spend.teamId, reserved: estimate };
-          } else {
-            const reservation = await this.walletService.reserve(holdUserId, estimate, `job:${jobId}`, 'AI_REQUEST', jobId);
-            reservationId = reservation.id;
-          }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          await this.prisma.agentJob.update({
-            where: { id: jobId },
-            data: { status: 'FAILED', error: msg, completedAt: new Date() },
-          });
-          this.events.emitJobFailed(jobId, msg, projectId);
-          throw err;
-        }
-      }
-    }
+    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { userId: true } });
 
     try {
-      // §12.2.8 cost attribution: every provider call inside this dispatch —
-      // including SHORTS_ANALYZE child stages — inherits this context.
       const result = await runWithAiContext(
-        { jobId, projectId, importedVideoId: payload['importedVideoId'] as string | undefined, userId: holdUserId ?? undefined, developerKeyId: job.data.developerKeyId, accumulator },
+        { jobId, projectId, importedVideoId: payload['importedVideoId'] as string | undefined, userId: project?.userId, developerKeyId: job.data.developerKeyId, accumulator },
         () => this.dispatch(type, projectId, jobId, payload),
       );
-      // Settle: locked rule price when one was quoted (§7), else real cost (§5.3)
-      if (reservationId) {
-        const settleCredits = lockedPrice ? lockedPrice.creditCost : creditsForCost(accumulator.costUsd);
-        await this.walletService.settleReservation(reservationId, settleCredits, {
-          jobId, jobType: type, costUsd: accumulator.costUsd, calls: accumulator.calls,
-          ...(lockedPrice ? { priceLocked: true, pricingRuleId: lockedPrice.ruleId } : {}),
-          ...(orgBilling ? { orgId: orgBilling.orgId, memberUserId: holdUserId } : {}),
-        }).catch((e) => console.warn(`[credits] settle failed for job ${jobId}: ${e instanceof Error ? e.message : String(e)}`));
-        // Budget consumption was recorded for the reserved estimate — adjust
-        // to what actually settled so the period reflects real spend.
-        if (orgBilling && settleCredits !== orgBilling.reserved) {
-          await this.orgs
-            .recordConsumption(orgBilling.orgId, orgBilling.teamId ?? undefined, settleCredits - orgBilling.reserved)
-            .catch(() => undefined);
-        }
-      }
       const elapsed = Date.now() - t0;
       // METADATA sets job to WAITING_APPROVAL mid-dispatch — don't overwrite that status,
       // but always persist the result so downstream can read it.
@@ -273,16 +183,6 @@ export class SupervisorWorker extends WorkerHost {
       return result;
     } catch (err) {
       this.logger.error(`[job:${jobId}] type=${type} FAILED: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack : undefined);
-      // §5.3 step 4: failed run → release the hold, debit nothing
-      if (reservationId) {
-        await this.walletService.releaseReservation(reservationId).catch(() => undefined);
-        // The hold debited nothing — roll the budget consumption back too.
-        if (orgBilling) {
-          await this.orgs
-            .recordConsumption(orgBilling.orgId, orgBilling.teamId ?? undefined, -orgBilling.reserved)
-            .catch(() => undefined);
-        }
-      }
       const failure = toJobFailure(err);
       // Structured log for failed jobs
       void appendVideoImportLog({
