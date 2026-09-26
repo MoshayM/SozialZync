@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Loader2, Play, Pause, Scissors, Trash2, Copy, Undo2, Redo2,
+  ArrowLeft, Loader2, Play, Pause, Scissors, Trash2, Undo2, Redo2,
   ZoomIn, ZoomOut, Wand2, Captions, Check, X, Save, Clapperboard,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
@@ -336,6 +336,15 @@ export default function TimelineEditorPage() {
     if (src != null) v.currentTime = src / 1000;
   }, [durationMs]);
 
+  // Stable ref so drag event listeners (registered once) always call the latest seekVideo.
+  const seekVideoRef = useRef(seekVideo);
+  seekVideoRef.current = seekVideo;
+  // Same for durationMs / pxPerSec so stale closures never clamp wrong.
+  const durationMsRef = useRef(durationMs);
+  durationMsRef.current = durationMs;
+  const pxPerSecRef = useRef(pxPerSec);
+  pxPerSecRef.current = pxPerSec;
+
   useEffect(() => {
     if (!playing) return;
     let raf = 0;
@@ -401,11 +410,6 @@ export default function TimelineEditorPage() {
     setSelectedId(null);
   }, [selectedId, perform]);
 
-  const duplicateSelected = useCallback(() => {
-    if (!selectedId || selectedId.startsWith('tmp-')) return;
-    perform([{ type: 'DUPLICATE', itemId: selectedId }]);
-  }, [selectedId, perform]);
-
   // Keyboard shortcuts (ai.md Section 20.1)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -431,9 +435,12 @@ export default function TimelineEditorPage() {
   const onMouseMove = useCallback((e: MouseEvent) => {
     const d = dragState.current;
     if (!d) return;
-    const dxMs = ((e.clientX - d.startX) / pxPerSec) * 1000;
+    const dxMs = ((e.clientX - d.startX) / pxPerSecRef.current) * 1000;
     if (d.mode === 'playhead') {
-      setPlayheadMs(Math.max(0, Math.min(durationMs, (d.orig?.startMs ?? 0) + dxMs)));
+      const newMs = Math.max(0, Math.min(durationMsRef.current, (d.orig?.startMs ?? 0) + dxMs));
+      setPlayheadMs(newMs);
+      // KEY FIX: seek the video on every drag tick so playback follows the playhead.
+      seekVideoRef.current(newMs);
       return;
     }
     if (!d.itemId || !d.orig) return;
@@ -485,18 +492,57 @@ export default function TimelineEditorPage() {
     window.addEventListener('mouseup', onMouseUp, { once: true });
   };
 
+  /** Ruler click / drag — seeks to the clicked position then drags relative to it. */
   const startPlayheadDrag = (e: React.MouseEvent) => {
     const rect = scrollRef.current?.getBoundingClientRect();
     const scrollLeft = scrollRef.current?.scrollLeft ?? 0;
-    const ms = (((e.clientX - (rect?.left ?? 0)) + scrollLeft) / pxPerSec) * 1000;
-    setPlayheadMs(Math.max(0, Math.min(durationMs, ms)));
-    seekVideo(ms);
+    const ms = Math.max(0, Math.min(durationMsRef.current, (((e.clientX - (rect?.left ?? 0)) + scrollLeft) / pxPerSecRef.current) * 1000));
+    setPlayheadMs(ms);
+    seekVideoRef.current(ms);
     dragState.current = { mode: 'playhead', startX: e.clientX, orig: { startMs: ms } as Item };
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', () => {
       dragState.current = null;
       window.removeEventListener('mousemove', onMouseMove);
     }, { once: true });
+  };
+
+  /** Diamond handle drag — drags from current playhead position (no jump on grab). */
+  const startDiamondDrag = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    dragState.current = { mode: 'playhead', startX: e.clientX, orig: { startMs: playheadMs } as Item };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', () => {
+      dragState.current = null;
+      window.removeEventListener('mousemove', onMouseMove);
+    }, { once: true });
+  };
+
+  /** Touch equivalent of startPlayheadDrag — used on the ruler for mobile seeking. */
+  const startPlayheadTouch = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (!touch) return;
+    const rect = scrollRef.current?.getBoundingClientRect();
+    const scrollLeft = scrollRef.current?.scrollLeft ?? 0;
+    const ms = Math.max(0, Math.min(durationMsRef.current, (((touch.clientX - (rect?.left ?? 0)) + scrollLeft) / pxPerSecRef.current) * 1000));
+    setPlayheadMs(ms);
+    seekVideoRef.current(ms);
+    const startX = touch.clientX;
+    const origMs = ms;
+
+    const onTM = (te: TouchEvent) => {
+      const t = te.touches[0];
+      if (!t) return;
+      te.preventDefault();
+      const dxMs = ((t.clientX - startX) / pxPerSecRef.current) * 1000;
+      const newMs = Math.max(0, Math.min(durationMsRef.current, origMs + dxMs));
+      setPlayheadMs(newMs);
+      seekVideoRef.current(newMs);
+    };
+    const onTE = () => window.removeEventListener('touchmove', onTM);
+    window.addEventListener('touchmove', onTM, { passive: false });
+    window.addEventListener('touchend', onTE, { once: true });
   };
 
   // ── AI assistant ─────────────────────────────────────────────────────────────
@@ -614,30 +660,51 @@ export default function TimelineEditorPage() {
             )}
           </div>
 
-          {/* Toolbar */}
-          <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-            <button onClick={togglePlay} className="p-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700" title="Play/Pause (Space)">
-              {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          {/* Toolbar — single balanced row */}
+          <div className="flex items-center gap-1 mt-3">
+            {/* Play / Pause */}
+            <button
+              onClick={togglePlay}
+              className="flex items-center justify-center w-8 h-8 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shrink-0"
+              title="Play/Pause (Space)"
+            >
+              {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
             </button>
-            <span className="text-xs font-mono text-gray-500 w-20">{fmt(playheadMs)}</span>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-            <button onClick={splitAtPlayhead} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50" title="Split at playhead (S)"><Scissors className="w-4 h-4 text-gray-600" /></button>
-            <button onClick={deleteSelected} disabled={!selectedId} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40" title="Delete (Del)"><Trash2 className="w-4 h-4 text-gray-600" /></button>
-            <button onClick={duplicateSelected} disabled={!selectedId} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40" title="Duplicate"><Copy className="w-4 h-4 text-gray-600" /></button>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-            <button onClick={undo} disabled={undoStack.length === 0} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40" title="Undo (Ctrl+Z)"><Undo2 className="w-4 h-4 text-gray-600" /></button>
-            <button onClick={redo} disabled={redoStack.length === 0} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40" title="Redo (Ctrl+Shift+Z)"><Redo2 className="w-4 h-4 text-gray-600" /></button>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-            <button onClick={() => setPxPerSec((z) => Math.max(3, z / 1.4))} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50" title="Zoom out (-)"><ZoomOut className="w-4 h-4 text-gray-600" /></button>
-            <button onClick={() => setPxPerSec((z) => Math.min(80, z * 1.4))} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50" title="Zoom in (+)"><ZoomIn className="w-4 h-4 text-gray-600" /></button>
+
+            {/* Current time / Total duration */}
+            <span className="text-xs font-mono tabular-nums text-gray-700 px-2 shrink-0 whitespace-nowrap">
+              {fmt(playheadMs)}<span className="text-gray-400"> / {fmt(durationMs)}</span>
+            </span>
+
+            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
+
+            {/* Zoom controls */}
+            <button onClick={() => setPxPerSec((z) => Math.max(3, z / 1.4))} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Zoom out (-)"><ZoomOut className="w-3.5 h-3.5 text-gray-600" /></button>
+            <button onClick={() => setPxPerSec((z) => Math.min(80, z * 1.4))} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Zoom in (+)"><ZoomIn className="w-3.5 h-3.5 text-gray-600" /></button>
+
+            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
+
+            {/* Undo / Redo */}
+            <button onClick={undo} disabled={undoStack.length === 0} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Undo (Ctrl+Z)"><Undo2 className="w-3.5 h-3.5 text-gray-600" /></button>
+            <button onClick={redo} disabled={redoStack.length === 0} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Redo (Ctrl+Shift+Z)"><Redo2 className="w-3.5 h-3.5 text-gray-600" /></button>
+
+            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
+
+            {/* Split / Delete */}
+            <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
+            <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
           </div>
 
           {/* Timeline */}
           <div ref={scrollRef} className="mt-3 overflow-x-auto border border-gray-100 rounded-xl bg-gray-50/60">
             <div className="relative" style={{ width: widthPx }}>
-              {/* Ruler */}
+              {/* Ruler — click or touch to seek, drag to scrub */}
               {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
-              <div className="h-7 border-b border-gray-200 relative cursor-pointer bg-white" onMouseDown={startPlayheadDrag}>
+              <div
+                className="h-7 border-b border-gray-200 relative cursor-pointer bg-white select-none"
+                onMouseDown={startPlayheadDrag}
+                onTouchStart={startPlayheadTouch}
+              >
                 {ticks.map((s) => (
                   <span key={s} className="absolute top-1 text-[10px] text-gray-500 font-mono" style={{ left: s * pxPerSec + 2 }}>
                     {Math.floor(s / 60)}:{String(s % 60).padStart(2, '0')}
@@ -683,14 +750,21 @@ export default function TimelineEditorPage() {
                     ))}
                 </div>
               ))}
-              {/* Playhead */}
-              <div className="absolute top-0 bottom-0 w-px bg-red-500 z-10 pointer-events-none" style={{ left: (playheadMs / 1000) * pxPerSec }}>
-                <div className="w-2.5 h-2.5 bg-red-500 rotate-45 -translate-x-1/2" />
+              {/* Playhead — vertical line is decorative; diamond handle is draggable */}
+              <div className="absolute top-0 bottom-0 z-10 pointer-events-none" style={{ left: (playheadMs / 1000) * pxPerSec }}>
+                {/* Vertical line */}
+                <div className="absolute top-0 bottom-0 w-px bg-red-500 -translate-x-1/2 pointer-events-none" />
+                {/* Diamond handle — grabbable */}
+                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- drag handle */}
+                <div
+                  onMouseDown={startDiamondDrag}
+                  className="pointer-events-auto absolute -top-0.5 w-3.5 h-3.5 bg-red-500 rotate-45 -translate-x-1/2 cursor-grab active:cursor-grabbing shadow-md z-20"
+                />
               </div>
             </div>
           </div>
-          <p className="text-[11px] text-gray-500 mt-2">
-            Space play · S split · Del delete · Ctrl+Z/Ctrl+Shift+Z undo/redo · +/− zoom · ←/→ nudge playhead · drag edges to trim
+          <p className="text-[11px] text-gray-400 mt-2 select-none">
+            Space play/pause · S split · Del delete · Ctrl+Z/Y undo/redo · +/− zoom · ←/→ nudge · drag ruler or diamond to seek · drag edges to trim
           </p>
         </div>
 
