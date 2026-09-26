@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthService } from './auth.service';
-import { TrialService } from '../trial/trial.service';
 import type { SessionMeta } from './sessions.service';
 
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
@@ -34,7 +33,6 @@ export class OtpService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly auth: AuthService,
-    private readonly trial: TrialService,
   ) {}
 
   async send(
@@ -160,9 +158,6 @@ export class OtpService {
           },
           select: { id: true, email: true },
         });
-        await this.trial
-          .grantTrial(created.id, created.email, { ...meta, verificationMethod: 'otp' })
-          .catch(() => undefined);
         user = created;
       } else {
         // Phone user — consume pending email link if available.
@@ -194,9 +189,6 @@ export class OtpService {
               },
               select: { id: true, email: true },
             });
-            await this.trial
-              .grantTrial(created.id, created.email, { ...meta, verificationMethod: 'otp' })
-              .catch(() => undefined);
             user = created;
           }
         } else {
@@ -211,9 +203,6 @@ export class OtpService {
             },
             select: { id: true, email: true },
           });
-          await this.trial
-            .grantTrial(created.id, created.email, { ...meta, verificationMethod: 'otp' })
-            .catch(() => undefined);
           user = created;
         }
       }

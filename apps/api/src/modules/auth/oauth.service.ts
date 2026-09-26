@@ -10,7 +10,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import type { AuthTokens } from './auth.service';
 import type { SessionMeta } from './sessions.service';
-import { TrialService } from '../trial/trial.service';
 import { DemoSeedService } from '../projects/demo-seed.service';
 import { ProviderRegistry } from './providers/provider.registry';
 
@@ -64,7 +63,6 @@ export class OAuthService {
     private readonly prisma: PrismaService,
     private readonly registry: ProviderRegistry,
     private readonly auth: AuthService,
-    private readonly trial: TrialService,
     private readonly demoSeed: DemoSeedService,
   ) {}
 
@@ -274,12 +272,6 @@ export class OAuthService {
         email: profile.email ?? null,
       },
     });
-
-    // Grant trial — mirror auth.service register pattern: failure must not break sign-in.
-    // Note: meta.device is the User-Agent string, not a device fingerprint, so we pass ip only.
-    await this.trial
-      .grantTrial(newUser.id, newUser.email, { ip: meta.ip, verificationMethod: providerName })
-      .catch(() => undefined);
 
     const tokens = await this.issueTokens(newUser.id, newUser.email, meta);
 

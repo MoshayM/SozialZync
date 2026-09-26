@@ -6,7 +6,6 @@ import type { User } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { resolveElevatedRole } from '../../common/rbac';
-import { TrialService } from '../trial/trial.service';
 import { DemoSeedService } from '../projects/demo-seed.service';
 import { SessionsService, hashRefreshToken } from './sessions.service';
 import type { SessionMeta } from './sessions.service';
@@ -33,7 +32,6 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
-    private readonly trial: TrialService,
     private readonly sessions: SessionsService,
     private readonly demoSeed: DemoSeedService,
   ) {}
@@ -59,12 +57,6 @@ export class AuthService {
         role: isFirst ? 'OWNER' : 'MEMBER',
       },
     });
-
-    // Phase 6 §5: trial grant on signup — abuse-scored, one per identity;
-    // a failure here must never break registration itself.
-    await this.trial
-      .grantTrial(user.id, user.email, { ...signals, verificationMethod: 'email' })
-      .catch(() => undefined);
 
     await this.demoSeed.seedDemoProjectsForUser(user.id).catch(() => undefined);
 
@@ -164,10 +156,6 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: { email, name, passwordHash: null, role: isFirst ? 'OWNER' : 'MEMBER', emailVerified: new Date() },
     });
-
-    await this.trial
-      .grantTrial(user.id, user.email, { ...signals, verificationMethod: 'otp' })
-      .catch(() => undefined);
 
     await this.demoSeed.seedDemoProjectsForUser(user.id).catch(() => undefined);
 
