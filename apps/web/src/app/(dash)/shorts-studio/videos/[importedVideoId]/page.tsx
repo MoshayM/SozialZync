@@ -385,6 +385,9 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const previewClip = previewClipId ? clips.find((c) => c.id === previewClipId) : null;
   const publishModalClip = publishModalClipId ? clips.find((c) => c.id === publishModalClipId) : null;
 
+  const readyClips = clips.filter((c) => c.status === 'RENDERED' || c.status === 'EXPORTED' || c.status === 'PUBLISHED' || c.status === 'PENDING_APPROVAL' || c.status === 'APPROVED');
+  const pendingClips = clips.filter((c) => !readyClips.includes(c));
+
   return (
     <>
       {previewClipId && previewClip && (
@@ -405,18 +408,42 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
           }}
         />
       )}
-      {clips.length > 0 && (
+      {/* In-progress clips: compact queue row — no placeholder cards */}
+      {pendingClips.length > 0 && (
+        <div className="mb-3 flex flex-col gap-1.5">
+          {pendingClips.map((c) => {
+            const label = c.status === 'RENDERING' ? 'Rendering…' : c.status === 'IN_EDITING' ? 'Preparing…' : 'Queued';
+            const title = c.topicSegment?.highlight?.titleSuggestion ?? c.topicSegment?.title ?? c.chapter?.title ?? 'Clip';
+            return (
+              <div key={c.id} className="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-xl text-sm">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
+                <span className="text-gray-700 truncate flex-1 min-w-0">{title}</span>
+                <span className="text-[11px] text-amber-600 font-medium shrink-0">{label}</span>
+                <button
+                  type="button"
+                  onClick={() => { if (window.confirm('Delete this clip?')) deleteClip.mutate(c.id); }}
+                  className="p-1 text-gray-400 hover:text-red-500 shrink-0"
+                  title="Delete clip"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {readyClips.length > 0 && (
         <div className="flex justify-end mb-1">
           <button
-            onClick={() => setOpenClips((prev) => prev.size === clips.length ? new Set() : new Set(clips.map((c) => c.id)))}
+            onClick={() => setOpenClips((prev) => prev.size === readyClips.length ? new Set() : new Set(readyClips.map((c) => c.id)))}
             className="text-xs text-brand-600 hover:underline"
           >
-            {openClips.size === clips.length ? 'Collapse all' : 'Expand all'}
+            {openClips.size === readyClips.length ? 'Collapse all' : 'Expand all'}
           </button>
         </div>
       )}
       <div className="space-y-2">
-        {clips.map((c) => {
+        {readyClips.map((c) => {
           const open = openClips.has(c.id);
           const toggle = () => setOpenClips((prev) => {
             const next = new Set(prev);
@@ -1014,7 +1041,16 @@ export default function ShortsVideoDetailPage() {
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
               <Clapperboard className="w-4 h-4" /> Clips
             </h2>
-            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[11px] font-medium">{clips.length}</span>
+            {(() => {
+              const ready = clips.filter((c) => c.status === 'RENDERED' || c.status === 'EXPORTED' || c.status === 'PUBLISHED' || c.status === 'PENDING_APPROVAL' || c.status === 'APPROVED').length;
+              const pending = clips.length - ready;
+              return (
+                <span className="flex items-center gap-1.5">
+                  {ready > 0 && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[11px] font-medium">{ready} ready</span>}
+                  {pending > 0 && <span className="px-2 py-0.5 bg-amber-100 text-amber-600 rounded-full text-[11px] font-medium flex items-center gap-1"><Loader2 className="w-2.5 h-2.5 animate-spin" />{pending} rendering</span>}
+                </span>
+              );
+            })()}
           </div>
           {clipsOpen && (
             <ClipsList clips={clips} qc={qc} importedVideoId={importedVideoId} />

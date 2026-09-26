@@ -234,7 +234,9 @@ export class ShortsRenderService {
       const idx = args.lastIndexOf(args[args.length - 1]!);
       const head = args.slice(0, idx);
       const outPath = args[idx]!;
-      return [...head, '-c:v', enc, ...(enc === 'libx264' ? ['-preset', 'veryfast', '-crf', '21'] : ['-preset', 'p4']), outPath];
+      // ultrafast is 3-5× faster than veryfast on CPU with minimal quality loss
+      // for short-form clips — acceptable trade-off on Railway (no NVENC).
+      return [...head, '-c:v', enc, ...(enc === 'libx264' ? ['-preset', 'ultrafast', '-crf', '23'] : ['-preset', 'p4']), outPath];
     };
     try {
       await runFfmpeg(withEncoder(encoder), 1_800_000);
