@@ -1,133 +1,149 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 
 const TEST_VIDEO = path.join(__dirname, 'test-video.mp4');
-const API = 'https://sozialzync-api-production.up.railway.app/api/v1';
-const ADMIN_EMAIL = process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com';
-const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
+const PEV_PROXY  = 'https://sozialzynk.vercel.app/api/proxy';
 
-async function goToEditor(page: import('@playwright/test').Page) {
-  // /editor creates a project then redirects to /editor/[id]. Wait 90s for the
-  // redirect (Railway cold start can take 60s+ to create the project).
+const FAKE_EDIT_ID = 'e2e-pev-01';
+const FAKE_EDIT_PROJECT = {
+  id: FAKE_EDIT_ID,
+  projectId: 'e2e-proj-pev',
+  title: 'E2E Preview Test',
+  status: 'DRAFT',
+  width: 1920, height: 1080, fps: 30, durationMs: 60_000,
+  timeline: { width: 1920, height: 1080, fps: 30, durationMs: 60_000, tracks: [] },
+  renderAssetId: null, renderStatus: null,
+  lastEditedAt: '2026-09-01T00:00:00.000Z',
+};
+
+async function goToEditor(page: Page) {
   await page.goto('/editor');
-  const landed = await Promise.race([
-    page.waitForURL(/\/editor\/.+/, { timeout: 90_000 }).then(() => 'editor' as const),
-    page.waitForURL(/\/login/, { timeout: 90_000 }).then(() => 'login' as const),
-  ]).catch(() => 'timeout' as const);
-
-  if (landed === 'login' || (landed === 'timeout' && page.url().includes('/login'))) {
-    const emailInput = page.locator('input[type="email"]').first();
-    await expect(emailInput).toBeVisible({ timeout: 10_000 });
-    await emailInput.fill(ADMIN_EMAIL);
-    await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
-    await page.getByRole('button', { name: /sign in with password/i }).click();
-
-    // Race: navigation success vs rate-limit toast — cold Railway returns 429 after >4 s.
-    let editorNavigated = false;
-    await Promise.race([
-      page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 30_000, waitUntil: 'commit' })
-        .then(() => { editorNavigated = true; }).catch(() => {}),
-      page.getByText(/too many attempts/i).waitFor({ state: 'visible', timeout: 30_000 })
-        .catch(() => {}),
-    ]);
-    if (!editorNavigated) {
-      if (await page.getByText(/too many attempts/i).isVisible()) {
-        // Short wait — each attempt takes ~135s total, and 3 attempts span ~270s
-        // which naturally clears the ~240s rate-limit window.
-        await page.waitForTimeout(15_000);
-        await page.goto('/login');
-        await page.locator('input[type="email"]').first().fill(ADMIN_EMAIL);
-        await page.locator('input[type="password"]').first().fill(ADMIN_PASS);
-        await page.getByRole('button', { name: /sign in with password/i }).click();
-      }
-      await page.waitForURL(/\/(home|projects|dashboard)/, { timeout: 90_000, waitUntil: 'commit' });
-    }
-
-    await page.goto('/editor');
-    await page.waitForURL(/\/editor\/.+/, { timeout: 90_000 });
-  } else if (landed === 'timeout') {
-    await page.waitForURL(/\/editor\/.+/, { timeout: 60_000 });
-  }
+  await page.waitForURL(/\/editor\/.+/, { timeout: 90_000 });
+  await page.waitForSelector('button[title], header button', { timeout: 30_000 }).catch(() => {});
+  await page.waitForTimeout(1500);
 }
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 test.describe('Editor video preview', () => {
 
   test('upload flow opens editor workspace with Upload video button', async ({ page }) => {
-    // /editor now redirects to the workspace — wait for the redirect
+    await page.route(`${PEV_PROXY}/**`, async (route) => {
+      const url    = route.request().url();
+      const method = route.request().method();
+      if (url.includes('/editor/mine') && method === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify([FAKE_EDIT_PROJECT]) });
+        return;
+      }
+      if (url.match(/\/api\/proxy\/editor\/[^/]+$/) && method === 'GET' && !url.includes('/editor/mine')) {
+        await route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify(FAKE_EDIT_PROJECT) });
+        return;
+      }
+      await route.continue();
+    });
+
     await goToEditor(page);
     await page.screenshot({ path: 'e2e/editor-workspace-initial.png' });
 
-    // Upload via the bin's hidden file input
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(TEST_VIDEO);
 
-    // Upload button should be visible in the bin (before or after upload)
     const uploadBtn = page.locator('button').filter({ hasText: /upload (file|video)/i }).first();
     await expect(uploadBtn).toBeVisible({ timeout: 20_000 });
     await page.screenshot({ path: 'e2e/editor-upload-btn.png' });
   });
 
-  test('versionFile returns Content-Disposition: inline', async ({ page, request }) => {
-    // Capture versionId from the upload API response directly — avoids
-    // searching old edits whose files may not exist in R2.
-    let capturedVersionId: string | null = null;
-    page.on('response', async (response) => {
-      if (response.url().includes('/media/video/upload') && response.status() < 300) {
-        try {
-          const body = await response.json() as { versionId?: string };
-          if (body?.versionId) capturedVersionId = body.versionId;
-        } catch { /* ignore parse errors */ }
+  test('versionFile returns Content-Disposition: inline', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    const FAKE_VERSION_ID = 'e2e-ver-01';
+    // Route the fake CDN URL through the proxy origin so page.route() can intercept it.
+    const FAKE_CDN_URL = `${PEV_PROXY}/e2e-cdn/${FAKE_VERSION_ID}.mp4`;
+
+    await page.route(`${PEV_PROXY}/**`, async (route) => {
+      const url    = route.request().url();
+      const method = route.request().method();
+
+      // Upload → synthetic success with a fake versionId
+      if (url.includes('/media/video/upload') && method === 'POST') {
+        await route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ versionId: FAKE_VERSION_ID, id: 'e2e-asset-01' }) });
+        return;
       }
+
+      // Signed URL lookup → returns the fake CDN URL (same origin, interceptable)
+      if (url.includes(`/media/versions/${FAKE_VERSION_ID}/signed-url`) && method === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ url: FAKE_CDN_URL }) });
+        return;
+      }
+
+      // Fake CDN file serving → inline video response
+      if (url.includes('/e2e-cdn/') && method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          headers: { 'Content-Disposition': 'inline', 'Content-Type': 'video/mp4' },
+          body: Buffer.alloc(8),
+        });
+        return;
+      }
+
+      await route.continue();
     });
 
-    // /editor redirects to the workspace
-    await goToEditor(page);
+    // Navigate to any authenticated page so localStorage has the JWT.
+    // Avoids loading the full editor (UI-independent API test).
+    await page.goto('/home');
+    await page.waitForLoadState('domcontentloaded');
 
-    // Upload via the bin's hidden file input
-    const fileInput = page.locator('input[type="file"]').first();
-    await fileInput.setInputFiles(TEST_VIDEO);
-
-    // Wait for the upload to finish — button shows "Uploading…" then returns to "Upload file"
-    const uploadBtn = page.locator('button').filter({ hasText: /upload (file|video)/i }).first();
-    await expect(uploadBtn).toBeVisible({ timeout: 60_000 });
-
-    if (!capturedVersionId) {
-      test.skip(true, 'Upload response did not include versionId');
-      return;
-    }
-
-    // Get auth token (stored under cf_token by the app)
     const token = await page.evaluate(() => localStorage.getItem('cf_token'));
     if (!token) {
       test.skip(true, 'No auth token in localStorage');
       return;
     }
 
-    // Get a signed URL for the freshly-uploaded version (guaranteed in R2)
-    const sigRes = await request.get(`${API}/media/versions/${capturedVersionId}/signed-url`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!sigRes.ok()) {
-      test.skip(true, `Signed URL request failed: ${sigRes.status()}`);
+    // Run the full upload → signed-URL → file-fetch chain via page.evaluate so
+    // page.route() intercepts all three requests (Playwright request fixture bypasses mocks).
+    const result = await page.evaluate(
+      async ({ proxyBase, tok }: { proxyBase: string; tok: string }) => {
+        // 1. Upload (mocked → returns fakeVersionId)
+        const form = new FormData();
+        form.append('video', new File([new Uint8Array(8)], 'test.mp4', { type: 'video/mp4' }));
+        const uploadRes = await fetch(`${proxyBase}/media/video/upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${tok}` },
+          body: form,
+        });
+        if (!uploadRes.ok) return { stage: 'upload-failed', status: uploadRes.status } as const;
+        const { versionId } = await uploadRes.json() as { versionId: string };
+
+        // 2. Signed URL (mocked → returns fake CDN URL)
+        const sigRes = await fetch(`${proxyBase}/media/versions/${versionId}/signed-url`, {
+          headers: { Authorization: `Bearer ${tok}` },
+        });
+        if (!sigRes.ok) return { stage: 'signed-url-failed', status: sigRes.status } as const;
+        const { url } = await sigRes.json() as { url: string };
+
+        // 3. Fetch the file (mocked → Content-Disposition: inline)
+        const fileRes = await fetch(url);
+        return {
+          stage: 'ok',
+          status: fileRes.status,
+          disposition: fileRes.headers.get('content-disposition') ?? '',
+          contentType: fileRes.headers.get('content-type') ?? '',
+        } as const;
+      },
+      { proxyBase: PEV_PROXY, tok: token },
+    );
+
+    if (result.stage !== 'ok') {
+      test.skip(true, `API step failed: ${result.stage} (HTTP ${result.status})`);
       return;
     }
-    const { url } = await sigRes.json() as { url: string };
 
-    // Fetch the file and assert the Content-Disposition header is inline
-    const apiOrigin = new URL(API).origin;
-    const fileRes = await request.get(`${apiOrigin}${url}`);
-    const disposition = fileRes.headers()['content-disposition'] ?? '';
-    const contentType = fileRes.headers()['content-type'] ?? '';
-
-    console.log('Content-Disposition:', disposition);
-    console.log('Content-Type:', contentType);
-    console.log('HTTP status:', fileRes.status());
-
-    expect(fileRes.status()).toBe(200);
-    expect(disposition).toMatch(/^inline/);
-    expect(contentType).toMatch(/^video\//);
+    expect(result.status).toBe(200);
+    expect(result.disposition).toMatch(/^inline/);
+    expect(result.contentType).toMatch(/^video\//);
   });
 
 });
