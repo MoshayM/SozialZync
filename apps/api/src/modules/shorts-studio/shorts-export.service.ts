@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common';
+import { ShortClipStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../media/storage.service';
 import { ApprovalsService } from '../approvals/approvals.service';
@@ -483,7 +484,7 @@ export class ShortsExportService {
   async getQueuedClips(userId: string) {
     const clips = await this.prisma.shortClip.findMany({
       where: {
-        status: { in: ['QUEUED', 'PROCESSING', 'APPROVED'] as const },
+        status: { in: ['PENDING_APPROVAL', 'APPROVED'] as ShortClipStatus[] },
         project: { userId },
       },
       orderBy: { updatedAt: 'desc' },
@@ -498,7 +499,7 @@ export class ShortsExportService {
         thumbnails: {
           where: { isPrimary: true },
           take: 1,
-          include: { asset: { include: { versions: { take: 1, orderBy: { version: 'desc' }, select: { id: true, r2Key: true } } } } },
+          select: { asset: { select: { versions: { take: 1, orderBy: { version: 'desc' }, select: { id: true, r2Key: true } } } } },
         },
       },
     });
