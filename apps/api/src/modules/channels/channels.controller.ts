@@ -29,6 +29,13 @@ const WEB_URL = (process.env['WEB_URL'] ?? 'http://localhost:3007').split(',')[0
 // regardless of whether the env var includes it or not.
 const API_URL = (process.env['API_URL'] ?? 'http://localhost:4007').replace(/\/api\/v1\/?$/, '');
 
+// OAuth callback goes through the Vercel frontend proxy so Google's consent
+// screen shows sozialzynk.vercel.app instead of the raw Railway domain.
+// Falls back to the direct API callback for local dev (no Vercel proxy).
+const OAUTH_REDIRECT_URI = WEB_URL.includes('localhost')
+  ? `${API_URL}/api/v1/channels/oauth/callback`
+  : `${WEB_URL}/api/proxy/channels/oauth/callback`;
+
 @TierRateLimit({ bucket: 'channels', windowSecs: 3600, limits: { FREE: 10, STARTER: 30, PRO: 100, AGENCY: 300, default: 10 } })
 @ApiTags('channels')
 @ApiBearerAuth()
@@ -53,7 +60,7 @@ export class ChannelsController {
     const level = isAccessLevel(access) ? access : 'PUBLISH';
     // Always derive the redirect URI from the server-side API_URL so it
     // matches exactly what is registered in Google Cloud Console.
-    const redirectUri = `${API_URL}/api/v1/channels/oauth/callback`;
+    const redirectUri = OAUTH_REDIRECT_URI;
     this.logger.log(`[OAuth] auth-url requested — userId=${user.sub} access=${level} redirectUri=${redirectUri}`);
     return { url: this.svc.getAuthUrl(redirectUri, user.sub, level, returnTo) };
   }
@@ -87,7 +94,7 @@ export class ChannelsController {
         if (parsed.u) userId = parsed.u;
         if (parsed.r) returnTo = parsed.r;
       } catch { /* legacy plain-userId state */ }
-      const redirectUri = `${API_URL}/api/v1/channels/oauth/callback`;
+      const redirectUri = OAUTH_REDIRECT_URI;
       this.logger.log(`[OAuth] Token exchange redirectUri=${redirectUri} clientId=${(process.env['GOOGLE_CLIENT_ID'] ?? '').slice(0, 20)}...`);
       await this.svc.connectChannel(userId, code, redirectUri);
       this.logger.log(`[OAuth] Connection successful — redirecting`);
