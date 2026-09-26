@@ -995,15 +995,15 @@ function ExportDialog({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="presentation"
     >
-      <div role="dialog" aria-modal="true" aria-label="Export video" className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
+      <div role="dialog" aria-modal="true" aria-label="Export video" className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 flex-shrink-0">
           <Download className="w-5 h-5 text-brand-600" />
           <h2 className="text-base font-semibold text-gray-900 flex-1">Export video</h2>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100">
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto">
           <div>
             <label htmlFor="export-preset" className="text-sm font-medium text-gray-700 block mb-1.5">Output preset</label>
             <select

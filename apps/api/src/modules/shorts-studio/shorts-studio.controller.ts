@@ -124,6 +124,11 @@ export class ShortsStudioController {
     return this.shorts.deleteImportedVideo(importedVideoId, user.sub);
   }
 
+  @Delete('clips/:clipId')
+  async deleteClip(@Param('clipId') clipId: string, @CurrentUser() user: JwtPayload) {
+    return this.shorts.deleteClip(clipId, user.sub);
+  }
+
   // ── Analyze (18.2) ──────────────────────────────────────────────────────────
 
   // 202: analysis is queued, not done (docs4/16 — async ops return 202 + job id)

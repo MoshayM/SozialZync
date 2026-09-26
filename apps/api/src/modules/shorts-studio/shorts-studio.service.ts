@@ -64,6 +64,12 @@ export class ShortsStudioService {
     return { deleted: true, importedVideoId };
   }
 
+  async deleteClip(clipId: string, userId: string) {
+    await this.assertClipOwnership(clipId, userId);
+    await this.prisma.shortClip.delete({ where: { id: clipId } });
+    return { deleted: true, clipId };
+  }
+
   /** Channel-first view: every import across the channel's projects. */
   async listImportedVideosByChannel(channelId: string) {
     return this.prisma.importedVideo.findMany({

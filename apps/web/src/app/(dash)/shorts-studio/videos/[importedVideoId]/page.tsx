@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { PublishConfirmModal } from '../../PublishConfirmModal';
@@ -377,6 +377,11 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] }),
   });
 
+  const deleteClip = useMutation({
+    mutationFn: (clipId: string) => api.shortsStudio.deleteClip(clipId),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] }),
+  });
+
   const previewClip = previewClipId ? clips.find((c) => c.id === previewClipId) : null;
   const publishModalClip = publishModalClipId ? clips.find((c) => c.id === publishModalClipId) : null;
 
@@ -526,7 +531,23 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                         {publishedClips.has(c.id) ? 'Queued!' : 'Publish'}
                       </button>
                     )}
-
+                    <button
+                      type="button"
+                      disabled={deleteClip.isPending && deleteClip.variables === c.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Delete this clip? This cannot be undone.')) {
+                          deleteClip.mutate(c.id);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-xs hover:bg-red-50 disabled:opacity-50 ml-auto"
+                      title="Delete this clip"
+                    >
+                      {deleteClip.isPending && deleteClip.variables === c.id
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Trash2 className="w-3.5 h-3.5" />}
+                      Delete
+                    </button>
                   </div>
                   {saveToPrivate.isError && saveToPrivate.variables === c.id && (
                     <p className="text-xs text-red-600 mt-2">

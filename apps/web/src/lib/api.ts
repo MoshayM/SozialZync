@@ -1266,6 +1266,8 @@ export const api = {
       apiClient.get<{ url: string; expiresAt: string; durationMs: number | null }>(`/shorts-studio/clips/${shortClipId}/preview-url`),
     saveToPrivate: (shortClipId: string) =>
       apiClient.post<{ id: string }>(`/shorts-studio/clips/${shortClipId}/save-to-private`),
+    deleteClip: (clipId: string) =>
+      apiClient.delete(`/shorts-studio/clips/${clipId}`),
   },
   library: {
     syncStart: (channelId: string) =>
