@@ -15,13 +15,11 @@ import { ProviderRegistry } from './providers/provider.registry';
 import { GoogleAdapter } from './providers/google.adapter';
 import { AppleAdapter } from './providers/apple.adapter';
 import { FacebookAdapter } from './providers/facebook.adapter';
-import { TrialModule } from '../trial/trial.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { MailerService } from '../../common/mailer/mailer.service';
 
 @Module({
   imports: [
-    TrialModule,
     ProjectsModule,
     ConfigModule,
     PassportModule,

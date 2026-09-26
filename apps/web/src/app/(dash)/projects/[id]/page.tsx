@@ -130,7 +130,6 @@ interface ProjectDetail {
   title: string;
   niche?: string;
   status: string;
-  /** Phase 5 §10: org whose shared wallet pays for this project's AI jobs. */
   billingOrgId?: string | null;
   channel: { id: string; title: string; youtubeChannelId: string } | null;
   jobs: Job[];
@@ -138,11 +137,7 @@ interface ProjectDetail {
 
 type ContentType = 'VIDEO' | 'MUSIC' | 'SHORT';
 
-/**
- * Phase 5 §10: pick which wallet pays for this project's AI jobs. Hidden when
- * the user belongs to no org. Spend-time gating (SPEND role + budget) happens
- * server-side on every job regardless of this setting.
- */
+/** Pick which org this project bills to. Hidden when the user belongs to no org. */
 function BillingOrgPicker({ projectId, billingOrgId }: { projectId: string; billingOrgId: string | null | undefined }) {
   const qc = useQueryClient();
   const { data: orgsRaw } = useQuery({
@@ -165,7 +160,7 @@ function BillingOrgPicker({ projectId, billingOrgId }: { projectId: string; bill
         disabled={save.isPending}
         className="text-xs text-gray-700 bg-white border border-gray-200 rounded-lg px-2 py-1"
       >
-        <option value="">Personal wallet</option>
+        <option value="">Personal account</option>
         {orgs.map((o) => (
           <option key={o.id} value={o.id}>{o.name}</option>
         ))}

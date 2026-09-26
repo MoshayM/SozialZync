@@ -185,7 +185,6 @@ function OfferCenter() {
     mutationFn: (id: string) => api.offers.redeem(id),
     onSuccess: (_data, id) => {
       setSuccessId(id);
-      void qc.invalidateQueries({ queryKey: ['wallet-balance'] });
       void qc.invalidateQueries({ queryKey: ['offers'] });
     },
   });

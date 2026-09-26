@@ -107,29 +107,6 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
     return _mockResp({ plan: 'FREE', status: 'active', currentPeriodEnd: null }, config);
   }
 
-  // ── Wallet (each sub-route needs its own shape) ───────────────────────────
-  if (url === '/wallet/balance') {
-    return _mockResp({ balanceCredits: 250, buckets: {}, lifetimePurchased: 0, lifetimeUsed: 0 }, config);
-  }
-  if (url === '/wallet/budget') {
-    return _mockResp({ status: 'NONE', monthlyLimit: 0, spent: 0, remaining: 250, willExceed: false, blocked: false, alertThreshold: 0.8, hardCap: false }, config);
-  }
-  if (url.startsWith('/wallet/forecast')) {
-    return _mockResp({ windowDays: 30, totalDebited: 0, dailyBurn: 0, balance: 250, daysToEmpty: null, emptyOn: null, projectedMonthEndSpend: 0 }, config);
-  }
-  if (url.startsWith('/wallet/usage-summary')) {
-    return _mockResp({ totalSpent: 0, byAction: [] }, config);
-  }
-  if (url.startsWith('/wallet/transactions')) {
-    return _mockResp([], config);
-  }
-  if (url === '/wallet/lots') {
-    return _mockResp([], config);
-  }
-  if (url === '/wallet/recommendations') {
-    return _mockResp([], config);
-  }
-
   // ── Autonomy: calendar endpoints return arrays, not objects ───────────────
   if (url.startsWith('/autonomy')) {
     if (url.includes('/calendar/stats')) {
@@ -309,7 +286,6 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
     return _mockResp([{
       id: meId, email: meEmail, name: meName, role: meRole,
       createdAt: _MOCK_DAY(30), rechargesFrozen: false,
-      wallet: { balanceCredits: 1000, lifetimePurchased: 1000, lifetimeUsed: 0 },
       subscription: { plan: 'FREE', status: 'active' },
       _count: { channels: 0 },
     }], config);
@@ -330,12 +306,6 @@ async function mockAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRes
     return _mockResp({ ok: true }, config);
   }
   if (url === '/admin/moderation/log') {
-    return _mockResp([], config);
-  }
-  if (url.startsWith('/wallet/admin/withdrawals/stats')) {
-    return _mockResp({ pending: 0, approved: 0, paid: 0, rejected: 0, totalAmount: 0 }, config);
-  }
-  if (url.startsWith('/wallet/admin/withdrawals')) {
     return _mockResp([], config);
   }
   if (url === '/projects/ad-revenue/platform-stats') {
@@ -551,71 +521,6 @@ export interface LibrarySyncStatus {
 
 export interface LibrarySyncStartResponse {
   jobId: string;
-}
-
-// ── Wallet types ──────────────────────────────────────────────────────────────
-
-export type BudgetStatus = 'NONE' | 'OK' | 'ALERT' | 'EXCEEDED';
-
-export interface BudgetState {
-  status: BudgetStatus;
-  monthlyLimit: number;
-  spent: number;
-  remaining: number;
-  willExceed: boolean;
-  blocked: boolean;
-  alertThreshold: number;
-  hardCap: boolean;
-}
-
-export interface UsageSummary {
-  totalSpent: number;
-  byAction: Array<{ action: string; credits: number }>;
-}
-
-export interface CreditLotRow {
-  id: string;
-  bucket: string;
-  amount: number;
-  remaining: number;
-  expiresAt: string | null;
-  createdAt: string;
-}
-
-export interface CreditPackRow {
-  id: string;
-  name: string;
-  credits: number;
-  priceMinor: number;
-  currency: string;
-  region: string | null;
-  sortOrder: number;
-}
-
-export interface CreditForecast {
-  windowDays: number;
-  totalDebited: number;
-  dailyBurn: number;
-  balance: number;
-  daysToEmpty: number | null;
-  emptyOn: string | null;
-  projectedMonthEndSpend: number;
-}
-
-export interface CreditRecommendation {
-  type: string;
-  severity: 'info' | 'warning';
-  message: string;
-  meta?: Record<string, unknown>;
-}
-
-export interface WalletTransaction {
-  id: string;
-  entryType: string;
-  amount: number;
-  balanceAfter: number;
-  createdAt: string;
-  metadata: Record<string, unknown>;
 }
 
 // ── Organization types (Phase 5 §10) ──────────────────────────────────────────
@@ -1058,38 +963,6 @@ export const api = {
     getBillingPortal: () =>
       apiClient.get<{ url: string }>(`/billing/portal?returnUrl=${encodeURIComponent(window.location.origin + '/plans')}`),
   },
-  wallet: {
-    balance: () => apiClient.get('/wallet/balance'),
-    transactions: (take = 20) => apiClient.get(`/wallet/transactions?take=${take}`),
-    lots: () => apiClient.get<CreditLotRow[]>('/wallet/lots'),
-    recharge: (amountUsd: number) =>
-      apiClient.post('/wallet/recharge', {
-        amountUsd,
-        successUrl: `${window.location.origin}/wallet?recharged=true`,
-        cancelUrl: `${window.location.origin}/wallet`,
-      }, { headers: { 'Idempotency-Key': crypto.randomUUID() } }),
-    rechargePack: (packId: string) =>
-      apiClient.post('/wallet/recharge', {
-        packId,
-        successUrl: `${window.location.origin}/wallet?recharged=true`,
-        cancelUrl: `${window.location.origin}/wallet`,
-      }, { headers: { 'Idempotency-Key': crypto.randomUUID() } }),
-    budget: {
-      get: () => apiClient.get<BudgetState>('/wallet/budget'),
-      set: (data: { monthlyLimit: number; alertThreshold?: number; hardCap?: boolean }) =>
-        apiClient.put<BudgetState>('/wallet/budget', data),
-    },
-    usageSummary: (days = 30) =>
-      apiClient.get<UsageSummary>(`/wallet/usage-summary?days=${days}`),
-    forecast: (days = 30) =>
-      apiClient.get<CreditForecast>(`/wallet/forecast?days=${days}`),
-    recommendations: () =>
-      apiClient.get<CreditRecommendation[]>('/wallet/recommendations'),
-  },
-  marketplace: {
-    packs: (region?: string) =>
-      apiClient.get<CreditPackRow[]>(`/marketplace/packs${region ? `?region=${encodeURIComponent(region)}` : ''}`),
-  },
   orgs: {
     mine: () => apiClient.get<Org[]>('/orgs/mine'),
     create: (data: { name: string; billingEmail?: string }) =>
@@ -1104,9 +977,6 @@ export const api = {
       apiClient.get<OrgBudgetStatus>(`/orgs/${orgId}/budget${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ''}`),
     setBudget: (orgId: string, data: { periodStart: string; periodEnd: string; allocatedCredits: number; hardCap?: boolean; teamId?: string }) =>
       apiClient.put(`/orgs/${orgId}/budget`, data),
-    usageReportCsvUrl: (orgId: string) => `/orgs/${orgId}/reports/usage?format=csv`,
-    usageReport: (orgId: string, params?: { from?: string; to?: string; teamId?: string }) =>
-      apiClient.get(`/orgs/${orgId}/reports/usage`, { params }),
   },
   media: {
     listExports: (projectId: string) =>
@@ -1624,7 +1494,6 @@ export interface AdminUser {
   role: string;
   createdAt: string;
   rechargesFrozen: boolean;
-  wallet: { balanceCredits: number; lifetimePurchased: number; lifetimeUsed: number } | null;
   subscription: { plan: string; status: string } | null;
   _count: { channels: number };
 }

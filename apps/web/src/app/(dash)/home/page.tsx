@@ -296,7 +296,7 @@ function AdRevenueCard() {
           <p className="text-[10px] text-gray-400">Total Paid Out</p>
         </div>
       </div>
-      <p className="text-[10px] text-gray-400 text-center">50 credits per 1,000 views · Paid daily to your wallet</p>
+
     </Card>
   );
 }

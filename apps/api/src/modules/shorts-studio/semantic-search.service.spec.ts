@@ -1,5 +1,4 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import type { WalletService } from '../wallet/wallet.service';
 
 jest.mock('@cf/shared', () => ({
   ...jest.requireActual('@cf/shared'),
@@ -45,12 +44,10 @@ describe('SemanticSearchService.search — degraded mode when embeddings are mis
     importedVideo: { findUnique: jest.fn() },
     transcriptSegment: { findMany: jest.fn(), count: jest.fn() },
   };
-  const wallet = { availableCredits: jest.fn(), debit: jest.fn() };
 
   it('returns needsEmbeddings without any provider call when the embedding stage was skipped (e.g. Gemini quota exhausted)', async () => {
     const service = new SemanticSearchService(
       prisma as unknown as PrismaService,
-      wallet as unknown as WalletService,
     );
     prisma.importedVideo.findUnique.mockResolvedValue({ id: 'vid-1' });
     prisma.transcriptSegment.findMany.mockResolvedValue([]); // no segment has a vector
@@ -63,9 +60,7 @@ describe('SemanticSearchService.search — degraded mode when embeddings are mis
       totalSegments: 42,
       needsEmbeddings: true,
     });
-    // Degrading must be free: no query embedding, no wallet check, no debit.
+    // Degrading must be free: no query embedding.
     expect(embedTexts).not.toHaveBeenCalled();
-    expect(wallet.availableCredits).not.toHaveBeenCalled();
-    expect(wallet.debit).not.toHaveBeenCalled();
   });
 });

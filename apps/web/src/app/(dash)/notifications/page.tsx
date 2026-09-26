@@ -13,7 +13,7 @@ function navDestination(n: AppNotification): string | null {
   if (type.includes('approval')) return '/publish';
   if (type.includes('job') && meta['projectId']) return `/projects/${String(meta['projectId'])}`;
   if (type.includes('publish')) return '/publishing';
-  if (type.includes('trial') || type.includes('credit')) return '/wallet';
+  if (type.includes('trial') || type.includes('credit')) return '/plans';
   if (type.includes('offer') || type.includes('referral') || type.includes('reward') || type.includes('bonus')) return '/growth';
   return null;
 }

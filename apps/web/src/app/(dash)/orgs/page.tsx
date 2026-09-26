@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Users, PiggyBank, PlusCircle, Loader2, AlertCircle, Download, ShieldCheck, Layers } from 'lucide-react';
+import { Building2, Users, PiggyBank, PlusCircle, Loader2, AlertCircle, ShieldCheck, Layers } from 'lucide-react';
 import { api, apiClient, type Org, type OrgMember, type OrgBudgetStatus, type OrgTeam } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { PlanGate } from '@/components/plan-gate';
@@ -11,7 +11,6 @@ import { PlanGate } from '@/components/plan-gate';
 // server re-checks every action).
 const canManageOrg = (role: string) => role === 'ORG_ADMIN';
 const canManageBudget = (role: string) => role === 'ORG_ADMIN' || role === 'BILLING_ADMIN';
-const canViewReports = (role: string) => role !== 'MEMBER';
 
 const ROLE_BADGE: Record<string, string> = {
   ORG_ADMIN: 'bg-gray-100 text-gray-700',
@@ -47,7 +46,7 @@ function CreateOrgCard({ onCreated }: { onCreated: (org: Org) => void }) {
         <span className="text-sm font-semibold text-gray-800">Create Organization</span>
       </div>
       <p className="text-xs text-gray-600">
-        An organization has a shared credit wallet and budgets — team members bill AI work to it instead of their personal wallets.
+        An organization lets team members share budgets and projects under a single account.
       </p>
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
@@ -456,54 +455,6 @@ function TeamsCard({ org }: { org: Org }) {
   );
 }
 
-// ── Usage report card ─────────────────────────────────────────────────────────
-
-function UsageReportCard({ org }: { org: Org }) {
-  const [downloading, setDownloading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  if (!canViewReports(org.role)) return null;
-
-  const download = async () => {
-    setDownloading(true);
-    setError(null);
-    try {
-      // Authenticated download via the api client (a plain <a href> would miss the JWT)
-      const res = await apiClient.get(api.orgs.usageReportCsvUrl(org.id), { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data as Blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `org-usage-${org.id}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      setError(getErrorMessage(e));
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-2xl p-5 flex items-center justify-between" style={{ border: '1.5px solid #e3ddf8' }}>
-      <div>
-        <p className="text-sm font-semibold text-gray-800">Usage report</p>
-        <p className="text-xs text-gray-600">Per-member credit usage rollup for this organization.</p>
-        {error && (
-          <p className="flex items-center gap-1.5 text-xs text-red-600 mt-1"><AlertCircle className="w-3.5 h-3.5" /> {error}</p>
-        )}
-      </div>
-      <button
-        onClick={() => void download()}
-        disabled={downloading}
-        className="inline-flex items-center gap-1.5 disabled:opacity-50 text-gray-600 text-sm font-semibold rounded-2xl px-5 py-3"
-        style={{ border: '1.5px solid #e3ddf8' }}
-      >
-        {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-        Download CSV
-      </button>
-    </div>
-  );
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrgsPage() {
@@ -538,7 +489,7 @@ export default function OrgsPage() {
             <Building2 className="w-6 h-6" style={{ color: '#374151' }} /> Organization
           </h1>
           <p className="text-sm text-gray-600 mt-0.5">
-            Shared wallets, budgets and member roles. Projects and copilot turns can bill here instead of your personal wallet.
+            Budgets, member roles, and team workspaces.
           </p>
         </div>
 
@@ -572,7 +523,6 @@ export default function OrgsPage() {
             <BudgetCard org={selected} />
             <TeamsCard org={selected} />
             <MembersCard org={selected} />
-            <UsageReportCard org={selected} />
           </section>
         )}
 
