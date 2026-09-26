@@ -395,6 +395,7 @@ export class VideoImportService {
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-subs-'));
     try {
       const ffmpeg = ffmpegPath();
+      const cookieArgs = await this.cookiesArgs();
       // A nonzero exit only matters if NOTHING downloaded — one language
       // 429-ing must not discard the tracks that did arrive.
       const stderrText = await new Promise<string>((resolve) => {
@@ -409,7 +410,7 @@ export class VideoImportService {
           // (common for South Asian content). Avoid "all" — it triggers ~150
           // auto-translation fetches and gets rate-limited (429).
           '--sub-langs', '.*-orig,en,hi,as,bn,ta,te,ml,kn,mr,gu,pa,ur,ne,si,zh,ko,ja,ar,ru,fr,de,es,pt',
-          ...this.cookiesArgs(),
+          ...cookieArgs,
           ...this.jsRuntimeArgs(),
           ...(ffmpeg ? ['--ffmpeg-location', ffmpeg] : []),
           '-o', path.join(tmpDir, 'subs'),
@@ -438,12 +439,41 @@ export class VideoImportService {
     }
   }
 
-  private cookiesArgs(): string[] {
-    const file = process.env['YOUTUBE_COOKIES_FILE'];
+  /**
+   * Resolve the cookies file path, writing a temp file when the content is
+   * supplied via YOUTUBE_COOKIES_CONTENT (base64-encoded Netscape cookie file).
+   * Result is cached for the process lifetime so we only write once.
+   */
+  private _cookiesFile: string | null | undefined = undefined;
+
+  private async resolveCookiesFile(): Promise<string | null> {
+    if (this._cookiesFile !== undefined) return this._cookiesFile;
+
+    const filePath = process.env['YOUTUBE_COOKIES_FILE'];
+    if (filePath) {
+      this._cookiesFile = filePath;
+      return filePath;
+    }
+
+    const b64 = process.env['YOUTUBE_COOKIES_CONTENT'];
+    if (b64) {
+      const tmpFile = path.join(os.tmpdir(), 'cf-yt-cookies.txt');
+      await fsp.writeFile(tmpFile, Buffer.from(b64, 'base64').toString('utf8'), 'utf8');
+      this._cookiesFile = tmpFile;
+      this.logger.log('YouTube cookies loaded from YOUTUBE_COOKIES_CONTENT env var');
+      return tmpFile;
+    }
+
+    this._cookiesFile = null;
+    return null;
+  }
+
+  private async cookiesArgs(): Promise<string[]> {
+    const file = await this.resolveCookiesFile();
     return file ? ['--cookies', file] : [];
   }
 
-  private runYtDlp(youtubeVideoId: string, outPath: string, format: string = YTDLP_FORMAT): Promise<void> {
+  private async runYtDlp(youtubeVideoId: string, outPath: string, format: string = YTDLP_FORMAT): Promise<void> {
     const bin = this.ytDlpBin();
     // yt-dlp needs ffmpeg to merge separate video+audio streams; hand it the
     // bundled ffmpeg-static binary so it doesn't depend on PATH.
@@ -453,7 +483,7 @@ export class VideoImportService {
       '-f', format,
       '--merge-output-format', 'mp4',
       '--no-playlist',
-      ...this.cookiesArgs(),
+      ...await this.cookiesArgs(),
       ...this.jsRuntimeArgs(),
       ...(ffmpeg ? ['--ffmpeg-location', ffmpeg] : []),
       '-o', outPath,
