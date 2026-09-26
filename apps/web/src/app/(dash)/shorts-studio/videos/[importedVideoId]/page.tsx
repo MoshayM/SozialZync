@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download, Trash2, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { PublishConfirmModal } from '../../PublishConfirmModal';
@@ -698,7 +698,14 @@ function RenderProgressButton({ clipIds, onClipsReady }: { clipIds: string[]; on
 
 function HighlightCard({ h, open, onToggle, onClipsReady }: { h: Highlight; open: boolean; onToggle: () => void; onClipsReady?: () => void }) {
   const qc = useQueryClient();
+  const { importedVideoId } = useParams<{ importedVideoId: string }>();
   const [types, setTypes] = useState<string[]>(['YOUTUBE_SHORTS']);
+
+  // Detect clips already generated for this highlight from the shared query cache
+  const cachedClips = (qc.getQueryData<Array<{ id: string; status: string; topicSegment?: { id: string } | null; renderAsset?: { versions: Array<unknown> } | null }>>(['shorts-clips', importedVideoId]) ?? []);
+  const existingClips = cachedClips.filter((c) => c.topicSegment?.id === h.topicSegment.id);
+  const hasExistingClips = existingClips.length > 0;
+  const allRendered = hasExistingClips && existingClips.every((c) => c.status === 'RENDERED' || c.status === 'PUBLISHED' || c.status === 'EXPORTED');
   const { data: channelsRaw } = useQuery({
     queryKey: ['channels'],
     queryFn: () => api.channels.list().then((r) => r.data as Channel[]),
@@ -835,6 +842,22 @@ function HighlightCard({ h, open, onToggle, onClipsReady }: { h: Highlight; open
           </div>
         ) : createClip.isSuccess && (createClip.data?.length ?? 0) > 0 ? (
           <RenderProgressButton clipIds={(createClip.data ?? []).map((c) => c.id)} onClipsReady={onClipsReady} />
+        ) : hasExistingClips ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border ${allRendered ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+              {allRendered ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {allRendered
+                ? `${existingClips.length} clip${existingClips.length > 1 ? 's' : ''} ready`
+                : 'Clips rendering…'}
+            </div>
+            <button
+              onClick={() => createClip.mutate()}
+              disabled={types.length === 0 || createClip.isPending}
+              className="flex items-center gap-1.5 px-3 py-2 border border-brand-200 text-brand-700 rounded-xl text-sm font-semibold hover:bg-brand-50 disabled:opacity-50"
+            >
+              <Plus className="w-3.5 h-3.5" /> Create more
+            </button>
+          </div>
         ) : (
           <div className="flex items-center gap-2 flex-wrap">
             <button

@@ -10,9 +10,23 @@ const VARIATIONS = 4;
 
 function findFont(): string | null {
   const candidates = [
+    // Windows
     'C:/Windows/Fonts/arialbd.ttf',
     'C:/Windows/Fonts/arial.ttf',
+    // Debian/Ubuntu — liberation-fonts (most common on Railway)
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+    // Debian/Ubuntu — dejavu
     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    // Alpine Linux (Railway default base image)
+    '/usr/share/fonts/ttf-dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/ttf-liberation/LiberationSans-Bold.ttf',
+    // Ubuntu / Noto
+    '/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf',
+    '/usr/share/fonts/opentype/noto/NotoSans-Bold.ttf',
+    // Fallback FreeFonts
+    '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
   ];
   return candidates.find((p) => existsSync(p)) ?? null;
 }
@@ -55,6 +69,7 @@ export class ThumbnailGenerationService {
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-thumb-'));
 
     onLog?.(`Generating ${VARIATIONS} thumbnail variations…`);
+    if (!font) this.logger.warn('No usable font found for drawtext — thumbnails will be generated without title overlay');
     let created = 0;
     try {
       for (let i = 0; i < VARIATIONS; i++) {
@@ -71,13 +86,19 @@ export class ThumbnailGenerationService {
             `drawtext=fontfile='${escapeFilterPath(font)}':text='${safeTitle}':fontcolor=white:borderw=6:bordercolor=black@0.8:fontsize=h*0.055:x=(w-text_w)/2:y=${y}`,
           );
         }
-        await runFfmpeg([
-          '-ss', String(atMs / 1000),
-          '-i', renderedPath,
-          ...(filters.length ? ['-vf', filters.join(',')] : []),
-          '-frames:v', '1', '-q:v', '3',
-          framePath,
-        ], 120_000);
+
+        try {
+          await runFfmpeg([
+            '-ss', String(atMs / 1000),
+            '-i', renderedPath,
+            ...(filters.length ? ['-vf', filters.join(',')] : []),
+            '-frames:v', '1', '-q:v', '3',
+            framePath,
+          ], 120_000);
+        } catch (ffmpegErr) {
+          this.logger.warn(`Thumbnail ${i + 1}/${VARIATIONS} ffmpeg failed — skipping variation: ${ffmpegErr instanceof Error ? ffmpegErr.message : String(ffmpegErr)}`);
+          continue;
+        }
 
         const buffer = await fsp.readFile(framePath);
         const asset = await this.prisma.asset.create({
@@ -109,7 +130,7 @@ export class ThumbnailGenerationService {
     } finally {
       await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
-    if (!font) this.logger.warn('No usable font found for drawtext — thumbnails generated without title overlay');
+    if (created === 0) throw new Error('All thumbnail variations failed — check ffmpeg and the rendered clip file');
     onLog?.(`Thumbnails ready — ${created} variations`);
     return { skipped: false, thumbnails: created };
   }

@@ -5347,20 +5347,20 @@ export default function EditorWorkspacePage() {
             >
               {globalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
-            {/* Zoom controls — hidden on mobile (pinch-scroll the timeline instead) */}
+            {/* Zoom controls — visible on all screen sizes */}
             <button
               onClick={() => setPxPerSec((p) => Math.max(5, p - 10))}
-              className="hidden sm:flex p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] items-center justify-center"
-              title="Zoom out"
+              className="flex p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] items-center justify-center"
+              title="Zoom out (timeline)"
               aria-label="Zoom out"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="hidden sm:inline text-xs text-white/60 tabular-nums w-8 text-center">{pxPerSec}</span>
+            <span className="text-xs text-white/60 tabular-nums w-8 text-center">{pxPerSec}</span>
             <button
               onClick={() => setPxPerSec((p) => Math.min(200, p + 10))}
-              className="hidden sm:flex p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] items-center justify-center"
-              title="Zoom in"
+              className="flex p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] items-center justify-center"
+              title="Zoom in (timeline)"
               aria-label="Zoom in"
             >
               <ZoomIn className="w-4 h-4" />

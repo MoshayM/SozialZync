@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, Clapperboard, Download, Lock, Star, RefreshCw, CheckCircle2, Upload,
   ShieldCheck, Package, ExternalLink, AlertTriangle, CalendarClock, XCircle, X,
-  CheckCheck, Clock, ShieldAlert, Wifi, Pause, Play,
+  CheckCheck, Clock, ShieldAlert, Wifi, Pause, Play, FolderDown,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
@@ -254,6 +254,9 @@ export default function ClipExportPage() {
     mutationFn: (id: string) => api.shortsStudio.setPrimaryThumbnail(id),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['clip-thumbs', shortClipId] }); },
   });
+  const saveToPrivate = useMutation({
+    mutationFn: () => api.shortsStudio.saveToPrivate(shortClipId),
+  });
   const exportMutation = useMutation({ mutationFn: () => api.shortsStudio.exportClip(shortClipId), onSuccess: invalidatePub });
   const requestPublish = useMutation({ mutationFn: () => api.shortsStudio.requestPublish(shortClipId), onSuccess: invalidatePub });
   const publishMutation = useMutation({
@@ -375,15 +378,19 @@ export default function ClipExportPage() {
               {status.render.durationMs ? ` · ${Math.round(status.render.durationMs / 1000)}s` : ''}
               {timelineStale && <span className="ml-2 text-amber-600 font-medium">(outdated — re-render needed)</span>}
             </p>
-            {canExternalPublish ? (
-              <button onClick={() => { void download(); }} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-brand-200 text-brand-700 rounded-lg text-sm hover:bg-brand-50">
-                <Download className="w-4 h-4" /> Download
-              </button>
-            ) : (
-              <button onClick={() => triggerUpgradeSheet({ feature: 'Download Clip', plan: 'PRO' })} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 rounded-lg text-sm hover:bg-gray-50" title="Pro plan required to download">
-                <Download className="w-4 h-4" /> Download
-              </button>
-            )}
+            <button
+              onClick={() => saveToPrivate.mutate()}
+              disabled={saveToPrivate.isPending || saveToPrivate.isSuccess}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+              title="Save to My Content → Private"
+            >
+              {saveToPrivate.isPending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : saveToPrivate.isSuccess
+                ? <CheckCircle2 className="w-4 h-4 text-green-500" />
+                : <FolderDown className="w-4 h-4" />}
+              {saveToPrivate.isSuccess ? 'Saved to Private!' : 'Save to Private'}
+            </button>
           </>
         ) : (
           <p className="text-sm text-gray-500">Not rendered yet — click "Render clip" to start.</p>

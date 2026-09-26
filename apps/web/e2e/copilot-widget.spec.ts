@@ -174,14 +174,16 @@ test.describe('Copilot widget — cross-browser smoke', () => {
   test('text message → reply → Read aloud button (all browsers)', async ({ page, browserName, isMobile }) => {
     test.setTimeout(300_000);
 
-    // Firefox/WebKit headless blocks XHR to Railway after auth — mock the chat
-    // endpoint so the browser gets a reply without hitting Railway directly.
+    await loginWithPassword(page);
+    await openChatPanel(page);
+
+    // Register the mock AFTER login and after the panel is open — route handlers
+    // can be dropped by Firefox across the multiple page.goto() calls in
+    // loginWithPassword (login + optional rate-limit recovery navigations).
+    // Registering here guarantees the mock is active when the chat request fires.
     if (browserName === 'firefox' || browserName === 'webkit') {
       await mockCopilotReply(page);
     }
-
-    await loginWithPassword(page);
-    await openChatPanel(page);
 
     const textarea = page.locator('textarea[placeholder="What\'s on your mind?"]');
     await textarea.fill('Hi');
@@ -192,28 +194,30 @@ test.describe('Copilot widget — cross-browser smoke', () => {
       page.getByText(/thinking|processing/i).or(page.locator('[style*="Thinking"]'))
     ).toBeVisible({ timeout: 10_000 }).catch(() => {});
 
-    // Wait for AI reply — 75s covers cold start
+    // Wait for AI reply — 90s covers cold start + Firefox mock latency
     const readAloudBtn = page.locator('button[aria-label="Read aloud"]').first();
-    await expect(readAloudBtn).toBeVisible({ timeout: 75_000 });
+    await expect(readAloudBtn).toBeVisible({ timeout: 90_000 });
     await page.screenshot({ path: 'e2e/reply-received.png' });
   });
 
   test('Read aloud button → TTS starts or Play fallback shown', async ({ page, browserName, isMobile }) => {
     test.setTimeout(300_000);
 
-    // Firefox/WebKit: blocks XHR to Railway after auth — mock chat reply.
-    if (browserName === 'firefox' || browserName === 'webkit') {
-      await mockCopilotReply(page);
-    }
     // Firefox/WebKit/mobile: speechSynthesis.speak() is blocked in headless.
-    // Inject a stub that fires onend after 800ms so React can render the
-    // "Stop speaking" state before the button reverts to "Read aloud".
+    // Must be injected via addInitScript BEFORE first navigation so the stub is
+    // present from page load; unlike page.route(), addInitScript survives navigations.
     if (browserName === 'firefox' || browserName === 'webkit' || isMobile) {
       await mockSpeechSynthesis(page);
     }
 
     await loginWithPassword(page);
     await openChatPanel(page);
+
+    // Register the chat mock AFTER login so Firefox route handlers are fresh
+    // (multiple page.goto() calls in loginWithPassword can drop earlier mocks).
+    if (browserName === 'firefox' || browserName === 'webkit') {
+      await mockCopilotReply(page);
+    }
 
     const textarea = page.locator('textarea[placeholder="What\'s on your mind?"]');
     await textarea.fill('Hello');
