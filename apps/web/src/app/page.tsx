@@ -1,5 +1,1 @@
-import { redirect } from 'next/navigation';
-
-export default function Root() {
-  redirect('/browse');
-}
+export { default } from './_browse-page';
