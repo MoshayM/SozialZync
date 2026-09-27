@@ -59,8 +59,11 @@ function clone<T>(t: T): T {
   return JSON.parse(JSON.stringify(t)) as T;
 }
 
-/** Timeline t → source-video time through the video items (speed 1). */
-function timelineToSource(tracks: Track[], tMs: number): number | null {
+/** Timeline t → source-video time through the video items (speed 1).
+ *  When `renderedSrc` is true the preview video IS the timeline output, so
+ *  the mapping is identity: rendered-video time equals timeline time.         */
+function timelineToSource(tracks: Track[], tMs: number, renderedSrc = false): number | null {
+  if (renderedSrc) return tMs;
   for (const track of tracks) {
     if (track.type !== 'VIDEO') continue;
     for (const item of track.items) {
@@ -98,6 +101,11 @@ export default function TimelineEditorPage() {
   const [pxPerSec, setPxPerSec] = useState(12);
   const [playing, setPlaying] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  // true when videoUrl is the *rendered* clip rather than the original source video.
+  // In that mode timeline-time maps 1-to-1 to the video file's time (no sourceStartMs offset).
+  const [useRenderedSource, setUseRenderedSource] = useState(false);
+  const useRenderedSourceRef = useRef(false);
+  useRenderedSourceRef.current = useRenderedSource;
   const [saveError, setSaveError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<{ capability: string; commands: Command[] } | null>(null);
   const [assistBusy, setAssistBusy] = useState<string | null>(null);
@@ -124,23 +132,58 @@ export default function TimelineEditorPage() {
   // Source video — get a short-lived signed URL so the browser can stream
   // it natively (supports Range requests / seeking) without downloading the
   // whole file first as a blob.
+  //
+  // For RENDERED clips the original source video may no longer be stored on
+  // the server (it is downloaded for analysis, then cleaned up after render).
+  // In that case we fall back to the rendered clip via `previewUrl`, which is
+  // always available once the clip status is RENDERED.  The identity time
+  // mapping (useRenderedSource=true) makes seeking work correctly because the
+  // rendered file IS the timeline output: rendered-video time = timeline time.
   useEffect(() => {
     const versionId = clip?.timeline.tracks
       .filter((t) => t.type === 'VIDEO')
       .flatMap((t) => t.items)
       .find((i) => i.sourceAsset?.versions[0])?.sourceAsset?.versions[0]?.id;
-    if (!versionId) return;
-    let cancelled = false;
-    // Strip /api/v1 suffix so we can prepend the full backend base to the
-    // signed URL — this lets the browser stream directly from Railway instead
-    // of going through Vercel's proxy (which doesn't forward Range headers).
+
+    // Strip /api/v1 suffix so the browser streams directly from Railway
+    // (Vercel's proxy doesn't forward Range headers, breaking seeking).
     const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
+    let cancelled = false;
+
+    const loadRendered = () => {
+      void api.shortsStudio.previewUrl(shortClipId)
+        .then((r) => {
+          if (!cancelled && r.data.url) {
+            setVideoUrl(`${apiBase}${r.data.url}`);
+            setUseRenderedSource(true);
+          } else if (!cancelled) {
+            setVideoUrl(null);
+          }
+        })
+        .catch(() => { if (!cancelled) setVideoUrl(null); });
+    };
+
+    if (!versionId) {
+      // No source asset on the video track — go straight to the rendered clip.
+      loadRendered();
+      return () => { cancelled = true; };
+    }
+
     void apiClient
       .get<{ url: string }>(`/media/versions/${versionId}/editor-url`)
-      .then((r) => { if (!cancelled) setVideoUrl(`${apiBase}${r.data.url}`); })
-      .catch(() => setVideoUrl(null));
+      .then((r) => {
+        if (!cancelled) {
+          setVideoUrl(`${apiBase}${r.data.url}`);
+          setUseRenderedSource(false);
+        }
+      })
+      .catch(() => {
+        // Source video unavailable — fall back to the rendered clip.
+        if (!cancelled) loadRendered();
+      });
+
     return () => { cancelled = true; };
-  }, [clip]);
+  }, [clip, shortClipId]);
 
   // ── Persistence ─────────────────────────────────────────────────────────────
 
@@ -332,7 +375,7 @@ export default function TimelineEditorPage() {
     const v = videoRef.current;
     const tl = timelineRef.current;
     if (!v || !tl) return;
-    const src = timelineToSource(tl.tracks, Math.min(tMs, durationMs - 1));
+    const src = timelineToSource(tl.tracks, Math.min(tMs, durationMs - 1), useRenderedSourceRef.current);
     if (src != null) v.currentTime = src / 1000;
   }, [durationMs]);
 
@@ -353,30 +396,41 @@ export default function TimelineEditorPage() {
       const tl = timelineRef.current;
       if (v && tl) {
         const srcMs = v.currentTime * 1000;
-        // find the span containing the current source time
-        let found = false;
-        for (const track of tl.tracks) {
-          if (track.type !== 'VIDEO') continue;
-          for (const item of track.items) {
-            const s0 = item.properties?.sourceStartMs;
-            if (typeof s0 !== 'number') continue;
-            const len = item.endMs - item.startMs;
-            if (srcMs >= s0 && srcMs < s0 + len) {
-              setPlayheadMs(item.startMs + (srcMs - s0));
-              found = true;
-              break;
-            }
+
+        if (useRenderedSourceRef.current) {
+          // Rendered video: timeline time === rendered-file time (identity mapping).
+          if (v.ended || srcMs >= durationMsRef.current) {
+            v.pause();
+            setPlaying(false);
+          } else {
+            setPlayheadMs(srcMs);
           }
-          if (found) break;
-        }
-        if (!found) {
-          // between spans — jump to the next item's source start
-          const items = tl.tracks.filter((t) => t.type === 'VIDEO').flatMap((t) => t.items)
-            .filter((i) => typeof i.properties?.sourceStartMs === 'number')
-            .sort((a, b) => a.startMs - b.startMs);
-          const next = items.find((i) => (i.properties!.sourceStartMs as number) >= srcMs);
-          if (next) v.currentTime = (next.properties!.sourceStartMs as number) / 1000;
-          else { v.pause(); setPlaying(false); }
+        } else {
+          // Original source video: map via sourceStartMs offsets.
+          let found = false;
+          for (const track of tl.tracks) {
+            if (track.type !== 'VIDEO') continue;
+            for (const item of track.items) {
+              const s0 = item.properties?.sourceStartMs;
+              if (typeof s0 !== 'number') continue;
+              const len = item.endMs - item.startMs;
+              if (srcMs >= s0 && srcMs < s0 + len) {
+                setPlayheadMs(item.startMs + (srcMs - s0));
+                found = true;
+                break;
+              }
+            }
+            if (found) break;
+          }
+          if (!found) {
+            // between spans — jump to the next item's source start
+            const items = tl.tracks.filter((t) => t.type === 'VIDEO').flatMap((t) => t.items)
+              .filter((i) => typeof i.properties?.sourceStartMs === 'number')
+              .sort((a, b) => a.startMs - b.startMs);
+            const next = items.find((i) => (i.properties!.sourceStartMs as number) >= srcMs);
+            if (next) v.currentTime = (next.properties!.sourceStartMs as number) / 1000;
+            else { v.pause(); setPlaying(false); }
+          }
         }
       }
       raf = requestAnimationFrame(tick);
