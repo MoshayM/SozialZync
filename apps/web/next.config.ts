@@ -25,6 +25,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  trailingSlash: false,
   output: 'standalone',
   env: {
     // Default to real API; set NEXT_PUBLIC_USE_MOCK=true in Vercel dashboard for demo/preview deployments
