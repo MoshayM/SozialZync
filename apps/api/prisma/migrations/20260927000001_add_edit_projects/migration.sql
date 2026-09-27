@@ -1,5 +1,5 @@
--- CreateTable
-CREATE TABLE "edit_projects" (
+-- CreateTable (idempotent — table may exist from a partial prior attempt)
+CREATE TABLE IF NOT EXISTS "edit_projects" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -13,13 +13,20 @@ CREATE TABLE "edit_projects" (
     "renderStatus" TEXT NOT NULL DEFAULT 'NONE',
     "lastEditedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "edit_projects_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "edit_projects_projectId_idx" ON "edit_projects"("projectId");
+-- CreateIndex (idempotent)
+CREATE INDEX IF NOT EXISTS "edit_projects_projectId_idx" ON "edit_projects"("projectId");
 
--- AddForeignKey
-ALTER TABLE "edit_projects" ADD CONSTRAINT "edit_projects_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- AddForeignKey (idempotent via existence check)
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'edit_projects_projectId_fkey'
+    ) THEN
+        ALTER TABLE "edit_projects" ADD CONSTRAINT "edit_projects_projectId_fkey"
+            FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
