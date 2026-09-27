@@ -1,36 +1,13 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { promises as fsp, existsSync } from 'fs';
+import { promises as fsp } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../media/storage.service';
-import { runFfmpeg, escapeFilterPath, probeMediaInfo } from '../media/adapters/ffmpeg.util';
+import { runFfmpeg, probeMediaInfo } from '../media/adapters/ffmpeg.util';
 import { MediaPipelineError } from '../media/media.errors';
 
 const VARIATIONS = 4;
-
-function findFont(): string | null {
-  const candidates = [
-    // Windows
-    'C:/Windows/Fonts/arialbd.ttf',
-    'C:/Windows/Fonts/arial.ttf',
-    // Debian/Ubuntu — liberation-fonts (most common on Railway)
-    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-    // Debian/Ubuntu — dejavu
-    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-    // Alpine Linux (Railway default base image)
-    '/usr/share/fonts/ttf-dejavu/DejaVuSans-Bold.ttf',
-    '/usr/share/fonts/ttf-liberation/LiberationSans-Bold.ttf',
-    // Ubuntu / Noto
-    '/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf',
-    '/usr/share/fonts/opentype/noto/NotoSans-Bold.ttf',
-    // Fallback FreeFonts
-    '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
-  ];
-  return candidates.find((p) => existsSync(p)) ?? null;
-}
 
 /**
  * Thumbnail Generator (ai.md Section 13): extracts candidate frames spread
@@ -48,14 +25,12 @@ export class ThumbnailGenerationService {
     private readonly storage: StorageService,
   ) {}
 
-  async ensureThumbnails(shortClipId: string, renderedPath: string, onLog?: (msg: string) => void, titleOverride?: string) {
+  async ensureThumbnails(shortClipId: string, renderedPath: string, onLog?: (msg: string) => void) {
     const clip = await this.prisma.shortClip.findUnique({
       where: { id: shortClipId },
       include: {
         thumbnails: true,
         timeline: { select: { durationMs: true } },
-        topicSegment: { include: { highlight: { select: { titleSuggestion: true } } } },
-        chapter: { select: { title: true } },
       },
     });
     if (!clip?.timeline) throw new NotFoundException('Clip not found');
@@ -65,12 +40,9 @@ export class ThumbnailGenerationService {
     }
 
     const durationMs = clip.timeline.durationMs;
-    const title = titleOverride ?? clip.topicSegment?.highlight?.titleSuggestion ?? clip.chapter?.title ?? '';
-    const font = findFont();
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-thumb-'));
 
     onLog?.(`Generating ${VARIATIONS} thumbnail variations…`);
-    if (!font) this.logger.warn('No usable font found for drawtext — thumbnails will be generated without title overlay');
 
     // Probe the render file to log its codec info and validate it's readable.
     const probe = await probeMediaInfo(renderedPath);
@@ -80,40 +52,25 @@ export class ThumbnailGenerationService {
     }
 
     let created = 0;
-    const ffmpegErrors: string[] = [];
-    this.logger.warn(`[thumb-debug] renderedPath=${renderedPath} exists=${existsSync(renderedPath)} font=${font ?? 'none'} title=${title.slice(0, 40)}`);
     try {
       for (let i = 0; i < VARIATIONS; i++) {
         // Frames at 15% / 38% / 61% / 84% of the clip — avoids intro/outro frames
         const atMs = Math.round(durationMs * (0.15 + (0.7 * i) / Math.max(1, VARIATIONS - 1)));
         const framePath = path.join(tmpDir, `thumb-${i}.jpg`);
 
-        const filters: string[] = [];
-        if (font && title) {
-          // Alternate top/bottom placement across variations
-          const y = i % 2 === 0 ? 'h*0.08' : 'h*0.78';
-          const safeTitle = title.replace(/\\/g, '').replace(/'/g, '’').replace(/:/g, '\\:').replace(/%/g, '\\%').slice(0, 60);
-          filters.push(
-            `drawtext=fontfile='${escapeFilterPath(font)}':text='${safeTitle}':fontcolor=white:borderw=6:bordercolor=black@0.8:fontsize=h*0.055:x=(w-text_w)/2:y=${y}`,
-          );
-        }
-
-        const cmd = [
-          '-ss', String(atMs / 1000),
-          '-i', renderedPath,
-          ...(filters.length ? ['-vf', filters.join(',')] : []),
-          '-frames:v', '1', '-q:v', '3',
-          framePath,
-        ];
         try {
-          await runFfmpeg(cmd, 120_000);
+          // Plain frame extraction — no drawtext overlay.
+          // Alpine’s ffmpeg package omits libfreetype2 so ‘drawtext’ is not available.
+          await runFfmpeg([
+            ‘-ss’, String(atMs / 1000),
+            ‘-i’, renderedPath,
+            ‘-frames:v’, ‘1’, ‘-q:v’, ‘3’,
+            framePath,
+          ], 120_000);
         } catch (ffmpegErr) {
           const reason = ffmpegErr instanceof MediaPipelineError ? ffmpegErr.reason : (ffmpegErr instanceof Error ? ffmpegErr.message : String(ffmpegErr));
-          const stderr = ffmpegErr instanceof MediaPipelineError ? String(ffmpegErr.details?.['stderrTail'] ?? '') : '';
-          const exitCode = ffmpegErr instanceof MediaPipelineError ? String(ffmpegErr.details?.['exitCode'] ?? '') : '';
-          const errSummary = `[${i + 1}/${VARIATIONS}] exit=${exitCode} reason=${reason}${stderr ? ` stderr=${stderr.slice(0, 400)}` : ''}`;
-          ffmpegErrors.push(errSummary);
-          this.logger.warn(`Thumbnail ffmpeg failed: ${errSummary} | cmd: ffmpeg ${cmd.join(' ')}`);
+          const stderr = ffmpegErr instanceof MediaPipelineError ? String(ffmpegErr.details?.[‘stderrTail’] ?? ‘’) : ‘’;
+          this.logger.warn(`Thumbnail ${i + 1}/${VARIATIONS} ffmpeg failed — skipping variation: ${reason}${stderr ? ` | stderr: ${stderr.slice(0, 300)}` : ‘’}`);
           continue;
         }
 
@@ -122,7 +79,7 @@ export class ThumbnailGenerationService {
           data: {
             projectId: clip.projectId,
             kind: 'SHORTS_THUMBNAIL',
-            label: `Thumbnail ${i + 1}: ${title || clip.id}`,
+            label: `Thumbnail ${i + 1}: ${clip.id}`,
             status: 'READY',
           },
         });
@@ -147,10 +104,7 @@ export class ThumbnailGenerationService {
     } finally {
       await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
-    if (created === 0) {
-      const errDetail = ffmpegErrors.length ? ` | ffmpeg errors: ${ffmpegErrors.join(' || ')}` : '';
-      throw new InternalServerErrorException(`Thumbnail generation failed — ffmpeg could not extract frames from the render file. Re-render the clip and try again.${errDetail}`);
-    }
+    if (created === 0) throw new InternalServerErrorException('Thumbnail generation failed — ffmpeg could not extract frames from the render file. Re-render the clip and try again.');
     onLog?.(`Thumbnails ready — ${created} variations`);
     return { skipped: false, thumbnails: created };
   }
@@ -176,7 +130,7 @@ export class ThumbnailGenerationService {
   }
 
   /** Re-generate thumbnails from the already-rendered clip file, optionally with a custom title overlay. */
-  async regenerate(shortClipId: string, userId: string, promptTitle?: string) {
+  async regenerate(shortClipId: string, userId: string) {
     const clip = await this.prisma.shortClip.findFirst({
       where: { id: shortClipId, project: { userId } },
       include: {
@@ -197,7 +151,7 @@ export class ThumbnailGenerationService {
       await this.prisma.asset.deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } });
     }
 
-    return this.ensureThumbnails(shortClipId, this.storage.resolve(renderKey), undefined, promptTitle);
+    return this.ensureThumbnails(shortClipId, this.storage.resolve(renderKey));
   }
 
   /** Upload a user-provided image as a custom thumbnail (JPEG/PNG/WEBP, max 10 MB). */

@@ -379,10 +379,10 @@ export class ShortsStudioController {
   @Post('clips/:shortClipId/thumbnails/generate-with-prompt')
   async generateThumbnailsWithPrompt(
     @Param('shortClipId') shortClipId: string,
-    @Body() body: { prompt?: string },
+    @Body() _body: { prompt?: string },
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.thumbnails.regenerate(shortClipId, user.sub, body.prompt?.trim() || undefined);
+    return this.thumbnails.regenerate(shortClipId, user.sub);
   }
 
   @Post('clips/:shortClipId/thumbnails/upload')
