@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../media/storage.service';
-import { runFfmpeg, probeMediaInfo } from '../media/adapters/ffmpeg.util';
+import { runFfmpeg, probeMediaInfo, parseMediaProbe } from '../media/adapters/ffmpeg.util';
 import { MediaPipelineError } from '../media/media.errors';
 
 const VARIATIONS = 4;
@@ -52,11 +52,17 @@ export class ThumbnailGenerationService {
       );
     }
 
+    // Use the actual rendered video duration from the probe so seek times stay
+    // within bounds even when the user made cuts that shorten the timeline.
+    // Fall back to the stored durationMs when the probe can't determine it.
+    const probedDurationMs = parseMediaProbe(probe).durationMs ?? durationMs;
+    const effectiveDurationMs = probedDurationMs > 0 ? probedDurationMs : durationMs;
+
     let created = 0;
     try {
       for (let i = 0; i < VARIATIONS; i++) {
         // Frames at 15% / 38% / 61% / 84% of the clip -- avoids intro/outro frames
-        const atMs = Math.round(durationMs * (0.15 + (0.7 * i) / Math.max(1, VARIATIONS - 1)));
+        const atMs = Math.round(effectiveDurationMs * (0.15 + (0.7 * i) / Math.max(1, VARIATIONS - 1)));
         const framePath = path.join(tmpDir, `thumb-${i}.jpg`);
 
         try {
@@ -78,32 +84,51 @@ export class ThumbnailGenerationService {
           continue;
         }
 
-        const buffer = await fsp.readFile(framePath);
-        const asset = await this.prisma.asset.create({
-          data: {
-            projectId: clip.projectId,
-            kind: 'SHORTS_THUMBNAIL',
-            label: `Thumbnail ${i + 1}: ${clip.id}`,
-            status: 'READY',
-          },
-        });
-        const key = `thumbnails/shorts/${clip.projectId}/${asset.id}.jpg`;
-        await this.storage.put(key, buffer);
-        const version = await this.prisma.assetVersion.create({
-          data: {
-            assetId: asset.id,
-            version: 1,
-            r2Key: key,
-            provider: 'ffmpeg',
-            sizeBytes: BigInt(buffer.length),
-            params: { atMs, variation: i } as never,
-          },
-        });
-        await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
-        await this.prisma.shortsThumbnail.create({
-          data: { shortClipId, assetId: asset.id, isPrimary: i === 0 },
-        });
-        created++;
+        // Guard: ffmpeg may exit 0 without writing the frame (e.g. empty video
+        // or seek precisely at the last keyframe boundary). Skip quietly.
+        try {
+          const stat = await fsp.stat(framePath);
+          if (stat.size === 0) {
+            this.logger.warn(`Thumbnail ${i + 1}/${VARIATIONS} ffmpeg wrote empty frame -- skipping`);
+            continue;
+          }
+        } catch {
+          this.logger.warn(`Thumbnail ${i + 1}/${VARIATIONS} ffmpeg exited 0 but wrote no output file -- skipping`);
+          continue;
+        }
+
+        try {
+          const buffer = await fsp.readFile(framePath);
+          const asset = await this.prisma.asset.create({
+            data: {
+              projectId: clip.projectId,
+              kind: 'SHORTS_THUMBNAIL',
+              label: `Thumbnail ${i + 1}: ${clip.id}`,
+              status: 'READY',
+            },
+          });
+          const key = `thumbnails/shorts/${clip.projectId}/${asset.id}.jpg`;
+          await this.storage.put(key, buffer);
+          const version = await this.prisma.assetVersion.create({
+            data: {
+              assetId: asset.id,
+              version: 1,
+              r2Key: key,
+              provider: 'ffmpeg',
+              sizeBytes: BigInt(buffer.length),
+              params: { atMs, variation: i } as never,
+            },
+          });
+          await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
+          await this.prisma.shortsThumbnail.create({
+            data: { shortClipId, assetId: asset.id, isPrimary: i === 0 },
+          });
+          created++;
+        } catch (err) {
+          this.logger.warn(
+            `Thumbnail ${i + 1}/${VARIATIONS} storage/db error -- skipping: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
     } finally {
       await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);

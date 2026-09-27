@@ -145,7 +145,31 @@ export class ChapterDetectionService {
     );
 
     const chapters = normalizeChapters(result.chapters, topics.map((t) => t.startMs), video.durationMs);
-    if (chapters.length === 0) throw new Error('Chapter detection produced no usable chapters');
+    if (chapters.length === 0) {
+      if (video.durationMs <= 0) {
+        this.logger.warn(`Chapter detection skipped — video durationMs is ${video.durationMs}`);
+        onLog?.('Chapter detection skipped — video duration is unknown');
+        return { skipped: false, chapters: 0 };
+      }
+      // AI returned no usable groupings (e.g. single-topic video, regional language
+      // transcript, or empty chapter array). Create one chapter covering the whole
+      // video so the pipeline does not fail over supplementary navigation data.
+      this.logger.warn(`No usable chapters from AI for "${video.title}" — using single fallback chapter`);
+      onLog?.('No chapter groupings detected — creating single fallback chapter');
+      await this.prisma.chapter.create({
+        data: {
+          importedVideoId,
+          startMs: 0,
+          endMs: video.durationMs,
+          title: video.title.slice(0, 50),
+          summary: video.title,
+          keyPoints: [],
+          confidence: 0,
+        },
+      });
+      onLog?.('Chapter detection complete — 1 fallback chapter');
+      return { skipped: false, chapters: 1 };
+    }
 
     await this.prisma.chapter.createMany({
       data: chapters.map((c) => ({
