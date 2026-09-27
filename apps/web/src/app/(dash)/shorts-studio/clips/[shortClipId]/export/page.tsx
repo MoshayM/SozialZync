@@ -269,6 +269,14 @@ export default function ClipExportPage() {
     onSuccess: () => { setScheduledAt(''); setShowSchedule(false); invalidatePub(); },
   });
 
+  // ── Derived publish state ──────────────────────────────────────────────────
+  const clipStatus = pub?.clipStatus ?? '';
+  const isExported = !['RENDERED', 'CANDIDATE', 'IN_EDITING', 'READY_FOR_RENDER'].includes(clipStatus);
+  const approvalStatus = pub?.approval?.status;
+  const isApproved = approvalStatus === 'APPROVED';
+  const publishJobActive = pub?.publishJob && ['PENDING', 'QUEUED', 'RUNNING'].includes(pub.publishJob.status);
+  const publishedVideoId = pub?.publishJob?.result?.youtubeVideoId;
+
   const prevPublishedRef = useRef<string | null>(null);
   useEffect(() => {
     if (publishedVideoId && !prevPublishedRef.current) {
@@ -303,14 +311,6 @@ export default function ClipExportPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
-
-  // ── Derived publish state ──────────────────────────────────────────────────
-  const clipStatus = pub?.clipStatus ?? '';
-  const isExported = !['RENDERED', 'CANDIDATE', 'IN_EDITING', 'READY_FOR_RENDER'].includes(clipStatus);
-  const approvalStatus = pub?.approval?.status;
-  const isApproved = approvalStatus === 'APPROVED';
-  const publishJobActive = pub?.publishJob && ['PENDING', 'QUEUED', 'RUNNING'].includes(pub.publishJob.status);
-  const publishedVideoId = pub?.publishJob?.result?.youtubeVideoId;
 
   // ── Get error message from mutation ───────────────────────────────────────
   const mutationErrMsg = (err: unknown): string =>
