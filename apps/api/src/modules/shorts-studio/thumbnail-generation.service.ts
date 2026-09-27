@@ -4,7 +4,8 @@ import * as path from 'path';
 import * as os from 'os';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../media/storage.service';
-import { runFfmpeg, escapeFilterPath } from '../media/adapters/ffmpeg.util';
+import { runFfmpeg, escapeFilterPath, probeMediaInfo } from '../media/adapters/ffmpeg.util';
+import { MediaPipelineError } from '../media/media.errors';
 
 const VARIATIONS = 4;
 
@@ -70,6 +71,14 @@ export class ThumbnailGenerationService {
 
     onLog?.(`Generating ${VARIATIONS} thumbnail variations…`);
     if (!font) this.logger.warn('No usable font found for drawtext — thumbnails will be generated without title overlay');
+
+    // Probe the render file to log its codec info and validate it's readable.
+    const probe = await probeMediaInfo(renderedPath);
+    this.logger.debug(`Thumbnail probe for ${shortClipId}: ${probe.slice(0, 400).replace(/\n/g, ' ')}`);
+    if (!probe.includes('Video:')) {
+      throw new InternalServerErrorException('Render file is not a valid video — no video stream detected. Re-render the clip and try again.');
+    }
+
     let created = 0;
     try {
       for (let i = 0; i < VARIATIONS; i++) {
@@ -96,7 +105,9 @@ export class ThumbnailGenerationService {
             framePath,
           ], 120_000);
         } catch (ffmpegErr) {
-          this.logger.warn(`Thumbnail ${i + 1}/${VARIATIONS} ffmpeg failed — skipping variation: ${ffmpegErr instanceof Error ? ffmpegErr.message : String(ffmpegErr)}`);
+          const reason = ffmpegErr instanceof MediaPipelineError ? ffmpegErr.reason : (ffmpegErr instanceof Error ? ffmpegErr.message : String(ffmpegErr));
+          const stderr = ffmpegErr instanceof MediaPipelineError ? String(ffmpegErr.details?.['stderrTail'] ?? '') : '';
+          this.logger.warn(`Thumbnail ${i + 1}/${VARIATIONS} ffmpeg failed — skipping variation: ${reason}${stderr ? ` | stderr: ${stderr.slice(0, 300)}` : ''}`);
           continue;
         }
 
