@@ -102,7 +102,7 @@ export class VideoImportService {
       likeCount: bigint | null;
       commentCount: bigint | null;
     };
-    if (lib && lib.durationMs > 0) {
+    if (lib) {
       data = {
         title: lib.title,
         description: lib.description,

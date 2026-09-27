@@ -90,69 +90,102 @@ export class ShortsRenderService {
 
       await this.prisma.shortClip.update({ where: { id: shortClipId }, data: { status: 'RENDERING' } });
 
-      // ── Pass 1: extract + reframe each span ──────────────────────────────────
+      // ── Render: single-pass for one segment, two-pass for multiple ────────────
       const workDir = path.join(os.tmpdir(), `cf-render-${shortClipId}`);
       await fsp.mkdir(workDir, { recursive: true });
       const encoder = await this.pickEncoder();
       onLog?.(`Rendering ${spans.length} segment(s) at ${out.width}×${out.height} (${encoder}, ${keyframes.length} reframe keyframe(s))…`);
 
-      const segmentPaths: string[] = [];
-      for (let i = 0; i < spans.length; i++) {
-        const span = spans[i]!;
-        // Crop x follows the face/motion path: buildCxExpr returns a constant
-        // when the subject doesn't move, or a piecewise-linear pan in
-        // segment-relative t. The whole x option stays single-quoted — the
-        // expression contains commas, which split the filtergraph unquoted.
+      const finalPath = path.join(workDir, 'final.mp4');
+
+      if (spans.length === 1) {
+        // ── Single-span: one FFmpeg pass (seek + crop + captions + encode) ───────
+        const span = spans[0]!;
         const cxExpr = buildCxExpr(keyframes, span.timelineStartMs, span.timelineEndMs);
         const crop = preset.aspect === '16:9'
           ? `scale=${out.width}:${out.height}:force_original_aspect_ratio=decrease,pad=${out.width}:${out.height}:(ow-iw)/2:(oh-ih)/2`
           : `crop='min(iw,ih*${out.width}/${out.height})':'ih':'(iw-min(iw,ih*${out.width}/${out.height}))*(${cxExpr})':'0',scale=${out.width}:${out.height}`;
-        const segPath = path.join(workDir, `seg-${i}.mp4`);
-        segmentPaths.push(segPath);
-        if (await fsp.stat(segPath).then((s) => s.size > 0).catch(() => false)) {
-          onLog?.(`Segment ${i + 1}/${spans.length} already rendered — reusing`);
-          continue;
+
+        let vf = crop;
+        if (clip.timeline.captions.length > 0) {
+          const srtPath = path.join(workDir, 'captions.srt');
+          await fsp.writeFile(srtPath, buildSrt(clip.timeline.captions.map((c) => ({
+            startMs: c.startMs,
+            endMs: c.endMs,
+            text: `${c.text}${c.emoji ? ` ${c.emoji}` : ''}`,
+          }))));
+          const marginV = Math.round(out.height * Math.max(preset.safeZone.bottom, 0.05));
+          vf += `,subtitles='${escapeFilterPath(srtPath)}':force_style='FontSize=14,Bold=1,Alignment=2,MarginV=${Math.round(marginV / 8)}'`;
+          onLog?.(`Burning ${clip.timeline.captions.length} captions…`);
         }
+
         await this.encodeWithFallback(encoder, [
           '-ss', String(span.sourceStartMs / 1000),
           '-t', String((span.sourceEndMs - span.sourceStartMs) / 1000),
           '-i', sourcePath,
-          '-vf', crop,
+          '-vf', vf,
           '-r', '30',
           '-c:a', 'aac', '-b:a', '128k',
-          segPath,
+          finalPath,
         ]);
+      } else {
+        // ── Multi-span: Pass 1 (per-segment encode) + Pass 2 (concat + captions) ─
+        const segmentPaths: string[] = [];
+        for (let i = 0; i < spans.length; i++) {
+          const span = spans[i]!;
+          // Crop x follows the face/motion path: buildCxExpr returns a constant
+          // when the subject doesn't move, or a piecewise-linear pan in
+          // segment-relative t. The whole x option stays single-quoted — the
+          // expression contains commas, which split the filtergraph unquoted.
+          const cxExpr = buildCxExpr(keyframes, span.timelineStartMs, span.timelineEndMs);
+          const crop = preset.aspect === '16:9'
+            ? `scale=${out.width}:${out.height}:force_original_aspect_ratio=decrease,pad=${out.width}:${out.height}:(ow-iw)/2:(oh-ih)/2`
+            : `crop='min(iw,ih*${out.width}/${out.height})':'ih':'(iw-min(iw,ih*${out.width}/${out.height}))*(${cxExpr})':'0',scale=${out.width}:${out.height}`;
+          const segPath = path.join(workDir, `seg-${i}.mp4`);
+          segmentPaths.push(segPath);
+          if (await fsp.stat(segPath).then((s) => s.size > 0).catch(() => false)) {
+            onLog?.(`Segment ${i + 1}/${spans.length} already rendered — reusing`);
+            continue;
+          }
+          await this.encodeWithFallback(encoder, [
+            '-ss', String(span.sourceStartMs / 1000),
+            '-t', String((span.sourceEndMs - span.sourceStartMs) / 1000),
+            '-i', sourcePath,
+            '-vf', crop,
+            '-r', '30',
+            '-c:a', 'aac', '-b:a', '128k',
+            segPath,
+          ]);
+          await this.prisma.shortsRenderJob.update({
+            where: { id: renderJob.id },
+            data: { status: 'CHECKPOINTED', checkpointData: { pass: 1, segmentsDone: i + 1, total: spans.length } as never },
+          });
+          onLog?.(`Segment ${i + 1}/${spans.length} rendered`);
+        }
+
+        // ── Pass 2: concat + captions + final encode ─────────────────────────────
         await this.prisma.shortsRenderJob.update({
           where: { id: renderJob.id },
-          data: { status: 'CHECKPOINTED', checkpointData: { pass: 1, segmentsDone: i + 1, total: spans.length } as never },
+          data: { status: 'RUNNING', ffmpegPass: 2 },
         });
-        onLog?.(`Segment ${i + 1}/${spans.length} rendered`);
-      }
+        const listPath = path.join(workDir, 'list.txt');
+        await fsp.writeFile(listPath, segmentPaths.map((p) => `file '${p.replace(/\\/g, '/').replace(/'/g, "'\\''")}'`).join('\n'));
 
-      // ── Pass 2: concat + captions + final encode ─────────────────────────────
-      await this.prisma.shortsRenderJob.update({
-        where: { id: renderJob.id },
-        data: { status: 'RUNNING', ffmpegPass: 2 },
-      });
-      const listPath = path.join(workDir, 'list.txt');
-      await fsp.writeFile(listPath, segmentPaths.map((p) => `file '${p.replace(/\\/g, '/').replace(/'/g, "'\\''")}'`).join('\n'));
-
-      const finalPath = path.join(workDir, 'final.mp4');
-      const args = ['-f', 'concat', '-safe', '0', '-i', listPath];
-      if (clip.timeline.captions.length > 0) {
-        const srtPath = path.join(workDir, 'captions.srt');
-        await fsp.writeFile(srtPath, buildSrt(clip.timeline.captions.map((c) => ({
-          startMs: c.startMs,
-          endMs: c.endMs,
-          text: `${c.text}${c.emoji ? ` ${c.emoji}` : ''}`,
-        }))));
-        // Bottom margin respects the platform safe zone (ai.md Section 7)
-        const marginV = Math.round(out.height * Math.max(preset.safeZone.bottom, 0.05));
-        args.push('-vf', `subtitles='${escapeFilterPath(srtPath)}':force_style='FontSize=14,Bold=1,Alignment=2,MarginV=${Math.round(marginV / 8)}'`);
-        onLog?.(`Burning ${clip.timeline.captions.length} captions…`);
+        const args = ['-f', 'concat', '-safe', '0', '-i', listPath];
+        if (clip.timeline.captions.length > 0) {
+          const srtPath = path.join(workDir, 'captions.srt');
+          await fsp.writeFile(srtPath, buildSrt(clip.timeline.captions.map((c) => ({
+            startMs: c.startMs,
+            endMs: c.endMs,
+            text: `${c.text}${c.emoji ? ` ${c.emoji}` : ''}`,
+          }))));
+          const marginV = Math.round(out.height * Math.max(preset.safeZone.bottom, 0.05));
+          args.push('-vf', `subtitles='${escapeFilterPath(srtPath)}':force_style='FontSize=14,Bold=1,Alignment=2,MarginV=${Math.round(marginV / 8)}'`);
+          onLog?.(`Burning ${clip.timeline.captions.length} captions…`);
+        }
+        args.push('-c:a', 'copy', finalPath);
+        await this.encodeWithFallback(encoder, args);
       }
-      args.push('-c:a', 'copy', finalPath);
-      await this.encodeWithFallback(encoder, args);
 
       // ── Persist as asset ─────────────────────────────────────────────────────
       const stat = await fsp.stat(finalPath);
