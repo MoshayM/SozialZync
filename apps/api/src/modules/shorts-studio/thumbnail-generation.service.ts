@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { promises as fsp, existsSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -47,7 +47,7 @@ export class ThumbnailGenerationService {
     private readonly storage: StorageService,
   ) {}
 
-  async ensureThumbnails(shortClipId: string, renderedPath: string, onLog?: (msg: string) => void) {
+  async ensureThumbnails(shortClipId: string, renderedPath: string, onLog?: (msg: string) => void, titleOverride?: string) {
     const clip = await this.prisma.shortClip.findUnique({
       where: { id: shortClipId },
       include: {
@@ -64,7 +64,7 @@ export class ThumbnailGenerationService {
     }
 
     const durationMs = clip.timeline.durationMs;
-    const title = clip.topicSegment?.highlight?.titleSuggestion ?? clip.chapter?.title ?? '';
+    const title = titleOverride ?? clip.topicSegment?.highlight?.titleSuggestion ?? clip.chapter?.title ?? '';
     const font = findFont();
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-thumb-'));
 
@@ -130,7 +130,7 @@ export class ThumbnailGenerationService {
     } finally {
       await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
-    if (created === 0) throw new Error('All thumbnail variations failed — check ffmpeg and the rendered clip file');
+    if (created === 0) throw new InternalServerErrorException('Thumbnail generation failed — ffmpeg could not extract frames from the render file. Re-render the clip and try again.');
     onLog?.(`Thumbnails ready — ${created} variations`);
     return { skipped: false, thumbnails: created };
   }
@@ -155,8 +155,8 @@ export class ThumbnailGenerationService {
     return { success: true };
   }
 
-  /** Re-generate thumbnails from the already-rendered clip file (force=true clears existing ones first). */
-  async regenerate(shortClipId: string, userId: string) {
+  /** Re-generate thumbnails from the already-rendered clip file, optionally with a custom title overlay. */
+  async regenerate(shortClipId: string, userId: string, promptTitle?: string) {
     const clip = await this.prisma.shortClip.findFirst({
       where: { id: shortClipId, project: { userId } },
       include: {
@@ -177,7 +177,7 @@ export class ThumbnailGenerationService {
       await this.prisma.asset.deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } });
     }
 
-    return this.ensureThumbnails(shortClipId, this.storage.resolve(renderKey));
+    return this.ensureThumbnails(shortClipId, this.storage.resolve(renderKey), undefined, promptTitle);
   }
 
   /** Upload a user-provided image as a custom thumbnail (JPEG/PNG/WEBP, max 10 MB). */

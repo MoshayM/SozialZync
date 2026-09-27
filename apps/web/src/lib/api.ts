@@ -1109,6 +1109,8 @@ export const api = {
       apiClient.get(`/shorts-studio/clips/${shortClipId}/thumbnails`),
     generateThumbnails: (shortClipId: string) =>
       apiClient.post(`/shorts-studio/clips/${shortClipId}/thumbnails/generate`),
+    generateThumbnailsWithPrompt: (shortClipId: string, prompt: string) =>
+      apiClient.post(`/shorts-studio/clips/${shortClipId}/thumbnails/generate-with-prompt`, { prompt }),
     uploadThumbnail: (shortClipId: string, file: File) => {
       const fd = new FormData();
       fd.append('file', file);

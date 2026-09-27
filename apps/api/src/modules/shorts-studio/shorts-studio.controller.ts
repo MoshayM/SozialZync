@@ -20,6 +20,7 @@ import { ChapterSyncService } from './chapter-sync.service';
 import { SocialContentService } from './social-content.service';
 import { QuoteCardRenderService } from './quote-card-render.service';
 import { JobsService } from '../jobs/jobs.service';
+import { signMedia, signingSecret } from '../media/signed-url.util';
 
 class ImportVideoDto {
   /** Channel-first flow (library import). Exactly one of channelId/projectId is required. */
@@ -358,12 +359,30 @@ export class ShortsStudioController {
   @Get('clips/:shortClipId/thumbnails')
   async clipThumbnails(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
     await this.shorts.assertClipOwnership(shortClipId, user.sub);
-    return this.thumbnails.listForClip(shortClipId);
+    const thumbs = await this.thumbnails.listForClip(shortClipId);
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const secret = signingSecret();
+    return thumbs.map((t) => {
+      const versionId = t.asset.versions[0]?.id;
+      const url = versionId
+        ? `/api/v1/media/versions/${versionId}/file?exp=${exp}&sig=${signMedia(`version:${versionId}`, exp, secret)}`
+        : null;
+      return { id: t.id, isPrimary: t.isPrimary, url };
+    });
   }
 
   @Post('clips/:shortClipId/thumbnails/generate')
   async generateThumbnails(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
     return this.thumbnails.regenerate(shortClipId, user.sub);
+  }
+
+  @Post('clips/:shortClipId/thumbnails/generate-with-prompt')
+  async generateThumbnailsWithPrompt(
+    @Param('shortClipId') shortClipId: string,
+    @Body() body: { prompt?: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.thumbnails.regenerate(shortClipId, user.sub, body.prompt?.trim() || undefined);
   }
 
   @Post('clips/:shortClipId/thumbnails/upload')

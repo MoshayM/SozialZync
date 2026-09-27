@@ -191,11 +191,16 @@ function CharCounter({ val, max }: { val: string; max: number }) {
   return <span className={`text-[10px] tabular-nums ${color}`}>{len}/{max}</span>;
 }
 
-// ── Thumbnail section (Issue 1) ───────────────────────────────────────────────
+// ── Thumbnail section ─────────────────────────────────────────────────────────
 
 type ThumbMode = 'keep' | 'ai' | 'upload';
 
-interface Thumbnail { id: string; url: string; isPrimary: boolean; }
+interface Thumbnail { id: string; url: string | null; isPrimary: boolean; }
+
+function apiErrMsg(err: unknown, fallback: string): string {
+  const e = err as { response?: { data?: { message?: string } } };
+  return e?.response?.data?.message ?? fallback;
+}
 
 function ThumbnailSection({
   clipId,
@@ -209,7 +214,10 @@ function ThumbnailSection({
   const qc = useQueryClient();
   const [mode, setMode] = useState<ThumbMode>('keep');
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState('');
+  const [showPrompt, setShowPrompt] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
 
   const { data: thumbs = [], isLoading: thumbsLoading, refetch: refetchThumbs } = useQuery({
     queryKey: ['thumbnails', clipId],
@@ -218,7 +226,10 @@ function ThumbnailSection({
   });
 
   const generate = useMutation({
-    mutationFn: () => api.shortsStudio.generateThumbnails(clipId),
+    mutationFn: () =>
+      showPrompt && prompt.trim()
+        ? api.shortsStudio.generateThumbnailsWithPrompt(clipId, prompt.trim())
+        : api.shortsStudio.generateThumbnails(clipId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['thumbnails', clipId] });
       void refetchThumbs();
@@ -279,28 +290,60 @@ function ThumbnailSection({
               <Loader2 className="w-5 h-5 animate-spin" />
             </div>
           ) : thumbs.length === 0 ? (
-            <div className="text-center py-4 space-y-2">
-              <p className="text-xs text-gray-500">No thumbnails generated yet.</p>
+            <div className="space-y-2">
+              {/* Prompt toggle */}
               <button
                 type="button"
-                onClick={() => generate.mutate()}
-                disabled={generate.isPending}
-                className="flex items-center gap-2 mx-auto px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                onClick={() => setShowPrompt((v) => !v)}
+                className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-800 transition-colors"
               >
-                {generate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                {generate.isPending ? 'Generating…' : 'Generate AI Thumbnails'}
+                <Sparkles className="w-3 h-3" />
+                {showPrompt ? 'Hide prompt' : 'Add title prompt (optional)'}
               </button>
-              {generate.isError && (
-                <p className="text-[11px] text-red-500">
-                  {(generate.error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Thumbnail generation failed — please try again.'}
-                </p>
+              {showPrompt && (
+                <input
+                  type="text"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="e.g. Top 5 AI Tools for 2026…"
+                  maxLength={80}
+                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
+                />
               )}
+              <div className="text-center py-3 space-y-2">
+                <p className="text-xs text-gray-500">No thumbnails generated yet.</p>
+                <button
+                  type="button"
+                  onClick={() => generate.mutate()}
+                  disabled={generate.isPending}
+                  className="flex items-center gap-2 mx-auto px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                >
+                  {generate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  {generate.isPending ? 'Generating…' : 'Generate AI Thumbnails'}
+                </button>
+                {generate.isError && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] text-red-500">
+                      {apiErrMsg(generate.error, 'Thumbnail generation failed — please try again.')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => generate.mutate()}
+                      disabled={generate.isPending}
+                      className="flex items-center gap-1 mx-auto text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Retry
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 {thumbs.map((t) => {
                   const active = selectedId === t.id || (!selectedId && t.isPrimary);
+                  const src = t.url ? `${apiBase}${t.url}` : null;
                   return (
                     <button
                       key={t.id}
@@ -308,8 +351,14 @@ function ThumbnailSection({
                       onClick={() => onSelect(t.id)}
                       className={`relative rounded-lg overflow-hidden border-2 transition-all ${active ? 'border-brand-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={t.url} alt="Thumbnail" className="w-full aspect-[9/16] object-cover" />
+                      {src ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={src} alt="Thumbnail" className="w-full aspect-[9/16] object-cover" />
+                      ) : (
+                        <div className="w-full aspect-[9/16] bg-gray-100 flex items-center justify-center">
+                          <Image className="w-6 h-6 text-gray-300" />
+                        </div>
+                      )}
                       {active && (
                         <div className="absolute inset-0 bg-brand-600/10 flex items-center justify-center">
                           <CheckCircle2 className="w-6 h-6 text-brand-600 drop-shadow" />
@@ -322,15 +371,41 @@ function ThumbnailSection({
                   );
                 })}
               </div>
-              <button
-                type="button"
-                onClick={() => generate.mutate()}
-                disabled={generate.isPending}
-                className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <RefreshCw className={`w-3 h-3 ${generate.isPending ? 'animate-spin' : ''}`} />
-                Regenerate
-              </button>
+              {/* Regenerate with optional prompt */}
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowPrompt((v) => !v)}
+                  className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-800 transition-colors"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Regenerate with prompt
+                </button>
+                {showPrompt && (
+                  <input
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="Custom title overlay (e.g. Top 5 AI Tools)"
+                    maxLength={80}
+                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => generate.mutate()}
+                  disabled={generate.isPending}
+                  className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${generate.isPending ? 'animate-spin' : ''}`} />
+                  {generate.isPending ? 'Regenerating…' : 'Regenerate'}
+                </button>
+                {generate.isError && (
+                  <p className="text-[11px] text-red-500">
+                    {apiErrMsg(generate.error, 'Regeneration failed — please try again.')}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

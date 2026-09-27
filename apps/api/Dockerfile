@@ -22,7 +22,8 @@ RUN pnpm --filter @cf/api build
 
 # ── runtime ───────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@latest --activate && \
+    apk add --no-cache ffmpeg fontconfig ttf-liberation
 WORKDIR /app
 
 ENV NODE_ENV=production
