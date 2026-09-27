@@ -492,6 +492,11 @@ export class ShortsStudioController {
     return this.shorts.saveToPrivate(shortClipId, user.sub);
   }
 
+  @Post('clips/:shortClipId/save-to-public')
+  async saveToPublic(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
+    return this.shorts.saveToPublic(shortClipId, user.sub);
+  }
+
   /** One-click publish: export → auto-approve → enqueue publish. No separate approval UI. */
   @Post('clips/:shortClipId/quick-publish')
   async quickPublish(

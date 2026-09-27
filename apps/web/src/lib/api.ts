@@ -1138,6 +1138,8 @@ export const api = {
       apiClient.get<{ url: string; expiresAt: string; durationMs: number | null }>(`/shorts-studio/clips/${shortClipId}/preview-url`),
     saveToPrivate: (shortClipId: string) =>
       apiClient.post<{ id: string }>(`/shorts-studio/clips/${shortClipId}/save-to-private`),
+    saveToPublic: (shortClipId: string) =>
+      apiClient.post<{ id: string; promoted: boolean }>(`/shorts-studio/clips/${shortClipId}/save-to-public`),
     deleteClip: (clipId: string) =>
       apiClient.delete(`/shorts-studio/clips/${clipId}`),
   },

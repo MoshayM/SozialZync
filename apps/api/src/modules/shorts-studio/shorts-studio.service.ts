@@ -340,4 +340,61 @@ export class ShortsStudioService {
     });
     return { id: (editProject as { id: string }).id };
   }
+
+  /** Save a rendered short clip into My Content → Public (or promote an existing Private entry). */
+  async saveToPublic(clipId: string, userId: string) {
+    await this.assertClipOwnership(clipId, userId);
+    const clip = await this.prisma.shortClip.findUnique({
+      where: { id: clipId },
+      include: {
+        renderAsset: { include: { versions: { orderBy: { version: 'desc' as const }, take: 1 } } },
+        topicSegment: { include: { highlight: { select: { titleSuggestion: true } } } },
+        chapter: { select: { title: true } },
+        project: { select: { userId: true } },
+      },
+    });
+    if (!clip) throw new NotFoundException('Clip not found');
+    if (clip.project.userId !== userId) throw new ForbiddenException('Not your clip');
+    if (!clip.renderAsset?.versions[0]) throw new BadRequestException('Clip must be rendered before saving');
+
+    const title = (
+      clip.topicSegment?.highlight?.titleSuggestion ??
+      clip.topicSegment?.title ??
+      clip.chapter?.title ??
+      'Short clip'
+    ).slice(0, 180);
+
+    const renderVersion = clip.renderAsset.versions[0];
+    // @reason: EditProject is not in the generated Prisma client yet — accessed via dynamic key
+    const ep = (this.prisma as unknown as Record<string, unknown>)['editProject'] as {
+      findFirst: (args: unknown) => Promise<{ id: string } | null>;
+      create: (args: unknown) => Promise<{ id: string }>;
+      update: (args: unknown) => Promise<{ id: string }>;
+    };
+
+    // Promote an existing private/public entry for the same render asset rather than duplicating
+    const existing = (await ep.findFirst({
+      where: { renderAssetId: clip.renderAsset.id, status: { in: ['PRIVATE_CONTENT', 'PUBLIC_CONTENT'] } },
+    })) as { id: string } | null;
+
+    if (existing) {
+      await ep.update({ where: { id: existing.id }, data: { status: 'PUBLIC_CONTENT' } });
+      return { id: existing.id, promoted: true };
+    }
+
+    const editProject = await ep.create({
+      data: {
+        projectId: clip.projectId,
+        title: `Short: ${title}`,
+        status: 'PUBLIC_CONTENT',
+        renderAssetId: clip.renderAsset.id,
+        renderStatus: 'READY',
+        durationMs: renderVersion.durationMs ?? 0,
+        width: clip.clipType === 'PODCAST_HIGHLIGHTS' ? 1920 : clip.clipType === 'LINKEDIN_CLIPS' ? 1080 : 1080,
+        height: clip.clipType === 'PODCAST_HIGHLIGHTS' ? 1080 : clip.clipType === 'LINKEDIN_CLIPS' ? 1080 : 1920,
+        fps: 30,
+      },
+    });
+    return { id: (editProject as { id: string }).id, promoted: false };
+  }
 }

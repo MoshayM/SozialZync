@@ -35,7 +35,7 @@ interface EditProjectRow {
 function makeVersionSignedUrl(versionId: string): string {
   const exp = Math.floor(Date.now() / 1000) + 3600; // 1-hour TTL
   const sig = signMedia(`version:${versionId}`, exp, signingSecret());
-  return `/api/v1/media/versions/${versionId}/file?exp=${exp}&sig=${sig}`;
+  return `/api/proxy/media/versions/${versionId}/file?exp=${exp}&sig=${sig}`;
 }
 
 @ApiTags('my-content')
@@ -119,27 +119,31 @@ export class MyContentController {
         ? ['PRIVATE_CONTENT', 'PUBLIC_CONTENT']
         : [draftStatus];
 
-    const editDrafts = (await ep(this.prisma).findMany({
-      where: {
-        status: { in: statuses },
-        project: { userId: user.sub },
-        ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}),
-      },
-      include: {
-        project: {
-          include: {
-            // Grab the first imported video thumbnail as a proxy for the source clip
-            importedVideos: {
-              where: { thumbnailUrl: { not: null } },
-              take: 1,
-              select: { thumbnailUrl: true },
+    let editDrafts: EditProjectRow[] = [];
+    try {
+      editDrafts = (await ep(this.prisma).findMany({
+        where: {
+          status: { in: statuses },
+          project: { userId: user.sub },
+          ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}),
+        },
+        include: {
+          project: {
+            include: {
+              importedVideos: {
+                where: { thumbnailUrl: { not: null } },
+                take: 1,
+                select: { thumbnailUrl: true },
+              },
             },
           },
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: limit,
-    })) as EditProjectRow[];
+        orderBy: { updatedAt: 'desc' },
+        take: limit,
+      })) as EditProjectRow[];
+    } catch {
+      // edit_projects table may not be migrated yet — degrade gracefully
+    }
 
     // Batch-fetch the latest render asset version for items with a completed render
     const renderAssetIds = editDrafts

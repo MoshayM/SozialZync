@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -256,13 +256,27 @@ export default function ClipExportPage() {
   });
   const saveToPrivate = useMutation({
     mutationFn: () => api.shortsStudio.saveToPrivate(shortClipId),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['my-content'] }); },
   });
   const exportMutation = useMutation({ mutationFn: () => api.shortsStudio.exportClip(shortClipId), onSuccess: invalidatePub });
+  const saveToPublicMutation = useMutation({
+    mutationFn: () => api.shortsStudio.saveToPublic(shortClipId),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['my-content'] }); },
+  });
   const requestPublish = useMutation({ mutationFn: () => api.shortsStudio.requestPublish(shortClipId), onSuccess: invalidatePub });
   const publishMutation = useMutation({
     mutationFn: () => api.shortsStudio.publish(shortClipId, scheduledAt || undefined),
     onSuccess: () => { setScheduledAt(''); setShowSchedule(false); invalidatePub(); },
   });
+
+  const prevPublishedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (publishedVideoId && !prevPublishedRef.current) {
+      prevPublishedRef.current = publishedVideoId;
+      saveToPublicMutation.mutate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publishedVideoId]);
 
   const videoUrl = useBlobUrl(status?.render?.versionId);
   const rendering = renderMutation.isPending || status?.clipStatus === 'RENDERING' || status?.renderJob?.status === 'QUEUED' || status?.renderJob?.status === 'RUNNING' || status?.renderJob?.status === 'CHECKPOINTED';
@@ -378,19 +392,26 @@ export default function ClipExportPage() {
               {status.render.durationMs ? ` · ${Math.round(status.render.durationMs / 1000)}s` : ''}
               {timelineStale && <span className="ml-2 text-amber-600 font-medium">(outdated — re-render needed)</span>}
             </p>
-            <button
-              onClick={() => saveToPrivate.mutate()}
-              disabled={saveToPrivate.isPending || saveToPrivate.isSuccess}
-              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
-              title="Save to My Content → Private"
-            >
-              {saveToPrivate.isPending
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : saveToPrivate.isSuccess
-                ? <CheckCircle2 className="w-4 h-4 text-green-500" />
-                : <FolderDown className="w-4 h-4" />}
-              {saveToPrivate.isSuccess ? 'Saved to Private!' : 'Save to Private'}
-            </button>
+            <div className="ml-auto flex flex-col items-end gap-1">
+              <button
+                onClick={() => saveToPrivate.mutate()}
+                disabled={saveToPrivate.isPending || saveToPrivate.isSuccess}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+                title="Save to My Content → Private"
+              >
+                {saveToPrivate.isPending
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : saveToPrivate.isSuccess
+                  ? <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  : saveToPrivate.isError
+                  ? <AlertTriangle className="w-4 h-4 text-red-400" />
+                  : <FolderDown className="w-4 h-4" />}
+                {saveToPrivate.isSuccess ? 'Saved to Private!' : saveToPrivate.isError ? 'Save failed — retry' : 'Save to Private'}
+              </button>
+              {saveToPrivate.isError && (
+                <p className="text-[11px] text-red-500">{mutationErrMsg(saveToPrivate.error)}</p>
+              )}
+            </div>
           </>
         ) : (
           <p className="text-sm text-gray-500">Not rendered yet — click "Render clip" to start.</p>
