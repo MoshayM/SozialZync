@@ -10,9 +10,8 @@ import { MediaPipelineError } from '../media/media.errors';
 const VARIATIONS = 4;
 
 /**
- * Thumbnail Generator (ai.md Section 13): extracts candidate frames spread
- * across the rendered clip (skipping the first/last 10%) and overlays the
- * highlight's title suggestion. Variations persist as SHORTS_THUMBNAIL
+ * Thumbnail Generator: extracts candidate frames spread across the rendered
+ * clip (skipping the first/last 10%). Variations persist as SHORTS_THUMBNAIL
  * assets + ShortsThumbnail rows; the first becomes primary until the user
  * picks another. Skips when thumbnails already exist.
  */
@@ -35,42 +34,47 @@ export class ThumbnailGenerationService {
     });
     if (!clip?.timeline) throw new NotFoundException('Clip not found');
     if (clip.thumbnails.length > 0) {
-      onLog?.(`Thumbnails already exist (${clip.thumbnails.length}) — reusing`);
+      onLog?.(`Thumbnails already exist (${clip.thumbnails.length}) -- reusing`);
       return { skipped: true, thumbnails: clip.thumbnails.length };
     }
 
     const durationMs = clip.timeline.durationMs;
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-thumb-'));
 
-    onLog?.(`Generating ${VARIATIONS} thumbnail variations…`);
+    onLog?.(`Generating ${VARIATIONS} thumbnail variations...`);
 
-    // Probe the render file to log its codec info and validate it's readable.
+    // Validate the render file has a video stream before attempting extraction.
     const probe = await probeMediaInfo(renderedPath);
     this.logger.debug(`Thumbnail probe for ${shortClipId}: ${probe.slice(0, 400).replace(/\n/g, ' ')}`);
     if (!probe.includes('Video:')) {
-      throw new InternalServerErrorException('Render file is not a valid video — no video stream detected. Re-render the clip and try again.');
+      throw new InternalServerErrorException(
+        'Render file is not a valid video -- no video stream detected. Re-render the clip and try again.',
+      );
     }
 
     let created = 0;
     try {
       for (let i = 0; i < VARIATIONS; i++) {
-        // Frames at 15% / 38% / 61% / 84% of the clip — avoids intro/outro frames
+        // Frames at 15% / 38% / 61% / 84% of the clip -- avoids intro/outro frames
         const atMs = Math.round(durationMs * (0.15 + (0.7 * i) / Math.max(1, VARIATIONS - 1)));
         const framePath = path.join(tmpDir, `thumb-${i}.jpg`);
 
         try {
-          // Plain frame extraction — no drawtext overlay.
-          // Alpine’s ffmpeg package omits libfreetype2 so ‘drawtext’ is not available.
-          await runFfmpeg([
-            ‘-ss’, String(atMs / 1000),
-            ‘-i’, renderedPath,
-            ‘-frames:v’, ‘1’, ‘-q:v’, ‘3’,
-            framePath,
-          ], 120_000);
+          // Plain frame extraction without text overlay.
+          // Alpine ffmpeg apk omits libfreetype2, so 'drawtext' is unavailable.
+          await runFfmpeg(['-ss', String(atMs / 1000), '-i', renderedPath, '-frames:v', '1', '-q:v', '3', framePath], 120_000);
         } catch (ffmpegErr) {
-          const reason = ffmpegErr instanceof MediaPipelineError ? ffmpegErr.reason : (ffmpegErr instanceof Error ? ffmpegErr.message : String(ffmpegErr));
-          const stderr = ffmpegErr instanceof MediaPipelineError ? String(ffmpegErr.details?.[‘stderrTail’] ?? ‘’) : ‘’;
-          this.logger.warn(`Thumbnail ${i + 1}/${VARIATIONS} ffmpeg failed — skipping variation: ${reason}${stderr ? ` | stderr: ${stderr.slice(0, 300)}` : ‘’}`);
+          const reason =
+            ffmpegErr instanceof MediaPipelineError
+              ? ffmpegErr.reason
+              : ffmpegErr instanceof Error
+                ? ffmpegErr.message
+                : String(ffmpegErr);
+          const stderr =
+            ffmpegErr instanceof MediaPipelineError ? String(ffmpegErr.details?.['stderrTail'] ?? '') : '';
+          this.logger.warn(
+            `Thumbnail ${i + 1}/${VARIATIONS} ffmpeg failed -- skipping: ${reason}${stderr ? ` | stderr: ${stderr.slice(0, 300)}` : ''}`,
+          );
           continue;
         }
 
@@ -104,8 +108,12 @@ export class ThumbnailGenerationService {
     } finally {
       await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
-    if (created === 0) throw new InternalServerErrorException('Thumbnail generation failed — ffmpeg could not extract frames from the render file. Re-render the clip and try again.');
-    onLog?.(`Thumbnails ready — ${created} variations`);
+    if (created === 0) {
+      throw new InternalServerErrorException(
+        'Thumbnail generation failed -- ffmpeg could not extract frames from the render file. Re-render the clip and try again.',
+      );
+    }
+    onLog?.(`Thumbnails ready -- ${created} variations`);
     return { skipped: false, thumbnails: created };
   }
 
@@ -129,7 +137,6 @@ export class ThumbnailGenerationService {
     return { success: true };
   }
 
-  /** Re-generate thumbnails from the already-rendered clip file, optionally with a custom title overlay. */
   async regenerate(shortClipId: string, userId: string) {
     const clip = await this.prisma.shortClip.findFirst({
       where: { id: shortClipId, project: { userId } },
@@ -142,10 +149,13 @@ export class ThumbnailGenerationService {
     if (!renderKey) throw new BadRequestException('Clip must be rendered before generating thumbnails');
 
     const available = await this.storage.ensure(renderKey);
-    if (!available) throw new BadRequestException('Render file unavailable — re-render the clip first');
+    if (!available) throw new BadRequestException('Render file unavailable -- re-render the clip first');
 
     // Clear existing thumbnails so ensureThumbnails runs fresh
-    const existing = await this.prisma.shortsThumbnail.findMany({ where: { shortClipId }, select: { assetId: true, id: true } });
+    const existing = await this.prisma.shortsThumbnail.findMany({
+      where: { shortClipId },
+      select: { assetId: true, id: true },
+    });
     if (existing.length > 0) {
       await this.prisma.shortsThumbnail.deleteMany({ where: { shortClipId } });
       await this.prisma.asset.deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } });
@@ -156,7 +166,7 @@ export class ThumbnailGenerationService {
 
   /** Upload a user-provided image as a custom thumbnail (JPEG/PNG/WEBP, max 10 MB). */
   async uploadCustom(shortClipId: string, userId: string, buffer: Buffer, mimeType: string) {
-    if (buffer.length > 10 * 1024 * 1024) throw new BadRequestException('Thumbnail must be ≤ 10 MB');
+    if (buffer.length > 10 * 1024 * 1024) throw new BadRequestException('Thumbnail must be <= 10 MB');
     const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowed.includes(mimeType)) throw new BadRequestException('Thumbnail must be JPEG, PNG, or WebP');
 
@@ -177,7 +187,6 @@ export class ThumbnailGenerationService {
     });
     await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
 
-    // Make the uploaded thumbnail primary, demote all others
     await this.prisma.$transaction([
       this.prisma.shortsThumbnail.updateMany({ where: { shortClipId }, data: { isPrimary: false } }),
       this.prisma.shortsThumbnail.create({ data: { shortClipId, assetId: asset.id, isPrimary: true } }),
