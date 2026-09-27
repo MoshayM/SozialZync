@@ -13,6 +13,23 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ── Safe-area aware padding for the top app bar ─────────────────────────
+   viewport-fit=cover lets content reach screen edges (rounded corners,
+   punch-hole cameras, status bar on Android); safe-area-inset-* keeps
+   interactive elements away from those hardware boundaries.
+   max() picks whichever is larger: the design padding OR the device inset.
+   On most Android devices the insets are 0 and the normal padding wins.   */
+.cf-topbar {
+  padding-left:  max(12px, env(safe-area-inset-left,  12px));
+  padding-right: max(12px, env(safe-area-inset-right, 12px));
+}
+@media (min-width: 640px) {
+  .cf-topbar {
+    padding-left:  max(22px, env(safe-area-inset-left,  22px));
+    padding-right: max(22px, env(safe-area-inset-right, 22px));
+  }
+}
+
 /* ── Main content bottom pad when mobile nav is visible ─────────────────── */
 .cf-main-mobile-pad {
   padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));

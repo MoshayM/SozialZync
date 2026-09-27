@@ -1086,11 +1086,11 @@ export default function ShortsStudioPage() {
 
                       {/* Expanded content */}
                       {open && (
-                        <div className="px-5 pb-5 pt-3 flex items-start gap-4 flex-wrap" style={{ borderTop: '1.5px solid #f3f4f6' }}>
-                          <div className="flex-1 min-w-[240px]">
+                        <div className="px-5 pb-5 pt-3 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4" style={{ borderTop: '1.5px solid #f3f4f6' }}>
+                          <div className="flex-1 min-w-0">
                             <AnalysisProgress importedVideoId={v.id} onRetry={() => analyzeMutation.mutate(v.id)} />
                           </div>
-                          <div className="flex gap-2 shrink-0 flex-wrap">
+                          <div className="flex gap-2 flex-wrap">
                             <button
                               onClick={(e) => { e.stopPropagation(); analyzeMutation.mutate(v.id); }}
                               disabled={analyzeMutation.isPending}

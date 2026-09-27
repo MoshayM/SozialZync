@@ -866,7 +866,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       />
 
       {/* ── TOPBAR ──────────────────────────────────────────────────────── */}
-      <header className="flex items-center gap-2 sm:gap-3.5 px-3 sm:px-[22px] py-[11px] bg-white border-b border-[#ECECF3] shrink-0 z-[40]">
+      <header className="cf-topbar flex items-center gap-2 sm:gap-3.5 py-[11px] bg-white border-b border-[#ECECF3] shrink-0 z-[40]">
 
         {/* Hamburger */}
         <button
@@ -920,12 +920,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           </Link>
         )}
 
-        {/* Copilot button — highlighted only when panel is open */}
+        {/* Copilot button — highlighted only when panel is open; hidden on mobile to prevent topbar overflow */}
         <button
           type="button"
           title="Ask Copilot"
           onClick={() => window.dispatchEvent(new CustomEvent('cf:open-copilot'))}
-          className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
+          className="hidden sm:flex w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] items-center justify-center transition-colors shrink-0 touch-manipulation"
           style={{
             border: `1px solid ${copilotOpen ? '#c4b5fd' : '#ECECF3'}`,
             background: copilotOpen ? '#ede9fe' : '#fff',
@@ -935,14 +935,14 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           <Bot className="w-[18px] h-[18px] sm:w-[19px] sm:h-[19px]" />
         </button>
 
-        {/* Channel Access shortcut — highlighted when on /settings/channels */}
+        {/* Channel Access shortcut — highlighted when on /settings/channels; hidden on mobile to prevent topbar overflow */}
         {(() => {
           const isChannelsActive = pathname.startsWith('/settings/channels');
           return (
             <Link
               href="/settings/channels"
               title="Channel Access"
-              className="w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] flex items-center justify-center transition-colors shrink-0 touch-manipulation"
+              className="hidden sm:flex w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] rounded-[12px] items-center justify-center transition-colors shrink-0 touch-manipulation"
               style={{
                 border: `1px solid ${isChannelsActive ? '#c4b5fd' : '#ECECF3'}`,
                 background: isChannelsActive ? '#ede9fe' : '#fff',
