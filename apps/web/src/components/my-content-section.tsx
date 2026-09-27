@@ -78,6 +78,8 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
 
+  const openInNewTab = (url: string) => { window.open(url, '_blank', 'noopener,noreferrer'); };
+
   const mi = (onClick: () => void, icon: React.ReactNode, label: string, danger = false, disabled = false) => (
     <button
       type="button"
@@ -109,11 +111,21 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
       {open && (
         <div className="absolute right-0 top-9 bg-white rounded-2xl py-1.5 min-w-[175px] shadow-xl z-30"
           style={{ border: '1.5px solid #e3ddf8' }}>
-          {!isDraft && mi(() => null, <Play className="w-3.5 h-3.5" />, 'Watch / Preview')}
-          {!isDraft && !item.isPublic && mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Edit in Editor')}
-          {!isDraft && !item.isPublic && mi(() => null, <Send className="w-3.5 h-3.5 text-purple-600" />, 'Publish to Channel')}
-          {!isDraft && !item.isPublic && mi(() => null, <Download className="w-3.5 h-3.5" />, 'Download Original')}
-          {isDraft && mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Open in Editor')}
+          {!isDraft && item.playUrl && mi(() => openInNewTab(item.playUrl!), <Play className="w-3.5 h-3.5" />, 'Watch / Preview')}
+          {!isDraft && !item.playUrl && mi(() => null, <Play className="w-3.5 h-3.5" />, 'Watch / Preview', false, true)}
+          {!isDraft && !item.isPublic && item.projectId && mi(
+            () => openInNewTab(`/shorts-studio`),
+            <Pencil className="w-3.5 h-3.5" />, 'Edit in Shorts Studio'
+          )}
+          {!isDraft && !item.isPublic && item.projectId && mi(
+            () => openInNewTab(`/shorts-studio`),
+            <Send className="w-3.5 h-3.5 text-purple-600" />, 'Publish to Channel'
+          )}
+          {!isDraft && item.playUrl && !item.isPublic && mi(
+            () => { if (item.playUrl) { const a = document.createElement('a'); a.href = item.playUrl; a.download = `${item.title}.mp4`; document.body.appendChild(a); a.click(); document.body.removeChild(a); } },
+            <Download className="w-3.5 h-3.5" />, 'Download Original'
+          )}
+          {isDraft && item.projectId && mi(() => openInNewTab(`/shorts-studio`), <Pencil className="w-3.5 h-3.5" />, 'Open in Shorts Studio')}
           <div className="h-px bg-gray-100 my-1" />
           {!isDraft && item.isPublic && item.shareUrl && (
             <button
@@ -127,7 +139,6 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
               <Share2 className="w-3.5 h-3.5" /> Share Link / Copy URL
             </button>
           )}
-          {!isDraft && mi(() => null, <BarChart2 className="w-3.5 h-3.5" />, 'Analytics')}
           <div className="h-px bg-gray-100 my-1" />
           {!item.isPublic
             ? mi(onMakePublic, <Globe className="w-3.5 h-3.5" />, isDraft ? 'Push to Public' : 'Make Public')
@@ -140,7 +151,6 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
             <>
               <div className="h-px bg-gray-100 my-1" />
               {mi(() => null, <Pencil className="w-3.5 h-3.5" />, 'Edit — move to Private first', false, true)}
-              {mi(() => null, <Download className="w-3.5 h-3.5" />, 'Download — not available', false, true)}
             </>
           )}
         </div>
@@ -310,16 +320,24 @@ export function MyContentSection() {
             const isUnrenderedDraft = item.source === 'edit_draft' && !item.playUrl;
             const isDraft = item.source === 'edit_draft'; // for badge / action display
             const canPlay = !!item.playUrl;
+            const CardWrapper = canPlay ? 'a' : 'div';
+            const cardProps = canPlay
+              ? { href: item.playUrl!, target: '_blank' as const, rel: 'noopener noreferrer', style: { cursor: 'pointer' } }
+              : {};
             return (
-              <div key={item.id}
-                className="rounded-2xl overflow-hidden group relative transition-all hover:-translate-y-0.5"
+              <CardWrapper key={item.id}
+                {...(cardProps as object)}
+                className="rounded-2xl overflow-hidden group relative transition-all hover:-translate-y-0.5 block"
                 style={{
                   background: '#fff',
                   border: isUnrenderedDraft ? '1.5px solid #fde68a' : '1.5px solid #e3ddf8',
                   boxShadow: '0 1px 4px rgba(0,0,0,.04)',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  ...(canPlay ? { cursor: 'pointer' } : {}),
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isUnrenderedDraft ? '#f59e0b' : 'rgba(55,65,81,.35)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isUnrenderedDraft ? '#fde68a' : '#e3ddf8'; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = isUnrenderedDraft ? '#f59e0b' : 'rgba(55,65,81,.35)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = isUnrenderedDraft ? '#fde68a' : '#e3ddf8'; }}
               >
                 {/* Thumbnail */}
                 <div className="aspect-video relative flex items-center justify-center overflow-hidden"
@@ -334,24 +352,21 @@ export function MyContentSection() {
                       {fmtDuration(item.duration)}
                     </span>
                   )}
-                  {/* Play overlay — for any item that has a playable URL */}
+                  {/* Play overlay — visual indicator; click is handled by the card wrapper */}
                   {canPlay && (
-                    <a
-                      href={item.playUrl!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    <div
+                      className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                       style={{ background: 'rgba(0,0,0,.35)' }}
-                      onClick={(e) => e.stopPropagation()}
                     >
                       <div className="w-10 h-10 rounded-full flex items-center justify-center"
                         style={{ background: 'rgba(255,255,255,.9)' }}>
                         <Play className="w-4 h-4 text-gray-800 ml-0.5" />
                       </div>
-                    </a>
+                    </div>
                   )}
-                  {/* Context menu */}
-                  <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  {/* Context menu — stop propagation so it doesn't trigger card navigation */}
+                  <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    onClick={(e) => e.preventDefault()}>
                     <ContentMenu
                       item={item}
                       onMakePublic={() => visibilityMut.mutate({ id: item.id, isPublic: true, source: item.source, editId: item.editId })}
@@ -366,8 +381,8 @@ export function MyContentSection() {
                   </div>
                 </div>
 
-                {/* Body */}
-                <div className="p-3.5">
+                {/* Body — stop propagation so inline buttons don't trigger card navigation */}
+                <div className="p-3.5" onClick={(e) => e.preventDefault()}>
                   <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">{item.title}</p>
 
                   {/* Inline action row — always visible */}
@@ -378,7 +393,9 @@ export function MyContentSection() {
                     {isDraft && (
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           if (window.confirm(`Delete draft "${item.title}"?`)) {
                             deleteMut.mutate({ id: item.id, source: item.source, editId: item.editId });
                           }
@@ -398,7 +415,11 @@ export function MyContentSection() {
                     {!item.isPublic && (
                       <button
                         type="button"
-                        onClick={() => visibilityMut.mutate({ id: item.id, isPublic: true, source: item.source, editId: item.editId })}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          visibilityMut.mutate({ id: item.id, isPublic: true, source: item.source, editId: item.editId });
+                        }}
                         disabled={visibilityMut.isPending}
                         className="text-[12px] font-semibold flex items-center gap-1 transition-colors hover:text-purple-600 disabled:opacity-50"
                         style={{ color: isDraft ? '#d97706' : '#9CA3AF', marginLeft: isDraft ? '0' : 'auto' }}
@@ -415,7 +436,11 @@ export function MyContentSection() {
                     {item.isPublic && item.shareUrl && (
                       <button
                         type="button"
-                        onClick={async () => { await navigator.clipboard.writeText(item.shareUrl!).catch(() => null); }}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await navigator.clipboard.writeText(item.shareUrl!).catch(() => null);
+                        }}
                         className="text-[12px] font-semibold flex items-center gap-1 transition-colors ml-auto"
                         style={{ color: '#0891B2' }}
                       >
@@ -427,7 +452,11 @@ export function MyContentSection() {
                     {item.isPublic && !item.shareUrl && (
                       <button
                         type="button"
-                        onClick={() => visibilityMut.mutate({ id: item.id, isPublic: false, source: item.source, editId: item.editId })}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          visibilityMut.mutate({ id: item.id, isPublic: false, source: item.source, editId: item.editId });
+                        }}
                         disabled={visibilityMut.isPending}
                         className="text-[12px] font-semibold flex items-center gap-1 transition-colors hover:text-gray-600 disabled:opacity-50 ml-auto"
                         style={{ color: '#9CA3AF' }}
@@ -441,7 +470,7 @@ export function MyContentSection() {
                     )}
                   </div>
                 </div>
-              </div>
+              </CardWrapper>
             );
           })}
 
