@@ -2112,6 +2112,7 @@ model EditProject {
   durationMs     Int      @default(0)
   timeline       Json     @default("{}")
   renderAssetId  String?
+  shortClipId    String?
   renderStatus   String   @default("NONE")
   lastEditedAt   DateTime @default(now())
   createdAt      DateTime @default(now())

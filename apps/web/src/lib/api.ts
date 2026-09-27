@@ -1140,6 +1140,8 @@ export const api = {
       apiClient.post<{ id: string }>(`/shorts-studio/clips/${shortClipId}/save-to-private`),
     saveToPublic: (shortClipId: string) =>
       apiClient.post<{ id: string; promoted: boolean }>(`/shorts-studio/clips/${shortClipId}/save-to-public`),
+    savedClipIds: () =>
+      apiClient.get<{ savedClipIds: string[] }>('/shorts-studio/saved-clip-ids'),
     deleteClip: (clipId: string) =>
       apiClient.delete(`/shorts-studio/clips/${clipId}`),
   },

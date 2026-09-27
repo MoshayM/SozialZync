@@ -361,11 +361,29 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const [savedClips, setSavedClips] = useState<Set<string>>(new Set());
   const [publishModalClipId, setPublishModalClipId] = useState<string | null>(null);
 
+  // Initialise savedClips from the server so "Saved!" persists across page refreshes
+  const savedClipIdsQuery = useQuery({
+    queryKey: ['saved-clip-ids'],
+    queryFn: () => api.shortsStudio.savedClipIds(),
+    staleTime: 30_000,
+  });
+  useEffect(() => {
+    const ids = savedClipIdsQuery.data?.data?.savedClipIds;
+    if (ids && ids.length > 0) {
+      setSavedClips((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  }, [savedClipIdsQuery.data]);
+
   const saveToPrivate = useMutation({
     mutationFn: (clipId: string) => api.shortsStudio.saveToPrivate(clipId),
     onSuccess: (_d, clipId) => {
       setSavedClips((prev) => new Set(prev).add(clipId));
       void qc.invalidateQueries({ queryKey: ['my-content'] });
+      void qc.invalidateQueries({ queryKey: ['saved-clip-ids'] });
     },
   });
 

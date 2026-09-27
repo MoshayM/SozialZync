@@ -21,6 +21,7 @@ import { SocialContentService } from './social-content.service';
 import { QuoteCardRenderService } from './quote-card-render.service';
 import { JobsService } from '../jobs/jobs.service';
 import { signMedia, signingSecret } from '../media/signed-url.util';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 class ImportVideoDto {
   /** Channel-first flow (library import). Exactly one of channelId/projectId is required. */
@@ -58,6 +59,7 @@ class SchedulePublishDto {
 export class ShortsStudioController {
   constructor(
     private readonly shorts: ShortsStudioService,
+    private readonly prisma: PrismaService,
     private readonly youtubeRead: YouTubeReadService,
     private readonly videoImport: VideoImportService,
     private readonly recommendations: ClipRecommendationService,
@@ -284,6 +286,29 @@ export class ShortsStudioController {
   async listClips(@Param('projectId') projectId: string, @CurrentUser() user: JwtPayload) {
     await this.shorts.assertProjectOwnership(projectId, user.sub);
     return this.generation.listClips(projectId);
+  }
+
+  // ── Saved-clip index (must come before clips/:shortClipId to avoid route collision) ─────────
+
+  @Get('saved-clip-ids')
+  async savedClipIds(@CurrentUser() user: JwtPayload) {
+    // @reason: editProject accessed via dynamic key — model in schema, Prisma client has it after generate
+    const ep = (this.prisma as unknown as Record<string, unknown>)['editProject'] as {
+      findMany: (args: unknown) => Promise<unknown[]>;
+    };
+    try {
+      const rows = (await ep.findMany({
+        where: {
+          shortClipId: { not: null },
+          status: { in: ['PRIVATE_CONTENT', 'PUBLIC_CONTENT'] },
+          project: { userId: user.sub },
+        },
+        select: { shortClipId: true },
+      })) as Array<{ shortClipId: string }>;
+      return { savedClipIds: rows.map((r) => r.shortClipId).filter(Boolean) };
+    } catch {
+      return { savedClipIds: [] };
+    }
   }
 
   // ── Timeline / Editor (18.4) ────────────────────────────────────────────────

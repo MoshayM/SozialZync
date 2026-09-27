@@ -331,6 +331,7 @@ export class ShortsStudioService {
         title: `Short: ${title}`,
         status: 'PRIVATE_CONTENT',
         renderAssetId: clip.renderAsset.id,
+        shortClipId: clipId,
         renderStatus: 'READY',
         durationMs: renderVersion.durationMs ?? 0,
         width: clip.clipType === 'PODCAST_HIGHLIGHTS' ? 1920 : clip.clipType === 'LINKEDIN_CLIPS' ? 1080 : 1080,
@@ -378,7 +379,7 @@ export class ShortsStudioService {
     })) as { id: string } | null;
 
     if (existing) {
-      await ep.update({ where: { id: existing.id }, data: { status: 'PUBLIC_CONTENT' } });
+      await ep.update({ where: { id: existing.id }, data: { status: 'PUBLIC_CONTENT', shortClipId: clipId } });
       return { id: existing.id, promoted: true };
     }
 
@@ -388,6 +389,7 @@ export class ShortsStudioService {
         title: `Short: ${title}`,
         status: 'PUBLIC_CONTENT',
         renderAssetId: clip.renderAsset.id,
+        shortClipId: clipId,
         renderStatus: 'READY',
         durationMs: renderVersion.durationMs ?? 0,
         width: clip.clipType === 'PODCAST_HIGHLIGHTS' ? 1920 : clip.clipType === 'LINKEDIN_CLIPS' ? 1080 : 1080,
