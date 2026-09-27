@@ -80,6 +80,8 @@ export class ThumbnailGenerationService {
     }
 
     let created = 0;
+    const ffmpegErrors: string[] = [];
+    this.logger.warn(`[thumb-debug] renderedPath=${renderedPath} exists=${existsSync(renderedPath)} font=${font ?? 'none'} title=${title.slice(0, 40)}`);
     try {
       for (let i = 0; i < VARIATIONS; i++) {
         // Frames at 15% / 38% / 61% / 84% of the clip — avoids intro/outro frames
@@ -96,18 +98,22 @@ export class ThumbnailGenerationService {
           );
         }
 
+        const cmd = [
+          '-ss', String(atMs / 1000),
+          '-i', renderedPath,
+          ...(filters.length ? ['-vf', filters.join(',')] : []),
+          '-frames:v', '1', '-q:v', '3',
+          framePath,
+        ];
         try {
-          await runFfmpeg([
-            '-ss', String(atMs / 1000),
-            '-i', renderedPath,
-            ...(filters.length ? ['-vf', filters.join(',')] : []),
-            '-frames:v', '1', '-q:v', '3',
-            framePath,
-          ], 120_000);
+          await runFfmpeg(cmd, 120_000);
         } catch (ffmpegErr) {
           const reason = ffmpegErr instanceof MediaPipelineError ? ffmpegErr.reason : (ffmpegErr instanceof Error ? ffmpegErr.message : String(ffmpegErr));
           const stderr = ffmpegErr instanceof MediaPipelineError ? String(ffmpegErr.details?.['stderrTail'] ?? '') : '';
-          this.logger.warn(`Thumbnail ${i + 1}/${VARIATIONS} ffmpeg failed — skipping variation: ${reason}${stderr ? ` | stderr: ${stderr.slice(0, 300)}` : ''}`);
+          const exitCode = ffmpegErr instanceof MediaPipelineError ? String(ffmpegErr.details?.['exitCode'] ?? '') : '';
+          const errSummary = `[${i + 1}/${VARIATIONS}] exit=${exitCode} reason=${reason}${stderr ? ` stderr=${stderr.slice(0, 400)}` : ''}`;
+          ffmpegErrors.push(errSummary);
+          this.logger.warn(`Thumbnail ffmpeg failed: ${errSummary} | cmd: ffmpeg ${cmd.join(' ')}`);
           continue;
         }
 
@@ -141,7 +147,10 @@ export class ThumbnailGenerationService {
     } finally {
       await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
-    if (created === 0) throw new InternalServerErrorException('Thumbnail generation failed — ffmpeg could not extract frames from the render file. Re-render the clip and try again.');
+    if (created === 0) {
+      const errDetail = ffmpegErrors.length ? ` | ffmpeg errors: ${ffmpegErrors.join(' || ')}` : '';
+      throw new InternalServerErrorException(`Thumbnail generation failed — ffmpeg could not extract frames from the render file. Re-render the clip and try again.${errDetail}`);
+    }
     onLog?.(`Thumbnails ready — ${created} variations`);
     return { skipped: false, thumbnails: created };
   }
