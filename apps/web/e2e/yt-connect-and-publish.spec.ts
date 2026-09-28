@@ -17,8 +17,8 @@ const API_BASE  = 'https://sozialzync-api-production.up.railway.app';
 const TEST_YT_ID  = 'jNQXAC9IVRw';
 const TEST_YT_URL = `https://www.youtube.com/watch?v=${TEST_YT_ID}`;
 // Known IDs from previous successful runs — used as fallback when channels controller is rate-limited
-const KNOWN_CHANNEL_ID = process.env['KNOWN_CHANNEL_ID'] ?? 'cmukw9tjl001gqa755p8idgrv';
-const KNOWN_VIDEO_ID   = process.env['KNOWN_VIDEO_ID']   ?? 'cmukw9u0u001kqa75lib2v7s4';
+const KNOWN_CHANNEL_ID = process.env['KNOWN_CHANNEL_ID'] ?? 'cmul0tg5l007fry75sifj14wy';
+const KNOWN_VIDEO_ID   = process.env['KNOWN_VIDEO_ID']   ?? 'cmul0tgsq007jry75441suly8';
 
 test.use({ storageState: AUTH_FILE });
 test.setTimeout(600_000); // 10 min: yt-dlp + whisper can be slow
@@ -150,7 +150,8 @@ test('YouTube: connect by URL → import → analyze → Shorts Studio → Publi
     },
     s => {
       const ps = (s.pipeline?.status ?? '').toUpperCase();
-      const done = s.sourceDownloaded || ['COMPLETE', 'DONE', 'SUCCEEDED'].includes(ps);
+      // Wait for highlights to be populated, not just the source download, so clip generation succeeds.
+      const done = (s.sourceDownloaded && (s.counts?.highlights ?? 0) > 0) || ['COMPLETE', 'DONE', 'SUCCEEDED'].includes(ps);
       const failed = ['FAILED', 'ERROR'].includes(ps);
       console.log(`   downloaded=${s.sourceDownloaded} pipeline=${ps} counts=${JSON.stringify(s.counts ?? {})}`);
       if (failed) throw new Error(`Analysis FAILED: ${s.pipeline?.error ?? 'unknown'}`);
