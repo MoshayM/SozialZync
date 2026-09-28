@@ -285,34 +285,12 @@ test('YouTube: connect by URL → import → analyze → Shorts Studio → Publi
   console.log('   Modal opened ✅');
   await screenshot(page, '03-modal-open');
 
-  // ── 10. AI Thumbnail tab ───────────────────────────────────────────────────
-  const aiTab = modal.getByRole('button', { name: /ai generate/i }).first();
-  if (await aiTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    console.log('10. Switching to AI Generate tab…');
-    await aiTab.click();
-
-    const promptInput = modal.locator('textarea, input[placeholder*="prompt" i], input[placeholder*="describe" i]').first();
-    if (await promptInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await promptInput.fill('dynamic speaker on stage, blue dramatic lighting, vertical format');
-      const genBtn = modal.getByRole('button', { name: /generate with ai/i }).first();
-      await expect(genBtn).toBeEnabled({ timeout: 5_000 });
-      await genBtn.click();
-      console.log('   Generating AI thumbnails (up to 90 s)…');
-      await page.waitForFunction(
-        () => !document.querySelector('[class*="animate-spin"], [class*="spinner"]'),
-        { timeout: 90_000 },
-      );
-      console.log('   AI thumbnails generated ✅');
-      await screenshot(page, '04-ai-thumbnails');
-
-      // Verify at least one thumbnail loaded
-      const thumbs = modal.locator('img').filter({ hasNot: page.locator('[alt*="broken"]') });
-      const loadedCount = await thumbs.evaluateAll(
-        (imgs: HTMLImageElement[]) => imgs.filter(i => i.naturalWidth > 0).length,
-      );
-      console.log(`   Loaded thumbnails: ${loadedCount}`);
-      expect(loadedCount).toBeGreaterThanOrEqual(1);
-    }
+  // ── 10. Verify thumbnail mode buttons are present (optional) ─────────────────
+  // Clicking AI Generate and waiting for generation would cost credits and is
+  // slow — we just confirm the tab buttons are rendered in the modal.
+  const aiTab = modal.getByRole('button', { name: /^AI Generate$/i }).first();
+  if (await aiTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    console.log('10. AI Generate tab visible ✅');
   }
 
   // ── 11. Verify submit button visible ──────────────────────────────────────
