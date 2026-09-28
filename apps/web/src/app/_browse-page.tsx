@@ -111,11 +111,21 @@ const IMAGES: ImageItem[] = [
   { id:'i8', title:'AI Character Design — Tutorial',       creator:'@CharacterAI',  views:'167K', gi:7, likes:'2.1K', isOwn:false },
 ];
 
-const AD_VIDEOS: FeedItem[] = [
-  { id:'ad1', title:'Meet your AI Copilot — research, script & publish by voice',     creator:'Sozialzynk',  gi:0, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: AD },
-  { id:'ad2', title:'Turn any long video into 10 viral Shorts in minutes',            creator:'Sozialzynk',  gi:1, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: AD },
-  { id:'ad3', title:'Publish once, reach YouTube, TikTok & Instagram simultaneously', creator:'Sozialzynk',  gi:2, duration:'0:30', kind:'video', views:'Sponsored', likes:'', videoUrl: AD },
-];
+const ADS_DATA = [
+  { id:'ad1', gi:0, title:'Meet your AI Copilot — research, script & publish by voice',     label:'Sozialzynk', duration:'0:30', tag:'AI Copilot',    forTypes:['all','videos','images']          },
+  { id:'ad2', gi:1, title:'Turn any long video into 10 viral Shorts in minutes',            label:'Sozialzynk', duration:'0:30', tag:'Shorts Studio', forTypes:['all','shorts','reels']           },
+  { id:'ad3', gi:2, title:'Publish once, reach YouTube, TikTok & Instagram simultaneously', label:'Sozialzynk', duration:'0:30', tag:'Multi-Platform', forTypes:['all','videos','shorts','reels'] },
+] as const;
+
+const AD_SHOW_MS   = 5 * 60 * 1000;       // ads visible for 5 min per cycle
+const AD_CYCLE_MS  = 4 * 60 * 60 * 1000;  // new cycle every 4 hours
+const AD_ROTATE_MS = 30_000;              // rotate to next relevant ad every 30 s
+
+const AD_BG = [
+  'linear-gradient(135deg,#0c1445,#1e3a8a)',
+  'linear-gradient(135deg,#1a0845,#4c1d95)',
+  'linear-gradient(135deg,#0a2a1a,#065f46)',
+] as const;
 
 const INITIAL_GROUPS: Group[] = [
   { id:'g1', name:'My Favorites',   count:12, color:'#374151', emoji:'⭐' },
@@ -676,6 +686,9 @@ export default function BrowsePage() {
   // Voice search
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  // Sponsored ad state
+  const [showAd, setShowAd] = useState(false);
+  const [adRotIdx, setAdRotIdx] = useState(0);
 
   const sortRef    = useRef<HTMLDivElement>(null);
   const bellRef    = useRef<HTMLDivElement>(null);
@@ -732,6 +745,32 @@ export default function BrowsePage() {
       setApiShorts(shorts);
     }).catch(() => { /* silently degrade — static feed still shows */ });
   }, []);
+
+  // Ad window: show for first 5 min of every 4-hour cycle
+  useEffect(() => {
+    const now = Date.now();
+    const windowStart = parseInt(localStorage.getItem('sz_ad_window') ?? '0', 10);
+    let t: ReturnType<typeof setTimeout> | undefined;
+    if (now - windowStart >= AD_CYCLE_MS) {
+      localStorage.setItem('sz_ad_window', String(now));
+      setShowAd(true);
+      t = setTimeout(() => setShowAd(false), AD_SHOW_MS);
+    } else if (now - windowStart < AD_SHOW_MS) {
+      setShowAd(true);
+      t = setTimeout(() => setShowAd(false), AD_SHOW_MS - (now - windowStart));
+    }
+    return () => { if (t !== undefined) clearTimeout(t); };
+  }, []);
+
+  // Rotate ad every 30 s while visible
+  useEffect(() => {
+    if (!showAd) return;
+    const iv = setInterval(() => setAdRotIdx(i => i + 1), AD_ROTATE_MS);
+    return () => clearInterval(iv);
+  }, [showAd]);
+
+  // Reset rotation index when content type changes so most-relevant ad shows first
+  useEffect(() => { setAdRotIdx(0); }, [contentType]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -848,14 +887,20 @@ export default function BrowsePage() {
   const filteredReels  = REELS.filter(r  => matchSearch(r.title, r.creator, q));
   const filteredImages = IMAGES.filter(i => matchSearch(i.title, i.creator, q));
 
+  // Pick the most-relevant ad for current content type, cycling through them
+  const currentAd = useMemo(() => {
+    const relevant = ADS_DATA.filter(a => (a.forTypes as readonly string[]).includes(contentType));
+    return relevant[adRotIdx % relevant.length] ?? ADS_DATA[adRotIdx % ADS_DATA.length]!;
+  }, [contentType, adRotIdx]);
+
   // Feed items — order: shorts/reels first (portrait), then videos, then images
   const feedItems = useMemo<FeedItem[]>(() => [
-    ...AD_VIDEOS,
+    ...(showAd ? [{ id:currentAd.id, title:currentAd.title, creator:currentAd.label, gi:currentAd.gi, duration:currentAd.duration, kind:'video' as const, views:'Sponsored', likes:'', videoUrl:AD }] : []),
     ...filteredShorts.map(s => ({ id:s.id, title:s.title, creator:s.creator, gi:s.gi, duration:s.duration, kind:'short' as const, views:s.views, likes:s.likes, comments:s.comments, shares:s.shares, videoUrl:s.videoUrl, isOwn:s.isOwn })),
     ...filteredReels.map(r  => ({ id:r.id, title:r.title, creator:r.creator, gi:r.gi, duration:r.duration, kind:'reel'  as const, views:r.views, likes:r.likes, comments:r.comments, shares:r.shares, videoUrl:r.videoUrl, isOwn:r.isOwn })),
     ...filteredVideos.map(v => ({ id:v.id, title:v.title, creator:v.creator, gi:v.gi, duration:v.duration, kind:'video' as const, views:v.views, likes:v.likes, comments:v.comments, shares:v.shares, videoUrl:v.videoUrl, isOwn:v.isOwn })),
     ...filteredImages.map(i => ({ id:i.id, title:i.title, creator:i.creator, gi:i.gi, kind:'image' as const, views:i.views, likes:i.likes, isOwn:i.isOwn })),
-  ], [filteredShorts, filteredReels, filteredVideos, filteredImages]);
+  ], [filteredShorts, filteredReels, filteredVideos, filteredImages, showAd, currentAd]);
 
   function openFeed(itemId: string, kind: FeedItem['kind']) {
     const idx = feedItems.findIndex(f => f.id === itemId && f.kind === kind);
@@ -1194,42 +1239,43 @@ export default function BrowsePage() {
         {/* ── Main ──────────────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-5 space-y-8">
 
-          {/* ── Sponsored / Ad Videos ─────────────────────────────────────────── */}
-          <section className="mb-2">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-2 py-0.5 bg-gray-100 rounded-full">Sponsored</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {([
-                { id:'ad1', gi:0, title:'Meet your AI Copilot — research, script & publish by voice',     label:'Sozialzynk', duration:'1:45', tag:'AI Copilot' },
-                { id:'ad2', gi:1, title:'Turn any long video into 10 viral Shorts in minutes',            label:'Sozialzynk', duration:'2:10', tag:'Shorts Studio' },
-                { id:'ad3', gi:2, title:'Publish once, reach YouTube, TikTok & Instagram simultaneously', label:'Sozialzynk', duration:'1:30', tag:'Publishing' },
-              ] as { id:string; gi:number; title:string; label:string; duration:string; tag:string }[]).map((ad, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => openFeed(ad.id, 'video')}
-                  className="group relative rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer text-left w-full"
-                >
-                  <div className="relative h-36" style={{ background: ['linear-gradient(135deg,#0c1445,#1e3a8a)','linear-gradient(135deg,#1a0845,#4c1d95)','linear-gradient(135deg,#0a2a1a,#065f46)'][ad.gi] }}>
-                    <img src={`/api/thumb?seed=${ad.id}&w=640&h=360`} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-                      </div>
+          {/* ── Sponsored / Ad Videos — one ad, rotates per content type, shown only first 5 min per 4-hr cycle ── */}
+          {showAd && (
+            <section className="mb-2">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-2 py-0.5 bg-gray-100 rounded-full">Sponsored</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => openFeed(currentAd.id, 'video')}
+                className="group relative rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer text-left w-full"
+              >
+                <div className="relative h-40 sm:h-48" style={{ background: AD_BG[currentAd.gi] }}>
+                  <img src={`/api/thumb?seed=${currentAd.id}&w=640&h=360`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Play className="w-6 h-6 text-white fill-white ml-0.5" />
                     </div>
-                    <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{ad.duration}</span>
-                    <span className="absolute top-2 left-2 bg-amber-400/90 text-amber-900 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">Ad</span>
                   </div>
-                  <div className="bg-white p-3">
-                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{ad.tag}</span>
-                    <p className="text-[12px] font-semibold text-gray-900 leading-snug mt-0.5 line-clamp-2">{ad.title}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">{ad.label}</p>
+                  <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{currentAd.duration}</span>
+                  <span className="absolute top-2 left-2 bg-amber-400/90 text-amber-900 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">Ad</span>
+                </div>
+                <div className="bg-white p-3 flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{currentAd.tag}</span>
+                    <p className="text-[13px] font-semibold text-gray-900 leading-snug mt-0.5">{currentAd.title}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{currentAd.label}</p>
                   </div>
-                </button>
-              ))}
-            </div>
-          </section>
+                  <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
+                    {ADS_DATA.map(a => (
+                      <span key={a.id} className="w-1.5 h-1.5 rounded-full transition-all duration-300"
+                        style={{ background: a.id === currentAd.id ? '#374151' : '#d1d5db' }} />
+                    ))}
+                  </div>
+                </div>
+              </button>
+            </section>
+          )}
 
           <section key={fadeKey} style={{ animation:'fadeIn 0.2s ease-out' }}>
             <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
