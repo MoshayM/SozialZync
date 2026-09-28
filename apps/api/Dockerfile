@@ -23,7 +23,11 @@ RUN pnpm --filter @cf/api build
 # ── runtime ───────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 RUN corepack enable && corepack prepare pnpm@latest --activate && \
-    apk add --no-cache ffmpeg fontconfig ttf-liberation
+    apk add --no-cache ffmpeg fontconfig ttf-liberation curl && \
+    curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+      -o /usr/local/bin/yt-dlp && chmod +x /usr/local/bin/yt-dlp
+
+ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
 WORKDIR /app
 
 ENV NODE_ENV=production
