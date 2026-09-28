@@ -7,8 +7,9 @@ import type { NextConfig } from 'next';
 const securityHeaders = [
   // A05 — Prevent MIME-type sniffing (e.g. serving a script as text/plain)
   { key: 'X-Content-Type-Options', value: 'nosniff' },
-  // A05 — Deny all framing (clickjacking). middleware.ts also sets frame-ancestors in CSP.
-  { key: 'X-Frame-Options', value: 'DENY' },
+  // A05 — Allow same-origin framing only (needed for Device Preview; blocks cross-origin clickjacking).
+  // middleware.ts mirrors this with frame-ancestors 'self' in CSP.
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   // A02 — Don't leak the full URL when navigating to external sites
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   // A05 — Restrict browser feature access; microphone=(self) for voice recording feature

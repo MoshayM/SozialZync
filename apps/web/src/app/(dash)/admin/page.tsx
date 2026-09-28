@@ -858,7 +858,7 @@ export default function AdminDashboardPage() {
               </nav>
 
               {/* Content column */}
-              <div className="flex-1 min-w-0 w-full flex flex-col overflow-x-hidden">
+              <div className="flex-1 min-w-0 w-full flex flex-col overflow-x-clip">
                 {/* Mobile horizontal tab bar — hidden on lg+ */}
                 <div
                   className="lg:hidden bg-white border-b border-[#ede9f8] sticky z-10"
@@ -1010,9 +1010,9 @@ export default function AdminDashboardPage() {
                       <thead>
                         <tr className="text-left">
                           <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Provider / Model</th>
-                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Calls</th>
-                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Tokens</th>
-                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Cost</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right whitespace-nowrap">Calls</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right whitespace-nowrap">Tokens</th>
+                          <th className="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right whitespace-nowrap">Cost</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1039,26 +1039,28 @@ export default function AdminDashboardPage() {
                 {(aiUsage.byVideo ?? []).length > 0 && (
                   <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                     <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Cost by Video (top 15)</p>
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left">
                           <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Video</th>
-                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Calls</th>
-                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Tokens</th>
-                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right">Cost</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right whitespace-nowrap">Calls</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right whitespace-nowrap">Tokens</th>
+                          <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600 text-right whitespace-nowrap">Cost</th>
                         </tr>
                       </thead>
                       <tbody>
                         {aiUsage.byVideo.map((v) => (
                           <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
-                            <td className="py-1.5 text-right text-gray-600">{v.calls}</td>
-                            <td className="py-1.5 text-right text-gray-600">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
-                            <td className="py-1.5 text-right font-bold text-gray-900">${v.costUsd.toFixed(3)}</td>
+                            <td className="py-1.5 text-gray-800 truncate max-w-[200px]" title={v.title}>{v.title}</td>
+                            <td className="py-1.5 text-right text-gray-600 whitespace-nowrap">{v.calls}</td>
+                            <td className="py-1.5 text-right text-gray-600 whitespace-nowrap">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
+                            <td className="py-1.5 text-right font-bold text-gray-900 whitespace-nowrap">${v.costUsd.toFixed(3)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
               </>

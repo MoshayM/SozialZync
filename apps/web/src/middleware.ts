@@ -26,8 +26,9 @@ export function middleware(req: NextRequest) {
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    // A05 — Deny framing from all origins (clickjacking). next.config.ts also sets X-Frame-Options.
-    "frame-ancestors 'none'",
+    // A05 — Allow same-origin framing only (Device Preview uses an iframe on the same origin).
+    // next.config.ts mirrors this with X-Frame-Options: SAMEORIGIN.
+    "frame-ancestors 'self'",
     "form-action 'self'",
     // Next.js 15 generates inline RSC streaming scripts (self.__next_f.push)
     // that are not nonce-annotated by the framework. CSP L2+ browsers silently

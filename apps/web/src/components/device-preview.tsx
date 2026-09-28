@@ -331,7 +331,7 @@ export function DevicePreview() {
   return (
     <div className="min-h-full bg-[#faf9ff] flex flex-col">
       {/* Page selector bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2">
+      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         {PAGES.map(p => (
           <button
             key={p.id}
