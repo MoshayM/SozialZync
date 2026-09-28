@@ -1551,16 +1551,6 @@ export interface PublicFeedItem {
   gi: number;
 }
 
-export interface PublicFeedItem {
-  id: string;
-  title: string;
-  kind: 'short' | 'video';
-  videoUrl: string | null;
-  thumbnailUrl: string | null;
-  durationSecs: number | null;
-  creator: string;
-}
-
 export interface ModerationAction {
   id: string;
   actionType: 'REMOVE_CONTENT' | 'WARN_USER' | 'SUSPEND_USER' | 'REINSTATE_USER';
