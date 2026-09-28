@@ -542,12 +542,22 @@ export class ShortsStudioController {
     const metaOverride = (body.title || body.description || body.tags)
       ? { title: body.title, description: body.description, tags: body.tags }
       : undefined;
-    return this.jobs.enqueue(clip.projectId, 'SHORTS_EXPORT', {
+    const job = await this.jobs.enqueue(clip.projectId, 'SHORTS_EXPORT', {
       shortClipId,
       autoPublish: true,
       scheduledAt: body.scheduledAt,
       thumbnailId: body.thumbnailId,
       ...(metaOverride ? { metaOverride } : {}),
     });
+
+    // Immediately create a PUBLIC_CONTENT entry so the clip appears in My Content → Public
+    // before the async export/publish job completes.
+    try {
+      await this.shorts.saveToPublic(shortClipId, user.sub);
+    } catch {
+      // Non-fatal: the job still runs; the content will appear after manual Make Public
+    }
+
+    return job;
   }
 }

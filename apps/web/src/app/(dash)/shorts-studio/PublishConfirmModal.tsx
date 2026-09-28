@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   X, Loader2, CheckCircle2, AlertCircle, Calendar, Globe, Subtitles,
   Hash, ChevronDown, ChevronUp, Zap, Upload, Info,
-  Sparkles, ImagePlus, Clock, CalendarClock, RefreshCw, Image,
+  Sparkles, ImagePlus, Clock, CalendarClock, RefreshCw, Image, FolderDown,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -303,10 +303,40 @@ function ThumbnailSection({
       </div>
 
       {mode === 'keep' && (
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-          <p className="text-xs text-gray-600">Default video frame will be used.</p>
-        </div>
+        thumbsLoading ? (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+            <Loader2 className="w-4 h-4 animate-spin text-gray-400 shrink-0" />
+            <p className="text-xs text-gray-500">Loading thumbnail…</p>
+          </div>
+        ) : thumbs.length > 0 ? (() => {
+          const primary = thumbs.find(t => t.isPrimary) ?? thumbs[0]!;
+          const src = toProxySrc(primary.url);
+          return (
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+              <div className="w-12 rounded-md overflow-hidden shrink-0 border border-gray-200 shadow-sm">
+                {src ? (
+                  <ThumbnailImg src={src} alt="Default thumbnail" />
+                ) : (
+                  <div className="w-full aspect-[9/16] bg-gray-200 flex items-center justify-center">
+                    <Image className="w-4 h-4 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <p className="text-xs font-medium text-gray-800">Default thumbnail</p>
+                </div>
+                <p className="text-[11px] text-gray-400">Switch to AI Generate to create a custom image.</p>
+              </div>
+            </div>
+          );
+        })() : (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <p className="text-xs text-gray-600">Default video frame will be used.</p>
+          </div>
+        )
       )}
 
       {mode === 'ai' && (
@@ -358,18 +388,30 @@ function ThumbnailSection({
                 <p className="text-[10px] text-gray-400">This may take up to 30 seconds…</p>
               )}
               {generate.isError && (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <p className="text-[11px] text-red-500">
                     {apiErrMsg(generate.error, 'Generation failed — please try again.')}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => generate.mutate()}
-                    disabled={generate.isPending}
-                    className="flex items-center gap-1 mx-auto text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    <RefreshCw className="w-3 h-3" /> Retry
-                  </button>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => generate.mutate()}
+                      disabled={generate.isPending}
+                      className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Retry
+                    </button>
+                    {prompt.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => { setPrompt(''); generate.mutate(); }}
+                        disabled={generate.isPending}
+                        className="flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 transition-colors"
+                      >
+                        <Image className="w-3 h-3" /> Use video frames instead
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -418,9 +460,21 @@ function ThumbnailSection({
                     : prompt.trim() ? 'Regenerate with AI' : 'Regenerate'}
                 </button>
                 {generate.isError && (
-                  <p className="text-[11px] text-red-500">
-                    {apiErrMsg(generate.error, 'Regeneration failed — please try again.')}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-[11px] text-red-500">
+                      {apiErrMsg(generate.error, 'Regeneration failed — please try again.')}
+                    </p>
+                    {prompt.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => { setPrompt(''); generate.mutate(); }}
+                        disabled={generate.isPending}
+                        className="flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 transition-colors"
+                      >
+                        <Image className="w-3 h-3" /> Use video frames instead
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -668,6 +722,9 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
   const [confirmed, setConfirmed] = useState(false);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [selectedThumbId, setSelectedThumbId] = useState<string | null>(null);
+  const [savedPrivate, setSavedPrivate] = useState(false);
+
+  const qc = useQueryClient();
 
   const { data: meta, isLoading: metaLoading, isError: metaError } = useQuery({
     queryKey: ['publish-meta', clipId],
@@ -691,6 +748,14 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
+  const savePrivate = useMutation({
+    mutationFn: () => api.shortsStudio.saveToPrivate(clipId),
+    onSuccess: () => {
+      setSavedPrivate(true);
+      void qc.invalidateQueries({ queryKey: ['my-content'] });
+    },
+  });
+
   const publish = useMutation({
     mutationFn: () =>
       api.shortsStudio.quickPublish(clipId, {
@@ -703,6 +768,7 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
         thumbnailId: selectedThumbId ?? undefined,
       }),
     onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['my-content'] });
       onPublished(clipId);
       onClose();
     },
@@ -902,6 +968,12 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
 
         {/* Footer */}
         <div className="border-t border-gray-100 px-6 py-4 bg-gray-50 space-y-3">
+          {savePrivate.isError && (
+            <p className="text-xs text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {(savePrivate.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save to private.'}
+            </p>
+          )}
           {publish.isError && (
             <p className="text-xs text-red-600 flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -927,6 +999,20 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
                 className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savedPrivate || savePrivate.isPending}
+                onClick={() => { if (!savedPrivate) savePrivate.mutate(); }}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Save to My Content → Private (without publishing externally)"
+              >
+                {savePrivate.isPending
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : savedPrivate
+                  ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                  : <FolderDown className="w-3.5 h-3.5" />}
+                {savedPrivate ? 'Saved!' : 'Save to Private'}
               </button>
               <button
                 type="button"

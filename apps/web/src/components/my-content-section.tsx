@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api, type MyContentItem } from '@/lib/api';
+import { isAdminRole, planAtLeast, usePlanGate } from './plan-gate';
 import {
   Film, Lock, Globe, MoreVertical, Play, Pencil, Download,
   Share2, BarChart2, EyeOff, Send, Trash2, Link2, CheckCircle2,
@@ -62,9 +63,10 @@ interface MenuProps {
   onMakePublic: () => void;
   onMakePrivate: () => void;
   onDelete: () => void;
+  canDownload: boolean;
 }
 
-function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps) {
+function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete, canDownload }: MenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isDraft = item.source === 'edit_draft';
@@ -121,7 +123,7 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
             () => openInNewTab(`/shorts-studio`),
             <Send className="w-3.5 h-3.5 text-purple-600" />, 'Publish to Channel'
           )}
-          {!isDraft && item.playUrl && !item.isPublic && mi(
+          {!isDraft && item.playUrl && !item.isPublic && canDownload && mi(
             () => { if (item.playUrl) { const a = document.createElement('a'); a.href = item.playUrl; a.download = `${item.title}.mp4`; document.body.appendChild(a); a.click(); document.body.removeChild(a); } },
             <Download className="w-3.5 h-3.5" />, 'Download Original'
           )}
@@ -163,6 +165,8 @@ function ContentMenu({ item, onMakePublic, onMakePrivate, onDelete }: MenuProps)
 export function MyContentSection() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'private' | 'public'>('all');
+  const userPlan = usePlanGate();
+  const downloadAllowed = isAdminRole() || planAtLeast(userPlan, 'PRO');
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['my-content', filter],
@@ -369,6 +373,7 @@ export function MyContentSection() {
                     onClick={(e) => e.preventDefault()}>
                     <ContentMenu
                       item={item}
+                      canDownload={downloadAllowed}
                       onMakePublic={() => visibilityMut.mutate({ id: item.id, isPublic: true, source: item.source, editId: item.editId })}
                       onMakePrivate={() => visibilityMut.mutate({ id: item.id, isPublic: false, source: item.source, editId: item.editId })}
                       onDelete={() => {

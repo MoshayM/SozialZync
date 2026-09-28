@@ -181,17 +181,38 @@ export class ThumbnailGenerationService {
     const available = await this.storage.ensure(renderKey);
     if (!available) throw new BadRequestException('Render file unavailable -- re-render the clip first');
 
-    // Clear existing thumbnails so ensureThumbnails runs fresh
-    const existing = await this.prisma.shortsThumbnail.findMany({
+    // Snapshot existing join records. Remove them so ensureThumbnails runs fresh,
+    // but keep the Asset DB rows alive so we can restore them if generation fails.
+    const existingLinks = await this.prisma.shortsThumbnail.findMany({
       where: { shortClipId },
       select: { assetId: true, id: true },
     });
-    if (existing.length > 0) {
+    if (existingLinks.length > 0) {
       await this.prisma.shortsThumbnail.deleteMany({ where: { shortClipId } });
-      await this.prisma.asset.deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } });
     }
 
-    return this.ensureThumbnails(shortClipId, this.storage.resolve(renderKey));
+    try {
+      const result = await this.ensureThumbnails(shortClipId, this.storage.resolve(renderKey));
+      // Success — remove stale asset DB records that were detached above
+      if (existingLinks.length > 0) {
+        await this.prisma.asset
+          .deleteMany({ where: { id: { in: existingLinks.map((t) => t.assetId) } } })
+          .catch((e: Error) => this.logger.warn(`Could not clean up old thumbnail assets for ${shortClipId}: ${e.message}`));
+      }
+      return result;
+    } catch (err) {
+      // Restore the old ShortsThumbnail join records so existing thumbnails remain visible.
+      // Asset DB rows were intentionally preserved above to make this restore possible.
+      if (existingLinks.length > 0) {
+        await this.prisma.shortsThumbnail
+          .createMany({
+            data: existingLinks.map((t, i) => ({ shortClipId, assetId: t.assetId, isPrimary: i === 0 })),
+            skipDuplicates: true,
+          })
+          .catch(() => null);
+      }
+      throw err;
+    }
   }
 
   /** Upload a user-provided image as a custom thumbnail (JPEG/PNG/WEBP, max 10 MB). */
