@@ -468,14 +468,84 @@ function SearchResults({ channelId, q, renderVideo }: {
 
 // ── Import modal ──────────────────────────────────────────────────────────────
 
-function LibraryImportModal({
-  channelId, importedYoutubeIds, onClose,
+// Renders all library groups for a single channel — used in "All Channels" mode.
+function ChannelLibrarySection({
+  channel, activeQ, renderVideo,
 }: {
-  channelId: string; importedYoutubeIds: Set<string>; onClose: () => void;
+  channel: Channel;
+  activeQ: string;
+  renderVideo: (v: LibraryVideo, chId: string) => React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const {
+    data: playlistsData, fetchNextPage: fetchMorePlaylists,
+    hasNextPage: hasMorePlaylists, isFetchingNextPage: fetchingPlaylists, isLoading: loadingPlaylists,
+  } = useInfiniteQuery({
+    queryKey: ['shorts-library-playlists', channel.id],
+    queryFn: ({ pageParam }) =>
+      api.library.listPlaylists(channel.id, pageParam as string | undefined)
+        .then((r) => r.data as LibraryPlaylistsPage),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: !activeQ && expanded,
+  });
+  const playlists = playlistsData?.pages.flatMap((p) => p.data) ?? [];
+  const rv = (v: LibraryVideo) => renderVideo(v, channel.id);
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded((o) => !o)}
+        className="w-full flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors"
+      >
+        {expanded
+          ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+          : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
+        <span className="text-sm font-bold text-gray-800 truncate flex-1 text-left">{channel.title}</span>
+      </button>
+      {expanded && (
+        <div className="ml-4 mt-1 space-y-2">
+          {activeQ ? (
+            <SearchResults channelId={channel.id} q={activeQ} renderVideo={rv} />
+          ) : (
+            <>
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 px-1 pt-1">Shorts</p>
+              <KindVideosGroup channelId={channel.id} kind="short" title="All Shorts"
+                icon={<Clapperboard className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />}
+                renderVideo={rv} />
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 px-1 pt-2">Videos</p>
+              {loadingPlaylists && (
+                <div className="flex items-center gap-2 text-gray-400 py-4 justify-center text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#374151' }} /> Loading playlists…
+                </div>
+              )}
+              {playlists.map((p) => (
+                <PlaylistGroup key={p.id} channelId={channel.id} playlist={p} renderVideo={rv} />
+              ))}
+              {hasMorePlaylists && <LoadMoreButton onClick={() => void fetchMorePlaylists()} loading={fetchingPlaylists} />}
+              <KindVideosGroup channelId={channel.id} kind="video" title="All videos"
+                icon={<Film className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />}
+                renderVideo={rv} />
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LibraryImportModal({
+  channelId, channels, importedYoutubeIds, onClose,
+}: {
+  channelId: string; channels: Channel[]; importedYoutubeIds: Set<string>; onClose: () => void;
 }) {
   const qc = useQueryClient();
   const [q, setQ] = useState('');
-  const [selected, setSelected] = useState<Map<string, string>>(new Map());
+  // 'all' shows every connected channel; otherwise a specific channelId
+  const [activeLibChannel, setActiveLibChannel] = useState<string | 'all'>(
+    channels.length > 1 ? 'all' : channelId,
+  );
+  const [selected, setSelected] = useState<Map<string, { title: string; channelId: string }>>(new Map());
   const [importing, setImporting] = useState(false);
   const [importedNow, setImportedNow] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
@@ -486,32 +556,36 @@ function LibraryImportModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Single-channel playlists query (used when a specific channel is selected)
+  const singleChId = activeLibChannel === 'all' ? channelId : activeLibChannel;
   const {
     data: playlistsData, fetchNextPage: fetchMorePlaylists,
     hasNextPage: hasMorePlaylists, isFetchingNextPage: fetchingPlaylists, isLoading: loadingPlaylists,
   } = useInfiniteQuery({
-    queryKey: ['shorts-library-playlists', channelId],
+    queryKey: ['shorts-library-playlists', singleChId],
     queryFn: ({ pageParam }) =>
-      api.library.listPlaylists(channelId, pageParam as string | undefined)
+      api.library.listPlaylists(singleChId, pageParam as string | undefined)
         .then((r) => r.data as LibraryPlaylistsPage),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    enabled: !q,
+    enabled: activeLibChannel !== 'all' && !q,
   });
   const playlists = playlistsData?.pages.flatMap((p) => p.data) ?? [];
 
   const isImported = (youtubeVideoId: string) =>
     importedYoutubeIds.has(youtubeVideoId) || importedNow.has(youtubeVideoId);
 
-  const renderVideo = (v: LibraryVideo) => (
+  // Factory: returns a renderVideo fn bound to a specific channelId
+  const makeRenderVideo = (chId: string) => (v: LibraryVideo) => (
     <VideoRow
-      key={v.id} video={v} imported={isImported(v.youtubeVideoId)}
+      key={`${chId}-${v.id}`} video={v} imported={isImported(v.youtubeVideoId)}
       checked={selected.has(v.youtubeVideoId)} disabled={importing}
       onToggle={(youtubeVideoId) => {
         if (isImported(youtubeVideoId)) return;
         setSelected((prev) => {
           const next = new Map(prev);
-          if (next.has(youtubeVideoId)) next.delete(youtubeVideoId); else next.set(youtubeVideoId, v.title);
+          if (next.has(youtubeVideoId)) next.delete(youtubeVideoId);
+          else next.set(youtubeVideoId, { title: v.title, channelId: chId });
           return next;
         });
       }}
@@ -522,10 +596,11 @@ function LibraryImportModal({
     if (selected.size === 0 || importing) return;
     setImporting(true);
     setImportError(null);
+    const affectedChannels = new Set([...selected.values()].map((v) => v.channelId));
     const failed: string[] = [];
-    for (const [youtubeVideoId, title] of selected) {
+    for (const [youtubeVideoId, { title, channelId: vChId }] of selected) {
       try {
-        await api.shortsStudio.importVideo(channelId, youtubeVideoId);
+        await api.shortsStudio.importVideo(vChId, youtubeVideoId);
         setImportedNow((prev) => new Set(prev).add(youtubeVideoId));
         setSelected((prev) => { const next = new Map(prev); next.delete(youtubeVideoId); return next; });
       } catch (err) {
@@ -533,7 +608,7 @@ function LibraryImportModal({
         failed.push(msg ? `${title}: ${msg}` : title);
       }
     }
-    void qc.invalidateQueries({ queryKey: ['shorts-imported', channelId] });
+    affectedChannels.forEach((cId) => void qc.invalidateQueries({ queryKey: ['shorts-imported', cId] }));
     setImporting(false);
     if (failed.length > 0) {
       setImportError(`Could not import ${failed.length} video${failed.length > 1 ? 's' : ''} — ${failed.join('; ')}`);
@@ -541,6 +616,8 @@ function LibraryImportModal({
       onClose();
     }
   };
+
+  const activeRenderVideo = makeRenderVideo(activeLibChannel === 'all' ? channelId : activeLibChannel);
 
   return (
     <div
@@ -563,13 +640,40 @@ function LibraryImportModal({
           </div>
           <div className="flex-1">
             <h2 className="text-base font-extrabold text-gray-900">Import from library</h2>
-            <p className="text-xs text-gray-400">Select videos to bring into Shorts Studio</p>
+            <p className="text-xs text-gray-400">Select videos from any connected channel</p>
           </div>
           <button onClick={onClose} aria-label="Close"
             className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors text-lg leading-none">
             ×
           </button>
         </div>
+
+        {/* Channel filter pills — only visible when multiple channels are connected */}
+        {channels.length > 1 && (
+          <div className="px-6 pt-3 pb-1 flex items-center gap-2 overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid #f3f4f6' }}>
+            <button
+              onClick={() => setActiveLibChannel('all')}
+              className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+              style={activeLibChannel === 'all'
+                ? { background: '#374151', color: 'white' }
+                : { background: '#f3f4f6', color: '#374151' }}
+            >
+              All Channels
+            </button>
+            {channels.map((ch) => (
+              <button
+                key={ch.id}
+                onClick={() => setActiveLibChannel(ch.id)}
+                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap"
+                style={activeLibChannel === ch.id
+                  ? { background: '#374151', color: 'white' }
+                  : { background: '#f3f4f6', color: '#374151' }}
+              >
+                {ch.title}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Search */}
         <div className="px-6 pt-4 pb-2">
@@ -582,7 +686,7 @@ function LibraryImportModal({
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search across all library videos…"
+              placeholder={activeLibChannel === 'all' ? 'Search across all channels…' : 'Search library videos…'}
               aria-label="Search library videos"
               className="flex-1 bg-transparent px-2 py-3 text-sm text-gray-800 placeholder-gray-400 outline-none"
             />
@@ -596,15 +700,25 @@ function LibraryImportModal({
 
         {/* Video list */}
         <div className="flex-1 overflow-y-auto px-6 py-3 space-y-2">
-          {q ? (
-            <SearchResults channelId={channelId} q={q} renderVideo={renderVideo} />
+          {activeLibChannel === 'all' ? (
+            // All Channels mode — one collapsible section per channel
+            channels.map((ch) => (
+              <ChannelLibrarySection
+                key={ch.id}
+                channel={ch}
+                activeQ={q}
+                renderVideo={(v, chId) => makeRenderVideo(chId)(v)}
+              />
+            ))
+          ) : q ? (
+            <SearchResults channelId={activeLibChannel} q={q} renderVideo={activeRenderVideo} />
           ) : (
             <>
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 px-1 pt-1">Shorts</p>
               <KindVideosGroup
-                channelId={channelId} kind="short" title="All Shorts"
+                channelId={activeLibChannel} kind="short" title="All Shorts"
                 icon={<Clapperboard className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />}
-                renderVideo={renderVideo}
+                renderVideo={activeRenderVideo}
               />
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 px-1 pt-2">Videos</p>
               {loadingPlaylists && (
@@ -613,13 +727,13 @@ function LibraryImportModal({
                 </div>
               )}
               {playlists.map((p) => (
-                <PlaylistGroup key={p.id} channelId={channelId} playlist={p} renderVideo={renderVideo} />
+                <PlaylistGroup key={p.id} channelId={activeLibChannel} playlist={p} renderVideo={activeRenderVideo} />
               ))}
               {hasMorePlaylists && <LoadMoreButton onClick={() => void fetchMorePlaylists()} loading={fetchingPlaylists} />}
               <KindVideosGroup
-                channelId={channelId} kind="video" title="All videos"
+                channelId={activeLibChannel} kind="video" title="All videos"
                 icon={<Film className="w-4 h-4 shrink-0" style={{ color: '#374151' }} />}
-                renderVideo={renderVideo}
+                renderVideo={activeRenderVideo}
               />
             </>
           )}
@@ -1227,6 +1341,7 @@ export default function ShortsStudioPage() {
       {pickerOpen && channelId && (
         <LibraryImportModal
           channelId={channelId}
+          channels={channels}
           importedYoutubeIds={importedIds}
           onClose={() => setPickerOpen(false)}
         />

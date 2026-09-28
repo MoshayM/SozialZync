@@ -258,6 +258,7 @@ function FeedSlide({
   item, isActive, isLiked, isSaved, currentIdx, totalCount,
   isLoggedIn, onClose, onLike, onSave, onNext, onPrev,
   muted, onToggleMute, quality, onQualityChange, captionLang, onCaptionLangChange,
+  isFollowing, onFollow,
 }: {
   item: FeedItem; isActive: boolean; isLiked: boolean; isSaved: boolean;
   currentIdx: number; totalCount: number; isLoggedIn: boolean;
@@ -267,11 +268,15 @@ function FeedSlide({
   muted: boolean; onToggleMute: () => void;
   quality: string; onQualityChange: (q: string) => void;
   captionLang: string | null; onCaptionLangChange: (lang: string | null) => void;
+  isFollowing: boolean; onFollow: (creator: string) => void;
 }) {
   const isPortrait = item.kind === 'short' || item.kind === 'reel';
   const videoRef = useRef<HTMLVideoElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'quality' | 'language'>('quality');
+  const [videoProgress, setVideoProgress] = useState(0);
+  const lastTapRef = useRef<number>(0);
+  const [heartPos, setHeartPos] = useState<{ x: number; y: number } | null>(null);
   const captionLines = useMemo(() => {
     const words = item.title.split(/\s+/);
     const lines: string[] = [];
@@ -318,10 +323,26 @@ function FeedSlide({
     return () => clearInterval(iv);
   }, [captionLang, isActive, captionLines.length]);
 
+  useEffect(() => { if (!isActive) setVideoProgress(0); }, [isActive]);
+
+  function handleTap(e: React.MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      if (!isLiked) onLike(item.id, item.kind);
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setHeartPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      setTimeout(() => setHeartPos(null), 800);
+    }
+    lastTapRef.current = now;
+  }
+
   return (
     <div
       data-slide="true"
       data-idx={String(currentIdx)}
+      onClick={handleTap}
       className="relative w-full shrink-0 flex items-center justify-center overflow-hidden select-none"
       style={{ height: '100dvh', scrollSnapAlign: 'start', background: G[item.gi % 8] }}
     >
@@ -342,6 +363,7 @@ function FeedSlide({
                 loop
                 muted={muted}
                 playsInline
+                onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) setVideoProgress(v.currentTime / v.duration); }}
                 onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
               />
             ) : (
@@ -370,6 +392,7 @@ function FeedSlide({
                 loop
                 muted={muted}
                 playsInline
+                onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) setVideoProgress(v.currentTime / v.duration); }}
                 onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
               />
             ) : item.kind === 'image' ? (
@@ -492,6 +515,14 @@ function FeedSlide({
             {(item.creator.charAt(1) ?? 'C').toUpperCase()}
           </div>
           <span className="text-white text-[13px] font-bold">{item.creator}</span>
+          {!item.isOwn && (
+            <button
+              onClick={e => { e.stopPropagation(); onFollow(item.creator); }}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${isFollowing ? 'border-white/35 text-white/50 bg-white/10' : 'border-white/80 text-white hover:bg-white/15'}`}
+            >
+              {isFollowing ? 'Following' : '+ Follow'}
+            </button>
+          )}
           <span className="ml-auto capitalize text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/15 text-white/80 backdrop-blur-sm">{item.kind}</span>
         </div>
         <p className="text-white font-bold text-[15px] sm:text-[17px] leading-snug mb-1.5 line-clamp-2">{item.title}</p>
@@ -520,10 +551,25 @@ function FeedSlide({
         </div>
       )}
 
+      {/* Video progress bar */}
+      {item.videoUrl && (
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 z-20 pointer-events-none">
+          <div className="h-full bg-white/85" style={{ width: `${videoProgress * 100}%`, transition: 'width 0.25s linear' }} />
+        </div>
+      )}
+
+      {/* Double-tap heart burst */}
+      {heartPos && (
+        <div className="absolute pointer-events-none z-30" style={{ left: heartPos.x - 40, top: heartPos.y - 40, animation: 'dtHeart 0.8s ease-out forwards' }}>
+          <Heart className="w-20 h-20 text-white fill-white drop-shadow-2xl" />
+        </div>
+      )}
+
       {/* CSS keyframes */}
       <style>{`
         @keyframes cfPulse{0%,100%{opacity:0.75;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
         @keyframes cfBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-4px)}}
+        @keyframes dtHeart{0%{opacity:0;transform:scale(0.4)}20%{opacity:1;transform:scale(1.3)}65%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.15)}}
       `}</style>
 
       {/* Share toast */}
@@ -668,6 +714,9 @@ function FeedView({
   const [savedKeys, setSavedKeys] = useState<Set<string>>(() => {
     try { const s = localStorage.getItem('sz_saved'); return s ? new Set(JSON.parse(s) as string[]) : new Set(); } catch { return new Set(); }
   });
+  const [followedCreators, setFollowedCreators] = useState<Set<string>>(() => {
+    try { const s = localStorage.getItem('sz_following'); return s ? new Set(JSON.parse(s) as string[]) : new Set(); } catch { return new Set(); }
+  });
   const [muted, setMuted] = useState<boolean>(() => {
     try { return localStorage.getItem('sz_muted') !== 'false'; } catch { return true; }
   });
@@ -677,6 +726,15 @@ function FeedView({
   const [captionLang, setCaptionLang] = useState<string | null>(() => {
     try { const v = localStorage.getItem('sz_caption_lang'); return v || null; } catch { return null; }
   });
+
+  function toggleFollow(creator: string) {
+    setFollowedCreators(prev => {
+      const n = new Set(prev);
+      n.has(creator) ? n.delete(creator) : n.add(creator);
+      try { localStorage.setItem('sz_following', JSON.stringify([...n])); } catch {}
+      return n;
+    });
+  }
 
   function toggleMute() {
     setMuted(m => {
@@ -808,6 +866,8 @@ function FeedView({
             onQualityChange={changeQuality}
             captionLang={captionLang}
             onCaptionLangChange={changeCaptionLang}
+            isFollowing={followedCreators.has(item.creator)}
+            onFollow={toggleFollow}
           />
         ))}
       </div>
