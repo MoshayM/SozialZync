@@ -203,55 +203,83 @@ test('YouTube: connect by URL → import → analyze → Shorts Studio → Publi
     }
   }
 
+  // ── 6. Render only if not already rendered, then poll ────────────────────
+  console.log('6. Checking render status…');
+  type RenderStatus = { clipStatus?: string | null; render?: { assetId: string; versionId: string } | null; renderJob?: { status?: string; error?: string | null } | null };
   {
-    const r = await request.post(
-      `${API_BASE}/api/v1/shorts-studio/clips/${clip.id}/render`,
+    const statusRes = await request.get(
+      `${API_BASE}/api/v1/shorts-studio/clips/${clip.id}/render-status`,
       { headers: authHdr },
     );
-    expect([200, 202, 409], `render returned ${r.status()}: ${await r.text()}`).toContain(r.status());
-    console.log(`   Render queued (${r.status()})`);
-  }
-
-  // ── 6. Poll render-status until the clip video file is ready ──────────────
-  console.log('6. Polling render-status…');
-  type RenderStatus = { render?: { status?: string; versions?: Array<{ url?: string }> } | null; renderJob?: { status?: string; error?: string | null } | null };
-  await poll<RenderStatus>(
-    async () => {
-      const r = await request.get(
-        `${API_BASE}/api/v1/shorts-studio/clips/${clip.id}/render-status`,
+    const statusBody = statusRes.ok() ? await statusRes.json() as RenderStatus : null;
+    if (statusBody?.render) {
+      console.log(`   Already rendered ✅ (assetId=${statusBody.render.assetId})`);
+    } else {
+      const r = await request.post(
+        `${API_BASE}/api/v1/shorts-studio/clips/${clip.id}/render`,
         { headers: authHdr },
       );
-      if (!r.ok()) return null;
-      return r.json() as Promise<RenderStatus>;
-    },
-    s => {
-      const job = (s.renderJob?.status ?? '').toUpperCase();
-      const done = s.render?.versions && s.render.versions.length > 0;
-      const failed = ['FAILED', 'ERROR'].includes(job);
-      console.log(`   renderJob=${job} versions=${s.render?.versions?.length ?? 0}`);
-      if (failed) throw new Error(`Render FAILED: ${s.renderJob?.error ?? 'unknown'}`);
-      return !!done;
-    },
-    8_000,
-    300_000, // 5 min for render
-  );
-  console.log('   Clip rendered ✅');
+      expect([200, 201, 202, 409], `render returned ${r.status()}: ${await r.text()}`).toContain(r.status());
+      console.log(`   Render queued (${r.status()})`);
+
+      await poll<RenderStatus>(
+        async () => {
+          const r2 = await request.get(
+            `${API_BASE}/api/v1/shorts-studio/clips/${clip.id}/render-status`,
+            { headers: authHdr },
+          );
+          if (!r2.ok()) return null;
+          return r2.json() as Promise<RenderStatus>;
+        },
+        s => {
+          const job = (s.renderJob?.status ?? '').toUpperCase();
+          const done = !!s.render;
+          console.log(`   clipStatus=${s.clipStatus} renderJob=${job} rendered=${done}`);
+          if (job === 'FAILED') throw new Error('Render FAILED');
+          return done;
+        },
+        8_000,
+        300_000,
+      );
+      console.log('   Render complete ✅');
+    }
+  }
 
   // ── 7. Open video detail page in Shorts Studio UI ─────────────────────────
   console.log('7. Opening video detail page…');
   await page.goto(`/shorts-studio/videos/${videoId}`, { waitUntil: 'networkidle' });
   await screenshot(page, '01-video-detail');
 
-  // ── 8. Click Publish on the rendered clip ─────────────────────────────────
-  console.log('8. Clicking Publish on rendered clip…');
-  // The Publish button only shows for rendered clips; wait for it to appear
-  const publishBtn = page.getByRole('button', { name: /^publish$/i }).first();
-  await expect(publishBtn).toBeVisible({ timeout: 30_000 });
+  // ── 8. Expand the clip card and click Publish ─────────────────────────────
+  console.log('8. Expanding clip card and clicking Publish…');
+  await page.waitForTimeout(1_500); // let React hydrate
+  await screenshot(page, '02-video-page');
+
+  // Click "Expand all" to reveal all rendered clip detail rows (including Publish button)
+  const expandAll = page.getByText('Expand all').first();
+  if (await expandAll.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await expandAll.click();
+    console.log('   Clicked "Expand all"');
+    await page.waitForTimeout(500);
+  } else {
+    // Fall back: click the clip row's chevron directly
+    const clipRow = page.locator('[role="button"]').filter({ hasText: /Fascinated|Elephants|Long Trunks/i }).first();
+    if (await clipRow.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await clipRow.click();
+      await page.waitForTimeout(500);
+    }
+  }
+
+  // Now the Publish button should be visible (only shown for rendered clips with renderAsset)
+  const publishBtn = page.locator('button').filter({ hasText: /^Publish$/ }).first();
+  await expect(publishBtn).toBeVisible({ timeout: 15_000 });
   await publishBtn.click();
-  await screenshot(page, '02-publish-clicked');
+  await page.waitForTimeout(800); // allow React state update to mount modal
+  await screenshot(page, '03-publish-clicked');
 
   // ── 9. Verify Publish modal ────────────────────────────────────────────────
   console.log('9. Checking Publish modal…');
+  // PublishConfirmModal inner card has role="dialog"
   const modal = page.locator('[role="dialog"]').first();
   await expect(modal).toBeVisible({ timeout: 15_000 });
   console.log('   Modal opened ✅');
@@ -291,7 +319,8 @@ test('YouTube: connect by URL → import → analyze → Shorts Studio → Publi
   console.log('11. Checking publish controls…');
   await screenshot(page, '05-ready-to-publish');
 
-  const submitBtn = modal.getByRole('button', { name: /publish now|publish to youtube|submit/i }).first();
+  // Footer submit is "Confirm & Publish" or "Schedule" (when scheduled)
+  const submitBtn = modal.getByRole('button', { name: /confirm.*publish|schedule|publish now/i }).first();
   await expect(submitBtn).toBeVisible({ timeout: 10_000 });
   console.log(`   Submit button visible, disabled=${await submitBtn.isDisabled()} ✅`);
 
