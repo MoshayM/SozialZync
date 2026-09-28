@@ -12,7 +12,7 @@ const PROXY      = 'https://sozialzynk.vercel.app/api/proxy';
 const CLIP_ID    = 'e2e-clip-01';
 const VERSION_ID = 'e2e-v-01';
 
-test.use({ storageState: 'e2e/.auth.json' });
+// storageState comes from playwright.config.ts — do not override here (wrong CWD path)
 
 test('editor preview loads and seeks to clip start', async ({ page }) => {
   // ── 1. Register route mocks before navigation ────────────────────────────

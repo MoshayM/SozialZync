@@ -17,7 +17,7 @@ const VIDEO_ID   = 'e2e-video-01';
 const CLIP_ID    = 'e2e-clip-01';
 const VERSION_ID = 'e2e-v-01';
 
-test.use({ storageState: 'e2e/.auth.json' });
+// storageState comes from playwright.config.ts — do not override here (wrong CWD path)
 
 test('preview modal plays video on a rendered clip', async ({ page }) => {
   // ── 1. Register route mocks before navigation ──────────────────────────────

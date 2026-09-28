@@ -13,7 +13,7 @@ const PROXY   = 'https://sozialzynk.vercel.app/api/proxy';
 const CLIP_ID = 'e2e-clip-01';
 const JOB_ID  = 'e2e-job-01';
 
-test.use({ storageState: 'e2e/.auth.json' });
+// storageState comes from playwright.config.ts — do not override here (wrong CWD path)
 
 test('export page shows filler progress button when rendering', async ({ page }) => {
   // ── Stateful mock: tracks whether a render job is active ─────────────────
