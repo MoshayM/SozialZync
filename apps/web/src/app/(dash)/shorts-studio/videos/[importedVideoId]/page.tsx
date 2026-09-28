@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, FolderDown, X, AlertCircle, Pause, Download, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, X, AlertCircle, Pause, Download, Trash2, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { PublishConfirmModal } from '../../PublishConfirmModal';
@@ -358,34 +358,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const [openClips, setOpenClips] = useState<Set<string>>(new Set());
   const [previewClipId, setPreviewClipId] = useState<string | null>(null);
   const [publishedClips, setPublishedClips] = useState<Set<string>>(new Set());
-  const [savedClips, setSavedClips] = useState<Set<string>>(new Set());
   const [publishModalClipId, setPublishModalClipId] = useState<string | null>(null);
-
-  // Initialise savedClips from the server so "Saved!" persists across page refreshes
-  const savedClipIdsQuery = useQuery({
-    queryKey: ['saved-clip-ids'],
-    queryFn: () => api.shortsStudio.savedClipIds(),
-    staleTime: 30_000,
-  });
-  useEffect(() => {
-    const ids = savedClipIdsQuery.data?.data?.savedClipIds;
-    if (ids && ids.length > 0) {
-      setSavedClips((prev) => {
-        const next = new Set(prev);
-        ids.forEach((id) => next.add(id));
-        return next;
-      });
-    }
-  }, [savedClipIdsQuery.data]);
-
-  const saveToPrivate = useMutation({
-    mutationFn: (clipId: string) => api.shortsStudio.saveToPrivate(clipId),
-    onSuccess: (_d, clipId) => {
-      setSavedClips((prev) => new Set(prev).add(clipId));
-      void qc.invalidateQueries({ queryKey: ['my-content'] });
-      void qc.invalidateQueries({ queryKey: ['saved-clip-ids'] });
-    },
-  });
 
   const pauseRender = useMutation({
     mutationFn: async (clipId: string) => {
@@ -535,26 +508,6 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                     >
                       <Pencil className="w-3.5 h-3.5" /> Re-edit
                     </Link>
-                    {isRendered && (
-                      <button
-                        type="button"
-                        disabled={saveToPrivate.isPending && saveToPrivate.variables === c.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (savedClips.has(c.id)) return;
-                          saveToPrivate.mutate(c.id);
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50"
-                        title="Save rendered short to My Content → Private"
-                      >
-                        {saveToPrivate.isPending && saveToPrivate.variables === c.id
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : savedClips.has(c.id)
-                          ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                          : <FolderDown className="w-3.5 h-3.5" />}
-                        {savedClips.has(c.id) ? 'Saved!' : 'Save to Private'}
-                      </button>
-                    )}
                     {/* Publish — opens confirm modal */}
                     {isRendered && (
                       <button
@@ -594,11 +547,6 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                       Delete
                     </button>
                   </div>
-                  {saveToPrivate.isError && saveToPrivate.variables === c.id && (
-                    <p className="text-xs text-red-600 mt-2">
-                      {(saveToPrivate.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to save to private'}
-                    </p>
-                  )}
                   {publishedClips.has(c.id) && <ClipPublishStatus clipId={c.id} />}
                 </div>
               )}

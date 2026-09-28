@@ -750,7 +750,13 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
   }, [onClose]);
 
   const savePrivate = useMutation({
-    mutationFn: () => api.shortsStudio.saveToPrivate(clipId),
+    mutationFn: () => api.shortsStudio.saveToPrivate(clipId, {
+      title: title.trim() || undefined,
+      description: caption.trim() || undefined,
+      tags: tags.length ? tags : undefined,
+      language,
+      thumbnailId: selectedThumbId ?? undefined,
+    }),
     onSuccess: () => {
       setSavedPrivate(true);
       void qc.invalidateQueries({ queryKey: ['my-content'] });
