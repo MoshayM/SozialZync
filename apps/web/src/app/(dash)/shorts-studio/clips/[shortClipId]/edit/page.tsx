@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, Play, Pause, Scissors, Trash2, Undo2, Redo2,
   ZoomIn, ZoomOut, Wand2, Captions, Check, X, Save, Clapperboard,
+  Maximize2, Film, Music2, Type, Layers,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { StudioToolPanels } from './StudioToolPanels';
@@ -42,13 +43,26 @@ type Command =
 interface EditAction { commands: Command[]; before: TimelineData }
 
 const TRACK_COLORS: Record<Track['type'], string> = {
-  VIDEO: 'bg-brand-500/80 border-brand-600',
-  AUDIO: 'bg-emerald-500/70 border-emerald-600',
-  MUSIC: 'bg-cyan-500/70 border-cyan-600',
-  CAPTION: 'bg-amber-400/80 border-amber-500',
-  OVERLAY: 'bg-fuchsia-500/70 border-fuchsia-600',
+  VIDEO: 'bg-violet-600/90 border-violet-500',
+  AUDIO: 'bg-emerald-500/90 border-emerald-400',
+  MUSIC: 'bg-cyan-500/90 border-cyan-400',
+  CAPTION: 'bg-amber-400/90 border-amber-300',
+  OVERLAY: 'bg-fuchsia-500/90 border-fuchsia-400',
 };
-const TRACK_H = 48;
+const TRACK_HEIGHTS: Record<Track['type'], number> = {
+  VIDEO: 64,
+  AUDIO: 56,
+  MUSIC: 56,
+  CAPTION: 36,
+  OVERLAY: 36,
+};
+const TRACK_BAR: Record<Track['type'], string> = {
+  VIDEO: 'bg-violet-500',
+  AUDIO: 'bg-emerald-500',
+  MUSIC: 'bg-cyan-500',
+  CAPTION: 'bg-amber-400',
+  OVERLAY: 'bg-fuchsia-500',
+};
 
 function fmt(ms: number): string {
   const s = ms / 1000;
@@ -101,6 +115,7 @@ export default function TimelineEditorPage() {
   const [pxPerSec, setPxPerSec] = useState(12);
   const [playing, setPlaying] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [previewSize, setPreviewSize] = useState<'sm' | 'md' | 'lg'>('md');
   // true when videoUrl is the *rendered* clip rather than the original source video.
   // In that mode timeline-time maps 1-to-1 to the video file's time (no sourceStartMs offset).
   const [useRenderedSource, setUseRenderedSource] = useState(false);
@@ -692,7 +707,7 @@ export default function TimelineEditorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_290px] gap-4">
         <div>
           {/* Player */}
-          <div className="bg-black rounded-2xl overflow-hidden flex items-center justify-center relative" style={{ height: 320 }}>
+          <div className="bg-black rounded-2xl overflow-hidden flex items-center justify-center relative transition-[height] duration-200" style={{ height: previewSize === 'sm' ? 200 : previewSize === 'lg' ? 480 : 320 }}>
             {videoUrl ? (
               // eslint-disable-next-line jsx-a11y/media-has-caption -- AI-generated preview; caption track not produced
               <video
@@ -714,8 +729,24 @@ export default function TimelineEditorPage() {
             )}
           </div>
 
+          {/* Preview resize controls */}
+          <div className="flex items-center gap-1.5 mt-2">
+            <Maximize2 className="w-3 h-3 text-gray-400 shrink-0" />
+            <span className="text-[10px] text-gray-400 mr-0.5">Preview:</span>
+            {(['sm', 'md', 'lg'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setPreviewSize(s)}
+                className={`px-2 py-0.5 text-[10px] rounded-md border transition-colors ${previewSize === s ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+              >
+                {s === 'sm' ? 'S' : s === 'md' ? 'M' : 'L'}
+              </button>
+            ))}
+            <span className="text-[10px] text-gray-300 ml-1">{previewSize === 'sm' ? 'Compact' : previewSize === 'md' ? 'Default' : 'Large'}</span>
+          </div>
+
           {/* Toolbar — single balanced row */}
-          <div className="flex items-center gap-1 mt-3">
+          <div className="flex items-center gap-1 mt-2">
             {/* Play / Pause */}
             <button
               onClick={togglePlay}
@@ -749,71 +780,155 @@ export default function TimelineEditorPage() {
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
           </div>
 
-          {/* Timeline */}
-          <div ref={scrollRef} className="mt-3 overflow-x-auto border border-gray-100 rounded-xl bg-gray-50/60">
-            <div className="relative" style={{ width: widthPx }}>
-              {/* Ruler — click or touch to seek, drag to scrub */}
-              {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
-              <div
-                className="h-7 border-b border-gray-200 relative cursor-pointer bg-white select-none"
-                onMouseDown={startPlayheadDrag}
-                onTouchStart={startPlayheadTouch}
-              >
-                {ticks.map((s) => (
-                  <span key={s} className="absolute top-1 text-[10px] text-gray-500 font-mono" style={{ left: s * pxPerSec + 2 }}>
-                    {Math.floor(s / 60)}:{String(s % 60).padStart(2, '0')}
-                  </span>
-                ))}
-              </div>
-              {/* Tracks */}
+          {/* Timeline — dark multi-track layout */}
+          <div className="mt-3 border border-gray-700/60 rounded-xl overflow-hidden flex bg-[#0f1623]">
+
+            {/* ── Fixed track-labels column (does not scroll) ───────────── */}
+            <div className="w-[72px] shrink-0 bg-[#0f1623] border-r border-gray-700/50">
+              {/* Ruler spacer — same height as ruler row */}
+              <div className="h-7 border-b border-gray-700/50 bg-[#141d2b]" />
+              {/* One label per track */}
               {timeline.tracks.map((track) => (
-                // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface
-                <div key={track.id} className="relative border-b border-gray-100" style={{ height: TRACK_H }} onMouseDown={() => setSelectedId(null)}>
-                  <span className="absolute left-1 top-1 text-[9px] uppercase tracking-wide text-gray-300 z-0">{track.type}</span>
-                  {track.type === 'CAPTION'
-                    ? timeline.captions.length === 0
-                      ? <span className="absolute inset-0 flex items-center pl-10 text-[10px] text-gray-300 italic">No captions yet — use Generate captions →</span>
-                      : timeline.captions.map((c) => (
-                        <div
-                          key={c.id}
-                          className="absolute top-2 bottom-2 rounded-md bg-amber-400/70 border border-amber-500 px-1 overflow-hidden"
-                          style={{ left: (c.startMs / 1000) * pxPerSec, width: Math.max(2, ((c.endMs - c.startMs) / 1000) * pxPerSec) }}
-                          title={c.text}
-                        >
-                          <span className="text-[9px] text-amber-950 whitespace-nowrap">{c.emoji ? `${c.emoji} ` : ''}{c.text}</span>
-                        </div>
-                      ))
-                    : track.items.length === 0 && track.type !== 'VIDEO'
-                    ? <span className="absolute inset-0 flex items-center pl-10 border border-dashed border-gray-200 rounded mx-1 my-1.5 text-[10px] text-gray-300 italic">
-                        {track.type === 'AUDIO' ? 'Voice-over — add via Studio Tools' : track.type === 'MUSIC' ? 'Music — add via Studio Tools' : 'Empty'}
+                <div
+                  key={track.id}
+                  className="border-b border-gray-700/30 flex items-center gap-1.5 px-2"
+                  style={{ height: TRACK_HEIGHTS[track.type] ?? 48 }}
+                >
+                  <div className={`w-[3px] self-stretch my-2 rounded-full shrink-0 ${TRACK_BAR[track.type]}`} />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 text-gray-300">
+                      {track.type === 'VIDEO' && <Film className="w-2.5 h-2.5 shrink-0" />}
+                      {(track.type === 'AUDIO' || track.type === 'MUSIC') && <Music2 className="w-2.5 h-2.5 shrink-0" />}
+                      {track.type === 'CAPTION' && <Type className="w-2.5 h-2.5 shrink-0" />}
+                      {track.type === 'OVERLAY' && <Layers className="w-2.5 h-2.5 shrink-0" />}
+                      <span className="text-[8px] font-bold uppercase tracking-widest leading-tight truncate">
+                        {track.type === 'MUSIC' ? 'Music' : track.type.charAt(0) + track.type.slice(1).toLowerCase()}
                       </span>
-                    : track.items.map((item) => (
-                      // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface
-                      <div
-                        key={item.id}
-                        onMouseDown={(e) => startDrag('move', item, e)}
-                        className={`absolute top-1.5 bottom-1.5 rounded-lg border cursor-grab active:cursor-grabbing ${TRACK_COLORS[track.type]} ${selectedId === item.id ? 'ring-2 ring-offset-1 ring-brand-400' : ''}`}
-                        style={{ left: (item.startMs / 1000) * pxPerSec, width: Math.max(6, ((item.endMs - item.startMs) / 1000) * pxPerSec) }}
-                      >
-                        <span className="text-[9px] text-white/90 pl-2 whitespace-nowrap">{fmt(item.endMs - item.startMs)}</span>
-                        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
-                        <div onMouseDown={(e) => startDrag('trim-l', item, e)} className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/40 rounded-l-lg" />
-                        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
-                        <div onMouseDown={(e) => startDrag('trim-r', item, e)} className="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/40 rounded-r-lg" />
-                      </div>
-                    ))}
+                    </div>
+                    <p className="text-[7px] text-gray-600 leading-tight mt-0.5">
+                      {track.items.length > 0 ? `${track.items.length} clip${track.items.length > 1 ? 's' : ''}` : 'empty'}
+                    </p>
+                  </div>
                 </div>
               ))}
-              {/* Playhead — vertical line is decorative; diamond handle is draggable */}
-              <div className="absolute top-0 bottom-0 z-10 pointer-events-none" style={{ left: (playheadMs / 1000) * pxPerSec }}>
-                {/* Vertical line */}
-                <div className="absolute top-0 bottom-0 w-px bg-red-500 -translate-x-1/2 pointer-events-none" />
-                {/* Diamond handle — grabbable */}
-                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- drag handle */}
+            </div>
+
+            {/* ── Scrollable timeline content ───────────────────────────── */}
+            <div ref={scrollRef} className="overflow-x-auto flex-1">
+              <div className="relative" style={{ width: widthPx }}>
+
+                {/* Ruler — click or touch to seek */}
+                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
                 <div
-                  onMouseDown={startDiamondDrag}
-                  className="pointer-events-auto absolute -top-0.5 w-3.5 h-3.5 bg-red-500 rotate-45 -translate-x-1/2 cursor-grab active:cursor-grabbing shadow-md z-20"
-                />
+                  className="h-7 border-b border-gray-700/50 relative cursor-pointer bg-[#141d2b] select-none"
+                  onMouseDown={startPlayheadDrag}
+                  onTouchStart={startPlayheadTouch}
+                >
+                  {ticks.map((s) => (
+                    <span key={s} className="absolute bottom-1 text-[9px] text-gray-500 font-mono" style={{ left: s * pxPerSec + 2 }}>
+                      {Math.floor(s / 60)}:{String(s % 60).padStart(2, '0')}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Tracks */}
+                {timeline.tracks.map((track) => {
+                  const trackH = TRACK_HEIGHTS[track.type] ?? 48;
+                  const isAudioTrack = track.type === 'AUDIO' || track.type === 'MUSIC';
+                  return (
+                    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface
+                    <div
+                      key={track.id}
+                      className="relative border-b border-gray-700/30 bg-[#0f1623]"
+                      style={{ height: trackH }}
+                      onMouseDown={() => setSelectedId(null)}
+                    >
+                      {/* CAPTION track */}
+                      {track.type === 'CAPTION' && (
+                        timeline.captions.length === 0
+                          ? <span className="absolute inset-0 flex items-center px-3 text-[9px] text-gray-600 italic">No captions yet — use Generate captions →</span>
+                          : timeline.captions.map((c) => (
+                            <div
+                              key={c.id}
+                              className="absolute top-1.5 bottom-1.5 rounded bg-amber-400/80 border border-amber-300 px-1 overflow-hidden"
+                              style={{ left: (c.startMs / 1000) * pxPerSec, width: Math.max(2, ((c.endMs - c.startMs) / 1000) * pxPerSec) }}
+                              title={c.text}
+                            >
+                              <span className="text-[8px] text-amber-950 whitespace-nowrap">{c.emoji ? `${c.emoji} ` : ''}{c.text}</span>
+                            </div>
+                          ))
+                      )}
+
+                      {/* Empty track placeholder */}
+                      {track.type !== 'CAPTION' && track.items.length === 0 && (
+                        <div className="absolute inset-y-2 left-1 right-1 rounded-lg border border-dashed border-gray-700/50 flex items-center px-3">
+                          <span className="text-[9px] text-gray-600 italic">
+                            {track.type === 'AUDIO' ? 'Voice-over — add via Studio Tools'
+                              : track.type === 'MUSIC' ? 'Music — add via Studio Tools'
+                              : 'Empty'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Regular items */}
+                      {track.type !== 'CAPTION' && track.items.map((item) => {
+                        const w = Math.max(8, ((item.endMs - item.startMs) / 1000) * pxPerSec);
+                        return (
+                          // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface
+                          <div
+                            key={item.id}
+                            onMouseDown={(e) => startDrag('move', item, e)}
+                            className={`absolute top-1.5 bottom-1.5 rounded-lg border cursor-grab active:cursor-grabbing overflow-hidden ${TRACK_COLORS[track.type]} ${selectedId === item.id ? 'ring-2 ring-offset-1 ring-white/60' : ''}`}
+                            style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
+                          >
+                            {/* Decorative waveform bars for audio tracks */}
+                            {isAudioTrack && w > 16 && (
+                              <div className="absolute inset-0 flex items-center gap-px px-1 overflow-hidden opacity-60 pointer-events-none">
+                                {Array.from({ length: Math.floor((w - 8) / 3) }).map((_, bi) => {
+                                  const bh = 18 + Math.round(Math.abs(Math.sin(bi * 1.4 + 0.9) * Math.cos(bi * 0.6)) * 64);
+                                  return (
+                                    <div
+                                      key={bi}
+                                      style={{ width: 2, height: `${Math.min(88, bh)}%`, background: 'rgba(255,255,255,0.7)', borderRadius: 1, flexShrink: 0 }}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {/* Film-strip notches for video tracks */}
+                            {track.type === 'VIDEO' && w > 24 && (
+                              <div className="absolute inset-y-0 left-0 right-0 flex items-start pt-1 gap-px px-1 overflow-hidden pointer-events-none">
+                                {Array.from({ length: Math.floor(w / 12) }).map((_, fi) => (
+                                  <div key={fi} className="w-1.5 h-2 rounded-sm bg-white/10 shrink-0" />
+                                ))}
+                              </div>
+                            )}
+                            {/* Clip duration label */}
+                            <span className="absolute bottom-1 left-2 text-[9px] text-white/80 whitespace-nowrap z-10 font-mono">
+                              {fmt(item.endMs - item.startMs)}
+                            </span>
+                            {/* Trim handles */}
+                            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
+                            <div onMouseDown={(e) => startDrag('trim-l', item, e)} className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 rounded-l-lg z-10" />
+                            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
+                            <div onMouseDown={(e) => startDrag('trim-r', item, e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 rounded-r-lg z-10" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+
+                {/* Playhead */}
+                <div className="absolute top-0 bottom-0 z-10 pointer-events-none" style={{ left: (playheadMs / 1000) * pxPerSec }}>
+                  <div className="absolute top-0 bottom-0 w-px bg-red-500 -translate-x-1/2 pointer-events-none" />
+                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- drag handle */}
+                  <div
+                    onMouseDown={startDiamondDrag}
+                    className="pointer-events-auto absolute -top-0.5 w-3.5 h-3.5 bg-red-500 rotate-45 -translate-x-1/2 cursor-grab active:cursor-grabbing shadow-md z-20"
+                  />
+                </div>
+
               </div>
             </div>
           </div>
