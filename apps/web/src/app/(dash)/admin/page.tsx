@@ -365,7 +365,7 @@ function AdVideoTab() {
   ];
 
   return (
-    <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-6">
+    <div className="w-full p-4 sm:p-5 lg:p-7 max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -858,7 +858,7 @@ export default function AdminDashboardPage() {
               </nav>
 
               {/* Content column */}
-              <div className="flex-1 min-w-0 flex flex-col">
+              <div className="flex-1 min-w-0 w-full flex flex-col overflow-x-hidden">
                 {/* Mobile horizontal tab bar — hidden on lg+ */}
                 <div
                   className="lg:hidden bg-white border-b border-[#ede9f8] sticky z-10"
@@ -896,9 +896,9 @@ export default function AdminDashboardPage() {
 
       {/* ── AI Usage ────────────────────────────────────────────────────────── */}
       {adminTab === 'ai-usage' && (
-        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
+        <div className="w-full p-4 sm:p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div className="min-w-0">
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">AI Usage — All Users</h1>
               <p className="text-sm text-gray-600 mt-0.5">Platform-wide token spend, model breakdown, and copilot cache health</p>
             </div>
@@ -1069,7 +1069,7 @@ export default function AdminDashboardPage() {
 
       {/* ── Page Views ─────────────────────────────────────────────────────── */}
       {adminTab === 'page-views' && (
-        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+        <div className="w-full p-4 sm:p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Page Views</h1>
@@ -1160,7 +1160,7 @@ export default function AdminDashboardPage() {
 
       {/* ── Users ──────────────────────────────────────────────────────────── */}
       {adminTab === 'users' && (
-        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+        <div className="w-full p-4 sm:p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">User Accounts</h1>
@@ -1301,7 +1301,7 @@ export default function AdminDashboardPage() {
 
       {/* ── Enterprise Requests ─────────────────────────────────────────────── */}
       {adminTab === 'enterprise-requests' && (
-        <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+        <div className="w-full p-4 sm:p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Enterprise Access Requests</h1>
             <p className="text-sm text-gray-600 mt-0.5">Review, AI-validate, and approve or reject enterprise tier applications</p>
@@ -1533,9 +1533,9 @@ export default function AdminDashboardPage() {
 
       {/* ── Enterprise Dashboard ────────────────────────────────────────────── */}
       {adminTab === 'dashboard' && (
-      <div className="p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="w-full p-4 sm:p-5 lg:p-7 max-w-5xl mx-auto space-y-5">
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Enterprise Dashboard</h1>
             <p className="text-sm text-gray-600 mt-0.5">Revenue, AI economics, forecasts and provider health</p>
           </div>
@@ -2020,8 +2020,8 @@ export default function AdminDashboardPage() {
       {/* ── API Keys & Providers tab ─────────────────────────────────────────── */}
       {adminTab === 'api-keys' && (
         <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-5">
-            <div>
+          <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
+            <div className="min-w-0">
               <h2 className="text-lg font-bold text-[#1a1030]">API Keys &amp; Providers</h2>
               <p className="text-sm text-gray-500 mt-0.5">System-level provider keys configured via environment variables.</p>
             </div>
@@ -2101,8 +2101,8 @@ export default function AdminDashboardPage() {
       {/* ── Ad Revenue tab ───────────────────────────────────────────────── */}
       {adminTab === 'ad-revenue' && (
         <div className="p-5 lg:p-7 max-w-4xl mx-auto space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div className="min-w-0">
               <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Ad Revenue</h1>
               <p className="text-sm text-gray-600 mt-0.5">Platform-wide Browse content monetisation — CPM-based credit distribution</p>
             </div>
