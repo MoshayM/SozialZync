@@ -1290,6 +1290,15 @@ export const api = {
     markAllRead: () =>
       apiClient.post('/notifications/read-all'),
   },
+  publicFeed: {
+    list: (opts?: { take?: number; q?: string }) => {
+      const sp = new URLSearchParams();
+      if (opts?.take) sp.set('take', String(opts.take));
+      if (opts?.q) sp.set('q', opts.q);
+      const qs = sp.toString();
+      return apiClient.get<{ items: PublicFeedItem[] }>(`/my-content/public-feed${qs ? `?${qs}` : ''}`);
+    },
+  },
   myContent: {
     list: (opts?: { cursor?: string; take?: number; q?: string; visibility?: 'all' | 'private' | 'public' }) => {
       const sp = new URLSearchParams();
@@ -1529,6 +1538,27 @@ export interface AdminPublicContent {
   createdAt: string;
   viewCount: number | null;
   creator: { id: string; name: string | null; email: string; role: string; createdAt: string };
+}
+
+export interface PublicFeedItem {
+  id: string;
+  title: string;
+  kind: 'video' | 'short';
+  videoUrl: string | null;
+  thumbnailUrl: string | null;
+  durationSecs: number | null;
+  creator: string;
+  gi: number;
+}
+
+export interface PublicFeedItem {
+  id: string;
+  title: string;
+  kind: 'short' | 'video';
+  videoUrl: string | null;
+  thumbnailUrl: string | null;
+  durationSecs: number | null;
+  creator: string;
 }
 
 export interface ModerationAction {

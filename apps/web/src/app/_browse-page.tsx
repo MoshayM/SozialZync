@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { api, type PublicFeedItem } from '@/lib/api';
 import { LogoMark } from '@/components/logo-mark';
 import {
   Search, Bell, Menu, X, ChevronRight, Play, History, Plus, Film, Scissors,
@@ -28,11 +29,11 @@ const G = [
 interface VideoItem {
   id: string; title: string; creator: string; views: string; time: string;
   duration: string; gi: number; likes: string; comments: string; shares: string;
-  isOwn: boolean; videoUrl?: string;
+  isOwn: boolean; videoUrl?: string; thumbnailUrl?: string;
 }
 interface ShortItem {
   id: string; title: string; creator: string; views: string; duration: string;
-  gi: number; likes: string; comments: string; shares: string; isOwn: boolean; videoUrl?: string;
+  gi: number; likes: string; comments: string; shares: string; isOwn: boolean; videoUrl?: string; thumbnailUrl?: string;
 }
 interface ImageItem {
   id: string; title: string; creator: string; views: string;
@@ -648,6 +649,8 @@ function FeedView({
 export default function BrowsePage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [apiVideos, setApiVideos] = useState<VideoItem[]>([]);
+  const [apiShorts, setApiShorts] = useState<ShortItem[]>([]);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -697,6 +700,37 @@ export default function BrowsePage() {
     setVoiceSupported(
       typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window),
     );
+  }, []);
+
+  useEffect(() => {
+    api.publicFeed.list({ take: 24 }).then(res => {
+      const items: PublicFeedItem[] = res.data.items;
+      const fmtDur = (secs: number | null) => {
+        if (!secs) return '—';
+        return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+      };
+      const videos: VideoItem[] = [];
+      const shorts: ShortItem[] = [];
+      items.forEach((item, idx) => {
+        if (item.kind === 'short') {
+          shorts.push({
+            id: item.id, title: item.title, creator: item.creator,
+            views: '—', duration: fmtDur(item.durationSecs),
+            gi: idx % 8, likes: '—', comments: '—', shares: '—',
+            isOwn: false, videoUrl: item.videoUrl ?? undefined, thumbnailUrl: item.thumbnailUrl ?? undefined,
+          });
+        } else {
+          videos.push({
+            id: item.id, title: item.title, creator: item.creator,
+            views: '—', time: 'Recently', duration: fmtDur(item.durationSecs),
+            gi: idx % 8, likes: '—', comments: '—', shares: '—',
+            isOwn: false, videoUrl: item.videoUrl ?? undefined, thumbnailUrl: item.thumbnailUrl ?? undefined,
+          });
+        }
+      });
+      setApiVideos(videos);
+      setApiShorts(shorts);
+    }).catch(() => { /* silently degrade — static feed still shows */ });
   }, []);
 
   useEffect(() => {
@@ -805,10 +839,12 @@ export default function BrowsePage() {
 
   const unreadCount = notifs.filter(n => !n.read).length;
 
-  // Filtered content
+  // Filtered content — API items prepend the static demo feed
   const q = search.trim();
-  const filteredVideos = VIDEOS.filter(v => matchSearch(v.title, v.creator, q));
-  const filteredShorts = SHORTS.filter(s => matchSearch(s.title, s.creator, q));
+  const allVideos = useMemo(() => [...apiVideos, ...VIDEOS], [apiVideos]);
+  const allShorts = useMemo(() => [...apiShorts, ...SHORTS], [apiShorts]);
+  const filteredVideos = allVideos.filter(v => matchSearch(v.title, v.creator, q));
+  const filteredShorts = allShorts.filter(s => matchSearch(s.title, s.creator, q));
   const filteredReels  = REELS.filter(r  => matchSearch(r.title, r.creator, q));
   const filteredImages = IMAGES.filter(i => matchSearch(i.title, i.creator, q));
 
@@ -1263,7 +1299,7 @@ export default function BrowsePage() {
                         {filteredVideos.map(v => (
                           <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer relative"
                             onClick={() => openFeed(v.id, 'video')}>
-                            <LandscapeThumb gi={v.gi} duration={v.duration} thumbnailUrl={`/api/thumb?seed=${v.id}&w=640&h=360`} />
+                            <LandscapeThumb gi={v.gi} duration={v.duration} thumbnailUrl={v.thumbnailUrl ?? `/api/thumb?seed=${v.id}&w=640&h=360`} />
                             {isLoggedIn && v.isOwn && (
                               <button onClick={e => { e.stopPropagation(); toggleStats(v.id); }}
                                 className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -1311,7 +1347,7 @@ export default function BrowsePage() {
                         {filteredVideos.map(v => (
                           <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer"
                             onClick={() => openFeed(v.id, 'video')}>
-                            <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" thumbnailUrl={`/api/thumb?seed=${v.id}&w=640&h=360`} /></div>
+                            <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" thumbnailUrl={v.thumbnailUrl ?? `/api/thumb?seed=${v.id}&w=640&h=360`} /></div>
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                               <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
                               <p className="text-[11px] text-gray-500 mt-1">{v.creator} · {v.time}</p>
@@ -1358,7 +1394,7 @@ export default function BrowsePage() {
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                       {filteredShorts.map(s => (
                         <div key={s.id} className="group cursor-pointer relative" onClick={() => openFeed(s.id, 'short')}>
-                          <PortraitThumb gi={s.gi} duration={s.duration} thumbnailUrl={`/api/thumb?seed=${s.id}&w=360&h=640`} />
+                          <PortraitThumb gi={s.gi} duration={s.duration} thumbnailUrl={s.thumbnailUrl ?? `/api/thumb?seed=${s.id}&w=360&h=640`} />
                           {isLoggedIn && s.isOwn && (
                             <button onClick={e => { e.stopPropagation(); toggleStats(s.id); }}
                               className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -1381,7 +1417,7 @@ export default function BrowsePage() {
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                       {filteredReels.map(r => (
                         <div key={r.id} className="group cursor-pointer" onClick={() => openFeed(r.id, 'reel')}>
-                          <PortraitThumb gi={r.gi} duration={r.duration} thumbnailUrl={`/api/thumb?seed=${r.id}&w=360&h=640`} />
+                          <PortraitThumb gi={r.gi} duration={r.duration} thumbnailUrl={r.thumbnailUrl ?? `/api/thumb?seed=${r.id}&w=360&h=640`} />
                           <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{r.creator}</p>
                           <StatsBar views={r.views} likes={r.likes} comments={r.comments} hidden={!!statsHidden[r.id]} />
@@ -1429,7 +1465,7 @@ export default function BrowsePage() {
                   {filteredVideos.map(v => (
                     <div key={v.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
                       onClick={() => openFeed(v.id, 'video')}>
-                      <LandscapeThumb gi={v.gi} duration={v.duration} thumbnailUrl={`/api/thumb?seed=${v.id}&w=640&h=360`} />
+                      <LandscapeThumb gi={v.gi} duration={v.duration} thumbnailUrl={v.thumbnailUrl ?? `/api/thumb?seed=${v.id}&w=640&h=360`} />
                       <div className="p-3">
                         <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug mb-1">{v.title}</p>
                         <p className="text-[11px] text-gray-500">{v.creator} · {v.time}</p>
@@ -1443,7 +1479,7 @@ export default function BrowsePage() {
                   {filteredVideos.map(v => (
                     <div key={v.id} className="group bg-white rounded-xl border border-gray-100 flex gap-3 p-3 hover:shadow-md transition-all cursor-pointer"
                       onClick={() => openFeed(v.id, 'video')}>
-                      <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" thumbnailUrl={`/api/thumb?seed=${v.id}&w=640&h=360`} /></div>
+                      <div className="flex-none w-32"><LandscapeThumb gi={v.gi} duration={v.duration} size="sm" thumbnailUrl={v.thumbnailUrl ?? `/api/thumb?seed=${v.id}&w=640&h=360`} /></div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <p className="text-[13px] font-bold text-gray-900 line-clamp-2">{v.title}</p>
                         <p className="text-[11px] text-gray-500 mt-1">{v.creator} · {v.time}</p>
@@ -1466,7 +1502,7 @@ export default function BrowsePage() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {filteredShorts.map(s => (
                     <div key={s.id} className="group cursor-pointer relative" onClick={() => openFeed(s.id, 'short')}>
-                      <PortraitThumb gi={s.gi} duration={s.duration} thumbnailUrl={`/api/thumb?seed=${s.id}&w=360&h=640`} />
+                      <PortraitThumb gi={s.gi} duration={s.duration} thumbnailUrl={s.thumbnailUrl ?? `/api/thumb?seed=${s.id}&w=360&h=640`} />
                       {isLoggedIn && s.isOwn && (
                         <button onClick={e => { e.stopPropagation(); toggleStats(s.id); }}
                           className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -1494,7 +1530,7 @@ export default function BrowsePage() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {filteredReels.map(r => (
                     <div key={r.id} className="group cursor-pointer" onClick={() => openFeed(r.id, 'reel')}>
-                      <PortraitThumb gi={r.gi} duration={r.duration} thumbnailUrl={`/api/thumb?seed=${r.id}&w=360&h=640`} />
+                      <PortraitThumb gi={r.gi} duration={r.duration} thumbnailUrl={r.thumbnailUrl ?? `/api/thumb?seed=${r.id}&w=360&h=640`} />
                       <p className="mt-2 text-[11px] font-semibold text-gray-900 line-clamp-2 leading-snug">{r.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{r.creator}</p>
                       <StatsBar views={r.views} likes={r.likes} comments={r.comments} hidden={!!statsHidden[r.id]} />

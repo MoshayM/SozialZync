@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { signMedia, signingSecret } from '../media/signed-url.util';
@@ -12,6 +13,7 @@ import { signMedia, signingSecret } from '../media/signed-url.util';
 const ep = (p: PrismaService) => (p as unknown as Record<string, unknown>)['editProject'] as {
   findMany: (args: unknown) => Promise<unknown[]>;
   findUnique: (args: unknown) => Promise<unknown | null>;
+  findFirst: (args: unknown) => Promise<unknown | null>;
   update: (args: unknown) => Promise<unknown>;
   delete: (args: unknown) => Promise<unknown>;
 };
@@ -29,6 +31,7 @@ interface EditProjectRow {
   project?: {
     userId: string;
     importedVideos?: { thumbnailUrl: string | null }[];
+    user?: { name: string | null; email: string };
   };
 }
 
@@ -44,6 +47,92 @@ function makeVersionSignedUrl(versionId: string): string {
 @Controller('my-content')
 export class MyContentController {
   constructor(private readonly prisma: PrismaService) {}
+
+  @Public()
+  @Get('public-feed')
+  async publicFeed(
+    @Query('take') take?: string,
+    @Query('q') q?: string,
+  ) {
+    const limit = Math.min(parseInt(take ?? '20', 10) || 20, 50);
+
+    interface PublicFeedRow {
+      id: string;
+      title: string;
+      shortClipId: string | null;
+      renderAssetId: string | null;
+      renderStatus: string;
+      durationMs: number;
+      updatedAt: Date;
+      project: {
+        importedVideos: { thumbnailUrl: string | null }[];
+        user: { name: string | null; email: string };
+      };
+    }
+
+    let rows: PublicFeedRow[] = [];
+    try {
+      rows = (await ep(this.prisma).findMany({
+        where: {
+          status: 'PUBLIC_CONTENT',
+          ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}),
+        },
+        include: {
+          project: {
+            include: {
+              importedVideos: {
+                where: { thumbnailUrl: { not: null } },
+                take: 1,
+                select: { thumbnailUrl: true },
+              },
+              user: { select: { name: true, email: true } },
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: limit,
+      })) as unknown as PublicFeedRow[];
+    } catch {
+      return { items: [] };
+    }
+
+    const renderAssetIds = rows
+      .filter(r => r.renderStatus === 'READY' && r.renderAssetId)
+      .map(r => r.renderAssetId as string);
+
+    const renderVersionMap = new Map<string, string>();
+    if (renderAssetIds.length > 0) {
+      const versions = await this.prisma.assetVersion.findMany({
+        where: { assetId: { in: renderAssetIds } },
+        orderBy: { version: 'desc' },
+        select: { id: true, assetId: true },
+      });
+      for (const v of versions) {
+        if (!renderVersionMap.has(v.assetId)) renderVersionMap.set(v.assetId, v.id);
+      }
+    }
+
+    const items = rows.map((r, idx) => {
+      const hasRender = r.renderStatus === 'READY' && !!r.renderAssetId;
+      const versionId = r.renderAssetId ? renderVersionMap.get(r.renderAssetId) : undefined;
+      const videoUrl = hasRender && versionId ? makeVersionSignedUrl(versionId) : null;
+      const thumbnailUrl = r.project.importedVideos[0]?.thumbnailUrl ?? null;
+      const rawName = r.project.user.name ?? r.project.user.email.split('@')[0] ?? 'Creator';
+      const creator = `@${rawName.replace(/\s+/g, '')}`;
+      return {
+        id: r.id,
+        title: r.title,
+        kind: r.shortClipId ? 'short' as const : 'video' as const,
+        videoUrl,
+        thumbnailUrl,
+        durationSecs: r.durationMs ? Math.round(r.durationMs / 1000) : null,
+        creator,
+        gi: idx % 8,
+      };
+    });
+
+    return { items };
+  }
 
   @Get()
   async list(
@@ -193,6 +282,91 @@ export class MyContentController {
     const nextCursor = page.length === limit ? page[page.length - 1]?.createdAt ?? null : null;
 
     return { items: page, nextCursor };
+  }
+
+  /** Public feed — all content marked PUBLIC_CONTENT across all users. No auth required. */
+  @Public()
+  @Get('public-feed')
+  async publicFeed(
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+    @Query('q') q?: string,
+  ) {
+    const limit = Math.min(parseInt(take ?? '20', 10) || 20, 50);
+
+    let editDrafts: EditProjectRow[] = [];
+    try {
+      editDrafts = (await ep(this.prisma).findMany({
+        where: {
+          status: 'PUBLIC_CONTENT',
+          renderStatus: 'READY',
+          ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}),
+          ...(cursor ? { updatedAt: { lt: new Date(cursor) } } : {}),
+        },
+        include: {
+          project: {
+            include: {
+              user: { select: { name: true, email: true } },
+              importedVideos: {
+                where: { thumbnailUrl: { not: null } },
+                take: 1,
+                select: { thumbnailUrl: true },
+              },
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: limit + 1,
+      })) as EditProjectRow[];
+    } catch {
+      // edit_projects table may not be migrated yet — degrade gracefully
+    }
+
+    const hasMore = editDrafts.length > limit;
+    const page = hasMore ? editDrafts.slice(0, limit) : editDrafts;
+
+    const renderAssetIds = page
+      .filter((e) => e.renderStatus === 'READY' && e.renderAssetId)
+      .map((e) => e.renderAssetId as string);
+
+    const renderVersionMap = new Map<string, string>();
+    if (renderAssetIds.length > 0) {
+      const versions = await this.prisma.assetVersion.findMany({
+        where: { assetId: { in: renderAssetIds } },
+        orderBy: { version: 'desc' },
+        select: { id: true, assetId: true },
+      });
+      for (const v of versions) {
+        if (!renderVersionMap.has(v.assetId)) renderVersionMap.set(v.assetId, v.id);
+      }
+    }
+
+    const items = page.map((e) => {
+      const versionId = e.renderAssetId ? renderVersionMap.get(e.renderAssetId) : undefined;
+      const playUrl = versionId ? makeVersionSignedUrl(versionId) : null;
+      const u = e.project?.user;
+      const creator = u?.name ?? u?.email?.split('@')[0] ?? 'Creator';
+      return {
+        id: e.id,
+        title: e.title,
+        type: 'VIDEO',
+        thumbnailUrl: e.project?.importedVideos?.[0]?.thumbnailUrl ?? null,
+        playUrl,
+        isPublic: true,
+        shareUrl: null,
+        duration: e.durationMs ? Math.round(e.durationMs / 1000) : null,
+        viewCount: null,
+        createdAt: e.createdAt.toISOString(),
+        updatedAt: e.updatedAt.toISOString(),
+        projectId: e.projectId,
+        source: 'edit_draft' as const,
+        editId: e.id,
+        creator,
+      };
+    });
+
+    const nextCursor = hasMore ? page[page.length - 1]?.updatedAt.toISOString() ?? null : null;
+    return { items, nextCursor };
   }
 
   @Patch(':id/visibility')
