@@ -35,39 +35,29 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { href: '/home',         icon: Home,        label: 'Home' },
-      { href: '/projects',     icon: FolderOpen,  label: 'Projects' },
-    ],
-  },
-  {
-    category: 'Create',
-    items: [
-      { href: '/editor',       icon: Film,        label: 'Video Editing' },
-      { href: '/shorts-studio',icon: Scissors,    label: 'Shorts Studio' },
-      { href: '/studio',       icon: Layers,      label: 'Studio' },
-    ],
-  },
-  {
-    category: 'Distribute',
-    items: [
-      { href: '/calendar',     icon: Calendar,    label: 'Content Calendar' },
-      { href: '/publish',      icon: Upload,      label: 'Publish Hub' },
-      { href: '/library',      icon: BookOpen,    label: 'Library' },
-      { href: '/approvals',    icon: ShieldCheck, label: 'Approvals' },
+      { href: '/home',          icon: Home,        label: 'Home' },
+      { href: '/projects',      icon: FolderOpen,  label: 'Projects' },
+      { href: '/editor',        icon: Film,        label: 'Video Editing' },
+      { href: '/shorts-studio', icon: Scissors,    label: 'Shorts Studio' },
+      { href: '/studio',        icon: Layers,      label: 'Studio' },
+      { href: '/calendar',      icon: Calendar,    label: 'Content Calendar' },
+      { href: '/publish',       icon: Upload,      label: 'Publish Hub' },
+      { href: '/library',       icon: BookOpen,    label: 'Library' },
+      { href: '/approvals',     icon: ShieldCheck, label: 'Approvals' },
     ],
   },
   {
     category: 'Grow',
     items: [
-      { href: '/insights',     icon: BarChart2,   label: 'Analytics' },
-      { href: '/automation',   icon: Zap,         label: 'Automation' },
+      { href: '/insights',      icon: BarChart2,   label: 'Analytics' },
+      { href: '/automation',    icon: Zap,         label: 'Automation' },
     ],
   },
   {
     category: 'Discover',
     items: [
-      { href: '/browse',         icon: Globe,       label: 'Public Feed' },
-      { href: '/watch-history',  icon: History,     label: 'Watch History' },
+      { href: '/browse',        icon: Globe,       label: 'Public Feed' },
+      { href: '/watch-history', icon: History,     label: 'Watch History' },
     ],
   },
 ];
@@ -149,11 +139,11 @@ const ALL_SEARCHABLE_PAGES: NavItem[] = [
 
 /* Mobile bottom nav — 2 left + Create CTA (true centre) + 1 right + More */
 const MOBILE_NAV_LEFT = [
-  { href: '/home',     icon: Home,       label: 'Home' },
-  { href: '/content',  icon: Compass,    label: 'Studio' },
+  { href: '/home',     icon: Home,  label: 'Home' },
+  { href: '/copilot',  icon: Bot,   label: 'Copilot' },
 ];
 const MOBILE_NAV_RIGHT = [
-  { href: '/publish',  icon: Upload,     label: 'Publish' },
+  { href: '/settings/channels', icon: Link2, label: 'Connect' },
 ];
 
 function nameFromToken(): string {
