@@ -2,15 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Users, PiggyBank, PlusCircle, Loader2, AlertCircle, ShieldCheck, Layers } from 'lucide-react';
-import { api, apiClient, type Org, type OrgMember, type OrgBudgetStatus, type OrgTeam } from '@/lib/api';
+import { Building2, Users, PlusCircle, Loader2, AlertCircle, ShieldCheck, Layers } from 'lucide-react';
+import { api, apiClient, type Org, type OrgMember, type OrgTeam } from '@/lib/api';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { PlanGate } from '@/components/plan-gate';
 
 // Role → capability mirror of the server's orgRoleAllows (UI hint only — the
 // server re-checks every action).
 const canManageOrg = (role: string) => role === 'ORG_ADMIN';
-const canManageBudget = (role: string) => role === 'ORG_ADMIN' || role === 'BILLING_ADMIN';
 
 const ROLE_BADGE: Record<string, string> = {
   ORG_ADMIN: 'bg-gray-100 text-gray-700',
@@ -96,164 +95,6 @@ function useOrgTeams(orgId: string) {
     queryKey: ['org-teams', orgId],
     queryFn: () => api.orgs.teams(orgId).then((r) => r.data),
   });
-}
-
-// ── Budget card ───────────────────────────────────────────────────────────────
-
-function BudgetCard({ org }: { org: Org }) {
-  const qc = useQueryClient();
-  const [editing, setEditing] = useState(false);
-  const [teamId, setTeamId] = useState('');
-  const [allocated, setAllocated] = useState('1000');
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
-  const [hardCap, setHardCap] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const { data: teams = [] } = useOrgTeams(org.id);
-  const { data: budget, isLoading } = useQuery<OrgBudgetStatus>({
-    queryKey: ['org-budget', org.id, teamId],
-    queryFn: () => api.orgs.budget(org.id, teamId || undefined).then((r) => r.data),
-  });
-
-  const save = useMutation({
-    mutationFn: () =>
-      api.orgs.setBudget(org.id, {
-        periodStart: new Date(start).toISOString(),
-        periodEnd: new Date(end).toISOString(),
-        allocatedCredits: parseInt(allocated, 10) || 0,
-        hardCap,
-        // A period created while a team is selected budgets that team;
-        // org-wide otherwise — mirrored by the status query above.
-        ...(teamId ? { teamId } : {}),
-      }),
-    onSuccess: () => {
-      setEditing(false);
-      setError(null);
-      void qc.invalidateQueries({ queryKey: ['org-budget', org.id] });
-    },
-    onError: (e) => setError(getErrorMessage(e)),
-  });
-
-  const period = budget?.period ?? null;
-  const consumedPct = period && period.allocatedCredits > 0
-    ? Math.min(100, Math.round((period.consumedCredits / period.allocatedCredits) * 100))
-    : 0;
-
-  return (
-    <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <PiggyBank className="w-4 h-4" style={{ color: '#374151' }} />
-          <span className="text-sm font-semibold text-gray-800">Shared Wallet &amp; Budget</span>
-        </div>
-        <div className="flex items-center gap-3">
-          {teams.length > 0 && (
-            <select
-              aria-label="Budget scope"
-              value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
-              className="bg-white rounded-2xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-[#374151]/20"
-              style={{ border: '1.5px solid #e3e0f0' }}
-            >
-              <option value="">Org-wide</option>
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>Team: {t.name}</option>
-              ))}
-            </select>
-          )}
-          {canManageBudget(org.role) && !editing && (
-            <button onClick={() => setEditing(true)} className="text-xs font-semibold hover:underline" style={{ color: '#374151' }}>
-              New budget period
-            </button>
-          )}
-        </div>
-      </div>
-
-      {isLoading && <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#374151' }} />}
-
-      {budget && (
-        <div className="grid sm:grid-cols-3 gap-3 text-center">
-          <div className="bg-gray-50 rounded-2xl p-3">
-            <p className="text-xs text-gray-600">Org balance</p>
-            <p className="text-lg font-bold text-gray-900">{budget.orgBalance.toLocaleString()}</p>
-            <p className="text-[11px] text-gray-600">credits</p>
-          </div>
-          <div className="bg-gray-50 rounded-2xl p-3">
-            <p className="text-xs text-gray-600">Period budget</p>
-            <p className="text-lg font-bold text-gray-900">{period ? period.allocatedCredits.toLocaleString() : '—'}</p>
-            <p className="text-[11px] text-gray-600">{period ? (period.hardCap ? 'hard cap' : 'soft cap') : 'no current period'}</p>
-          </div>
-          <div className="bg-gray-50 rounded-2xl p-3">
-            <p className="text-xs text-gray-600">Remaining</p>
-            <p className="text-lg font-bold text-gray-900">{budget.remaining !== null ? budget.remaining.toLocaleString() : '—'}</p>
-            <p className="text-[11px] text-gray-600">{period ? `${consumedPct}% consumed` : 'unlimited'}</p>
-          </div>
-        </div>
-      )}
-
-      {period && (
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full ${consumedPct >= 90 ? 'bg-red-500' : consumedPct >= 70 ? 'bg-amber-400' : ''}`}
-            style={{ width: `${consumedPct}%`, ...(consumedPct < 70 ? { background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)' } : {}) }}
-          />
-        </div>
-      )}
-
-      {editing && (
-        <div className="space-y-3 border-t border-gray-100 pt-3">
-          <p className="text-xs text-gray-600">
-            New period for{' '}
-            <span className="font-medium text-gray-700">
-              {teamId ? `team "${teams.find((t) => t.id === teamId)?.name ?? teamId}"` : 'the whole organization'}
-            </span>
-            {' '}— switch the scope picker above to budget a team instead.
-          </p>
-          <div className="grid sm:grid-cols-3 gap-3">
-            <div>
-              <label htmlFor="budget-start" className="block text-xs text-gray-600 mb-1">Period start</label>
-              <input id="budget-start" type="date" value={start} onChange={(e) => setStart(e.target.value)}
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
-                style={{ border: '1.5px solid #e3e0f0' }} />
-            </div>
-            <div>
-              <label htmlFor="budget-end" className="block text-xs text-gray-600 mb-1">Period end</label>
-              <input id="budget-end" type="date" value={end} onChange={(e) => setEnd(e.target.value)}
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
-                style={{ border: '1.5px solid #e3e0f0' }} />
-            </div>
-            <div>
-              <label htmlFor="budget-credits" className="block text-xs text-gray-600 mb-1">Allocated credits</label>
-              <input id="budget-credits" type="number" min={0} value={allocated} onChange={(e) => setAllocated(e.target.value)}
-                className="w-full bg-white rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#374151]/20"
-                style={{ border: '1.5px solid #e3e0f0' }} />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={hardCap} onChange={(e) => setHardCap(e.target.checked)} />
-            Hard cap — block spend when the budget is exhausted
-          </label>
-          {error && (
-            <p className="flex items-center gap-1.5 text-xs text-red-600"><AlertCircle className="w-3.5 h-3.5" /> {error}</p>
-          )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => save.mutate()}
-              disabled={!start || !end || save.isPending}
-              className="inline-flex items-center gap-1.5 disabled:opacity-50 text-white text-sm font-bold rounded-2xl px-5 py-3"
-              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
-            >
-              {save.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save period
-            </button>
-            <button onClick={() => { setEditing(false); setError(null); }} className="text-sm text-gray-600 hover:text-gray-800 px-3 py-3 rounded-2xl font-semibold" style={{ border: '1.5px solid #e3ddf8' }}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ── Members card ──────────────────────────────────────────────────────────────
@@ -520,7 +361,6 @@ export default function OrgsPage() {
                 your role: {selected.role.replace(/_/g, ' ')}
               </span>
             </div>
-            <BudgetCard org={selected} />
             <TeamsCard org={selected} />
             <MembersCard org={selected} />
           </section>

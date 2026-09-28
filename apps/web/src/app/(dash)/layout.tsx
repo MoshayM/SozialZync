@@ -1366,7 +1366,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         </aside>
 
         {/* ── MAIN ─────────────────────────────────────────────────────────── */}
-        <main className="cf-main-mobile-pad flex-1 overflow-y-auto overflow-x-hidden">
+        <main className="cf-main-mobile-pad flex-1 overflow-y-auto overflow-x-clip">
           {isOffline && (
             <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold" style={{ background: '#fef3c7', borderBottom: '1px solid #fcd34d', color: '#92400e' }}>
               <WifiOff className="w-3.5 h-3.5 shrink-0 text-amber-600" />
@@ -1387,6 +1387,26 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
           {/* Left 2 tabs */}
           {MOBILE_NAV_LEFT.map(({ href, icon: Icon, label }) => {
+            // Copilot opens the floating 3D robot panel, not the /copilot page
+            if (href === '/copilot') {
+              const isActive = copilotOpen;
+              return (
+                <button
+                  key={href}
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('cf:open-copilot'))}
+                  className="flex-1 flex flex-col items-center justify-center gap-[3px] h-full transition-colors active:bg-[#F6F5FC] touch-manipulation relative border-none"
+                  style={{ background: 'transparent', color: isActive ? '#111827' : '#9a97ab' }}
+                  aria-label="Open AI Copilot"
+                >
+                  {isActive && (
+                    <span className="absolute top-0 inset-x-1/4 h-[2.5px] rounded-b-full" style={{ background: '#374151' }} />
+                  )}
+                  <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.8} />
+                  <span className="text-[10.5px] font-semibold leading-none">{label}</span>
+                </button>
+              );
+            }
             const isActive = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link
