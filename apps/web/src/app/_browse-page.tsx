@@ -241,17 +241,17 @@ function StatsBar({ views, likes, comments, shares, hidden }: {
 
 function FeedSlide({
   item, isActive, isLiked, isSaved, currentIdx, totalCount,
-  isLoggedIn, onClose, onLike, onSave, onNext, onPrev,
+  isLoggedIn, onClose, onLike, onSave, onNext, onPrev, muted, onToggleMute,
 }: {
   item: FeedItem; isActive: boolean; isLiked: boolean; isSaved: boolean;
   currentIdx: number; totalCount: number; isLoggedIn: boolean;
   onClose: () => void; onLike: (id: string, kind: string) => void;
   onSave: (id: string, kind: string) => void;
   onNext: () => void; onPrev: () => void;
+  muted: boolean; onToggleMute: () => void;
 }) {
   const isPortrait = item.kind === 'short' || item.kind === 'reel';
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [muted, setMuted] = useState(true);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [shareToast, setShareToast] = useState(false);
@@ -365,7 +365,7 @@ function FeedSlide({
           </span>
           {item.videoUrl && (
             <button
-              onClick={() => setMuted(m => !m)}
+              onClick={onToggleMute}
               className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
               aria-label={muted ? 'Unmute' : 'Mute'}
             >
@@ -543,6 +543,17 @@ function FeedView({
   const [savedKeys, setSavedKeys] = useState<Set<string>>(() => {
     try { const s = localStorage.getItem('sz_saved'); return s ? new Set(JSON.parse(s) as string[]) : new Set(); } catch { return new Set(); }
   });
+  const [muted, setMuted] = useState<boolean>(() => {
+    try { return localStorage.getItem('sz_muted') !== 'false'; } catch { return true; }
+  });
+
+  function toggleMute() {
+    setMuted(m => {
+      const next = !m;
+      try { localStorage.setItem('sz_muted', String(next)); } catch {}
+      return next;
+    });
+  }
 
   // Scroll to start on mount (instant)
   useEffect(() => {
@@ -647,6 +658,8 @@ function FeedView({
             onSave={toggleSave}
             onNext={() => navigateTo(Math.min(idx + 1, items.length - 1))}
             onPrev={() => navigateTo(Math.max(idx - 1, 0))}
+            muted={muted}
+            onToggleMute={toggleMute}
           />
         ))}
       </div>
