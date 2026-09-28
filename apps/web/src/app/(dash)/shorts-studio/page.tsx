@@ -64,16 +64,6 @@ const STAGE_LABELS: Record<string, string> = {
   EMBEDDING_GENERATION: 'Embedding',
 };
 
-const PROGRESS_LABELS: Record<string, string> = {
-  VIDEO_IMPORT: 'Downloading video',
-  TRANSCRIPT_ANALYSIS: 'Generating transcript',
-  SCENE_DETECTION: 'Detecting scenes',
-  TOPIC_SEGMENTATION: 'Generating embeddings',
-  HIGHLIGHT_DETECTION: 'Creating shorts',
-  CHAPTER_DETECTION: 'Detecting chapters',
-  EMBEDDING_GENERATION: 'Generating search index',
-};
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SendToEditorButton({ importedVideoId }: { importedVideoId: string }) {
@@ -194,32 +184,49 @@ function AnalysisProgress({ importedVideoId, onRetry }: { importedVideoId: strin
   });
   if (!status) return null;
 
-  const runningStage = status.stages.find(({ job }) => job?.status === 'RUNNING');
-  const progressLabel = runningStage ? (PROGRESS_LABELS[runningStage.type] ?? STAGE_LABELS[runningStage.type] ?? runningStage.type) : null;
-  const pipelineFailed = status.pipeline?.status === 'FAILED';
+  const pipelineStatus = (status.pipeline?.status ?? '').toUpperCase();
+  const pipelineFailed = pipelineStatus === 'FAILED';
+  const isRunning = ['RUNNING', 'QUEUED', 'PENDING'].includes(pipelineStatus);
 
-  const stagePill = (satisfied: boolean, failed: boolean, running: boolean) => {
-    if (satisfied) return { bg: '#ecfdf5', color: '#065f46', dot: <CheckCircle2 className="w-3 h-3" /> };
-    if (failed)    return { bg: '#fff5f5', color: '#dc2626', dot: <XCircle className="w-3 h-3" /> };
-    if (running)   return { bg: '#eff6ff', color: '#3b82f6', dot: <Loader2 className="w-3 h-3 animate-spin" /> };
-    return         { bg: '#f3f4f6', color: '#6b7280', dot: <Clock className="w-3 h-3" /> };
-  };
+  const stages = status.stages;
+  const totalStages = stages.length;
+  const doneStages = stages.filter((s) => s.satisfied).length;
+  const hasRunning = stages.some((s) => s.job?.status === 'RUNNING');
+  const pct = totalStages > 0
+    ? Math.round(Math.min((doneStages / totalStages) * 100 + (hasRunning ? (1 / totalStages) * 50 : 0) + 2, 99))
+    : 0;
 
   return (
     <div className="mt-2 space-y-2">
+      {/* Stage pills */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        {status.stages.map(({ type, satisfied, job }) => {
+        {stages.map(({ type, satisfied, job }) => {
           const failed  = job?.status === 'FAILED';
           const running = job?.status === 'RUNNING';
-          const pill = stagePill(satisfied, failed, running);
+          if (satisfied) {
+            return (
+              <span key={type} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: '#ecfdf5', color: '#065f46' }}>
+                <CheckCircle2 className="w-3 h-3" />{STAGE_LABELS[type] ?? type}
+              </span>
+            );
+          }
+          if (failed) {
+            return (
+              <span key={type} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: '#fff5f5', color: '#dc2626' }}>
+                <XCircle className="w-3 h-3" />{STAGE_LABELS[type] ?? type}
+              </span>
+            );
+          }
+          if (running) {
+            return (
+              <span key={type} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold animate-pulse" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                <Loader2 className="w-3 h-3 animate-spin" style={{ animationDuration: '0.75s' }} />{STAGE_LABELS[type] ?? type}
+              </span>
+            );
+          }
           return (
-            <span
-              key={type}
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
-              style={{ background: pill.bg, color: pill.color }}
-            >
-              {pill.dot}
-              {STAGE_LABELS[type] ?? type}
+            <span key={type} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: '#f3f4f6', color: '#6b7280' }}>
+              <Clock className="w-3 h-3" />{STAGE_LABELS[type] ?? type}
             </span>
           );
         })}
@@ -233,12 +240,18 @@ function AnalysisProgress({ importedVideoId, onRetry }: { importedVideoId: strin
             <Film className="w-3 h-3" /> {status.counts.scenes} scenes
           </span>
         )}
-        {progressLabel && (
-          <span className="text-[11px] inline-flex items-center gap-1" style={{ color: '#374151' }}>
-            <Loader2 className="w-3 h-3 animate-spin" /> {progressLabel}
-          </span>
-        )}
       </div>
+
+      {/* Overall progress bar — shown while pipeline is active */}
+      {isRunning && pct > 0 && (
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: '#f3f4f6' }}>
+          <div
+            className="h-full rounded-full transition-all duration-700 ease-out"
+            style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #374151, #7c5ae8)' }}
+          />
+        </div>
+      )}
+
       {pipelineFailed && (
         <JobErrorCard
           error={status.pipeline?.error}
