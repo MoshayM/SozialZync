@@ -8,7 +8,7 @@ import {
   Search, Bell, Menu, X, ChevronRight, Play, History, Plus, Film, Scissors,
   ImageIcon, Grid3X3, LayoutList, SlidersHorizontal, ChevronDown, ChevronUp,
   Heart, MessageCircle, TrendingUp, Eye, EyeOff, Trash2, Share2, Settings,
-  LogOut, Bookmark, Clock, Mic, Volume2, VolumeX, Pencil,
+  LogOut, Bookmark, Clock, Mic, Volume2, VolumeX, Pencil, Languages,
 } from 'lucide-react';
 
 // ── Gradients ─────────────────────────────────────────────────────────────────
@@ -127,6 +127,21 @@ const AD_BG = [
   'linear-gradient(135deg,#0a2a1a,#065f46)',
 ] as const;
 
+const QUALITY_OPTIONS = ['Auto', '1080p', '720p', '480p', '360p', '240p', '144p'] as const;
+
+const CAPTION_LANGS = [
+  { code: 'off', label: 'Off',        native: ''              },
+  { code: 'en',  label: 'English',    native: 'English'       },
+  { code: 'es',  label: 'Spanish',    native: 'Español'       },
+  { code: 'fr',  label: 'French',     native: 'Français'      },
+  { code: 'de',  label: 'German',     native: 'Deutsch'       },
+  { code: 'hi',  label: 'Hindi',      native: 'हिन्दी'         },
+  { code: 'zh',  label: 'Chinese',    native: '中文'           },
+  { code: 'ar',  label: 'Arabic',     native: 'العربية'        },
+  { code: 'pt',  label: 'Portuguese', native: 'Português'     },
+  { code: 'ja',  label: 'Japanese',   native: '日本語'          },
+] as const;
+
 const INITIAL_GROUPS: Group[] = [
   { id:'g1', name:'My Favorites',   count:12, color:'#374151', emoji:'⭐' },
   { id:'g2', name:'Watch Later',    count:8,  color:'#0891B2', emoji:'🕐' },
@@ -241,7 +256,8 @@ function StatsBar({ views, likes, comments, shares, hidden }: {
 
 function FeedSlide({
   item, isActive, isLiked, isSaved, currentIdx, totalCount,
-  isLoggedIn, onClose, onLike, onSave, onNext, onPrev, muted, onToggleMute,
+  isLoggedIn, onClose, onLike, onSave, onNext, onPrev,
+  muted, onToggleMute, quality, onQualityChange, captionLang, onCaptionLangChange,
 }: {
   item: FeedItem; isActive: boolean; isLiked: boolean; isSaved: boolean;
   currentIdx: number; totalCount: number; isLoggedIn: boolean;
@@ -249,9 +265,24 @@ function FeedSlide({
   onSave: (id: string, kind: string) => void;
   onNext: () => void; onPrev: () => void;
   muted: boolean; onToggleMute: () => void;
+  quality: string; onQualityChange: (q: string) => void;
+  captionLang: string | null; onCaptionLangChange: (lang: string | null) => void;
 }) {
   const isPortrait = item.kind === 'short' || item.kind === 'reel';
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'quality' | 'language'>('quality');
+  const captionLines = useMemo(() => {
+    const words = item.title.split(/\s+/);
+    const lines: string[] = [];
+    for (let i = 0; i < words.length; i += 3) {
+      const chunk = words.slice(i, i + 3).join(' ');
+      if (chunk.trim()) lines.push(chunk);
+    }
+    lines.push(`by ${item.creator}`);
+    return lines;
+  }, [item.title, item.creator]);
+  const [captionIdx, setCaptionIdx] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [shareToast, setShareToast] = useState(false);
@@ -280,6 +311,12 @@ function FeedSlide({
       vid.pause();
     }
   }, [isActive]);
+
+  useEffect(() => {
+    if (!captionLang || !isActive) { setCaptionIdx(0); return; }
+    const iv = setInterval(() => setCaptionIdx(i => (i + 1) % captionLines.length), 2800);
+    return () => clearInterval(iv);
+  }, [captionLang, isActive, captionLines.length]);
 
   return (
     <div
@@ -364,26 +401,33 @@ function FeedSlide({
             {currentIdx + 1} / {totalCount}
           </span>
           {item.videoUrl && (
-            <button
-              onClick={onToggleMute}
+            <button onClick={onToggleMute}
               className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
-              aria-label={muted ? 'Unmute' : 'Mute'}
-            >
-              {muted ? (
-                <VolumeX className="w-4 h-4" />
-              ) : (
-                <Volume2 className="w-4 h-4" />
-              )}
+              aria-label={muted ? 'Unmute' : 'Mute'}>
+              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
           )}
+          <button onClick={() => setSettingsOpen(s => !s)}
+            className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
+            aria-label="Playback settings">
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
-          aria-label="Close feed"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <span className="text-white/70 text-[10px] font-bold bg-black/35 px-2 py-0.5 rounded-full backdrop-blur-sm">
+            {quality}
+          </span>
+          {captionLang && (
+            <span className="text-white/70 text-[10px] font-bold bg-black/35 px-2 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
+              <Languages className="w-3 h-3" />{captionLang.toUpperCase()}
+            </span>
+          )}
+          <button onClick={onClose}
+            className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
+            aria-label="Close feed">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Right action column */}
@@ -425,6 +469,18 @@ function FeedSlide({
           </Link>
         )}
       </div>
+
+      {/* Caption overlay */}
+      {captionLang && isActive && (
+        <div className="absolute bottom-36 sm:bottom-44 left-4 right-16 z-10 flex justify-center pointer-events-none">
+          <div className="bg-black/75 backdrop-blur-sm text-white text-[13px] sm:text-[15px] font-medium px-4 py-2 rounded-xl text-center leading-snug max-w-xs sm:max-w-md">
+            {captionLang !== 'en' && (
+              <span className="text-[9px] text-white/50 block mb-0.5">[AI · {captionLang.toUpperCase()}]</span>
+            )}
+            {captionLines[captionIdx % captionLines.length]}
+          </div>
+        </div>
+      )}
 
       {/* Bottom info overlay */}
       <div
@@ -474,6 +530,75 @@ function FeedSlide({
       {shareToast && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[310] bg-black/80 text-white text-[13px] font-semibold px-4 py-2 rounded-full backdrop-blur-sm pointer-events-none">
           Link copied!
+        </div>
+      )}
+
+      {/* Settings panel */}
+      {settingsOpen && (
+        <div className="fixed inset-0 z-[310] flex flex-col justify-end" onClick={() => setSettingsOpen(false)}>
+          <div className="bg-white rounded-t-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+            <div className="px-4 pt-2 pb-1 flex items-center justify-between">
+              <h3 className="text-[16px] font-bold text-gray-900">Playback Settings</h3>
+              <button onClick={() => setSettingsOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+            <div className="flex border-b border-gray-100 px-4 mt-1">
+              <button onClick={() => setSettingsTab('quality')}
+                className={`flex-1 py-2.5 text-[13px] font-bold border-b-2 transition-colors ${settingsTab === 'quality' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400'}`}>
+                Quality
+              </button>
+              <button onClick={() => setSettingsTab('language')}
+                className={`flex-1 py-2.5 text-[13px] font-bold border-b-2 transition-colors ${settingsTab === 'language' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400'}`}>
+                Subtitles / Language
+              </button>
+            </div>
+            <div className="px-4 py-2 max-h-72 overflow-y-auto">
+              {settingsTab === 'quality' ? (
+                <div className="space-y-0.5">
+                  {QUALITY_OPTIONS.map(q => (
+                    <button key={q} onClick={() => { onQualityChange(q); setSettingsOpen(false); }}
+                      className="w-full flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${quality === q ? 'border-gray-900' : 'border-gray-300'}`}>
+                          {quality === q && <div className="w-2 h-2 rounded-full bg-gray-900" />}
+                        </div>
+                        <span className={`text-[14px] ${quality === q ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{q}</span>
+                      </div>
+                      {q === 'Auto' && <span className="text-[10px] text-blue-500 font-semibold bg-blue-50 px-2 py-0.5 rounded-full">Recommended</span>}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-0.5">
+                  {CAPTION_LANGS.map(lang => {
+                    const isSelected = lang.code === 'off' ? captionLang === null : captionLang === lang.code;
+                    return (
+                      <button key={lang.code} onClick={() => { onCaptionLangChange(lang.code === 'off' ? null : lang.code); setSettingsOpen(false); }}
+                        className="w-full flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-gray-900' : 'border-gray-300'}`}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-gray-900" />}
+                          </div>
+                          <div>
+                            <span className={`text-[14px] block ${isSelected ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{lang.label}</span>
+                            {lang.native && <span className="text-[11px] text-gray-400">{lang.native}</span>}
+                          </div>
+                        </div>
+                        {lang.code !== 'off' && (
+                          <span className="text-[9px] text-purple-600 font-semibold bg-purple-50 px-2 py-0.5 rounded-full">AI</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="pb-6" />
+          </div>
         </div>
       )}
 
@@ -546,6 +671,12 @@ function FeedView({
   const [muted, setMuted] = useState<boolean>(() => {
     try { return localStorage.getItem('sz_muted') !== 'false'; } catch { return true; }
   });
+  const [quality, setQuality] = useState<string>(() => {
+    try { return localStorage.getItem('sz_quality') ?? 'Auto'; } catch { return 'Auto'; }
+  });
+  const [captionLang, setCaptionLang] = useState<string | null>(() => {
+    try { const v = localStorage.getItem('sz_caption_lang'); return v || null; } catch { return null; }
+  });
 
   function toggleMute() {
     setMuted(m => {
@@ -553,6 +684,19 @@ function FeedView({
       try { localStorage.setItem('sz_muted', String(next)); } catch {}
       return next;
     });
+  }
+
+  function changeQuality(q: string) {
+    setQuality(q);
+    try { localStorage.setItem('sz_quality', q); } catch {}
+  }
+
+  function changeCaptionLang(lang: string | null) {
+    setCaptionLang(lang);
+    try {
+      if (lang) localStorage.setItem('sz_caption_lang', lang);
+      else localStorage.removeItem('sz_caption_lang');
+    } catch {}
   }
 
   // Scroll to start on mount (instant)
@@ -660,6 +804,10 @@ function FeedView({
             onPrev={() => navigateTo(Math.max(idx - 1, 0))}
             muted={muted}
             onToggleMute={toggleMute}
+            quality={quality}
+            onQualityChange={changeQuality}
+            captionLang={captionLang}
+            onCaptionLangChange={changeCaptionLang}
           />
         ))}
       </div>
