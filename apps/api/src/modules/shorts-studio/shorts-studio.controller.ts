@@ -404,9 +404,12 @@ export class ShortsStudioController {
   @Post('clips/:shortClipId/thumbnails/generate-with-prompt')
   async generateThumbnailsWithPrompt(
     @Param('shortClipId') shortClipId: string,
-    @Body() _body: { prompt?: string },
+    @Body() body: { prompt?: string },
     @CurrentUser() user: JwtPayload,
   ) {
+    if (body.prompt?.trim()) {
+      return this.thumbnails.aiGenerate(shortClipId, user.sub, body.prompt.trim());
+    }
     return this.thumbnails.regenerate(shortClipId, user.sub);
   }
 

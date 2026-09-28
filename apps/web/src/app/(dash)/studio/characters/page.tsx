@@ -115,12 +115,21 @@ function diceBearUrl(style: AvatarStyle, seed: string) {
 // ── Character Avatar ───────────────────────────────────────────────────────────
 
 function CharacterAvatar({ character, size = 48 }: { character: Character | CharacterPreset; size?: number }) {
-  const seed = character.name.toLowerCase().replace(/s+/g, '-');
-  const url = (character as Character).avatarUrl || diceBearUrl(character.avatarStyle, seed);
+  const seed = character.name.toLowerCase().replace(/\s+/g, '-');
+  const fallbackUrl = diceBearUrl(character.avatarStyle, seed);
+  const initialUrl = (character as Character).avatarUrl || fallbackUrl;
+  const [src, setSrc] = useState(initialUrl);
   return (
     <div className="rounded-2xl overflow-hidden shrink-0 flex items-center justify-center"
       style={{ width: size, height: size, background: '#f3f4f6', border: '2px solid #e3ddf8' }}>
-      <img src={url} alt={character.name} width={size} height={size} className="w-full h-full object-cover" />
+      <img
+        src={src}
+        alt={character.name}
+        width={size}
+        height={size}
+        className="w-full h-full object-cover"
+        onError={() => setSrc(fallbackUrl)}
+      />
     </div>
   );
 }

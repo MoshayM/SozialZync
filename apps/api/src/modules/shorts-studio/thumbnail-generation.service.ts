@@ -9,6 +9,11 @@ import { MediaPipelineError } from '../media/media.errors';
 
 const VARIATIONS = 4;
 
+function buildPromptVariants(base: string, count: number): string[] {
+  const suffixes = ['', ', cinematic dramatic lighting', ', bold vibrant graphic design'];
+  return suffixes.slice(0, count).map((s) => `${base}${s}`);
+}
+
 /**
  * Thumbnail Generator: extracts candidate frames spread across the rendered
  * clip (skipping the first/last 10%). Variations persist as SHORTS_THUMBNAIL
@@ -231,5 +236,150 @@ export class ThumbnailGenerationService {
     const available = await this.storage.ensure(r2Key);
     if (!available) return null;
     return { localPath: this.storage.resolve(r2Key), r2Key };
+  }
+
+  /**
+   * Download image bytes from DALL-E 3 (portrait 1024×1792) or Pollinations.ai.
+   * All variants fire in parallel so wall-clock time ≈ slowest single call.
+   */
+  private async generateAiImageBuffers(prompt: string, count = 3): Promise<Array<{ buffer: Buffer; ext: string }>> {
+    const openaiKey = process.env['OPENAI_API_KEY'];
+    const variants = buildPromptVariants(
+      `YouTube Shorts thumbnail. ${prompt} Portrait 9:16 format, no text overlay, high quality.`,
+      count,
+    );
+
+    if (openaiKey) {
+      const model = process.env['IMAGE_OPENAI_MODEL'] ?? 'dall-e-3';
+      const settled = await Promise.all(
+        variants.map(async (variant) => {
+          try {
+            const res = await fetch('https://api.openai.com/v1/images/generations', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model, prompt: variant, n: 1, size: '1024x1792', response_format: 'b64_json' }),
+              signal: AbortSignal.timeout(45_000),
+            });
+            if (!res.ok) {
+              this.logger.warn(`DALL-E attempt failed: HTTP ${res.status}`);
+              return null;
+            }
+            const json = (await res.json()) as { data?: Array<{ b64_json?: string }> };
+            const b64 = json.data?.[0]?.b64_json;
+            return b64 ? { buffer: Buffer.from(b64, 'base64'), ext: 'png' as const } : null;
+          } catch (err) {
+            this.logger.warn(`DALL-E variant error: ${err instanceof Error ? err.message : String(err)}`);
+            return null;
+          }
+        }),
+      );
+      const valid = settled.filter((r): r is { buffer: Buffer; ext: 'png' } => r !== null);
+      if (valid.length > 0) return valid;
+      this.logger.log('All DALL-E attempts failed — falling back to Pollinations.ai');
+    }
+
+    // Free fallback: Pollinations.ai portrait 1080×1920
+    const seed = Math.floor(Date.now() / 1000);
+    const settled = await Promise.all(
+      variants.map(async (variant, i) => {
+        try {
+          const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(variant)}?width=1080&height=1920&nologo=true&model=flux&seed=${seed + i}`;
+          const res = await fetch(url, { signal: AbortSignal.timeout(45_000) });
+          if (!res.ok) return null;
+          const buffer = Buffer.from(await res.arrayBuffer());
+          return buffer.length > 1000 ? { buffer, ext: 'jpg' as const } : null;
+        } catch (err) {
+          this.logger.warn(`Pollinations variant ${i + 1} error: ${err instanceof Error ? err.message : String(err)}`);
+          return null;
+        }
+      }),
+    );
+    return settled.filter((r): r is { buffer: Buffer; ext: 'jpg' } => r !== null);
+  }
+
+  /**
+   * Generate AI thumbnails from a user prompt, enriched with the clip's title
+   * and summary. Clears previous thumbnails for this clip first.
+   */
+  async aiGenerate(shortClipId: string, userId: string, prompt: string) {
+    const clip = await this.prisma.shortClip.findFirst({
+      where: { id: shortClipId, project: { userId } },
+      include: {
+        topicSegment: { select: { title: true, summary: true } },
+        chapter: { select: { title: true, summary: true } },
+      },
+    });
+    if (!clip) throw new NotFoundException('Clip not found');
+
+    const clipTitle = clip.topicSegment?.title ?? clip.chapter?.title ?? '';
+    const clipSummary = clip.topicSegment?.summary ?? clip.chapter?.summary ?? '';
+
+    const fullPrompt = [
+      clipTitle ? `Video titled "${clipTitle}".` : '',
+      prompt.trim(),
+      clipSummary ? `Context: ${clipSummary.slice(0, 200)}.` : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    this.logger.log(`AI thumbnail generation for clip ${shortClipId}: "${fullPrompt.slice(0, 120)}…"`);
+
+    const images = await this.generateAiImageBuffers(fullPrompt, 3);
+    if (images.length === 0) {
+      throw new InternalServerErrorException(
+        'AI thumbnail generation failed — no images could be produced. Ensure OPENAI_API_KEY is set or try again.',
+      );
+    }
+
+    // Clear existing thumbnails before storing new ones
+    const existing = await this.prisma.shortsThumbnail.findMany({
+      where: { shortClipId },
+      select: { assetId: true },
+    });
+    if (existing.length > 0) {
+      await this.prisma.shortsThumbnail.deleteMany({ where: { shortClipId } });
+      await this.prisma.asset.deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } });
+    }
+
+    let created = 0;
+    for (let i = 0; i < images.length; i++) {
+      const { buffer, ext } = images[i]!;
+      try {
+        const asset = await this.prisma.asset.create({
+          data: {
+            projectId: clip.projectId,
+            kind: 'SHORTS_THUMBNAIL',
+            label: `AI Thumbnail ${i + 1}: ${clip.id}`,
+            status: 'READY',
+          },
+        });
+        const key = `thumbnails/shorts/${clip.projectId}/${asset.id}.${ext}`;
+        await this.storage.put(key, buffer);
+        const version = await this.prisma.assetVersion.create({
+          data: {
+            assetId: asset.id,
+            version: 1,
+            r2Key: key,
+            provider: 'ai-generated',
+            sizeBytes: BigInt(buffer.length),
+            params: { userPrompt: prompt, fullPrompt, variation: i } as never,
+          },
+        });
+        await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
+        await this.prisma.shortsThumbnail.create({
+          data: { shortClipId, assetId: asset.id, isPrimary: i === 0 },
+        });
+        created++;
+      } catch (err) {
+        this.logger.warn(`Failed to store AI thumbnail ${i + 1}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    if (created === 0) {
+      throw new InternalServerErrorException('AI thumbnails were generated but could not be saved — please try again.');
+    }
+
+    this.logger.log(`AI thumbnail generation complete: ${created} images for clip ${shortClipId}`);
+    return { skipped: false, thumbnails: created, aiGenerated: true };
   }
 }

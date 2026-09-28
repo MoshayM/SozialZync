@@ -193,6 +193,34 @@ function CharCounter({ val, max }: { val: string; max: number }) {
 
 // ── Thumbnail section ─────────────────────────────────────────────────────────
 
+/** Convert backend /api/v1/... paths to the Next.js proxy route so images load same-origin. */
+function toProxySrc(url: string | null): string | null {
+  if (!url) return null;
+  return url.replace(/^\/api\/v\d+\//, '/api/proxy/');
+}
+
+/** Thumbnail image with graceful loading background and a clear broken-state fallback. */
+function ThumbnailImg({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div className="w-full aspect-[9/16] bg-gray-100 flex flex-col items-center justify-center gap-1">
+        <Image className="w-6 h-6 text-gray-300" />
+        <span className="text-[9px] text-gray-400">Failed</span>
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className="w-full aspect-[9/16] object-cover bg-gray-100"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 type ThumbMode = 'keep' | 'ai' | 'upload';
 
 interface Thumbnail { id: string; url: string | null; isPrimary: boolean; }
@@ -215,9 +243,7 @@ function ThumbnailSection({
   const [mode, setMode] = useState<ThumbMode>('keep');
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
-  const [showPrompt, setShowPrompt] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
 
   const { data: thumbs = [], isLoading: thumbsLoading, refetch: refetchThumbs } = useQuery({
     queryKey: ['thumbnails', clipId],
@@ -227,7 +253,7 @@ function ThumbnailSection({
 
   const generate = useMutation({
     mutationFn: () =>
-      showPrompt && prompt.trim()
+      prompt.trim()
         ? api.shortsStudio.generateThumbnailsWithPrompt(clipId, prompt.trim())
         : api.shortsStudio.generateThumbnails(clipId),
     onSuccess: () => {
@@ -284,66 +310,75 @@ function ThumbnailSection({
       )}
 
       {mode === 'ai' && (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          {/* Prompt — always visible */}
+          <div className="space-y-1">
+            <label className="flex items-center gap-1 text-[11px] font-medium text-gray-600">
+              <Sparkles className="w-3 h-3 text-brand-500" />
+              AI prompt
+              <span className="text-gray-400 font-normal ml-0.5">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g. speaker on stage with microphone, blue gradient background…"
+              maxLength={120}
+              className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
+            />
+            <p className="text-[10px] text-gray-400">
+              {prompt.trim()
+                ? 'AI will generate a custom image from your prompt using DALL-E 3.'
+                : 'Leave blank to extract frames from your video instead.'}
+            </p>
+          </div>
+
           {thumbsLoading ? (
-            <div className="flex items-center justify-center h-24 text-gray-400">
+            <div className="flex items-center justify-center h-20 text-gray-400">
               <Loader2 className="w-5 h-5 animate-spin" />
             </div>
           ) : thumbs.length === 0 ? (
-            <div className="space-y-2">
-              {/* Prompt toggle */}
+            <div className="space-y-2 text-center">
               <button
                 type="button"
-                onClick={() => setShowPrompt((v) => !v)}
-                className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-800 transition-colors"
+                onClick={() => generate.mutate()}
+                disabled={generate.isPending}
+                className="flex items-center gap-2 mx-auto px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
               >
-                <Sparkles className="w-3 h-3" />
-                {showPrompt ? 'Hide prompt' : 'Add title prompt (optional)'}
-              </button>
-              {showPrompt && (
-                <input
-                  type="text"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="e.g. Top 5 AI Tools for 2026…"
-                  maxLength={80}
-                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
-                />
-              )}
-              <div className="text-center py-3 space-y-2">
-                <p className="text-xs text-gray-500">No thumbnails generated yet.</p>
-                <button
-                  type="button"
-                  onClick={() => generate.mutate()}
-                  disabled={generate.isPending}
-                  className="flex items-center gap-2 mx-auto px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
-                >
-                  {generate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                  {generate.isPending ? 'Generating…' : 'Generate AI Thumbnails'}
-                </button>
-                {generate.isError && (
-                  <div className="space-y-1">
-                    <p className="text-[11px] text-red-500">
-                      {apiErrMsg(generate.error, 'Thumbnail generation failed — please try again.')}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => generate.mutate()}
-                      disabled={generate.isPending}
-                      className="flex items-center gap-1 mx-auto text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      <RefreshCw className="w-3 h-3" /> Retry
-                    </button>
-                  </div>
+                {generate.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
                 )}
-              </div>
+                {generate.isPending
+                  ? prompt.trim() ? 'Generating AI image…' : 'Extracting frames…'
+                  : prompt.trim() ? 'Generate with AI' : 'Extract Frames'}
+              </button>
+              {generate.isPending && prompt.trim() && (
+                <p className="text-[10px] text-gray-400">This may take up to 30 seconds…</p>
+              )}
+              {generate.isError && (
+                <div className="space-y-1">
+                  <p className="text-[11px] text-red-500">
+                    {apiErrMsg(generate.error, 'Generation failed — please try again.')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => generate.mutate()}
+                    disabled={generate.isPending}
+                    className="flex items-center gap-1 mx-auto text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Retry
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 {thumbs.map((t) => {
                   const active = selectedId === t.id || (!selectedId && t.isPrimary);
-                  const src = t.url ? `${apiBase}${t.url}` : null;
+                  const src = toProxySrc(t.url);
                   return (
                     <button
                       key={t.id}
@@ -352,8 +387,7 @@ function ThumbnailSection({
                       className={`relative rounded-lg overflow-hidden border-2 transition-all ${active ? 'border-brand-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}
                     >
                       {src ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={src} alt="Thumbnail" className="w-full aspect-[9/16] object-cover" />
+                        <ThumbnailImg src={src} alt="Thumbnail" />
                       ) : (
                         <div className="w-full aspect-[9/16] bg-gray-100 flex items-center justify-center">
                           <Image className="w-6 h-6 text-gray-300" />
@@ -365,32 +399,13 @@ function ThumbnailSection({
                         </div>
                       )}
                       {t.isPrimary && !active && (
-                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded">AI pick</span>
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded">Primary</span>
                       )}
                     </button>
                   );
                 })}
               </div>
-              {/* Regenerate with optional prompt */}
               <div className="space-y-1.5">
-                <button
-                  type="button"
-                  onClick={() => setShowPrompt((v) => !v)}
-                  className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-800 transition-colors"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  Regenerate with prompt
-                </button>
-                {showPrompt && (
-                  <input
-                    type="text"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Custom title overlay (e.g. Top 5 AI Tools)"
-                    maxLength={80}
-                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
-                  />
-                )}
                 <button
                   type="button"
                   onClick={() => generate.mutate()}
@@ -398,7 +413,9 @@ function ThumbnailSection({
                   className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3 h-3 ${generate.isPending ? 'animate-spin' : ''}`} />
-                  {generate.isPending ? 'Regenerating…' : 'Regenerate'}
+                  {generate.isPending
+                    ? prompt.trim() ? 'Regenerating with AI…' : 'Re-extracting frames…'
+                    : prompt.trim() ? 'Regenerate with AI' : 'Regenerate'}
                 </button>
                 {generate.isError && (
                   <p className="text-[11px] text-red-500">
