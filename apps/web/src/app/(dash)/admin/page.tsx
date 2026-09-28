@@ -780,7 +780,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-full bg-[#faf9ff]">
+    <div className="min-h-full bg-[#faf9ff] flex flex-col">
       {/* Impersonation banner */}
       {impersonating && (
         <div className="sticky top-0 z-20 flex items-center gap-3 px-5 py-3 text-sm font-semibold" style={{ background: '#D97706', color: '#fff' }}>
@@ -798,49 +798,95 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Top-level tab bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[#ede9f8] px-4 sm:px-6 py-3 flex flex-wrap gap-2" style={{ top: impersonating ? '48px' : '0' }}>
-        {(
-          [
-            { id: 'dashboard',           label: 'Enterprise Dashboard', icon: <BarChart2 className="w-4 h-4" /> },
-            { id: 'ai-usage',            label: 'AI Usage',             icon: <Cpu className="w-4 h-4" /> },
-            { id: 'page-views',          label: 'Page Views',           icon: <Eye className="w-4 h-4" /> },
-            { id: 'users',               label: 'User Accounts',        icon: <Users className="w-4 h-4" /> },
-            {
-              id: 'enterprise-requests',
-              label: `Enterprise Requests${enterpriseRequests.filter((r) => r.status === 'pending').length > 0 ? ` (${enterpriseRequests.filter((r) => r.status === 'pending').length})` : ''}`,
-              icon: <Building2 className="w-4 h-4" />,
-            },
-            { id: 'device-preview',      label: 'Device Preview',       icon: <Monitor className="w-4 h-4" /> },
-            { id: 'ad-video',            label: 'Platform Ad',          icon: <Film className="w-4 h-4" /> },
-            { id: 'moderation',          label: 'Content Moderation',   icon: <ShieldAlert className="w-4 h-4" /> },
-            { id: 'api-keys',            label: 'API Keys & Providers',  icon: <Cpu className="w-4 h-4" /> },
-            { id: 'ad-revenue',          label: 'Ad Revenue',            icon: <DollarSign className="w-4 h-4" /> },
+      {/* ── Layout: sidebar (lg+) + content column ── */}
+      <div className="flex flex-1 min-h-0">
+
+        {/* Left sidebar — visible on lg+, hidden on mobile */}
+        {(() => {
+          const pendingCount = enterpriseRequests.filter((r) => r.status === 'pending').length;
+          const NAV_ITEMS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
+            { id: 'dashboard',           label: 'Enterprise Dashboard',   icon: <BarChart2 className="w-4 h-4" /> },
+            { id: 'ai-usage',            label: 'AI Usage',               icon: <Cpu className="w-4 h-4" /> },
+            { id: 'page-views',          label: 'Page Views',             icon: <Eye className="w-4 h-4" /> },
+            { id: 'users',               label: 'User Accounts',          icon: <Users className="w-4 h-4" /> },
+            { id: 'enterprise-requests', label: 'Enterprise Requests',    icon: <Building2 className="w-4 h-4" /> },
+            { id: 'device-preview',      label: 'Device Preview',         icon: <Monitor className="w-4 h-4" /> },
+            { id: 'ad-video',            label: 'Platform Ad',            icon: <Film className="w-4 h-4" /> },
+            { id: 'moderation',          label: 'Content Moderation',     icon: <ShieldAlert className="w-4 h-4" /> },
+            { id: 'api-keys',            label: 'API Keys & Providers',   icon: <Cpu className="w-4 h-4" /> },
+            { id: 'ad-revenue',          label: 'Ad Revenue',             icon: <DollarSign className="w-4 h-4" /> },
             { id: 'sub-analytics',       label: 'Subscription Analytics', icon: <TrendingUp className="w-4 h-4" /> },
-          ] as { id: AdminTab; label: string; icon: React.ReactNode }[]
-        ).map(({ id, label, icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              setAdminTab(id);
-              if (id === 'users') void loadUsers();
-              if (id === 'ai-usage') void loadAiUsage();
-              if (id === 'moderation') void loadModeration();
-              if (id === 'api-keys') void loadSystemProviders();
-              if (id === 'ad-revenue') void loadAdRevenue();
-            }}
-            className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-2xl transition-all"
-            style={adminTab === id
-              ? { background: '#f3f4f6', border: '2px solid #374151', color: '#374151' }
-              : { background: '#faf9ff', border: '1.5px solid #e3ddf8', color: '#374151' }
-            }
-          >
-            {icon}
-            {label}
-          </button>
-        ))}
-      </div>
+          ];
+          function handleTabClick(id: AdminTab) {
+            setAdminTab(id);
+            if (id === 'users') void loadUsers();
+            if (id === 'ai-usage') void loadAiUsage();
+            if (id === 'moderation') void loadModeration();
+            if (id === 'api-keys') void loadSystemProviders();
+            if (id === 'ad-revenue') void loadAdRevenue();
+          }
+          return (
+            <>
+              {/* Sidebar — lg+ */}
+              <nav
+                className="hidden lg:flex flex-col w-56 xl:w-60 shrink-0 bg-white border-r border-[#ede9f8] overflow-y-auto"
+                style={{ position: 'sticky', top: impersonating ? 48 : 0, height: `calc(100vh - ${impersonating ? 48 : 0}px)` }}
+              >
+                <div className="px-2 py-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 px-3 mb-3">Admin Panel</p>
+                  {NAV_ITEMS.map(({ id, label, icon }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => handleTabClick(id)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all mb-0.5 text-left"
+                      style={adminTab === id
+                        ? { background: '#f3f4f6', color: '#111827' }
+                        : { color: '#6b7280' }
+                      }
+                    >
+                      <span style={{ color: adminTab === id ? '#374151' : '#9ca3af' }}>{icon}</span>
+                      <span className="truncate flex-1">{label}</span>
+                      {id === 'enterprise-requests' && pendingCount > 0 && (
+                        <span className="ml-auto shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#b45309' }}>
+                          {pendingCount}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </nav>
+
+              {/* Content column */}
+              <div className="flex-1 min-w-0 flex flex-col">
+                {/* Mobile horizontal tab bar — hidden on lg+ */}
+                <div
+                  className="lg:hidden bg-white border-b border-[#ede9f8] sticky z-10"
+                  style={{ top: impersonating ? 48 : 0 }}
+                >
+                  <div className="flex overflow-x-auto gap-1.5 px-3 py-2" style={{ scrollbarWidth: 'none' }}>
+                    {NAV_ITEMS.map(({ id, label, icon }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleTabClick(id)}
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap"
+                        style={adminTab === id
+                          ? { background: '#f3f4f6', color: '#111827', border: '1.5px solid #374151' }
+                          : { color: '#6b7280', border: '1.5px solid #e3ddf8' }
+                        }
+                      >
+                        {icon}
+                        {label}
+                        {id === 'enterprise-requests' && pendingCount > 0 && (
+                          <span className="ml-1 text-[10px] font-black px-1 rounded-full" style={{ background: '#fef3c7', color: '#b45309' }}>
+                            {pendingCount}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
       {/* ── Platform Ad Video ───────────────────────────────────────────────── */}
       {adminTab === 'ad-video' && <AdVideoTab />}
@@ -2131,6 +2177,11 @@ export default function AdminDashboardPage() {
 
       {/* ── Subscription Analytics ───────────────────────────────────────────── */}
       {adminTab === 'sub-analytics' && <AdminSubscriptionAnalytics />}
+              </div>{/* end content column */}
+            </>
+          );
+        })()}
+      </div>{/* end flex layout */}
     </div>
   );
 }
