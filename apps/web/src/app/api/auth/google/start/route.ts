@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'https://sozialzync-api-production.up.railway.app/api/v1';
+const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'https://sozialzynk-api-production.up.railway.app/api/v1';
 
 export async function POST(req: Request) {
   const body = await req.json() as { redirectUri?: string; mode?: string };

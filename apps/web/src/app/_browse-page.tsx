@@ -53,7 +53,7 @@ interface Notif { id: string; type: string; msg: string; time: string; read: boo
 
 // Google public sample videos — 13 distinct clips, globally reliable CDN
 const GTV = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/';
-const AD  = '/sozialzync-ad-30s.mp4';
+const AD  = '/sozialzynk-ad-30s.mp4';
 
 const VIDEOS: VideoItem[] = [
   { id:'v1',  title:'How to Grow to 100K Followers',        creator:'@CreatorPro',   views:'2.4M', time:'3 days ago',  duration:'0:54', gi:0, likes:'18.2K', comments:'432', shares:'204', isOwn:true,  videoUrl: GTV+'ForBiggerBlazes.mp4'              },

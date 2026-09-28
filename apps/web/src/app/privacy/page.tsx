@@ -64,7 +64,7 @@ Business Transfers: In the event of a merger, acquisition, or sale of assets, us
 
 AI-generated content (scripts, characters, images, voice tracks) associated with your account is deleted within 30 days of account deletion. WebAuthn/passkey credentials are deleted immediately upon account deletion. Anonymized, aggregated analytics derived from your usage may be retained indefinitely as they cannot be linked back to you.
 
-You may request deletion of specific data at any time by contacting privacy@sozialzync.com.`,
+You may request deletion of specific data at any time by contacting privacy@sozialzynk.com.`,
   },
   {
     id: 'your-rights',
@@ -79,7 +79,7 @@ Opt-out of AI Training: Opt out of having your content used to improve our AI mo
 Restriction: Request that we restrict processing of your data in certain circumstances.
 Objection: Object to our processing of your data where we rely on legitimate interests.
 
-To exercise any of these rights, email privacy@sozialzync.com. We will respond within 30 days. Users in the European Economic Area (EEA), United Kingdom, and California have additional rights under GDPR, UK GDPR, and CCPA respectively.`,
+To exercise any of these rights, email privacy@sozialzynk.com. We will respond within 30 days. Users in the European Economic Area (EEA), United Kingdom, and California have additional rights under GDPR, UK GDPR, and CCPA respectively.`,
   },
   {
     id: 'cookies',
@@ -98,7 +98,7 @@ SozialZynk operates an internal ad revenue programme for creators on Pro and Unl
   {
     id: 'childrens-privacy',
     title: "7. Children's Privacy",
-    content: `Sozialzynk is intended for users aged 13 and older. We do not knowingly collect personal data from children under 13. If you believe a child under 13 has created an account, please contact us at privacy@sozialzync.com and we will promptly delete the account and associated data.
+    content: `Sozialzynk is intended for users aged 13 and older. We do not knowingly collect personal data from children under 13. If you believe a child under 13 has created an account, please contact us at privacy@sozialzynk.com and we will promptly delete the account and associated data.
 
 Users between 13 and 18 should ensure they have parental or guardian consent before using the platform.`,
   },
@@ -115,14 +115,14 @@ Users between 13 and 18 should ensure they have parental or guardian consent bef
 • Access to production data is restricted to authorized personnel and logged for audit purposes.
 • We conduct regular security audits and vulnerability assessments.
 
-While we take extensive precautions, no system is completely secure. If you discover a security vulnerability, please report it responsibly to security@sozialzync.com.`,
+While we take extensive precautions, no system is completely secure. If you discover a security vulnerability, please report it responsibly to security@sozialzynk.com.`,
   },
   {
     id: 'contact',
     title: '9. Contact Us',
     content: `If you have questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact our Privacy team:
 
-Email: privacy@sozialzync.com
+Email: privacy@sozialzynk.com
 Response time: We aim to respond within 5 business days.
 
 For data subject requests under GDPR or CCPA, please include "Data Subject Request" in the subject line and specify the right you are exercising.`,

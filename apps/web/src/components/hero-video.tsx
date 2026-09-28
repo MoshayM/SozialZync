@@ -47,7 +47,7 @@ export function HeroVideo() {
         <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
         <span className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
         <div className="flex-1 mx-3 h-5 rounded-md flex items-center px-3" style={{ background: 'rgba(255,255,255,.06)' }}>
-          <span className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,.3)' }}>app.sozialzync.com</span>
+          <span className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,.3)' }}>app.sozialzynk.com</span>
         </div>
         {/* Mute toggle in chrome */}
         <button
@@ -65,7 +65,7 @@ export function HeroVideo() {
       <div className="relative" style={{ aspectRatio: '16/9' }}>
         <video
           ref={videoRef}
-          src="/sozialzync-ad-30s.mp4"
+          src="/sozialzynk-ad-30s.mp4"
           muted
           loop
           playsInline

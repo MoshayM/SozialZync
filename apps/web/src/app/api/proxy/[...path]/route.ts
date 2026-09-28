@@ -9,7 +9,7 @@ export const maxDuration = 60;
 const API_BASE = (
   process.env.API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  'https://sozialzync-api-production.up.railway.app/api/v1'
+  'https://sozialzynk-api-production.up.railway.app/api/v1'
 ).replace(/\/+$/, '');
 
 // Hop-by-hop headers that must not be forwarded upstream or downstream.

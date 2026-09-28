@@ -6,7 +6,7 @@ export const maxDuration = 10;
 const RAILWAY_URL = (
   process.env.API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  'https://sozialzync-api-production.up.railway.app/api/v1'
+  'https://sozialzynk-api-production.up.railway.app/api/v1'
 ).replace(/\/api\/v1\/?$/, '');
 
 export async function GET(req: Request) {

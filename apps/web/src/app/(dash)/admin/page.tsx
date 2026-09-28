@@ -369,29 +369,47 @@ function AdVideoTab() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#7c3aed,#a78bfa)' }}>
             <Film className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Platform Ad Video</h1>
-            <p className="text-sm text-gray-500 mt-0.5">30-second Sozialzynk promotional video — 6 scenes · 1280×720 · H.264 · 30 fps</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">Platform Ad Video</h1>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider text-white" style={{ background: 'linear-gradient(135deg,#7c3aed,#a78bfa)' }}>LIVE</span>
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">30-second Sozialzynk promotional video · sozialzynk.com · 6 scenes · 1280×720 · H.264</p>
           </div>
         </div>
         <a
-          href="/sozialzync-ad-30s.mp4"
-          download="sozialzync-ad-30s.mp4"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}
+          href="/sozialzynk-ad-30s.mp4"
+          download="sozialzynk-ad-30s.mp4"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-[1.02] active:scale-100"
+          style={{ background: 'linear-gradient(135deg,#7c3aed,#a78bfa)', boxShadow: '0 4px 14px rgba(124,58,237,.35)' }}
         >
           <Download className="w-4 h-4" />
           Download .mp4
         </a>
       </div>
 
+      {/* Stats strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Duration', value: '30s' },
+          { label: 'Resolution', value: '1280×720' },
+          { label: 'Scenes', value: '6' },
+          { label: 'File size', value: '~0.7 MB' },
+        ].map(({ label, value }) => (
+          <div key={label} className="rounded-2xl px-4 py-3 text-center" style={{ background: 'linear-gradient(135deg,rgba(124,58,237,.07),rgba(167,139,250,.07))', border: '1.5px solid rgba(124,58,237,.15)' }}>
+            <p className="text-xl font-extrabold" style={{ color: '#7c3aed' }}>{value}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
       {/* Video player */}
       <div
         className="relative rounded-3xl overflow-hidden"
-        style={{ background: '#0e0924', border: '1.5px solid rgba(55,65,81,.25)', boxShadow: '0 0 0 1px rgba(55,65,81,.1), 0 0 40px rgba(55,65,81,.15)' }}
+        style={{ background: '#0c0820', border: '1.5px solid rgba(124,58,237,.25)', boxShadow: '0 0 0 1px rgba(124,58,237,.08), 0 0 60px rgba(124,58,237,.18)' }}
         onMouseEnter={() => setShowControls(true)}
         onMouseLeave={() => setShowControls(false)}
       >
@@ -400,13 +418,14 @@ function AdVideoTab() {
           <span className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
           <span className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
-          <div className="flex-1 mx-3 h-5 rounded-md flex items-center px-3" style={{ background: 'rgba(255,255,255,.06)' }}>
-            <span className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,.3)' }}>sozialzync-ad-30s.mp4 · Admin preview</span>
+          <div className="flex-1 mx-3 h-5 rounded-md flex items-center px-3 gap-1.5" style={{ background: 'rgba(255,255,255,.06)' }}>
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'rgba(167,139,250,.7)' }} />
+            <span className="text-[9px] font-semibold" style={{ color: 'rgba(255,255,255,.45)' }}>sozialzynk.com · Platform Ad Preview</span>
           </div>
           <button
             onClick={toggleMute}
             className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-colors"
-            style={{ color: muted ? 'rgba(255,255,255,.4)' : '#9ca3af', background: muted ? 'transparent' : 'rgba(156,163,175,.1)' }}
+            style={{ color: muted ? 'rgba(255,255,255,.4)' : '#c4b5fd', background: muted ? 'transparent' : 'rgba(167,139,250,.12)' }}
             aria-label={muted ? 'Unmute' : 'Mute'}
           >
             {muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
@@ -418,7 +437,7 @@ function AdVideoTab() {
         <div className="relative" style={{ aspectRatio: '16/9' }}>
           <video
             ref={videoRef}
-            src="/sozialzync-ad-30s.mp4"
+            src="/sozialzynk-ad-30s.mp4"
             muted
             loop
             playsInline
@@ -431,12 +450,12 @@ function AdVideoTab() {
           {/* Overlay */}
           <div
             className="absolute inset-0 flex items-center justify-center transition-opacity duration-200"
-            style={{ opacity: showControls || !playing ? 1 : 0, background: 'rgba(0,0,0,.1)' }}
+            style={{ opacity: showControls || !playing ? 1 : 0, background: 'rgba(0,0,0,.12)' }}
           >
             <button
               onClick={togglePlay}
               className="w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 backdrop-blur-sm"
-              style={{ background: 'rgba(55,65,81,.8)', border: '2px solid rgba(255,255,255,.25)' }}
+              style={{ background: 'rgba(124,58,237,.85)', border: '2px solid rgba(196,181,253,.4)' }}
               aria-label={playing ? 'Pause' : 'Play'}
             >
               {playing
@@ -448,13 +467,13 @@ function AdVideoTab() {
           {/* Bottom bar */}
           <div
             className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5 transition-opacity duration-200"
-            style={{ opacity: showControls ? 1 : 0, background: 'linear-gradient(to top,rgba(0,0,0,.6),transparent)' }}
+            style={{ opacity: showControls ? 1 : 0, background: 'linear-gradient(to top,rgba(12,8,32,.8),transparent)' }}
           >
-            <span className="text-[10px] font-semibold text-white/70">30 seconds · 6 scenes · Ken Burns motion</span>
+            <span className="text-[10px] font-semibold text-white/70">30 seconds · 6 scenes · Ken Burns motion · sozialzynk.com</span>
             <button
               onClick={openFullscreen}
               className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
-              style={{ color: 'rgba(255,255,255,.6)' }}
+              style={{ color: 'rgba(196,181,253,.8)' }}
               aria-label="Full screen"
             >
               <Maximize2 className="w-3 h-3" />
@@ -467,19 +486,19 @@ function AdVideoTab() {
       {/* Scene breakdown + production metadata side by side */}
       <div className="grid sm:grid-cols-2 gap-5">
         {/* Scene breakdown */}
-        <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Scene Breakdown</p>
+        <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #ede9fe' }}>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>Scene Breakdown</p>
           <ol className="space-y-2.5">
             {SCENES.map((s, i) => (
               <li key={s.label} className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #9ca3af, #374151)' }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg,#7c3aed,#a78bfa)' }}>
                   {i + 1}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-800">{s.label}</p>
                   <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
                 </div>
-                <span className="ml-auto text-[10px] font-bold text-gray-400 shrink-0 mt-1">5s</span>
+                <span className="ml-auto text-[10px] font-bold shrink-0 mt-1" style={{ color: '#a78bfa' }}>5s</span>
               </li>
             ))}
           </ol>
@@ -487,40 +506,40 @@ function AdVideoTab() {
 
         {/* Production metadata + deployment notes */}
         <div className="space-y-4">
-          <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Production Metadata</p>
+          <section className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #ede9fe' }}>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>Production Metadata</p>
             <dl className="space-y-2 text-sm">
               {[
                 ['Duration',    '30 seconds'],
+                ['Domain',      'sozialzynk.com'],
                 ['Resolution',  '1280 × 720 (HD)'],
                 ['Frame rate',  '30 fps'],
                 ['Codec',       'H.264 · yuv420p'],
                 ['Scenes',      '6 × 5-second scenes'],
                 ['Motion',      'Ken Burns zoom/pan · 5 styles'],
-                ['Generator',   'make_ad.py · Python/Pillow'],
                 ['File size',   '~0.7 MB'],
               ].map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                <div key={k} className="flex items-center justify-between py-1.5 border-b last:border-0" style={{ borderColor: '#f5f3ff' }}>
                   <dt className="text-gray-500 font-medium">{k}</dt>
-                  <dd className="font-semibold text-gray-800 text-right">{v}</dd>
+                  <dd className="font-semibold text-gray-800 text-right" style={k === 'Domain' ? { color: '#7c3aed' } : undefined}>{v}</dd>
                 </div>
               ))}
             </dl>
           </section>
 
-          <section className="rounded-2xl p-4" style={{ background: '#f3f4f6', border: '1.5px solid #e3ddf8' }}>
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Deployment Suggestions</p>
+          <section className="rounded-2xl p-4" style={{ background: 'linear-gradient(135deg,rgba(124,58,237,.06),rgba(167,139,250,.06))', border: '1.5px solid rgba(124,58,237,.18)' }}>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest mb-2" style={{ color: '#7c3aed' }}>Deployment Suggestions</p>
             <ul className="space-y-1.5 text-xs text-gray-600">
               {[
-                'Landing page hero — already live at /',
-                'YouTube channel trailer — upload directly to your Sozialzynk channel',
-                'LinkedIn / Twitter organic post — drives creator sign-ups',
-                'Google / Meta video ads — 30s is the optimal ad unit length',
+                'Landing page hero — already live at sozialzynk.com',
+                'YouTube channel trailer — upload to your Sozialzynk channel',
+                'LinkedIn / X organic post — drives creator sign-ups',
+                'Google / Meta video ads — 30s is the optimal ad unit',
                 'App Store / Play Store preview video',
-                'Email drip campaign — embed as animated GIF or hosted link',
+                'Email drip — embed as animated GIF or hosted link',
               ].map((tip) => (
                 <li key={tip} className="flex items-start gap-2">
-                  <span className="shrink-0 mt-0.5" style={{ color: '#374151' }}>·</span>
+                  <span className="shrink-0 mt-0.5 font-bold" style={{ color: '#a78bfa' }}>·</span>
                   {tip}
                 </li>
               ))}

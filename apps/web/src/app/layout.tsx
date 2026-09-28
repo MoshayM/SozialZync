@@ -7,14 +7,14 @@ import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','600','700','800'], variable: '--font-plus-jakarta' });
 
-const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://sozialzync.com';
+const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://sozialzynk.com';
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
   viewportFit: 'cover',
-  themeColor: '#374151',
+  themeColor: '#7c3aed',
 };
 
 export const metadata: Metadata = {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   title: { default: 'SozialZynk', template: '%s · SozialZynk' },
-  description: 'AI-powered creator platform. Research, script, create, and publish across all your channels — from one intelligent workspace.',
+  description: 'The AI-powered YouTube Content OS for ambitious creators. Research trends, write scripts, build your audience, and publish everywhere — all from one workspace.',
   applicationName: 'SozialZynk',
   alternates: { canonical: '/' },
   icons: {
