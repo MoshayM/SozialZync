@@ -596,11 +596,13 @@ function LibraryImportModal({
     if (selected.size === 0 || importing) return;
     setImporting(true);
     setImportError(null);
-    const affectedChannels = new Set([...selected.values()].map((v) => v.channelId));
     const failed: string[] = [];
-    for (const [youtubeVideoId, { title, channelId: vChId }] of selected) {
+    for (const [youtubeVideoId, { title }] of selected) {
       try {
-        await api.shortsStudio.importVideo(vChId, youtubeVideoId);
+        // Always import under the currently selected Shorts Studio channel so the
+        // video appears in the right list regardless of which library channel it
+        // came from (fixes multi-channel import not showing in the UI).
+        await api.shortsStudio.importVideo(channelId, youtubeVideoId);
         setImportedNow((prev) => new Set(prev).add(youtubeVideoId));
         setSelected((prev) => { const next = new Map(prev); next.delete(youtubeVideoId); return next; });
       } catch (err) {
@@ -608,7 +610,8 @@ function LibraryImportModal({
         failed.push(msg ? `${title}: ${msg}` : title);
       }
     }
-    affectedChannels.forEach((cId) => void qc.invalidateQueries({ queryKey: ['shorts-imported', cId] }));
+    // Invalidate the parent's query — same key that listImported watches.
+    void qc.invalidateQueries({ queryKey: ['shorts-imported', channelId] });
     setImporting(false);
     if (failed.length > 0) {
       setImportError(`Could not import ${failed.length} video${failed.length > 1 ? 's' : ''} — ${failed.join('; ')}`);
