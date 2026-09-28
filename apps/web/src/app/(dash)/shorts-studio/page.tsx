@@ -30,7 +30,7 @@ interface ImportedVideo {
 
 interface AnalysisStatus {
   sourceDownloaded: boolean;
-  counts: { transcriptSegments: number; scenes: number };
+  counts: { transcriptSegments: number; scenes: number; topicSegments: number; highlights: number; chapters: number; embeddedSegments: number };
   pipeline: { status: string; error: string | null; errorCode?: string | null; retryable?: boolean } | null;
   stages: Array<{ type: string; satisfied: boolean; job: { status: string; error: string | null; errorCode?: string | null; retryable?: boolean } | null }>;
 }
@@ -60,6 +60,8 @@ const STAGE_LABELS: Record<string, string> = {
   SCENE_DETECTION: 'Scenes',
   TOPIC_SEGMENTATION: 'Topics',
   HIGHLIGHT_DETECTION: 'Highlights',
+  CHAPTER_DETECTION: 'Chapters',
+  EMBEDDING_GENERATION: 'Embedding',
 };
 
 const PROGRESS_LABELS: Record<string, string> = {
@@ -68,6 +70,8 @@ const PROGRESS_LABELS: Record<string, string> = {
   SCENE_DETECTION: 'Detecting scenes',
   TOPIC_SEGMENTATION: 'Generating embeddings',
   HIGHLIGHT_DETECTION: 'Creating shorts',
+  CHAPTER_DETECTION: 'Detecting chapters',
+  EMBEDDING_GENERATION: 'Generating search index',
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -113,6 +117,68 @@ function DeleteFromImportedButton({ video, channelId }: { video: ImportedVideo; 
     >
       {del.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
       Delete
+    </button>
+  );
+}
+
+function AnalyzeProgressButton({
+  importedVideoId, onAnalyze, isPending,
+}: {
+  importedVideoId: string;
+  onAnalyze: (e: React.MouseEvent) => void;
+  isPending: boolean;
+}) {
+  const { data: status } = useQuery<AnalysisStatus>({
+    queryKey: ['shorts-analysis', importedVideoId],
+    queryFn: () => api.shortsStudio.analysisStatus(importedVideoId).then((r) => r.data as AnalysisStatus),
+    refetchInterval: (q) => {
+      const s = q.state.data?.pipeline?.status;
+      return s === 'RUNNING' || s === 'QUEUED' || s === 'PENDING' ? 4000 : false;
+    },
+  });
+
+  const pipelineStatus = (status?.pipeline?.status ?? '').toUpperCase();
+  const isAnalyzing = isPending || ['RUNNING', 'QUEUED', 'PENDING'].includes(pipelineStatus);
+
+  const stages = status?.stages ?? [];
+  const totalStages = stages.length;
+  const doneStages = stages.filter((s) => s.satisfied).length;
+  const hasRunning = stages.some((s) => s.job?.status === 'RUNNING');
+  const pct = totalStages > 0
+    ? Math.round(Math.min((doneStages / totalStages) * 100 + (hasRunning ? (1 / totalStages) * 50 : 0) + 2, 99))
+    : (isAnalyzing ? 3 : 0);
+
+  if (isAnalyzing) {
+    return (
+      <button
+        onClick={(e) => e.stopPropagation()}
+        className="relative overflow-hidden flex items-center px-3 py-2 rounded-xl text-sm font-bold text-white cursor-default"
+        style={{ background: '#5b21b6', minWidth: 140 }}
+      >
+        <div
+          className="absolute inset-y-0 left-0 transition-all duration-700 ease-out"
+          style={{ width: `${Math.max(4, pct)}%`, background: '#7c3aed' }}
+        />
+        <span className="relative z-10 flex items-center gap-1.5">
+          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+          {pct >= 5 ? `Analyzing ${pct}%` : 'Starting…'}
+        </span>
+        {pct >= 5 && (
+          <span className="relative z-10 ml-auto pl-2 text-[11px] opacity-70">{pct}%</span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={onAnalyze}
+      disabled={isPending}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 active:scale-[0.97]"
+      style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 2px 10px rgba(55,65,81,0.25)' }}
+    >
+      <Wand2 className="w-4 h-4" />
+      Analyze
     </button>
   );
 }
@@ -1091,17 +1157,11 @@ export default function ShortsStudioPage() {
                             <AnalysisProgress importedVideoId={v.id} onRetry={() => analyzeMutation.mutate(v.id)} />
                           </div>
                           <div className="flex gap-2 flex-wrap">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); analyzeMutation.mutate(v.id); }}
-                              disabled={analyzeMutation.isPending}
-                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 active:scale-[0.97]"
-                              style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 2px 10px rgba(55,65,81,0.25)' }}
-                            >
-                              {analyzeMutation.isPending && analyzeMutation.variables === v.id
-                                ? <Loader2 className="w-4 h-4 animate-spin" />
-                                : <Wand2 className="w-4 h-4" />}
-                              Analyze
-                            </button>
+                            <AnalyzeProgressButton
+                              importedVideoId={v.id}
+                              onAnalyze={(e) => { e.stopPropagation(); analyzeMutation.mutate(v.id); }}
+                              isPending={analyzeMutation.isPending && analyzeMutation.variables === v.id}
+                            />
                             <SendToEditorButton importedVideoId={v.id} />
                             {v._count.topicSegments > 0 && (
                               <Link
