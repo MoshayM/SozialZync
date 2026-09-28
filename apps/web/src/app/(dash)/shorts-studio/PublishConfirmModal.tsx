@@ -231,20 +231,31 @@ function apiErrMsg(err: unknown, fallback: string): string {
   return e?.response?.data?.message ?? fallback;
 }
 
+function buildAutoPrompt(title: string, description: string): string {
+  const topic = title.trim();
+  const context = description.replace(/\s+/g, ' ').trim().slice(0, 120);
+  return `YouTube Shorts thumbnail for "${topic}"${context ? `. ${context}` : ''}. Bold eye-catching design, vibrant colours, high contrast, vertical 9:16 format. No text overlays.`;
+}
+
 function ThumbnailSection({
   clipId,
   selectedId,
   onSelect,
+  contentTitle,
+  contentDescription,
 }: {
   clipId: string;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  contentTitle?: string;
+  contentDescription?: string;
 }) {
   const qc = useQueryClient();
   const [mode, setMode] = useState<ThumbMode>('keep');
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const autoFiredRef = useRef(false);
 
   const { data: thumbs = [], isLoading: thumbsLoading, refetch: refetchThumbs } = useQuery({
     queryKey: ['thumbnails', clipId],
@@ -253,15 +264,33 @@ function ThumbnailSection({
   });
 
   const generate = useMutation({
-    mutationFn: () =>
-      prompt.trim()
-        ? api.shortsStudio.generateThumbnailsWithPrompt(clipId, prompt.trim())
-        : api.shortsStudio.generateThumbnails(clipId),
+    mutationFn: (overridePrompt?: string) => {
+      const p = (overridePrompt ?? prompt).trim();
+      return p
+        ? api.shortsStudio.generateThumbnailsWithPrompt(clipId, p)
+        : api.shortsStudio.generateThumbnails(clipId);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['thumbnails', clipId] });
       void refetchThumbs();
     },
   });
+
+  // When switching to AI mode: fill prompt from clip content and auto-fire generation
+  useEffect(() => {
+    if (mode !== 'ai') return;
+    if (autoFiredRef.current) return;
+    if (thumbsLoading) return;
+    if (thumbs.length > 0) { autoFiredRef.current = true; return; }
+    const auto = contentTitle
+      ? buildAutoPrompt(contentTitle, contentDescription ?? '')
+      : '';
+    if (auto && !prompt) setPrompt(auto);
+    autoFiredRef.current = true;
+    // Fire generation immediately with the auto-built prompt
+    generate.mutate(auto || undefined);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, thumbsLoading]);
 
   const upload = useMutation({
     mutationFn: (file: File) => api.shortsStudio.uploadThumbnail(clipId, file),
@@ -282,7 +311,11 @@ function ThumbnailSection({
   const ModeBtn = ({ m, label, Icon }: { m: ThumbMode; label: string; Icon: React.ComponentType<{ className?: string }> }) => (
     <button
       type="button"
-      onClick={() => { setMode(m); if (m === 'keep') onSelect(null); }}
+      onClick={() => {
+        if (m !== mode) autoFiredRef.current = false;
+        setMode(m);
+        if (m === 'keep') onSelect(null);
+      }}
       className={[
         'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
         mode === m
@@ -353,13 +386,13 @@ function ThumbnailSection({
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g. speaker on stage with microphone, blue gradient background…"
-              maxLength={120}
+              placeholder="Auto-generated from your clip content — edit to refine…"
+              maxLength={200}
               className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
             />
             <p className="text-[10px] text-gray-400">
               {prompt.trim()
-                ? 'AI will generate a custom image from your prompt using DALL-E 3.'
+                ? 'AI crafted this prompt from your clip title & description — edit or regenerate freely.'
                 : 'Leave blank to extract frames from your video instead.'}
             </p>
           </div>
@@ -372,7 +405,7 @@ function ThumbnailSection({
             <div className="space-y-2 text-center">
               <button
                 type="button"
-                onClick={() => generate.mutate()}
+                onClick={() => generate.mutate(undefined)}
                 disabled={generate.isPending}
                 className="flex items-center gap-2 mx-auto px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
               >
@@ -396,7 +429,7 @@ function ThumbnailSection({
                   <div className="flex items-center justify-center gap-3">
                     <button
                       type="button"
-                      onClick={() => generate.mutate()}
+                      onClick={() => generate.mutate(undefined)}
                       disabled={generate.isPending}
                       className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
                     >
@@ -405,7 +438,7 @@ function ThumbnailSection({
                     {prompt.trim() && (
                       <button
                         type="button"
-                        onClick={() => { setPrompt(''); generate.mutate(); }}
+                        onClick={() => { setPrompt(''); generate.mutate(undefined); }}
                         disabled={generate.isPending}
                         className="flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 transition-colors"
                       >
@@ -451,7 +484,7 @@ function ThumbnailSection({
               <div className="space-y-1.5">
                 <button
                   type="button"
-                  onClick={() => generate.mutate()}
+                  onClick={() => generate.mutate(undefined)}
                   disabled={generate.isPending}
                   className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
                 >
@@ -468,7 +501,7 @@ function ThumbnailSection({
                     {prompt.trim() && (
                       <button
                         type="button"
-                        onClick={() => { setPrompt(''); generate.mutate(); }}
+                        onClick={() => { setPrompt(''); generate.mutate(undefined); }}
                         disabled={generate.isPending}
                         className="flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 transition-colors"
                       >
@@ -836,6 +869,8 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
                     clipId={clipId}
                     selectedId={selectedThumbId}
                     onSelect={setSelectedThumbId}
+                    contentTitle={meta?.title}
+                    contentDescription={meta?.description}
                   />
                 </div>
 
