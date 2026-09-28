@@ -302,3 +302,65 @@ export function PlanGate({ requiredPlan, children, featureLabel, preview = true 
     </div>
   );
 }
+
+// ── ProButton ─────────────────────────────────────────────────────────────────
+
+/**
+ * Drop-in <button> replacement that intercepts clicks for Free users and shows
+ * the upgrade sheet instead of firing the real onClick. The button is always
+ * visible — Free users see it but get redirected to upgrade on click.
+ */
+export function ProButton({
+  feature,
+  plan: requiredPlan = 'PRO',
+  onClick,
+  children,
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  feature: string;
+  plan?: Plan;
+}) {
+  const userPlan = usePlanGate();
+  const isAdmin  = useIsAdmin();
+  const allowed  = isAdmin || planAtLeast(userPlan, requiredPlan);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!allowed) {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerUpgradeSheet({ feature, plan: requiredPlan });
+      return;
+    }
+    onClick?.(e);
+  };
+
+  return <button {...rest} onClick={handleClick}>{children}</button>;
+}
+
+// ── useProAction ──────────────────────────────────────────────────────────────
+
+/**
+ * Hook for non-button patterns. Returns a `gate()` wrapper that intercepts
+ * calls for Free users and shows the upgrade sheet instead.
+ *
+ * Usage:
+ *   const { gate } = useProAction('Download video');
+ *   <button onClick={gate(handleDownload)}>Download</button>
+ */
+export function useProAction(feature: string, requiredPlan: Plan = 'PRO') {
+  const userPlan = usePlanGate();
+  const isAdmin  = useIsAdmin();
+  const allowed  = isAdmin || planAtLeast(userPlan, requiredPlan);
+
+  function gate<T extends unknown[]>(fn: (...args: T) => void): (...args: T) => void {
+    return (...args: T) => {
+      if (!allowed) {
+        triggerUpgradeSheet({ feature, plan: requiredPlan });
+        return;
+      }
+      fn(...args);
+    };
+  }
+
+  return { allowed, gate };
+}

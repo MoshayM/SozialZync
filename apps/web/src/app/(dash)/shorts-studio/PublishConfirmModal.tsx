@@ -7,6 +7,7 @@ import {
   Sparkles, ImagePlus, Clock, CalendarClock, RefreshCw, Image, FolderDown,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { ProButton } from '@/components/plan-gate';
 
 // ── Platform specs ────────────────────────────────────────────────────────────
 
@@ -1014,7 +1015,8 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
                   : <FolderDown className="w-3.5 h-3.5" />}
                 {savedPrivate ? 'Saved!' : 'Save to Private'}
               </button>
-              <button
+              <ProButton
+                feature="Publish to external platform"
                 type="button"
                 onClick={() => publish.mutate()}
                 disabled={!canSubmit}
@@ -1023,7 +1025,7 @@ export function PublishConfirmModal({ clipId, clipTitle, onClose, onPublished }:
               >
                 {publish.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 {scheduledAt ? 'Schedule' : 'Confirm & Publish'}
-              </button>
+              </ProButton>
             </div>
             <p className="text-[11px] text-gray-400 text-center">
               {scheduledAt

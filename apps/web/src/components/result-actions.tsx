@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, useCallback } from 'react';
 import { Copy, Check, Download, Share2, Trash2, Save, Volume2, VolumeX, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ProButton } from '@/components/plan-gate';
 
 interface ContentToolbarProps {
   /** Plain-text representation of the result to copy/download/share */
@@ -67,7 +68,8 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
           <Save className="w-3 h-3" /> Auto-saved {savedAt}
         </span>
       )}
-      <button
+      <ProButton
+        feature="Copy content"
         type="button"
         onClick={() => void handleCopy()}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
@@ -76,8 +78,9 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
       >
         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
         {copied ? 'Copied!' : 'Copy'}
-      </button>
-      <button
+      </ProButton>
+      <ProButton
+        feature="Download content"
         type="button"
         onClick={handleDownload}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
@@ -86,8 +89,9 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
       >
         <Download className="w-3.5 h-3.5" />
         Download
-      </button>
-      <button
+      </ProButton>
+      <ProButton
+        feature="Share content"
         type="button"
         onClick={() => void handleShare()}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all"
@@ -96,7 +100,7 @@ export function ContentToolbar({ text, filename, onNew, savedAt }: ContentToolba
       >
         <Share2 className="w-3.5 h-3.5" />
         {shared ? 'Shared!' : 'Share'}
-      </button>
+      </ProButton>
       {onNew && (
         <button
           type="button"
@@ -174,11 +178,11 @@ export function ResultActionBar({ text, filename = 'result', onRegenerate }: Res
   return (
     <div className="border-t border-[#f0edfb] pt-3 mt-3">
       <div className="flex flex-wrap gap-2 items-center">
-        <button type="button" onClick={() => void handleCopy()} className={pill(copied, 'green')} title="Copy to clipboard">
+        <ProButton feature="Copy content" type="button" onClick={() => void handleCopy()} className={pill(copied, 'green')} title="Copy to clipboard">
           {copied
             ? <><Check className="w-3.5 h-3.5" /><span>Copied!</span></>
             : <><Copy className="w-3.5 h-3.5" /><span>Copy</span></>}
-        </button>
+        </ProButton>
 
         <button type="button" onClick={handleReadAloud} className={pill(speaking)} title={speaking ? 'Stop reading' : 'Read aloud'}>
           {speaking
@@ -186,13 +190,13 @@ export function ResultActionBar({ text, filename = 'result', onRegenerate }: Res
             : <><Volume2 className="w-3.5 h-3.5" /><span>Read Aloud</span></>}
         </button>
 
-        <button type="button" onClick={() => void handleShare()} className={pill(false)} title="Share">
+        <ProButton feature="Share content" type="button" onClick={() => void handleShare()} className={pill(false)} title="Share">
           <Share2 className="w-3.5 h-3.5" /><span>Share</span>
-        </button>
+        </ProButton>
 
-        <button type="button" onClick={handleDownload} className={pill(false)} title="Download .txt">
+        <ProButton feature="Download content" type="button" onClick={handleDownload} className={pill(false)} title="Download .txt">
           <Download className="w-3.5 h-3.5" /><span>Download</span>
-        </button>
+        </ProButton>
 
         {onRegenerate && (
           <button type="button" onClick={onRegenerate} className={pill(false)} title="Regenerate answer">
