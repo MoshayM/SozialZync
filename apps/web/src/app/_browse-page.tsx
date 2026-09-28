@@ -183,7 +183,7 @@ function LandscapeThumb({ gi, duration, size = 'md', thumbnailUrl }: { gi: numbe
           <Play className="w-4 h-4 text-white fill-white translate-x-0.5" />
         </div>
       </div>
-      <span className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md tracking-wide">
+      <span className="absolute bottom-2 left-2 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md tracking-wide">
         {duration}
       </span>
     </div>
