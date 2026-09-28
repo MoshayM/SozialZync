@@ -242,7 +242,8 @@ export class ThumbnailGenerationService {
    * Download image bytes from DALL-E 3 (portrait 1024×1792) or Pollinations.ai.
    * All variants fire in parallel so wall-clock time ≈ slowest single call.
    */
-  private async generateAiImageBuffers(prompt: string, count = 3): Promise<Array<{ buffer: Buffer; ext: string }>> {
+  // @reason: using `any` here avoids Buffer<ArrayBuffer> vs Buffer<ArrayBufferLike> invariance issues across TS versions
+  private async generateAiImageBuffers(prompt: string, count = 3): Promise<Array<{ buffer: any; ext: string }>> {
     const openaiKey = process.env['OPENAI_API_KEY'];
     const variants = buildPromptVariants(
       `YouTube Shorts thumbnail. ${prompt} Portrait 9:16 format, no text overlay, high quality.`,
@@ -273,7 +274,7 @@ export class ThumbnailGenerationService {
           }
         }),
       );
-      const valid = settled.filter((r): r is { buffer: Buffer; ext: 'png' } => r !== null);
+      const valid = settled.filter((r): r is Exclude<typeof r, null> => r !== null);
       if (valid.length > 0) return valid;
       this.logger.log('All DALL-E attempts failed — falling back to Pollinations.ai');
     }
@@ -294,7 +295,7 @@ export class ThumbnailGenerationService {
         }
       }),
     );
-    return settled.filter((r): r is { buffer: Buffer; ext: 'jpg' } => r !== null);
+    return settled.filter((r): r is Exclude<typeof r, null> => r !== null);
   }
 
   /**
