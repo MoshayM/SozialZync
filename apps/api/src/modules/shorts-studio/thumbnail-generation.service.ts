@@ -279,10 +279,12 @@ export class ThumbnailGenerationService {
       const dalleResults = await Promise.all(
         variants.map(async (variant) => {
           try {
+            // Use URL response format — response_format param removed as it is
+            // rejected by newer project-scoped API keys (sk-proj-...)
             const res = await fetch('https://api.openai.com/v1/images/generations', {
               method: 'POST',
               headers: { Authorization: `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ model, prompt: variant, n: 1, size: '1024x1792', response_format: 'b64_json' }),
+              body: JSON.stringify({ model, prompt: variant, n: 1, size: '1024x1792' }),
               signal: AbortSignal.timeout(45_000),
             });
             if (!res.ok) {
@@ -290,9 +292,19 @@ export class ThumbnailGenerationService {
               this.logger.warn(`DALL-E attempt failed: HTTP ${res.status} — ${errBody.replace(/\s+/g, ' ').slice(0, 400)}`);
               return null;
             }
-            const json = (await res.json()) as { data?: Array<{ b64_json?: string }> };
-            const b64 = json.data?.[0]?.b64_json;
-            return b64 ? { buffer: Buffer.from(b64, 'base64'), ext: 'png' as const } : null;
+            const json = (await res.json()) as { data?: Array<{ url?: string; b64_json?: string }> };
+            const item = json.data?.[0];
+            if (!item) return null;
+            // Handle both URL (default) and b64_json responses
+            if (item.b64_json) {
+              return { buffer: Buffer.from(item.b64_json, 'base64'), ext: 'png' as const };
+            }
+            if (item.url) {
+              const imgRes = await fetch(item.url, { signal: AbortSignal.timeout(30_000) });
+              if (!imgRes.ok) return null;
+              return { buffer: Buffer.from(await imgRes.arrayBuffer()), ext: 'png' as const };
+            }
+            return null;
           } catch (err) {
             this.logger.warn(`DALL-E variant error: ${err instanceof Error ? err.message : String(err)}`);
             return null;
@@ -313,7 +325,7 @@ export class ThumbnailGenerationService {
       // Stagger variant starts to avoid Pollinations rate-limiting concurrent requests
       const pollinationsResults = await Promise.all(
         missingIndices.map(async (i, arrayIndex) => {
-          if (arrayIndex > 0) await new Promise<void>((r) => setTimeout(r, arrayIndex * 900));
+          if (arrayIndex > 0) await new Promise<void>((r) => setTimeout(r, arrayIndex * 3500));
           const variant = variants[i]!;
           for (const model of ['flux', 'turbo']) {
             try {
