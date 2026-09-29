@@ -347,16 +347,13 @@ export class ThumbnailGenerationService {
     });
     if (!clip) throw new NotFoundException('Clip not found');
 
+    // When the caller supplies a prompt, use it as-is — they have full control
+    // and adding the clip title risks content-policy rejections (e.g. religious
+    // or sensitive titles that are fine on YouTube but flag AI image APIs).
+    // Only fall back to a title-derived prompt when no prompt is supplied.
     const clipTitle = clip.topicSegment?.title ?? clip.chapter?.title ?? '';
-
-    // Build a visually-focused prompt — avoid raw description text that can
-    // trigger content-policy rejections on DALL-E / Pollinations.
-    const visualPrompt = [
-      clipTitle ? `Artwork for a video titled "${clipTitle}".` : '',
-      prompt.trim(),
-    ]
-      .filter(Boolean)
-      .join(' ');
+    const visualPrompt = prompt.trim()
+      || (clipTitle ? `Cinematic YouTube Shorts thumbnail for a video titled "${clipTitle}". Dramatic lighting, bold composition, vivid colors, high contrast, no text.` : 'Cinematic YouTube Shorts thumbnail. Dramatic lighting, bold composition, vivid colors, high contrast, no text.');
 
     this.logger.log(`AI thumbnail generation for clip ${shortClipId}: "${visualPrompt.slice(0, 120)}…"`);
 
