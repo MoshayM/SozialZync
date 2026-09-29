@@ -24,6 +24,7 @@ interface EditProjectRow {
   title: string;
   status: string;
   renderAssetId: string | null;
+  shortClipId: string | null;
   renderStatus: string;
   durationMs: number;
   updatedAt: Date;
@@ -252,17 +253,38 @@ export class MyContentController {
       }
     }
 
+    // Batch-fetch primary thumbnails for all editDrafts that have a shortClipId.
+    // shortClipId is not a Prisma relation on EditProject, so we query separately.
+    const clipIds = editDrafts.map((e) => e.shortClipId).filter((id): id is string => !!id);
+    const clipThumbVersionMap = new Map<string, string>(); // shortClipId → assetVersion.id
+    if (clipIds.length > 0) {
+      const primaryThumbs = await this.prisma.shortsThumbnail.findMany({
+        where: { shortClipId: { in: clipIds }, isPrimary: true },
+        include: { asset: { include: { versions: { orderBy: { version: 'desc' }, take: 1, select: { id: true } } } } },
+      });
+      for (const t of primaryThumbs) {
+        const vid = t.asset?.versions?.[0]?.id;
+        if (vid) clipThumbVersionMap.set(t.shortClipId, vid);
+      }
+    }
+
     for (const e of editDrafts) {
       const hasRender = e.renderStatus === 'READY' && !!e.renderAssetId;
       const versionId = e.renderAssetId ? renderVersionMap.get(e.renderAssetId) : undefined;
       const playUrl = hasRender && versionId ? makeVersionSignedUrl(versionId) : null;
-      const sourceThumbnail = e.project?.importedVideos?.[0]?.thumbnailUrl ?? null;
+
+      // Prefer the clip's primary thumbnail (selected by the user in Publish panel).
+      // Fall back to the source YouTube thumbnail from the imported video.
+      const clipThumbVersionId = e.shortClipId ? clipThumbVersionMap.get(e.shortClipId) : undefined;
+      const thumbnailUrl = clipThumbVersionId
+        ? makeVersionSignedUrl(clipThumbVersionId)
+        : (e.project?.importedVideos?.[0]?.thumbnailUrl ?? null);
 
       items.push({
         id: e.id,
         title: e.title,
         type: hasRender ? 'VIDEO' : 'DRAFT',
-        thumbnailUrl: sourceThumbnail,
+        thumbnailUrl,
         playUrl,
         isPublic: e.status === 'PUBLIC_CONTENT',
         shareUrl: null,

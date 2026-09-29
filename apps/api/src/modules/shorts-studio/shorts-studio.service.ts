@@ -298,7 +298,7 @@ export class ShortsStudioService {
   }
 
   /** Save a rendered short clip into My Content → Private. */
-  async saveToPrivate(clipId: string, userId: string, meta?: { title?: string }) {
+  async saveToPrivate(clipId: string, userId: string, meta?: { title?: string; description?: string; tags?: string[]; language?: string }) {
     await this.assertClipOwnership(clipId, userId);
     const clip = await this.prisma.shortClip.findUnique({
       where: { id: clipId },
@@ -330,6 +330,9 @@ export class ShortsStudioService {
       data: {
         projectId: clip.projectId,
         title: `Short: ${title}`,
+        description: meta?.description?.trim() ?? null,
+        tags: meta?.tags ?? [],
+        language: meta?.language ?? null,
         status: 'PRIVATE_CONTENT',
         renderAssetId: clip.renderAsset.id,
         shortClipId: clipId,

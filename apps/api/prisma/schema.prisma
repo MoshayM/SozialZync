@@ -1610,6 +1610,8 @@ model ShortsThumbnail {
   shortClipId String
   assetId     String
   isPrimary   Boolean  @default(false)
+  // FRAME_EXTRACT (ffmpeg frame grab) | AI_GENERATED (DALL-E / Pollinations) | CUSTOM_UPLOAD (user file)
+  source      String   @default("FRAME_EXTRACT")
   createdAt   DateTime @default(now())
 
   shortClip ShortClip @relation(fields: [shortClipId], references: [id], onDelete: Cascade)
@@ -2105,6 +2107,9 @@ model EditProject {
   id             String   @id @default(cuid())
   projectId      String
   title          String
+  description    String?  @db.Text
+  tags           String[] @default([])
+  language       String?
   status         String   @default("DRAFT")
   width          Int      @default(1920)
   height         Int      @default(1080)

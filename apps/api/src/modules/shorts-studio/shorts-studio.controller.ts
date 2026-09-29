@@ -392,7 +392,7 @@ export class ShortsStudioController {
       const url = versionId
         ? `/api/v1/media/versions/${versionId}/file?exp=${exp}&sig=${signMedia(`version:${versionId}`, exp, secret)}`
         : null;
-      return { id: t.id, isPrimary: t.isPrimary, url };
+      return { id: t.id, isPrimary: t.isPrimary, source: (t as Record<string, unknown>)['source'] as string ?? 'FRAME_EXTRACT', url };
     });
   }
 
@@ -525,7 +525,12 @@ export class ShortsStudioController {
     if (body.thumbnailId) {
       await this.thumbnails.setPrimary(body.thumbnailId, user.sub);
     }
-    return this.shorts.saveToPrivate(shortClipId, user.sub, { title: body.title });
+    return this.shorts.saveToPrivate(shortClipId, user.sub, {
+      title: body.title,
+      description: body.description,
+      tags: body.tags,
+      language: body.language,
+    });
   }
 
   @Post('clips/:shortClipId/save-to-public')

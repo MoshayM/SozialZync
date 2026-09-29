@@ -224,7 +224,7 @@ function ThumbnailImg({ src, alt }: { src: string; alt: string }) {
 
 type ThumbMode = 'keep' | 'ai' | 'upload';
 
-interface Thumbnail { id: string; url: string | null; isPrimary: boolean; }
+interface Thumbnail { id: string; url: string | null; isPrimary: boolean; source?: string; }
 
 function apiErrMsg(err: unknown, fallback: string): string {
   const e = err as { response?: { data?: { message?: string } } };
@@ -347,9 +347,10 @@ function ThumbnailSection({
         ) : thumbs.length > 0 ? (() => {
           const primary = thumbs.find(t => t.isPrimary) ?? thumbs[0]!;
           const src = toProxySrc(primary.url);
+          const isAiPrimary = primary.source === 'AI_GENERATED';
           return (
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
-              <div className="w-12 rounded-md overflow-hidden shrink-0 border border-gray-200 shadow-sm">
+              <div className="relative w-12 rounded-md overflow-hidden shrink-0 border border-gray-200 shadow-sm">
                 {src ? (
                   <ThumbnailImg src={src} alt="Default thumbnail" />
                 ) : (
@@ -357,13 +358,20 @@ function ThumbnailSection({
                     <Image className="w-4 h-4 text-gray-400" />
                   </div>
                 )}
+                {isAiPrimary && (
+                  <span className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-purple-600/80 text-white text-[8px] font-bold rounded">AI</span>
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <p className="text-xs font-medium text-gray-800">Default thumbnail</p>
+                  <p className="text-xs font-medium text-gray-800">
+                    {isAiPrimary ? 'AI-generated thumbnail' : 'Default video frame'}
+                  </p>
                 </div>
-                <p className="text-[11px] text-gray-400">Switch to AI Generate to create a custom image.</p>
+                <p className="text-[11px] text-gray-400">
+                  Switch to AI Generate to pick a different image or regenerate.
+                </p>
               </div>
             </div>
           );
@@ -384,18 +392,31 @@ function ThumbnailSection({
               AI prompt
               <span className="text-gray-400 font-normal ml-0.5">(optional)</span>
             </label>
-            <input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Auto-generated from your clip content — edit to refine…"
-              maxLength={200}
-              className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200"
-            />
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); generate.mutate(prompt.trim() || undefined); }
+                }}
+                placeholder="Edit prompt then click Generate or press Enter…"
+                maxLength={200}
+                className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200 min-w-0"
+              />
+              <button
+                type="button"
+                onClick={() => generate.mutate(prompt.trim() || undefined)}
+                disabled={generate.isPending}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors shrink-0"
+                title="Generate thumbnails (or press Enter in the prompt field)"
+              >
+                {generate.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {generate.isPending ? 'Generating…' : 'Generate'}
+              </button>
+            </div>
             <p className="text-[10px] text-gray-400">
-              {prompt.trim()
-                ? 'AI crafted this prompt from your clip title & description — edit or regenerate freely.'
-                : 'Leave blank to extract frames from your video instead.'}
+              Edit the prompt then click Generate (or press Enter) · leave blank to use video frames.
             </p>
           </div>
 
@@ -457,28 +478,33 @@ function ThumbnailSection({
                 {thumbs.map((t) => {
                   const active = selectedId === t.id || (!selectedId && t.isPrimary);
                   const src = toProxySrc(t.url);
+                  const isAi = t.source === 'AI_GENERATED';
+                  const isFrame = !t.source || t.source === 'FRAME_EXTRACT';
                   return (
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => onSelect(t.id)}
-                      className={`relative rounded-lg overflow-hidden border-2 transition-all ${active ? 'border-brand-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}
+                      onClick={() => { if (src) onSelect(t.id); }}
+                      disabled={!src}
+                      className={`relative rounded-lg overflow-hidden border-2 transition-all ${active ? 'border-brand-500 shadow-md' : 'border-gray-200 hover:border-gray-300'} ${!src ? 'cursor-not-allowed opacity-60' : ''}`}
                     >
                       {src ? (
                         <ThumbnailImg src={src} alt="Thumbnail" />
                       ) : (
-                        <div className="w-full aspect-[9/16] bg-gray-100 flex items-center justify-center">
-                          <Image className="w-6 h-6 text-gray-300" />
+                        <div className="w-full aspect-[9/16] bg-red-50 flex flex-col items-center justify-center gap-1">
+                          <AlertCircle className="w-5 h-5 text-red-300" />
+                          <span className="text-[9px] text-red-400">Failed</span>
                         </div>
                       )}
-                      {active && (
+                      {active && src && (
                         <div className="absolute inset-0 bg-brand-600/10 flex items-center justify-center">
                           <CheckCircle2 className="w-6 h-6 text-brand-600 drop-shadow" />
                         </div>
                       )}
-                      {t.isPrimary && !active && (
-                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded">Primary</span>
-                      )}
+                      {/* Source label */}
+                      <span className={`absolute top-1 left-1 px-1.5 py-0.5 text-white text-[8px] font-bold rounded ${isAi ? 'bg-purple-600/80' : isFrame ? 'bg-gray-600/70' : 'bg-blue-600/80'}`}>
+                        {isAi ? 'AI' : isFrame ? 'Frame' : 'Custom'}
+                      </span>
                     </button>
                   );
                 })}

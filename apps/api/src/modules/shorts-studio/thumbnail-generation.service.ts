@@ -126,7 +126,7 @@ export class ThumbnailGenerationService {
           });
           await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
           await this.prisma.shortsThumbnail.create({
-            data: { shortClipId, assetId: asset.id, isPrimary: i === 0 },
+            data: { shortClipId, assetId: asset.id, isPrimary: i === 0, source: 'FRAME_EXTRACT' },
           });
           created++;
         } catch (err) {
@@ -240,7 +240,7 @@ export class ThumbnailGenerationService {
 
     await this.prisma.$transaction([
       this.prisma.shortsThumbnail.updateMany({ where: { shortClipId }, data: { isPrimary: false } }),
-      this.prisma.shortsThumbnail.create({ data: { shortClipId, assetId: asset.id, isPrimary: true } }),
+      this.prisma.shortsThumbnail.create({ data: { shortClipId, assetId: asset.id, isPrimary: true, source: 'CUSTOM_UPLOAD' } }),
     ]);
 
     return { id: asset.id, key, versionId: version.id };
@@ -386,17 +386,19 @@ export class ThumbnailGenerationService {
       );
     }
 
-    // Success — now safe to clear the old thumbnails.
-    const existing = await this.prisma.shortsThumbnail.findMany({
-      where: { shortClipId },
+    // Success — clear previous AI-generated thumbnails only; preserve frame-extracts.
+    const prevAi = await this.prisma.shortsThumbnail.findMany({
+      where: { shortClipId, source: 'AI_GENERATED' },
       select: { assetId: true },
     });
-    if (existing.length > 0) {
-      await this.prisma.shortsThumbnail.deleteMany({ where: { shortClipId } });
+    if (prevAi.length > 0) {
+      await this.prisma.shortsThumbnail.deleteMany({ where: { shortClipId, source: 'AI_GENERATED' } });
       await this.prisma.asset
-        .deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } })
-        .catch((e: Error) => this.logger.warn(`Old thumbnail cleanup error: ${e.message}`));
+        .deleteMany({ where: { id: { in: prevAi.map((t) => t.assetId) } } })
+        .catch((e: Error) => this.logger.warn(`Old AI thumbnail cleanup error: ${e.message}`));
     }
+    // Un-primary all remaining (frame/custom) thumbnails — new AI ones become primary
+    await this.prisma.shortsThumbnail.updateMany({ where: { shortClipId }, data: { isPrimary: false } });
 
     let created = 0;
     for (let i = 0; i < images.length; i++) {
@@ -424,7 +426,7 @@ export class ThumbnailGenerationService {
         });
         await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
         await this.prisma.shortsThumbnail.create({
-          data: { shortClipId, assetId: asset.id, isPrimary: i === 0 },
+          data: { shortClipId, assetId: asset.id, isPrimary: i === 0, source: 'AI_GENERATED' },
         });
         created++;
       } catch (err) {

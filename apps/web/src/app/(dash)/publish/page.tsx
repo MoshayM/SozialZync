@@ -407,7 +407,7 @@ function PublishCenterPanel() {
 function PublishContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const activeTab = searchParams.get('tab') ?? 'ai-planner';
+  const activeTab = searchParams.get('tab') ?? 'publish-center';
   const activeTabDef = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
   return (
