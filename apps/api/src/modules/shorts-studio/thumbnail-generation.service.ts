@@ -287,7 +287,7 @@ export class ThumbnailGenerationService {
             });
             if (!res.ok) {
               const errBody = await res.text().catch(() => '');
-              this.logger.warn(`DALL-E attempt failed: HTTP ${res.status} — ${errBody.slice(0, 300)}`);
+              this.logger.warn(`DALL-E attempt failed: HTTP ${res.status} — ${errBody.replace(/\s+/g, ' ').slice(0, 400)}`);
               return null;
             }
             const json = (await res.json()) as { data?: Array<{ b64_json?: string }> };
@@ -310,8 +310,10 @@ export class ThumbnailGenerationService {
     const missingIndices = perVariant.map((r, i) => (r === null ? i : -1)).filter((i) => i >= 0);
     if (missingIndices.length > 0) {
       const seed = Math.floor(Date.now() / 1000);
+      // Stagger variant starts to avoid Pollinations rate-limiting concurrent requests
       const pollinationsResults = await Promise.all(
-        missingIndices.map(async (i) => {
+        missingIndices.map(async (i, arrayIndex) => {
+          if (arrayIndex > 0) await new Promise<void>((r) => setTimeout(r, arrayIndex * 900));
           const variant = variants[i]!;
           for (const model of ['flux', 'turbo']) {
             try {
@@ -319,6 +321,7 @@ export class ThumbnailGenerationService {
               const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
               if (!res.ok) {
                 this.logger.warn(`Pollinations ${model} variant ${i + 1} HTTP ${res.status}`);
+                if (res.status === 402) await new Promise<void>((r) => setTimeout(r, 1500));
                 continue;
               }
               const buffer = Buffer.from(await res.arrayBuffer());
