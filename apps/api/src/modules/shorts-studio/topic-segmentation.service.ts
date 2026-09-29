@@ -208,8 +208,10 @@ export class TopicSegmentationService {
       if (!dup) {
         out.push(c);
       } else if (c.confidence > dup.confidence) {
-        // Replace the lower-confidence duplicate (cascade clears any highlight)
-        await this.prisma.topicSegment.delete({ where: { id: dup.id } });
+        // Replace the lower-confidence duplicate (cascade clears any highlight).
+        // deleteMany instead of delete: idempotent on retry — won't throw if the
+        // record was already removed by a previous failed attempt.
+        await this.prisma.topicSegment.deleteMany({ where: { id: dup.id } });
         out.push(c);
       }
     }

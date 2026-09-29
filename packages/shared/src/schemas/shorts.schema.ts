@@ -27,7 +27,10 @@ export type TopicCategory = z.infer<typeof TopicCategorySchema>;
 export const TopicSegmentCandidateSchema = z.object({
   startMs: z.number().int().nonnegative(),
   endMs: z.number().int().positive(),
-  category: TopicCategorySchema,
+  // .catch: if the AI returns an unrecognised category (e.g. "MIRACLE",
+  // "TESTIMONY"), fall back to IMPORTANT_STATEMENT rather than rejecting
+  // the whole segment and triggering an unnecessary schema-mismatch retry.
+  category: TopicCategorySchema.catch('IMPORTANT_STATEMENT'),
   title: z.string().min(1),
   summary: z.string().min(1),
   confidence: z.number().min(0).max(1),
