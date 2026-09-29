@@ -475,34 +475,55 @@ export class VideoImportService {
 
   private async runYtDlp(youtubeVideoId: string, outPath: string, format: string = YTDLP_FORMAT): Promise<void> {
     const bin = this.ytDlpBin();
-    // yt-dlp needs ffmpeg to merge separate video+audio streams; hand it the
-    // bundled ffmpeg-static binary so it doesn't depend on PATH.
     const ffmpeg = ffmpegPath();
-    const args = [
-      `https://www.youtube.com/watch?v=${youtubeVideoId}`,
-      '-f', format,
-      '--merge-output-format', 'mp4',
-      '--no-playlist',
-      ...await this.cookiesArgs(),
-      ...this.jsRuntimeArgs(),
-      ...(ffmpeg ? ['--ffmpeg-location', ffmpeg] : []),
-      '-o', outPath,
-    ];
-    return new Promise((resolve, reject) => {
-      execFile(bin, args, { timeout: 1_800_000, maxBuffer: 8 * 1024 * 1024 }, (err, _stdout, stderr) => {
-        if (err) {
-          const notFound = /ENOENT/.test(err.message);
-          reject(new Error(
-            notFound
-              ? `yt-dlp binary not found ("${bin}"). Install yt-dlp and/or set YT_DLP_PATH in .env to import source videos.`
-              : `yt-dlp failed: ${(stderr || err.message).slice(0, 500)}`,
-          ));
-        } else if (!existsSync(outPath)) {
-          reject(new Error('yt-dlp completed but produced no output file'));
-        } else {
-          resolve();
-        }
+    const cookieArgs = await this.cookiesArgs();
+    const url = `https://www.youtube.com/watch?v=${youtubeVideoId}`;
+
+    // Player clients to try in order. mweb and ios don't require a PO token,
+    // which is the main cause of 403/429 failures on cloud server IPs.
+    const playerClients = ['mweb', 'ios', 'web'];
+
+    let lastError: Error | null = null;
+    for (const client of playerClients) {
+      const args = [
+        url,
+        '-f', format,
+        '--merge-output-format', 'mp4',
+        '--no-playlist',
+        '--extractor-args', `youtube:player_client=${client}`,
+        ...cookieArgs,
+        ...this.jsRuntimeArgs(),
+        ...(ffmpeg ? ['--ffmpeg-location', ffmpeg] : []),
+        '-o', outPath,
+      ];
+
+      const result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
+        execFile(bin, args, { timeout: 1_800_000, maxBuffer: 8 * 1024 * 1024 }, (err, _stdout, stderr) => {
+          if (!err && existsSync(outPath)) {
+            resolve({ ok: true });
+          } else if (err && /ENOENT/.test(err.message)) {
+            // Binary not found — no point retrying with a different client
+            resolve({ ok: false, error: `yt-dlp binary not found ("${bin}"). Install yt-dlp and/or set YT_DLP_PATH in .env.` });
+          } else {
+            resolve({ ok: false, error: (stderr || (err?.message ?? 'unknown')).slice(0, 600) });
+          }
+        });
       });
-    });
+
+      if (result.ok) {
+        this.logger.log(`yt-dlp succeeded with player_client=${client} for ${youtubeVideoId}`);
+        return;
+      }
+
+      lastError = new Error(result.error ?? 'yt-dlp failed');
+      if (/binary not found/.test(lastError.message)) throw lastError;
+
+      // 403/429 → try next client; other errors (private, unavailable) → fail fast
+      const isBotError = /403|429|confirm.*not.*bot|sign.?in|nsig|po.?token/i.test(lastError.message);
+      this.logger.warn(`yt-dlp client=${client} failed for ${youtubeVideoId}: ${lastError.message.slice(0, 200)}`);
+      if (!isBotError) break;
+    }
+
+    throw lastError ?? new Error('yt-dlp failed: no output produced');
   }
 }
