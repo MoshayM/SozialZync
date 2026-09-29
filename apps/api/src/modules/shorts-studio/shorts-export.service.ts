@@ -63,8 +63,12 @@ export class ShortsExportService {
 
   /** Returns AI-generated metadata + original audio language for the publish confirm modal. */
   async getPublishMeta(shortClipId: string) {
-    const [metadata, clip] = await Promise.all([
-      this.buildMetadata(shortClipId),
+    // @reason: EditProject is not in the generated Prisma client yet — dynamic accessor
+    const ep = (this.prisma as unknown as Record<string, unknown>)['editProject'] as {
+      findFirst: (args: unknown) => Promise<unknown | null>;
+    };
+
+    const [clip, savedDraft] = await Promise.all([
       this.prisma.shortClip.findUnique({
         where: { id: shortClipId },
         select: {
@@ -73,7 +77,21 @@ export class ShortsExportService {
           chapter: { select: { importedVideoId: true } },
         },
       }),
+      ep.findFirst({
+        where: { shortClipId, status: { in: ['PRIVATE_CONTENT', 'PUBLIC_CONTENT'] } },
+        select: { title: true, description: true, tags: true, language: true },
+        orderBy: { updatedAt: 'desc' },
+      }) as Promise<{ title: string | null; description: string | null; tags: string[]; language: string | null } | null>,
     ]);
+
+    const savedOverride = savedDraft ? {
+      title: savedDraft.title ?? undefined,
+      description: savedDraft.description ?? undefined,
+      tags: savedDraft.tags?.length ? savedDraft.tags : undefined,
+    } : undefined;
+
+    const metadata = await this.buildMetadata(shortClipId, savedOverride);
+
     const importedVideoId = clip?.topicSegment?.importedVideoId ?? clip?.chapter?.importedVideoId ?? null;
     const importedVideo = importedVideoId
       ? await this.prisma.importedVideo.findUnique({
@@ -85,7 +103,7 @@ export class ShortsExportService {
       title: metadata.title,
       description: metadata.description,
       tags: metadata.tags,
-      originalLanguage: importedVideo?.originalAudioLanguage ?? null,
+      originalLanguage: savedDraft?.language ?? importedVideo?.originalAudioLanguage ?? null,
       clipType: clip?.clipType ?? 'YOUTUBE_SHORTS',
     };
   }
