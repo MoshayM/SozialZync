@@ -390,7 +390,7 @@ export class ThumbnailGenerationService {
             r2Key: key,
             provider: 'ai-generated',
             sizeBytes: BigInt(buffer.length),
-            params: { userPrompt: prompt, fullPrompt, variation: i } as never,
+            params: { userPrompt: prompt, fullPrompt: visualPrompt, variation: i } as never,
           },
         });
         await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });
