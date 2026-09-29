@@ -516,8 +516,16 @@ export class ShortsStudioController {
   }
 
   @Post('clips/:shortClipId/save-to-private')
-  async saveToPrivate(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {
-    return this.shorts.saveToPrivate(shortClipId, user.sub);
+  async saveToPrivate(
+    @Param('shortClipId') shortClipId: string,
+    @Body() body: { title?: string; description?: string; tags?: string[]; language?: string; thumbnailId?: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    // Mark user's chosen thumbnail as primary so My Content shows the right image
+    if (body.thumbnailId) {
+      await this.thumbnails.setPrimary(body.thumbnailId, user.sub);
+    }
+    return this.shorts.saveToPrivate(shortClipId, user.sub, { title: body.title });
   }
 
   @Post('clips/:shortClipId/save-to-public')

@@ -300,67 +300,73 @@ export class ThumbnailGenerationService {
       this.logger.log('All DALL-E attempts failed — falling back to Pollinations.ai');
     }
 
-    // Free fallback: Pollinations.ai portrait 1080×1920
+    // Free fallback: Pollinations.ai portrait — try flux then turbo as backup model
     const seed = Math.floor(Date.now() / 1000);
     const settled = await Promise.all(
       variants.map(async (variant, i) => {
-        try {
-          const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(variant)}?width=1080&height=1920&nologo=true&model=flux&seed=${seed + i}`;
-          const res = await fetch(url, { signal: AbortSignal.timeout(45_000) });
-          if (!res.ok) return null;
-          const buffer = Buffer.from(await res.arrayBuffer());
-          return buffer.length > 1000 ? { buffer, ext: 'jpg' as const } : null;
-        } catch (err) {
-          this.logger.warn(`Pollinations variant ${i + 1} error: ${err instanceof Error ? err.message : String(err)}`);
-          return null;
+        for (const model of ['flux', 'turbo']) {
+          try {
+            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(variant)}?width=1080&height=1920&nologo=true&model=${model}&seed=${seed + i}`;
+            const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+            if (!res.ok) continue;
+            const buffer = Buffer.from(await res.arrayBuffer());
+            if (buffer.length > 1000) return { buffer, ext: 'jpg' as const };
+          } catch (err) {
+            this.logger.warn(`Pollinations ${model} variant ${i + 1}: ${err instanceof Error ? err.message : String(err)}`);
+          }
         }
+        return null;
       }),
     );
     return settled.filter((r): r is Exclude<typeof r, null> => r !== null);
   }
 
   /**
-   * Generate AI thumbnails from a user prompt, enriched with the clip's title
-   * and summary. Clears previous thumbnails for this clip first.
+   * Generate AI thumbnails from a user prompt, enriched with the clip's title.
+   * Generates FIRST — only clears old thumbnails after new ones are saved
+   * so a generation failure never leaves the clip with zero thumbnails.
    */
   async aiGenerate(shortClipId: string, userId: string, prompt: string) {
     const clip = await this.prisma.shortClip.findFirst({
       where: { id: shortClipId, project: { userId } },
       include: {
-        topicSegment: { select: { title: true, summary: true } },
-        chapter: { select: { title: true, summary: true } },
+        topicSegment: { select: { title: true } },
+        chapter: { select: { title: true } },
       },
     });
     if (!clip) throw new NotFoundException('Clip not found');
 
     const clipTitle = clip.topicSegment?.title ?? clip.chapter?.title ?? '';
-    const clipSummary = clip.topicSegment?.summary ?? clip.chapter?.summary ?? '';
 
-    const fullPrompt = [
-      clipTitle ? `Video titled "${clipTitle}".` : '',
+    // Build a visually-focused prompt — avoid raw description text that can
+    // trigger content-policy rejections on DALL-E / Pollinations.
+    const visualPrompt = [
+      clipTitle ? `Artwork for a video titled "${clipTitle}".` : '',
       prompt.trim(),
-      clipSummary ? `Context: ${clipSummary.slice(0, 200)}.` : '',
     ]
       .filter(Boolean)
       .join(' ');
 
-    this.logger.log(`AI thumbnail generation for clip ${shortClipId}: "${fullPrompt.slice(0, 120)}…"`);
+    this.logger.log(`AI thumbnail generation for clip ${shortClipId}: "${visualPrompt.slice(0, 120)}…"`);
 
-    const images = await this.generateAiImageBuffers(fullPrompt, 3);
+    // Generate FIRST — keeping old thumbnails alive until we know it succeeded.
+    const images = await this.generateAiImageBuffers(visualPrompt, 3);
     if (images.length === 0) {
       throw new InternalServerErrorException(
-        'AI thumbnail generation failed — no images could be produced. Ensure OPENAI_API_KEY is set or try again.',
+        'AI thumbnail generation failed — no images could be produced. Check OPENAI_API_KEY or try again.',
       );
     }
 
-    // Clear existing thumbnails before storing new ones
+    // Success — now safe to clear the old thumbnails.
     const existing = await this.prisma.shortsThumbnail.findMany({
       where: { shortClipId },
       select: { assetId: true },
     });
     if (existing.length > 0) {
       await this.prisma.shortsThumbnail.deleteMany({ where: { shortClipId } });
-      await this.prisma.asset.deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } });
+      await this.prisma.asset
+        .deleteMany({ where: { id: { in: existing.map((t) => t.assetId) } } })
+        .catch((e: Error) => this.logger.warn(`Old thumbnail cleanup error: ${e.message}`));
     }
 
     let created = 0;

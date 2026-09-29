@@ -298,7 +298,7 @@ export class ShortsStudioService {
   }
 
   /** Save a rendered short clip into My Content → Private. */
-  async saveToPrivate(clipId: string, userId: string) {
+  async saveToPrivate(clipId: string, userId: string, meta?: { title?: string }) {
     await this.assertClipOwnership(clipId, userId);
     const clip = await this.prisma.shortClip.findUnique({
       where: { id: clipId },
@@ -314,9 +314,10 @@ export class ShortsStudioService {
     if (!clip.renderAsset?.versions[0]) throw new BadRequestException('Clip must be rendered before saving to private content');
 
     const title = (
-      clip.topicSegment?.highlight?.titleSuggestion ??
-      clip.topicSegment?.title ??
-      clip.chapter?.title ??
+      meta?.title?.trim() ||
+      clip.topicSegment?.highlight?.titleSuggestion ||
+      clip.topicSegment?.title ||
+      clip.chapter?.title ||
       'Short clip'
     ).slice(0, 180);
 

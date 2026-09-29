@@ -231,10 +231,11 @@ function apiErrMsg(err: unknown, fallback: string): string {
   return e?.response?.data?.message ?? fallback;
 }
 
-function buildAutoPrompt(title: string, description: string): string {
+function buildAutoPrompt(title: string): string {
+  // Use only the title for visual guidance — raw description text can contain
+  // narrative phrases that trigger AI content-policy rejections (DALL-E / Pollinations).
   const topic = title.trim();
-  const context = description.replace(/\s+/g, ' ').trim().slice(0, 120);
-  return `YouTube Shorts thumbnail for "${topic}"${context ? `. ${context}` : ''}. Bold eye-catching design, vibrant colours, high contrast, vertical 9:16 format. No text overlays.`;
+  return `Cinematic YouTube Shorts thumbnail artwork for a video titled "${topic}". Dramatic lighting, bold composition, vivid complementary colors, high contrast, vertical 9:16 portrait format, no text.`;
 }
 
 function ThumbnailSection({
@@ -274,20 +275,21 @@ function ThumbnailSection({
       void qc.invalidateQueries({ queryKey: ['thumbnails', clipId] });
       void refetchThumbs();
     },
+    // On failure: refetch so the grid shows current DB state (old thumbnails
+    // are preserved by the backend's generate-first strategy, not wiped).
+    onError: () => { void refetchThumbs(); },
   });
 
-  // When switching to AI mode: fill prompt from clip content and auto-fire generation
+  // When switching to AI mode: fill prompt from clip title and auto-fire generation.
+  // Always fires even if frame-extract thumbnails already exist — user explicitly
+  // chose AI Generate so we replace them with actual AI images.
   useEffect(() => {
     if (mode !== 'ai') return;
     if (autoFiredRef.current) return;
     if (thumbsLoading) return;
-    if (thumbs.length > 0) { autoFiredRef.current = true; return; }
-    const auto = contentTitle
-      ? buildAutoPrompt(contentTitle, contentDescription ?? '')
-      : '';
+    const auto = contentTitle ? buildAutoPrompt(contentTitle) : '';
     if (auto && !prompt) setPrompt(auto);
     autoFiredRef.current = true;
-    // Fire generation immediately with the auto-built prompt
     generate.mutate(auto || undefined);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, thumbsLoading]);
