@@ -11,7 +11,7 @@ import {
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
   Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
-  FolderOpen, BookmarkPlus,
+  FolderOpen, BookmarkPlus, Smartphone,
 } from 'lucide-react';
 import {
   api,
@@ -422,7 +422,12 @@ function LibraryDrawer({
   );
 }
 
-// ── History Drawer (My Edits) ─────────────────────────────────────────────────
+// ── History Drawer (My Edits — Video Editor + Shorts Studio) ─────────────────
+
+type ShortsEditEntry = {
+  id: string; clipType: string; status: string; title: string;
+  importedVideoId: string | null; lastEditedAt: string;
+};
 
 function HistoryDrawer({
   currentEditId,
@@ -446,6 +451,12 @@ function HistoryDrawer({
     staleTime: 10_000,
   });
 
+  const { data: shortsEdits = [] } = useQuery<ShortsEditEntry[]>({
+    queryKey: ['shorts-recent-edits'],
+    queryFn: () => api.shortsStudio.recentEdits().then((r) => (Array.isArray(r.data) ? r.data : [])),
+    staleTime: 15_000,
+  });
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
@@ -457,7 +468,6 @@ function HistoryDrawer({
     try {
       await api.editor.deleteProject(id);
       if (isCurrent) {
-        // Navigate away before the list refreshes — pick the first remaining edit or go to blank
         const remaining = edits.filter((e) => e.id !== id);
         const next = remaining[0];
         router.push(next ? `/editor/${next.id}` : '/editor');
@@ -470,9 +480,19 @@ function HistoryDrawer({
     }
   }
 
-  const filteredEdits = editSearch.trim()
-    ? edits.filter((p) => p.title.toLowerCase().includes(editSearch.toLowerCase()))
-    : edits;
+  const q = editSearch.trim().toLowerCase();
+  const filteredEdits = q ? edits.filter((p) => p.title.toLowerCase().includes(q)) : edits;
+  const filteredShorts = q ? shortsEdits.filter((p) => p.title.toLowerCase().includes(q)) : shortsEdits;
+  const totalCount = edits.length + shortsEdits.length;
+
+  const SHORTS_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+    IN_EDITING: { bg: '#eff6ff', text: '#1d4ed8' },
+    RENDERED:   { bg: '#ecfdf5', text: '#065f46' },
+    PUBLISHED:  { bg: '#f0fdf4', text: '#15803d' },
+    QUEUED:     { bg: '#fefce8', text: '#854d0e' },
+    PROCESSING: { bg: '#fef3c7', text: '#92400e' },
+    FAILED:     { bg: '#fef2f2', text: '#b91c1c' },
+  };
 
   return (
     <div
@@ -484,7 +504,7 @@ function HistoryDrawer({
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
           <Film className="w-4 h-4 text-brand-500" />
           <p className="flex-1 font-semibold text-gray-800 text-sm">My Edits</p>
-          <span className="text-[10px] text-gray-400 font-medium">{edits.length} projects</span>
+          <span className="text-[10px] text-gray-400 font-medium">{totalCount} total</span>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 ml-1" aria-label="Close my edits">
             <X className="w-4 h-4 text-gray-500" />
           </button>
@@ -497,15 +517,14 @@ function HistoryDrawer({
           >
             <Plus className="w-4 h-4" /> New Edit
           </button>
-          {/* Search */}
-          {edits.length > 0 && (
+          {totalCount > 0 && (
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
               <input
                 type="text"
                 value={editSearch}
                 onChange={(e) => setEditSearch(e.target.value)}
-                placeholder="Search my edits…"
+                placeholder="Search all edits…"
                 className="w-full pl-7 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 bg-gray-50"
               />
               {editSearch && (
@@ -516,55 +535,100 @@ function HistoryDrawer({
             </div>
           )}
         </div>
-        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1.5">
-          {filteredEdits.length === 0 && editSearch ? (
+        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-3">
+          {/* ── Video Editor section ─────────────────────────────────────────── */}
+          {filteredEdits.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-1 mb-1.5">Video Editor</p>
+              <div className="space-y-1.5">
+                {filteredEdits.map((p) => {
+                  const sc = STATUS_COLORS[p.status] ?? STATUS_COLORS['DRAFT']!;
+                  const isCurrent = p.id === currentEditId;
+                  return (
+                    <div
+                      key={p.id}
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors group ${isCurrent ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-white hover:bg-gray-50'}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => { router.push(`/editor/${p.id}`); onClose(); }}
+                        className="flex-1 flex items-center gap-2.5 text-left min-w-0"
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? 'bg-brand-100' : 'bg-gray-100'}`}>
+                          <Film className={`w-3.5 h-3.5 ${isCurrent ? 'text-brand-600' : 'text-gray-500'}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-semibold truncate ${isCurrent ? 'text-brand-800' : 'text-gray-800'}`}>{p.title}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Clock className="w-2.5 h-2.5 text-gray-400" />
+                            <span className="text-[10px] text-gray-400">{relativeTime(p.lastEditedAt)}</span>
+                            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold" style={{ background: sc.bg, color: sc.text }}>
+                              {p.status.charAt(0) + p.status.slice(1).toLowerCase()}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={deleting === p.id}
+                        onClick={() => void handleDelete(p.id, isCurrent)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
+                        title="Delete this edit"
+                      >
+                        {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Shorts Studio section ────────────────────────────────────────── */}
+          {filteredShorts.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-1 mb-1.5">Shorts Studio</p>
+              <div className="space-y-1.5">
+                {filteredShorts.map((p) => {
+                  const sc = SHORTS_STATUS_COLORS[p.status] ?? { bg: '#f3f4f6', text: '#4b5563' };
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => { router.push(`/shorts-studio/clips/${p.id}/edit`); onClose(); }}
+                      className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-violet-50 hover:border-violet-200 transition-colors text-left"
+                    >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-violet-100">
+                        <Smartphone className="w-3.5 h-3.5 text-violet-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate text-gray-800">{p.title}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Clock className="w-2.5 h-2.5 text-gray-400" />
+                          <span className="text-[10px] text-gray-400">{relativeTime(p.lastEditedAt)}</span>
+                          <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold" style={{ background: sc.bg, color: sc.text }}>
+                            {p.status.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+                          </span>
+                        </div>
+                      </div>
+                      <Clapperboard className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {totalCount === 0 && !editSearch && (
+            <p className="text-xs text-gray-400 text-center py-8">No edits yet — create one above.</p>
+          )}
+          {(filteredEdits.length === 0 && filteredShorts.length === 0) && editSearch ? (
             <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
               <Search className="w-8 h-8 text-gray-200" />
               <p className="text-xs text-gray-400">No edits match <strong>&quot;{editSearch}&quot;</strong></p>
               <button onClick={() => setEditSearch('')} className="text-[11px] text-brand-500 hover:underline">Clear search</button>
             </div>
-          ) : filteredEdits.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-8">No edits yet — create one above.</p>
           ) : null}
-          {filteredEdits.map((p) => {
-            const sc = STATUS_COLORS[p.status] ?? STATUS_COLORS['DRAFT']!;
-            const isCurrent = p.id === currentEditId;
-            return (
-              <div
-                key={p.id}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors group ${isCurrent ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-white hover:bg-gray-50'}`}
-              >
-                <button
-                  type="button"
-                  onClick={() => { router.push(`/editor/${p.id}`); onClose(); }}
-                  className="flex-1 flex items-center gap-2.5 text-left min-w-0"
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? 'bg-brand-100' : 'bg-gray-100'}`}>
-                    <Film className={`w-3.5 h-3.5 ${isCurrent ? 'text-brand-600' : 'text-gray-500'}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold truncate ${isCurrent ? 'text-brand-800' : 'text-gray-800'}`}>{p.title}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <Clock className="w-2.5 h-2.5 text-gray-400" />
-                      <span className="text-[10px] text-gray-400">{relativeTime(p.lastEditedAt)}</span>
-                      <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold" style={{ background: sc.bg, color: sc.text }}>
-                        {p.status.charAt(0) + p.status.slice(1).toLowerCase()}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  disabled={deleting === p.id}
-                  onClick={() => void handleDelete(p.id, isCurrent)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
-                  title="Delete this edit"
-                >
-                  {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>

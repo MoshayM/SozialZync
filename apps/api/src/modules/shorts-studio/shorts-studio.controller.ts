@@ -445,6 +445,46 @@ export class ShortsStudioController {
     return this.exports.getQueuedClips(user.sub);
   }
 
+  /** My recent Shorts edits — clips the user has actively edited, for the unified My Edits drawer. */
+  @Get('clips/recent-edits')
+  async recentEdits(@CurrentUser() user: JwtPayload) {
+    const clips = await this.prisma.shortClip.findMany({
+      where: {
+        project: { userId: user.sub },
+        status: { notIn: ['CANDIDATE'] },
+        timeline: { isNot: null },
+      },
+      select: {
+        id: true,
+        clipType: true,
+        status: true,
+        updatedAt: true,
+        topicSegment: {
+          select: {
+            importedVideoId: true,
+            title: true,
+            highlight: { select: { titleSuggestion: true } },
+          },
+        },
+        chapter: { select: { title: true } },
+        timeline: { select: { updatedAt: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 30,
+    });
+    return clips.map((c) => ({
+      id: c.id,
+      clipType: c.clipType,
+      status: c.status,
+      title: c.topicSegment?.highlight?.titleSuggestion
+        ?? c.topicSegment?.title
+        ?? c.chapter?.title
+        ?? `Clip (${c.clipType.replace(/_/g, ' ')})`,
+      importedVideoId: c.topicSegment?.importedVideoId ?? null,
+      lastEditedAt: (c.timeline?.updatedAt ?? c.updatedAt).toISOString(),
+    }));
+  }
+
   /** AI-suggested publish schedule: 3 optimal slots based on platform best-practices. */
   @Get('clips/:shortClipId/schedule-suggestions')
   async scheduleSuggestions(@Param('shortClipId') shortClipId: string, @CurrentUser() user: JwtPayload) {

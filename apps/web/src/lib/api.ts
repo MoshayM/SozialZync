@@ -1118,6 +1118,8 @@ export const api = {
     },
     setPrimaryThumbnail: (thumbnailId: string) =>
       apiClient.post(`/shorts-studio/thumbnails/${thumbnailId}/set-primary`),
+    recentEdits: () =>
+      apiClient.get<Array<{ id: string; clipType: string; status: string; title: string; importedVideoId: string | null; lastEditedAt: string }>>('/shorts-studio/clips/recent-edits'),
     publishQueue: () =>
       apiClient.get<{ id: string; status: string; title: string; channelTitle: string | null; projectId: string; updatedAt: string }[]>('/shorts-studio/clips/queued'),
     scheduleSlots: (shortClipId: string) =>
