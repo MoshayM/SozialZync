@@ -275,17 +275,19 @@ export class ThumbnailGenerationService {
     const perVariant: Array<{ buffer: any; ext: string } | null> = variants.map(() => null);
 
     if (openaiKey) {
-      const model = process.env['IMAGE_OPENAI_MODEL'] ?? 'dall-e-3';
+      // gpt-image-1 is the default for project-scoped keys (sk-proj-...).
+      // dall-e-3 is only accessible on older org-scoped keys (sk-...).
+      // Portrait size: gpt-image-1 uses 1024x1536, dall-e-3 uses 1024x1792.
+      const model = process.env['IMAGE_OPENAI_MODEL'] ?? 'gpt-image-1';
+      const size = model === 'dall-e-3' ? '1024x1792' : '1024x1536';
       const dalleResults = await Promise.all(
         variants.map(async (variant) => {
           try {
-            // Use URL response format — response_format param removed as it is
-            // rejected by newer project-scoped API keys (sk-proj-...)
             const res = await fetch('https://api.openai.com/v1/images/generations', {
               method: 'POST',
               headers: { Authorization: `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ model, prompt: variant, n: 1, size: '1024x1792' }),
-              signal: AbortSignal.timeout(45_000),
+              body: JSON.stringify({ model, prompt: variant, n: 1, size }),
+              signal: AbortSignal.timeout(60_000),
             });
             if (!res.ok) {
               const errBody = await res.text().catch(() => '');
