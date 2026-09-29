@@ -1,9 +1,9 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   ChevronDown, ChevronRight, Loader2, Play, Pause,
-  Check, Mic, Music2, Volume2, Users, ImageIcon, Sparkles,
+  Check, Mic, Music2, Volume2, Users, ImageIcon, Sparkles, Info, Upload, X,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import type { VoiceLibraryEntry, MusicTrack } from '@/lib/api';
@@ -15,14 +15,15 @@ interface Props {
   shortClipId: string;
   captionsText: string;
   audioVersionId?: string;
+  requestOpen?: string | null;
 }
 
 // ── Panel header (accordion toggle) ──────────────────────────────────────────
 
 function PanelHeader({
-  icon, label, open, onToggle,
+  icon, label, description, open, onToggle,
 }: {
-  icon: React.ReactNode; label: string; open: boolean; onToggle: () => void;
+  icon: React.ReactNode; label: string; description: string; open: boolean; onToggle: () => void;
 }) {
   return (
     <button
@@ -30,7 +31,18 @@ function PanelHeader({
       onClick={onToggle}
       className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors rounded-xl"
     >
-      <span className="flex items-center gap-2">{icon} {label}</span>
+      <span className="flex items-center gap-2">
+        {icon}
+        {label}
+        <span
+          title={description}
+          aria-label={description}
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-help"
+        >
+          <Info className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600" />
+        </span>
+      </span>
       {open
         ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
         : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
@@ -297,7 +309,7 @@ function AudioPanel({ timelineId, audioVersionId }: { timelineId: string; audioV
   if (!audioVersionId) {
     return (
       <p className="px-3 pb-3 text-[11px] text-gray-400">
-        No audio track found in the timeline.
+        Source audio is embedded in the Video track. Add a Voice-Over above to create a separate audio track for enhancement.
       </p>
     );
   }
@@ -409,6 +421,7 @@ function CharactersPanel({ timelineId, captionsText }: { timelineId: string; cap
           <a href="/studio/characters" target="_blank" rel="noreferrer" className="text-brand-600 hover:underline">
             create one in Character Studio
           </a>
+          {' '}(opens in new tab)
         </p>
       )}
 
@@ -458,84 +471,67 @@ function CharactersPanel({ timelineId, captionsText }: { timelineId: string; cap
   );
 }
 
-// ── 5. Thumbnails ─────────────────────────────────────────────────────────────
+// ── 5. Image Overlays (inline upload) ─────────────────────────────────────────
 
-interface Thumbnail { id: string; url: string; isPrimary: boolean }
+function ImagesPanel({ timelineId }: { timelineId: string }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploads, setUploads] = useState<Array<{ name: string; status: 'uploading' | 'done' | 'error' }>>([]);
 
-function ThumbnailsPanel({ shortClipId }: { shortClipId: string }) {
-  const rawBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0]!;
+    setUploads((prev) => [...prev, { name: file.name, status: 'uploading' }]);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('timelineId', timelineId);
+      await apiClient.post('/shorts-studio/timelines/overlay-image', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setUploads((prev) => prev.map((u) => u.name === file.name ? { ...u, status: 'done' } : u));
+    } catch {
+      setUploads((prev) => prev.map((u) => u.name === file.name ? { ...u, status: 'error' } : u));
+    }
+  };
 
-  const thumbQ = useQuery({
-    queryKey: ['clip-thumbnails', shortClipId],
-    queryFn: () => api.shortsStudio.thumbnails(shortClipId).then((r) => r.data as Thumbnail[]),
-    staleTime: 60_000,
-  });
-
-  const setPrimary = useMutation({
-    mutationFn: (id: string) => api.shortsStudio.setPrimaryThumbnail(id),
-    onSuccess: () => void thumbQ.refetch(),
-  });
-
-  if (thumbQ.isLoading) {
-    return <p className="px-3 pb-3 text-[11px] text-gray-400">Loading thumbnails…</p>;
-  }
-
-  const thumbs = thumbQ.data ?? [];
-  if (thumbs.length === 0) {
-    return (
-      <p className="px-3 pb-3 text-[11px] text-gray-400">
-        Thumbnails are generated when you render. Re-open this panel after your first render.
-      </p>
-    );
-  }
-
-  return (
-    <div className="px-3 pb-3 grid grid-cols-2 gap-2">
-      {thumbs.map((t) => {
-        const src = t.url.startsWith('http') ? t.url : `${rawBase}${t.url}`;
-        return (
-          <div key={t.id} className="relative group rounded-lg overflow-hidden border border-gray-200">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt="thumbnail" className="w-full aspect-video object-cover" />
-            {t.isPrimary && (
-              <span className="absolute top-1 left-1 text-[9px] bg-brand-600 text-white px-1.5 py-0.5 rounded font-semibold">
-                Primary
-              </span>
-            )}
-            {!t.isPrimary && (
-              <button
-                type="button"
-                onClick={() => setPrimary.mutate(t.id)}
-                disabled={setPrimary.isPending}
-                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-white text-[10px] font-medium"
-              >
-                {setPrimary.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Set primary'}
-              </button>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── 6. Image Overlays (stub) ──────────────────────────────────────────────────
-
-function ImagesPanel() {
   return (
     <div className="px-3 pb-3 space-y-2">
       <p className="text-[11px] text-gray-500">
-        Browse stock images and add them as overlay clips. Full drag-and-drop support is coming soon.
+        Upload images to add as overlay clips on the timeline. Drag-and-drop placement is coming soon.
       </p>
-      <a
-        href="/studio/assets"
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-700 hover:underline"
+
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-500 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-colors"
       >
-        <ImageIcon className="w-3.5 h-3.5" />
-        Open Image Studio
-      </a>
+        <Upload className="w-3.5 h-3.5" />
+        Choose image to upload
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => void handleFiles(e.target.files)}
+      />
+
+      {uploads.length > 0 && (
+        <div className="space-y-1">
+          {uploads.map((u, i) => (
+            <div key={i} className="flex items-center gap-2 text-[11px]">
+              {u.status === 'uploading' && <Loader2 className="w-3 h-3 animate-spin text-purple-500 shrink-0" />}
+              {u.status === 'done' && <Check className="w-3 h-3 text-green-500 shrink-0" />}
+              {u.status === 'error' && <X className="w-3 h-3 text-red-500 shrink-0" />}
+              <span className={`truncate ${u.status === 'error' ? 'text-red-500' : 'text-gray-600'}`}>
+                {u.name}
+              </span>
+              {u.status === 'done' && <span className="text-gray-400 shrink-0">— re-render to see it</span>}
+              {u.status === 'error' && <span className="text-red-400 shrink-0">— failed</span>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -543,19 +539,49 @@ function ImagesPanel() {
 // ── Main export ───────────────────────────────────────────────────────────────
 
 const PANELS = [
-  { id: 'music',   icon: <Music2 className="w-4 h-4 text-cyan-600" />,    label: 'Background Music' },
-  { id: 'voice',   icon: <Mic    className="w-4 h-4 text-brand-600" />,   label: 'Voice-Over' },
-  { id: 'audio',   icon: <Volume2 className="w-4 h-4 text-emerald-600" />, label: 'Audio Enhancement' },
-  { id: 'chars',   icon: <Users  className="w-4 h-4 text-fuchsia-600" />, label: 'Characters' },
-  { id: 'thumbs',  icon: <Sparkles className="w-4 h-4 text-amber-500" />, label: 'Thumbnails' },
-  { id: 'images',  icon: <ImageIcon className="w-4 h-4 text-purple-600" />, label: 'Image Overlays' },
+  {
+    id: 'music',
+    icon: <Music2 className="w-4 h-4 text-cyan-600" />,
+    label: 'Background Music',
+    description: 'Browse royalty-free tracks and add background music. AI can auto-pick a track based on your captions.',
+  },
+  {
+    id: 'voice',
+    icon: <Mic className="w-4 h-4 text-brand-600" />,
+    label: 'Voice-Over',
+    description: 'Generate AI voice-over from a script using OpenAI or ElevenLabs. Adds an audio track to the timeline.',
+  },
+  {
+    id: 'audio',
+    icon: <Volume2 className="w-4 h-4 text-emerald-600" />,
+    label: 'Audio Enhancement',
+    description: 'Trim silence, reduce background noise, and normalize loudness on a voice-over audio track.',
+  },
+  {
+    id: 'chars',
+    icon: <Users className="w-4 h-4 text-fuchsia-600" />,
+    label: 'Characters',
+    description: 'Pick a character from your Character Studio and generate narration in their voice and style.',
+  },
+  {
+    id: 'images',
+    icon: <ImageIcon className="w-4 h-4 text-purple-600" />,
+    label: 'Image Overlays',
+    description: 'Upload images to layer over the video as overlay clips — great for logos, graphics, and B-roll.',
+  },
 ] as const;
 
 type PanelId = typeof PANELS[number]['id'];
 
-export function StudioToolPanels({ timelineId, shortClipId, captionsText, audioVersionId }: Props) {
+export function StudioToolPanels({ timelineId, shortClipId: _shortClipId, captionsText, audioVersionId, requestOpen }: Props) {
   const [open, setOpen] = useState<PanelId | null>(null);
   const toggle = (id: PanelId) => setOpen((o) => (o === id ? null : id));
+
+  useEffect(() => {
+    if (requestOpen && PANELS.some((p) => p.id === requestOpen)) {
+      setOpen(requestOpen as PanelId);
+    }
+  }, [requestOpen]);
 
   function renderContent(id: PanelId) {
     switch (id) {
@@ -563,8 +589,7 @@ export function StudioToolPanels({ timelineId, shortClipId, captionsText, audioV
       case 'voice':  return <VoicePanel timelineId={timelineId} captionsText={captionsText} />;
       case 'audio':  return <AudioPanel timelineId={timelineId} audioVersionId={audioVersionId} />;
       case 'chars':  return <CharactersPanel timelineId={timelineId} captionsText={captionsText} />;
-      case 'thumbs': return <ThumbnailsPanel shortClipId={shortClipId} />;
-      case 'images': return <ImagesPanel />;
+      case 'images': return <ImagesPanel timelineId={timelineId} />;
     }
   }
 
@@ -577,6 +602,7 @@ export function StudioToolPanels({ timelineId, shortClipId, captionsText, audioV
             <PanelHeader
               icon={p.icon}
               label={p.label}
+              description={p.description}
               open={open === p.id}
               onToggle={() => toggle(p.id)}
             />

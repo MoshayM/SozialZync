@@ -8,6 +8,7 @@ import {
   ZoomIn, ZoomOut, Wand2, Captions, Check, X, Save, Clapperboard,
   Maximize2, Film, Music2, Type, Layers, Volume2, VolumeX, Layout,
   Monitor, Smartphone, Square, RectangleHorizontal,
+  Mic, Users, ImageIcon,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { StudioToolPanels } from './StudioToolPanels';
@@ -127,6 +128,7 @@ export default function TimelineEditorPage() {
   const [muted, setMuted] = useState(false);
   const [canvasPanelOpen, setCanvasPanelOpen] = useState(false);
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
+  const [quickTool, setQuickTool] = useState<string | null>(null);
   const [useRenderedSource, setUseRenderedSource] = useState(false);
   const useRenderedSourceRef = useRef(false);
   useRenderedSourceRef.current = useRenderedSource;
@@ -157,11 +159,16 @@ export default function TimelineEditorPage() {
     }
   }, [clip]);
 
-  // When captions arrive after a generation job, update local timeline and clear the pending flag
+  // When captions arrive, only update the captions array — preserve track items and their
+  // sourceStartMs mappings so playback isn't interrupted by the timeline reset.
   useEffect(() => {
     if (captionPending && (clip?.timeline?.captions?.length ?? 0) > 0) {
       setCaptionPending(false);
-      setTimeline(clone(clip!.timeline));
+      setTimeline((prev) =>
+        prev
+          ? { ...prev, captions: clip!.timeline.captions }
+          : clone(clip!.timeline),
+      );
     }
   }, [captionPending, clip]);
 
@@ -170,13 +177,19 @@ export default function TimelineEditorPage() {
     if (videoRef.current) videoRef.current.muted = muted;
   }, [muted]);
 
-  // Source video — short-lived signed URL enabling Range requests for seeking
-  useEffect(() => {
-    const versionId = clip?.timeline.tracks
+  // Stable video asset version ID — changes only when the source video is replaced,
+  // not when captions or other metadata arrive (prevents spurious video reloads)
+  const videoVersionId = useMemo(() =>
+    clip?.timeline.tracks
       .filter((t) => t.type === 'VIDEO')
       .flatMap((t) => t.items)
-      .find((i) => i.sourceAsset?.versions[0])?.sourceAsset?.versions[0]?.id;
+      .find((i) => i.sourceAsset?.versions[0])?.sourceAsset?.versions[0]?.id,
+  [clip]);
 
+  // Source video — short-lived signed URL enabling Range requests for seeking.
+  // Depends only on videoVersionId (not the full clip) so caption arrival doesn't
+  // reload the video element and break playback.
+  useEffect(() => {
     const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
     let cancelled = false;
     setVideoLoading(true);
@@ -194,13 +207,13 @@ export default function TimelineEditorPage() {
         .catch(() => { if (!cancelled) setVideoUrl(null); });
     };
 
-    if (!versionId) {
+    if (!videoVersionId) {
       loadRendered();
       return () => { cancelled = true; };
     }
 
     void apiClient
-      .get<{ url: string }>(`/media/versions/${versionId}/editor-url`)
+      .get<{ url: string }>(`/media/versions/${videoVersionId}/editor-url`)
       .then((r) => {
         if (!cancelled) {
           setVideoUrl(`${apiBase}${r.data.url}`);
@@ -210,7 +223,7 @@ export default function TimelineEditorPage() {
       .catch(() => { if (!cancelled) loadRendered(); });
 
     return () => { cancelled = true; };
-  }, [clip, shortClipId]);
+  }, [videoVersionId, shortClipId]);
 
   // ── Persistence ─────────────────────────────────────────────────────────────
 
@@ -797,7 +810,7 @@ export default function TimelineEditorPage() {
           </div>
 
           {/* Toolbar */}
-          <div className="flex items-center gap-1 mt-2">
+          <div className="flex items-center gap-1 mt-2 flex-wrap">
             <button onClick={togglePlay} className="flex items-center justify-center w-8 h-8 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shrink-0" title="Play/Pause (Space)">
               {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
             </button>
@@ -813,6 +826,28 @@ export default function TimelineEditorPage() {
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
+            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
+            {/* Studio Tools quick-access — each button opens the corresponding panel in the sidebar */}
+            {([
+              { id: 'music',  label: 'Music',      Icon: Music2,     color: 'text-cyan-600' },
+              { id: 'voice',  label: 'Voice-Over',  Icon: Mic,        color: 'text-brand-600' },
+              { id: 'audio',  label: 'Audio',       Icon: Volume2,    color: 'text-emerald-600' },
+              { id: 'chars',  label: 'Characters',  Icon: Users,      color: 'text-fuchsia-600' },
+              { id: 'images', label: 'Images',      Icon: ImageIcon,  color: 'text-purple-600' },
+            ] as const).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setQuickTool((prev) => prev === t.id ? null : t.id)}
+                title={t.label}
+                className={`flex items-center justify-center w-7 h-7 border rounded-lg shrink-0 transition-colors ${
+                  quickTool === t.id
+                    ? 'border-brand-400 bg-brand-50'
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <t.Icon className={`w-3.5 h-3.5 ${quickTool === t.id ? 'text-brand-600' : t.color}`} />
+              </button>
+            ))}
           </div>
 
           {/* ── Timeline ────────────────────────────────────────────────────── */}
@@ -905,7 +940,7 @@ export default function TimelineEditorPage() {
                         <div className="absolute inset-y-2 left-1 right-1 rounded-lg border border-dashed border-gray-700/50 flex items-center px-3">
                           <span className="text-[9px] text-gray-600 italic">
                             {track.type === 'AUDIO'
-                              ? (isVirtual ? 'Voice-over — add via Studio Tools (Source audio plays from Video track)' : 'Voice-over — add via Studio Tools')
+                              ? (isVirtual ? 'Voice-over (source audio is in Video track) — add via Studio Tools →' : 'Voice-over — add via Studio Tools')
                               : track.type === 'MUSIC' ? 'Music — add via Studio Tools'
                               : 'Empty'}
                           </span>
@@ -1132,6 +1167,7 @@ export default function TimelineEditorPage() {
                   ?.items[0]
                   ?.sourceAsset?.versions[0]?.id
               }
+              requestOpen={quickTool}
             />
 
             {suggestions && (
