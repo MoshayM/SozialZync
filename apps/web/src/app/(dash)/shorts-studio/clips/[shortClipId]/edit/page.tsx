@@ -6,12 +6,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, Play, Pause, Scissors, Trash2, Undo2, Redo2,
   ZoomIn, ZoomOut, Wand2, Captions, Check, X, Save, Clapperboard,
-  Maximize2, Film, Music2, Type, Layers,
+  Maximize2, Film, Music2, Type, Layers, Volume2, VolumeX, Layout,
+  Monitor, Smartphone, Square, RectangleHorizontal,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { StudioToolPanels } from './StudioToolPanels';
 
-// ── Types mirroring the timeline API ─────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Item {
   id: string;
@@ -23,7 +24,8 @@ interface Item {
 }
 interface Track { id: string; type: 'VIDEO' | 'AUDIO' | 'MUSIC' | 'CAPTION' | 'OVERLAY'; orderIndex: number; items: Item[] }
 interface Caption { id: string; startMs: number; endMs: number; text: string; emphasis: boolean; emoji: string | null }
-interface TimelineData { id: string; durationMs: number; tracks: Track[]; captions: Caption[] }
+interface CanvasConfig { aspect: '9:16' | '16:9' | '1:1' | '4:5'; fit: 'fill' | 'contain'; panX: number; panY: number; scale: number }
+interface TimelineData { id: string; durationMs: number; tracks: Track[]; captions: Caption[]; canvasConfig?: CanvasConfig | null }
 interface ClipData {
   id: string;
   clipType: string;
@@ -50,32 +52,38 @@ const TRACK_COLORS: Record<Track['type'], string> = {
   OVERLAY: 'bg-fuchsia-500/90 border-fuchsia-400',
 };
 const TRACK_HEIGHTS: Record<Track['type'], number> = {
-  VIDEO: 64,
-  AUDIO: 56,
-  MUSIC: 56,
-  CAPTION: 36,
-  OVERLAY: 36,
+  VIDEO: 64, AUDIO: 56, MUSIC: 56, CAPTION: 36, OVERLAY: 36,
 };
 const TRACK_BAR: Record<Track['type'], string> = {
-  VIDEO: 'bg-violet-500',
-  AUDIO: 'bg-emerald-500',
-  MUSIC: 'bg-cyan-500',
-  CAPTION: 'bg-amber-400',
-  OVERLAY: 'bg-fuchsia-500',
+  VIDEO: 'bg-violet-500', AUDIO: 'bg-emerald-500', MUSIC: 'bg-cyan-500',
+  CAPTION: 'bg-amber-400', OVERLAY: 'bg-fuchsia-500',
 };
+
+const CANVAS_PRESETS: { label: string; sub: string; key: CanvasConfig['aspect']; w: number; h: number; Icon: typeof Smartphone }[] = [
+  { label: 'Shorts / Reels', sub: '9:16 · 1080×1920', key: '9:16', w: 1080, h: 1920, Icon: Smartphone },
+  { label: 'Square', sub: '1:1 · 1080×1080', key: '1:1', w: 1080, h: 1080, Icon: Square },
+  { label: 'Portrait', sub: '4:5 · 1080×1350', key: '4:5', w: 1080, h: 1350, Icon: RectangleHorizontal },
+  { label: 'Widescreen', sub: '16:9 · 1920×1080', key: '16:9', w: 1920, h: 1080, Icon: Monitor },
+];
+
+const ASPECT_PAIRS: Record<CanvasConfig['aspect'], [number, number]> = {
+  '9:16': [9, 16], '1:1': [1, 1], '4:5': [4, 5], '16:9': [16, 9],
+};
+
+const DEFAULT_CANVAS: CanvasConfig = { aspect: '9:16', fit: 'fill', panX: 0, panY: 0, scale: 1 };
+
+function defaultAspectForClipType(clipType: string): CanvasConfig['aspect'] {
+  if (clipType === 'PODCAST_HIGHLIGHTS' || clipType === 'SMALL_VIDEO') return '16:9';
+  if (clipType === 'LINKEDIN_CLIPS') return '1:1';
+  return '9:16';
+}
 
 function fmt(ms: number): string {
   const s = ms / 1000;
   return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}.${String(Math.floor((s % 1) * 10))}`;
 }
+function clone<T>(t: T): T { return JSON.parse(JSON.stringify(t)) as T; }
 
-function clone<T>(t: T): T {
-  return JSON.parse(JSON.stringify(t)) as T;
-}
-
-/** Timeline t → source-video time through the video items (speed 1).
- *  When `renderedSrc` is true the preview video IS the timeline output, so
- *  the mapping is identity: rendered-video time equals timeline time.         */
 function timelineToSource(tracks: Track[], tMs: number, renderedSrc = false): number | null {
   if (renderedSrc) return tMs;
   for (const track of tracks) {
@@ -99,7 +107,6 @@ export default function TimelineEditorPage() {
     queryKey: ['clip-timeline', shortClipId],
     queryFn: () => api.shortsStudio.clipTimeline(shortClipId).then((r) => r.data as ClipData),
     refetchOnWindowFocus: false,
-    // Poll every 3s while a caption job is in flight and no captions have arrived yet
     refetchInterval: (q) =>
       captionPending && (q.state.data?.timeline?.captions?.length ?? 0) === 0 ? 3000 : false,
   });
@@ -115,9 +122,11 @@ export default function TimelineEditorPage() {
   const [pxPerSec, setPxPerSec] = useState(12);
   const [playing, setPlaying] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(true);
   const [previewSize, setPreviewSize] = useState<'sm' | 'md' | 'lg'>('md');
-  // true when videoUrl is the *rendered* clip rather than the original source video.
-  // In that mode timeline-time maps 1-to-1 to the video file's time (no sourceStartMs offset).
+  const [muted, setMuted] = useState(false);
+  const [canvasPanelOpen, setCanvasPanelOpen] = useState(false);
+  const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
   const [useRenderedSource, setUseRenderedSource] = useState(false);
   const useRenderedSourceRef = useRef(false);
   useRenderedSourceRef.current = useRenderedSource;
@@ -132,9 +141,21 @@ export default function TimelineEditorPage() {
   const timelineRef = useRef<TimelineData | null>(null);
   timelineRef.current = timeline;
 
+  // Sync timeline from server on first load
   useEffect(() => {
     if (clip?.timeline && !timeline) setTimeline(clone(clip.timeline));
   }, [clip, timeline]);
+
+  // Load canvas config from server (or derive from clipType default)
+  useEffect(() => {
+    if (!clip) return;
+    const serverCfg = clip.timeline.canvasConfig;
+    if (serverCfg && serverCfg.aspect) {
+      setCanvasConfig({ ...DEFAULT_CANVAS, ...serverCfg });
+    } else {
+      setCanvasConfig({ ...DEFAULT_CANVAS, aspect: defaultAspectForClipType(clip.clipType) });
+    }
+  }, [clip]);
 
   // When captions arrive after a generation job, update local timeline and clear the pending flag
   useEffect(() => {
@@ -144,26 +165,21 @@ export default function TimelineEditorPage() {
     }
   }, [captionPending, clip]);
 
-  // Source video — get a short-lived signed URL so the browser can stream
-  // it natively (supports Range requests / seeking) without downloading the
-  // whole file first as a blob.
-  //
-  // For RENDERED clips the original source video may no longer be stored on
-  // the server (it is downloaded for analysis, then cleaned up after render).
-  // In that case we fall back to the rendered clip via `previewUrl`, which is
-  // always available once the clip status is RENDERED.  The identity time
-  // mapping (useRenderedSource=true) makes seeking work correctly because the
-  // rendered file IS the timeline output: rendered-video time = timeline time.
+  // Sync muted prop to video element
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = muted;
+  }, [muted]);
+
+  // Source video — short-lived signed URL enabling Range requests for seeking
   useEffect(() => {
     const versionId = clip?.timeline.tracks
       .filter((t) => t.type === 'VIDEO')
       .flatMap((t) => t.items)
       .find((i) => i.sourceAsset?.versions[0])?.sourceAsset?.versions[0]?.id;
 
-    // Strip /api/v1 suffix so the browser streams directly from Railway
-    // (Vercel's proxy doesn't forward Range headers, breaking seeking).
     const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
     let cancelled = false;
+    setVideoLoading(true);
 
     const loadRendered = () => {
       void api.shortsStudio.previewUrl(shortClipId)
@@ -179,7 +195,6 @@ export default function TimelineEditorPage() {
     };
 
     if (!versionId) {
-      // No source asset on the video track — go straight to the rendered clip.
       loadRendered();
       return () => { cancelled = true; };
     }
@@ -192,10 +207,7 @@ export default function TimelineEditorPage() {
           setUseRenderedSource(false);
         }
       })
-      .catch(() => {
-        // Source video unavailable — fall back to the rendered clip.
-        if (!cancelled) loadRendered();
-      });
+      .catch(() => { if (!cancelled) loadRendered(); });
 
     return () => { cancelled = true; };
   }, [clip, shortClipId]);
@@ -212,17 +224,13 @@ export default function TimelineEditorPage() {
       const res = await api.shortsStudio.applyCommands(tl.id, commands);
       setSaveError(null);
       const serverTimeline = res.data as TimelineData;
-      // Server state is authoritative (SPLIT/DUPLICATE ids are server-generated)
       setTimeline((prev) => prev ? { ...serverTimeline, captions: serverTimeline.captions ?? prev.captions } : serverTimeline);
-      // Keep the React Query cache in sync so re-navigation loads the saved state
       qc.setQueryData<ClipData>(['clip-timeline', shortClipId], (old) =>
         old ? { ...old, timeline: serverTimeline } : old,
       );
-      // Flushed edits can no longer be undone locally
       setUndoStack([]);
       setRedoStack([]);
     } catch (err: unknown) {
-      // Put commands back so the user can retry with Save
       setPending((p) => [...commands, ...p]);
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Save failed — please retry';
       setSaveError(msg);
@@ -231,7 +239,6 @@ export default function TimelineEditorPage() {
     }
   }, [qc, shortClipId]);
 
-  // Debounced autosave
   useEffect(() => {
     if (pending.length === 0) return;
     const structural = pending.some((c) => c.type === 'SPLIT' || c.type === 'DUPLICATE' || c.type === 'CUT_RANGE');
@@ -239,7 +246,6 @@ export default function TimelineEditorPage() {
     return () => clearTimeout(t);
   }, [pending, flush]);
 
-  /** Apply commands locally (optimistic) and queue for the server. */
   const perform = useCallback((commands: Command[]) => {
     setTimeline((prev) => {
       if (!prev) return prev;
@@ -257,10 +263,9 @@ export default function TimelineEditorPage() {
     setUndoStack((stack) => {
       const last = stack[stack.length - 1];
       if (!last) return stack;
-      // Only undoable while its commands are still queued locally
       setPending((p) => {
         const cut = p.length - last.commands.length;
-        if (cut < 0 || p.slice(cut).some((c, i) => c !== last.commands[i])) return p; // already flushed — cannot undo
+        if (cut < 0 || p.slice(cut).some((c, i) => c !== last.commands[i])) return p;
         setTimeline(clone(last.before));
         setRedoStack((r) => [...r, last]);
         return p.slice(0, cut);
@@ -285,7 +290,19 @@ export default function TimelineEditorPage() {
     });
   }, []);
 
-  // ── Local reducer (mirror of the server, enough for optimistic preview) ─────
+  // ── Canvas config persistence ─────────────────────────────────────────────
+
+  const updateCanvas = useMutation({
+    mutationFn: (cfg: CanvasConfig) =>
+      timeline ? api.shortsStudio.updateCanvas(timeline.id, cfg) : Promise.resolve(null),
+    onSuccess: (_, cfg) => {
+      qc.setQueryData<ClipData>(['clip-timeline', shortClipId], (old) =>
+        old ? { ...old, timeline: { ...old.timeline, canvasConfig: cfg } } : old,
+      );
+    },
+  });
+
+  // ── Local reducer ────────────────────────────────────────────────────────────
 
   function applyLocal(tl: TimelineData, cmd: Command): void {
     const allItems = tl.tracks.flatMap((t) => t.items);
@@ -386,6 +403,16 @@ export default function TimelineEditorPage() {
     [timeline],
   );
 
+  // Virtual display tracks — always show VIDEO + AUDIO + CAPTION even if not in DB
+  const displayTracks = useMemo((): Track[] => {
+    if (!timeline) return [];
+    const existing = new Set(timeline.tracks.map((t) => t.type));
+    const result = [...timeline.tracks];
+    if (!existing.has('AUDIO')) result.push({ id: 'virt-audio', type: 'AUDIO', orderIndex: 10, items: [] });
+    if (!existing.has('CAPTION')) result.push({ id: 'virt-caption', type: 'CAPTION', orderIndex: 11, items: [] });
+    return result.sort((a, b) => a.orderIndex - b.orderIndex);
+  }, [timeline]);
+
   const seekVideo = useCallback((tMs: number) => {
     const v = videoRef.current;
     const tl = timelineRef.current;
@@ -394,10 +421,8 @@ export default function TimelineEditorPage() {
     if (src != null) v.currentTime = src / 1000;
   }, [durationMs]);
 
-  // Stable ref so drag event listeners (registered once) always call the latest seekVideo.
   const seekVideoRef = useRef(seekVideo);
   seekVideoRef.current = seekVideo;
-  // Same for durationMs / pxPerSec so stale closures never clamp wrong.
   const durationMsRef = useRef(durationMs);
   durationMsRef.current = durationMs;
   const pxPerSecRef = useRef(pxPerSec);
@@ -411,17 +436,10 @@ export default function TimelineEditorPage() {
       const tl = timelineRef.current;
       if (v && tl) {
         const srcMs = v.currentTime * 1000;
-
         if (useRenderedSourceRef.current) {
-          // Rendered video: timeline time === rendered-file time (identity mapping).
-          if (v.ended || srcMs >= durationMsRef.current) {
-            v.pause();
-            setPlaying(false);
-          } else {
-            setPlayheadMs(srcMs);
-          }
+          if (v.ended || srcMs >= durationMsRef.current) { v.pause(); setPlaying(false); }
+          else setPlayheadMs(srcMs);
         } else {
-          // Original source video: map via sourceStartMs offsets.
           let found = false;
           for (const track of tl.tracks) {
             if (track.type !== 'VIDEO') continue;
@@ -429,16 +447,11 @@ export default function TimelineEditorPage() {
               const s0 = item.properties?.sourceStartMs;
               if (typeof s0 !== 'number') continue;
               const len = item.endMs - item.startMs;
-              if (srcMs >= s0 && srcMs < s0 + len) {
-                setPlayheadMs(item.startMs + (srcMs - s0));
-                found = true;
-                break;
-              }
+              if (srcMs >= s0 && srcMs < s0 + len) { setPlayheadMs(item.startMs + (srcMs - s0)); found = true; break; }
             }
             if (found) break;
           }
           if (!found) {
-            // between spans — jump to the next item's source start
             const items = tl.tracks.filter((t) => t.type === 'VIDEO').flatMap((t) => t.items)
               .filter((i) => typeof i.properties?.sourceStartMs === 'number')
               .sort((a, b) => a.startMs - b.startMs);
@@ -457,8 +470,15 @@ export default function TimelineEditorPage() {
   const togglePlay = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (playing) { v.pause(); setPlaying(false); }
-    else { seekVideo(playheadMs); void v.play(); setPlaying(true); }
+    if (playing) {
+      v.pause();
+      setPlaying(false);
+    } else {
+      seekVideo(playheadMs);
+      v.play()
+        .then(() => setPlaying(true))
+        .catch(() => setPlaying(false)); // Handle autoplay policy rejection
+    }
   }, [playing, playheadMs, seekVideo]);
 
   // ── Editing actions ─────────────────────────────────────────────────────────
@@ -479,7 +499,6 @@ export default function TimelineEditorPage() {
     setSelectedId(null);
   }, [selectedId, perform]);
 
-  // Keyboard shortcuts (ai.md Section 20.1)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
@@ -508,7 +527,6 @@ export default function TimelineEditorPage() {
     if (d.mode === 'playhead') {
       const newMs = Math.max(0, Math.min(durationMsRef.current, (d.orig?.startMs ?? 0) + dxMs));
       setPlayheadMs(newMs);
-      // KEY FIX: seek the video on every drag tick so playback follows the playhead.
       seekVideoRef.current(newMs);
       return;
     }
@@ -544,7 +562,6 @@ export default function TimelineEditorPage() {
     const item = tl?.tracks.flatMap((t) => t.items).find((i) => i.id === d.itemId);
     if (!tl || !item || item.id.startsWith('tmp-')) return;
     if (item.startMs === d.orig.startMs && item.endMs === d.orig.endMs) return;
-    // Register as a proper action (state already reflects the drag)
     const cmd: Command = d.mode === 'move'
       ? { type: 'MOVE', itemId: item.id, toTrackId: item.trackId, toStartMs: item.startMs }
       : { type: 'TRIM', itemId: item.id, newStartMs: item.startMs, newEndMs: item.endMs };
@@ -561,7 +578,6 @@ export default function TimelineEditorPage() {
     window.addEventListener('mouseup', onMouseUp, { once: true });
   };
 
-  /** Ruler click / drag — seeks to the clicked position then drags relative to it. */
   const startPlayheadDrag = (e: React.MouseEvent) => {
     const rect = scrollRef.current?.getBoundingClientRect();
     const scrollLeft = scrollRef.current?.scrollLeft ?? 0;
@@ -576,7 +592,6 @@ export default function TimelineEditorPage() {
     }, { once: true });
   };
 
-  /** Diamond handle drag — drags from current playhead position (no jump on grab). */
   const startDiamondDrag = (e: React.MouseEvent) => {
     e.stopPropagation();
     dragState.current = { mode: 'playhead', startX: e.clientX, orig: { startMs: playheadMs } as Item };
@@ -587,7 +602,6 @@ export default function TimelineEditorPage() {
     }, { once: true });
   };
 
-  /** Touch equivalent of startPlayheadDrag — used on the ruler for mobile seeking. */
   const startPlayheadTouch = (e: React.TouchEvent) => {
     e.preventDefault();
     const touch = e.touches[0];
@@ -599,7 +613,6 @@ export default function TimelineEditorPage() {
     seekVideoRef.current(ms);
     const startX = touch.clientX;
     const origMs = ms;
-
     const onTM = (te: TouchEvent) => {
       const t = te.touches[0];
       if (!t) return;
@@ -651,10 +664,7 @@ export default function TimelineEditorPage() {
 
   const genCaptions = useMutation({
     mutationFn: () => api.shortsStudio.generateCaptions(shortClipId),
-    onSuccess: () => {
-      // Switch the clip-timeline query into polling mode (every 3s) until captions land
-      setCaptionPending(true);
-    },
+    onSuccess: () => { setCaptionPending(true); },
   });
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -671,6 +681,15 @@ export default function TimelineEditorPage() {
   const tickEveryS = pxPerSec >= 30 ? 1 : pxPerSec >= 10 ? 5 : 10;
   const ticks = Array.from({ length: Math.ceil(durationMs / 1000 / tickEveryS) + 1 }, (_, i) => i * tickEveryS);
   const activeCaption = timeline.captions.find((c) => playheadMs >= c.startMs && playheadMs < c.endMs);
+
+  // Preview container dimensions — respect canvas aspect ratio
+  const previewH = previewSize === 'sm' ? 200 : previewSize === 'lg' ? 480 : 320;
+  const [aw, ah] = ASPECT_PAIRS[canvasConfig.aspect] ?? [9, 16];
+  const previewW = Math.round(previewH * aw / ah);
+
+  // Video object-fit + position reflects the canvas fit mode and pan
+  const videoObjectFit = canvasConfig.fit === 'contain' ? 'contain' : 'cover';
+  const videoObjectPosition = `${50 + canvasConfig.panX * 100}% ${50 + canvasConfig.panY * 100}%`;
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto select-none">
@@ -706,31 +725,56 @@ export default function TimelineEditorPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_290px] gap-4">
         <div>
-          {/* Player */}
-          <div className="bg-black rounded-2xl overflow-hidden flex items-center justify-center relative transition-[height] duration-200" style={{ height: previewSize === 'sm' ? 200 : previewSize === 'lg' ? 480 : 320 }}>
-            {videoUrl ? (
-              // eslint-disable-next-line jsx-a11y/media-has-caption -- AI-generated preview; caption track not produced
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                className="h-full"
-                onLoadedMetadata={() => seekVideo(0)}
-                onEnded={() => setPlaying(false)}
-              />
-            ) : (
-              <p className="text-gray-500 text-sm">Preview unavailable — source video not downloaded</p>
-            )}
-            {activeCaption && (
-              <div className="absolute bottom-6 left-0 right-0 text-center px-8 pointer-events-none">
-                <span className={`inline-block px-3 py-1 rounded-lg text-white text-lg font-bold bg-black/60 ${activeCaption.emphasis ? 'text-amber-300' : ''}`}>
-                  {activeCaption.text}{activeCaption.emoji ? ` ${activeCaption.emoji}` : ''}
-                </span>
+          {/* ── Player ──────────────────────────────────────────────────────── */}
+          <div className="flex justify-center">
+            <div
+              className="bg-black rounded-2xl overflow-hidden flex items-center justify-center relative"
+              style={{ height: previewH, width: previewW, maxWidth: '100%' }}
+            >
+              {videoUrl ? (
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                <video
+                  ref={videoRef}
+                  src={videoUrl}
+                  playsInline
+                  preload="auto"
+                  muted={muted}
+                  className="absolute inset-0 w-full h-full"
+                  style={{ objectFit: videoObjectFit, objectPosition: videoObjectPosition }}
+                  onLoadedMetadata={() => { seekVideo(0); setVideoLoading(false); }}
+                  onCanPlay={() => setVideoLoading(false)}
+                  onWaiting={() => setVideoLoading(true)}
+                  onPlaying={() => setVideoLoading(false)}
+                  onEnded={() => setPlaying(false)}
+                />
+              ) : (
+                <p className="text-gray-500 text-sm px-4 text-center">
+                  Preview unavailable — source video not downloaded
+                </p>
+              )}
+              {/* Caption overlay */}
+              {activeCaption && (
+                <div className="absolute bottom-6 left-0 right-0 text-center px-8 pointer-events-none z-10">
+                  <span className={`inline-block px-3 py-1 rounded-lg text-white text-lg font-bold bg-black/60 ${activeCaption.emphasis ? 'text-amber-300' : ''}`}>
+                    {activeCaption.text}{activeCaption.emoji ? ` ${activeCaption.emoji}` : ''}
+                  </span>
+                </div>
+              )}
+              {/* Buffering indicator */}
+              {videoLoading && videoUrl && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 pointer-events-none">
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                </div>
+              )}
+              {/* Canvas aspect badge */}
+              <div className="absolute top-2 left-2 bg-black/50 text-white text-[9px] font-mono px-1.5 py-0.5 rounded pointer-events-none">
+                {canvasConfig.aspect} · {canvasConfig.fit}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Preview resize controls */}
-          <div className="flex items-center gap-1.5 mt-2">
+          {/* Preview resize + mute controls */}
+          <div className="flex items-center gap-1.5 mt-2 justify-center">
             <Maximize2 className="w-3 h-3 text-gray-400 shrink-0" />
             <span className="text-[10px] text-gray-400 mr-0.5">Preview:</span>
             {(['sm', 'md', 'lg'] as const).map((s) => (
@@ -742,53 +786,41 @@ export default function TimelineEditorPage() {
                 {s === 'sm' ? 'S' : s === 'md' ? 'M' : 'L'}
               </button>
             ))}
-            <span className="text-[10px] text-gray-300 ml-1">{previewSize === 'sm' ? 'Compact' : previewSize === 'md' ? 'Default' : 'Large'}</span>
+            <div className="w-px h-4 bg-gray-200 mx-1" />
+            <button
+              onClick={() => setMuted((m) => !m)}
+              title={muted ? 'Unmute' : 'Mute'}
+              className="flex items-center justify-center w-6 h-6 border border-gray-200 rounded-md hover:bg-gray-50"
+            >
+              {muted ? <VolumeX className="w-3.5 h-3.5 text-gray-500" /> : <Volume2 className="w-3.5 h-3.5 text-gray-600" />}
+            </button>
           </div>
 
-          {/* Toolbar — single balanced row */}
+          {/* Toolbar */}
           <div className="flex items-center gap-1 mt-2">
-            {/* Play / Pause */}
-            <button
-              onClick={togglePlay}
-              className="flex items-center justify-center w-8 h-8 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shrink-0"
-              title="Play/Pause (Space)"
-            >
+            <button onClick={togglePlay} className="flex items-center justify-center w-8 h-8 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shrink-0" title="Play/Pause (Space)">
               {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
             </button>
-
-            {/* Current time / Total duration */}
             <span className="text-xs font-mono tabular-nums text-gray-700 px-2 shrink-0 whitespace-nowrap">
               {fmt(playheadMs)}<span className="text-gray-400"> / {fmt(durationMs)}</span>
             </span>
-
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
-
-            {/* Zoom controls */}
             <button onClick={() => setPxPerSec((z) => Math.max(3, z / 1.4))} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Zoom out (-)"><ZoomOut className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={() => setPxPerSec((z) => Math.min(80, z * 1.4))} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Zoom in (+)"><ZoomIn className="w-3.5 h-3.5 text-gray-600" /></button>
-
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
-
-            {/* Undo / Redo */}
             <button onClick={undo} disabled={undoStack.length === 0} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Undo (Ctrl+Z)"><Undo2 className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={redo} disabled={redoStack.length === 0} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Redo (Ctrl+Shift+Z)"><Redo2 className="w-3.5 h-3.5 text-gray-600" /></button>
-
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
-
-            {/* Split / Delete */}
             <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
           </div>
 
-          {/* Timeline — dark multi-track layout */}
+          {/* ── Timeline ────────────────────────────────────────────────────── */}
           <div className="mt-3 border border-gray-700/60 rounded-xl overflow-hidden flex bg-[#0f1623]">
-
-            {/* ── Fixed track-labels column (does not scroll) ───────────── */}
+            {/* Fixed track-labels column */}
             <div className="w-[72px] shrink-0 bg-[#0f1623] border-r border-gray-700/50">
-              {/* Ruler spacer — same height as ruler row */}
               <div className="h-7 border-b border-gray-700/50 bg-[#141d2b]" />
-              {/* One label per track */}
-              {timeline.tracks.map((track) => (
+              {displayTracks.map((track) => (
                 <div
                   key={track.id}
                   className="border-b border-gray-700/30 flex items-center gap-1.5 px-2"
@@ -806,19 +838,20 @@ export default function TimelineEditorPage() {
                       </span>
                     </div>
                     <p className="text-[7px] text-gray-600 leading-tight mt-0.5">
-                      {track.items.length > 0 ? `${track.items.length} clip${track.items.length > 1 ? 's' : ''}` : 'empty'}
+                      {track.type === 'CAPTION'
+                        ? (timeline.captions.length > 0 ? `${timeline.captions.length} caption${timeline.captions.length > 1 ? 's' : ''}` : 'empty')
+                        : track.items.length > 0 ? `${track.items.length} clip${track.items.length > 1 ? 's' : ''}` : 'empty'}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ── Scrollable timeline content ───────────────────────────── */}
+            {/* Scrollable timeline content */}
             <div ref={scrollRef} className="overflow-x-auto flex-1">
               <div className="relative" style={{ width: widthPx }}>
-
-                {/* Ruler — click or touch to seek */}
-                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
+                {/* Ruler */}
+                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
                 <div
                   className="h-7 border-b border-gray-700/50 relative cursor-pointer bg-[#141d2b] select-none"
                   onMouseDown={startPlayheadDrag}
@@ -832,17 +865,25 @@ export default function TimelineEditorPage() {
                 </div>
 
                 {/* Tracks */}
-                {timeline.tracks.map((track) => {
+                {displayTracks.map((track) => {
                   const trackH = TRACK_HEIGHTS[track.type] ?? 48;
                   const isAudioTrack = track.type === 'AUDIO' || track.type === 'MUSIC';
+                  const isVirtual = track.id.startsWith('virt-');
                   return (
-                    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface
+                    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
                     <div
                       key={track.id}
                       className="relative border-b border-gray-700/30 bg-[#0f1623]"
                       style={{ height: trackH }}
                       onMouseDown={() => setSelectedId(null)}
                     >
+                      {/* VIDEO track: show source-audio note */}
+                      {track.type === 'VIDEO' && track.items.length > 0 && (
+                        <div className="absolute top-0.5 right-2 text-[7px] text-gray-600 flex items-center gap-0.5">
+                          <Volume2 className="w-2 h-2" /> audio embedded
+                        </div>
+                      )}
+
                       {/* CAPTION track */}
                       {track.type === 'CAPTION' && (
                         timeline.captions.length === 0
@@ -863,7 +904,8 @@ export default function TimelineEditorPage() {
                       {track.type !== 'CAPTION' && track.items.length === 0 && (
                         <div className="absolute inset-y-2 left-1 right-1 rounded-lg border border-dashed border-gray-700/50 flex items-center px-3">
                           <span className="text-[9px] text-gray-600 italic">
-                            {track.type === 'AUDIO' ? 'Voice-over — add via Studio Tools'
+                            {track.type === 'AUDIO'
+                              ? (isVirtual ? 'Voice-over — add via Studio Tools (Source audio plays from Video track)' : 'Voice-over — add via Studio Tools')
                               : track.type === 'MUSIC' ? 'Music — add via Studio Tools'
                               : 'Empty'}
                           </span>
@@ -874,28 +916,21 @@ export default function TimelineEditorPage() {
                       {track.type !== 'CAPTION' && track.items.map((item) => {
                         const w = Math.max(8, ((item.endMs - item.startMs) / 1000) * pxPerSec);
                         return (
-                          // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface
+                          // eslint-disable-next-line jsx-a11y/no-static-element-interactions
                           <div
                             key={item.id}
                             onMouseDown={(e) => startDrag('move', item, e)}
                             className={`absolute top-1.5 bottom-1.5 rounded-lg border cursor-grab active:cursor-grabbing overflow-hidden ${TRACK_COLORS[track.type]} ${selectedId === item.id ? 'ring-2 ring-offset-1 ring-white/60' : ''}`}
                             style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
                           >
-                            {/* Decorative waveform bars for audio tracks */}
                             {isAudioTrack && w > 16 && (
                               <div className="absolute inset-0 flex items-center gap-px px-1 overflow-hidden opacity-60 pointer-events-none">
                                 {Array.from({ length: Math.floor((w - 8) / 3) }).map((_, bi) => {
                                   const bh = 18 + Math.round(Math.abs(Math.sin(bi * 1.4 + 0.9) * Math.cos(bi * 0.6)) * 64);
-                                  return (
-                                    <div
-                                      key={bi}
-                                      style={{ width: 2, height: `${Math.min(88, bh)}%`, background: 'rgba(255,255,255,0.7)', borderRadius: 1, flexShrink: 0 }}
-                                    />
-                                  );
+                                  return <div key={bi} style={{ width: 2, height: `${Math.min(88, bh)}%`, background: 'rgba(255,255,255,0.7)', borderRadius: 1, flexShrink: 0 }} />;
                                 })}
                               </div>
                             )}
-                            {/* Film-strip notches for video tracks */}
                             {track.type === 'VIDEO' && w > 24 && (
                               <div className="absolute inset-y-0 left-0 right-0 flex items-start pt-1 gap-px px-1 overflow-hidden pointer-events-none">
                                 {Array.from({ length: Math.floor(w / 12) }).map((_, fi) => (
@@ -903,14 +938,12 @@ export default function TimelineEditorPage() {
                                 ))}
                               </div>
                             )}
-                            {/* Clip duration label */}
                             <span className="absolute bottom-1 left-2 text-[9px] text-white/80 whitespace-nowrap z-10 font-mono">
                               {fmt(item.endMs - item.startMs)}
                             </span>
-                            {/* Trim handles */}
-                            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
+                            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
                             <div onMouseDown={(e) => startDrag('trim-l', item, e)} className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 rounded-l-lg z-10" />
-                            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- pointer-drag editor surface */}
+                            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
                             <div onMouseDown={(e) => startDrag('trim-r', item, e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 rounded-r-lg z-10" />
                           </div>
                         );
@@ -922,13 +955,12 @@ export default function TimelineEditorPage() {
                 {/* Playhead */}
                 <div className="absolute top-0 bottom-0 z-10 pointer-events-none" style={{ left: (playheadMs / 1000) * pxPerSec }}>
                   <div className="absolute top-0 bottom-0 w-px bg-red-500 -translate-x-1/2 pointer-events-none" />
-                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- drag handle */}
+                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
                   <div
                     onMouseDown={startDiamondDrag}
                     className="pointer-events-auto absolute -top-0.5 w-3.5 h-3.5 bg-red-500 rotate-45 -translate-x-1/2 cursor-grab active:cursor-grabbing shadow-md z-20"
                   />
                 </div>
-
               </div>
             </div>
           </div>
@@ -937,90 +969,208 @@ export default function TimelineEditorPage() {
           </p>
         </div>
 
-        {/* AI Assistant panel */}
-        <aside className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm h-fit">
-          <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-3">
-            <Wand2 className="w-4 h-4 text-brand-600" /> AI Assistant
-          </h2>
-          <div className="space-y-2">
-            {([
-              ['remove-silence', 'Remove silence'],
-              ['remove-fillers', 'Remove filler words'],
-              ['improve-pacing', 'Improve pacing'],
-            ] as const).map(([cap, label]) => (
-              <button
-                key={cap}
-                onClick={() => void runAssist(cap)}
-                disabled={assistBusy !== null}
-                className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                {assistBusy === cap ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4 text-gray-500" />}
-                {label}
-              </button>
-            ))}
+        {/* ── Right sidebar ─────────────────────────────────────────────────── */}
+        <aside className="space-y-3">
+          {/* Canvas size panel */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
             <button
-              onClick={() => genCaptions.mutate()}
-              disabled={genCaptions.isPending || captionPending}
-              className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              onClick={() => setCanvasPanelOpen(!canvasPanelOpen)}
+              className="flex items-center justify-between w-full text-sm font-semibold text-gray-800"
             >
-              {(genCaptions.isPending || captionPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Captions className="w-4 h-4 text-gray-500" />}
-              {captionPending ? 'Generating captions…' : 'Generate captions'}
+              <span className="flex items-center gap-2">
+                <Layout className="w-4 h-4 text-brand-600" /> Canvas Size
+              </span>
+              <span className="text-[10px] text-gray-400 font-mono">{canvasConfig.aspect}</span>
             </button>
-            {captionPending && (
-              <p className="text-[11px] text-brand-600 flex items-center gap-1">
-                <Loader2 className="w-3 h-3 animate-spin" /> Processing speech — captions will appear on the timeline when ready.
-              </p>
+
+            {canvasPanelOpen && (
+              <div className="mt-3 space-y-3">
+                {/* Aspect ratio presets */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  {CANVAS_PRESETS.map((p) => {
+                    const active = canvasConfig.aspect === p.key;
+                    return (
+                      <button
+                        key={p.key}
+                        onClick={() => {
+                          const cfg: CanvasConfig = { ...canvasConfig, aspect: p.key };
+                          setCanvasConfig(cfg);
+                          updateCanvas.mutate(cfg);
+                        }}
+                        className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg border text-xs transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        <p.Icon className={`w-4 h-4 ${active ? 'text-brand-600' : 'text-gray-400'}`} />
+                        <span className="font-medium text-center leading-tight">{p.label}</span>
+                        <span className={`text-[9px] ${active ? 'text-brand-500' : 'text-gray-400'}`}>{p.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Fit mode */}
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Video fit</p>
+                  <div className="flex gap-1.5">
+                    {(['fill', 'contain'] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => {
+                          const cfg: CanvasConfig = { ...canvasConfig, fit: f };
+                          setCanvasConfig(cfg);
+                          updateCanvas.mutate(cfg);
+                        }}
+                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${canvasConfig.fit === f ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        {f === 'fill' ? 'Fill (crop)' : 'Contain (letterbox)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pan controls — only useful with Fill mode */}
+                {canvasConfig.fit === 'fill' && (
+                  <div className="space-y-2.5">
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Position</p>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                        <span>Horizontal</span>
+                        <span className="font-mono">{canvasConfig.panX > 0 ? '+' : ''}{Math.round(canvasConfig.panX * 100)}%</span>
+                      </div>
+                      <input
+                        type="range" min="-50" max="50"
+                        value={Math.round(canvasConfig.panX * 100)}
+                        onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panX: parseInt(e.target.value) / 100 }))}
+                        onMouseUp={() => updateCanvas.mutate(canvasConfig)}
+                        onTouchEnd={() => updateCanvas.mutate(canvasConfig)}
+                        className="w-full h-1.5 accent-brand-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                        <span>Vertical</span>
+                        <span className="font-mono">{canvasConfig.panY > 0 ? '+' : ''}{Math.round(canvasConfig.panY * 100)}%</span>
+                      </div>
+                      <input
+                        type="range" min="-50" max="50"
+                        value={Math.round(canvasConfig.panY * 100)}
+                        onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panY: parseInt(e.target.value) / 100 }))}
+                        onMouseUp={() => updateCanvas.mutate(canvasConfig)}
+                        onTouchEnd={() => updateCanvas.mutate(canvasConfig)}
+                        className="w-full h-1.5 accent-brand-600"
+                      />
+                    </div>
+                    <button
+                      onClick={() => {
+                        const cfg: CanvasConfig = { ...canvasConfig, panX: 0, panY: 0 };
+                        setCanvasConfig(cfg);
+                        updateCanvas.mutate(cfg);
+                      }}
+                      className="text-[10px] text-gray-400 hover:text-gray-600 underline"
+                    >
+                      Reset position
+                    </button>
+                  </div>
+                )}
+
+                {updateCanvas.isPending && (
+                  <p className="text-[10px] text-brand-600 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Saving canvas…
+                  </p>
+                )}
+                {updateCanvas.isSuccess && (
+                  <p className="text-[10px] text-green-600 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Canvas saved — re-render to apply
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
-          <StudioToolPanels
-            timelineId={timeline.id}
-            shortClipId={shortClipId}
-            captionsText={timeline.captions.map((c) => c.text).join(' ')}
-            audioVersionId={
-              timeline.tracks
-                .find((t) => t.type === 'AUDIO')
-                ?.items[0]
-                ?.sourceAsset?.versions[0]?.id
-            }
-          />
-
-          {suggestions && (
-            <div className="mt-4 pt-3 border-t border-gray-100">
-              <p className="text-xs font-semibold text-gray-600 mb-2">
-                {suggestions.commands.length} suggestion{suggestions.commands.length === 1 ? '' : 's'}
-              </p>
-              {suggestions.commands.length === 0 && (
-                <p className="text-xs text-gray-500">Nothing to change — this clip already looks tight.</p>
-              )}
-              <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                {suggestions.commands.map((c, i) => (
-                  <div key={i} className="flex items-start justify-between gap-2 text-xs bg-gray-50 rounded-lg px-2.5 py-1.5">
-                    <span className="text-gray-600">
-                      {c.type === 'CUT_RANGE' ? `Cut ${fmt(c.startMs)}–${fmt(c.endMs)}` : c.type}
-                      {'reason' in c && c.reason ? <span className="text-gray-500"> — {c.reason}</span> : null}
-                    </span>
-                    <button
-                      onClick={() => setSuggestions((s) => s ? { ...s, commands: s.commands.filter((_, j) => j !== i) } : s)}
-                      className="text-gray-300 hover:text-red-500 shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              {suggestions.commands.length > 0 && (
+          {/* AI Assistant panel */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+            <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-3">
+              <Wand2 className="w-4 h-4 text-brand-600" /> AI Assistant
+            </h2>
+            <div className="space-y-2">
+              {([
+                ['remove-silence', 'Remove silence'],
+                ['remove-fillers', 'Remove filler words'],
+                ['improve-pacing', 'Improve pacing'],
+              ] as const).map(([cap, label]) => (
                 <button
-                  onClick={() => applySuggestions.mutate()}
-                  disabled={applySuggestions.isPending}
-                  className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
+                  key={cap}
+                  onClick={() => void runAssist(cap)}
+                  disabled={assistBusy !== null}
+                  className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  {applySuggestions.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Apply {suggestions.commands.length} edit{suggestions.commands.length === 1 ? '' : 's'}
+                  {assistBusy === cap ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4 text-gray-500" />}
+                  {label}
                 </button>
+              ))}
+              <button
+                onClick={() => genCaptions.mutate()}
+                disabled={genCaptions.isPending || captionPending}
+                className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {(genCaptions.isPending || captionPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Captions className="w-4 h-4 text-gray-500" />}
+                {captionPending ? 'Generating captions…' : 'Generate captions'}
+              </button>
+              {captionPending && (
+                <p className="text-[11px] text-brand-600 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Processing speech — captions will appear on the timeline when ready.
+                </p>
               )}
             </div>
-          )}
+
+            <StudioToolPanels
+              timelineId={timeline.id}
+              shortClipId={shortClipId}
+              captionsText={timeline.captions.map((c) => c.text).join(' ')}
+              audioVersionId={
+                timeline.tracks
+                  .find((t) => t.type === 'AUDIO')
+                  ?.items[0]
+                  ?.sourceAsset?.versions[0]?.id
+              }
+            />
+
+            {suggestions && (
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-600 mb-2">
+                  {suggestions.commands.length} suggestion{suggestions.commands.length === 1 ? '' : 's'}
+                </p>
+                {suggestions.commands.length === 0 && (
+                  <p className="text-xs text-gray-500">Nothing to change — this clip already looks tight.</p>
+                )}
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {suggestions.commands.map((c, i) => (
+                    <div key={i} className="flex items-start justify-between gap-2 text-xs bg-gray-50 rounded-lg px-2.5 py-1.5">
+                      <span className="text-gray-600">
+                        {c.type === 'CUT_RANGE' ? `Cut ${fmt(c.startMs)}–${fmt(c.endMs)}` : c.type}
+                        {'reason' in c && c.reason ? <span className="text-gray-500"> — {c.reason}</span> : null}
+                      </span>
+                      <button
+                        onClick={() => setSuggestions((s) => s ? { ...s, commands: s.commands.filter((_, j) => j !== i) } : s)}
+                        className="text-gray-300 hover:text-red-500 shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {suggestions.commands.length > 0 && (
+                  <button
+                    onClick={() => applySuggestions.mutate()}
+                    disabled={applySuggestions.isPending}
+                    className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
+                  >
+                    {applySuggestions.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Apply {suggestions.commands.length} edit{suggestions.commands.length === 1 ? '' : 's'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </aside>
       </div>
     </div>

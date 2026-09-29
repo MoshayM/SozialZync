@@ -1521,10 +1521,11 @@ enum ShortClipStatus {
 }
 
 model ShortsTimeline {
-  id          String   @id @default(cuid())
-  shortClipId String   @unique
-  durationMs  Int
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  shortClipId  String   @unique
+  durationMs   Int
+  canvasConfig Json?
+  createdAt    DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   shortClip   ShortClip             @relation(fields: [shortClipId], references: [id], onDelete: Cascade)

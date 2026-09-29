@@ -13,10 +13,11 @@ import { buildCxExpr } from './reframe-path';
 import { videoSpans } from './timeline-map.util';
 import { ThumbnailGenerationService } from './thumbnail-generation.service';
 
-const OUTPUT_BY_ASPECT: Record<'9:16' | '1:1' | '16:9', { width: number; height: number }> = {
+const OUTPUT_BY_ASPECT: Record<string, { width: number; height: number }> = {
   '9:16': { width: 1080, height: 1920 },
   '1:1': { width: 1080, height: 1080 },
   '16:9': { width: 1920, height: 1080 },
+  '4:5': { width: 1080, height: 1350 },
 };
 
 let nvencAvailable: boolean | undefined;
@@ -74,7 +75,14 @@ export class ShortsRenderService {
 
     try {
       const preset = CLIP_TYPE_PRESETS[clip.clipType];
-      const out = OUTPUT_BY_ASPECT[preset.aspect];
+      // canvasConfig overrides the clipType preset when the user has explicitly set a canvas size
+      const canvasConfig = (clip.timeline as Record<string, unknown>)['canvasConfig'] as
+        { aspect?: string; fit?: string; panX?: number; panY?: number; scale?: number } | null;
+      const aspect = canvasConfig?.aspect ?? preset.aspect;
+      const out = OUTPUT_BY_ASPECT[aspect] ?? OUTPUT_BY_ASPECT[preset.aspect];
+      const fitMode = canvasConfig?.fit ?? 'fill';
+      const panX = canvasConfig?.panX ?? 0; // -0.5 to 0.5 offset from center
+      const panY = canvasConfig?.panY ?? 0;
       const spans = videoSpans(clip.timeline.tracks.flatMap((t) => t.items));
       if (spans.length === 0) throw new BadRequestException('Timeline has no video items to render');
 
@@ -102,9 +110,12 @@ export class ShortsRenderService {
         // ── Single-span: one FFmpeg pass (seek + crop + captions + encode) ───────
         const span = spans[0]!;
         const cxExpr = buildCxExpr(keyframes, span.timelineStartMs, span.timelineEndMs);
-        const crop = preset.aspect === '16:9'
+        // pan offsets shift the crop center: clamp to [0,1]
+        const cx = panX === 0 ? cxExpr : `clamp(${cxExpr}+${panX.toFixed(3)},0,1)`;
+        const cy = (0.5 + panY).toFixed(3);
+        const crop = fitMode === 'contain'
           ? `scale=${out.width}:${out.height}:force_original_aspect_ratio=decrease,pad=${out.width}:${out.height}:(ow-iw)/2:(oh-ih)/2`
-          : `crop='min(iw,ih*${out.width}/${out.height})':'ih':'(iw-min(iw,ih*${out.width}/${out.height}))*(${cxExpr})':'0',scale=${out.width}:${out.height}`;
+          : `crop='min(iw,ih*${out.width}/${out.height})':'min(ih,iw*${out.height}/${out.width})':'(iw-min(iw,ih*${out.width}/${out.height}))*(${cx})':'(ih-min(ih,iw*${out.height}/${out.width}))*(${cy})',scale=${out.width}:${out.height}`;
 
         let vf = crop;
         if (clip.timeline.captions.length > 0) {
@@ -138,9 +149,11 @@ export class ShortsRenderService {
           // segment-relative t. The whole x option stays single-quoted — the
           // expression contains commas, which split the filtergraph unquoted.
           const cxExpr = buildCxExpr(keyframes, span.timelineStartMs, span.timelineEndMs);
-          const crop = preset.aspect === '16:9'
+          const cx = panX === 0 ? cxExpr : `clamp(${cxExpr}+${panX.toFixed(3)},0,1)`;
+          const cy = (0.5 + panY).toFixed(3);
+          const crop = fitMode === 'contain'
             ? `scale=${out.width}:${out.height}:force_original_aspect_ratio=decrease,pad=${out.width}:${out.height}:(ow-iw)/2:(oh-ih)/2`
-            : `crop='min(iw,ih*${out.width}/${out.height})':'ih':'(iw-min(iw,ih*${out.width}/${out.height}))*(${cxExpr})':'0',scale=${out.width}:${out.height}`;
+            : `crop='min(iw,ih*${out.width}/${out.height})':'min(ih,iw*${out.height}/${out.width})':'(iw-min(iw,ih*${out.width}/${out.height}))*(${cx})':'(ih-min(ih,iw*${out.height}/${out.width}))*(${cy})',scale=${out.width}:${out.height}`;
           const segPath = path.join(workDir, `seg-${i}.mp4`);
           segmentPaths.push(segPath);
           if (await fsp.stat(segPath).then((s) => s.size > 0).catch(() => false)) {
@@ -210,7 +223,7 @@ export class ShortsRenderService {
           model: encoder,
           sizeBytes: BigInt(stat.size),
           durationMs: clip.timeline.durationMs,
-          provenance: { renderedAt: new Date().toISOString(), preset: clip.clipType, resolution: `${out.width}x${out.height}` } as never,
+          provenance: { renderedAt: new Date().toISOString(), preset: clip.clipType, aspect, fitMode, resolution: `${out.width}x${out.height}` } as never,
         },
       });
       await this.prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } });

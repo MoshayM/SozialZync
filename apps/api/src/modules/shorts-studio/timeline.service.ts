@@ -70,6 +70,15 @@ export class TimelineService {
     return timeline;
   }
 
+  /** Persist canvas configuration (aspect ratio, fit mode, pan, zoom) on the timeline. */
+  async updateCanvas(timelineId: string, config: { aspect?: string; fit?: string; panX?: number; panY?: number; scale?: number }) {
+    return this.prisma.shortsTimeline.update({
+      where: { id: timelineId },
+      data: { canvasConfig: config as never },
+      select: { id: true, canvasConfig: true },
+    });
+  }
+
   async history(timelineId: string, userId: string) {
     await this.assertTimelineOwnership(timelineId, userId);
     return this.prisma.shortsTimelineEdit.findMany({

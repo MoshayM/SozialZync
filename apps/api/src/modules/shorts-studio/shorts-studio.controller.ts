@@ -330,6 +330,16 @@ export class ShortsStudioController {
     return this.timeline.applyCommands(timelineId, user.sub, parsed.data.commands);
   }
 
+  @Patch('timelines/:timelineId/canvas')
+  async updateCanvas(
+    @Param('timelineId') timelineId: string,
+    @Body() body: { aspect?: string; fit?: string; panX?: number; panY?: number; scale?: number },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    await this.timeline.assertTimelineOwnership(timelineId, user.sub);
+    return this.timeline.updateCanvas(timelineId, body);
+  }
+
   @Post('timelines/:timelineId/ai-suggestions')
   async aiSuggestions(
     @Param('timelineId') timelineId: string,
