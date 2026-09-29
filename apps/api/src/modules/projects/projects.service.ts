@@ -82,8 +82,9 @@ export class ProjectsService {
   }
 
   async get(userId: string, projectId: string) {
-    const project = await this.prisma.project.findFirst({
-      where: { id: projectId, userId },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- isDemo pending Prisma client regen after migration
+    const project = await (this.prisma.project as any).findFirst({
+      where: { id: projectId, OR: [{ userId }, { isDemo: true }] },
       include: {
         channel: { select: { id: true, title: true, thumbnailUrl: true, youtubeChannelId: true } },
         jobs: { orderBy: { createdAt: 'desc' }, take: 10 },
@@ -101,8 +102,8 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
       distinct: ['type'],
     });
-    const seen = new Set(project.jobs.map((j) => j.id));
-    const merged = [...project.jobs, ...latestPerType.filter((j) => !seen.has(j.id))];
+    const seen = new Set((project.jobs as Array<{ id: string }>).map((j) => j.id));
+    const merged = [...(project.jobs as unknown[]), ...latestPerType.filter((j) => !seen.has(j.id))];
     return { ...project, jobs: merged };
   }
 

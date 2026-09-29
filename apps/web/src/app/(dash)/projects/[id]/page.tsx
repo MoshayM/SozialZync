@@ -796,7 +796,7 @@ export default function ProjectDetailPage() {
     if (saved === 'VIDEO' || saved === 'MUSIC' || saved === 'SHORT') setContentType(saved);
   }, [id]);
 
-  const { data: project, isLoading } = useQuery<ProjectDetail>({
+  const { data: project, isLoading, isError } = useQuery<ProjectDetail>({
     queryKey: ['project', id],
     queryFn: () => api.projects.get(id).then((r) => r.data as ProjectDetail),
     refetchInterval: 10_000,
@@ -820,7 +820,27 @@ export default function ProjectDetailPage() {
   if (isLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-brand-600" /></div>;
   }
-  if (!project) return null;
+  if (isError || !project) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+        <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5"
+             style={{ background: 'linear-gradient(135deg, #f3f4f6, #e3ddf8)' }}>
+          <XCircle className="w-8 h-8 text-gray-400" />
+        </div>
+        <h2 className="text-xl font-extrabold text-gray-900 mb-2">Project not found</h2>
+        <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">
+          This project may have been deleted or you may not have access to it.
+        </p>
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Projects
+        </Link>
+      </div>
+    );
+  }
 
   const CT_META: Record<ContentType, { label: string; color: string }> = {
     VIDEO: { label: 'YouTube Video', color: 'bg-red-100 text-red-700' },
