@@ -286,7 +286,8 @@ export class ThumbnailGenerationService {
               signal: AbortSignal.timeout(45_000),
             });
             if (!res.ok) {
-              this.logger.warn(`DALL-E attempt failed: HTTP ${res.status}`);
+              const errBody = await res.text().catch(() => '');
+              this.logger.warn(`DALL-E attempt failed: HTTP ${res.status} — ${errBody.slice(0, 300)}`);
               return null;
             }
             const json = (await res.json()) as { data?: Array<{ b64_json?: string }> };
@@ -316,7 +317,10 @@ export class ThumbnailGenerationService {
             try {
               const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(variant)}?width=1080&height=1920&nologo=true&model=${model}&seed=${seed + i}`;
               const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
-              if (!res.ok) continue;
+              if (!res.ok) {
+                this.logger.warn(`Pollinations ${model} variant ${i + 1} HTTP ${res.status}`);
+                continue;
+              }
               const buffer = Buffer.from(await res.arrayBuffer());
               if (buffer.length > 1000) return { idx: i, result: { buffer, ext: 'jpg' as const } };
             } catch (err) {
