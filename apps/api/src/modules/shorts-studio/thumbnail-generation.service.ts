@@ -271,9 +271,12 @@ export class ThumbnailGenerationService {
       count,
     );
 
+    // Per-variant results: null means "needs Pollinations fallback"
+    const perVariant: Array<{ buffer: any; ext: string } | null> = variants.map(() => null);
+
     if (openaiKey) {
       const model = process.env['IMAGE_OPENAI_MODEL'] ?? 'dall-e-3';
-      const settled = await Promise.all(
+      const dalleResults = await Promise.all(
         variants.map(async (variant) => {
           try {
             const res = await fetch('https://api.openai.com/v1/images/generations', {
@@ -295,30 +298,38 @@ export class ThumbnailGenerationService {
           }
         }),
       );
-      const valid = settled.filter((r): r is Exclude<typeof r, null> => r !== null);
-      if (valid.length > 0) return valid;
-      this.logger.log('All DALL-E attempts failed — falling back to Pollinations.ai');
+      dalleResults.forEach((r, i) => { perVariant[i] = r; });
+      const dalleCount = dalleResults.filter(Boolean).length;
+      if (dalleCount < count) {
+        this.logger.log(`DALL-E produced ${dalleCount}/${count} — using Pollinations for the ${count - dalleCount} missing slot(s)`);
+      }
     }
 
-    // Free fallback: Pollinations.ai portrait — try flux then turbo as backup model
-    const seed = Math.floor(Date.now() / 1000);
-    const settled = await Promise.all(
-      variants.map(async (variant, i) => {
-        for (const model of ['flux', 'turbo']) {
-          try {
-            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(variant)}?width=1080&height=1920&nologo=true&model=${model}&seed=${seed + i}`;
-            const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
-            if (!res.ok) continue;
-            const buffer = Buffer.from(await res.arrayBuffer());
-            if (buffer.length > 1000) return { buffer, ext: 'jpg' as const };
-          } catch (err) {
-            this.logger.warn(`Pollinations ${model} variant ${i + 1}: ${err instanceof Error ? err.message : String(err)}`);
+    // Fill any null slots with Pollinations.ai (also the sole provider when no OPENAI_API_KEY)
+    const missingIndices = perVariant.map((r, i) => (r === null ? i : -1)).filter((i) => i >= 0);
+    if (missingIndices.length > 0) {
+      const seed = Math.floor(Date.now() / 1000);
+      const pollinationsResults = await Promise.all(
+        missingIndices.map(async (i) => {
+          const variant = variants[i]!;
+          for (const model of ['flux', 'turbo']) {
+            try {
+              const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(variant)}?width=1080&height=1920&nologo=true&model=${model}&seed=${seed + i}`;
+              const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+              if (!res.ok) continue;
+              const buffer = Buffer.from(await res.arrayBuffer());
+              if (buffer.length > 1000) return { idx: i, result: { buffer, ext: 'jpg' as const } };
+            } catch (err) {
+              this.logger.warn(`Pollinations ${model} variant ${i + 1}: ${err instanceof Error ? err.message : String(err)}`);
+            }
           }
-        }
-        return null;
-      }),
-    );
-    return settled.filter((r): r is Exclude<typeof r, null> => r !== null);
+          return { idx: i, result: null };
+        }),
+      );
+      pollinationsResults.forEach(({ idx, result }) => { perVariant[idx] = result; });
+    }
+
+    return perVariant.filter((r): r is Exclude<typeof r, null> => r !== null);
   }
 
   /**
