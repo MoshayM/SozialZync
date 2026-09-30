@@ -5377,34 +5377,6 @@ export default function EditorWorkspacePage() {
             )}
           </div>
 
-          {/* ── Preview size + Studio quick-access (mobile only) ─────────────── */}
-          <div className="shrink-0 lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 border-t border-white/10">
-            <Maximize2 className="w-3 h-3 text-gray-500 shrink-0" />
-            <span className="text-[10px] text-gray-500 mr-0.5">Preview:</span>
-            {(['sm', 'md', 'lg'] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setPreviewSize(s)}
-                className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${previewSizeKey === s ? 'bg-brand-600 text-white border-brand-600' : 'border-white/20 text-gray-400 hover:bg-white/10'}`}
-              >
-                {s === 'sm' ? 'S' : s === 'md' ? 'M' : 'L'}
-              </button>
-            ))}
-            <div className="w-px h-4 bg-white/20 mx-0.5" />
-            <button onClick={() => setMobileSheet('inspector')} title="Music & Audio" className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
-              <Music className="w-4 h-4" />
-            </button>
-            <button onClick={() => setMobileSheet('inspector')} title="Voice-Over" className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
-              <Mic className="w-4 h-4" />
-            </button>
-            <button onClick={() => setMobileSheet('inspector')} title="Captions & Text" className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
-              <Type className="w-4 h-4" />
-            </button>
-            <button onClick={() => setMobileSheet('canvas')} title="Canvas Size" className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
-              <SlidersHorizontal className="w-4 h-4" />
-            </button>
-          </div>
-
           {/* Transport bar */}
           <div className="shrink-0 bg-gray-900 text-white flex items-center gap-2 px-3 py-1">
             <button
@@ -5818,28 +5790,52 @@ export default function EditorWorkspacePage() {
               <X className="w-4 h-4 text-white/70" />
             </button>
           </div>
-          <div className="grid grid-cols-4 gap-3 px-4 py-4">
-            {[
-              { icon: <RotateCcw className="w-5 h-5" />, label: 'Undo', action: handleUndo, disabled: !canUndo, color: 'text-white' },
-              { icon: <RotateCw className="w-5 h-5" />, label: 'Redo', action: handleRedo, disabled: !canRedo, color: 'text-white' },
-              { icon: <Scissors className="w-5 h-5" />, label: 'Split', action: () => selectedItemId ? handleSplitItem(selectedItemId, currentTimeMsRef.current) : handleSplitAtPlayhead(), disabled: false, color: 'text-white' },
-              { icon: <Trash2 className="w-5 h-5" />, label: 'Delete', action: () => selectedItemId && handleDeleteItem(selectedItemId), disabled: !selectedItemId, color: 'text-red-400' },
-              { icon: <Magnet className="w-5 h-5" />, label: snapEnabled ? 'Snap On' : 'Snap Off', action: () => setSnapEnabled(s => !s), disabled: false, color: snapEnabled ? 'text-brand-400' : 'text-gray-400' },
-              { icon: <Film className="w-5 h-5" />, label: '+ Video', action: () => { handleAddTrack('VIDEO'); setMobileSheet('none'); }, disabled: false, color: 'text-violet-400' },
-              { icon: <Volume2 className="w-5 h-5" />, label: '+ Audio', action: () => { handleAddTrack('AUDIO'); setMobileSheet('none'); }, disabled: false, color: 'text-emerald-400' },
-              { icon: <Trash2 className="w-5 h-5" />, label: 'Clear Empty', action: () => { handleClearEmptyTracks(); setMobileSheet('none'); }, disabled: (timeline?.tracks ?? []).every(t => (t.items ?? []).length > 0), color: 'text-orange-400' },
-              { icon: <Wand2 className="w-5 h-5" />, label: 'AI Edit', action: () => { setShowAiEdit(true); setMobileSheet('none'); }, disabled: false, color: 'text-brand-400' },
-            ].map((item, i) => (
-              <button
-                key={i}
-                onClick={() => { if (!item.disabled) item.action(); }}
-                disabled={item.disabled}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 transition-colors ${item.color}`}
-              >
-                {item.icon}
-                <span className="text-[10px] font-medium text-white/70 leading-tight text-center">{item.label}</span>
-              </button>
-            ))}
+          <div className="overflow-y-auto">
+            <div className="grid grid-cols-4 gap-3 px-4 py-4">
+              {[
+                { icon: <RotateCcw className="w-5 h-5" />, label: 'Undo', action: handleUndo, disabled: !canUndo, color: 'text-white' },
+                { icon: <RotateCw className="w-5 h-5" />, label: 'Redo', action: handleRedo, disabled: !canRedo, color: 'text-white' },
+                { icon: <Scissors className="w-5 h-5" />, label: 'Split', action: () => selectedItemId ? handleSplitItem(selectedItemId, currentTimeMsRef.current) : handleSplitAtPlayhead(), disabled: false, color: 'text-white' },
+                { icon: <Trash2 className="w-5 h-5" />, label: 'Delete', action: () => selectedItemId && handleDeleteItem(selectedItemId), disabled: !selectedItemId, color: 'text-red-400' },
+                { icon: <Magnet className="w-5 h-5" />, label: snapEnabled ? 'Snap On' : 'Snap Off', action: () => setSnapEnabled(s => !s), disabled: false, color: snapEnabled ? 'text-brand-400' : 'text-gray-400' },
+                { icon: <Film className="w-5 h-5" />, label: '+ Video', action: () => { handleAddTrack('VIDEO'); setMobileSheet('none'); }, disabled: false, color: 'text-violet-400' },
+                { icon: <Volume2 className="w-5 h-5" />, label: '+ Audio', action: () => { handleAddTrack('AUDIO'); setMobileSheet('none'); }, disabled: false, color: 'text-emerald-400' },
+                { icon: <Trash2 className="w-5 h-5" />, label: 'Clear Empty', action: () => { handleClearEmptyTracks(); setMobileSheet('none'); }, disabled: (timeline?.tracks ?? []).every(t => (t.items ?? []).length > 0), color: 'text-orange-400' },
+                { icon: <Wand2 className="w-5 h-5" />, label: 'AI Edit', action: () => { setShowAiEdit(true); setMobileSheet('none'); }, disabled: false, color: 'text-brand-400' },
+              ].map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => { if (!item.disabled) item.action(); }}
+                  disabled={item.disabled}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 transition-colors ${item.color}`}
+                >
+                  {item.icon}
+                  <span className="text-[10px] font-medium text-white/70 leading-tight text-center">{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Studio tools section */}
+            <div className="px-4 pb-4">
+              <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2.5">Studio</p>
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  { icon: <Music className="w-5 h-5" />, label: 'Music', action: () => setMobileSheet('inspector'), color: 'text-cyan-400' },
+                  { icon: <Mic className="w-5 h-5" />, label: 'Voice-Over', action: () => setMobileSheet('inspector'), color: 'text-brand-400' },
+                  { icon: <Type className="w-5 h-5" />, label: 'Captions', action: () => setMobileSheet('inspector'), color: 'text-amber-400' },
+                  { icon: <SlidersHorizontal className="w-5 h-5" />, label: 'Canvas', action: () => setMobileSheet('canvas'), color: 'text-purple-400' },
+                ].map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={item.action}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors ${item.color}`}
+                  >
+                    {item.icon}
+                    <span className="text-[10px] font-medium text-white/70 leading-tight text-center">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="h-safe-bottom" style={{ height: 'env(safe-area-inset-bottom, 8px)' }} />
         </div>
