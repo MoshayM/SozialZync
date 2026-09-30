@@ -13,6 +13,7 @@ import {
   Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
   FolderOpen, BookmarkPlus, Smartphone, Monitor, Square,
   Bold, Italic, AlignLeft, AlignCenter, AlignRight,
+  FlipHorizontal2, Video, Shield,
 } from 'lucide-react';
 import {
   api,
@@ -3695,6 +3696,15 @@ function MediaBin({
 
 // ── Main Editor Page ──────────────────────────────────────────────────────────
 
+const RECORD_EFFECTS: Record<string, string> = {
+  none: '',
+  bright: 'brightness(1.4) contrast(1.05)',
+  warm: 'brightness(1.1) saturate(1.5) sepia(0.15)',
+  cool: 'saturate(0.7) hue-rotate(20deg) brightness(1.05)',
+  dramatic: 'contrast(1.6) brightness(0.85) saturate(1.4)',
+  bw: 'grayscale(1) contrast(1.3)',
+};
+
 export default function EditorWorkspacePage() {
   const { editId } = useParams<{ editId: string }>();
   const router = useRouter();
@@ -3807,6 +3817,13 @@ export default function EditorWorkspacePage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordChunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [recordMuted, setRecordMuted] = useState(false);
+  const [recordEffect, setRecordEffect] = useState<'none' | 'bright' | 'warm' | 'cool' | 'dramatic' | 'bw'>('none');
+  const [recordShowEffects, setRecordShowEffects] = useState(false);
+  const [recordFullscreen, setRecordFullscreen] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const [permState, setPermState] = useState<{ mic: string; cam: string }>({ mic: 'unknown', cam: 'unknown' });
+  const recordStreamRef = useRef<MediaStream | null>(null);
   // Keep legacy vars so existing references compile
   const mobileBinOpen = mobileSheet === 'media';
   const mobileInspectorOpen = mobileSheet === 'inspector';
@@ -4029,6 +4046,7 @@ export default function EditorWorkspacePage() {
   const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const cameraPreviewRef = useRef<HTMLVideoElement>(null);
+  const cameraSheetPreviewRef = useRef<HTMLVideoElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const globalMutedRef = useRef(false);
   const [globalMuted, setGlobalMuted] = useState(false);
@@ -4517,51 +4535,108 @@ export default function EditorWorkspacePage() {
   const handleStartRecord = useCallback(async () => {
     try {
       const constraints = recordMode === 'video'
-        ? { audio: true, video: { facingMode: 'user' } }
+        ? { audio: true, video: { facingMode: cameraFacing, width: { ideal: 1280 }, height: { ideal: 720 } } }
         : { audio: true };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      recordStreamRef.current = stream;
       recordChunksRef.current = [];
-      const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm' });
+      if (recordMuted) stream.getAudioTracks().forEach(t => { t.enabled = false; });
+      if (recordMode === 'video' && cameraSheetPreviewRef.current) {
+        cameraSheetPreviewRef.current.srcObject = stream;
+        void cameraSheetPreviewRef.current.play();
+      }
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+      const mr = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mr;
       mr.ondataavailable = (e) => { if (e.data.size > 0) recordChunksRef.current.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const ext = recordMode === 'video' ? 'webm' : 'webm';
         const blob = new Blob(recordChunksRef.current, { type: mr.mimeType });
-        const filename = `recording-${Date.now()}.${ext}`;
-        const file = new File([blob], filename, { type: mr.mimeType });
+        const file = new File([blob], `recording-${Date.now()}.webm`, { type: mr.mimeType });
         setIsRecording(false);
         if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
         setRecordSec(0);
+        setRecordFullscreen(false);
         setMobileSheet('none');
         await handleBinUpload(file);
       };
-      if (recordMode === 'video' && cameraPreviewRef.current) {
-        cameraPreviewRef.current.srcObject = stream;
-        void cameraPreviewRef.current.play();
-      }
       mr.start(250);
       setIsRecording(true);
       setRecordSec(0);
       recordTimerRef.current = setInterval(() => setRecordSec((s) => s + 1), 1000);
     } catch (err) {
-      const msg = err instanceof Error && err.name === 'NotAllowedError'
-        ? 'Microphone/camera access denied. Allow permissions in your browser and try again.'
-        : 'Recording not supported on this device.';
+      const denied = err instanceof Error && err.name === 'NotAllowedError';
+      setPermState(prev => ({ mic: denied ? 'denied' : prev.mic, cam: denied ? 'denied' : prev.cam }));
       const errId = `rec-err-${Date.now()}`;
-      addToast(errId, msg);
-      updateToast(errId, 'error', msg);
+      addToast(errId, denied ? 'Permission denied — check browser settings' : 'Recording not supported on this device');
+      updateToast(errId, 'error');
     }
-  }, [recordMode, handleBinUpload, addToast, updateToast]);
+  }, [recordMode, cameraFacing, recordMuted, handleBinUpload, addToast, updateToast]);
 
   const handleStopRecord = useCallback(() => {
     if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
     setIsRecording(false);
-    if (cameraPreviewRef.current) { cameraPreviewRef.current.srcObject = null; }
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
+    setRecordFullscreen(false);
+    if (cameraPreviewRef.current) cameraPreviewRef.current.srcObject = null;
+    if (cameraSheetPreviewRef.current) cameraSheetPreviewRef.current.srcObject = null;
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    recordStreamRef.current?.getTracks().forEach(t => t.stop());
   }, []);
+
+  const handleToggleMute = useCallback(() => {
+    recordStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
+    setRecordMuted(prev => !prev);
+  }, []);
+
+  const handleFlipCamera = useCallback(async () => {
+    if (isRecording) return;
+    const next: 'user' | 'environment' = cameraFacing === 'user' ? 'environment' : 'user';
+    setCameraFacing(next);
+    if (recordMode === 'video') {
+      recordStreamRef.current?.getTracks().forEach(t => t.stop());
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next }, audio: true });
+        recordStreamRef.current = s;
+        if (cameraSheetPreviewRef.current) { cameraSheetPreviewRef.current.srcObject = s; void cameraSheetPreviewRef.current.play(); }
+      } catch { /* ignore */ }
+    }
+  }, [isRecording, cameraFacing, recordMode]);
+
+  // Check browser permissions when record sheet opens
+  useEffect(() => {
+    if (mobileSheet !== 'record') return;
+    setPermState({ mic: 'unknown', cam: 'unknown' });
+    const checkPerms = async () => {
+      try {
+        const micPerm = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        setPermState(prev => ({ ...prev, mic: micPerm.state }));
+        micPerm.onchange = () => setPermState(prev => ({ ...prev, mic: micPerm.state }));
+        if (recordMode === 'video') {
+          const camPerm = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          setPermState(prev => ({ ...prev, cam: camPerm.state }));
+          camPerm.onchange = () => setPermState(prev => ({ ...prev, cam: camPerm.state }));
+        } else {
+          setPermState(prev => ({ ...prev, cam: 'granted' }));
+        }
+      } catch {
+        setPermState({ mic: 'prompt', cam: recordMode === 'video' ? 'prompt' : 'granted' });
+      }
+    };
+    void checkPerms();
+  }, [mobileSheet, recordMode]);
+
+  // Transfer camera stream between sheet video and fullscreen video when toggling fullscreen
+  useEffect(() => {
+    const stream = recordStreamRef.current;
+    if (!stream || recordMode !== 'video') return;
+    if (recordFullscreen && cameraPreviewRef.current) {
+      cameraPreviewRef.current.srcObject = stream;
+      void cameraPreviewRef.current.play();
+    } else if (!recordFullscreen && cameraSheetPreviewRef.current) {
+      cameraSheetPreviewRef.current.srcObject = stream;
+      void cameraSheetPreviewRef.current.play();
+    }
+  }, [recordFullscreen, recordMode]);
 
   const handleDeleteTrack = useCallback((trackId: string) => {
     updateTimeline((tl) => ({
@@ -6339,8 +6414,67 @@ export default function EditorWorkspacePage() {
         })()}
       </div>
 
+      {/* ── Fullscreen recording overlay ─────────────────────────────────── */}
+      {recordFullscreen && isRecording && (
+        <div className="lg:hidden fixed inset-0 z-[200] bg-black flex flex-col">
+          <video
+            ref={cameraPreviewRef}
+            muted playsInline
+            className="flex-1 w-full object-cover"
+            style={{ filter: RECORD_EFFECTS[recordEffect] || undefined }}
+          />
+          <div className="absolute bottom-0 left-0 right-0 pb-10 pt-6 px-6 bg-gradient-to-t from-black/90 to-transparent flex flex-col items-center gap-5">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-white font-mono text-2xl font-bold tracking-wider">
+                {String(Math.floor(recordSec / 60)).padStart(2, '0')}:{String(recordSec % 60).padStart(2, '0')}
+              </span>
+            </div>
+            <div className="flex items-center gap-8">
+              <button onClick={handleToggleMute} className="flex flex-col items-center gap-1.5">
+                {recordMuted ? <VolumeX className="w-7 h-7 text-red-400" /> : <Volume2 className="w-7 h-7 text-white" />}
+                <span className="text-[10px] text-white/60">{recordMuted ? 'Unmute' : 'Mute'}</span>
+              </button>
+              <button onClick={() => setRecordShowEffects(prev => !prev)} className="flex flex-col items-center gap-1.5">
+                <Sparkles className={`w-7 h-7 ${recordShowEffects ? 'text-amber-400' : 'text-white'}`} />
+                <span className="text-[10px] text-white/60">Effects</span>
+              </button>
+              <button
+                onClick={handleStopRecord}
+                className="w-20 h-20 rounded-full bg-red-500 border-4 border-white flex items-center justify-center shadow-2xl active:scale-95"
+              >
+                <Square className="w-9 h-9 text-white fill-white" />
+              </button>
+              <button onClick={() => setRecordFullscreen(false)} className="flex flex-col items-center gap-1.5">
+                <Maximize2 className="w-7 h-7 text-white" />
+                <span className="text-[10px] text-white/60">Exit</span>
+              </button>
+              <button className="flex flex-col items-center gap-1.5 opacity-30" disabled>
+                <FlipHorizontal2 className="w-7 h-7 text-white" />
+                <span className="text-[10px] text-white/60">Flip</span>
+              </button>
+            </div>
+          </div>
+          {recordShowEffects && (
+            <div className="absolute bottom-44 left-0 right-0 px-4">
+              <div className="bg-black/85 rounded-2xl p-4 backdrop-blur-md">
+                <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3">Camera Effect</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {(['none','bright','warm','cool','dramatic','bw'] as const).map((ef) => (
+                    <button key={ef} onClick={() => { setRecordEffect(ef); setRecordShowEffects(false); }}
+                      className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${recordEffect === ef ? 'bg-amber-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>
+                      {ef === 'none' ? 'Natural' : ef === 'bw' ? 'B&W' : ef.charAt(0).toUpperCase() + ef.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Live Record bottom sheet ─────────────────────────────────────── */}
-      {mobileSheet === 'record' && (
+      {mobileSheet === 'record' && !recordFullscreen && (
         <div
           className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/50"
           style={{ bottom: 56 }}
@@ -6349,71 +6483,158 @@ export default function EditorWorkspacePage() {
         />
       )}
       <div
-        className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-900 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ maxHeight: '50vh', bottom: 56 }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Live record"
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ maxHeight: '72vh', bottom: 56 }}
+        role="dialog" aria-modal="true" aria-label="Live record"
       >
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 shrink-0">
-          <Mic className="w-4 h-4 text-red-400" />
+          <span className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white/30'}`} />
           <p className="text-sm font-semibold text-white flex-1">Live Record</p>
+          {isRecording && (
+            <span className="text-white font-mono text-sm font-bold tabular-nums">
+              {String(Math.floor(recordSec / 60)).padStart(2, '0')}:{String(recordSec % 60).padStart(2, '0')}
+            </span>
+          )}
           {!isRecording && (
             <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-white/10" aria-label="Close">
               <X className="w-4 h-4 text-white/60" />
             </button>
           )}
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6 py-4">
-          {/* Mode toggle */}
+
+        <div className="flex-1 overflow-y-auto">
+          {/* Mode toggle — before recording only */}
           {!isRecording && (
-            <div className="flex gap-2 bg-white/10 rounded-xl p-1 w-full max-w-xs">
-              {(['audio', 'video'] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setRecordMode(m)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${recordMode === m ? 'bg-red-500 text-white' : 'text-white/60 hover:text-white'}`}
-                >
-                  {m === 'audio' ? 'Audio Only' : 'Audio + Video'}
+            <div className="flex gap-2 mx-4 mt-4 bg-white/10 rounded-xl p-1">
+              {([
+                { mode: 'audio' as const, label: 'Audio Only', Icon: Mic },
+                { mode: 'video' as const, label: 'Audio + Video', Icon: Video },
+              ]).map(({ mode, label, Icon }) => (
+                <button key={mode} onClick={() => setRecordMode(mode)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-colors ${recordMode === mode ? 'bg-red-500 text-white shadow' : 'text-white/60 hover:text-white'}`}>
+                  <Icon className="w-3.5 h-3.5" /> {label}
                 </button>
               ))}
             </div>
           )}
-          {/* Camera preview (video mode only) */}
-          <video
-            ref={cameraPreviewRef}
-            muted
-            playsInline
-            className={`rounded-xl bg-black object-cover transition-all ${recordMode === 'video' ? 'w-full max-w-xs aspect-video' : 'hidden'}`}
-          />
-          {/* Timer */}
-          {isRecording && (
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-white font-mono text-2xl font-bold">
-                  {String(Math.floor(recordSec / 60)).padStart(2, '0')}:{String(recordSec % 60).padStart(2, '0')}
-                </span>
+
+          {/* Permission denied banner */}
+          {!isRecording && (permState.mic === 'denied' || (permState.cam === 'denied' && recordMode === 'video')) && (
+            <div className="mx-4 mt-3 p-3.5 rounded-xl bg-red-500/15 border border-red-500/30">
+              <div className="flex items-start gap-2.5">
+                <Shield className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-red-300 mb-1">
+                    {permState.mic === 'denied' ? 'Microphone' : ''}{permState.mic === 'denied' && permState.cam === 'denied' ? ' & ' : ''}{permState.cam === 'denied' && recordMode === 'video' ? 'Camera' : ''} access blocked
+                  </p>
+                  <p className="text-[11px] text-white/50 leading-relaxed">
+                    Tap the 🔒 lock icon in your browser address bar → set Microphone{recordMode === 'video' ? ' & Camera' : ''} to <strong className="text-white/70">Allow</strong>, then tap Record again.
+                  </p>
+                </div>
               </div>
-              <p className="text-white/40 text-xs">Recording {recordMode === 'video' ? 'audio + video' : 'audio'}…</p>
             </div>
           )}
-          {/* Record / Stop button */}
-          <button
-            onClick={() => isRecording ? handleStopRecord() : handleStartRecord()}
-            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all ${isRecording ? 'bg-red-500 hover:bg-red-600 scale-105' : 'bg-white hover:bg-gray-100'}`}
-          >
-            {isRecording
-              ? <Square className="w-6 h-6 text-white" />
-              : <Mic className="w-7 h-7 text-red-500" />
-            }
-          </button>
-          <p className="text-white/40 text-[11px] text-center">
-            {isRecording ? 'Tap to stop — recording saves to Working Files' : 'Tap to start recording'}
-          </p>
+
+          {/* Camera preview */}
+          {recordMode === 'video' && (
+            <div className="relative mx-4 mt-3 rounded-xl overflow-hidden bg-gray-900" style={{ aspectRatio: '16/9' }}>
+              <video
+                ref={cameraSheetPreviewRef}
+                muted playsInline
+                className="w-full h-full object-cover"
+                style={{ filter: RECORD_EFFECTS[recordEffect] || undefined }}
+              />
+              {!isRecording && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="bg-black/60 rounded-xl px-4 py-2 flex items-center gap-2">
+                    <Video className="w-4 h-4 text-white/50" />
+                    <span className="text-white/50 text-xs">Camera preview starts on record</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Effect chips — during recording */}
+          {isRecording && (
+            <div className="px-4 mt-3">
+              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mb-2">Camera Effect</p>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {(['none','bright','warm','cool','dramatic','bw'] as const).map((ef) => (
+                  <button key={ef} onClick={() => setRecordEffect(ef)}
+                    className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all ${recordEffect === ef ? 'bg-amber-500 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}>
+                    {ef === 'none' ? 'Natural' : ef === 'bw' ? 'B&W' : ef.charAt(0).toUpperCase() + ef.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Controls row — during recording */}
+          {isRecording && (
+            <div className="flex items-center justify-center gap-5 px-6 py-3">
+              <button onClick={handleToggleMute} className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors min-w-[52px]">
+                {recordMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-white/70" />}
+                <span className="text-[9px] text-white/50 mt-0.5">{recordMuted ? 'Unmute' : 'Mute'}</span>
+              </button>
+              {recordMode === 'video' && (
+                <button onClick={() => setRecordFullscreen(true)} className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors min-w-[52px]">
+                  <Maximize2 className="w-5 h-5 text-white/70" />
+                  <span className="text-[9px] text-white/50 mt-0.5">Full</span>
+                </button>
+              )}
+              {recordMode === 'video' && (
+                <button disabled className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/5 opacity-30 min-w-[52px]" title="Stop recording to flip camera">
+                  <FlipHorizontal2 className="w-5 h-5 text-white/70" />
+                  <span className="text-[9px] text-white/50 mt-0.5">Flip</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Pre-record: flip + facing label */}
+          {!isRecording && recordMode === 'video' && (
+            <div className="flex items-center gap-2 px-4 mt-2">
+              <button onClick={() => void handleFlipCamera()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white/70 text-xs font-medium hover:bg-white/20 transition-colors">
+                <FlipHorizontal2 className="w-3.5 h-3.5" />
+                {cameraFacing === 'user' ? 'Switch to back cam' : 'Switch to front cam'}
+              </button>
+              <span className="text-[10px] text-white/30 flex-1 text-right">
+                {cameraFacing === 'user' ? 'Front camera' : 'Back camera'}
+              </span>
+            </div>
+          )}
+
+          {/* Main record/stop button */}
+          <div className="flex flex-col items-center gap-3 py-6">
+            <button
+              onClick={isRecording ? handleStopRecord : () => void handleStartRecord()}
+              className={`w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-95 ${
+                isRecording
+                  ? 'bg-red-500 ring-4 ring-red-500/40 ring-offset-2 ring-offset-gray-950 animate-pulse'
+                  : (permState.mic === 'denied' || (permState.cam === 'denied' && recordMode === 'video'))
+                    ? 'bg-white/10 cursor-not-allowed'
+                    : 'bg-red-500 hover:bg-red-400 ring-4 ring-red-500/25 ring-offset-2 ring-offset-gray-950'
+              }`}
+            >
+              {isRecording
+                ? <Square className="w-9 h-9 text-white fill-white" />
+                : <Mic className="w-9 h-9 text-white" />}
+            </button>
+            <p className="text-xs text-white/40 text-center px-8 leading-relaxed">
+              {isRecording
+                ? 'Tap to stop — file saves to Working Files'
+                : permState.mic === 'denied'
+                  ? 'Microphone blocked — see instructions above'
+                  : permState.mic === 'unknown'
+                    ? 'Tap to request recording permission'
+                    : 'Tap to start recording'}
+            </p>
+          </div>
         </div>
       </div>
 
