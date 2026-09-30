@@ -6,9 +6,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, Play, Pause, Scissors, Trash2, Undo2, Redo2,
   ZoomIn, ZoomOut, Wand2, Captions, Check, X, Save, Clapperboard,
-  Maximize2, Film, Music2, Type, Layers, Volume2, VolumeX, Layout,
+  Film, Music2, Type, Layers, Volume2, VolumeX, Layout,
   Monitor, Smartphone, Square, RectangleHorizontal,
-  Mic, Users, ImageIcon,
+  Mic, Users, ImageIcon, Settings2, Sparkles, Zap, SlidersHorizontal,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { StudioToolPanels } from './StudioToolPanels';
@@ -124,13 +124,12 @@ export default function TimelineEditorPage() {
   const [playing, setPlaying] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(true);
-  const [previewSize, setPreviewSize] = useState<'sm' | 'md' | 'lg'>('md');
   const [muted, setMuted] = useState(false);
+  const [captionsVisible, setCaptionsVisible] = useState(true);
   const [canvasPanelOpen, setCanvasPanelOpen] = useState(false);
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
   const [quickTool, setQuickTool] = useState<string | null>(null);
-  const [mobileCanvasOpen, setMobileCanvasOpen] = useState(false);
-  const [mobileStudioOpen, setMobileStudioOpen] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState<'none' | 'studio' | 'inspect' | 'tools' | 'canvas'>('none');
   const [useRenderedSource, setUseRenderedSource] = useState(false);
   const useRenderedSourceRef = useRef(false);
   useRenderedSourceRef.current = useRenderedSource;
@@ -713,8 +712,17 @@ export default function TimelineEditorPage() {
   const ticks = Array.from({ length: Math.ceil(durationMs / 1000 / tickEveryS) + 1 }, (_, i) => i * tickEveryS);
   const activeCaption = timeline.captions.find((c) => playheadMs >= c.startMs && playheadMs < c.endMs);
 
+  // Context-aware inspector: resolve selected real item + its track type
+  const selectedItem = selectedId && !selectedId.startsWith('linked-audio-')
+    ? timeline.tracks.flatMap((t) => t.items).find((i) => i.id === selectedId) ?? null
+    : null;
+  const selectedTrack = selectedItem
+    ? timeline.tracks.find((t) => t.items.some((i) => i.id === selectedItem.id)) ?? null
+    : null;
+  const selectedTrackType = selectedTrack?.type ?? null;
+
   // Preview container dimensions — respect canvas aspect ratio
-  const previewH = previewSize === 'sm' ? 200 : previewSize === 'lg' ? 480 : 320;
+  const previewH = 300;
   const [aw, ah] = ASPECT_PAIRS[canvasConfig.aspect] ?? [9, 16];
   const previewW = Math.round(previewH * aw / ah);
 
@@ -723,7 +731,7 @@ export default function TimelineEditorPage() {
   const videoObjectPosition = `${50 + canvasConfig.panX * 100}% ${50 + canvasConfig.panY * 100}%`;
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto select-none">
+    <div className="p-6 pb-24 lg:pb-6 max-w-[1400px] mx-auto select-none">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link href={`/shorts-studio/videos/${clip!.topicSegment.importedVideoId}`} className="text-gray-500 hover:text-gray-800">
@@ -784,7 +792,7 @@ export default function TimelineEditorPage() {
                 </p>
               )}
               {/* Caption overlay */}
-              {activeCaption && (
+              {captionsVisible && activeCaption && (
                 <div className="absolute bottom-6 left-0 right-0 text-center px-8 pointer-events-none z-10">
                   <span className={`inline-block px-3 py-1 rounded-lg text-white text-lg font-bold bg-black/60 ${activeCaption.emphasis ? 'text-amber-300' : ''}`}>
                     {activeCaption.text}{activeCaption.emoji ? ` ${activeCaption.emoji}` : ''}
@@ -804,26 +812,21 @@ export default function TimelineEditorPage() {
             </div>
           </div>
 
-          {/* Preview resize + mute controls */}
-          <div className="flex items-center gap-1.5 mt-2 justify-center">
-            <Maximize2 className="w-3 h-3 text-gray-400 shrink-0" />
-            <span className="text-[10px] text-gray-400 mr-0.5">Preview:</span>
-            {(['sm', 'md', 'lg'] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setPreviewSize(s)}
-                className={`px-2 py-0.5 text-[10px] rounded-md border transition-colors ${previewSize === s ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-              >
-                {s === 'sm' ? 'S' : s === 'md' ? 'M' : 'L'}
-              </button>
-            ))}
-            <div className="w-px h-4 bg-gray-200 mx-1" />
+          {/* Preview controls: mute + CC toggle */}
+          <div className="flex items-center gap-2 mt-2 justify-center">
             <button
               onClick={() => setMuted((m) => !m)}
               title={muted ? 'Unmute' : 'Mute'}
-              className="flex items-center justify-center w-6 h-6 border border-gray-200 rounded-md hover:bg-gray-50"
+              className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50"
             >
               {muted ? <VolumeX className="w-3.5 h-3.5 text-gray-500" /> : <Volume2 className="w-3.5 h-3.5 text-gray-600" />}
+            </button>
+            <button
+              onClick={() => setCaptionsVisible((v) => !v)}
+              title={captionsVisible ? 'Hide captions' : 'Show captions'}
+              className={`flex items-center gap-1.5 px-2.5 h-7 border rounded-lg text-[11px] font-medium transition-colors ${captionsVisible ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-400 hover:bg-gray-50'}`}
+            >
+              <Captions className="w-3.5 h-3.5" /> CC
             </button>
           </div>
 
@@ -856,41 +859,6 @@ export default function TimelineEditorPage() {
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
                 : <Captions className="w-3.5 h-3.5 text-amber-600" />}
             </button>
-            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
-            {/* Canvas size quick-access (mobile only) */}
-            <button
-              onClick={() => setMobileCanvasOpen(true)}
-              title="Canvas Size"
-              className="lg:hidden flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0"
-            >
-              <Layout className="w-3.5 h-3.5 text-brand-600" />
-            </button>
-            <div className="lg:hidden w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
-            {/* Studio Tools quick-access — each button opens the corresponding panel in the sidebar */}
-            {([
-              { id: 'music',  label: 'Music',      Icon: Music2,     color: 'text-cyan-600' },
-              { id: 'voice',  label: 'Voice-Over',  Icon: Mic,        color: 'text-brand-600' },
-              { id: 'audio',  label: 'Audio',       Icon: Volume2,    color: 'text-emerald-600' },
-              { id: 'chars',  label: 'Characters',  Icon: Users,      color: 'text-fuchsia-600' },
-              { id: 'images', label: 'Images',      Icon: ImageIcon,  color: 'text-purple-600' },
-            ] as const).map((t) => (
-              <button
-                key={t.id}
-                onClick={() => {
-                  const next = quickTool === t.id ? null : t.id;
-                  setQuickTool(next);
-                  if (next) setMobileStudioOpen(true);
-                }}
-                title={t.label}
-                className={`flex items-center justify-center w-7 h-7 border rounded-lg shrink-0 transition-colors ${
-                  quickTool === t.id
-                    ? 'border-brand-400 bg-brand-50'
-                    : 'border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <t.Icon className={`w-3.5 h-3.5 ${quickTool === t.id ? 'text-brand-600' : t.color}`} />
-              </button>
-            ))}
           </div>
 
           {/* ── Timeline ────────────────────────────────────────────────────── */}
@@ -1276,17 +1244,17 @@ export default function TimelineEditorPage() {
         </aside>
       </div>
 
-      {/* Mobile Canvas Size bottom sheet — keeps preview visible while editing canvas */}
-      {mobileCanvasOpen && (
+      {/* Mobile Canvas Size bottom sheet */}
+      {mobileSheet === 'canvas' && (
         <div
           className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/40"
           style={{ bottom: 0 }}
-          onClick={() => setMobileCanvasOpen(false)}
+          onClick={() => setMobileSheet('none')}
           role="presentation"
         />
       )}
       <div
-        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileCanvasOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'canvas' ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ maxHeight: '70vh', bottom: 0 }}
         role="dialog"
         aria-modal="true"
@@ -1299,7 +1267,7 @@ export default function TimelineEditorPage() {
           <Layout className="w-4 h-4 text-brand-600" />
           <p className="text-sm font-semibold text-gray-800 flex-1">Canvas Size</p>
           <span className="text-xs text-gray-400 font-mono mr-2">{canvasConfig.aspect}</span>
-          <button onClick={() => setMobileCanvasOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close canvas">
+          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close canvas">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
@@ -1390,16 +1358,16 @@ export default function TimelineEditorPage() {
       </div>
 
       {/* Mobile Studio Tools bottom sheet */}
-      {mobileStudioOpen && (
+      {mobileSheet === 'studio' && (
         <div
           className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/40"
           style={{ bottom: 0 }}
-          onClick={() => setMobileStudioOpen(false)}
+          onClick={() => setMobileSheet('none')}
           role="presentation"
         />
       )}
       <div
-        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileStudioOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'studio' ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ maxHeight: '75vh', bottom: 0 }}
         role="dialog"
         aria-modal="true"
@@ -1412,7 +1380,7 @@ export default function TimelineEditorPage() {
         <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 shrink-0">
           <Wand2 className="w-4 h-4 text-brand-600" />
           <p className="text-sm font-semibold text-gray-800 flex-1">Studio Tools</p>
-          <button onClick={() => setMobileStudioOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close studio tools">
+          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close studio tools">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
@@ -1450,6 +1418,225 @@ export default function TimelineEditorPage() {
             requestOpen={quickTool ?? undefined}
           />
         </div>
+      </div>
+
+      {/* Mobile Inspect bottom sheet — context-aware based on selected clip type */}
+      {mobileSheet === 'inspect' && (
+        <div className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/40" style={{ bottom: 0 }} onClick={() => setMobileSheet('none')} role="presentation" />
+      )}
+      <div
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'inspect' ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ maxHeight: '60vh', bottom: 0 }}
+        role="dialog" aria-modal="true" aria-label="Clip inspector"
+      >
+        <div className="flex justify-center pt-3 pb-1 shrink-0"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 shrink-0">
+          <Settings2 className="w-4 h-4 text-brand-600" />
+          <p className="text-sm font-semibold text-gray-800 flex-1">
+            {selectedTrackType === 'VIDEO' ? 'Video Clip' : selectedTrackType === 'AUDIO' ? 'Audio Clip' : selectedTrackType === 'MUSIC' ? 'Music' : 'Inspector'}
+          </p>
+          {selectedItem && (
+            <span className="text-[10px] font-mono text-gray-400 mr-2">{fmt(selectedItem.endMs - selectedItem.startMs)}</span>
+          )}
+          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close inspector">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
+          {!selectedItem ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2 text-gray-400">
+              <Layers className="w-8 h-8" />
+              <p className="text-sm font-medium">No clip selected</p>
+              <p className="text-xs text-center">Tap a clip in the timeline to inspect and edit it</p>
+            </div>
+          ) : (
+            <>
+              {/* Quick actions */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { splitAtPlayhead(); setMobileSheet('none'); }}
+                  className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <Scissors className="w-4 h-4" /> Split here
+                </button>
+                <button
+                  onClick={() => { deleteSelected(); setMobileSheet('none'); }}
+                  className="flex items-center justify-center gap-2 py-2.5 border border-red-100 bg-red-50 rounded-xl text-sm text-red-600 hover:bg-red-100"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+              </div>
+
+              {/* VIDEO-specific tools */}
+              {selectedTrackType === 'VIDEO' && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">AI Enhancements</p>
+                  {([
+                    ['remove-silence', 'Remove Silence', 'Cuts out pauses automatically'] ,
+                    ['remove-fillers', 'Remove Filler Words', 'Removes um, uh, like…'],
+                    ['improve-pacing', 'Improve Pacing', 'Tightens the overall rhythm'],
+                  ] as const).map(([cap, label, sub]) => (
+                    <button
+                      key={cap}
+                      onClick={() => { void runAssist(cap); setMobileSheet('none'); }}
+                      disabled={assistBusy !== null}
+                      className="w-full flex items-start gap-3 px-3 py-2.5 border border-gray-200 rounded-xl text-left hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {assistBusy === cap ? <Loader2 className="w-4 h-4 animate-spin mt-0.5 text-brand-600 shrink-0" /> : <Wand2 className="w-4 h-4 mt-0.5 text-brand-500 shrink-0" />}
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{label}</p>
+                        <p className="text-[11px] text-gray-500">{sub}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* AUDIO-specific tools */}
+              {(selectedTrackType === 'AUDIO' || selectedTrackType === 'MUSIC') && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Audio Tools</p>
+                  {([
+                    { id: 'audio', label: 'AI Enhance Audio', sub: 'Boost clarity & presence', Icon: Sparkles },
+                    { id: 'trim', label: 'Trim Silence', sub: 'Remove quiet gaps', Icon: Scissors },
+                    { id: 'normalize', label: 'Normalize Loudness', sub: 'Balance volume levels', Icon: SlidersHorizontal },
+                    { id: 'denoise', label: 'Remove Background Noise', sub: 'Clean up the audio track', Icon: Zap },
+                  ]).map((tool) => (
+                    <button
+                      key={tool.id}
+                      onClick={() => {
+                        setQuickTool('audio');
+                        setMobileSheet('studio');
+                      }}
+                      className="w-full flex items-start gap-3 px-3 py-2.5 border border-gray-200 rounded-xl text-left hover:bg-gray-50"
+                    >
+                      <tool.Icon className="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{tool.label}</p>
+                        <p className="text-[11px] text-gray-500">{tool.sub}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Tools bottom sheet */}
+      {mobileSheet === 'tools' && (
+        <div className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/40" style={{ bottom: 0 }} onClick={() => setMobileSheet('none')} role="presentation" />
+      )}
+      <div
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ maxHeight: '60vh', bottom: 0 }}
+        role="dialog" aria-modal="true" aria-label="Editor tools"
+      >
+        <div className="flex justify-center pt-3 pb-1 shrink-0"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 shrink-0">
+          <Wand2 className="w-4 h-4 text-brand-600" />
+          <p className="text-sm font-semibold text-gray-800 flex-1">Tools</p>
+          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close tools">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
+          {/* Edit history */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">History</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={undo} disabled={undoStack.length === 0} className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40">
+                <Undo2 className="w-4 h-4" /> Undo
+              </button>
+              <button onClick={redo} disabled={redoStack.length === 0} className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40">
+                <Redo2 className="w-4 h-4" /> Redo
+              </button>
+            </div>
+          </div>
+
+          {/* Clip actions */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Clip</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => { splitAtPlayhead(); setMobileSheet('none'); }} className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50">
+                <Scissors className="w-4 h-4" /> Split
+              </button>
+              <button onClick={() => { deleteSelected(); setMobileSheet('none'); }} disabled={!selectedId} className="flex items-center justify-center gap-2 py-2.5 border border-red-100 bg-red-50 rounded-xl text-sm text-red-600 hover:bg-red-100 disabled:opacity-40">
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+            </div>
+          </div>
+
+          {/* Captions */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Captions</p>
+            <button
+              onClick={() => { genCaptions.mutate(); setMobileSheet('none'); }}
+              disabled={genCaptions.isPending || captionPending}
+              className="w-full flex items-center gap-3 px-3 py-2.5 border border-amber-200 bg-amber-50 rounded-xl text-sm text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+            >
+              {(genCaptions.isPending || captionPending) ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Captions className="w-4 h-4 shrink-0" />}
+              {captionPending ? 'Generating captions…' : 'Generate Captions'}
+            </button>
+          </div>
+
+          {/* Canvas */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Canvas</p>
+            <button
+              onClick={() => setMobileSheet('canvas')}
+              className="w-full flex items-center gap-3 px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <Layout className="w-4 h-4 text-brand-600 shrink-0" />
+              Canvas Size <span className="ml-auto font-mono text-[10px] text-gray-400">{canvasConfig.aspect}</span>
+            </button>
+          </div>
+
+          {/* AI Edit */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">AI Edit</p>
+            <div className="space-y-1.5">
+              {([
+                ['remove-silence', 'Remove Silence'],
+                ['remove-fillers', 'Remove Filler Words'],
+                ['improve-pacing', 'Improve Pacing'],
+              ] as const).map(([cap, label]) => (
+                <button
+                  key={cap}
+                  onClick={() => { void runAssist(cap); setMobileSheet('none'); }}
+                  disabled={assistBusy !== null}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {assistBusy === cap ? <Loader2 className="w-4 h-4 animate-spin text-brand-600 shrink-0" /> : <Wand2 className="w-4 h-4 text-brand-500 shrink-0" />}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile bottom tab bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 flex">
+        {([
+          { id: 'studio' as const,  label: 'Studio',  Icon: Music2,     color: 'text-cyan-600',   activeBg: 'bg-cyan-50',   activeTxt: 'text-cyan-700' },
+          { id: 'inspect' as const, label: 'Inspect', Icon: Settings2,  color: 'text-brand-600',  activeBg: 'bg-brand-50',  activeTxt: 'text-brand-700' },
+          { id: 'tools' as const,   label: 'Tools',   Icon: Wand2,      color: 'text-purple-600', activeBg: 'bg-purple-50', activeTxt: 'text-purple-700' },
+        ]).map((tab) => {
+          const active = mobileSheet === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setMobileSheet(active ? 'none' : tab.id)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${active ? tab.activeBg : 'hover:bg-gray-50'}`}
+            >
+              <tab.Icon className={`w-5 h-5 ${active ? tab.activeTxt : tab.color}`} />
+              <span className={`text-[10px] font-medium ${active ? tab.activeTxt : 'text-gray-500'}`}>{tab.label}</span>
+              {active && <span className="w-4 h-0.5 rounded-full bg-current" />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
