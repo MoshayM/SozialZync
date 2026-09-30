@@ -6523,18 +6523,37 @@ export default function EditorWorkspacePage() {
 
           {/* Permission denied banner */}
           {!isRecording && (permState.mic === 'denied' || (permState.cam === 'denied' && recordMode === 'video')) && (
-            <div className="mx-4 mt-3 p-3.5 rounded-xl bg-red-500/15 border border-red-500/30">
-              <div className="flex items-start gap-2.5">
-                <Shield className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-semibold text-red-300 mb-1">
-                    {permState.mic === 'denied' ? 'Microphone' : ''}{permState.mic === 'denied' && permState.cam === 'denied' ? ' & ' : ''}{permState.cam === 'denied' && recordMode === 'video' ? 'Camera' : ''} access blocked
-                  </p>
-                  <p className="text-[11px] text-white/50 leading-relaxed">
-                    Tap the 🔒 lock icon in your browser address bar → set Microphone{recordMode === 'video' ? ' & Camera' : ''} to <strong className="text-white/70">Allow</strong>, then tap Record again.
+            <div className="mx-4 mt-3 rounded-2xl overflow-hidden border border-red-500/30">
+              <div className="bg-red-500/15 px-4 pt-3.5 pb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="w-4 h-4 text-red-400 shrink-0" />
+                  <p className="text-xs font-bold text-red-300">
+                    {recordMode === 'video' ? 'Microphone & Camera' : 'Microphone'} access blocked
                   </p>
                 </div>
+                <p className="text-[11px] text-white/55 leading-relaxed mb-3">
+                  This is a browser permission — <strong className="text-white/80">not</strong> the Android app settings. Follow these steps to allow it:
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { n: '1', text: 'Tap the address bar at the top of Chrome / Samsung Internet' },
+                    { n: '2', text: 'Tap the 🔒 lock icon or ⓘ info icon next to the URL' },
+                    { n: '3', text: `Tap "Permissions" → enable Microphone${recordMode === 'video' ? ' & Camera' : ''}` },
+                    { n: '4', text: 'Return here and tap Record again' },
+                  ].map(({ n, text }) => (
+                    <div key={n} className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-red-500/30 text-red-300 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{n}</span>
+                      <span className="text-[11px] text-white/55 leading-relaxed">{text}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+              <button
+                onClick={() => void handleStartRecord()}
+                className="w-full py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold text-center transition-colors"
+              >
+                I've allowed it — Try Again
+              </button>
             </div>
           )}
 
@@ -6616,9 +6635,7 @@ export default function EditorWorkspacePage() {
               className={`w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-95 ${
                 isRecording
                   ? 'bg-red-500 ring-4 ring-red-500/40 ring-offset-2 ring-offset-gray-950 animate-pulse'
-                  : (permState.mic === 'denied' || (permState.cam === 'denied' && recordMode === 'video'))
-                    ? 'bg-white/10 cursor-not-allowed'
-                    : 'bg-red-500 hover:bg-red-400 ring-4 ring-red-500/25 ring-offset-2 ring-offset-gray-950'
+                  : 'bg-red-500 hover:bg-red-400 ring-4 ring-red-500/25 ring-offset-2 ring-offset-gray-950'
               }`}
             >
               {isRecording
@@ -6629,9 +6646,9 @@ export default function EditorWorkspacePage() {
               {isRecording
                 ? 'Tap to stop — file saves to Working Files'
                 : permState.mic === 'denied'
-                  ? 'Microphone blocked — see instructions above'
-                  : permState.mic === 'unknown'
-                    ? 'Tap to request recording permission'
+                  ? 'Follow the steps above, then tap Record'
+                  : permState.mic === 'prompt' || permState.mic === 'unknown'
+                    ? 'Tap — browser will ask for permission'
                     : 'Tap to start recording'}
             </p>
           </div>
