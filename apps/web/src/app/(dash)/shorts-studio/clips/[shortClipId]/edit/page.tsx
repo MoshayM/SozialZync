@@ -129,6 +129,7 @@ export default function TimelineEditorPage() {
   const [canvasPanelOpen, setCanvasPanelOpen] = useState(false);
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
   const [quickTool, setQuickTool] = useState<string | null>(null);
+  const [mobileCanvasOpen, setMobileCanvasOpen] = useState(false);
   const [useRenderedSource, setUseRenderedSource] = useState(false);
   const useRenderedSourceRef = useRef(false);
   useRenderedSourceRef.current = useRenderedSource;
@@ -827,6 +828,15 @@ export default function TimelineEditorPage() {
             <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
+            {/* Canvas size quick-access (mobile only) */}
+            <button
+              onClick={() => setMobileCanvasOpen(true)}
+              title="Canvas Size"
+              className="lg:hidden flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0"
+            >
+              <Layout className="w-3.5 h-3.5 text-brand-600" />
+            </button>
+            <div className="lg:hidden w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             {/* Studio Tools quick-access — each button opens the corresponding panel in the sidebar */}
             {([
               { id: 'music',  label: 'Music',      Icon: Music2,     color: 'text-cyan-600' },
@@ -1004,8 +1014,8 @@ export default function TimelineEditorPage() {
           </p>
         </div>
 
-        {/* ── Right sidebar ─────────────────────────────────────────────────── */}
-        <aside className="space-y-3">
+        {/* ── Right sidebar (desktop only — mobile uses bottom sheets) ───────── */}
+        <aside className="hidden lg:block space-y-3">
           {/* Canvas size panel */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
             <button
@@ -1208,6 +1218,119 @@ export default function TimelineEditorPage() {
             )}
           </div>
         </aside>
+      </div>
+
+      {/* Mobile Canvas Size bottom sheet — keeps preview visible while editing canvas */}
+      {mobileCanvasOpen && (
+        <div
+          className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/40"
+          style={{ bottom: 0 }}
+          onClick={() => setMobileCanvasOpen(false)}
+          role="presentation"
+        />
+      )}
+      <div
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileCanvasOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ maxHeight: '70vh', bottom: 0 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Canvas size"
+      >
+        <div className="flex justify-center pt-2 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 shrink-0">
+          <Layout className="w-4 h-4 text-brand-600" />
+          <p className="text-sm font-semibold text-gray-800 flex-1">Canvas Size</p>
+          <span className="text-xs text-gray-400 font-mono mr-2">{canvasConfig.aspect}</span>
+          <button onClick={() => setMobileCanvasOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close canvas">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            {CANVAS_PRESETS.map((p) => {
+              const active = canvasConfig.aspect === p.key;
+              return (
+                <button
+                  key={p.key}
+                  onClick={() => {
+                    const cfg: CanvasConfig = { ...canvasConfig, aspect: p.key };
+                    setCanvasConfig(cfg);
+                    updateCanvas.mutate(cfg);
+                  }}
+                  className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border text-xs transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <p.Icon className={`w-5 h-5 ${active ? 'text-brand-600' : 'text-gray-400'}`} />
+                  <span className="font-semibold text-center leading-tight">{p.label}</span>
+                  <span className={`text-[9px] ${active ? 'text-brand-500' : 'text-gray-400'}`}>{p.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Video fit</p>
+            <div className="flex gap-2">
+              {(['fill', 'contain'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => {
+                    const cfg: CanvasConfig = { ...canvasConfig, fit: f };
+                    setCanvasConfig(cfg);
+                    updateCanvas.mutate(cfg);
+                  }}
+                  className={`flex-1 py-2 text-xs rounded-xl border font-medium transition-colors ${canvasConfig.fit === f ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {f === 'fill' ? 'Fill (crop)' : 'Contain (letterbox)'}
+                </button>
+              ))}
+            </div>
+          </div>
+          {canvasConfig.fit === 'fill' && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Position</p>
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                  <span>Horizontal</span>
+                  <span className="font-mono">{canvasConfig.panX > 0 ? '+' : ''}{Math.round(canvasConfig.panX * 100)}%</span>
+                </div>
+                <input type="range" min="-50" max="50"
+                  value={Math.round(canvasConfig.panX * 100)}
+                  onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panX: parseInt(e.target.value) / 100 }))}
+                  onMouseUp={() => updateCanvas.mutate(canvasConfig)}
+                  onTouchEnd={() => updateCanvas.mutate(canvasConfig)}
+                  className="w-full h-2 accent-brand-600" />
+              </div>
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                  <span>Vertical</span>
+                  <span className="font-mono">{canvasConfig.panY > 0 ? '+' : ''}{Math.round(canvasConfig.panY * 100)}%</span>
+                </div>
+                <input type="range" min="-50" max="50"
+                  value={Math.round(canvasConfig.panY * 100)}
+                  onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panY: parseInt(e.target.value) / 100 }))}
+                  onMouseUp={() => updateCanvas.mutate(canvasConfig)}
+                  onTouchEnd={() => updateCanvas.mutate(canvasConfig)}
+                  className="w-full h-2 accent-brand-600" />
+              </div>
+              <button
+                onClick={() => {
+                  const cfg: CanvasConfig = { ...canvasConfig, panX: 0, panY: 0 };
+                  setCanvasConfig(cfg);
+                  updateCanvas.mutate(cfg);
+                }}
+                className="text-[10px] text-gray-400 hover:text-gray-600 underline"
+              >
+                Reset position
+              </button>
+            </div>
+          )}
+          {updateCanvas.isSuccess && (
+            <p className="text-[10px] text-green-600 flex items-center gap-1">
+              <Check className="w-3 h-3" /> Canvas saved — re-render to apply
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

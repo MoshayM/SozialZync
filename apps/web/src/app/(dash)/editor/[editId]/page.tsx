@@ -11,7 +11,7 @@ import {
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
   Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
-  FolderOpen, BookmarkPlus, Smartphone,
+  FolderOpen, BookmarkPlus, Smartphone, Monitor, Square,
 } from 'lucide-react';
 import {
   api,
@@ -3795,8 +3795,8 @@ export default function EditorWorkspacePage() {
   const isAdmin = useIsAdmin();
   const canExport = isAdmin || planAtLeast(userPlan, 'PRO');
   const [aiAutoSuggest, setAiAutoSuggest] = useState(false);
-  // Mobile bottom-sheet: which panel is open ('none' | 'media' | 'inspector' | 'tools')
-  const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools'>('none');
+  // Mobile bottom-sheet: which panel is open ('none' | 'media' | 'inspector' | 'tools' | 'canvas')
+  const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools' | 'canvas'>('none');
   // Keep legacy vars so existing references compile
   const mobileBinOpen = mobileSheet === 'media';
   const mobileInspectorOpen = mobileSheet === 'inspector';
@@ -3832,12 +3832,17 @@ export default function EditorWorkspacePage() {
   const [canRedo, setCanRedo] = useState(false);
   const [binPanelOpen, setBinPanelOpen] = useState(true);
   const [inspectorPanelOpen, setInspectorPanelOpen] = useState(true);
+  const PREVIEW_H_PRESETS = { sm: 160, md: 240, lg: 380 } as const;
+  const [previewSizeKey, setPreviewSizeKey] = useState<'sm' | 'md' | 'lg'>('md');
   const [previewH, setPreviewH] = useState(() => {
-    if (typeof window === 'undefined') return 200;
-    // On mobile: 45% of viewport height for preview
-    if (window.innerWidth < 768) return Math.round(window.innerHeight * 0.38);
+    if (typeof window === 'undefined') return 240;
+    if (window.innerWidth < 768) return Math.round(window.innerHeight * 0.32);
     return 200;
   });
+  function setPreviewSize(key: 'sm' | 'md' | 'lg') {
+    setPreviewSizeKey(key);
+    setPreviewH(PREVIEW_H_PRESETS[key]);
+  }
 
   const assetNameMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -4248,6 +4253,24 @@ export default function EditorWorkspacePage() {
       return { ...tl, durationMs: endMs, tracks: newTracks };
     });
   }, [updateTimeline, probeMediaDurationMs]);
+
+  // Auto-populate the timeline with the first video bin entry when the project loads empty.
+  // Handles the common case where a video was imported to the bin but never placed on the timeline.
+  const autoPopulatedRef = useRef(false);
+  useEffect(() => { autoPopulatedRef.current = false; }, [editId]);
+  useEffect(() => {
+    if (autoPopulatedRef.current) return;
+    if (!timeline) return;
+    const hasContent = timeline.tracks.some((t) => (t.items ?? []).length > 0);
+    if (hasContent) return;
+    if (mediaBin.length === 0) return;
+    const videoEntry = mediaBin.find((e) => e.kind === 'SHORTS_SOURCE_VIDEO')
+      ?? mediaBin.find((e) => e.kind === 'VIDEO')
+      ?? mediaBin.find((e) => e.kind === 'RENDER_SOURCE');
+    if (!videoEntry) return;
+    autoPopulatedRef.current = true;
+    void handleAddToTimeline(videoEntry);
+  }, [timeline, mediaBin, handleAddToTimeline, editId]);
 
   // Remove an item from the timeline (Inspector button or Delete/Backspace).
   // Empty tracks are pruned and the master duration recomputed.
@@ -5354,6 +5377,34 @@ export default function EditorWorkspacePage() {
             )}
           </div>
 
+          {/* ── Preview size + Studio quick-access (mobile only) ─────────────── */}
+          <div className="shrink-0 lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 border-t border-white/10">
+            <Maximize2 className="w-3 h-3 text-gray-500 shrink-0" />
+            <span className="text-[10px] text-gray-500 mr-0.5">Preview:</span>
+            {(['sm', 'md', 'lg'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setPreviewSize(s)}
+                className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${previewSizeKey === s ? 'bg-brand-600 text-white border-brand-600' : 'border-white/20 text-gray-400 hover:bg-white/10'}`}
+              >
+                {s === 'sm' ? 'S' : s === 'md' ? 'M' : 'L'}
+              </button>
+            ))}
+            <div className="w-px h-4 bg-white/20 mx-0.5" />
+            <button onClick={() => setMobileSheet('inspector')} title="Music & Audio" className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
+              <Music className="w-4 h-4" />
+            </button>
+            <button onClick={() => setMobileSheet('inspector')} title="Voice-Over" className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
+              <Mic className="w-4 h-4" />
+            </button>
+            <button onClick={() => setMobileSheet('inspector')} title="Captions & Text" className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
+              <Type className="w-4 h-4" />
+            </button>
+            <button onClick={() => setMobileSheet('canvas')} title="Canvas Size" className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
+              <SlidersHorizontal className="w-4 h-4" />
+            </button>
+          </div>
+
           {/* Transport bar */}
           <div className="shrink-0 bg-gray-900 text-white flex items-center gap-2 px-3 py-1">
             <button
@@ -5698,6 +5749,54 @@ export default function EditorWorkspacePage() {
           </div>
           <div className="flex-1 overflow-y-auto overscroll-contain">
             <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+          </div>
+        </div>
+
+        {/* Canvas Size bottom sheet */}
+        <div
+          className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'canvas' ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ maxHeight: '65vh', bottom: 56 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Canvas size"
+        >
+          <div className="flex justify-center pt-2 pb-1 shrink-0">
+            <div className="w-10 h-1 rounded-full bg-gray-300" />
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 shrink-0">
+            <Layers className="w-4 h-4 text-brand-600" />
+            <p className="text-sm font-semibold text-gray-800 flex-1">Canvas Size</p>
+            <span className="text-xs text-gray-400 font-mono mr-2">{timeline?.width ?? 1920}×{timeline?.height ?? 1080}</span>
+            <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close canvas">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { label: 'Shorts / Reels', sub: '9:16 · 1080×1920', w: 1080, h: 1920, Icon: Smartphone },
+                { label: 'Square', sub: '1:1 · 1080×1080', w: 1080, h: 1080, Icon: Square },
+                { label: 'Portrait', sub: '4:5 · 1080×1350', w: 1080, h: 1350, Icon: Film },
+                { label: 'Widescreen', sub: '16:9 · 1920×1080', w: 1920, h: 1080, Icon: Monitor },
+              ] as const).map((p) => {
+                const active = timeline?.width === p.w && timeline?.height === p.h;
+                return (
+                  <button
+                    key={p.sub}
+                    onClick={() => {
+                      updateTimeline((tl) => ({ ...tl, width: p.w, height: p.h }));
+                      setMobileSheet('none');
+                    }}
+                    className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border text-xs transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <p.Icon className={`w-5 h-5 ${active ? 'text-brand-600' : 'text-gray-400'}`} />
+                    <span className="font-semibold text-center leading-tight">{p.label}</span>
+                    <span className={`text-[9px] ${active ? 'text-brand-500' : 'text-gray-400'}`}>{p.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-gray-400 text-center">Canvas dimensions apply to the rendered output. The preview scales proportionally.</p>
           </div>
         </div>
 
