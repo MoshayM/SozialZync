@@ -3798,6 +3798,8 @@ export default function EditorWorkspacePage() {
   const [aiAutoSuggest, setAiAutoSuggest] = useState(false);
   // Mobile bottom-sheet: which panel is open
   const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools' | 'canvas' | 'text' | 'record'>('none');
+  // Text tool emoji tab
+  const [emojiTab, setEmojiTab] = useState(0);
   // Live record state
   const [recordMode, setRecordMode] = useState<'audio' | 'video'>('audio');
   const [isRecording, setIsRecording] = useState(false);
@@ -6042,7 +6044,7 @@ export default function EditorWorkspacePage() {
       )}
       <div
         className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ maxHeight: '46vh', bottom: 56 }}
+        style={{ maxHeight: '72vh', bottom: 56 }}
         role="dialog"
         aria-modal="true"
         aria-label="Text tool"
@@ -6085,6 +6087,14 @@ export default function EditorWorkspacePage() {
           const set = (key: keyof EditItemProperties, val: string | number | boolean) =>
             handleInspectorChange({ properties: { ...p, [key]: val } });
 
+          const EMOJI_GROUPS = [
+            { label: 'Faces', items: ['😀','😂','😍','🥰','😎','🤩','😭','😱','🥳','🤔','😴','🤣','😅','🥺','🤯','😤','🫶','🙌','👏','🤝'] },
+            { label: 'Hearts', items: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💞','💓','💗','💖','💘','💝','🔥','✨','⭐','🌟','💫'] },
+            { label: 'Symbols', items: ['✅','❌','⚡','🎯','🚀','🎉','🎊','🏆','🥇','💪','👑','💎','🎵','🎶','📌','🔑','💡','📣','🌈','🍀'] },
+            { label: 'People', items: ['👍','👎','👋','🤙','✌️','🤞','🫰','☝️','👇','👈','👉','🙏','💪','🦾','👀','👁️','🫦','🧠','🫀','🦷'] },
+            { label: 'Nature', items: ['🌸','🌺','🌻','🌹','🌿','🍃','🌊','🔥','💧','🌙','☀️','⭐','🌈','🦋','🐝','🦄','🐬','🦅','🌴','🍄'] },
+          ];
+
           const FONTS = [
             { label: 'Sans', value: 'sans-serif' },
             { label: 'Serif', value: 'Georgia, serif' },
@@ -6114,6 +6124,33 @@ export default function EditorWorkspacePage() {
                     color: p.color ?? '#111',
                   }}
                 />
+              </div>
+
+              {/* Emoji & Symbols */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Emoji &amp; Symbols</label>
+                <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-none">
+                  {EMOJI_GROUPS.map((g, i) => (
+                    <button
+                      key={g.label}
+                      onClick={() => setEmojiTab(i)}
+                      className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${emojiTab === i ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-10 gap-0.5">
+                  {EMOJI_GROUPS[emojiTab]?.items.map((em) => (
+                    <button
+                      key={em}
+                      onClick={() => set('text', (p.text ?? '') + em)}
+                      className="text-xl h-9 flex items-center justify-center rounded-lg hover:bg-amber-50 active:scale-90 transition-transform"
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Font family */}
@@ -6214,23 +6251,50 @@ export default function EditorWorkspacePage() {
                 />
               </div>
 
-              {/* Vertical position */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Position</label>
+              {/* Position */}
+              <div className="space-y-3">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block">Position</label>
+                {/* Quick presets */}
                 <div className="grid grid-cols-3 gap-2">
                   {([
-                    { label: 'Top', y: 10 },
-                    { label: 'Middle', y: 50 },
-                    { label: 'Bottom', y: 80 },
-                  ] as const).map(({ label, y }) => (
+                    { label: 'Top', x: 50, y: 10 },
+                    { label: 'Center', x: 50, y: 50 },
+                    { label: 'Bottom', x: 50, y: 82 },
+                  ] as const).map(({ label, x, y }) => (
                     <button
                       key={label}
-                      onClick={() => set('y', y)}
+                      onClick={() => handleInspectorChange({ properties: { ...p, x, y } })}
                       className={`py-2 rounded-xl border text-xs font-medium transition-colors ${(p.y ?? 80) === y ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                     >
                       {label}
                     </button>
                   ))}
+                </div>
+                {/* X slider */}
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[11px] text-gray-500 font-medium">Horizontal (X)</span>
+                    <span className="text-[11px] text-gray-500 font-mono">{p.x ?? 50}%</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={100} step={1}
+                    value={p.x ?? 50}
+                    onChange={(e) => set('x', parseInt(e.target.value, 10))}
+                    className="w-full accent-amber-500"
+                  />
+                </div>
+                {/* Y slider */}
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[11px] text-gray-500 font-medium">Vertical (Y)</span>
+                    <span className="text-[11px] text-gray-500 font-mono">{p.y ?? 80}%</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={100} step={1}
+                    value={p.y ?? 80}
+                    onChange={(e) => set('y', parseInt(e.target.value, 10))}
+                    className="w-full accent-amber-500"
+                  />
                 </div>
               </div>
 
