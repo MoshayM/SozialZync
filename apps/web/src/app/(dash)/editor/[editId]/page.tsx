@@ -6251,50 +6251,73 @@ export default function EditorWorkspacePage() {
                 />
               </div>
 
-              {/* Position */}
-              <div className="space-y-3">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block">Position</label>
-                {/* Quick presets */}
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { label: 'Top', x: 50, y: 10 },
-                    { label: 'Center', x: 50, y: 50 },
-                    { label: 'Bottom', x: 50, y: 82 },
-                  ] as const).map(({ label, x, y }) => (
-                    <button
-                      key={label}
-                      onClick={() => handleInspectorChange({ properties: { ...p, x, y } })}
-                      className={`py-2 rounded-xl border text-xs font-medium transition-colors ${(p.y ?? 80) === y ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              {/* Position — visual tap-to-place pad */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Position</label>
+                  <span className="text-[10px] text-gray-400 font-mono">{p.x ?? 50}% · {p.y ?? 80}%</span>
+                </div>
+                {/* Tap pad — 16:9 miniature canvas */}
+                <div
+                  className="relative w-full rounded-xl overflow-hidden cursor-crosshair select-none touch-none"
+                  style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)' }}
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = Math.round(Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100)));
+                    const y = Math.round(Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100)));
+                    handleInspectorChange({ properties: { ...p, x, y } });
+                  }}
+                >
+                  {/* Rule-of-thirds grid lines */}
+                  <div className="absolute inset-0 pointer-events-none" style={{ borderRight: '1px solid rgba(255,255,255,0.12)', borderLeft: '1px solid rgba(255,255,255,0.12)', left: '33.3%', right: '33.3%' }} />
+                  <div className="absolute inset-0 pointer-events-none" style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', borderTop: '1px solid rgba(255,255,255,0.12)', top: '33.3%', bottom: '33.3%' }} />
+                  {/* Safe-zone border hint */}
+                  <div className="absolute inset-[6%] rounded-lg border border-dashed border-white/10 pointer-events-none" />
+                  {/* Position dot with text preview */}
+                  <div
+                    className="absolute pointer-events-none flex flex-col items-center gap-0.5"
+                    style={{ left: `${p.x ?? 50}%`, top: `${p.y ?? 80}%`, transform: 'translate(-50%, -50%)' }}
+                  >
+                    <span
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-md max-w-[80px] truncate text-center leading-tight"
+                      style={{
+                        color: p.color ?? '#ffffff',
+                        fontFamily: p.fontFamily ?? 'sans-serif',
+                        fontWeight: p.fontWeight ?? 'bold',
+                        fontStyle: p.fontStyle ?? 'normal',
+                        backgroundColor: p.backgroundColor ?? 'rgba(0,0,0,0.45)',
+                        transform: `rotate(${p.rotation ?? 0}deg)`,
+                      }}
                     >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {/* X slider */}
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-[11px] text-gray-500 font-medium">Horizontal (X)</span>
-                    <span className="text-[11px] text-gray-500 font-mono">{p.x ?? 50}%</span>
+                      {p.text?.slice(0, 12) || 'Text'}
+                    </span>
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white shadow ring-2 ring-amber-400/40" />
                   </div>
-                  <input
-                    type="range" min={0} max={100} step={1}
-                    value={p.x ?? 50}
-                    onChange={(e) => set('x', parseInt(e.target.value, 10))}
-                    className="w-full accent-amber-500"
-                  />
                 </div>
-                {/* Y slider */}
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-[11px] text-gray-500 font-medium">Vertical (Y)</span>
-                    <span className="text-[11px] text-gray-500 font-mono">{p.y ?? 80}%</span>
+                {/* Nudge arrows */}
+                <div className="flex items-center justify-center gap-3 mt-3">
+                  <button
+                    onClick={() => set('x', Math.max(5, (p.x ?? 50) - 2))}
+                    className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors"
+                    title="Move left"
+                  >←</button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => set('y', Math.max(5, (p.y ?? 80) - 2))}
+                      className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors"
+                      title="Move up"
+                    >↑</button>
+                    <button
+                      onClick={() => set('y', Math.min(95, (p.y ?? 80) + 2))}
+                      className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors"
+                      title="Move down"
+                    >↓</button>
                   </div>
-                  <input
-                    type="range" min={0} max={100} step={1}
-                    value={p.y ?? 80}
-                    onChange={(e) => set('y', parseInt(e.target.value, 10))}
-                    className="w-full accent-amber-500"
-                  />
+                  <button
+                    onClick={() => set('x', Math.min(95, (p.x ?? 50) + 2))}
+                    className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors"
+                    title="Move right"
+                  >→</button>
                 </div>
               </div>
 
