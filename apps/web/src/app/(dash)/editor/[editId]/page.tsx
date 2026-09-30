@@ -4026,6 +4026,7 @@ export default function EditorWorkspacePage() {
   const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
   const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  const cameraPreviewRef = useRef<HTMLVideoElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const globalMutedRef = useRef(false);
   const [globalMuted, setGlobalMuted] = useState(false);
@@ -4533,6 +4534,10 @@ export default function EditorWorkspacePage() {
         setMobileSheet('none');
         await handleBinUpload(file);
       };
+      if (recordMode === 'video' && cameraPreviewRef.current) {
+        cameraPreviewRef.current.srcObject = stream;
+        void cameraPreviewRef.current.play();
+      }
       mr.start(250);
       setIsRecording(true);
       setRecordSec(0);
@@ -4550,6 +4555,7 @@ export default function EditorWorkspacePage() {
   const handleStopRecord = useCallback(() => {
     if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
     setIsRecording(false);
+    if (cameraPreviewRef.current) { cameraPreviewRef.current.srcObject = null; }
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
@@ -6289,6 +6295,13 @@ export default function EditorWorkspacePage() {
               ))}
             </div>
           )}
+          {/* Camera preview (video mode only) */}
+          <video
+            ref={cameraPreviewRef}
+            muted
+            playsInline
+            className={`rounded-xl bg-black object-cover transition-all ${recordMode === 'video' ? 'w-full max-w-xs aspect-video' : 'hidden'}`}
+          />
           {/* Timer */}
           {isRecording && (
             <div className="flex flex-col items-center gap-1">
