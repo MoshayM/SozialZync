@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SozialZynk</string>
+    <string name="title_activity_main">SozialZynk</string>
+    <string name="package_name">com.sozialzynk.app</string>
+    <string name="custom_url_scheme">com.sozialzynk.app</string>
+</resources>

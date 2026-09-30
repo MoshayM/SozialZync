@@ -1,46 +1,36 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-// v1.2 — fixed CI to use pre-installed Android SDK (no android-actions/setup-android)
 const config: CapacitorConfig = {
-  appId: 'com.sozialzync.app',
-  appName: 'Sozialzynk',
-  webDir: 'dist',
+  appId: 'com.sozialzynk.app',
+  appName: 'SozialZynk',
+  webDir: 'www',
   server: {
-    // Live server mode: loads the Vercel deployment inside the native WebView.
-    // Remove this block to switch to bundled/offline mode (requires static export).
     url: 'https://sozialzynk.vercel.app',
     cleartext: false,
     androidScheme: 'https',
   },
+  android: {
+    allowMixedContent: false,
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
+  },
+  ios: {
+    contentInset: 'always',
+    scrollEnabled: true,
+  },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
-      launchAutoHide: true,
-      backgroundColor: '#7C3AED',
+      launchShowDuration: 1800,
+      backgroundColor: '#374151',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
-      splashFullScreen: true,
-      splashImmersive: true,
+      launchAutoHide: true,
     },
     StatusBar: {
-      style: 'DARK',
-      backgroundColor: '#7C3AED',
+      style: 'Dark',
+      backgroundColor: '#374151',
     },
-    PushNotifications: {
-      presentationOptions: ['badge', 'sound', 'alert'],
-    },
-  },
-  android: {
-    allowMixedContent: false,
-    buildOptions: {
-      keystorePath: 'release.keystore',
-      keystoreAlias: 'sozialzync',
-    },
-  },
-  ios: {
-    scheme: 'Sozialzynk',
-    contentInset: 'always',
   },
 };
 

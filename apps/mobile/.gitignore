@@ -1,5 +1,11 @@
-android/
-ios/
+# Build outputs only — keep the source android/ios projects in git
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/build/
 dist/
 node_modules/
 release.keystore

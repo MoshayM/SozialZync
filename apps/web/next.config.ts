@@ -13,7 +13,7 @@ const securityHeaders = [
   // A02 — Don't leak the full URL when navigating to external sites
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   // A05 — Restrict browser feature access; microphone=(self) for voice recording feature
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()' },
+  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()' },
   // A02 — HSTS: 2 years + subdomains + preload (browsers cache this and force HTTPS)
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   // A05 — Prevent this page from being opened by cross-origin windows (tabnapping)

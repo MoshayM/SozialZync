@@ -74,3 +74,9 @@ screenshots/
 # Local cache files
 .thumbnail
 .env*
+
+# Capacitor Android build artifacts
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+apps/mobile/node_modules/
