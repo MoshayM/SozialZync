@@ -5378,8 +5378,8 @@ export default function EditorWorkspacePage() {
         {/* ── Center: Preview + Timeline ───────────────────────────────── */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-          {/* Preview area — height is user-draggable via the resize handle below */}
-          <div ref={previewContainerRef} className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: previewH }}>
+          {/* Preview area — compact when a bottom sheet is open so preview stays visible */}
+          <div ref={previewContainerRef} className="relative shrink-0 bg-black flex items-center justify-center transition-[height] duration-300" style={{ height: mobileSheet === 'text' ? Math.min(previewH, 140) : previewH }}>
             {/* Hidden audio element slaved to the rAF clock for AUDIO track items */}
             <audio ref={audioRef} src={audioSrc ?? undefined} style={{ display: 'none' }}>
               <track kind="captions" />
@@ -6044,7 +6044,7 @@ export default function EditorWorkspacePage() {
       )}
       <div
         className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ maxHeight: '72vh', bottom: 56 }}
+        style={{ maxHeight: 'calc(100vh - 140px - 56px)', bottom: 56 }}
         role="dialog"
         aria-modal="true"
         aria-label="Text tool"
