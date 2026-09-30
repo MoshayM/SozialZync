@@ -70,6 +70,8 @@ export const EditItemPropertiesSchema = z.object({
   duckUnderVoice: z.boolean().optional(),
   /** When true, this clip's audio is silenced (volume is preserved for unmute). */
   muted: z.boolean().optional(),
+  /** TEXT items: rotation in degrees (-180..180). */
+  rotation: z.number().min(-180).max(180).optional(),
 });
 export type EditItemProperties = z.infer<typeof EditItemPropertiesSchema>;
 

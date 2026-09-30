@@ -3796,8 +3796,15 @@ export default function EditorWorkspacePage() {
   const isAdmin = useIsAdmin();
   const canExport = isAdmin || planAtLeast(userPlan, 'PRO');
   const [aiAutoSuggest, setAiAutoSuggest] = useState(false);
-  // Mobile bottom-sheet: which panel is open ('none' | 'media' | 'inspector' | 'tools' | 'canvas')
-  const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools' | 'canvas' | 'text'>('none');
+  // Mobile bottom-sheet: which panel is open
+  const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools' | 'canvas' | 'text' | 'record'>('none');
+  // Live record state
+  const [recordMode, setRecordMode] = useState<'audio' | 'video'>('audio');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSec, setRecordSec] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordChunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Keep legacy vars so existing references compile
   const mobileBinOpen = mobileSheet === 'media';
   const mobileInspectorOpen = mobileSheet === 'inspector';
@@ -4018,6 +4025,7 @@ export default function EditorWorkspacePage() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
   const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const globalMutedRef = useRef(false);
   const [globalMuted, setGlobalMuted] = useState(false);
@@ -4502,6 +4510,43 @@ export default function EditorWorkspacePage() {
     });
     setSelectedItemId(newId);
   }, [updateTimeline, currentTimeMsRef]);
+
+  const handleStartRecord = useCallback(async () => {
+    try {
+      const constraints = recordMode === 'video'
+        ? { audio: true, video: { facingMode: 'user' } }
+        : { audio: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      recordChunksRef.current = [];
+      const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm' });
+      mediaRecorderRef.current = mr;
+      mr.ondataavailable = (e) => { if (e.data.size > 0) recordChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const ext = recordMode === 'video' ? 'webm' : 'webm';
+        const blob = new Blob(recordChunksRef.current, { type: mr.mimeType });
+        const filename = `recording-${Date.now()}.${ext}`;
+        const file = new File([blob], filename, { type: mr.mimeType });
+        setIsRecording(false);
+        if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+        setRecordSec(0);
+        setMobileSheet('none');
+        await handleBinUpload(file);
+      };
+      mr.start(250);
+      setIsRecording(true);
+      setRecordSec(0);
+      recordTimerRef.current = setInterval(() => setRecordSec((s) => s + 1), 1000);
+    } catch {
+      // user denied or not supported — silently ignore
+    }
+  }, [recordMode, handleBinUpload]);
+
+  const handleStopRecord = useCallback(() => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
 
   const handleDeleteTrack = useCallback((trackId: string) => {
     updateTimeline((tl) => ({
@@ -5319,7 +5364,7 @@ export default function EditorWorkspacePage() {
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
           {/* Preview area — height is user-draggable via the resize handle below */}
-          <div className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: previewH }}>
+          <div ref={previewContainerRef} className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: previewH }}>
             {/* Hidden audio element slaved to the rAF clock for AUDIO track items */}
             <audio ref={audioRef} src={audioSrc ?? undefined} style={{ display: 'none' }}>
               <track kind="captions" />
@@ -5342,16 +5387,45 @@ export default function EditorWorkspacePage() {
                 />
                 {activeTextItems.map((it) => {
                   const p = it.properties ?? {};
+                  const xPct = p.x ?? 50;
                   const yPct = p.y ?? 80;
-                  const isTop = yPct < 40;
+                  const isSelected = it.id === selectedItemId;
+                  const itemId = it.id;
                   return (
                     <span
-                      key={it.id}
-                      className="absolute pointer-events-none px-2 max-w-[90%] whitespace-pre-wrap break-words"
+                      key={itemId}
+                      onPointerDown={(e) => {
+                        if (!previewContainerRef.current) return;
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        setSelectedItemId(itemId);
+                        const rect = previewContainerRef.current.getBoundingClientRect();
+                        const startX = e.clientX;
+                        const startY = e.clientY;
+                        const startXPct = xPct;
+                        const startYPct = yPct;
+                        const props = { ...p };
+                        const onMove = (ev: PointerEvent) => {
+                          const dx = ((ev.clientX - startX) / rect.width) * 100;
+                          const dy = ((ev.clientY - startY) / rect.height) * 100;
+                          updateTimeline((tl) => ({
+                            ...tl,
+                            tracks: tl.tracks.map((tr) => ({
+                              ...tr,
+                              items: (tr.items ?? []).map((i) =>
+                                i.id === itemId ? { ...i, properties: { ...props, x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) } } : i
+                              ),
+                            })),
+                          }), true);
+                        };
+                        const onUp = () => { e.currentTarget.removeEventListener('pointermove', onMove as EventListener); };
+                        e.currentTarget.addEventListener('pointermove', onMove as EventListener);
+                        e.currentTarget.addEventListener('pointerup', onUp, { once: true });
+                      }}
+                      className="absolute cursor-move px-2 max-w-[90%] whitespace-pre-wrap break-words select-none"
                       style={{
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        ...(isTop ? { top: `${yPct}%` } : { bottom: `${100 - yPct}%` }),
+                        left: `${xPct}%`,
+                        top: `${yPct}%`,
+                        transform: `translate(-50%, -50%) rotate(${p.rotation ?? 0}deg)`,
                         color: p.color ?? '#ffffff',
                         fontSize: Math.max(10, (p.fontSize ?? 32) * 0.4),
                         opacity: clamp(p.opacity ?? 1, 0, 1),
@@ -5363,6 +5437,8 @@ export default function EditorWorkspacePage() {
                         backgroundColor: p.backgroundColor ?? undefined,
                         borderRadius: p.backgroundColor ? '4px' : undefined,
                         padding: p.backgroundColor ? '2px 6px' : undefined,
+                        outline: isSelected ? '2px dashed rgba(251,191,36,0.8)' : 'none',
+                        outlineOffset: '2px',
                       }}
                     >
                       {p.text ?? ''}
@@ -5400,21 +5476,66 @@ export default function EditorWorkspacePage() {
                     <EyeOff className="w-8 h-8 text-white/30" />
                   </div>
                 )}
-                {videoSrc && activeTextItems.map((it) => (
-                  <span
-                    key={it.id}
-                    className="absolute left-1/2 -translate-x-1/2 pointer-events-none font-semibold text-center px-2 max-w-[90%] truncate"
-                    style={{
-                      bottom: '12%',
-                      color: it.properties?.color ?? '#ffffff',
-                      fontSize: Math.max(10, (it.properties?.fontSize ?? 32) * 0.4),
-                      opacity: clamp(it.properties?.opacity ?? 1, 0, 1),
-                      textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                    }}
-                  >
-                    {it.properties?.text ?? ''}
-                  </span>
-                ))}
+                {videoSrc && activeTextItems.map((it) => {
+                  const p = it.properties ?? {};
+                  const xPct = p.x ?? 50;
+                  const yPct = p.y ?? 80;
+                  const isSelected = it.id === selectedItemId;
+                  const itemId = it.id;
+                  return (
+                    <span
+                      key={itemId}
+                      onPointerDown={(e) => {
+                        if (!previewContainerRef.current) return;
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        setSelectedItemId(itemId);
+                        const rect = previewContainerRef.current.getBoundingClientRect();
+                        const startX = e.clientX;
+                        const startY = e.clientY;
+                        const startXPct = xPct;
+                        const startYPct = yPct;
+                        const props = { ...p };
+                        const onMove = (ev: PointerEvent) => {
+                          const dx = ((ev.clientX - startX) / rect.width) * 100;
+                          const dy = ((ev.clientY - startY) / rect.height) * 100;
+                          updateTimeline((tl) => ({
+                            ...tl,
+                            tracks: tl.tracks.map((tr) => ({
+                              ...tr,
+                              items: (tr.items ?? []).map((i) =>
+                                i.id === itemId ? { ...i, properties: { ...props, x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) } } : i
+                              ),
+                            })),
+                          }), true);
+                        };
+                        const onUp = () => { e.currentTarget.removeEventListener('pointermove', onMove as EventListener); };
+                        e.currentTarget.addEventListener('pointermove', onMove as EventListener);
+                        e.currentTarget.addEventListener('pointerup', onUp, { once: true });
+                      }}
+                      className="absolute cursor-move px-2 max-w-[90%] whitespace-pre-wrap break-words select-none"
+                      style={{
+                        left: `${xPct}%`,
+                        top: `${yPct}%`,
+                        transform: `translate(-50%, -50%) rotate(${p.rotation ?? 0}deg)`,
+                        color: p.color ?? '#ffffff',
+                        fontSize: Math.max(10, (p.fontSize ?? 32) * 0.4),
+                        opacity: clamp(p.opacity ?? 1, 0, 1),
+                        fontFamily: p.fontFamily ?? 'sans-serif',
+                        fontWeight: p.fontWeight ?? 'bold',
+                        fontStyle: p.fontStyle ?? 'normal',
+                        textAlign: (p.textAlign ?? 'center') as 'left' | 'center' | 'right',
+                        textShadow: p.backgroundColor ? 'none' : '0 1px 3px rgba(0,0,0,0.8)',
+                        backgroundColor: p.backgroundColor ?? undefined,
+                        borderRadius: p.backgroundColor ? '4px' : undefined,
+                        padding: p.backgroundColor ? '2px 6px' : undefined,
+                        outline: isSelected ? '2px dashed rgba(251,191,36,0.8)' : 'none',
+                        outlineOffset: '2px',
+                      }}
+                    >
+                      {p.text ?? ''}
+                    </span>
+                  );
+                })}
                 {!videoSrc && activeAudioItem && (
                   <div className="text-gray-400 text-sm text-center space-y-2 p-4">
                     <Volume2 className="w-10 h-10 mx-auto opacity-50" />
@@ -5878,6 +5999,7 @@ export default function EditorWorkspacePage() {
                 {[
                   { icon: <Type className="w-5 h-5" />, label: 'Text', action: () => { handleAddTextItem(); setMobileSheet('text'); }, color: 'text-amber-400' },
                   { icon: <SlidersHorizontal className="w-5 h-5" />, label: 'Canvas', action: () => setMobileSheet('canvas'), color: 'text-purple-400' },
+                  { icon: <Mic className="w-5 h-5" />, label: 'Record', action: () => setMobileSheet('record'), color: 'text-red-400' },
                 ].map((item, i) => (
                   <button
                     key={i}
@@ -5899,14 +6021,15 @@ export default function EditorWorkspacePage() {
       {/* ── Text Tool bottom sheet ────────────────────────────────────────── */}
       {mobileSheet === 'text' && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/50"
+          className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/30"
+          style={{ bottom: 56 }}
           onClick={() => setMobileSheet('none')}
           role="presentation"
         />
       )}
       <div
         className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ maxHeight: '82vh', bottom: 56 }}
+        style={{ maxHeight: '46vh', bottom: 56 }}
         role="dialog"
         aria-modal="true"
         aria-label="Text tool"
@@ -6097,9 +6220,94 @@ export default function EditorWorkspacePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Rotation */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rotation</label>
+                  <span className="text-xs text-gray-500 font-mono">{p.rotation ?? 0}°</span>
+                </div>
+                <input
+                  type="range" min={-180} max={180} step={1}
+                  value={p.rotation ?? 0}
+                  onChange={(e) => set('rotation', parseInt(e.target.value, 10))}
+                  className="w-full accent-amber-500"
+                />
+              </div>
             </div>
           );
         })()}
+      </div>
+
+      {/* ── Live Record bottom sheet ─────────────────────────────────────── */}
+      {mobileSheet === 'record' && (
+        <div
+          className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/50"
+          style={{ bottom: 56 }}
+          onClick={() => { if (!isRecording) setMobileSheet('none'); }}
+          role="presentation"
+        />
+      )}
+      <div
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-900 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ maxHeight: '50vh', bottom: 56 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Live record"
+      >
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 shrink-0">
+          <Mic className="w-4 h-4 text-red-400" />
+          <p className="text-sm font-semibold text-white flex-1">Live Record</p>
+          {!isRecording && (
+            <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-white/10" aria-label="Close">
+              <X className="w-4 h-4 text-white/60" />
+            </button>
+          )}
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6 py-4">
+          {/* Mode toggle */}
+          {!isRecording && (
+            <div className="flex gap-2 bg-white/10 rounded-xl p-1 w-full max-w-xs">
+              {(['audio', 'video'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setRecordMode(m)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${recordMode === m ? 'bg-red-500 text-white' : 'text-white/60 hover:text-white'}`}
+                >
+                  {m === 'audio' ? 'Audio Only' : 'Audio + Video'}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Timer */}
+          {isRecording && (
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-white font-mono text-2xl font-bold">
+                  {String(Math.floor(recordSec / 60)).padStart(2, '0')}:{String(recordSec % 60).padStart(2, '0')}
+                </span>
+              </div>
+              <p className="text-white/40 text-xs">Recording {recordMode === 'video' ? 'audio + video' : 'audio'}…</p>
+            </div>
+          )}
+          {/* Record / Stop button */}
+          <button
+            onClick={() => isRecording ? handleStopRecord() : handleStartRecord()}
+            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all ${isRecording ? 'bg-red-500 hover:bg-red-600 scale-105' : 'bg-white hover:bg-gray-100'}`}
+          >
+            {isRecording
+              ? <Square className="w-6 h-6 text-white" />
+              : <Mic className="w-7 h-7 text-red-500" />
+            }
+          </button>
+          <p className="text-white/40 text-[11px] text-center">
+            {isRecording ? 'Tap to stop — recording saves to Working Files' : 'Tap to start recording'}
+          </p>
+        </div>
       </div>
 
       {/* ── Mobile bottom tab bar ─────────────────────────────────────────── */}

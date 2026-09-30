@@ -1641,6 +1641,7 @@ export interface EditItemProperties {
   fadeOutMs?: number;    // 0..10000
   gainDb?: number;       // -60..12  (0 = unity)
   duckUnderVoice?: boolean; // AUDIO items: duck this track when voice is detected
+  rotation?: number;        // TEXT items: rotation in degrees (-180..180)
 }
 
 export interface EditItem {
