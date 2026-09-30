@@ -130,6 +130,7 @@ export default function TimelineEditorPage() {
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
   const [quickTool, setQuickTool] = useState<string | null>(null);
   const [mobileCanvasOpen, setMobileCanvasOpen] = useState(false);
+  const [mobileStudioOpen, setMobileStudioOpen] = useState(false);
   const [useRenderedSource, setUseRenderedSource] = useState(false);
   const useRenderedSourceRef = useRef(false);
   useRenderedSourceRef.current = useRenderedSource;
@@ -417,12 +418,28 @@ export default function TimelineEditorPage() {
     [timeline],
   );
 
-  // Virtual display tracks — always show VIDEO + AUDIO + CAPTION even if not in DB
+  // Virtual display tracks — always show VIDEO + AUDIO + CAPTION even if not in DB.
+  // When no real AUDIO track exists, populate it with read-only linked items from the
+  // VIDEO track so users can see the embedded audio is there.
   const displayTracks = useMemo((): Track[] => {
     if (!timeline) return [];
     const existing = new Set(timeline.tracks.map((t) => t.type));
     const result = [...timeline.tracks];
-    if (!existing.has('AUDIO')) result.push({ id: 'virt-audio', type: 'AUDIO', orderIndex: 10, items: [] });
+    if (!existing.has('AUDIO')) {
+      const linkedItems: Item[] = timeline.tracks
+        .filter((t) => t.type === 'VIDEO')
+        .flatMap((t) =>
+          t.items.map((item) => ({
+            id: `linked-audio-${item.id}`,
+            trackId: 'virt-audio',
+            startMs: item.startMs,
+            endMs: item.endMs,
+            properties: item.properties ?? null,
+            sourceAsset: item.sourceAsset ?? null,
+          }))
+        );
+      result.push({ id: 'virt-audio', type: 'AUDIO', orderIndex: 10, items: linkedItems });
+    }
     if (!existing.has('CAPTION')) result.push({ id: 'virt-caption', type: 'CAPTION', orderIndex: 11, items: [] });
     return result.sort((a, b) => a.orderIndex - b.orderIndex);
   }, [timeline]);
@@ -828,6 +845,18 @@ export default function TimelineEditorPage() {
             <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
+            {/* Generate Captions — quick-access */}
+            <button
+              onClick={() => genCaptions.mutate()}
+              disabled={genCaptions.isPending || captionPending}
+              title={captionPending ? 'Generating captions…' : 'Generate Captions'}
+              className="flex items-center justify-center w-7 h-7 border border-amber-200 bg-amber-50 rounded-lg hover:bg-amber-100 disabled:opacity-50 shrink-0"
+            >
+              {(genCaptions.isPending || captionPending)
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                : <Captions className="w-3.5 h-3.5 text-amber-600" />}
+            </button>
+            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             {/* Canvas size quick-access (mobile only) */}
             <button
               onClick={() => setMobileCanvasOpen(true)}
@@ -847,7 +876,11 @@ export default function TimelineEditorPage() {
             ] as const).map((t) => (
               <button
                 key={t.id}
-                onClick={() => setQuickTool((prev) => prev === t.id ? null : t.id)}
+                onClick={() => {
+                  const next = quickTool === t.id ? null : t.id;
+                  setQuickTool(next);
+                  if (next) setMobileStudioOpen(true);
+                }}
                 title={t.label}
                 className={`flex items-center justify-center w-7 h-7 border rounded-lg shrink-0 transition-colors ${
                   quickTool === t.id
@@ -885,7 +918,9 @@ export default function TimelineEditorPage() {
                     <p className="text-[7px] text-gray-600 leading-tight mt-0.5">
                       {track.type === 'CAPTION'
                         ? (timeline.captions.length > 0 ? `${timeline.captions.length} caption${timeline.captions.length > 1 ? 's' : ''}` : 'empty')
-                        : track.items.length > 0 ? `${track.items.length} clip${track.items.length > 1 ? 's' : ''}` : 'empty'}
+                        : (track.id.startsWith('virt-') && track.type === 'AUDIO' && track.items.length > 0)
+                      ? 'video audio'
+                      : track.items.length > 0 ? `${track.items.length} clip${track.items.length > 1 ? 's' : ''}` : 'empty'}
                     </p>
                   </div>
                 </div>
@@ -960,6 +995,27 @@ export default function TimelineEditorPage() {
                       {/* Regular items */}
                       {track.type !== 'CAPTION' && track.items.map((item) => {
                         const w = Math.max(8, ((item.endMs - item.startMs) / 1000) * pxPerSec);
+                        const isLinkedAudio = item.id.startsWith('linked-audio-');
+                        if (isLinkedAudio) {
+                          return (
+                            <div
+                              key={item.id}
+                              className="absolute top-1.5 bottom-1.5 rounded-lg border border-teal-400 bg-teal-500/40 overflow-hidden pointer-events-none"
+                              style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
+                              title="Video audio (embedded)"
+                            >
+                              {w > 16 && (
+                                <div className="absolute inset-0 flex items-center gap-px px-1 overflow-hidden opacity-50">
+                                  {Array.from({ length: Math.floor((w - 8) / 3) }).map((_, bi) => {
+                                    const bh = 18 + Math.round(Math.abs(Math.sin(bi * 1.4 + 0.9) * Math.cos(bi * 0.6)) * 64);
+                                    return <div key={bi} style={{ width: 2, height: `${Math.min(88, bh)}%`, background: 'rgba(255,255,255,0.7)', borderRadius: 1, flexShrink: 0 }} />;
+                                  })}
+                                </div>
+                              )}
+                              <span className="absolute bottom-0.5 left-1 text-[7px] text-teal-100/80 whitespace-nowrap z-10">video audio</span>
+                            </div>
+                          );
+                        }
                         return (
                           // eslint-disable-next-line jsx-a11y/no-static-element-interactions
                           <div
@@ -1330,6 +1386,69 @@ export default function TimelineEditorPage() {
               <Check className="w-3 h-3" /> Canvas saved — re-render to apply
             </p>
           )}
+        </div>
+      </div>
+
+      {/* Mobile Studio Tools bottom sheet */}
+      {mobileStudioOpen && (
+        <div
+          className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/40"
+          style={{ bottom: 0 }}
+          onClick={() => setMobileStudioOpen(false)}
+          role="presentation"
+        />
+      )}
+      <div
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileStudioOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ maxHeight: '75vh', bottom: 0 }}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Drag handle */}
+        <div className="flex items-center justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 bg-gray-200 rounded-full" />
+        </div>
+        {/* Header */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 shrink-0">
+          <Wand2 className="w-4 h-4 text-brand-600" />
+          <p className="text-sm font-semibold text-gray-800 flex-1">Studio Tools</p>
+          <button onClick={() => setMobileStudioOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close studio tools">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        {/* Tool selector tabs */}
+        <div className="flex gap-1 px-3 py-2 border-b border-gray-100 shrink-0 overflow-x-auto">
+          {([
+            { id: 'music',  label: 'Music',      Icon: Music2,     color: 'text-cyan-600',    active: 'bg-cyan-50 border-cyan-300 text-cyan-700' },
+            { id: 'voice',  label: 'Voice-Over',  Icon: Mic,        color: 'text-brand-600',   active: 'bg-brand-50 border-brand-300 text-brand-700' },
+            { id: 'audio',  label: 'AI Audio',    Icon: Volume2,    color: 'text-emerald-600', active: 'bg-emerald-50 border-emerald-300 text-emerald-700' },
+            { id: 'chars',  label: 'Characters',  Icon: Users,      color: 'text-fuchsia-600', active: 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-700' },
+            { id: 'images', label: 'Images',      Icon: ImageIcon,  color: 'text-purple-600',  active: 'bg-purple-50 border-purple-300 text-purple-700' },
+          ] as const).map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setQuickTool((prev) => prev === t.id ? null : t.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap transition-colors ${quickTool === t.id ? t.active : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            >
+              <t.Icon className={`w-3.5 h-3.5 ${quickTool === t.id ? '' : t.color}`} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {/* Tool panel content */}
+        <div className="flex-1 overflow-y-auto">
+          <StudioToolPanels
+            timelineId={timeline.id}
+            shortClipId={shortClipId}
+            captionsText={timeline.captions.map((c) => c.text).join(' ')}
+            audioVersionId={
+              timeline.tracks
+                .find((t) => t.type === 'AUDIO')
+                ?.items[0]
+                ?.sourceAsset?.versions[0]?.id
+            }
+            requestOpen={quickTool ?? undefined}
+          />
         </div>
       </div>
     </div>
