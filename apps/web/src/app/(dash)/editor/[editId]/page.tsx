@@ -4537,12 +4537,19 @@ export default function EditorWorkspacePage() {
       setIsRecording(true);
       setRecordSec(0);
       recordTimerRef.current = setInterval(() => setRecordSec((s) => s + 1), 1000);
-    } catch {
-      // user denied or not supported — silently ignore
+    } catch (err) {
+      const msg = err instanceof Error && err.name === 'NotAllowedError'
+        ? 'Microphone/camera access denied. Allow permissions in your browser and try again.'
+        : 'Recording not supported on this device.';
+      const errId = `rec-err-${Date.now()}`;
+      addToast(errId, msg);
+      updateToast(errId, 'error', msg);
     }
-  }, [recordMode, handleBinUpload]);
+  }, [recordMode, handleBinUpload, addToast, updateToast]);
 
   const handleStopRecord = useCallback(() => {
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    setIsRecording(false);
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
