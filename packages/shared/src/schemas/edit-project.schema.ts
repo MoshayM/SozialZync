@@ -43,6 +43,12 @@ export const EditItemPropertiesSchema = z.object({
   text: z.string().optional(),
   fontSize: z.number().positive().optional(),
   color: z.string().optional(),
+  // Text styling — all optional, back-compatible
+  fontFamily: z.string().optional(),
+  fontWeight: z.enum(['normal', 'bold']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
+  textAlign: z.enum(['left', 'center', 'right']).optional(),
+  backgroundColor: z.string().optional(),
   // Phase 2 — all optional, back-compatible
   filters: EditItemFiltersSchema.optional(),
   transitionIn: EditTransitionInSchema.optional(),

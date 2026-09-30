@@ -12,6 +12,7 @@ import {
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
   Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
   FolderOpen, BookmarkPlus, Smartphone, Monitor, Square,
+  Bold, Italic, AlignLeft, AlignCenter, AlignRight,
 } from 'lucide-react';
 import {
   api,
@@ -3796,7 +3797,7 @@ export default function EditorWorkspacePage() {
   const canExport = isAdmin || planAtLeast(userPlan, 'PRO');
   const [aiAutoSuggest, setAiAutoSuggest] = useState(false);
   // Mobile bottom-sheet: which panel is open ('none' | 'media' | 'inspector' | 'tools' | 'canvas')
-  const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools' | 'canvas'>('none');
+  const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools' | 'canvas' | 'text'>('none');
   // Keep legacy vars so existing references compile
   const mobileBinOpen = mobileSheet === 'media';
   const mobileInspectorOpen = mobileSheet === 'inspector';
@@ -4460,6 +4461,47 @@ export default function EditorWorkspacePage() {
       return { ...tl, tracks: [...tl.tracks, newTrack] };
     });
   }, [updateTimeline]);
+
+  const handleAddTextItem = useCallback(() => {
+    const newId = `text-item-${Date.now()}`;
+    updateTimeline((tl) => {
+      const startMs = currentTimeMsRef.current;
+      const endMs = Math.min(startMs + 5000, (tl.durationMs ?? 0) > 0 ? tl.durationMs! : startMs + 5000);
+      const newItem: EditItem = {
+        id: newId,
+        kind: 'TEXT',
+        timelineStartMs: startMs,
+        timelineEndMs: endMs > startMs ? endMs : startMs + 5000,
+        properties: {
+          text: 'Your text here',
+          fontSize: 36,
+          color: '#ffffff',
+          fontFamily: 'sans-serif',
+          fontWeight: 'bold',
+          fontStyle: 'normal',
+          textAlign: 'center',
+          y: 80,
+        },
+      };
+      const existingTextTrack = tl.tracks.find((t) => t.kind === 'TEXT');
+      if (existingTextTrack) {
+        return {
+          ...tl,
+          tracks: tl.tracks.map((t) =>
+            t.id === existingTextTrack.id ? { ...t, items: [...(t.items ?? []), newItem] } : t
+          ),
+        };
+      }
+      const newTrack: EditTrack = {
+        id: `track-text-${Date.now()}`,
+        kind: 'TEXT',
+        label: 'Text 1',
+        items: [newItem],
+      };
+      return { ...tl, tracks: [...tl.tracks, newTrack] };
+    });
+    setSelectedItemId(newId);
+  }, [updateTimeline, currentTimeMsRef]);
 
   const handleDeleteTrack = useCallback((trackId: string) => {
     updateTimeline((tl) => ({
@@ -5298,21 +5340,35 @@ export default function EditorWorkspacePage() {
                   className="max-w-full max-h-full object-contain"
                   style={{ opacity: clamp(activeTimelineItem?.properties?.opacity ?? 1, 0, 1) }}
                 />
-                {activeTextItems.map((it) => (
-                  <span
-                    key={it.id}
-                    className="absolute left-1/2 -translate-x-1/2 pointer-events-none font-semibold text-center px-2 max-w-[90%] truncate"
-                    style={{
-                      bottom: '12%',
-                      color: it.properties?.color ?? '#ffffff',
-                      fontSize: Math.max(10, (it.properties?.fontSize ?? 32) * 0.4),
-                      opacity: clamp(it.properties?.opacity ?? 1, 0, 1),
-                      textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                    }}
-                  >
-                    {it.properties?.text ?? ''}
-                  </span>
-                ))}
+                {activeTextItems.map((it) => {
+                  const p = it.properties ?? {};
+                  const yPct = p.y ?? 80;
+                  const isTop = yPct < 40;
+                  return (
+                    <span
+                      key={it.id}
+                      className="absolute pointer-events-none px-2 max-w-[90%] whitespace-pre-wrap break-words"
+                      style={{
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        ...(isTop ? { top: `${yPct}%` } : { bottom: `${100 - yPct}%` }),
+                        color: p.color ?? '#ffffff',
+                        fontSize: Math.max(10, (p.fontSize ?? 32) * 0.4),
+                        opacity: clamp(p.opacity ?? 1, 0, 1),
+                        fontFamily: p.fontFamily ?? 'sans-serif',
+                        fontWeight: p.fontWeight ?? 'bold',
+                        fontStyle: p.fontStyle ?? 'normal',
+                        textAlign: (p.textAlign ?? 'center') as 'left' | 'center' | 'right',
+                        textShadow: p.backgroundColor ? 'none' : '0 1px 3px rgba(0,0,0,0.8)',
+                        backgroundColor: p.backgroundColor ?? undefined,
+                        borderRadius: p.backgroundColor ? '4px' : undefined,
+                        padding: p.backgroundColor ? '2px 6px' : undefined,
+                      }}
+                    >
+                      {p.text ?? ''}
+                    </span>
+                  );
+                })}
               </>
             ) : (
               <>
@@ -5820,9 +5876,7 @@ export default function EditorWorkspacePage() {
               <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2.5">Studio</p>
               <div className="grid grid-cols-4 gap-3">
                 {[
-                  { icon: <Music className="w-5 h-5" />, label: 'Music', action: () => setMobileSheet('inspector'), color: 'text-cyan-400' },
-                  { icon: <Mic className="w-5 h-5" />, label: 'Voice-Over', action: () => setMobileSheet('inspector'), color: 'text-brand-400' },
-                  { icon: <Type className="w-5 h-5" />, label: 'Captions', action: () => setMobileSheet('inspector'), color: 'text-amber-400' },
+                  { icon: <Type className="w-5 h-5" />, label: 'Text', action: () => { handleAddTextItem(); setMobileSheet('text'); }, color: 'text-amber-400' },
                   { icon: <SlidersHorizontal className="w-5 h-5" />, label: 'Canvas', action: () => setMobileSheet('canvas'), color: 'text-purple-400' },
                 ].map((item, i) => (
                   <button
@@ -5840,6 +5894,212 @@ export default function EditorWorkspacePage() {
           <div className="h-safe-bottom" style={{ height: 'env(safe-area-inset-bottom, 8px)' }} />
         </div>
 
+      </div>
+
+      {/* ── Text Tool bottom sheet ────────────────────────────────────────── */}
+      {mobileSheet === 'text' && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/50"
+          onClick={() => setMobileSheet('none')}
+          role="presentation"
+        />
+      )}
+      <div
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ maxHeight: '82vh', bottom: 56 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Text tool"
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+        {/* Header */}
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 shrink-0">
+          <Type className="w-4 h-4 text-amber-500" />
+          <p className="text-sm font-semibold text-gray-800 flex-1">Text Tool</p>
+          <button
+            onClick={() => { handleAddTextItem(); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-semibold hover:bg-amber-600"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Text
+          </button>
+          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100 ml-1" aria-label="Close text tool">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Body — only shown when a TEXT item is selected */}
+        {(() => {
+          const sel = selectedItemId
+            ? (timeline?.tracks ?? []).flatMap((t) => t.items ?? []).find((it) => it.id === selectedItemId)
+            : null;
+          const isText = sel?.kind === 'TEXT';
+          if (!isText) {
+            return (
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                <Type className="w-10 h-10 text-amber-400" />
+                <p className="text-sm font-semibold text-gray-700">No text selected</p>
+                <p className="text-xs text-gray-400">Tap "+ Add Text" to place a new text overlay, or select an existing one from the timeline.</p>
+              </div>
+            );
+          }
+          const p = sel.properties ?? {};
+          const set = (key: keyof EditItemProperties, val: string | number | boolean) =>
+            handleInspectorChange({ properties: { ...p, [key]: val } });
+
+          const FONTS = [
+            { label: 'Sans', value: 'sans-serif' },
+            { label: 'Serif', value: 'Georgia, serif' },
+            { label: 'Impact', value: 'Impact, sans-serif' },
+            { label: 'Mono', value: 'Courier New, monospace' },
+            { label: 'Cursive', value: 'cursive' },
+          ] as const;
+
+          const COLOR_SWATCHES = ['#ffffff', '#000000', '#facc15', '#f87171', '#60a5fa', '#4ade80', '#f472b6', '#a78bfa'];
+
+          return (
+            <div className="flex-1 overflow-y-auto p-4 space-y-5">
+              {/* Text content */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Text Content</label>
+                <textarea
+                  value={p.text ?? ''}
+                  onChange={(e) => set('text', e.target.value)}
+                  rows={3}
+                  placeholder="Enter your text…"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  style={{
+                    fontFamily: p.fontFamily ?? 'sans-serif',
+                    fontWeight: p.fontWeight ?? 'bold',
+                    fontStyle: p.fontStyle ?? 'normal',
+                    textAlign: (p.textAlign ?? 'center') as 'left' | 'center' | 'right',
+                    color: p.color ?? '#111',
+                  }}
+                />
+              </div>
+
+              {/* Font family */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Font</label>
+                <div className="flex gap-2 flex-wrap">
+                  {FONTS.map((f) => (
+                    <button
+                      key={f.value}
+                      onClick={() => set('fontFamily', f.value)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${p.fontFamily === f.value ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      style={{ fontFamily: f.value }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Style + Align */}
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Style</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => set('fontWeight', p.fontWeight === 'bold' ? 'normal' : 'bold')}
+                      className={`flex items-center justify-center w-9 h-9 rounded-lg border transition-colors ${p.fontWeight === 'bold' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      title="Bold"
+                    >
+                      <Bold className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => set('fontStyle', p.fontStyle === 'italic' ? 'normal' : 'italic')}
+                      className={`flex items-center justify-center w-9 h-9 rounded-lg border transition-colors ${p.fontStyle === 'italic' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      title="Italic"
+                    >
+                      <Italic className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Align</label>
+                  <div className="flex gap-2">
+                    {([
+                      { align: 'left', Icon: AlignLeft },
+                      { align: 'center', Icon: AlignCenter },
+                      { align: 'right', Icon: AlignRight },
+                    ] as const).map(({ align, Icon }) => (
+                      <button
+                        key={align}
+                        onClick={() => set('textAlign', align)}
+                        className={`flex items-center justify-center w-9 h-9 rounded-lg border transition-colors ${(p.textAlign ?? 'center') === align ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                        title={align}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Color */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Text Color</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {COLOR_SWATCHES.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => set('color', c)}
+                      className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${(p.color ?? '#ffffff') === c ? 'border-amber-500 scale-110' : 'border-white shadow'}`}
+                      style={{ background: c }}
+                      title={c}
+                    />
+                  ))}
+                  <label className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-gray-200 cursor-pointer hover:border-amber-400 overflow-hidden" title="Custom color">
+                    <input
+                      type="color"
+                      value={p.color ?? '#ffffff'}
+                      onChange={(e) => set('color', e.target.value)}
+                      className="opacity-0 absolute w-0 h-0"
+                    />
+                    <span className="text-[10px] text-gray-500 font-semibold">+</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Font size */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Size</label>
+                  <span className="text-xs text-gray-500 font-mono">{p.fontSize ?? 36}px</span>
+                </div>
+                <input
+                  type="range" min={12} max={120} step={2}
+                  value={p.fontSize ?? 36}
+                  onChange={(e) => set('fontSize', parseInt(e.target.value, 10))}
+                  className="w-full accent-amber-500"
+                />
+              </div>
+
+              {/* Vertical position */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Position</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { label: 'Top', y: 10 },
+                    { label: 'Middle', y: 50 },
+                    { label: 'Bottom', y: 80 },
+                  ] as const).map(({ label, y }) => (
+                    <button
+                      key={label}
+                      onClick={() => set('y', y)}
+                      className={`py-2 rounded-xl border text-xs font-medium transition-colors ${(p.y ?? 80) === y ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── Mobile bottom tab bar ─────────────────────────────────────────── */}
