@@ -5229,14 +5229,14 @@ export default function EditorWorkspacePage() {
         {/* Desktop-only panel toggles (xl+) */}
         <button
           onClick={() => setBinPanelOpen(o => !o)}
-          className="hidden xl:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 h-9 w-9 items-center justify-center shrink-0"
+          className="hidden lg:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 h-9 w-9 items-center justify-center shrink-0"
           title="Media bin"
         >
           <Film className="w-4 h-4" />
         </button>
         <button
           onClick={() => setInspectorPanelOpen(o => !o)}
-          className="hidden xl:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 h-9 w-9 items-center justify-center shrink-0"
+          className="hidden lg:flex p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 h-9 w-9 items-center justify-center shrink-0"
           title="Inspector"
         >
           <Maximize2 className="w-4 h-4" />
@@ -5387,7 +5387,7 @@ export default function EditorWorkspacePage() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── Left: Media Bin (xl+ collapsible inline, below xl slide-over) ── */}
-        <aside className={`hidden xl:flex flex-col shrink-0 border-r border-gray-100 bg-gray-50 transition-all duration-200 ${binPanelOpen ? 'w-52' : 'w-9 overflow-hidden'}`}>
+        <aside className={`hidden lg:flex flex-col shrink-0 border-r border-gray-100 bg-gray-50 transition-all duration-200 ${binPanelOpen ? 'w-52' : 'w-9 overflow-hidden'}`}>
           <div className="px-2 py-2.5 border-b border-gray-100 flex items-center gap-1.5 min-h-[40px]">
             {binPanelOpen && <Film className="w-3.5 h-3.5 text-brand-500 shrink-0" />}
             {binPanelOpen && <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide flex-1 truncate">Media bin</p>}
@@ -5737,6 +5737,40 @@ export default function EditorWorkspacePage() {
             </button>
           </div>
 
+          {/* Studio Tools bar — always visible on desktop */}
+          <div className="hidden lg:flex shrink-0 items-center gap-1 px-3 py-1.5 bg-gray-800 border-b border-gray-700">
+            <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mr-1 shrink-0">Create</span>
+            <button
+              onClick={() => handleAddTextItem()}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-amber-400 text-xs font-medium transition-colors"
+              title="Add text overlay"
+            >
+              <Type className="w-3.5 h-3.5" /> Text
+            </button>
+            <button
+              onClick={() => setMobileSheet('canvas')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-purple-400 text-xs font-medium transition-colors"
+              title="Canvas size"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Canvas
+            </button>
+            <button
+              onClick={() => setMobileSheet('record')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-red-400 text-xs font-medium transition-colors"
+              title="Live record"
+            >
+              <Mic className="w-3.5 h-3.5" /> Record
+            </button>
+            <div className="w-px h-4 bg-white/20 mx-1 shrink-0" />
+            <button
+              onClick={() => setShowAiEdit(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-brand-600/30 text-brand-400 text-xs font-medium transition-colors"
+              title="AI Edit"
+            >
+              <Wand2 className="w-3.5 h-3.5" /> AI Edit
+            </button>
+          </div>
+
           {/* ── Drag-to-resize handle — preview vs timeline ──────────────── */}
           <div
             className="shrink-0 flex items-center justify-center bg-gray-950 cursor-row-resize select-none touch-none group"
@@ -5962,7 +5996,7 @@ export default function EditorWorkspacePage() {
         </div>
 
         {/* ── Right: Inspector (xl+ collapsible inline, below xl slide-over) ─ */}
-        <aside className={`hidden xl:flex flex-col shrink-0 border-l border-gray-100 bg-white transition-all duration-200 ${inspectorPanelOpen ? 'w-64' : 'w-9 overflow-hidden'}`}>
+        <aside className={`hidden lg:flex flex-col shrink-0 border-l border-gray-100 bg-white transition-all duration-200 ${inspectorPanelOpen ? 'w-72' : 'w-9 overflow-hidden'}`}>
           <div className="px-2 py-2.5 border-b border-gray-100 flex items-center gap-1.5 min-h-[40px]">
             <button
               onClick={() => setInspectorPanelOpen(o => !o)}
@@ -5976,7 +6010,64 @@ export default function EditorWorkspacePage() {
             {inspectorPanelOpen && <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Inspector</p>}
           </div>
           {inspectorPanelOpen && (
-            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+              {selectedItem?.kind === 'TEXT' && (() => {
+                const tp = selectedItem.properties ?? {};
+                const setT = (k: string, v: unknown) => handleInspectorChange({ properties: { ...tp, [k]: v } });
+                return (
+                  <div className="px-4 py-3 space-y-5 border-t border-gray-100">
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Transform</p>
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Size</label>
+                        <span className="text-xs text-gray-500 font-mono">{tp.fontSize ?? 36}px</span>
+                      </div>
+                      <input type="range" min={12} max={120} step={2} value={tp.fontSize ?? 36} onChange={(e) => setT('fontSize', parseInt(e.target.value, 10))} className="w-full accent-amber-500" />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Position</label>
+                        <span className="text-[10px] text-gray-400 font-mono">{tp.x ?? 50}% · {tp.y ?? 80}%</span>
+                      </div>
+                      <div
+                        className="relative w-full rounded-xl overflow-hidden cursor-crosshair select-none touch-none"
+                        style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)' }}
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = Math.round(Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100)));
+                          const y = Math.round(Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100)));
+                          handleInspectorChange({ properties: { ...tp, x, y } });
+                        }}
+                      >
+                        <div className="absolute inset-0 pointer-events-none" style={{ borderRight: '1px solid rgba(255,255,255,0.12)', borderLeft: '1px solid rgba(255,255,255,0.12)', left: '33.3%', right: '33.3%' }} />
+                        <div className="absolute inset-0 pointer-events-none" style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', borderTop: '1px solid rgba(255,255,255,0.12)', top: '33.3%', bottom: '33.3%' }} />
+                        <div className="absolute inset-[6%] rounded-lg border border-dashed border-white/10 pointer-events-none" />
+                        <div className="absolute pointer-events-none flex flex-col items-center gap-0.5" style={{ left: `${tp.x ?? 50}%`, top: `${tp.y ?? 80}%`, transform: 'translate(-50%, -50%)' }}>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md max-w-[80px] truncate text-center leading-tight" style={{ color: tp.color ?? '#ffffff', fontFamily: tp.fontFamily ?? 'sans-serif', fontWeight: tp.fontWeight ?? 'bold', fontStyle: tp.fontStyle ?? 'normal', backgroundColor: tp.backgroundColor ?? 'rgba(0,0,0,0.45)', transform: `rotate(${tp.rotation ?? 0}deg)` }}>{tp.text?.slice(0, 12) || 'Text'}</span>
+                          <div className="w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white shadow ring-2 ring-amber-400/40" />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center gap-3 mt-3">
+                        <button onClick={() => setT('x', Math.max(5, (tp.x ?? 50) - 2))} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors" title="Move left">←</button>
+                        <div className="flex flex-col gap-2">
+                          <button onClick={() => setT('y', Math.max(5, (tp.y ?? 80) - 2))} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors" title="Move up">↑</button>
+                          <button onClick={() => setT('y', Math.min(95, (tp.y ?? 80) + 2))} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors" title="Move down">↓</button>
+                        </div>
+                        <button onClick={() => setT('x', Math.min(95, (tp.x ?? 50) + 2))} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors" title="Move right">→</button>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rotation</label>
+                        <span className="text-xs text-gray-500 font-mono">{tp.rotation ?? 0}°</span>
+                      </div>
+                      <input type="range" min={-180} max={180} step={1} value={tp.rotation ?? 0} onChange={(e) => setT('rotation', parseInt(e.target.value, 10))} className="w-full accent-amber-500" />
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           )}
         </aside>
 
@@ -6062,7 +6153,7 @@ export default function EditorWorkspacePage() {
 
         {/* Canvas Size bottom sheet */}
         <div
-          className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'canvas' ? 'translate-y-0' : 'translate-y-full'}`}
+          className={`fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'canvas' ? 'translate-y-0' : 'translate-y-full'}`}
           style={{ top: sheetTop, bottom: 56 }}
           role="dialog"
           aria-modal="true"
@@ -6111,7 +6202,7 @@ export default function EditorWorkspacePage() {
         {/* Tools bottom sheet — undo/redo/split/delete/snap */}
         <div
           className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-900 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}
-          style={{ bottom: 56 }}
+          style={{ top: sheetTop, bottom: 56 }}
           role="dialog"
           aria-modal="true"
           aria-label="Edit tools"
@@ -6187,7 +6278,7 @@ export default function EditorWorkspacePage() {
         />
       )}
       <div
-        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ top: sheetTop, bottom: 56 }}
         role="dialog"
         aria-modal="true"
@@ -6454,7 +6545,7 @@ export default function EditorWorkspacePage() {
         />
       )}
       <div
-        className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ top: sheetTop, bottom: 56 }}
         role="dialog" aria-modal="true" aria-label="Live record"
       >
