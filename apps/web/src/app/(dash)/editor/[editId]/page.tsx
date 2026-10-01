@@ -3810,6 +3810,8 @@ export default function EditorWorkspacePage() {
   const [mobileSheet, setMobileSheet] = useState<'none' | 'media' | 'inspector' | 'tools' | 'canvas' | 'text' | 'record'>('none');
   // Text tool emoji tab
   const [emojiTab, setEmojiTab] = useState(0);
+  // Dynamic sheet top — anchored just below the preview so preview is never covered
+  const [sheetTop, setSheetTop] = useState(300);
   // Live record state
   const [recordMode, setRecordMode] = useState<'audio' | 'video'>('audio');
   const [isRecording, setIsRecording] = useState(false);
@@ -4625,6 +4627,18 @@ export default function EditorWorkspacePage() {
     void checkPerms();
   }, [mobileSheet, recordMode]);
 
+  // Keep sheetTop updated — sheets anchor just below the preview so preview is never covered
+  useEffect(() => {
+    const update = () => {
+      if (previewContainerRef.current) {
+        setSheetTop(Math.round(previewContainerRef.current.getBoundingClientRect().bottom));
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [previewH]);
+
   // Transfer camera stream between sheet video and fullscreen video when toggling fullscreen
   useEffect(() => {
     const stream = recordStreamRef.current;
@@ -5418,7 +5432,7 @@ export default function EditorWorkspacePage() {
         {/* Media bin bottom sheet */}
         <div
           className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'media' ? 'translate-y-0' : 'translate-y-full'}`}
-          style={{ maxHeight: '70vh', bottom: 56 }}
+          style={{ top: sheetTop, bottom: 56 }}
           role="dialog"
           aria-modal="true"
           aria-label="Media bin"
@@ -5453,8 +5467,8 @@ export default function EditorWorkspacePage() {
         {/* ── Center: Preview + Timeline ───────────────────────────────── */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-          {/* Preview area — compact when a bottom sheet is open so preview stays visible */}
-          <div ref={previewContainerRef} className="relative shrink-0 bg-black flex items-center justify-center transition-[height] duration-300" style={{ height: mobileSheet === 'text' ? Math.min(previewH, 140) : previewH }}>
+          {/* Preview area */}
+          <div ref={previewContainerRef} className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: previewH }}>
             {/* Hidden audio element slaved to the rAF clock for AUDIO track items */}
             <audio ref={audioRef} src={audioSrc ?? undefined} style={{ display: 'none' }}>
               <track kind="captions" />
@@ -5969,7 +5983,7 @@ export default function EditorWorkspacePage() {
         {/* Inspector bottom sheet — only half height so timeline stays usable */}
         <div
           className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'inspector' ? 'translate-y-0' : 'translate-y-full'}`}
-          style={{ maxHeight: '55vh', bottom: 56 }}
+          style={{ top: sheetTop, bottom: 56 }}
           role="dialog"
           aria-modal="true"
           aria-label="Inspector"
@@ -5988,13 +6002,68 @@ export default function EditorWorkspacePage() {
           </div>
           <div className="flex-1 overflow-y-auto overscroll-contain">
             <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+            {selectedItem?.kind === 'TEXT' && (() => {
+              const tp = selectedItem.properties ?? {};
+              const setT = (k: string, v: unknown) => handleInspectorChange({ properties: { ...tp, [k]: v } });
+              return (
+                <div className="px-4 py-3 space-y-5 border-t border-gray-100">
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Transform</p>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Size</label>
+                      <span className="text-xs text-gray-500 font-mono">{tp.fontSize ?? 36}px</span>
+                    </div>
+                    <input type="range" min={12} max={120} step={2} value={tp.fontSize ?? 36} onChange={(e) => setT('fontSize', parseInt(e.target.value, 10))} className="w-full accent-amber-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Position</label>
+                      <span className="text-[10px] text-gray-400 font-mono">{tp.x ?? 50}% · {tp.y ?? 80}%</span>
+                    </div>
+                    <div
+                      className="relative w-full rounded-xl overflow-hidden cursor-crosshair select-none touch-none"
+                      style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)' }}
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = Math.round(Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100)));
+                        const y = Math.round(Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100)));
+                        handleInspectorChange({ properties: { ...tp, x, y } });
+                      }}
+                    >
+                      <div className="absolute inset-0 pointer-events-none" style={{ borderRight: '1px solid rgba(255,255,255,0.12)', borderLeft: '1px solid rgba(255,255,255,0.12)', left: '33.3%', right: '33.3%' }} />
+                      <div className="absolute inset-0 pointer-events-none" style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', borderTop: '1px solid rgba(255,255,255,0.12)', top: '33.3%', bottom: '33.3%' }} />
+                      <div className="absolute inset-[6%] rounded-lg border border-dashed border-white/10 pointer-events-none" />
+                      <div className="absolute pointer-events-none flex flex-col items-center gap-0.5" style={{ left: `${tp.x ?? 50}%`, top: `${tp.y ?? 80}%`, transform: 'translate(-50%, -50%)' }}>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md max-w-[80px] truncate text-center leading-tight" style={{ color: tp.color ?? '#ffffff', fontFamily: tp.fontFamily ?? 'sans-serif', fontWeight: tp.fontWeight ?? 'bold', fontStyle: tp.fontStyle ?? 'normal', backgroundColor: tp.backgroundColor ?? 'rgba(0,0,0,0.45)', transform: `rotate(${tp.rotation ?? 0}deg)` }}>{tp.text?.slice(0, 12) || 'Text'}</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white shadow ring-2 ring-amber-400/40" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 mt-3">
+                      <button onClick={() => setT('x', Math.max(5, (tp.x ?? 50) - 2))} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors" title="Move left">←</button>
+                      <div className="flex flex-col gap-2">
+                        <button onClick={() => setT('y', Math.max(5, (tp.y ?? 80) - 2))} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors" title="Move up">↑</button>
+                        <button onClick={() => setT('y', Math.min(95, (tp.y ?? 80) + 2))} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors" title="Move down">↓</button>
+                      </div>
+                      <button onClick={() => setT('x', Math.min(95, (tp.x ?? 50) + 2))} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors" title="Move right">→</button>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rotation</label>
+                      <span className="text-xs text-gray-500 font-mono">{tp.rotation ?? 0}°</span>
+                    </div>
+                    <input type="range" min={-180} max={180} step={1} value={tp.rotation ?? 0} onChange={(e) => setT('rotation', parseInt(e.target.value, 10))} className="w-full accent-amber-500" />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
         {/* Canvas Size bottom sheet */}
         <div
           className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'canvas' ? 'translate-y-0' : 'translate-y-full'}`}
-          style={{ maxHeight: '65vh', bottom: 56 }}
+          style={{ top: sheetTop, bottom: 56 }}
           role="dialog"
           aria-modal="true"
           aria-label="Canvas size"
@@ -6119,7 +6188,7 @@ export default function EditorWorkspacePage() {
       )}
       <div
         className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ maxHeight: 'calc(100vh - 140px - 56px)', bottom: 56 }}
+        style={{ top: sheetTop, bottom: 56 }}
         role="dialog"
         aria-modal="true"
         aria-label="Text tool"
@@ -6311,104 +6380,6 @@ export default function EditorWorkspacePage() {
                   </label>
                 </div>
               </div>
-
-              {/* Font size */}
-              <div>
-                <div className="flex justify-between mb-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Size</label>
-                  <span className="text-xs text-gray-500 font-mono">{p.fontSize ?? 36}px</span>
-                </div>
-                <input
-                  type="range" min={12} max={120} step={2}
-                  value={p.fontSize ?? 36}
-                  onChange={(e) => set('fontSize', parseInt(e.target.value, 10))}
-                  className="w-full accent-amber-500"
-                />
-              </div>
-
-              {/* Position — visual tap-to-place pad */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Position</label>
-                  <span className="text-[10px] text-gray-400 font-mono">{p.x ?? 50}% · {p.y ?? 80}%</span>
-                </div>
-                {/* Tap pad — 16:9 miniature canvas */}
-                <div
-                  className="relative w-full rounded-xl overflow-hidden cursor-crosshair select-none touch-none"
-                  style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)' }}
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = Math.round(Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100)));
-                    const y = Math.round(Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100)));
-                    handleInspectorChange({ properties: { ...p, x, y } });
-                  }}
-                >
-                  {/* Rule-of-thirds grid lines */}
-                  <div className="absolute inset-0 pointer-events-none" style={{ borderRight: '1px solid rgba(255,255,255,0.12)', borderLeft: '1px solid rgba(255,255,255,0.12)', left: '33.3%', right: '33.3%' }} />
-                  <div className="absolute inset-0 pointer-events-none" style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', borderTop: '1px solid rgba(255,255,255,0.12)', top: '33.3%', bottom: '33.3%' }} />
-                  {/* Safe-zone border hint */}
-                  <div className="absolute inset-[6%] rounded-lg border border-dashed border-white/10 pointer-events-none" />
-                  {/* Position dot with text preview */}
-                  <div
-                    className="absolute pointer-events-none flex flex-col items-center gap-0.5"
-                    style={{ left: `${p.x ?? 50}%`, top: `${p.y ?? 80}%`, transform: 'translate(-50%, -50%)' }}
-                  >
-                    <span
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-md max-w-[80px] truncate text-center leading-tight"
-                      style={{
-                        color: p.color ?? '#ffffff',
-                        fontFamily: p.fontFamily ?? 'sans-serif',
-                        fontWeight: p.fontWeight ?? 'bold',
-                        fontStyle: p.fontStyle ?? 'normal',
-                        backgroundColor: p.backgroundColor ?? 'rgba(0,0,0,0.45)',
-                        transform: `rotate(${p.rotation ?? 0}deg)`,
-                      }}
-                    >
-                      {p.text?.slice(0, 12) || 'Text'}
-                    </span>
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white shadow ring-2 ring-amber-400/40" />
-                  </div>
-                </div>
-                {/* Nudge arrows */}
-                <div className="flex items-center justify-center gap-3 mt-3">
-                  <button
-                    onClick={() => set('x', Math.max(5, (p.x ?? 50) - 2))}
-                    className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors"
-                    title="Move left"
-                  >←</button>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => set('y', Math.max(5, (p.y ?? 80) - 2))}
-                      className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors"
-                      title="Move up"
-                    >↑</button>
-                    <button
-                      onClick={() => set('y', Math.min(95, (p.y ?? 80) + 2))}
-                      className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors"
-                      title="Move down"
-                    >↓</button>
-                  </div>
-                  <button
-                    onClick={() => set('x', Math.min(95, (p.x ?? 50) + 2))}
-                    className="w-9 h-9 rounded-full bg-gray-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-gray-500 text-base font-bold transition-colors"
-                    title="Move right"
-                  >→</button>
-                </div>
-              </div>
-
-              {/* Rotation */}
-              <div>
-                <div className="flex justify-between mb-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rotation</label>
-                  <span className="text-xs text-gray-500 font-mono">{p.rotation ?? 0}°</span>
-                </div>
-                <input
-                  type="range" min={-180} max={180} step={1}
-                  value={p.rotation ?? 0}
-                  onChange={(e) => set('rotation', parseInt(e.target.value, 10))}
-                  className="w-full accent-amber-500"
-                />
-              </div>
             </div>
           );
         })()}
@@ -6484,7 +6455,7 @@ export default function EditorWorkspacePage() {
       )}
       <div
         className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ maxHeight: '72vh', bottom: 56 }}
+        style={{ top: sheetTop, bottom: 56 }}
         role="dialog" aria-modal="true" aria-label="Live record"
       >
         <div className="flex justify-center pt-3 pb-1 shrink-0">
