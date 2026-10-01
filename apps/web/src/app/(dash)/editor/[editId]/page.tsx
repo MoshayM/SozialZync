@@ -5383,51 +5383,6 @@ export default function EditorWorkspacePage() {
         </div>{/* end right section */}
       </div>{/* end toolbar */}
 
-      {/* ── Studio + AI tools bar — always visible, all screen sizes ─── */}
-      <div className="flex shrink-0 items-center gap-1 px-3 py-1.5 bg-gray-900 border-b border-gray-700">
-        {/* Studio create tools */}
-        <button
-          onClick={() => handleAddTextItem()}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-amber-400 text-xs font-medium transition-colors shrink-0"
-          title="Add text overlay"
-        >
-          <Type className="w-3.5 h-3.5" /><span className="hidden sm:inline">Text</span>
-        </button>
-        <button
-          onClick={() => setMobileSheet('canvas')}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-purple-400 text-xs font-medium transition-colors shrink-0"
-          title="Canvas size"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" /><span className="hidden sm:inline">Canvas</span>
-        </button>
-        <button
-          onClick={() => setMobileSheet('record')}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-red-400 text-xs font-medium transition-colors shrink-0"
-          title="Live record"
-        >
-          <Mic className="w-3.5 h-3.5" /><span className="hidden sm:inline">Record</span>
-        </button>
-        <div className="w-px h-4 bg-white/20 mx-1 shrink-0" />
-        {/* AI tools */}
-        <button
-          onClick={() => setShowAiEdit(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-600/20 hover:bg-brand-600/40 text-brand-400 text-xs font-semibold transition-colors shrink-0 ring-1 ring-brand-500/30"
-          title="AI Edit — AI-powered timeline editing"
-        >
-          <Wand2 className="w-3.5 h-3.5" /><span className="hidden xs:inline">AI</span><span className="hidden sm:inline"> Edit</span>
-        </button>
-        {/* Spacer pushes inspector toggle to far right on desktop */}
-        <div className="flex-1" />
-        {/* Inspector quick-toggle — mobile only (desktop always shows sidebar) */}
-        <button
-          onClick={() => setMobileSheet(mobileSheet === 'inspector' ? 'none' : 'inspector')}
-          className={`lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${mobileSheet === 'inspector' ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-gray-300'}`}
-          title="AI Assistance &amp; Inspector"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-brand-400" /><span className="hidden sm:inline">AI &amp; Inspect</span>
-        </button>
-      </div>
-
       {/* ── Main layout: left bin / center / right inspector ───────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
@@ -5779,6 +5734,40 @@ export default function EditorWorkspacePage() {
               aria-label="Zoom in"
             >
               <ZoomIn className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Studio Tools bar — always visible on desktop */}
+          <div className="hidden lg:flex shrink-0 items-center gap-1 px-3 py-1.5 bg-gray-800 border-b border-gray-700">
+            <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mr-1 shrink-0">Create</span>
+            <button
+              onClick={() => handleAddTextItem()}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-amber-400 text-xs font-medium transition-colors"
+              title="Add text overlay"
+            >
+              <Type className="w-3.5 h-3.5" /> Text
+            </button>
+            <button
+              onClick={() => setMobileSheet('canvas')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-purple-400 text-xs font-medium transition-colors"
+              title="Canvas size"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Canvas
+            </button>
+            <button
+              onClick={() => setMobileSheet('record')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-red-400 text-xs font-medium transition-colors"
+              title="Live record"
+            >
+              <Mic className="w-3.5 h-3.5" /> Record
+            </button>
+            <div className="w-px h-4 bg-white/20 mx-1 shrink-0" />
+            <button
+              onClick={() => setShowAiEdit(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-brand-600/30 text-brand-400 text-xs font-medium transition-colors"
+              title="AI Edit"
+            >
+              <Wand2 className="w-3.5 h-3.5" /> AI Edit
             </button>
           </div>
 
@@ -6722,14 +6711,14 @@ export default function EditorWorkspacePage() {
           },
           {
             id: 'inspector' as const,
-            icon: selectedItem ? <Settings2 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />,
-            label: selectedItem ? selectedItem.kind.charAt(0) + selectedItem.kind.slice(1).toLowerCase() : 'AI',
-            badge: undefined,
+            icon: <Settings2 className="w-5 h-5" />,
+            label: selectedItem ? selectedItem.kind.charAt(0) + selectedItem.kind.slice(1).toLowerCase() : 'Inspect',
+            badge: selectedItem ? undefined : undefined,
           },
           {
             id: 'tools' as const,
             icon: <Scissors className="w-5 h-5" />,
-            label: 'Studio',
+            label: 'Tools',
           },
         ].map((tab) => {
           const active = mobileSheet === tab.id;

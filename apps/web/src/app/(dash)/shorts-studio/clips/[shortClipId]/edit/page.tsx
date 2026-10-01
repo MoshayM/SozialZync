@@ -847,18 +847,6 @@ export default function TimelineEditorPage() {
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
-            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
-            {/* Generate Captions — quick-access */}
-            <button
-              onClick={() => genCaptions.mutate()}
-              disabled={genCaptions.isPending || captionPending}
-              title={captionPending ? 'Generating captions…' : 'Generate Captions'}
-              className="flex items-center justify-center w-7 h-7 border border-amber-200 bg-amber-50 rounded-lg hover:bg-amber-100 disabled:opacity-50 shrink-0"
-            >
-              {(genCaptions.isPending || captionPending)
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
-                : <Captions className="w-3.5 h-3.5 text-amber-600" />}
-            </button>
           </div>
 
           {/* ── Timeline ────────────────────────────────────────────────────── */}
@@ -1039,7 +1027,7 @@ export default function TimelineEditorPage() {
         </div>
 
         {/* ── Right sidebar (desktop only — mobile uses bottom sheets) ───────── */}
-        <aside className="hidden lg:block space-y-3">
+        <aside className="hidden lg:flex flex-col gap-3 sticky top-0 self-start max-h-screen overflow-y-auto pb-4">
           {/* Canvas size panel */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
             <button
@@ -1378,13 +1366,40 @@ export default function TimelineEditorPage() {
         </div>
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 shrink-0">
-          <Wand2 className="w-4 h-4 text-brand-600" />
-          <p className="text-sm font-semibold text-gray-800 flex-1">Studio Tools</p>
-          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close studio tools">
+          <Sparkles className="w-4 h-4 text-cyan-600" />
+          <p className="text-sm font-semibold text-gray-800 flex-1">AI & Studio Tools</p>
+          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close AI tools">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
-        {/* Tool selector tabs */}
+        {/* AI Assistant quick actions */}
+        <div className="px-3 pt-3 pb-2 border-b border-gray-100 shrink-0 space-y-1.5">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">AI Assistant</p>
+          {([
+            ['remove-silence', 'Remove Silence'],
+            ['remove-fillers', 'Remove Filler Words'],
+            ['improve-pacing', 'Improve Pacing'],
+          ] as const).map(([cap, label]) => (
+            <button
+              key={cap}
+              onClick={() => { void runAssist(cap); setMobileSheet('none'); }}
+              disabled={assistBusy !== null}
+              className="w-full flex items-center gap-2.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {assistBusy === cap ? <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600 shrink-0" /> : <Wand2 className="w-3.5 h-3.5 text-brand-500 shrink-0" />}
+              {label}
+            </button>
+          ))}
+          <button
+            onClick={() => { genCaptions.mutate(); setMobileSheet('none'); }}
+            disabled={genCaptions.isPending || captionPending}
+            className="w-full flex items-center gap-2.5 px-3 py-2 border border-amber-200 bg-amber-50 rounded-lg text-sm text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+          >
+            {(genCaptions.isPending || captionPending) ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <Captions className="w-3.5 h-3.5 shrink-0" />}
+            {captionPending ? 'Generating captions…' : 'Generate Captions'}
+          </button>
+        </div>
+        {/* Studio tool selector tabs */}
         <div className="flex gap-1 px-3 py-2 border-b border-gray-100 shrink-0 overflow-x-auto">
           {([
             { id: 'music',  label: 'Music',      Icon: Music2,     color: 'text-cyan-600',    active: 'bg-cyan-50 border-cyan-300 text-cyan-700' },
@@ -1535,9 +1550,9 @@ export default function TimelineEditorPage() {
       >
         <div className="flex justify-center pt-3 pb-1 shrink-0"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
         <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 shrink-0">
-          <Wand2 className="w-4 h-4 text-brand-600" />
-          <p className="text-sm font-semibold text-gray-800 flex-1">Tools</p>
-          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close tools">
+          <SlidersHorizontal className="w-4 h-4 text-purple-600" />
+          <p className="text-sm font-semibold text-gray-800 flex-1">Edit Tools</p>
+          <button onClick={() => setMobileSheet('none')} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close edit tools">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
@@ -1593,36 +1608,15 @@ export default function TimelineEditorPage() {
             </button>
           </div>
 
-          {/* AI Edit */}
-          <div>
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">AI Edit</p>
-            <div className="space-y-1.5">
-              {([
-                ['remove-silence', 'Remove Silence'],
-                ['remove-fillers', 'Remove Filler Words'],
-                ['improve-pacing', 'Improve Pacing'],
-              ] as const).map(([cap, label]) => (
-                <button
-                  key={cap}
-                  onClick={() => { void runAssist(cap); setMobileSheet('none'); }}
-                  disabled={assistBusy !== null}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {assistBusy === cap ? <Loader2 className="w-4 h-4 animate-spin text-brand-600 shrink-0" /> : <Wand2 className="w-4 h-4 text-brand-500 shrink-0" />}
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Mobile bottom tab bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 flex">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {([
-          { id: 'studio' as const,  label: 'Studio',  Icon: Music2,     color: 'text-cyan-600',   activeBg: 'bg-cyan-50',   activeTxt: 'text-cyan-700' },
-          { id: 'inspect' as const, label: 'Inspect', Icon: Settings2,  color: 'text-brand-600',  activeBg: 'bg-brand-50',  activeTxt: 'text-brand-700' },
-          { id: 'tools' as const,   label: 'Tools',   Icon: Wand2,      color: 'text-purple-600', activeBg: 'bg-purple-50', activeTxt: 'text-purple-700' },
+          { id: 'studio' as const,  label: 'AI',     Icon: Sparkles,          color: 'text-cyan-600',   activeBg: 'bg-cyan-50',   activeTxt: 'text-cyan-700' },
+          { id: 'inspect' as const, label: 'Inspect', Icon: Settings2,         color: 'text-brand-600',  activeBg: 'bg-brand-50',  activeTxt: 'text-brand-700' },
+          { id: 'tools' as const,   label: 'Edit',   Icon: SlidersHorizontal, color: 'text-purple-600', activeBg: 'bg-purple-50', activeTxt: 'text-purple-700' },
         ]).map((tab) => {
           const active = mobileSheet === tab.id;
           return (
