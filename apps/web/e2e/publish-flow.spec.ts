@@ -487,9 +487,9 @@ test.describe('API endpoint health checks', () => {
     const result = await page.evaluate(async (apiBase: string) => {
       // JWT is stored in localStorage — cookies don't cross the Vercel→Railway domain boundary
       const token = localStorage.getItem('token') ?? localStorage.getItem('cf_token') ?? '';
-      const auth = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const headers: Record<string, string> = { 'Content-Type': 'application/json', ...auth };
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       try {
         // Get imported videos for Shorts Studio

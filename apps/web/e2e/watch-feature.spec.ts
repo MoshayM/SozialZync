@@ -80,7 +80,7 @@ function attachNetworkLogger(page: Page, log: string[]) {
 test.describe('Watch feature — live smoke test', () => {
   // Each test's beforeEach runs up to 60s warmup + 130s login = ~190s before test body
   // starts. Raise the whole-describe timeout so no test is killed mid-beforeEach.
-  test.use({ timeout: 300_000 });
+  test.describe.configure({ timeout: 300_000 });
 
   // Warm up Railway so the channel-access API doesn't cold-start mid-test.
   test.beforeAll(async ({ request }) => {

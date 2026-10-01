@@ -141,7 +141,7 @@ test.beforeAll(async ({ request }) => {
 test.describe('Copilot widget — cross-browser smoke', () => {
   // Tests call loginWithPassword (rate-limit recovery: 30+120+120=270s) AND wait
   // up to 75s for the AI reply. Override the 150s global to give enough headroom.
-  test.use({ timeout: 300_000 });
+  test.describe.configure({ timeout: 300_000 });
 
   test('widget opens and shows robot + tabs', async ({ page }) => {
     test.setTimeout(300_000);

@@ -12,7 +12,7 @@ const ADMIN_EMAIL = process.env.PW_ADMIN_EMAIL ?? 'sozialzync@gmail.com';
 const ADMIN_PASS  = process.env.PW_ADMIN_PASS  ?? 'Admin@123';
 
 // Both tests call goToEditor which may need to re-auth late in the suite.
-test.use({ timeout: 300_000 });
+test.beforeEach(async ({}, testInfo) => { testInfo.setTimeout(300_000); });
 
 test.beforeAll(async ({ request }) => {
   // Warm Railway so the login POST in goToEditor is fast if the JWT expired.

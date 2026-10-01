@@ -233,7 +233,7 @@ const URL_INPUT_SEL =
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
 test.describe('Media import — URL connect · download · upload · play · edit', () => {
-  test.use({ timeout: 400_000 });
+  test.describe.configure({ timeout: 400_000 });
 
   // Warm Railway before the first test. Any HTTP response means it is accepting
   // requests — we do not need a 200; 4xx is fine.
