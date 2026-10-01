@@ -5737,40 +5737,6 @@ export default function EditorWorkspacePage() {
             </button>
           </div>
 
-          {/* Studio Tools bar — always visible on desktop */}
-          <div className="hidden lg:flex shrink-0 items-center gap-1 px-3 py-1.5 bg-gray-800 border-b border-gray-700">
-            <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mr-1 shrink-0">Create</span>
-            <button
-              onClick={() => handleAddTextItem()}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-amber-400 text-xs font-medium transition-colors"
-              title="Add text overlay"
-            >
-              <Type className="w-3.5 h-3.5" /> Text
-            </button>
-            <button
-              onClick={() => setMobileSheet('canvas')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-purple-400 text-xs font-medium transition-colors"
-              title="Canvas size"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" /> Canvas
-            </button>
-            <button
-              onClick={() => setMobileSheet('record')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-red-400 text-xs font-medium transition-colors"
-              title="Live record"
-            >
-              <Mic className="w-3.5 h-3.5" /> Record
-            </button>
-            <div className="w-px h-4 bg-white/20 mx-1 shrink-0" />
-            <button
-              onClick={() => setShowAiEdit(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-brand-600/30 text-brand-400 text-xs font-medium transition-colors"
-              title="AI Edit"
-            >
-              <Wand2 className="w-3.5 h-3.5" /> AI Edit
-            </button>
-          </div>
-
           {/* ── Drag-to-resize handle — preview vs timeline ──────────────── */}
           <div
             className="shrink-0 flex items-center justify-center bg-gray-950 cursor-row-resize select-none touch-none group"

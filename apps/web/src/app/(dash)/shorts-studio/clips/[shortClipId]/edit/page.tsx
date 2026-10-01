@@ -130,6 +130,7 @@ export default function TimelineEditorPage() {
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
   const [quickTool, setQuickTool] = useState<string | null>(null);
   const [mobileSheet, setMobileSheet] = useState<'none' | 'studio' | 'inspect' | 'tools' | 'canvas'>('none');
+  const [desktopTab, setDesktopTab] = useState<'canvas' | 'ai' | 'studio' | null>('ai');
   const [useRenderedSource, setUseRenderedSource] = useState(false);
   const useRenderedSourceRef = useRef(false);
   useRenderedSourceRef.current = useRenderedSource;
@@ -731,7 +732,7 @@ export default function TimelineEditorPage() {
   const videoObjectPosition = `${50 + canvasConfig.panX * 100}% ${50 + canvasConfig.panY * 100}%`;
 
   return (
-    <div className="p-6 pb-24 lg:pb-6 max-w-[1400px] mx-auto select-none">
+    <div className="p-4 pb-24 lg:pb-4 max-w-[1400px] mx-auto select-none">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link href={`/shorts-studio/videos/${clip!.topicSegment.importedVideoId}`} className="text-gray-500 hover:text-gray-800">
@@ -762,7 +763,7 @@ export default function TimelineEditorPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_290px] gap-4">
+      <div>
         <div>
           {/* ── Player ──────────────────────────────────────────────────────── */}
           <div className="flex justify-center">
@@ -1026,210 +1027,134 @@ export default function TimelineEditorPage() {
           </p>
         </div>
 
-        {/* ── Right sidebar (desktop only — mobile uses bottom sheets) ───────── */}
-        <aside className="hidden lg:flex flex-col gap-3 sticky top-0 self-start max-h-screen overflow-y-auto pb-4">
-          {/* Canvas size panel */}
-          <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+      </div>
+
+      {/* ── Desktop bottom tools panel (replaces sidebar) ─────────────────── */}
+      <div className="hidden lg:flex mt-4 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden flex-col">
+        {/* Tab bar */}
+        <div className="flex border-b border-gray-100 shrink-0">
+          {([
+            { id: 'canvas' as const, label: 'Canvas',   Icon: Layout,   color: 'text-brand-600'  },
+            { id: 'ai'     as const, label: 'AI Tools', Icon: Wand2,    color: 'text-purple-600' },
+            { id: 'studio' as const, label: 'Studio',   Icon: Sparkles, color: 'text-cyan-600'   },
+          ]).map((t) => (
             <button
-              onClick={() => setCanvasPanelOpen(!canvasPanelOpen)}
-              className="flex items-center justify-between w-full text-sm font-semibold text-gray-800"
+              key={t.id}
+              onClick={() => setDesktopTab((prev) => prev === t.id ? null : t.id)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold border-b-2 transition-colors ${
+                desktopTab === t.id
+                  ? `border-brand-500 ${t.color} bg-gray-50`
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
             >
-              <span className="flex items-center gap-2">
-                <Layout className="w-4 h-4 text-brand-600" /> Canvas Size
-              </span>
-              <span className="text-[10px] text-gray-400 font-mono">{canvasConfig.aspect}</span>
+              <t.Icon className="w-3.5 h-3.5" /> {t.label}
             </button>
+          ))}
+        </div>
 
-            {canvasPanelOpen && (
-              <div className="mt-3 space-y-3">
-                {/* Aspect ratio presets */}
-                <div className="grid grid-cols-2 gap-1.5">
-                  {CANVAS_PRESETS.map((p) => {
-                    const active = canvasConfig.aspect === p.key;
-                    return (
-                      <button
-                        key={p.key}
-                        onClick={() => {
-                          const cfg: CanvasConfig = { ...canvasConfig, aspect: p.key };
-                          setCanvasConfig(cfg);
-                          updateCanvas.mutate(cfg);
-                        }}
-                        className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg border text-xs transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        <p.Icon className={`w-4 h-4 ${active ? 'text-brand-600' : 'text-gray-400'}`} />
-                        <span className="font-medium text-center leading-tight">{p.label}</span>
-                        <span className={`text-[9px] ${active ? 'text-brand-500' : 'text-gray-400'}`}>{p.sub}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Fit mode */}
-                <div>
-                  <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Video fit</p>
-                  <div className="flex gap-1.5">
-                    {(['fill', 'contain'] as const).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => {
-                          const cfg: CanvasConfig = { ...canvasConfig, fit: f };
-                          setCanvasConfig(cfg);
-                          updateCanvas.mutate(cfg);
-                        }}
-                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${canvasConfig.fit === f ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        {f === 'fill' ? 'Fill (crop)' : 'Contain (letterbox)'}
-                      </button>
-                    ))}
+        {/* Canvas tab */}
+        {desktopTab === 'canvas' && (
+          <div className="p-4 space-y-4">
+            <div className="flex gap-2 flex-wrap">
+              {CANVAS_PRESETS.map((p) => {
+                const active = canvasConfig.aspect === p.key;
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => { const cfg: CanvasConfig = { ...canvasConfig, aspect: p.key }; setCanvasConfig(cfg); updateCanvas.mutate(cfg); }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <p.Icon className={`w-4 h-4 ${active ? 'text-brand-600' : 'text-gray-400'}`} />
+                    <span className="font-medium">{p.label}</span>
+                    <span className={`text-[10px] ${active ? 'text-brand-500' : 'text-gray-400'}`}>{p.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              {(['fill', 'contain'] as const).map((f) => (
+                <button key={f} onClick={() => { const cfg: CanvasConfig = { ...canvasConfig, fit: f }; setCanvasConfig(cfg); updateCanvas.mutate(cfg); }} className={`flex-1 max-w-[140px] py-1.5 text-xs rounded-lg border font-medium transition-colors ${canvasConfig.fit === f ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                  {f === 'fill' ? 'Fill (crop)' : 'Contain (letterbox)'}
+                </button>
+              ))}
+            </div>
+            {canvasConfig.fit === 'fill' && (
+              <div className="flex gap-6">
+                <div className="flex-1">
+                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                    <span>Horizontal</span><span className="font-mono">{canvasConfig.panX > 0 ? '+' : ''}{Math.round(canvasConfig.panX * 100)}%</span>
                   </div>
+                  <input type="range" min="-50" max="50" value={Math.round(canvasConfig.panX * 100)} onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panX: parseInt(e.target.value) / 100 }))} onMouseUp={() => updateCanvas.mutate(canvasConfig)} onTouchEnd={() => updateCanvas.mutate(canvasConfig)} className="w-full h-1.5 accent-brand-600" />
                 </div>
-
-                {/* Pan controls — only useful with Fill mode */}
-                {canvasConfig.fit === 'fill' && (
-                  <div className="space-y-2.5">
-                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Position</p>
-                    <div>
-                      <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                        <span>Horizontal</span>
-                        <span className="font-mono">{canvasConfig.panX > 0 ? '+' : ''}{Math.round(canvasConfig.panX * 100)}%</span>
-                      </div>
-                      <input
-                        type="range" min="-50" max="50"
-                        value={Math.round(canvasConfig.panX * 100)}
-                        onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panX: parseInt(e.target.value) / 100 }))}
-                        onMouseUp={() => updateCanvas.mutate(canvasConfig)}
-                        onTouchEnd={() => updateCanvas.mutate(canvasConfig)}
-                        className="w-full h-1.5 accent-brand-600"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                        <span>Vertical</span>
-                        <span className="font-mono">{canvasConfig.panY > 0 ? '+' : ''}{Math.round(canvasConfig.panY * 100)}%</span>
-                      </div>
-                      <input
-                        type="range" min="-50" max="50"
-                        value={Math.round(canvasConfig.panY * 100)}
-                        onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panY: parseInt(e.target.value) / 100 }))}
-                        onMouseUp={() => updateCanvas.mutate(canvasConfig)}
-                        onTouchEnd={() => updateCanvas.mutate(canvasConfig)}
-                        className="w-full h-1.5 accent-brand-600"
-                      />
-                    </div>
-                    <button
-                      onClick={() => {
-                        const cfg: CanvasConfig = { ...canvasConfig, panX: 0, panY: 0 };
-                        setCanvasConfig(cfg);
-                        updateCanvas.mutate(cfg);
-                      }}
-                      className="text-[10px] text-gray-400 hover:text-gray-600 underline"
-                    >
-                      Reset position
-                    </button>
+                <div className="flex-1">
+                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                    <span>Vertical</span><span className="font-mono">{canvasConfig.panY > 0 ? '+' : ''}{Math.round(canvasConfig.panY * 100)}%</span>
                   </div>
-                )}
-
-                {updateCanvas.isPending && (
-                  <p className="text-[10px] text-brand-600 flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Saving canvas…
-                  </p>
-                )}
-                {updateCanvas.isSuccess && (
-                  <p className="text-[10px] text-green-600 flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Canvas saved — re-render to apply
-                  </p>
-                )}
+                  <input type="range" min="-50" max="50" value={Math.round(canvasConfig.panY * 100)} onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panY: parseInt(e.target.value) / 100 }))} onMouseUp={() => updateCanvas.mutate(canvasConfig)} onTouchEnd={() => updateCanvas.mutate(canvasConfig)} className="w-full h-1.5 accent-brand-600" />
+                </div>
+                <button onClick={() => { const cfg: CanvasConfig = { ...canvasConfig, panX: 0, panY: 0 }; setCanvasConfig(cfg); updateCanvas.mutate(cfg); }} className="text-[10px] text-gray-400 hover:text-gray-600 underline self-end mb-1">Reset</button>
               </div>
             )}
+            {updateCanvas.isPending && <p className="text-[10px] text-brand-600 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Saving…</p>}
+            {updateCanvas.isSuccess && <p className="text-[10px] text-green-600 flex items-center gap-1"><Check className="w-3 h-3" /> Canvas saved</p>}
           </div>
+        )}
 
-          {/* AI Assistant panel */}
-          <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-3">
-              <Wand2 className="w-4 h-4 text-brand-600" /> AI Assistant
-            </h2>
-            <div className="space-y-2">
+        {/* AI Tools tab */}
+        {desktopTab === 'ai' && (
+          <div className="p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
               {([
-                ['remove-silence', 'Remove silence'],
-                ['remove-fillers', 'Remove filler words'],
-                ['improve-pacing', 'Improve pacing'],
+                ['remove-silence', 'Remove Silence'],
+                ['remove-fillers', 'Remove Filler Words'],
+                ['improve-pacing', 'Improve Pacing'],
               ] as const).map(([cap, label]) => (
-                <button
-                  key={cap}
-                  onClick={() => void runAssist(cap)}
-                  disabled={assistBusy !== null}
-                  className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                >
+                <button key={cap} onClick={() => void runAssist(cap)} disabled={assistBusy !== null}
+                  className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
                   {assistBusy === cap ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4 text-gray-500" />}
                   {label}
                 </button>
               ))}
-              <button
-                onClick={() => genCaptions.mutate()}
-                disabled={genCaptions.isPending || captionPending}
-                className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                {(genCaptions.isPending || captionPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Captions className="w-4 h-4 text-gray-500" />}
-                {captionPending ? 'Generating captions…' : 'Generate captions'}
+              <button onClick={() => genCaptions.mutate()} disabled={genCaptions.isPending || captionPending}
+                className="flex items-center gap-2 px-3 py-2 border border-amber-200 bg-amber-50 rounded-lg text-sm text-amber-700 hover:bg-amber-100 disabled:opacity-50">
+                {(genCaptions.isPending || captionPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Captions className="w-4 h-4" />}
+                {captionPending ? 'Generating…' : 'Generate Captions'}
               </button>
-              {captionPending && (
-                <p className="text-[11px] text-brand-600 flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Processing speech — captions will appear on the timeline when ready.
-                </p>
-              )}
             </div>
+            {suggestions && suggestions.commands.length > 0 && (
+              <div className="border-t border-gray-100 pt-3 space-y-1.5 max-h-40 overflow-y-auto">
+                <p className="text-xs font-semibold text-gray-600">{suggestions.commands.length} suggestion{suggestions.commands.length === 1 ? '' : 's'}</p>
+                {suggestions.commands.map((c, i) => (
+                  <div key={i} className="flex items-start justify-between gap-2 text-xs bg-gray-50 rounded-lg px-2.5 py-1.5">
+                    <span className="text-gray-600">
+                      {c.type === 'CUT_RANGE' ? `Cut ${fmt(c.startMs)}–${fmt(c.endMs)}` : c.type}
+                      {'reason' in c && c.reason ? <span className="text-gray-400"> — {c.reason}</span> : null}
+                    </span>
+                    <button onClick={() => setSuggestions((s) => s ? { ...s, commands: s.commands.filter((_, j) => j !== i) } : s)} className="text-gray-300 hover:text-red-500 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ))}
+                <button onClick={() => applySuggestions.mutate()} disabled={applySuggestions.isPending}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50">
+                  {applySuggestions.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Apply {suggestions.commands.length} edit{suggestions.commands.length === 1 ? '' : 's'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
+        {/* Studio tab */}
+        {desktopTab === 'studio' && (
+          <div className="p-2 max-h-64 overflow-y-auto">
             <StudioToolPanels
               timelineId={timeline.id}
               shortClipId={shortClipId}
               captionsText={timeline.captions.map((c) => c.text).join(' ')}
-              audioVersionId={
-                timeline.tracks
-                  .find((t) => t.type === 'AUDIO')
-                  ?.items[0]
-                  ?.sourceAsset?.versions[0]?.id
-              }
+              audioVersionId={timeline.tracks.find((t) => t.type === 'AUDIO')?.items[0]?.sourceAsset?.versions[0]?.id}
               requestOpen={quickTool}
             />
-
-            {suggestions && (
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-600 mb-2">
-                  {suggestions.commands.length} suggestion{suggestions.commands.length === 1 ? '' : 's'}
-                </p>
-                {suggestions.commands.length === 0 && (
-                  <p className="text-xs text-gray-500">Nothing to change — this clip already looks tight.</p>
-                )}
-                <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                  {suggestions.commands.map((c, i) => (
-                    <div key={i} className="flex items-start justify-between gap-2 text-xs bg-gray-50 rounded-lg px-2.5 py-1.5">
-                      <span className="text-gray-600">
-                        {c.type === 'CUT_RANGE' ? `Cut ${fmt(c.startMs)}–${fmt(c.endMs)}` : c.type}
-                        {'reason' in c && c.reason ? <span className="text-gray-500"> — {c.reason}</span> : null}
-                      </span>
-                      <button
-                        onClick={() => setSuggestions((s) => s ? { ...s, commands: s.commands.filter((_, j) => j !== i) } : s)}
-                        className="text-gray-300 hover:text-red-500 shrink-0"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {suggestions.commands.length > 0 && (
-                  <button
-                    onClick={() => applySuggestions.mutate()}
-                    disabled={applySuggestions.isPending}
-                    className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50"
-                  >
-                    {applySuggestions.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    Apply {suggestions.commands.length} edit{suggestions.commands.length === 1 ? '' : 's'}
-                  </button>
-                )}
-              </div>
-            )}
           </div>
-        </aside>
+        )}
       </div>
 
       {/* Mobile Canvas Size bottom sheet */}
