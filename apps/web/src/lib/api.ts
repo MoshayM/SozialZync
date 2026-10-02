@@ -1387,6 +1387,9 @@ export const api = {
     /** Open an imported video; projectId resolved from the video server-side. */
     createFromImported: (importedVideoId: string, title?: string) =>
       apiClient.post<EditProject>(`/editor/from-imported/${importedVideoId}`, { title }),
+    /** Open a ShortClip in the editor scoped to its clip boundaries. */
+    createFromShortClip: (shortClipId: string) =>
+      apiClient.post<EditProject>(`/editor/from-short-clip/${shortClipId}`, {}),
     get: (editId: string) =>
       apiClient.get<EditProject>(`/editor/${editId}`),
     listByProject: (projectId: string) =>

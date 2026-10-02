@@ -1,9 +1,9 @@
 ﻿'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, X, AlertCircle, Pause, Download, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, X, AlertCircle, Pause, Download, Trash2, Plus, Film } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { PublishConfirmModal } from '../../PublishConfirmModal';
@@ -508,6 +508,16 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                     >
                       <Pencil className="w-3.5 h-3.5" /> Re-edit
                     </Link>
+                    <button
+                      type="button"
+                      disabled={openingEditorClipId === c.id}
+                      onClick={(e) => { e.stopPropagation(); openInEditor.mutate(c.id); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50"
+                      title="Open this clip in the full Video Editor (scoped to clip duration)"
+                    >
+                      {openingEditorClipId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Film className="w-3.5 h-3.5" />}
+                      Full Editor
+                    </button>
                     {/* Publish — opens confirm modal */}
                     {isRendered && (
                       <button
@@ -877,8 +887,16 @@ function HighlightCard({ h, open, onToggle, onClipsReady }: { h: Highlight; open
 
 export default function ShortsVideoDetailPage() {
   const { importedVideoId } = useParams<{ importedVideoId: string }>();
+  const router = useRouter();
   const qc = useQueryClient();
   const [tab, setTab] = useState<'highlights' | 'topics' | 'chapters' | 'search' | 'social'>('highlights');
+  const [openingEditorClipId, setOpeningEditorClipId] = useState<string | null>(null);
+  const openInEditor = useMutation({
+    mutationFn: (shortClipId: string) => api.editor.createFromShortClip(shortClipId).then((r) => r.data),
+    onMutate: (shortClipId) => setOpeningEditorClipId(shortClipId),
+    onSettled: () => setOpeningEditorClipId(null),
+    onSuccess: (data) => router.push(`/editor/${data.id}`),
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [openHighlights, setOpenHighlights] = useState<Set<string>>(new Set());
   const [openTopics, setOpenTopics] = useState<Set<string>>(new Set());

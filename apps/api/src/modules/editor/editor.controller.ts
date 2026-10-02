@@ -60,6 +60,15 @@ export class EditorController {
     return this.editor.createFromImportedVideo(importedVideoId, user.sub, body.title);
   }
 
+  /** Open a ShortClip in the editor scoped to its clip boundaries. */
+  @Post('from-short-clip/:shortClipId')
+  async fromShortClip(
+    @Param('shortClipId') shortClipId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.editor.createFromShortClip(shortClipId, user.sub);
+  }
+
   /** Create an EditProject. Body: { sourceKind, sourceId, title } | { blank: true, title, width, height, fps } */
   @Post('projects/:projectId')
   async create(

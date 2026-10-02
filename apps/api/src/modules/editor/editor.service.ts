@@ -551,6 +551,93 @@ export class EditorService {
     return this.createFromSource(iv.projectId, userId, { sourceKind: 'IMPORTED_VIDEO', sourceId: importedVideoId, title });
   }
 
+  /** Open a ShortClip in the editor scoped to its clip boundaries (sourceStartMs → sourceEndMs). */
+  async createFromShortClip(shortClipId: string, userId: string): Promise<EditProjectRow> {
+    const clip = await this.prisma.shortClip.findUnique({
+      where: { id: shortClipId },
+      select: {
+        projectId: true, sourceStartMs: true, sourceEndMs: true,
+        topicSegment: {
+          select: {
+            title: true,
+            importedVideo: {
+              select: {
+                sourceAssetId: true,
+                sourceAsset: { select: { versions: { orderBy: { version: 'desc' }, take: 1, select: { r2Key: true } } } },
+              },
+            },
+          },
+        },
+        chapter: {
+          select: {
+            title: true,
+            importedVideo: {
+              select: {
+                sourceAssetId: true,
+                sourceAsset: { select: { versions: { orderBy: { version: 'desc' }, take: 1, select: { r2Key: true } } } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!clip) throw new NotFoundException('ShortClip not found');
+    await this.assertProjectOwnership(clip.projectId, userId);
+
+    const source = clip.topicSegment ?? clip.chapter;
+    if (!source) throw new NotFoundException('ShortClip has no associated segment or chapter');
+
+    const iv = source.importedVideo;
+    const clipTitle = `Short: ${source.title}`;
+    const clipDuration = clip.sourceEndMs - clip.sourceStartMs;
+    const sourceAssetId = iv.sourceAssetId ?? undefined;
+    const r2Key = iv.sourceAsset?.versions[0]?.r2Key ?? undefined;
+
+    let width = 1920, height = 1080;
+    if (r2Key && this.storage.exists(r2Key) && clipDuration === 0) {
+      try {
+        const sourcePath = this.storage.resolve(r2Key);
+        const info = parseMediaProbe(await probeMediaInfo(sourcePath));
+        if (info.width && info.height) { width = info.width; height = info.height; }
+      } catch (e) {
+        this.logger.warn(`Probe failed for short clip ${shortClipId}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+
+    const dur = clipDuration || 1;
+    // @reason: EditItem in compiled dist omits linkedItemId; cast through object to attach it.
+    const seedTracks: EditTimeline['tracks'] = sourceAssetId
+      ? [
+          {
+            id: 'track-video-0', kind: 'VIDEO', label: 'Video',
+            items: [{ id: 'item-0-v', sourceAssetId, kind: 'VIDEO', timelineStartMs: 0, timelineEndMs: dur, sourceInMs: clip.sourceStartMs, sourceOutMs: clip.sourceEndMs, linkedItemId: 'item-0-a' } as object as EditTimeline['tracks'][number]['items'][number]],
+          },
+          {
+            id: 'track-audio-0', kind: 'AUDIO', label: 'Audio',
+            items: [{ id: 'item-0-a', sourceAssetId, kind: 'AUDIO', timelineStartMs: 0, timelineEndMs: dur, sourceInMs: clip.sourceStartMs, sourceOutMs: clip.sourceEndMs, linkedItemId: 'item-0-v' } as object as EditTimeline['tracks'][number]['items'][number]],
+          },
+        ]
+      : [{ id: 'track-video-0', kind: 'VIDEO', label: 'Video', items: [] }];
+
+    const seedTimeline: EditTimeline = { width, height, fps: 30, durationMs: clipDuration, tracks: seedTracks };
+
+    const row = (await ep(this.prisma).create({
+      data: {
+        projectId: clip.projectId,
+        title: clipTitle,
+        width,
+        height,
+        fps: 30,
+        durationMs: clipDuration,
+        timeline: seedTimeline as object,
+        renderStatus: 'NONE',
+      },
+    })) as EditProjectRow;
+
+    this.logger.log(`EditProject ${row.id} created from ShortClip ${shortClipId} (${clip.sourceStartMs}–${clip.sourceEndMs}ms)`);
+    return row;
+  }
+
   // ── Read ─────────────────────────────────────────────────────────────────────
 
   async get(id: string, userId: string): Promise<EditProjectRow> {
