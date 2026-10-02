@@ -1034,9 +1034,9 @@ export default function TimelineEditorPage() {
         {/* Tab bar */}
         <div className="flex border-b border-gray-100 shrink-0">
           {([
-            { id: 'canvas' as const, label: 'Canvas',   Icon: Layout,   color: 'text-brand-600'  },
-            { id: 'ai'     as const, label: 'AI Tools', Icon: Wand2,    color: 'text-purple-600' },
-            { id: 'studio' as const, label: 'Studio',   Icon: Sparkles, color: 'text-cyan-600'   },
+            { id: 'canvas' as const, label: 'Inspect', Icon: Settings2,          color: 'text-brand-600'  },
+            { id: 'ai'     as const, label: 'AI',      Icon: Sparkles,            color: 'text-purple-600' },
+            { id: 'studio' as const, label: 'Edit',    Icon: SlidersHorizontal,  color: 'text-cyan-600'   },
           ]).map((t) => (
             <button
               key={t.id}
@@ -1536,8 +1536,8 @@ export default function TimelineEditorPage() {
         </div>
       </div>
 
-      {/* Mobile bottom tab bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      {/* Mobile bottom tab bar — z-[35] sits above the dashboard mobile nav (z-30) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[35] bg-white border-t border-gray-200 flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {([
           { id: 'studio' as const,  label: 'AI',     Icon: Sparkles,          color: 'text-cyan-600',   activeBg: 'bg-cyan-50',   activeTxt: 'text-cyan-700' },
           { id: 'inspect' as const, label: 'Inspect', Icon: Settings2,         color: 'text-brand-600',  activeBg: 'bg-brand-50',  activeTxt: 'text-brand-700' },
