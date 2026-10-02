@@ -355,10 +355,19 @@ function ClipPublishStatus({ clipId }: { clipId: string }) {
 
 /** Clips list with Preview, Re-edit, Save to Private, Publish, Download actions. */
 function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnType<typeof useQueryClient>; importedVideoId: string }) {
+  const router = useRouter();
   const [openClips, setOpenClips] = useState<Set<string>>(new Set());
   const [previewClipId, setPreviewClipId] = useState<string | null>(null);
   const [publishedClips, setPublishedClips] = useState<Set<string>>(new Set());
   const [publishModalClipId, setPublishModalClipId] = useState<string | null>(null);
+  const [openingEditorClipId, setOpeningEditorClipId] = useState<string | null>(null);
+
+  const openInEditor = useMutation({
+    mutationFn: (shortClipId: string) => api.editor.createFromShortClip(shortClipId).then((r) => r.data),
+    onMutate: (shortClipId) => setOpeningEditorClipId(shortClipId),
+    onSettled: () => setOpeningEditorClipId(null),
+    onSuccess: (data) => router.push(`/editor/${data.id}`),
+  });
 
   const pauseRender = useMutation({
     mutationFn: async (clipId: string) => {
@@ -890,13 +899,6 @@ export default function ShortsVideoDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const [tab, setTab] = useState<'highlights' | 'topics' | 'chapters' | 'search' | 'social'>('highlights');
-  const [openingEditorClipId, setOpeningEditorClipId] = useState<string | null>(null);
-  const openInEditor = useMutation({
-    mutationFn: (shortClipId: string) => api.editor.createFromShortClip(shortClipId).then((r) => r.data),
-    onMutate: (shortClipId) => setOpeningEditorClipId(shortClipId),
-    onSettled: () => setOpeningEditorClipId(null),
-    onSuccess: (data) => router.push(`/editor/${data.id}`),
-  });
   const [searchQuery, setSearchQuery] = useState('');
   const [openHighlights, setOpenHighlights] = useState<Set<string>>(new Set());
   const [openTopics, setOpenTopics] = useState<Set<string>>(new Set());
