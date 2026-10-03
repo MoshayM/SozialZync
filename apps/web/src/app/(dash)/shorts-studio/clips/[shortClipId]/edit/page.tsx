@@ -26,6 +26,7 @@ interface Item {
 }
 interface Track { id: string; type: 'VIDEO' | 'AUDIO' | 'MUSIC' | 'CAPTION' | 'OVERLAY'; orderIndex: number; items: Item[] }
 interface Caption { id: string; startMs: number; endMs: number; text: string; emphasis: boolean; emoji: string | null }
+interface TextOverlay { id: string; startMs: number; endMs: number; text: string; x: number; y: number; fontSize: 'sm' | 'md' | 'lg'; color: string }
 interface CanvasConfig { aspect: '9:16' | '16:9' | '1:1' | '4:5'; fit: 'fill' | 'contain'; panX: number; panY: number; scale: number }
 interface TimelineData { id: string; durationMs: number; tracks: Track[]; captions: Caption[]; canvasConfig?: CanvasConfig | null }
 interface ClipData {
@@ -132,7 +133,7 @@ export default function TimelineEditorPage() {
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
   const [quickTool, setQuickTool] = useState<string | null>(null);
   const [mobileSheet, setMobileSheet] = useState<'none' | 'studio' | 'inspect' | 'tools' | 'canvas'>('none');
-  const [desktopTab, setDesktopTab] = useState<'canvas' | 'ai' | 'studio' | 'text' | null>('ai');
+  const [desktopTab, setDesktopTab] = useState<'canvas' | 'ai' | 'studio' | 'text' | 'brand' | null>('ai');
   const [useRenderedSource, setUseRenderedSource] = useState(false);
   const useRenderedSourceRef = useRef(false);
   useRenderedSourceRef.current = useRenderedSource;
@@ -145,7 +146,17 @@ export default function TimelineEditorPage() {
   const [textToolOpen, setTextToolOpen] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [textDurationSec, setTextDurationSec] = useState(2);
-  const [userTextOverlays, setUserTextOverlays] = useState<Caption[]>([]);
+  const [textNewX, setTextNewX] = useState(50);
+  const [textNewY, setTextNewY] = useState(80);
+  const [textNewFontSize, setTextNewFontSize] = useState<TextOverlay['fontSize']>('md');
+  const [textNewColor, setTextNewColor] = useState('#ffffff');
+  const [userTextOverlays, setUserTextOverlays] = useState<TextOverlay[]>([]);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [brand, setBrand] = useState<{
+    type: 'text' | 'logo'; text: string; logoUrl?: string;
+    x: number; y: number; size: number; visible: boolean; color: string;
+  } | null>(null);
+  const previewFrameRef = useRef<HTMLDivElement>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -235,6 +246,18 @@ export default function TimelineEditorPage() {
 
     return () => { cancelled = true; };
   }, [videoVersionId, shortClipId]);
+
+  // Fetch first thumbnail to use as poster so the preview shows immediately while the signed URL loads
+  useEffect(() => {
+    void api.shortsStudio.thumbnails(shortClipId).then((r) => {
+      const list = r.data as Array<{ url?: string; signedUrl?: string }>;
+      const first = list?.[0];
+      if (!first) return;
+      const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
+      const raw = first.signedUrl ?? first.url ?? '';
+      setPosterUrl(raw.startsWith('http') ? raw : `${apiBase}${raw}`);
+    }).catch(() => {});
+  }, [shortClipId]);
 
   // ── Persistence ─────────────────────────────────────────────────────────────
 
@@ -621,13 +644,15 @@ export default function TimelineEditorPage() {
   const handleAddText = () => {
     const text = textInput.trim();
     if (!text) return;
-    const newOverlay: Caption = {
+    const newOverlay: TextOverlay = {
       id: `user-text-${Date.now()}`,
       startMs: Math.round(playheadMs),
       endMs: Math.round(playheadMs) + textDurationSec * 1000,
       text,
-      emphasis: false,
-      emoji: null,
+      x: textNewX,
+      y: textNewY,
+      fontSize: textNewFontSize,
+      color: textNewColor,
     };
     setUserTextOverlays((prev) => [...prev, newOverlay]);
     setTextInput('');
@@ -855,9 +880,10 @@ export default function TimelineEditorPage() {
 
   return (
     <div className="p-4 pb-24 lg:pb-4 max-w-[1400px] mx-auto select-none">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 space-y-2">
+        {/* Row 1: back + title */}
         <div className="flex items-center gap-3 min-w-0">
-          <Link href={`/shorts-studio/videos/${clip!.topicSegment.importedVideoId}`} className="text-gray-500 hover:text-gray-800">
+          <Link href={`/shorts-studio/videos/${clip!.topicSegment.importedVideoId}`} className="text-gray-500 hover:text-gray-800 shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="min-w-0">
@@ -867,15 +893,13 @@ export default function TimelineEditorPage() {
             <p className="text-xs text-gray-500">{clip!.clipType.replace(/_/g, ' ')} · {fmt(durationMs)} · {clip!.status.replace(/_/g, ' ')}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          {saveError && (
-            <span className="flex items-center gap-1 text-red-600">
-              <X className="w-3.5 h-3.5" /> {saveError}
-            </span>
-          )}
+        {/* Row 2: save status + actions */}
+        <div className="flex items-center gap-2 text-xs text-gray-500 pl-8">
+          {saveError && <span className="flex items-center gap-1 text-red-600"><X className="w-3.5 h-3.5" /> {saveError}</span>}
           {saving ? <span className="flex items-center gap-1"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</span>
             : pending.length > 0 ? <button onClick={() => { setSaveError(null); void flush(); }} className="flex items-center gap-1 text-brand-600 hover:underline"><Save className="w-3.5 h-3.5" /> {pending.length} unsaved</button>
             : <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-green-500" /> Saved</span>}
+          <div className="flex-1" />
           <button
             onClick={() => void openInEditor()}
             disabled={openingInEditor}
@@ -899,6 +923,7 @@ export default function TimelineEditorPage() {
           {/* ── Player ──────────────────────────────────────────────────────── */}
           <div className="flex justify-center">
             <div
+              ref={previewFrameRef}
               className="bg-black rounded-2xl overflow-hidden flex items-center justify-center relative"
               style={{ height: previewH, width: previewW, maxWidth: '100%' }}
             >
@@ -907,6 +932,7 @@ export default function TimelineEditorPage() {
                 <video
                   ref={videoRef}
                   src={videoUrl}
+                  poster={posterUrl ?? undefined}
                   playsInline
                   preload="auto"
                   muted={muted}
@@ -931,17 +957,54 @@ export default function TimelineEditorPage() {
                   </span>
                 </div>
               )}
-              {/* User text overlays */}
-              {(() => {
-                const activeText = userTextOverlays.find((o) => playheadMs >= o.startMs && playheadMs < o.endMs);
-                return activeText ? (
-                  <div className="absolute bottom-14 left-0 right-0 text-center px-8 pointer-events-none z-10">
-                    <span className="inline-block px-3 py-1 rounded-lg text-white text-base font-semibold bg-amber-600/80 border border-amber-400/60">
-                      {activeText.text}
+              {/* User text overlays — free-positioned */}
+              {userTextOverlays
+                .filter((o) => playheadMs >= o.startMs && playheadMs < o.endMs)
+                .map((o) => (
+                  <div key={o.id} className="absolute pointer-events-none z-10"
+                    style={{ left: `${o.x}%`, top: `${o.y}%`, transform: 'translate(-50%, -50%)' }}>
+                    <span className={`inline-block px-3 py-1 rounded-lg font-semibold bg-black/60 whitespace-nowrap ${
+                      o.fontSize === 'sm' ? 'text-sm' : o.fontSize === 'lg' ? 'text-xl' : 'text-base'
+                    }`} style={{ color: o.color }}>
+                      {o.text}
                     </span>
                   </div>
-                ) : null;
-              })()}
+                ))
+              }
+              {/* Brand overlay — draggable */}
+              {brand?.visible && (
+                <div
+                  className="absolute z-20 cursor-move select-none"
+                  style={{ left: `${brand.x}%`, top: `${brand.y}%`, transform: 'translate(-50%, -50%)' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    const rect = previewFrameRef.current?.getBoundingClientRect();
+                    if (!rect) return;
+                    const onMove = (me: MouseEvent) => {
+                      const nx = Math.max(0, Math.min(100, ((me.clientX - rect.left) / rect.width) * 100));
+                      const ny = Math.max(0, Math.min(100, ((me.clientY - rect.top) / rect.height) * 100));
+                      setBrand((b) => b ? { ...b, x: Math.round(nx), y: Math.round(ny) } : b);
+                    };
+                    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+                    window.addEventListener('mousemove', onMove);
+                    window.addEventListener('mouseup', onUp);
+                  }}
+                >
+                  {brand.type === 'text' ? (
+                    <span className="inline-block font-bold drop-shadow-lg whitespace-nowrap"
+                      style={{ color: brand.color, fontSize: `${brand.size}rem` }}>
+                      {brand.text || 'Brand'}
+                    </span>
+                  ) : brand.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={brand.logoUrl} alt="brand logo"
+                      className="object-contain drop-shadow-lg pointer-events-none"
+                      style={{ height: `${brand.size * 32}px`, maxWidth: '120px' }} />
+                  ) : (
+                    <span className="text-white text-xs bg-white/20 px-2 py-1 rounded border border-white/40">Logo URL →</span>
+                  )}
+                </div>
+              )}
               {/* Buffering indicator */}
               {videoLoading && videoUrl && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 pointer-events-none">
@@ -1135,7 +1198,8 @@ export default function TimelineEditorPage() {
                       {track.type === 'CAPTION' && (
                         timeline.captions.length === 0 && userTextOverlays.length === 0
                           ? <span className="absolute inset-0 flex items-center px-3 text-[9px] text-gray-600 italic">No captions yet — use Generate captions or Text tool →</span>
-                          : [...timeline.captions, ...userTextOverlays].map((c) => (
+                          : ([...timeline.captions.map((c) => ({ id: c.id, startMs: c.startMs, endMs: c.endMs, text: c.text, emoji: c.emoji })),
+                              ...userTextOverlays.map((o) => ({ id: o.id, startMs: o.startMs, endMs: o.endMs, text: o.text, emoji: null }))]).map((c) => (
                             <div
                               key={c.id}
                               className="absolute top-1.5 bottom-1.5 rounded bg-amber-400/80 border border-amber-300 px-1 overflow-hidden"
@@ -1252,10 +1316,11 @@ export default function TimelineEditorPage() {
         {/* Tab bar */}
         <div className="flex border-b border-gray-100 shrink-0">
           {([
-            { id: 'canvas' as const, label: 'Inspect', Icon: Settings2,          color: 'text-brand-600'  },
-            { id: 'ai'     as const, label: 'AI',      Icon: Sparkles,            color: 'text-purple-600' },
-            { id: 'studio' as const, label: 'Edit',    Icon: SlidersHorizontal,  color: 'text-cyan-600'   },
-            { id: 'text'   as const, label: 'Text',    Icon: Type,               color: 'text-amber-600'  },
+            { id: 'canvas' as const, label: 'Inspect', Icon: Settings2,          color: 'text-brand-600'   },
+            { id: 'ai'     as const, label: 'AI',      Icon: Sparkles,            color: 'text-purple-600'  },
+            { id: 'studio' as const, label: 'Edit',    Icon: SlidersHorizontal,  color: 'text-cyan-600'    },
+            { id: 'text'   as const, label: 'Text',    Icon: Type,               color: 'text-amber-600'   },
+            { id: 'brand'  as const, label: 'Brand',   Icon: ImageIcon,          color: 'text-fuchsia-600' },
           ]).map((t) => (
             <button
               key={t.id}
@@ -1413,6 +1478,7 @@ export default function TimelineEditorPage() {
         {/* Text tab */}
         {desktopTab === 'text' && (
           <div className="p-4 space-y-3">
+            {/* Input row */}
             <div className="flex gap-2">
               <input
                 type="text"
@@ -1424,26 +1490,49 @@ export default function TimelineEditorPage() {
               />
               <div className="flex items-center gap-1 shrink-0">
                 <input
-                  type="number"
-                  min={1}
-                  max={60}
-                  value={textDurationSec}
+                  type="number" min={1} max={60} value={textDurationSec}
                   onChange={(e) => setTextDurationSec(Math.max(1, parseInt(e.target.value) || 2))}
                   className="w-12 border border-gray-200 rounded px-1.5 py-1 text-xs text-center"
                   title="Duration in seconds"
                 />
                 <span className="text-[10px] text-gray-400">s</span>
               </div>
-              <button
-                onClick={handleAddText}
-                disabled={!textInput.trim()}
-                className="flex items-center gap-1 px-3 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 disabled:opacity-40"
-              >
+              <button onClick={handleAddText} disabled={!textInput.trim()}
+                className="flex items-center gap-1 px-3 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 disabled:opacity-40">
                 <Plus className="w-3.5 h-3.5" /> Add at {fmt(playheadMs)}
               </button>
             </div>
+            {/* Position + style controls */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>X position</span><span className="font-mono">{textNewX}%</span></div>
+                <input type="range" min={0} max={100} value={textNewX} onChange={(e) => setTextNewX(parseInt(e.target.value))} className="w-full h-1.5 accent-amber-500" />
+              </div>
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Y position</span><span className="font-mono">{textNewY}%</span></div>
+                <input type="range" min={0} max={100} value={textNewY} onChange={(e) => setTextNewY(parseInt(e.target.value))} className="w-full h-1.5 accent-amber-500" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1">
+                {(['sm', 'md', 'lg'] as const).map((s) => (
+                  <button key={s} onClick={() => setTextNewFontSize(s)}
+                    className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition-colors ${textNewFontSize === s ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                    {s.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1.5 ml-auto">
+                {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6', '#22c55e'].map((c) => (
+                  <button key={c} onClick={() => setTextNewColor(c)}
+                    className={`w-5 h-5 rounded-full border-2 transition-all ${textNewColor === c ? 'border-gray-700 scale-110' : 'border-transparent'}`}
+                    style={{ background: c }} />
+                ))}
+              </div>
+            </div>
+            {/* Overlay list */}
             {userTextOverlays.length > 0 ? (
-              <div className="space-y-1 max-h-40 overflow-y-auto">
+              <div className="space-y-1 max-h-36 overflow-y-auto">
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Text Overlays ({userTextOverlays.length})</p>
                 {userTextOverlays.map((o) => (
                   <div key={o.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-2.5 py-2 border border-gray-100">
@@ -1456,6 +1545,75 @@ export default function TimelineEditorPage() {
               </div>
             ) : (
               <p className="text-xs text-gray-400 italic">Move the playhead to where you want text to appear, then type and click Add.</p>
+            )}
+          </div>
+        )}
+
+        {/* Brand tab */}
+        {desktopTab === 'brand' && (
+          <div className="p-4 space-y-4">
+            {/* Enable toggle */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-700">Brand Overlay</p>
+              <button
+                onClick={() => setBrand((b) => b ? { ...b, visible: !b.visible } : { type: 'text', text: '', x: 10, y: 10, size: 1.2, visible: true, color: '#ffffff' })}
+                className={`px-3 py-1 text-xs rounded-lg border font-medium transition-colors ${brand?.visible ? 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              >
+                {brand?.visible ? 'Visible' : 'Hidden'}
+              </button>
+            </div>
+            {brand && (
+              <>
+                {/* Type toggle */}
+                <div className="flex gap-2">
+                  {(['text', 'logo'] as const).map((t) => (
+                    <button key={t} onClick={() => setBrand((b) => b ? { ...b, type: t } : b)}
+                      className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors capitalize ${brand.type === t ? 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                      {t === 'text' ? 'Brand Title' : 'Logo Image'}
+                    </button>
+                  ))}
+                </div>
+                {brand.type === 'text' ? (
+                  <div>
+                    <input type="text" value={brand.text} onChange={(e) => setBrand((b) => b ? { ...b, text: e.target.value } : b)}
+                      placeholder="Your Brand Name"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-fuchsia-400" />
+                    <div className="flex gap-1.5 mt-2">
+                      {['#ffffff', '#000000', '#f59e0b', '#a855f7', '#ef4444', '#22c55e'].map((c) => (
+                        <button key={c} onClick={() => setBrand((b) => b ? { ...b, color: c } : b)}
+                          className={`w-5 h-5 rounded-full border-2 transition-all ${brand.color === c ? 'border-gray-700 scale-110' : 'border-transparent'}`}
+                          style={{ background: c }} />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <input type="text" value={brand.logoUrl ?? ''} onChange={(e) => setBrand((b) => b ? { ...b, logoUrl: e.target.value } : b)}
+                    placeholder="Logo image URL…"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-fuchsia-400" />
+                )}
+                {/* Quick position grid */}
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-1.5">Position (drag on preview or pick)</p>
+                  <div className="grid grid-cols-3 gap-1 w-24">
+                    {[['TL',10,10],['TC',50,10],['TR',90,10],['ML',10,50],['MC',50,50],['MR',90,50],['BL',10,90],['BC',50,90],['BR',90,90]].map(([label, bx, by]) => (
+                      <button key={String(label)} onClick={() => setBrand((b) => b ? { ...b, x: bx as number, y: by as number } : b)}
+                        className={`py-1 text-[9px] rounded border transition-colors ${brand.x === bx && brand.y === by ? 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Size slider */}
+                <div>
+                  <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Size</span><span className="font-mono">{brand.size.toFixed(1)}×</span></div>
+                  <input type="range" min={5} max={20} step={1} value={Math.round(brand.size * 10)}
+                    onChange={(e) => setBrand((b) => b ? { ...b, size: parseInt(e.target.value) / 10 } : b)}
+                    className="w-full h-1.5 accent-fuchsia-500" />
+                </div>
+              </>
+            )}
+            {!brand && (
+              <p className="text-xs text-gray-400 italic">Click "Hidden" to enable the brand overlay on the preview.</p>
             )}
           </div>
         )}
@@ -1918,6 +2076,41 @@ export default function TimelineEditorPage() {
               <Layout className="w-4 h-4 text-brand-600 shrink-0" />
               Canvas Size <span className="ml-auto font-mono text-[10px] text-gray-400">{canvasConfig.aspect}</span>
             </button>
+          </div>
+
+          {/* Brand overlay */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Brand Overlay</p>
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={() => setBrand((b) => b ? { ...b, visible: !b.visible } : { type: 'text', text: '', x: 10, y: 10, size: 1.2, visible: true, color: '#ffffff' })}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm border font-medium transition-colors ${brand?.visible ? 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+              >
+                <ImageIcon className="w-4 h-4" /> {brand?.visible ? 'Brand visible' : 'Enable Brand'}
+              </button>
+            </div>
+            {brand && (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  {(['text', 'logo'] as const).map((t) => (
+                    <button key={t} onClick={() => setBrand((b) => b ? { ...b, type: t } : b)}
+                      className={`flex-1 py-2 text-xs rounded-xl border font-medium capitalize transition-colors ${brand.type === t ? 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                      {t === 'text' ? 'Brand Title' : 'Logo Image'}
+                    </button>
+                  ))}
+                </div>
+                {brand.type === 'text' ? (
+                  <input type="text" value={brand.text} onChange={(e) => setBrand((b) => b ? { ...b, text: e.target.value } : b)}
+                    placeholder="Your Brand Name"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-fuchsia-400" />
+                ) : (
+                  <input type="text" value={brand.logoUrl ?? ''} onChange={(e) => setBrand((b) => b ? { ...b, logoUrl: e.target.value } : b)}
+                    placeholder="Logo image URL…"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-fuchsia-400" />
+                )}
+                <p className="text-[10px] text-gray-400">Drag the overlay on the preview to reposition it.</p>
+              </div>
+            )}
           </div>
 
         </div>
