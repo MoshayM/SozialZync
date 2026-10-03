@@ -694,6 +694,15 @@ export default function TimelineEditorPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [togglePlay, splitAtPlayhead, deleteSelected, duplicateSelected, mergeWithAdjacent, rippleDelete, undo, redo, durationMs, handleCopySelected, handlePaste]);
 
+  // Lock body scroll while any mobile sheet is open
+  useEffect(() => {
+    if (mobileSheet !== 'none') {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [mobileSheet]);
+
   // ── Drag interactions ────────────────────────────────────────────────────────
 
   const dragState = useRef<{ mode: 'move' | 'trim-l' | 'trim-r' | 'playhead'; itemId?: string; startX: number; orig?: Item } | null>(null);
@@ -991,7 +1000,7 @@ export default function TimelineEditorPage() {
               {/* Brand overlay — draggable */}
               {brand?.visible && (
                 <div
-                  className="absolute z-20 cursor-move select-none"
+                  className="absolute z-30 cursor-move select-none"
                   style={{ left: `${brand.x}%`, top: `${brand.y}%`, transform: 'translate(-50%, -50%)' }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1243,7 +1252,8 @@ export default function TimelineEditorPage() {
                               ...userTextOverlays.map((o) => ({ id: o.id, startMs: o.startMs, endMs: o.endMs, text: o.text, emoji: null }))]).map((c) => (
                             <div
                               key={c.id}
-                              className="absolute top-1.5 bottom-1.5 rounded bg-amber-400/80 border border-amber-300 px-1 overflow-hidden"
+                              onClick={(e) => { e.stopPropagation(); setSelectedId(c.id); }}
+                              className={`absolute top-1.5 bottom-1.5 rounded bg-amber-400/80 border border-amber-300 px-1 overflow-hidden cursor-pointer ${selectedId === c.id ? 'ring-2 ring-white/80 ring-offset-1' : 'hover:border-amber-200 hover:bg-amber-400'}`}
                               style={{ left: (c.startMs / 1000) * pxPerSec, width: Math.max(2, ((c.endMs - c.startMs) / 1000) * pxPerSec) }}
                               title={c.text}
                             >
@@ -1597,10 +1607,10 @@ export default function TimelineEditorPage() {
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-gray-700">Brand Overlay</p>
               <button
-                onClick={() => setBrand((b) => b ? { ...b, visible: !b.visible } : { type: 'text', text: '', x: 10, y: 10, size: 1.2, visible: true, color: '#ffffff' })}
+                onClick={() => setBrand((b) => b ? { ...b, visible: !b.visible } : { type: 'text', text: '', x: 50, y: 10, size: 1.2, visible: true, color: '#ffffff' })}
                 className={`px-3 py-1 text-xs rounded-lg border font-medium transition-colors ${brand?.visible ? 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
               >
-                {brand?.visible ? 'Visible' : 'Hidden'}
+                {brand?.visible ? 'Visible' : brand ? 'Hidden' : 'Add Brand'}
               </button>
             </div>
             {brand && (
