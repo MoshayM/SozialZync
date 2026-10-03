@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -9,7 +9,7 @@ import {
   Film, Music2, Type, Layers, Volume2, VolumeX, Layout,
   Monitor, Smartphone, Square, RectangleHorizontal,
   Mic, Users, ImageIcon, Settings2, Sparkles, Zap, SlidersHorizontal,
-  Copy, GitMerge, Eraser,
+  Copy, GitMerge, Eraser, ExternalLink, ClipboardPaste, Plus,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { StudioToolPanels } from './StudioToolPanels';
@@ -102,6 +102,7 @@ function timelineToSource(tracks: Track[], tMs: number, renderedSrc = false): nu
 export default function TimelineEditorPage() {
   const { shortClipId } = useParams<{ shortClipId: string }>();
   const qc = useQueryClient();
+  const router = useRouter();
 
   const [captionPending, setCaptionPending] = useState(false);
 
@@ -131,7 +132,7 @@ export default function TimelineEditorPage() {
   const [canvasConfig, setCanvasConfig] = useState<CanvasConfig>(DEFAULT_CANVAS);
   const [quickTool, setQuickTool] = useState<string | null>(null);
   const [mobileSheet, setMobileSheet] = useState<'none' | 'studio' | 'inspect' | 'tools' | 'canvas'>('none');
-  const [desktopTab, setDesktopTab] = useState<'canvas' | 'ai' | 'studio' | null>('ai');
+  const [desktopTab, setDesktopTab] = useState<'canvas' | 'ai' | 'studio' | 'text' | null>('ai');
   const [useRenderedSource, setUseRenderedSource] = useState(false);
   const useRenderedSourceRef = useRef(false);
   useRenderedSourceRef.current = useRenderedSource;
@@ -139,6 +140,12 @@ export default function TimelineEditorPage() {
   const [suggestions, setSuggestions] = useState<{ capability: string; commands: Command[] } | null>(null);
   const [assistBusy, setAssistBusy] = useState<string | null>(null);
   const [fadeMap, setFadeMap] = useState<Map<string, { fadeIn: boolean; fadeOut: boolean }>>(new Map());
+  const [openingInEditor, setOpeningInEditor] = useState(false);
+  const [clipboard, setClipboard] = useState<Item | null>(null);
+  const [textToolOpen, setTextToolOpen] = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const [textDurationSec, setTextDurationSec] = useState(2);
+  const [userTextOverlays, setUserTextOverlays] = useState<Caption[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -421,27 +428,39 @@ export default function TimelineEditorPage() {
   );
 
   // Virtual display tracks — always show VIDEO + AUDIO + CAPTION even if not in DB.
-  // When no real AUDIO track exists, populate it with read-only linked items from the
-  // VIDEO track so users can see the embedded audio is there.
+  // When no real AUDIO track exists or it has no items, populate it with read-only
+  // linked items from the VIDEO track so users can see the embedded audio is there.
   const displayTracks = useMemo((): Track[] => {
     if (!timeline) return [];
     const existing = new Set(timeline.tracks.map((t) => t.type));
     const result = [...timeline.tracks];
+
+    // Build linked-audio items from VIDEO track items so the Audio track
+    // always shows the embedded audio, even when no separate AUDIO track exists
+    // or when the existing AUDIO track has no items yet.
+    const linkedItems: Item[] = timeline.tracks
+      .filter((t) => t.type === 'VIDEO')
+      .flatMap((t) =>
+        t.items.map((item) => ({
+          id: `linked-audio-${item.id}`,
+          trackId: 'virt-audio',
+          startMs: item.startMs,
+          endMs: item.endMs,
+          properties: item.properties ?? null,
+          sourceAsset: item.sourceAsset ?? null,
+        }))
+      );
+
     if (!existing.has('AUDIO')) {
-      const linkedItems: Item[] = timeline.tracks
-        .filter((t) => t.type === 'VIDEO')
-        .flatMap((t) =>
-          t.items.map((item) => ({
-            id: `linked-audio-${item.id}`,
-            trackId: 'virt-audio',
-            startMs: item.startMs,
-            endMs: item.endMs,
-            properties: item.properties ?? null,
-            sourceAsset: item.sourceAsset ?? null,
-          }))
-        );
       result.push({ id: 'virt-audio', type: 'AUDIO', orderIndex: 10, items: linkedItems });
+    } else {
+      // AUDIO track exists — if it has no real items, show linked video audio items
+      const audioIdx = result.findIndex((t) => t.type === 'AUDIO');
+      if (audioIdx !== -1 && result[audioIdx].items.length === 0 && linkedItems.length > 0) {
+        result[audioIdx] = { ...result[audioIdx], items: linkedItems.map((i) => ({ ...i, trackId: result[audioIdx].id })) };
+      }
     }
+
     if (!existing.has('CAPTION')) result.push({ id: 'virt-caption', type: 'CAPTION', orderIndex: 11, items: [] });
     return result.sort((a, b) => a.orderIndex - b.orderIndex);
   }, [timeline]);
@@ -578,6 +597,46 @@ export default function TimelineEditorPage() {
     });
   }, []);
 
+  const openInEditor = async () => {
+    setOpeningInEditor(true);
+    try {
+      const res = await api.editor.createFromShortClip(shortClipId);
+      router.push(`/editor/${(res.data as { id: string }).id}`);
+    } catch {
+      setOpeningInEditor(false);
+    }
+  };
+
+  const handleCopySelected = useCallback(() => {
+    if (!selectedId || !timeline) return;
+    const item = timeline.tracks.flatMap((t) => t.items).find((i) => i.id === selectedId);
+    if (item) setClipboard(item);
+  }, [selectedId, timeline]);
+
+  const handlePaste = useCallback(() => {
+    if (!clipboard || clipboard.id.startsWith('tmp-')) return;
+    perform([{ type: 'DUPLICATE', itemId: clipboard.id }]);
+  }, [clipboard, perform]);
+
+  const handleAddText = () => {
+    const text = textInput.trim();
+    if (!text) return;
+    const newOverlay: Caption = {
+      id: `user-text-${Date.now()}`,
+      startMs: Math.round(playheadMs),
+      endMs: Math.round(playheadMs) + textDurationSec * 1000,
+      text,
+      emphasis: false,
+      emoji: null,
+    };
+    setUserTextOverlays((prev) => [...prev, newOverlay]);
+    setTextInput('');
+  };
+
+  const handleDeleteTextOverlay = (id: string) => {
+    setUserTextOverlays((prev) => prev.filter((o) => o.id !== id));
+  };
+
   const mergeTarget = useMemo(() => {
     if (!selectedId || !timeline) return null;
     for (const track of timeline.tracks) {
@@ -599,6 +658,8 @@ export default function TimelineEditorPage() {
       else if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
       else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); undo(); }
       else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); redo(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'c') { e.preventDefault(); handleCopySelected(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); handlePaste(); }
       else if (e.key === '+' || e.key === '=') setPxPerSec((z) => Math.min(80, z * 1.4));
       else if (e.key === '-') setPxPerSec((z) => Math.max(3, z / 1.4));
       else if (e.key === 'ArrowLeft') setPlayheadMs((p) => Math.max(0, p - (e.shiftKey ? 1000 : 100)));
@@ -606,7 +667,7 @@ export default function TimelineEditorPage() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [togglePlay, splitAtPlayhead, deleteSelected, duplicateSelected, mergeWithAdjacent, rippleDelete, undo, redo, durationMs]);
+  }, [togglePlay, splitAtPlayhead, deleteSelected, duplicateSelected, mergeWithAdjacent, rippleDelete, undo, redo, durationMs, handleCopySelected, handlePaste]);
 
   // ── Drag interactions ────────────────────────────────────────────────────────
 
@@ -815,6 +876,15 @@ export default function TimelineEditorPage() {
           {saving ? <span className="flex items-center gap-1"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</span>
             : pending.length > 0 ? <button onClick={() => { setSaveError(null); void flush(); }} className="flex items-center gap-1 text-brand-600 hover:underline"><Save className="w-3.5 h-3.5" /> {pending.length} unsaved</button>
             : <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-green-500" /> Saved</span>}
+          <button
+            onClick={() => void openInEditor()}
+            disabled={openingInEditor}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs hover:bg-violet-700 disabled:opacity-60"
+            title="Open this clip in the full Standalone Video Editor"
+          >
+            {openingInEditor ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+            Open in Editor
+          </button>
           <Link
             href={`/shorts-studio/clips/${shortClipId}/export`}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700"
@@ -861,6 +931,17 @@ export default function TimelineEditorPage() {
                   </span>
                 </div>
               )}
+              {/* User text overlays */}
+              {(() => {
+                const activeText = userTextOverlays.find((o) => playheadMs >= o.startMs && playheadMs < o.endMs);
+                return activeText ? (
+                  <div className="absolute bottom-14 left-0 right-0 text-center px-8 pointer-events-none z-10">
+                    <span className="inline-block px-3 py-1 rounded-lg text-white text-base font-semibold bg-amber-600/80 border border-amber-400/60">
+                      {activeText.text}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
               {/* Buffering indicator */}
               {videoLoading && videoUrl && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 pointer-events-none">
@@ -909,11 +990,75 @@ export default function TimelineEditorPage() {
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={mergeWithAdjacent} disabled={!mergeTarget} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Merge with next clip (J)"><GitMerge className="w-3.5 h-3.5 text-gray-600" /></button>
-            <button onClick={duplicateSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Duplicate selected (D)"><Copy className="w-3.5 h-3.5 text-gray-600" /></button>
+            <button onClick={handleCopySelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Copy selected (Ctrl+C)"><Copy className="w-3.5 h-3.5 text-gray-600" /></button>
+            {clipboard && (
+              <button onClick={handlePaste} className="flex items-center justify-center w-7 h-7 border border-brand-300 bg-brand-50 rounded-lg hover:bg-brand-100 shrink-0" title="Paste (Ctrl+V)"><ClipboardPaste className="w-3.5 h-3.5 text-brand-600" /></button>
+            )}
+            <button onClick={duplicateSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Duplicate selected (D)"><Copy className="w-3.5 h-3.5 text-gray-400" /></button>
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={rippleDelete} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-red-100 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-40 shrink-0" title="Ripple delete — close gap (Shift+Del)"><Eraser className="w-3.5 h-3.5 text-red-500" /></button>
+            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
+            <button
+              onClick={() => setTextToolOpen((o) => !o)}
+              className={`flex items-center justify-center w-7 h-7 rounded-lg border shrink-0 ${textToolOpen ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-gray-200 hover:bg-gray-50 text-gray-600'}`}
+              title="Text tool — add text overlay"
+            >
+              <Type className="w-3.5 h-3.5" />
+            </button>
           </div>
+
+          {/* ── Text Overlay Tool ────────────────────────────────────────── */}
+          {textToolOpen && (
+            <div className="mt-2 border border-amber-200 bg-amber-50 rounded-xl p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Type className="w-4 h-4 text-amber-600 shrink-0" />
+                <p className="text-xs font-semibold text-amber-800 flex-1">Add Text Overlay</p>
+                <button onClick={() => setTextToolOpen(false)} className="p-1 rounded hover:bg-amber-100"><X className="w-3.5 h-3.5 text-amber-500" /></button>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddText(); }}
+                  placeholder="Type text to overlay on video…"
+                  className="flex-1 border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                />
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] text-gray-500">Duration:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={textDurationSec}
+                    onChange={(e) => setTextDurationSec(Math.max(1, parseInt(e.target.value) || 2))}
+                    className="w-12 border border-gray-200 rounded px-1.5 py-1 text-xs text-center"
+                  />
+                  <span className="text-[10px] text-gray-500">s</span>
+                </div>
+                <button
+                  onClick={handleAddText}
+                  disabled={!textInput.trim()}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600 disabled:opacity-40"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </button>
+              </div>
+              {userTextOverlays.length > 0 && (
+                <div className="space-y-1 max-h-28 overflow-y-auto">
+                  {userTextOverlays.map((o) => (
+                    <div key={o.id} className="flex items-center gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-amber-200">
+                      <Type className="w-3 h-3 text-amber-500 shrink-0" />
+                      <span className="flex-1 text-xs text-gray-700 truncate">{o.text}</span>
+                      <span className="text-[10px] font-mono text-gray-400">{fmt(o.startMs)}–{fmt(o.endMs)}</span>
+                      <button onClick={() => handleDeleteTextOverlay(o.id)} className="text-gray-300 hover:text-red-500 shrink-0"><X className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Timeline ────────────────────────────────────────────────────── */}
           <div className="mt-3 border border-gray-700/60 rounded-xl overflow-hidden flex bg-[#0f1623]">
@@ -988,9 +1133,9 @@ export default function TimelineEditorPage() {
 
                       {/* CAPTION track */}
                       {track.type === 'CAPTION' && (
-                        timeline.captions.length === 0
-                          ? <span className="absolute inset-0 flex items-center px-3 text-[9px] text-gray-600 italic">No captions yet — use Generate captions →</span>
-                          : timeline.captions.map((c) => (
+                        timeline.captions.length === 0 && userTextOverlays.length === 0
+                          ? <span className="absolute inset-0 flex items-center px-3 text-[9px] text-gray-600 italic">No captions yet — use Generate captions or Text tool →</span>
+                          : [...timeline.captions, ...userTextOverlays].map((c) => (
                             <div
                               key={c.id}
                               className="absolute top-1.5 bottom-1.5 rounded bg-amber-400/80 border border-amber-300 px-1 overflow-hidden"
@@ -1110,6 +1255,7 @@ export default function TimelineEditorPage() {
             { id: 'canvas' as const, label: 'Inspect', Icon: Settings2,          color: 'text-brand-600'  },
             { id: 'ai'     as const, label: 'AI',      Icon: Sparkles,            color: 'text-purple-600' },
             { id: 'studio' as const, label: 'Edit',    Icon: SlidersHorizontal,  color: 'text-cyan-600'   },
+            { id: 'text'   as const, label: 'Text',    Icon: Type,               color: 'text-amber-600'  },
           ]).map((t) => (
             <button
               key={t.id}
@@ -1261,6 +1407,56 @@ export default function TimelineEditorPage() {
                 requestOpen={quickTool}
               />
             </div>
+          </div>
+        )}
+
+        {/* Text tab */}
+        {desktopTab === 'text' && (
+          <div className="p-4 space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddText(); }}
+                placeholder="Type text overlay…"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+              />
+              <div className="flex items-center gap-1 shrink-0">
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={textDurationSec}
+                  onChange={(e) => setTextDurationSec(Math.max(1, parseInt(e.target.value) || 2))}
+                  className="w-12 border border-gray-200 rounded px-1.5 py-1 text-xs text-center"
+                  title="Duration in seconds"
+                />
+                <span className="text-[10px] text-gray-400">s</span>
+              </div>
+              <button
+                onClick={handleAddText}
+                disabled={!textInput.trim()}
+                className="flex items-center gap-1 px-3 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 disabled:opacity-40"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add at {fmt(playheadMs)}
+              </button>
+            </div>
+            {userTextOverlays.length > 0 ? (
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Text Overlays ({userTextOverlays.length})</p>
+                {userTextOverlays.map((o) => (
+                  <div key={o.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-2.5 py-2 border border-gray-100">
+                    <Type className="w-3 h-3 text-amber-500 shrink-0" />
+                    <span className="flex-1 text-xs text-gray-700 truncate">{o.text}</span>
+                    <span className="text-[10px] font-mono text-gray-400 shrink-0">{fmt(o.startMs)}–{fmt(o.endMs)}</span>
+                    <button onClick={() => handleDeleteTextOverlay(o.id)} className="text-gray-300 hover:text-red-400 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 italic">Move the playhead to where you want text to appear, then type and click Add.</p>
+            )}
           </div>
         )}
       </div>
@@ -1644,6 +1840,60 @@ export default function TimelineEditorPage() {
               </div>
             </div>
           )}
+
+          {/* Copy / Paste */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Copy / Paste</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { handleCopySelected(); setMobileSheet('none'); }}
+                disabled={!selectedId}
+                className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              >
+                <Copy className="w-4 h-4" /> Copy
+              </button>
+              <button
+                onClick={() => { handlePaste(); setMobileSheet('none'); }}
+                disabled={!clipboard}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm border transition-colors disabled:opacity-40 ${clipboard ? 'border-brand-300 bg-brand-50 text-brand-700 hover:bg-brand-100' : 'border-gray-200 text-gray-400'}`}
+              >
+                <ClipboardPaste className="w-4 h-4" /> Paste
+              </button>
+            </div>
+            {clipboard && <p className="text-[10px] text-brand-600 mt-1">Clipboard: {fmt(clipboard.endMs - clipboard.startMs)} clip ready to paste</p>}
+          </div>
+
+          {/* Text Overlays */}
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Text Overlay</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Add text at playhead…"
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+              />
+              <button
+                onClick={() => { handleAddText(); }}
+                disabled={!textInput.trim()}
+                className="flex items-center gap-1 px-3 py-2.5 bg-amber-500 text-white rounded-xl text-sm hover:bg-amber-600 disabled:opacity-40"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            {userTextOverlays.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {userTextOverlays.map((o) => (
+                  <div key={o.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+                    <span className="flex-1 text-xs text-gray-700 truncate">{o.text}</span>
+                    <span className="text-[10px] font-mono text-gray-400 shrink-0">{fmt(o.startMs)}</span>
+                    <button onClick={() => handleDeleteTextOverlay(o.id)} className="text-gray-300 hover:text-red-400 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Captions */}
           <div>
