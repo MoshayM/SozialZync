@@ -933,15 +933,6 @@ export default function TimelineEditorPage() {
             </span>
           )}
           <div className="flex-1" />
-          <button
-            onClick={() => void openInEditor()}
-            disabled={openingInEditor}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs hover:bg-violet-700 disabled:opacity-60"
-            title="Open this clip in the full Standalone Video Editor"
-          >
-            {openingInEditor ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
-            Open in Editor
-          </button>
           <Link
             href={`/shorts-studio/clips/${shortClipId}/export`}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pending.length === 0 && !saving ? 'bg-brand-600 text-white hover:bg-brand-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
@@ -992,7 +983,7 @@ export default function TimelineEditorPage() {
               )}
               {/* User text overlays — free-positioned, selectable, draggable */}
               {userTextOverlays
-                .filter((o) => playheadMs >= o.startMs && playheadMs < o.endMs)
+                .filter((o) => (playheadMs >= o.startMs && playheadMs < o.endMs) || selectedId === o.id)
                 .map((o) => {
                   const isSel = selectedId === o.id;
                   return (
@@ -1110,10 +1101,8 @@ export default function TimelineEditorPage() {
             <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={mergeWithAdjacent} disabled={!mergeTarget} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Merge with next clip (J)"><GitMerge className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={handleCopySelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Copy selected (Ctrl+C)"><Copy className="w-3.5 h-3.5 text-gray-600" /></button>
-            {clipboard && (
-              <button onClick={handlePaste} className="flex items-center justify-center w-7 h-7 border border-brand-300 bg-brand-50 rounded-lg hover:bg-brand-100 shrink-0" title="Paste (Ctrl+V)"><ClipboardPaste className="w-3.5 h-3.5 text-brand-600" /></button>
-            )}
-            <button onClick={duplicateSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Duplicate selected (D)"><Copy className="w-3.5 h-3.5 text-gray-400" /></button>
+            <button onClick={handlePaste} disabled={!clipboard} className="flex items-center justify-center w-7 h-7 border border-brand-300 bg-brand-50 rounded-lg hover:bg-brand-100 disabled:opacity-40 shrink-0" title="Paste (Ctrl+V)"><ClipboardPaste className="w-3.5 h-3.5 text-brand-600" /></button>
+            <button onClick={duplicateSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Duplicate selected (D)"><Layers className="w-3.5 h-3.5 text-gray-400" /></button>
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
             <button onClick={rippleDelete} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-red-100 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-40 shrink-0" title="Ripple delete — close gap (Shift+Del)"><Eraser className="w-3.5 h-3.5 text-red-500" /></button>
@@ -1282,7 +1271,7 @@ export default function TimelineEditorPage() {
                               ...userTextOverlays.map((o) => ({ id: o.id, startMs: o.startMs, endMs: o.endMs, text: o.text, emoji: null }))]).map((c) => (
                             <div
                               key={c.id}
-                              onClick={(e) => { e.stopPropagation(); setSelectedId(c.id); }}
+                              onClick={(e) => { e.stopPropagation(); setSelectedId(c.id); if (userTextOverlays.some((o) => o.id === c.id)) setDesktopTab('text'); }}
                               className={`absolute top-1.5 bottom-1.5 rounded bg-amber-400/80 border border-amber-300 px-1 overflow-hidden cursor-pointer ${selectedId === c.id ? 'ring-2 ring-white/80 ring-offset-1' : 'hover:border-amber-200 hover:bg-amber-400'}`}
                               style={{ left: (c.startMs / 1000) * pxPerSec, width: Math.max(2, ((c.endMs - c.startMs) / 1000) * pxPerSec) }}
                               title={c.text}
@@ -1312,9 +1301,10 @@ export default function TimelineEditorPage() {
                           return (
                             <div
                               key={item.id}
-                              className="absolute top-1.5 bottom-1.5 rounded-lg border border-teal-400 bg-teal-500/40 overflow-hidden pointer-events-none"
+                              onClick={() => { setSelectedId(item.id); setDesktopTab('studio'); }}
+                              className={`absolute top-1.5 bottom-1.5 rounded-lg border border-teal-400 bg-teal-500/40 overflow-hidden cursor-pointer hover:bg-teal-500/60 ${selectedId === item.id ? 'ring-2 ring-white/60 ring-offset-1' : ''}`}
                               style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
-                              title="Video audio (embedded)"
+                              title="Video audio (embedded) — click to select"
                             >
                               {w > 16 && (
                                 <div className="absolute inset-0 flex items-center gap-px px-1 overflow-hidden opacity-50">
@@ -1333,6 +1323,7 @@ export default function TimelineEditorPage() {
                           <div
                             key={item.id}
                             onMouseDown={(e) => startDrag('move', item, e)}
+                            onClick={() => { if (isAudioTrack) setDesktopTab('studio'); }}
                             className={`absolute top-1.5 bottom-1.5 rounded-lg border cursor-grab active:cursor-grabbing overflow-hidden ${TRACK_COLORS[track.type]} ${selectedId === item.id ? 'ring-2 ring-offset-1 ring-white/60' : ''}`}
                             style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
                           >
@@ -1521,6 +1512,15 @@ export default function TimelineEditorPage() {
                 <button onClick={rippleDelete} disabled={!selectedId} className="flex items-center gap-1.5 px-2.5 py-1.5 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100 disabled:opacity-40"><Eraser className="w-3.5 h-3.5" /> Ripple Delete</button>
               </div>
             </div>
+            {/* Audio info when linked-audio is selected */}
+            {selectedId?.startsWith('linked-audio-') && (
+              <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl">
+                <p className="text-xs font-semibold text-teal-700 flex items-center gap-1.5 mb-1">
+                  <Volume2 className="w-3.5 h-3.5" /> Video Audio (Embedded)
+                </p>
+                <p className="text-[11px] text-teal-600">This is the audio embedded in the video clip. Use Fade In / Fade Out below to add transitions.</p>
+              </div>
+            )}
             {/* Transition controls for selected clip */}
             {selectedId && (
               <div>
@@ -1677,11 +1677,13 @@ export default function TimelineEditorPage() {
               <div className="space-y-1 max-h-36 overflow-y-auto">
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Text Overlays ({userTextOverlays.length})</p>
                 {userTextOverlays.map((o) => (
-                  <div key={o.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-2.5 py-2 border border-gray-100">
+                  <div key={o.id}
+                    onClick={() => setSelectedId(o.id)}
+                    className={`flex items-center gap-2 rounded-lg px-2.5 py-2 border cursor-pointer transition-colors ${selectedId === o.id ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}>
                     <Type className="w-3 h-3 text-amber-500 shrink-0" />
-                    <span className="flex-1 text-xs text-gray-700 truncate">{o.text}</span>
+                    <span className="flex-1 text-xs text-gray-700 truncate">{o.text || <em className="text-gray-400">empty</em>}</span>
                     <span className="text-[10px] font-mono text-gray-400 shrink-0">{fmt(o.startMs)}–{fmt(o.endMs)}</span>
-                    <button onClick={() => handleDeleteTextOverlay(o.id)} className="text-gray-300 hover:text-red-400 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteTextOverlay(o.id); }} className="text-gray-300 hover:text-red-400 shrink-0"><X className="w-3.5 h-3.5" /></button>
                   </div>
                 ))}
               </div>
