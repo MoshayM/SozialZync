@@ -6373,17 +6373,17 @@ export default function EditorWorkspacePage() {
               <div className="shrink-0 flex items-center gap-1 border-l border-white/10 pl-2">
                 <button
                   onClick={() => handleAddTrack('VIDEO')}
-                  className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30"
+                  className="flex items-center gap-1 px-2 py-1.5 rounded bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30 transition-colors"
                   title="Add video track"
                 >
-                  <Plus className="w-3 h-3" /><Film className="w-3 h-3" /><span>Video</span>
+                  <Plus className="w-3.5 h-3.5" /><Film className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleAddTrack('AUDIO')}
-                  className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30"
+                  className="flex items-center gap-1 px-2 py-1.5 rounded bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 transition-colors"
                   title="Add audio track"
                 >
-                  <Plus className="w-3 h-3" /><Volume2 className="w-3 h-3" /><span>Audio</span>
+                  <Plus className="w-3.5 h-3.5" /><Volume2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
