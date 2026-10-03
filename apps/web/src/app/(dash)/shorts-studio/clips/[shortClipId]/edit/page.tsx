@@ -894,11 +894,28 @@ export default function TimelineEditorPage() {
           </div>
         </div>
         {/* Row 2: save status + actions */}
-        <div className="flex items-center gap-2 text-xs text-gray-500 pl-8">
-          {saveError && <span className="flex items-center gap-1 text-red-600"><X className="w-3.5 h-3.5" /> {saveError}</span>}
-          {saving ? <span className="flex items-center gap-1"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</span>
-            : pending.length > 0 ? <button onClick={() => { setSaveError(null); void flush(); }} className="flex items-center gap-1 text-brand-600 hover:underline"><Save className="w-3.5 h-3.5" /> {pending.length} unsaved</button>
-            : <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-green-500" /> Saved</span>}
+        <div className="flex items-center gap-2 pl-8 flex-wrap">
+          {saveError && (
+            <span className="flex items-center gap-1 text-xs text-red-600">
+              <X className="w-3.5 h-3.5" /> {saveError}
+            </span>
+          )}
+          {saving ? (
+            <span className="flex items-center gap-1 text-xs text-gray-500">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…
+            </span>
+          ) : pending.length > 0 ? (
+            <button
+              onClick={() => { setSaveError(null); void flush(); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
+            >
+              <Save className="w-3.5 h-3.5" /> Save changes
+            </button>
+          ) : (
+            <span className="flex items-center gap-1 text-xs text-green-600">
+              <Check className="w-3.5 h-3.5" /> Saved
+            </span>
+          )}
           <div className="flex-1" />
           <button
             onClick={() => void openInEditor()}
@@ -911,9 +928,9 @@ export default function TimelineEditorPage() {
           </button>
           <Link
             href={`/shorts-studio/clips/${shortClipId}/export`}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pending.length === 0 && !saving ? 'bg-brand-600 text-white hover:bg-brand-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
           >
-            <Clapperboard className="w-3.5 h-3.5" /> Export
+            <Clapperboard className="w-3.5 h-3.5" /> Export &amp; Publish
           </Link>
         </div>
       </div>
@@ -1079,31 +1096,32 @@ export default function TimelineEditorPage() {
                 <p className="text-xs font-semibold text-amber-800 flex-1">Add Text Overlay</p>
                 <button onClick={() => setTextToolOpen(false)} className="p-1 rounded hover:bg-amber-100"><X className="w-3.5 h-3.5 text-amber-500" /></button>
               </div>
-              <div className="flex gap-2">
+              {/* Row 1: text input — full width */}
+              <input
+                type="text"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddText(); }}
+                placeholder="Type text to overlay on video…"
+                className="w-full border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+              />
+              {/* Row 2: duration + Add — always fully visible */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-500 shrink-0">Duration:</span>
                 <input
-                  type="text"
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddText(); }}
-                  placeholder="Type text to overlay on video…"
-                  className="flex-1 border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={textDurationSec}
+                  onChange={(e) => setTextDurationSec(Math.max(1, parseInt(e.target.value) || 2))}
+                  className="w-14 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center"
                 />
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] text-gray-500">Duration:</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={60}
-                    value={textDurationSec}
-                    onChange={(e) => setTextDurationSec(Math.max(1, parseInt(e.target.value) || 2))}
-                    className="w-12 border border-gray-200 rounded px-1.5 py-1 text-xs text-center"
-                  />
-                  <span className="text-[10px] text-gray-500">s</span>
-                </div>
+                <span className="text-[10px] text-gray-500 shrink-0">s</span>
+                <div className="flex-1" />
                 <button
                   onClick={handleAddText}
                   disabled={!textInput.trim()}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600 disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 disabled:opacity-40 transition-colors shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add
                 </button>
