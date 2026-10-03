@@ -4167,8 +4167,6 @@ export default function EditorWorkspacePage() {
     x: number; y: number; size: number;
     visible: boolean; color: string;
   } | null>(null);
-  const [brandPanelOpen, setBrandPanelOpen] = useState(false);
-
   const assetNameMap = useMemo(() => {
     const m = new Map<string, string>();
     for (const e of mediaBin) m.set(e.id, e.label);
@@ -5839,39 +5837,10 @@ export default function EditorWorkspacePage() {
                   </div>
                 </button>
 
-                {/* Private Drafts */}
-                <button
-                  onClick={() => { setShowSaveMenu(false); setShowSnapshots(true); }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-gray-50 transition-colors"
-                >
-                  <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
-                    <FolderOpen className="w-3.5 h-3.5 text-gray-500" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="font-semibold text-gray-700">Private Drafts</p>
-                    <p className="text-[10px] text-gray-400">
-                      {snapshots.length === 0 ? 'No saved versions' : `${snapshots.length} saved version${snapshots.length !== 1 ? 's' : ''}`}
-                    </p>
-                  </div>
-                  {snapshots.length > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-600 text-[9px] font-bold">{snapshots.length}</span>
-                  )}
-                </button>
               </div>
             </>
           )}
         </div>
-        {/* Brand overlay toggle */}
-        <button
-          onClick={() => {
-            if (!brandOverlay) setBrandOverlay({ type: 'text', text: '', logoUrl: '', x: 10, y: 10, size: 32, visible: true, color: '#ffffff' });
-            setBrandPanelOpen(o => !o);
-          }}
-          className={`flex items-center gap-1.5 px-2 sm:px-3 h-9 rounded-lg text-xs border transition-colors ${brandPanelOpen ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-          title="Brand overlay"
-        >
-          <Layers className="w-3.5 h-3.5" /><span className="hidden sm:inline">Brand</span>
-        </button>
         {canExport ? (
           <button
             onClick={() => setShowExport(true)}
@@ -6674,6 +6643,93 @@ export default function EditorWorkspacePage() {
                   </div>
                 );
               })()}
+
+              {/* ── Brand Overlay ─────────────────────────────────────────── */}
+              <div className="border-t border-gray-100 px-4 py-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5" /> Brand
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (!brandOverlay) {
+                        setBrandOverlay({ type: 'text', text: '', logoUrl: '', x: 50, y: 10, size: 32, visible: true, color: '#ffffff' });
+                      } else {
+                        setBrandOverlay((b) => b ? { ...b, visible: !b.visible } : b);
+                      }
+                    }}
+                    className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${
+                      brandOverlay
+                        ? brandOverlay.visible
+                          ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                          : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {brandOverlay ? (brandOverlay.visible ? 'Visible' : 'Hidden') : 'Add Brand'}
+                  </button>
+                </div>
+                {brandOverlay && (
+                  <div className="space-y-3">
+                    {/* Type toggle */}
+                    <div className="flex gap-2">
+                      {(['text', 'logo'] as const).map((t) => (
+                        <button key={t} onClick={() => setBrandOverlay((b) => b ? { ...b, type: t } : b)}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${brandOverlay.type === t ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                          {t === 'text' ? <><Type className="w-3 h-3 inline mr-1" />Text</> : <><Image className="w-3 h-3 inline mr-1" />Logo</>}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Text or logo input */}
+                    {brandOverlay.type === 'text' ? (
+                      <div className="space-y-2">
+                        <input type="text" value={brandOverlay.text}
+                          onChange={(e) => setBrandOverlay((b) => b ? { ...b, text: e.target.value } : b)}
+                          placeholder="@YourChannel"
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">Color</span>
+                          <input type="color" value={brandOverlay.color}
+                            onChange={(e) => setBrandOverlay((b) => b ? { ...b, color: e.target.value } : b)}
+                            className="w-8 h-7 rounded cursor-pointer border border-gray-200" />
+                        </div>
+                      </div>
+                    ) : (
+                      <input type="url" value={brandOverlay.logoUrl}
+                        onChange={(e) => setBrandOverlay((b) => b ? { ...b, logoUrl: e.target.value } : b)}
+                        placeholder="https://logo-url..."
+                        className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    )}
+                    {/* 9-point position grid */}
+                    <div>
+                      <p className="text-[10px] text-gray-400 mb-1.5">Quick position</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        {([
+                          { x: 10, y: 10 }, { x: 50, y: 10 }, { x: 90, y: 10 },
+                          { x: 10, y: 50 }, { x: 50, y: 50 }, { x: 90, y: 50 },
+                          { x: 10, y: 90 }, { x: 50, y: 90 }, { x: 90, y: 90 },
+                        ] as const).map((pos, i) => (
+                          <button key={i} onClick={() => setBrandOverlay((b) => b ? { ...b, x: pos.x, y: pos.y } : b)}
+                            className={`h-7 rounded border transition-colors ${Math.abs(brandOverlay.x - pos.x) < 3 && Math.abs(brandOverlay.y - pos.y) < 3 ? 'bg-purple-600 border-purple-600' : 'border-gray-200 hover:bg-purple-50'}`} />
+                        ))}
+                      </div>
+                    </div>
+                    {/* Size slider */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-6">Sz</span>
+                      <input type="range" min={16} max={96} value={brandOverlay.size}
+                        onChange={(e) => setBrandOverlay((b) => b ? { ...b, size: Number(e.target.value) } : b)}
+                        className="flex-1 accent-purple-600" />
+                      <span className="text-xs text-gray-400 w-10 text-right">{Math.round(brandOverlay.size)}px</span>
+                    </div>
+                    {/* Remove */}
+                    <button onClick={() => setBrandOverlay(null)}
+                      className="w-full text-xs text-red-500 hover:text-red-600 hover:bg-red-50 py-1.5 rounded-lg border border-red-100 transition-colors">
+                      Remove brand overlay
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </aside>
@@ -7353,86 +7409,6 @@ export default function EditorWorkspacePage() {
         })}
       </nav>
 
-      {/* Brand Overlay Panel */}
-      {brandPanelOpen && brandOverlay && (
-        <div className="fixed right-4 top-16 z-50 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 flex flex-col gap-3 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-gray-800">Brand Overlay</span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setBrandOverlay(b => b ? { ...b, visible: !b.visible } : b)}
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${brandOverlay.visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
-              >{brandOverlay.visible ? 'Visible' : 'Hidden'}</button>
-              <button onClick={() => { setBrandPanelOpen(false); setBrandOverlay(null); }} className="p-1 hover:bg-gray-100 rounded" title="Remove brand overlay">
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
-          </div>
-          {/* Type selector */}
-          <div className="flex gap-2">
-            {(['text', 'logo'] as const).map(t => (
-              <button key={t} onClick={() => setBrandOverlay(b => b ? { ...b, type: t } : b)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${brandOverlay.type === t ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                {t === 'text' ? <><Type className="w-3 h-3 inline mr-1" />Text</> : <><Image className="w-3 h-3 inline mr-1" />Logo</>}
-              </button>
-            ))}
-          </div>
-          {/* Text or URL input */}
-          {brandOverlay.type === 'text' ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500">Brand Title</label>
-                <input type="text" value={brandOverlay.text} onChange={e => setBrandOverlay(b => b ? { ...b, text: e.target.value } : b)}
-                  placeholder="e.g. @YourChannel"
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500">Color</label>
-                <input type="color" value={brandOverlay.color} onChange={e => setBrandOverlay(b => b ? { ...b, color: e.target.value } : b)}
-                  className="w-8 h-7 rounded cursor-pointer border border-gray-200" />
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">Logo URL</label>
-              <input type="url" value={brandOverlay.logoUrl} onChange={e => setBrandOverlay(b => b ? { ...b, logoUrl: e.target.value } : b)}
-                placeholder="https://..."
-                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-            </div>
-          )}
-          {/* 9-point quick position grid */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500">Quick position</label>
-            <div className="grid grid-cols-3 gap-1">
-              {([
-                { x: 10, y: 10 }, { x: 50, y: 10 }, { x: 90, y: 10 },
-                { x: 10, y: 50 }, { x: 50, y: 50 }, { x: 90, y: 50 },
-                { x: 10, y: 90 }, { x: 50, y: 90 }, { x: 90, y: 90 },
-              ] as const).map((pos, i) => (
-                <button key={i} onClick={() => setBrandOverlay(b => b ? { ...b, x: pos.x, y: pos.y } : b)}
-                  className={`h-8 rounded border transition-colors ${Math.abs(brandOverlay.x - pos.x) < 3 && Math.abs(brandOverlay.y - pos.y) < 3 ? 'bg-purple-600 border-purple-600' : 'border-gray-200 hover:bg-purple-50'}`}
-                />
-              ))}
-            </div>
-          </div>
-          {/* Sliders */}
-          <div className="flex flex-col gap-2">
-            {([
-              { label: 'X', key: 'x', min: 0, max: 100, unit: '%' },
-              { label: 'Y', key: 'y', min: 0, max: 100, unit: '%' },
-              { label: 'Sz', key: 'size', min: 16, max: 96, unit: 'px' },
-            ] as const).map(({ label, key, min, max, unit }) => (
-              <div key={key} className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-5">{label}</span>
-                <input type="range" min={min} max={max} value={brandOverlay[key]}
-                  onChange={e => setBrandOverlay(b => b ? { ...b, [key]: Number(e.target.value) } : b)}
-                  className="flex-1 accent-purple-600" />
-                <span className="text-xs text-gray-400 w-10 text-right">{Math.round(brandOverlay[key])}{unit}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Dialogs */}
       {showExport && <ExportDialog editId={editId} projectId={project.projectId} projectTitle={project.title} onClose={() => setShowExport(false)} onBeforeRender={handleSave} onRenderStart={progressStart} onRenderDone={progressDone} />}
