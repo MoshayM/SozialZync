@@ -14,6 +14,8 @@ import {
   FolderOpen, BookmarkPlus, Smartphone, Monitor, Square,
   Bold, Italic, AlignLeft, AlignCenter, AlignRight,
   FlipHorizontal2, Video, Shield,
+  ArrowUp, ArrowDown, Clipboard, ClipboardPaste,
+  LayoutPanelLeft, PictureInPicture2, SplitSquareHorizontal, SplitSquareVertical, Layers3,
 } from 'lucide-react';
 import {
   api,
@@ -2183,6 +2185,8 @@ function Inspector({
   onDuplicate,
   onRippleDelete,
   canMerge,
+  onCopy,
+  onPaste,
 }: {
   item: EditItem | null;
   onChange: (patch: Partial<EditItem>) => void;
@@ -2196,6 +2200,8 @@ function Inspector({
   onDuplicate?: () => void;
   onRippleDelete?: () => void;
   canMerge?: boolean;
+  onCopy?: () => void;
+  onPaste?: () => void;
 }) {
   // Collapsible section open states
   const [effectsOpen, setEffectsOpen] = useState(true);
@@ -2278,7 +2284,51 @@ function Inspector({
                 <Eraser className="w-3 h-3" /> Ripple Del
               </button>
             )}
+            {onCopy && (
+              <button onClick={onCopy} className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50">
+                <Clipboard className="w-3 h-3" /> Copy (C)
+              </button>
+            )}
+            {onPaste && (
+              <button onClick={onPaste} className="flex items-center gap-1 px-2.5 py-1.5 border border-brand-200 bg-brand-50 rounded-lg text-xs text-brand-700 hover:bg-brand-100">
+                <ClipboardPaste className="w-3 h-3" /> Paste (V)
+              </button>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* ── Layout presets (VIDEO / IMAGE) ── */}
+      {(item.kind === 'VIDEO' || item.kind === 'IMAGE') && (
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Layout</p>
+          <div className="grid grid-cols-3 gap-1.5">
+            {([
+              { label: 'Full', icon: <LayoutPanelLeft className="w-3.5 h-3.5" />, x: 50, y: 50, scale: 1 },
+              { label: 'PiP ↗', icon: <PictureInPicture2 className="w-3.5 h-3.5" />, x: 80, y: 20, scale: 0.35 },
+              { label: 'PiP ↘', icon: <PictureInPicture2 className="w-3.5 h-3.5" />, x: 80, y: 80, scale: 0.35 },
+              { label: '← Left', icon: <SplitSquareHorizontal className="w-3.5 h-3.5" />, x: 25, y: 50, scale: 0.5 },
+              { label: 'Right →', icon: <SplitSquareHorizontal className="w-3.5 h-3.5" />, x: 75, y: 50, scale: 0.5 },
+              { label: 'Top ↑', icon: <SplitSquareVertical className="w-3.5 h-3.5" />, x: 50, y: 25, scale: 1 },
+              { label: 'Bottom ↓', icon: <SplitSquareVertical className="w-3.5 h-3.5" />, x: 50, y: 75, scale: 1 },
+              { label: 'Overlay', icon: <Layers3 className="w-3.5 h-3.5" />, x: 50, y: 50, scale: 0.7 },
+            ] as { label: string; icon: React.ReactNode; x: number; y: number; scale: number }[]).map((preset) => {
+              const active = Math.abs((props.x ?? 50) - preset.x) < 1 && Math.abs((props.y ?? 50) - preset.y) < 1 && Math.abs((props.scale ?? 1) - preset.scale) < 0.02;
+              return (
+                <button
+                  key={preset.label}
+                  onClick={() => {
+                    onChange({ properties: { ...props, x: preset.x, y: preset.y, scale: preset.scale } });
+                  }}
+                  className={`flex flex-col items-center gap-0.5 py-1.5 text-[10px] font-medium rounded-lg border transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-gray-50'}`}
+                >
+                  {preset.icon}
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1.5">Position applies during render. Preview shows approximation.</p>
         </div>
       )}
 
@@ -2977,6 +3027,9 @@ function TimelineTrack({
   onDelinkItem,
   onDeleteTrack,
   onCrossTrackDrop,
+  onMoveTrack,
+  trackIndex = 0,
+  totalTracks = 1,
 }: {
   track: EditTrack;
   durationMs: number;
@@ -2995,6 +3048,9 @@ function TimelineTrack({
   onDelinkItem: (itemId: string) => void;
   onDeleteTrack: (trackId: string) => void;
   onCrossTrackDrop?: (itemId: string, toTrackId: string, newStartMs: number) => void;
+  onMoveTrack?: (direction: 'up' | 'down') => void;
+  trackIndex?: number;
+  totalTracks?: number;
 }) {
   const totalW = Math.max(msToX(durationMs, pxPerSec) + 200, 600);
   const [dragOver, setDragOver] = useState(false);
@@ -3029,6 +3085,27 @@ function TimelineTrack({
           >
             {trackMuted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
           </button>
+        )}
+        {/* Track reorder — up/down */}
+        {totalTracks > 1 && onMoveTrack && (
+          <div className="flex flex-col gap-px shrink-0">
+            <button
+              onClick={() => onMoveTrack('up')}
+              disabled={trackIndex === 0}
+              className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-white disabled:opacity-20 transition-colors"
+              title="Move track up"
+            >
+              <ArrowUp className="w-2 h-2" />
+            </button>
+            <button
+              onClick={() => onMoveTrack('down')}
+              disabled={trackIndex === totalTracks - 1}
+              className="p-0.5 rounded hover:bg-white/10 text-gray-600 hover:text-white disabled:opacity-20 transition-colors"
+              title="Move track down"
+            >
+              <ArrowDown className="w-2 h-2" />
+            </button>
+          </div>
         )}
         {/* Delete track — always visible; confirm only when track has clips */}
         <button
@@ -4523,6 +4600,50 @@ export default function EditorWorkspacePage() {
   }, [updateTimeline]);
 
   const [fadeMap, setFadeMap] = useState<Map<string, { fadeIn: boolean; fadeOut: boolean }>>(new Map());
+
+  // ── Clipboard (Copy / Paste) ──────────────────────────────────────────────
+  const [clipboard, setClipboard] = useState<EditItem | null>(null);
+
+  const handleCopyItem = useCallback((itemId: string) => {
+    const item = (timeline?.tracks ?? []).flatMap((t) => t.items ?? []).find((it) => it.id === itemId);
+    if (item) setClipboard(item);
+  }, [timeline]);
+
+  const handlePasteItem = useCallback(() => {
+    if (!clipboard) return;
+    const dur = clipboard.timelineEndMs - clipboard.timelineStartMs;
+    const newItem: EditItem = {
+      ...clipboard,
+      id: `paste-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      timelineStartMs: currentTimeMsRef.current,
+      timelineEndMs: currentTimeMsRef.current + dur,
+    };
+    updateTimeline((tl) => {
+      const track = tl.tracks.find((t) => t.kind === clipboard.kind && !clipboard.linkedItemId);
+      if (!track) return tl;
+      return {
+        ...tl,
+        tracks: tl.tracks.map((t) =>
+          t.id === track.id
+            ? { ...t, items: [...(t.items ?? []), newItem].sort((a, b) => a.timelineStartMs - b.timelineStartMs) }
+            : t,
+        ),
+      };
+    });
+  }, [clipboard, updateTimeline]);
+
+  // ── Track reordering ──────────────────────────────────────────────────────
+  const handleMoveTrack = useCallback((trackId: string, direction: 'up' | 'down') => {
+    updateTimeline((tl) => {
+      const tracks = [...(tl.tracks ?? [])];
+      const idx = tracks.findIndex((t) => t.id === trackId);
+      if (idx === -1) return tl;
+      const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= tracks.length) return tl;
+      [tracks[idx], tracks[newIdx]] = [tracks[newIdx], tracks[idx]];
+      return { ...tl, tracks };
+    });
+  }, [updateTimeline]);
   const toggleFade = useCallback((itemId: string, side: 'in' | 'out') => {
     setFadeMap((prev) => {
       const next = new Map(prev);
@@ -5008,11 +5129,15 @@ export default function EditorWorkspacePage() {
         e.preventDefault(); handleUndo();
       } else if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
         e.preventDefault(); handleRedo();
+      } else if (e.key === 'c' && (e.ctrlKey || e.metaKey) && selectedItemId) {
+        e.preventDefault(); handleCopyItem(selectedItemId);
+      } else if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault(); handlePasteItem();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedItemId, handleDeleteItem, handleRippleDeleteItem, handleDuplicateItem, handleMergeItem, handleSplitAtPlayhead, handleUndo, handleRedo]);
+  }, [selectedItemId, handleDeleteItem, handleRippleDeleteItem, handleDuplicateItem, handleMergeItem, handleSplitAtPlayhead, handleUndo, handleRedo, handleCopyItem, handlePasteItem]);
 
   // Playback via rAF — video is synced directly in the tick (not via React effects)
   // so React state is only updated at ~30 fps for the seek bar / time display.
@@ -5751,6 +5876,41 @@ export default function EditorWorkspacePage() {
                   {/* Source clips carry no sidecar caption file; empty track satisfies a11y. */}
                   <track kind="captions" />
                 </video>
+                {/* Secondary video track overlays — show position/scale visually when multiple VIDEO tracks have active clips */}
+                {(timeline?.tracks ?? [])
+                  .filter((t) => t.kind === 'VIDEO')
+                  .slice(1)
+                  .flatMap((t, tIdx) =>
+                    (t.items ?? [])
+                      .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs && !it.properties?.hidden)
+                      .map((it) => {
+                        const x = it.properties?.x ?? 50;
+                        const y = it.properties?.y ?? 50;
+                        const scale = it.properties?.scale ?? 1;
+                        const opacity = it.properties?.opacity ?? 1;
+                        const label = assetNameMap.get(it.sourceAssetId ?? '') ?? t.label;
+                        return (
+                          <div
+                            key={it.id}
+                            onClick={() => setSelectedItemId(it.id)}
+                            title={`${label} — click to select`}
+                            className={`absolute bg-violet-900/60 border-2 cursor-pointer flex items-center justify-center gap-1 rounded overflow-hidden ${it.id === selectedItemId ? 'border-yellow-400' : 'border-violet-500/60'}`}
+                            style={{
+                              left: `${x}%`,
+                              top: `${y}%`,
+                              width: `${scale * 100}%`,
+                              aspectRatio: '16/9',
+                              transform: 'translate(-50%, -50%)',
+                              zIndex: tIdx + 1,
+                              opacity,
+                            }}
+                          >
+                            <Film className="w-4 h-4 text-violet-300 shrink-0" />
+                            <span className="text-violet-200 text-[10px] font-semibold truncate max-w-[80%]">{label}</span>
+                          </div>
+                        );
+                      })
+                  )}
                 {/* Black placeholder shown when the active video clip is hidden (eye-off) */}
                 {videoSrc && activeVideoItem?.properties?.hidden && (
                   <div className="absolute inset-0 bg-black flex items-center justify-center pointer-events-none">
@@ -5988,6 +6148,25 @@ export default function EditorWorkspacePage() {
                 <Copy className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Dupe</span>
               </button>
+              <button
+                onClick={() => selectedItemId && handleCopyItem(selectedItemId)}
+                disabled={!selectedItemId}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white"
+                title="Copy selected (Ctrl+C)"
+              >
+                <Clipboard className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Copy</span>
+              </button>
+              {clipboard && (
+                <button
+                  onClick={handlePasteItem}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-brand-500/20 text-brand-400"
+                  title="Paste at playhead (Ctrl+V)"
+                >
+                  <ClipboardPaste className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Paste</span>
+                </button>
+              )}
               <div className="w-px h-4 bg-white/20 mx-0.5" />
               <button
                 onClick={() => selectedItemId && handleDeleteItem(selectedItemId)}
@@ -6126,7 +6305,7 @@ export default function EditorWorkspacePage() {
                         // Asset IDs that appear in MORE than one track = linked clips
                         return (
                           <div className="flex flex-col">
-                            {(timeline.tracks ?? []).map((track) => (
+                            {(timeline.tracks ?? []).map((track, trackIdx) => (
                               <TimelineTrack
                                 key={track.id}
                                 track={track}
@@ -6135,6 +6314,8 @@ export default function EditorWorkspacePage() {
                                 selectedId={selectedItemId}
                                 snapPoints={snapEnabled ? allSnapPoints : []}
                                 nameMap={assetNameMap}
+                                trackIndex={trackIdx}
+                                totalTracks={(timeline.tracks ?? []).length}
                                 onSelect={(id) => {
                                   // Single tap/click = select only. Inspector stays closed.
                                   setSelectedItemId(id || null);
@@ -6153,6 +6334,7 @@ export default function EditorWorkspacePage() {
                                 onDelinkItem={handleDelinkItem}
                                 onDeleteTrack={handleDeleteTrack}
                                 onCrossTrackDrop={handleCrossTrackDrop}
+                                onMoveTrack={(dir) => handleMoveTrack(track.id, dir)}
                               />
                             ))}
                           </div>
@@ -6182,7 +6364,7 @@ export default function EditorWorkspacePage() {
           </div>
           {inspectorPanelOpen && (
             <div className="flex-1 overflow-y-auto overscroll-contain">
-              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} onSplit={handleSplitAtPlayhead} onMerge={selectedItemId ? () => handleMergeItem(selectedItemId) : undefined} onDuplicate={selectedItemId ? () => handleDuplicateItem(selectedItemId) : undefined} onRippleDelete={selectedItemId ? () => handleRippleDeleteItem(selectedItemId) : undefined} canMerge={!!mergeTarget} />
+              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} onSplit={handleSplitAtPlayhead} onMerge={selectedItemId ? () => handleMergeItem(selectedItemId) : undefined} onDuplicate={selectedItemId ? () => handleDuplicateItem(selectedItemId) : undefined} onRippleDelete={selectedItemId ? () => handleRippleDeleteItem(selectedItemId) : undefined} canMerge={!!mergeTarget} onCopy={selectedItemId ? () => handleCopyItem(selectedItemId) : undefined} onPaste={clipboard ? handlePasteItem : undefined} />
               {selectedItem?.kind === 'TEXT' && (() => {
                 const tp = selectedItem.properties ?? {};
                 const setT = (k: string, v: unknown) => handleInspectorChange({ properties: { ...tp, [k]: v } });
@@ -6263,7 +6445,7 @@ export default function EditorWorkspacePage() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto overscroll-contain">
-            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} onSplit={handleSplitAtPlayhead} onMerge={selectedItemId ? () => handleMergeItem(selectedItemId) : undefined} onDuplicate={selectedItemId ? () => handleDuplicateItem(selectedItemId) : undefined} onRippleDelete={selectedItemId ? () => handleRippleDeleteItem(selectedItemId) : undefined} canMerge={!!mergeTarget} />
+            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} onSplit={handleSplitAtPlayhead} onMerge={selectedItemId ? () => handleMergeItem(selectedItemId) : undefined} onDuplicate={selectedItemId ? () => handleDuplicateItem(selectedItemId) : undefined} onRippleDelete={selectedItemId ? () => handleRippleDeleteItem(selectedItemId) : undefined} canMerge={!!mergeTarget} onCopy={selectedItemId ? () => handleCopyItem(selectedItemId) : undefined} onPaste={clipboard ? handlePasteItem : undefined} />
             {selectedItem?.kind === 'TEXT' && (() => {
               const tp = selectedItem.properties ?? {};
               const setT = (k: string, v: unknown) => handleInspectorChange({ properties: { ...tp, [k]: v } });
@@ -6396,6 +6578,8 @@ export default function EditorWorkspacePage() {
                 { icon: <Scissors className="w-5 h-5" />, label: 'Split', action: () => selectedItemId ? handleSplitItem(selectedItemId, currentTimeMsRef.current) : handleSplitAtPlayhead(), disabled: false, color: 'text-white' },
                 { icon: <GitMerge className="w-5 h-5" />, label: 'Merge', action: () => selectedItemId && handleMergeItem(selectedItemId), disabled: !mergeTarget, color: 'text-white' },
                 { icon: <Copy className="w-5 h-5" />, label: 'Dupe', action: () => selectedItemId && handleDuplicateItem(selectedItemId), disabled: !selectedItemId, color: 'text-white' },
+                { icon: <Clipboard className="w-5 h-5" />, label: 'Copy', action: () => selectedItemId && handleCopyItem(selectedItemId), disabled: !selectedItemId, color: 'text-white' },
+                { icon: <ClipboardPaste className="w-5 h-5" />, label: 'Paste', action: handlePasteItem, disabled: !clipboard, color: 'text-brand-400' },
                 { icon: <Trash2 className="w-5 h-5" />, label: 'Delete', action: () => selectedItemId && handleDeleteItem(selectedItemId), disabled: !selectedItemId, color: 'text-red-400' },
                 { icon: <Eraser className="w-5 h-5" />, label: 'Ripple', action: () => selectedItemId && handleRippleDeleteItem(selectedItemId), disabled: !selectedItemId, color: 'text-red-400' },
                 { icon: <Magnet className="w-5 h-5" />, label: snapEnabled ? 'Snap On' : 'Snap Off', action: () => setSnapEnabled(s => !s), disabled: false, color: snapEnabled ? 'text-brand-400' : 'text-gray-400' },
