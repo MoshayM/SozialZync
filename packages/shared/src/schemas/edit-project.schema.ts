@@ -72,6 +72,8 @@ export const EditItemPropertiesSchema = z.object({
   muted: z.boolean().optional(),
   /** TEXT items: rotation in degrees (-180..180). */
   rotation: z.number().min(-180).max(180).optional(),
+  /** When true, the clip plays in reverse (VIDEO only). Applied during render. */
+  reverse: z.boolean().optional(),
 });
 export type EditItemProperties = z.infer<typeof EditItemPropertiesSchema>;
 

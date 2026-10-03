@@ -2178,6 +2178,11 @@ function Inspector({
   currentTimeMs,
   editId,
   onAddToTimeline,
+  onSplit,
+  onMerge,
+  onDuplicate,
+  onRippleDelete,
+  canMerge,
 }: {
   item: EditItem | null;
   onChange: (patch: Partial<EditItem>) => void;
@@ -2186,6 +2191,11 @@ function Inspector({
   currentTimeMs: number;
   editId: string;
   onAddToTimeline: (entry: MediaBinEntry) => void;
+  onSplit?: () => void;
+  onMerge?: () => void;
+  onDuplicate?: () => void;
+  onRippleDelete?: () => void;
+  canMerge?: boolean;
 }) {
   // Collapsible section open states
   const [effectsOpen, setEffectsOpen] = useState(true);
@@ -2243,6 +2253,35 @@ function Inspector({
         )}
       </div>
 
+      {/* ── Edit Actions ── */}
+      {(onSplit || onMerge || onDuplicate || onRippleDelete) && (
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Edit Actions</p>
+          <div className="flex flex-wrap gap-1.5">
+            {onSplit && (
+              <button onClick={onSplit} className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50">
+                <Scissors className="w-3 h-3" /> Split (S)
+              </button>
+            )}
+            {onMerge && (
+              <button onClick={onMerge} disabled={!canMerge} className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40">
+                <GitMerge className="w-3 h-3" /> Merge (J)
+              </button>
+            )}
+            {onDuplicate && (
+              <button onClick={onDuplicate} className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50">
+                <Copy className="w-3 h-3" /> Dupe (D)
+              </button>
+            )}
+            {onRippleDelete && (
+              <button onClick={onRippleDelete} className="flex items-center gap-1 px-2.5 py-1.5 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100">
+                <Eraser className="w-3 h-3" /> Ripple Del
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Volume (AUDIO / VIDEO) ── */}
       {(item.kind === 'AUDIO' || item.kind === 'VIDEO') && (
         <div>
@@ -2280,6 +2319,32 @@ function Inspector({
             className="w-full accent-brand-600"
           />
           <p className="text-[11px] text-gray-500 text-right">{(props.speed ?? 1).toFixed(2)}×</p>
+          <div className="flex gap-1 mt-1.5 flex-wrap">
+            {[0.25, 0.5, 0.75, 1, 1.5, 2, 4].map((s) => (
+              <button
+                key={s}
+                onClick={() => setProp('speed', s)}
+                className={`px-2 py-0.5 text-[10px] font-semibold rounded border transition-colors ${Math.abs((props.speed ?? 1) - s) < 0.01 ? 'border-brand-500 bg-brand-600 text-white' : 'border-gray-200 text-gray-600 hover:border-brand-300'}`}
+              >
+                {s}×
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Reverse (VIDEO) ── */}
+      {item.kind === 'VIDEO' && (
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium text-gray-700 flex items-center gap-1">
+            <FlipHorizontal2 className="w-3.5 h-3.5" /> Reverse
+          </label>
+          <button
+            onClick={() => setProp('reverse', !(props.reverse ?? false))}
+            className={`px-3 py-1 text-xs rounded-full border font-medium transition-colors ${props.reverse ? 'border-brand-500 bg-brand-100 text-brand-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+          >
+            {props.reverse ? 'On' : 'Off'}
+          </button>
         </div>
       )}
 
@@ -6117,7 +6182,7 @@ export default function EditorWorkspacePage() {
           </div>
           {inspectorPanelOpen && (
             <div className="flex-1 overflow-y-auto overscroll-contain">
-              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+              <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} onSplit={handleSplitAtPlayhead} onMerge={selectedItemId ? () => handleMergeItem(selectedItemId) : undefined} onDuplicate={selectedItemId ? () => handleDuplicateItem(selectedItemId) : undefined} onRippleDelete={selectedItemId ? () => handleRippleDeleteItem(selectedItemId) : undefined} canMerge={!!mergeTarget} />
               {selectedItem?.kind === 'TEXT' && (() => {
                 const tp = selectedItem.properties ?? {};
                 const setT = (k: string, v: unknown) => handleInspectorChange({ properties: { ...tp, [k]: v } });
@@ -6198,7 +6263,7 @@ export default function EditorWorkspacePage() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto overscroll-contain">
-            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} />
+            <Inspector item={selectedItem} onChange={handleInspectorChange} onDelete={selectedItemId ? () => handleDeleteItem(selectedItemId) : undefined} onDetachAudio={selectedItem?.kind === 'VIDEO' ? () => { void handleDetachAudio(selectedItem); } : undefined} currentTimeMs={currentTimeMs} editId={editId} onAddToTimeline={handleAddToTimeline} onSplit={handleSplitAtPlayhead} onMerge={selectedItemId ? () => handleMergeItem(selectedItemId) : undefined} onDuplicate={selectedItemId ? () => handleDuplicateItem(selectedItemId) : undefined} onRippleDelete={selectedItemId ? () => handleRippleDeleteItem(selectedItemId) : undefined} canMerge={!!mergeTarget} />
             {selectedItem?.kind === 'TEXT' && (() => {
               const tp = selectedItem.properties ?? {};
               const setT = (k: string, v: unknown) => handleInspectorChange({ properties: { ...tp, [k]: v } });

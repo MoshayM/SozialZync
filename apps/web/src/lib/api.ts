@@ -1645,6 +1645,7 @@ export interface EditItemProperties {
   gainDb?: number;       // -60..12  (0 = unity)
   duckUnderVoice?: boolean; // AUDIO items: duck this track when voice is detected
   rotation?: number;        // TEXT items: rotation in degrees (-180..180)
+  reverse?: boolean;        // VIDEO items: play clip in reverse (applied during render)
 }
 
 export interface EditItem {
