@@ -1105,7 +1105,30 @@ export default function TimelineEditorPage() {
                 placeholder="Type text to overlay on video…"
                 className="w-full border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
               />
-              {/* Row 2: duration + Add — always fully visible */}
+              {/* Row 2: position sliders */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                    <span>Horizontal</span><span className="font-mono">{textNewX}%</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={100} value={textNewX}
+                    onChange={(e) => setTextNewX(parseInt(e.target.value))}
+                    className="w-full h-1.5 accent-amber-500"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                    <span>Vertical</span><span className="font-mono">{textNewY}%</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={100} value={textNewY}
+                    onChange={(e) => setTextNewY(parseInt(e.target.value))}
+                    className="w-full h-1.5 accent-amber-500"
+                  />
+                </div>
+              </div>
+              {/* Row 3: duration + Add — always fully visible */}
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-gray-500 shrink-0">Duration:</span>
                 <input
