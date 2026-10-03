@@ -570,9 +570,16 @@ export default function TimelineEditorPage() {
 
   const deleteSelected = useCallback(() => {
     if (!selectedId || selectedId.startsWith('tmp-')) return;
+    // Text overlays are local-only — remove from state, not the timeline
+    const isTextOverlay = userTextOverlays.some((o) => o.id === selectedId);
+    if (isTextOverlay) {
+      setUserTextOverlays((prev) => prev.filter((o) => o.id !== selectedId));
+      setSelectedId(null);
+      return;
+    }
     perform([{ type: 'DELETE', itemId: selectedId }]);
     setSelectedId(null);
-  }, [selectedId, perform]);
+  }, [selectedId, userTextOverlays, perform]);
 
   const duplicateSelected = useCallback(() => {
     if (!selectedId || selectedId.startsWith('tmp-')) return;
@@ -983,19 +990,42 @@ export default function TimelineEditorPage() {
                   </span>
                 </div>
               )}
-              {/* User text overlays — free-positioned */}
+              {/* User text overlays — free-positioned, selectable, draggable */}
               {userTextOverlays
                 .filter((o) => playheadMs >= o.startMs && playheadMs < o.endMs)
-                .map((o) => (
-                  <div key={o.id} className="absolute pointer-events-none z-10"
-                    style={{ left: `${o.x}%`, top: `${o.y}%`, transform: 'translate(-50%, -50%)' }}>
-                    <span className={`inline-block px-3 py-1 rounded-lg font-semibold bg-black/60 whitespace-nowrap ${
-                      o.fontSize === 'sm' ? 'text-sm' : o.fontSize === 'lg' ? 'text-xl' : 'text-base'
-                    }`} style={{ color: o.color }}>
-                      {o.text}
-                    </span>
-                  </div>
-                ))
+                .map((o) => {
+                  const isSel = selectedId === o.id;
+                  return (
+                    <div
+                      key={o.id}
+                      className={`absolute z-20 cursor-move select-none ${isSel ? 'ring-2 ring-amber-400 ring-offset-1 rounded-lg' : ''}`}
+                      style={{ left: `${o.x}%`, top: `${o.y}%`, transform: 'translate(-50%, -50%)' }}
+                      onClick={(e) => { e.stopPropagation(); setSelectedId(o.id); setDesktopTab('text'); }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedId(o.id);
+                        setDesktopTab('text');
+                        const rect = previewFrameRef.current?.getBoundingClientRect();
+                        if (!rect) return;
+                        const onMove = (me: MouseEvent) => {
+                          const nx = Math.max(0, Math.min(100, ((me.clientX - rect.left) / rect.width) * 100));
+                          const ny = Math.max(0, Math.min(100, ((me.clientY - rect.top) / rect.height) * 100));
+                          setUserTextOverlays((prev) => prev.map((p) => p.id === o.id ? { ...p, x: Math.round(nx), y: Math.round(ny) } : p));
+                        };
+                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+                        window.addEventListener('mousemove', onMove);
+                        window.addEventListener('mouseup', onUp);
+                      }}
+                    >
+                      <span className={`inline-block px-3 py-1 rounded-lg font-semibold bg-black/60 whitespace-nowrap ${
+                        o.fontSize === 'sm' ? 'text-sm' : o.fontSize === 'lg' ? 'text-xl' : 'text-base'
+                      }`} style={{ color: o.color }}>
+                        {o.text}
+                      </span>
+                    </div>
+                  );
+                })
               }
               {/* Brand overlay — draggable */}
               {brand?.visible && (
@@ -1529,6 +1559,67 @@ export default function TimelineEditorPage() {
         {/* Text tab */}
         {desktopTab === 'text' && (
           <div className="p-4 space-y-3">
+            {/* ── Edit selected overlay ───────────────────────────────────── */}
+            {(() => {
+              const sel = userTextOverlays.find((o) => o.id === selectedId);
+              if (!sel) return null;
+              return (
+                <div className="border border-amber-300 bg-amber-50 rounded-xl p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5">
+                      <Type className="w-3.5 h-3.5" /> Editing overlay
+                    </p>
+                    <button
+                      onClick={() => { setUserTextOverlays((prev) => prev.filter((o) => o.id !== selectedId)); setSelectedId(null); }}
+                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={sel.text}
+                    onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selectedId ? { ...o, text: e.target.value } : o))}
+                    className="w-full border border-amber-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                    placeholder="Text content…"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>X</span><span className="font-mono">{sel.x}%</span></div>
+                      <input type="range" min={0} max={100} value={sel.x}
+                        onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selectedId ? { ...o, x: parseInt(e.target.value) } : o))}
+                        className="w-full h-1.5 accent-amber-500" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Y</span><span className="font-mono">{sel.y}%</span></div>
+                      <input type="range" min={0} max={100} value={sel.y}
+                        onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selectedId ? { ...o, y: parseInt(e.target.value) } : o))}
+                        className="w-full h-1.5 accent-amber-500" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      {(['sm', 'md', 'lg'] as const).map((s) => (
+                        <button key={s}
+                          onClick={() => setUserTextOverlays((prev) => prev.map((o) => o.id === selectedId ? { ...o, fontSize: s } : o))}
+                          className={`px-2 py-1 text-xs rounded-lg border font-medium transition-colors ${sel.fontSize === s ? 'border-amber-500 bg-amber-100 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                          {s.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1.5 ml-auto">
+                      {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6', '#22c55e'].map((c) => (
+                        <button key={c}
+                          onClick={() => setUserTextOverlays((prev) => prev.map((o) => o.id === selectedId ? { ...o, color: c } : o))}
+                          className={`w-5 h-5 rounded-full border-2 transition-all ${sel.color === c ? 'border-gray-700 scale-110' : 'border-transparent'}`}
+                          style={{ background: c }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            <div className="border-t border-gray-100 pt-1" />
             {/* Input row */}
             <div className="flex gap-2">
               <input
