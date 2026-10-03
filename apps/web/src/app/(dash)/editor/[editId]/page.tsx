@@ -4159,6 +4159,16 @@ export default function EditorWorkspacePage() {
     setPreviewH(PREVIEW_H_PRESETS[key]);
   }
 
+  // Brand overlay — local-only watermark (text or logo) draggable on preview
+  const [brandOverlay, setBrandOverlay] = useState<{
+    type: 'text' | 'logo';
+    text: string;
+    logoUrl: string;
+    x: number; y: number; size: number;
+    visible: boolean; color: string;
+  } | null>(null);
+  const [brandPanelOpen, setBrandPanelOpen] = useState(false);
+
   const assetNameMap = useMemo(() => {
     const m = new Map<string, string>();
     for (const e of mediaBin) m.set(e.id, e.label);
@@ -5851,6 +5861,17 @@ export default function EditorWorkspacePage() {
             </>
           )}
         </div>
+        {/* Brand overlay toggle */}
+        <button
+          onClick={() => {
+            if (!brandOverlay) setBrandOverlay({ type: 'text', text: '', logoUrl: '', x: 10, y: 10, size: 32, visible: true, color: '#ffffff' });
+            setBrandPanelOpen(o => !o);
+          }}
+          className={`flex items-center gap-1.5 px-2 sm:px-3 h-9 rounded-lg text-xs border transition-colors ${brandPanelOpen ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          title="Brand overlay"
+        >
+          <Layers className="w-3.5 h-3.5" /><span className="hidden sm:inline">Brand</span>
+        </button>
         {canExport ? (
           <button
             onClick={() => setShowExport(true)}
@@ -6180,6 +6201,45 @@ export default function EditorWorkspacePage() {
                     </div>
                   )}
                 </>
+              )}
+              {/* Brand overlay — draggable watermark */}
+              {brandOverlay?.visible && (
+                <div
+                  className="absolute cursor-move select-none z-50"
+                  style={{
+                    left: `${brandOverlay.x}%`,
+                    top: `${brandOverlay.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                  onPointerDown={(e) => {
+                    if (!previewFrameRef.current) return;
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    const rect = previewFrameRef.current.getBoundingClientRect();
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startXPct = brandOverlay.x;
+                    const startYPct = brandOverlay.y;
+                    const onMove = (ev: PointerEvent) => {
+                      const dx = ((ev.clientX - startX) / rect.width) * 100;
+                      const dy = ((ev.clientY - startY) / rect.height) * 100;
+                      setBrandOverlay(b => b ? { ...b, x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) } : b);
+                    };
+                    const onUp = () => e.currentTarget.removeEventListener('pointermove', onMove as EventListener);
+                    e.currentTarget.addEventListener('pointermove', onMove as EventListener);
+                    e.currentTarget.addEventListener('pointerup', onUp, { once: true });
+                  }}
+                >
+                  {brandOverlay.type === 'text' ? (
+                    <span style={{ color: brandOverlay.color, fontWeight: 'bold', fontSize: Math.max(10, brandOverlay.size * 0.4), textShadow: '0 1px 3px rgba(0,0,0,0.8)', whiteSpace: 'nowrap' }}>
+                      {brandOverlay.text || 'Brand Title'}
+                    </span>
+                  ) : brandOverlay.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={brandOverlay.logoUrl} alt="Brand logo" style={{ height: Math.max(16, brandOverlay.size * 0.4), width: 'auto', objectFit: 'contain' }} />
+                  ) : (
+                    <span style={{ color: brandOverlay.color, fontWeight: 'bold', fontSize: Math.max(10, brandOverlay.size * 0.4), textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>Logo</span>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -7292,6 +7352,87 @@ export default function EditorWorkspacePage() {
           );
         })}
       </nav>
+
+      {/* Brand Overlay Panel */}
+      {brandPanelOpen && brandOverlay && (
+        <div className="fixed right-4 top-16 z-50 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 flex flex-col gap-3 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-gray-800">Brand Overlay</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setBrandOverlay(b => b ? { ...b, visible: !b.visible } : b)}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${brandOverlay.visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+              >{brandOverlay.visible ? 'Visible' : 'Hidden'}</button>
+              <button onClick={() => { setBrandPanelOpen(false); setBrandOverlay(null); }} className="p-1 hover:bg-gray-100 rounded" title="Remove brand overlay">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+          </div>
+          {/* Type selector */}
+          <div className="flex gap-2">
+            {(['text', 'logo'] as const).map(t => (
+              <button key={t} onClick={() => setBrandOverlay(b => b ? { ...b, type: t } : b)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${brandOverlay.type === t ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                {t === 'text' ? <><Type className="w-3 h-3 inline mr-1" />Text</> : <><Image className="w-3 h-3 inline mr-1" />Logo</>}
+              </button>
+            ))}
+          </div>
+          {/* Text or URL input */}
+          {brandOverlay.type === 'text' ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Brand Title</label>
+                <input type="text" value={brandOverlay.text} onChange={e => setBrandOverlay(b => b ? { ...b, text: e.target.value } : b)}
+                  placeholder="e.g. @YourChannel"
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Color</label>
+                <input type="color" value={brandOverlay.color} onChange={e => setBrandOverlay(b => b ? { ...b, color: e.target.value } : b)}
+                  className="w-8 h-7 rounded cursor-pointer border border-gray-200" />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Logo URL</label>
+              <input type="url" value={brandOverlay.logoUrl} onChange={e => setBrandOverlay(b => b ? { ...b, logoUrl: e.target.value } : b)}
+                placeholder="https://..."
+                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            </div>
+          )}
+          {/* 9-point quick position grid */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Quick position</label>
+            <div className="grid grid-cols-3 gap-1">
+              {([
+                { x: 10, y: 10 }, { x: 50, y: 10 }, { x: 90, y: 10 },
+                { x: 10, y: 50 }, { x: 50, y: 50 }, { x: 90, y: 50 },
+                { x: 10, y: 90 }, { x: 50, y: 90 }, { x: 90, y: 90 },
+              ] as const).map((pos, i) => (
+                <button key={i} onClick={() => setBrandOverlay(b => b ? { ...b, x: pos.x, y: pos.y } : b)}
+                  className={`h-8 rounded border transition-colors ${Math.abs(brandOverlay.x - pos.x) < 3 && Math.abs(brandOverlay.y - pos.y) < 3 ? 'bg-purple-600 border-purple-600' : 'border-gray-200 hover:bg-purple-50'}`}
+                />
+              ))}
+            </div>
+          </div>
+          {/* Sliders */}
+          <div className="flex flex-col gap-2">
+            {([
+              { label: 'X', key: 'x', min: 0, max: 100, unit: '%' },
+              { label: 'Y', key: 'y', min: 0, max: 100, unit: '%' },
+              { label: 'Sz', key: 'size', min: 16, max: 96, unit: 'px' },
+            ] as const).map(({ label, key, min, max, unit }) => (
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 w-5">{label}</span>
+                <input type="range" min={min} max={max} value={brandOverlay[key]}
+                  onChange={e => setBrandOverlay(b => b ? { ...b, [key]: Number(e.target.value) } : b)}
+                  className="flex-1 accent-purple-600" />
+                <span className="text-xs text-gray-400 w-10 text-right">{Math.round(brandOverlay[key])}{unit}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Dialogs */}
       {showExport && <ExportDialog editId={editId} projectId={project.projectId} projectTitle={project.title} onClose={() => setShowExport(false)} onBeforeRender={handleSave} onRenderStart={progressStart} onRenderDone={progressDone} />}

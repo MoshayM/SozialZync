@@ -1206,7 +1206,7 @@ export default function TimelineEditorPage() {
                               style={{ left: (c.startMs / 1000) * pxPerSec, width: Math.max(2, ((c.endMs - c.startMs) / 1000) * pxPerSec) }}
                               title={c.text}
                             >
-                              <span className="text-[8px] text-amber-950 whitespace-nowrap">{c.emoji ? `${c.emoji} ` : ''}{c.text}</span>
+                              <span className="text-[8px] text-amber-950 whitespace-nowrap">{'emoji' in c && c.emoji ? `${c.emoji} ` : ''}{c.text}</span>
                             </div>
                           ))
                       )}
