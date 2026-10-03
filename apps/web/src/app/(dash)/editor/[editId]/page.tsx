@@ -113,6 +113,142 @@ function useSignedMediaUrl(versionId: string | null): string | null {
   return url;
 }
 
+// ── Secondary video layer player ──────────────────────────────────────────────
+// Wraps a single secondary-track item in its own component so `useSignedMediaUrl`
+// is called as a hook at the component level (React rules of hooks). The parent
+// page registers each <video> element via `onRegister` so the rAF tick can sync
+// position and play/pause without going through React state.
+function SecondaryVideoPlayer({
+  item,
+  versionId,
+  currentTimeMs,
+  isSelected,
+  onSelect,
+  onRegister,
+  onUpdateProps,
+  previewContainerRef,
+}: {
+  item: EditItem;
+  versionId: string | null;
+  currentTimeMs: number;
+  isSelected: boolean;
+  onSelect: () => void;
+  onRegister: (itemId: string, el: HTMLVideoElement | null, item: EditItem) => void;
+  onUpdateProps: (itemId: string, updates: Partial<EditItemProperties>, skipHistory?: boolean) => void;
+  previewContainerRef: { current: HTMLDivElement | null };
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const src = useSignedMediaUrl(versionId);
+
+  // Register on mount, unregister on unmount
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v) onRegister(item.id, v, item);
+    return () => { onRegister(item.id, null, item); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When src becomes available ensure the ref is registered
+  useEffect(() => {
+    const v = videoRef.current;
+    if (src && v) onRegister(item.id, v, item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]);
+
+  // Keep timing-relevant item fields fresh in the parent map so rAF tick stays in sync
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v) onRegister(item.id, v, item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.sourceInMs, item.timelineStartMs, item.timelineEndMs, item.properties?.speed]);
+
+  const x = item.properties?.x ?? 50;
+  const y = item.properties?.y ?? 50;
+  const scale = item.properties?.scale ?? 0.35;
+  const opacity = clamp(item.properties?.opacity ?? 1, 0, 1);
+
+  if (item.properties?.hidden) return null;
+
+  return (
+    <div
+      className={`absolute overflow-hidden rounded cursor-move select-none ${isSelected ? 'ring-2 ring-yellow-400' : 'ring-1 ring-white/20 hover:ring-white/50'}`}
+      style={{
+        left: `${x}%`, top: `${y}%`,
+        width: `${scale * 100}%`, aspectRatio: '16/9',
+        transform: 'translate(-50%, -50%)',
+        zIndex: isSelected ? 15 : 10,
+        opacity,
+      }}
+      onPointerDown={(e) => {
+        if ((e.target as HTMLElement).closest('[data-resize-handle]')) return;
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        onSelect();
+        const rect = previewContainerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const startX = e.clientX, startY = e.clientY;
+        const startXPct = x, startYPct = y;
+        const onMove = (ev: PointerEvent) => {
+          const dx = ((ev.clientX - startX) / rect.width) * 100;
+          const dy = ((ev.clientY - startY) / rect.height) * 100;
+          onUpdateProps(item.id, { x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) }, true);
+        };
+        e.currentTarget.addEventListener('pointermove', onMove as EventListener);
+        e.currentTarget.addEventListener('pointerup', () =>
+          e.currentTarget?.removeEventListener('pointermove', onMove as EventListener),
+          { once: true });
+      }}
+      onClick={(e) => { e.stopPropagation(); onSelect(); }}
+    >
+      <video
+        ref={videoRef}
+        src={src ?? undefined}
+        className="w-full h-full object-cover pointer-events-none"
+        playsInline
+        muted
+        onLoadedMetadata={() => {
+          const v = videoRef.current;
+          if (!v) return;
+          const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (currentTimeMs - item.timelineStartMs)) / 1000);
+          v.currentTime = sourceSec;
+        }}
+      />
+      {!src && (
+        <div className="absolute inset-0 bg-violet-900/80 flex items-center justify-center gap-1 pointer-events-none">
+          <Film className="w-4 h-4 text-violet-300" />
+          <span className="text-violet-200 text-[10px] font-semibold">Loading…</span>
+        </div>
+      )}
+      {/* Bottom-right corner drag to resize */}
+      <div
+        data-resize-handle="true"
+        title="Drag to resize"
+        className="absolute bottom-0 right-0 w-5 h-5 bg-yellow-400 cursor-se-resize flex items-center justify-center"
+        style={{ borderRadius: '3px 0 2px 0' }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          const rect = previewContainerRef.current?.getBoundingClientRect();
+          if (!rect) return;
+          const startX = e.clientX, startScale = scale;
+          const onMove = (ev: PointerEvent) => {
+            const dx = ((ev.clientX - startX) / rect.width) * 2;
+            onUpdateProps(item.id, { scale: clamp(startScale + dx, 0.1, 1.5) }, true);
+          };
+          e.currentTarget.addEventListener('pointermove', onMove as EventListener);
+          e.currentTarget.addEventListener('pointerup', () =>
+            e.currentTarget?.removeEventListener('pointermove', onMove as EventListener),
+            { once: true });
+        }}
+      >
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+          <path d="M1 7L7 1M4 7L7 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function relativeTime(dateStr: string): string {
@@ -4204,6 +4340,8 @@ export default function EditorWorkspacePage() {
   const [globalMuted, setGlobalMuted] = useState(false);
   const historyRef = useRef<EditTimeline[]>([]);
   const historyIndexRef = useRef(-1);
+  // Map from itemId → { el, item } for secondary VIDEO track layers synced in rAF tick
+  const secondaryVidsRef = useRef<Map<string, { el: HTMLVideoElement; item: EditItem }>>(new Map());
 
   // Initialise timeline from server — normalise Prisma's default {} or null (no tracks)
   useEffect(() => {
@@ -5060,6 +5198,23 @@ export default function EditorWorkspacePage() {
     if (a) a.muted = next;
   }, []);
 
+  const handleRegisterSecondaryVideo = useCallback((itemId: string, el: HTMLVideoElement | null, item: EditItem) => {
+    if (el) secondaryVidsRef.current.set(itemId, { el, item });
+    else secondaryVidsRef.current.delete(itemId);
+  }, []);
+
+  const handleUpdateItemProps = useCallback((itemId: string, updates: Partial<EditItemProperties>, skipHistory = false) => {
+    updateTimeline((tl) => ({
+      ...tl,
+      tracks: tl.tracks.map((tr) => ({
+        ...tr,
+        items: (tr.items ?? []).map((it) =>
+          it.id === itemId ? { ...it, properties: { ...(it.properties ?? {}), ...updates } } : it
+        ),
+      })),
+    }), skipHistory);
+  }, [updateTimeline]);
+
   const handleSplitItem = useCallback((itemId: string, atMs: number) => {
     updateTimeline((tl) => ({
       ...tl,
@@ -5192,6 +5347,20 @@ export default function EditorWorkspacePage() {
         a.pause();
       }
 
+      // Sync secondary VIDEO layer elements at full rAF rate (muted — visual-only overlay)
+      for (const [, { el: sv, item: sItem }] of secondaryVidsRef.current) {
+        if (t >= sItem.timelineStartMs && t < sItem.timelineEndMs) {
+          const rate = sItem.properties?.speed ?? 1;
+          if (sv.playbackRate !== rate) sv.playbackRate = rate;
+          sv.muted = true;
+          const sourceSec = Math.max(0, ((sItem.sourceInMs ?? 0) + (t - sItem.timelineStartMs) * rate) / 1000);
+          if (Math.abs(sv.currentTime - sourceSec) > 0.5) sv.currentTime = sourceSec;
+          if (sv.paused) void sv.play().catch(() => undefined);
+        } else if (!sv.paused) {
+          sv.pause();
+        }
+      }
+
       // Update React state at ~30 fps so the seek bar and time display stay smooth
       // without flooding reconciliation at 60 fps.
       if (t - lastUiMs >= 33) {
@@ -5237,12 +5406,25 @@ export default function EditorWorkspacePage() {
       void aNow.play().catch(() => undefined);
     }
 
+    // Trigger secondary video layers inside the gesture context so autoplay unlocks
+    const tStart = currentTimeMsRef.current;
+    for (const [, { el: sv, item: sItem }] of secondaryVidsRef.current) {
+      if (tStart >= sItem.timelineStartMs && tStart < sItem.timelineEndMs) {
+        sv.muted = true;
+        void sv.play().catch(() => undefined);
+      }
+    }
+
     rafRef.current = requestAnimationFrame(tick);
   }, [timeline]);
 
   const stopPlay = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
     setPlaying(false);
+    for (const [, { el: sv }] of secondaryVidsRef.current) {
+      if (!sv.paused) sv.pause();
+    }
   }, []);
 
   // Space = play/pause  |  ← → = seek ±1 s
@@ -5876,38 +6058,27 @@ export default function EditorWorkspacePage() {
                   {/* Source clips carry no sidecar caption file; empty track satisfies a11y. */}
                   <track kind="captions" />
                 </video>
-                {/* Secondary video track overlays — show position/scale visually when multiple VIDEO tracks have active clips */}
+                {/* Secondary video track layers — real <video> elements that play in sync */}
                 {(timeline?.tracks ?? [])
                   .filter((t) => t.kind === 'VIDEO')
                   .slice(1)
-                  .flatMap((t, tIdx) =>
+                  .flatMap((t) =>
                     (t.items ?? [])
-                      .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs && !it.properties?.hidden)
+                      .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs)
                       .map((it) => {
-                        const x = it.properties?.x ?? 50;
-                        const y = it.properties?.y ?? 50;
-                        const scale = it.properties?.scale ?? 1;
-                        const opacity = it.properties?.opacity ?? 1;
-                        const label = assetNameMap.get(it.sourceAssetId ?? '') ?? t.label;
+                        const binEntry = it.sourceAssetId ? mediaBin.find((e) => e.id === it.sourceAssetId) : null;
                         return (
-                          <div
+                          <SecondaryVideoPlayer
                             key={it.id}
-                            onClick={() => setSelectedItemId(it.id)}
-                            title={`${label} — click to select`}
-                            className={`absolute bg-violet-900/60 border-2 cursor-pointer flex items-center justify-center gap-1 rounded overflow-hidden ${it.id === selectedItemId ? 'border-yellow-400' : 'border-violet-500/60'}`}
-                            style={{
-                              left: `${x}%`,
-                              top: `${y}%`,
-                              width: `${scale * 100}%`,
-                              aspectRatio: '16/9',
-                              transform: 'translate(-50%, -50%)',
-                              zIndex: tIdx + 1,
-                              opacity,
-                            }}
-                          >
-                            <Film className="w-4 h-4 text-violet-300 shrink-0" />
-                            <span className="text-violet-200 text-[10px] font-semibold truncate max-w-[80%]">{label}</span>
-                          </div>
+                            item={it}
+                            versionId={binEntry?.versionId ?? null}
+                            currentTimeMs={currentTimeMs}
+                            isSelected={it.id === selectedItemId}
+                            onSelect={() => setSelectedItemId(it.id)}
+                            onRegister={handleRegisterSecondaryVideo}
+                            onUpdateProps={handleUpdateItemProps}
+                            previewContainerRef={previewContainerRef}
+                          />
                         );
                       })
                   )}
@@ -6199,20 +6370,20 @@ export default function EditorWorkspacePage() {
                 </button>
               </div>
               {/* Always-visible track add buttons — pinned to right, never clipped */}
-              <div className="shrink-0 flex items-center gap-1 border-l border-white/10 pl-1.5">
+              <div className="shrink-0 flex items-center gap-1 border-l border-white/10 pl-2">
                 <button
                   onClick={() => handleAddTrack('VIDEO')}
-                  className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-white/10 text-violet-400"
+                  className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30"
                   title="Add video track"
                 >
-                  <Plus className="w-3 h-3" /><Film className="w-3 h-3" />
+                  <Plus className="w-3 h-3" /><Film className="w-3 h-3" /><span>Video</span>
                 </button>
                 <button
                   onClick={() => handleAddTrack('AUDIO')}
-                  className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-white/10 text-emerald-400"
+                  className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30"
                   title="Add audio track"
                 >
-                  <Plus className="w-3 h-3" /><Volume2 className="w-3 h-3" />
+                  <Plus className="w-3 h-3" /><Volume2 className="w-3 h-3" /><span>Audio</span>
                 </button>
               </div>
             </div>
