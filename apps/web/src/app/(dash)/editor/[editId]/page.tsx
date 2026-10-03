@@ -4333,6 +4333,10 @@ export default function EditorWorkspacePage() {
   const draggedBinEntryRef = useRef<MediaBinEntry | null>(null);
   const previewDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  // Inner canvas-frame ref — has the correct aspect ratio for the current canvas size.
+  // All drag position calculations use this ref so x/y percentages map to the canvas frame,
+  // not the surrounding black letterbox area.
+  const previewFrameRef = useRef<HTMLDivElement>(null);
   const cameraPreviewRef = useRef<HTMLVideoElement>(null);
   const cameraSheetPreviewRef = useRef<HTMLVideoElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -5951,219 +5955,233 @@ export default function EditorWorkspacePage() {
         {/* ── Center: Preview + Timeline ───────────────────────────────── */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-          {/* Preview area */}
+          {/* Preview area — outer black container, inner frame sized to canvas aspect ratio */}
           <div ref={previewContainerRef} className="relative shrink-0 bg-black flex items-center justify-center" style={{ height: previewH }}>
-            {/* Hidden audio element slaved to the rAF clock for AUDIO track items */}
+            {/* Hidden audio element — outside the frame so it never clips */}
             <audio ref={audioRef} src={audioSrc ?? undefined} style={{ display: 'none' }}>
               <track kind="captions" />
             </audio>
 
-            {activeTimelineItem && !displaySrc && (
-              <PreviewLoadingOverlay
-                key={activeTimelineItem.id}
-                playing={playing}
-                onToggle={() => playing ? stopPlay() : startPlay()}
-              />
-            )}
-            {isActiveImage && displaySrc ? (
-              <>
-                <img
-                  src={displaySrc}
-                  alt=""
-                  className="max-w-full max-h-full object-contain"
-                  style={{ opacity: clamp(activeTimelineItem?.properties?.opacity ?? 1, 0, 1) }}
+            {/* Canvas frame: matches the selected canvas ratio (9:16, 1:1, 4:5, 16:9…).
+                max-width/max-height ensure it fits inside the drag-resizable container.
+                All overlays (text, secondary video) are positioned relative to this frame
+                so x/y=50% always maps to the canvas centre regardless of canvas shape. */}
+            <div
+              ref={previewFrameRef}
+              className="relative bg-black overflow-hidden"
+              style={{
+                aspectRatio: `${timeline?.width ?? 1920} / ${timeline?.height ?? 1080}`,
+                maxWidth: '100%',
+                maxHeight: '100%',
+              }}
+            >
+              {activeTimelineItem && !displaySrc && (
+                <PreviewLoadingOverlay
+                  key={activeTimelineItem.id}
+                  playing={playing}
+                  onToggle={() => playing ? stopPlay() : startPlay()}
                 />
-                {activeTextItems.map((it) => {
-                  const p = it.properties ?? {};
-                  const xPct = p.x ?? 50;
-                  const yPct = p.y ?? 80;
-                  const isSelected = it.id === selectedItemId;
-                  const itemId = it.id;
-                  return (
-                    <span
-                      key={itemId}
-                      onPointerDown={(e) => {
-                        if (!previewContainerRef.current) return;
-                        e.currentTarget.setPointerCapture(e.pointerId);
-                        setSelectedItemId(itemId);
-                        const rect = previewContainerRef.current.getBoundingClientRect();
-                        const startX = e.clientX;
-                        const startY = e.clientY;
-                        const startXPct = xPct;
-                        const startYPct = yPct;
-                        const props = { ...p };
-                        const onMove = (ev: PointerEvent) => {
-                          const dx = ((ev.clientX - startX) / rect.width) * 100;
-                          const dy = ((ev.clientY - startY) / rect.height) * 100;
-                          updateTimeline((tl) => ({
-                            ...tl,
-                            tracks: tl.tracks.map((tr) => ({
-                              ...tr,
-                              items: (tr.items ?? []).map((i) =>
-                                i.id === itemId ? { ...i, properties: { ...props, x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) } } : i
-                              ),
-                            })),
-                          }), true);
-                        };
-                        const onUp = () => { e.currentTarget.removeEventListener('pointermove', onMove as EventListener); };
-                        e.currentTarget.addEventListener('pointermove', onMove as EventListener);
-                        e.currentTarget.addEventListener('pointerup', onUp, { once: true });
-                      }}
-                      className="absolute cursor-move px-2 max-w-[90%] whitespace-pre-wrap break-words select-none"
-                      style={{
-                        left: `${xPct}%`,
-                        top: `${yPct}%`,
-                        transform: `translate(-50%, -50%) rotate(${p.rotation ?? 0}deg)`,
-                        color: p.color ?? '#ffffff',
-                        fontSize: Math.max(10, (p.fontSize ?? 32) * 0.4),
-                        opacity: clamp(p.opacity ?? 1, 0, 1),
-                        fontFamily: p.fontFamily ?? 'sans-serif',
-                        fontWeight: p.fontWeight ?? 'bold',
-                        fontStyle: p.fontStyle ?? 'normal',
-                        textAlign: (p.textAlign ?? 'center') as 'left' | 'center' | 'right',
-                        textShadow: p.backgroundColor ? 'none' : '0 1px 3px rgba(0,0,0,0.8)',
-                        backgroundColor: p.backgroundColor ?? undefined,
-                        borderRadius: p.backgroundColor ? '4px' : undefined,
-                        padding: p.backgroundColor ? '2px 6px' : undefined,
-                        outline: isSelected ? '2px dashed rgba(251,191,36,0.8)' : 'none',
-                        outlineOffset: '2px',
-                      }}
-                    >
-                      {p.text ?? ''}
-                    </span>
-                  );
-                })}
-              </>
-            ) : (
-              <>
-                {/* Always render the video element so videoRef is set when Play is
-                    clicked — even if the signed URL hasn't arrived yet. Without this,
-                    videoRef.current is null at click time, v.play() inside the
-                    user-gesture context is skipped, and the browser blocks audio on
-                    every subsequent rAF-triggered play() call. Hidden via CSS when
-                    no src so it doesn't affect layout. */}
-                <video
-                  ref={videoRef}
-                  src={videoSrc ?? undefined}
-                  className="max-w-full max-h-full object-contain"
-                  style={{
-                    opacity: clamp(activeVideoItem?.properties?.opacity ?? 1, 0, 1),
-                    // Hide video frames when the clip is toggled off with the Eye button.
-                    // The <video> element stays mounted so audio continues playing.
-                    display: (videoSrc && !activeVideoItem?.properties?.hidden) ? undefined : 'none',
-                  }}
-                  onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
-                  playsInline
-                >
-                  {/* Source clips carry no sidecar caption file; empty track satisfies a11y. */}
-                  <track kind="captions" />
-                </video>
-                {/* Secondary video track layers — real <video> elements that play in sync */}
-                {(timeline?.tracks ?? [])
-                  .filter((t) => t.kind === 'VIDEO')
-                  .slice(1)
-                  .flatMap((t) =>
-                    (t.items ?? [])
-                      .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs)
-                      .map((it) => {
-                        const binEntry = it.sourceAssetId ? mediaBin.find((e) => e.id === it.sourceAssetId) : null;
-                        return (
-                          <SecondaryVideoPlayer
-                            key={it.id}
-                            item={it}
-                            versionId={binEntry?.versionId ?? null}
-                            currentTimeMs={currentTimeMs}
-                            isSelected={it.id === selectedItemId}
-                            onSelect={() => setSelectedItemId(it.id)}
-                            onRegister={handleRegisterSecondaryVideo}
-                            onUpdateProps={handleUpdateItemProps}
-                            previewContainerRef={previewContainerRef}
-                          />
-                        );
-                      })
+              )}
+              {isActiveImage && displaySrc ? (
+                <>
+                  <img
+                    src={displaySrc}
+                    alt=""
+                    className="w-full h-full object-contain"
+                    style={{ opacity: clamp(activeTimelineItem?.properties?.opacity ?? 1, 0, 1) }}
+                  />
+                  {activeTextItems.map((it) => {
+                    const p = it.properties ?? {};
+                    const xPct = p.x ?? 50;
+                    const yPct = p.y ?? 80;
+                    const isSelected = it.id === selectedItemId;
+                    const itemId = it.id;
+                    return (
+                      <span
+                        key={itemId}
+                        onPointerDown={(e) => {
+                          if (!previewFrameRef.current) return;
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                          setSelectedItemId(itemId);
+                          const rect = previewFrameRef.current.getBoundingClientRect();
+                          const startX = e.clientX;
+                          const startY = e.clientY;
+                          const startXPct = xPct;
+                          const startYPct = yPct;
+                          const props = { ...p };
+                          const onMove = (ev: PointerEvent) => {
+                            const dx = ((ev.clientX - startX) / rect.width) * 100;
+                            const dy = ((ev.clientY - startY) / rect.height) * 100;
+                            updateTimeline((tl) => ({
+                              ...tl,
+                              tracks: tl.tracks.map((tr) => ({
+                                ...tr,
+                                items: (tr.items ?? []).map((i) =>
+                                  i.id === itemId ? { ...i, properties: { ...props, x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) } } : i
+                                ),
+                              })),
+                            }), true);
+                          };
+                          const onUp = () => { e.currentTarget.removeEventListener('pointermove', onMove as EventListener); };
+                          e.currentTarget.addEventListener('pointermove', onMove as EventListener);
+                          e.currentTarget.addEventListener('pointerup', onUp, { once: true });
+                        }}
+                        className="absolute cursor-move px-2 max-w-[90%] whitespace-pre-wrap break-words select-none"
+                        style={{
+                          left: `${xPct}%`,
+                          top: `${yPct}%`,
+                          transform: `translate(-50%, -50%) rotate(${p.rotation ?? 0}deg)`,
+                          color: p.color ?? '#ffffff',
+                          fontSize: Math.max(10, (p.fontSize ?? 32) * 0.4),
+                          opacity: clamp(p.opacity ?? 1, 0, 1),
+                          fontFamily: p.fontFamily ?? 'sans-serif',
+                          fontWeight: p.fontWeight ?? 'bold',
+                          fontStyle: p.fontStyle ?? 'normal',
+                          textAlign: (p.textAlign ?? 'center') as 'left' | 'center' | 'right',
+                          textShadow: p.backgroundColor ? 'none' : '0 1px 3px rgba(0,0,0,0.8)',
+                          backgroundColor: p.backgroundColor ?? undefined,
+                          borderRadius: p.backgroundColor ? '4px' : undefined,
+                          padding: p.backgroundColor ? '2px 6px' : undefined,
+                          outline: isSelected ? '2px dashed rgba(251,191,36,0.8)' : 'none',
+                          outlineOffset: '2px',
+                        }}
+                      >
+                        {p.text ?? ''}
+                      </span>
+                    );
+                  })}
+                </>
+              ) : (
+                <>
+                  {/* Always render the video element so videoRef is set when Play is
+                      clicked — even if the signed URL hasn't arrived yet. Without this,
+                      videoRef.current is null at click time, v.play() inside the
+                      user-gesture context is skipped, and the browser blocks audio on
+                      every subsequent rAF-triggered play() call. Hidden via CSS when
+                      no src so it doesn't affect layout. */}
+                  <video
+                    ref={videoRef}
+                    src={videoSrc ?? undefined}
+                    className="w-full h-full object-contain"
+                    style={{
+                      opacity: clamp(activeVideoItem?.properties?.opacity ?? 1, 0, 1),
+                      // Hide video frames when the clip is toggled off with the Eye button.
+                      // The <video> element stays mounted so audio continues playing.
+                      display: (videoSrc && !activeVideoItem?.properties?.hidden) ? undefined : 'none',
+                    }}
+                    onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
+                    playsInline
+                  >
+                    {/* Source clips carry no sidecar caption file; empty track satisfies a11y. */}
+                    <track kind="captions" />
+                  </video>
+                  {/* Secondary video track layers — real <video> elements that play in sync */}
+                  {(timeline?.tracks ?? [])
+                    .filter((t) => t.kind === 'VIDEO')
+                    .slice(1)
+                    .flatMap((t) =>
+                      (t.items ?? [])
+                        .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs)
+                        .map((it) => {
+                          const binEntry = it.sourceAssetId ? mediaBin.find((e) => e.id === it.sourceAssetId) : null;
+                          return (
+                            <SecondaryVideoPlayer
+                              key={it.id}
+                              item={it}
+                              versionId={binEntry?.versionId ?? null}
+                              currentTimeMs={currentTimeMs}
+                              isSelected={it.id === selectedItemId}
+                              onSelect={() => setSelectedItemId(it.id)}
+                              onRegister={handleRegisterSecondaryVideo}
+                              onUpdateProps={handleUpdateItemProps}
+                              previewContainerRef={previewFrameRef}
+                            />
+                          );
+                        })
+                    )}
+                  {/* Black placeholder shown when the active video clip is hidden (eye-off) */}
+                  {videoSrc && activeVideoItem?.properties?.hidden && (
+                    <div className="absolute inset-0 bg-black flex items-center justify-center pointer-events-none">
+                      <EyeOff className="w-8 h-8 text-white/30" />
+                    </div>
                   )}
-                {/* Black placeholder shown when the active video clip is hidden (eye-off) */}
-                {videoSrc && activeVideoItem?.properties?.hidden && (
-                  <div className="absolute inset-0 bg-black flex items-center justify-center pointer-events-none">
-                    <EyeOff className="w-8 h-8 text-white/30" />
-                  </div>
-                )}
-                {videoSrc && activeTextItems.map((it) => {
-                  const p = it.properties ?? {};
-                  const xPct = p.x ?? 50;
-                  const yPct = p.y ?? 80;
-                  const isSelected = it.id === selectedItemId;
-                  const itemId = it.id;
-                  return (
-                    <span
-                      key={itemId}
-                      onPointerDown={(e) => {
-                        if (!previewContainerRef.current) return;
-                        e.currentTarget.setPointerCapture(e.pointerId);
-                        setSelectedItemId(itemId);
-                        const rect = previewContainerRef.current.getBoundingClientRect();
-                        const startX = e.clientX;
-                        const startY = e.clientY;
-                        const startXPct = xPct;
-                        const startYPct = yPct;
-                        const props = { ...p };
-                        const onMove = (ev: PointerEvent) => {
-                          const dx = ((ev.clientX - startX) / rect.width) * 100;
-                          const dy = ((ev.clientY - startY) / rect.height) * 100;
-                          updateTimeline((tl) => ({
-                            ...tl,
-                            tracks: tl.tracks.map((tr) => ({
-                              ...tr,
-                              items: (tr.items ?? []).map((i) =>
-                                i.id === itemId ? { ...i, properties: { ...props, x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) } } : i
-                              ),
-                            })),
-                          }), true);
-                        };
-                        const onUp = () => { e.currentTarget.removeEventListener('pointermove', onMove as EventListener); };
-                        e.currentTarget.addEventListener('pointermove', onMove as EventListener);
-                        e.currentTarget.addEventListener('pointerup', onUp, { once: true });
-                      }}
-                      className="absolute cursor-move px-2 max-w-[90%] whitespace-pre-wrap break-words select-none"
-                      style={{
-                        left: `${xPct}%`,
-                        top: `${yPct}%`,
-                        transform: `translate(-50%, -50%) rotate(${p.rotation ?? 0}deg)`,
-                        color: p.color ?? '#ffffff',
-                        fontSize: Math.max(10, (p.fontSize ?? 32) * 0.4),
-                        opacity: clamp(p.opacity ?? 1, 0, 1),
-                        fontFamily: p.fontFamily ?? 'sans-serif',
-                        fontWeight: p.fontWeight ?? 'bold',
-                        fontStyle: p.fontStyle ?? 'normal',
-                        textAlign: (p.textAlign ?? 'center') as 'left' | 'center' | 'right',
-                        textShadow: p.backgroundColor ? 'none' : '0 1px 3px rgba(0,0,0,0.8)',
-                        backgroundColor: p.backgroundColor ?? undefined,
-                        borderRadius: p.backgroundColor ? '4px' : undefined,
-                        padding: p.backgroundColor ? '2px 6px' : undefined,
-                        outline: isSelected ? '2px dashed rgba(251,191,36,0.8)' : 'none',
-                        outlineOffset: '2px',
-                      }}
-                    >
-                      {p.text ?? ''}
-                    </span>
-                  );
-                })}
-                {!videoSrc && activeAudioItem && (
-                  <div className="text-gray-400 text-sm text-center space-y-2 p-4">
-                    <Volume2 className="w-10 h-10 mx-auto opacity-50" />
-                    <p className="opacity-70 font-medium">Audio track</p>
-                    <p className="text-xs opacity-40">{activeAudioEntry?.label ?? 'Playing audio…'}</p>
-                  </div>
-                )}
-                {!videoSrc && !activeAudioItem && !activeTimelineItem && (
-                  <div className="text-gray-600 text-sm text-center space-y-1 p-4">
-                    <Film className="w-8 h-8 mx-auto opacity-40" />
-                    <p className="opacity-60">Approximate preview</p>
-                    <p className="text-xs opacity-40">Add media to the timeline to preview it here</p>
-                  </div>
-                )}
-              </>
-            )}
+                  {videoSrc && activeTextItems.map((it) => {
+                    const p = it.properties ?? {};
+                    const xPct = p.x ?? 50;
+                    const yPct = p.y ?? 80;
+                    const isSelected = it.id === selectedItemId;
+                    const itemId = it.id;
+                    return (
+                      <span
+                        key={itemId}
+                        onPointerDown={(e) => {
+                          if (!previewFrameRef.current) return;
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                          setSelectedItemId(itemId);
+                          const rect = previewFrameRef.current.getBoundingClientRect();
+                          const startX = e.clientX;
+                          const startY = e.clientY;
+                          const startXPct = xPct;
+                          const startYPct = yPct;
+                          const props = { ...p };
+                          const onMove = (ev: PointerEvent) => {
+                            const dx = ((ev.clientX - startX) / rect.width) * 100;
+                            const dy = ((ev.clientY - startY) / rect.height) * 100;
+                            updateTimeline((tl) => ({
+                              ...tl,
+                              tracks: tl.tracks.map((tr) => ({
+                                ...tr,
+                                items: (tr.items ?? []).map((i) =>
+                                  i.id === itemId ? { ...i, properties: { ...props, x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) } } : i
+                                ),
+                              })),
+                            }), true);
+                          };
+                          const onUp = () => { e.currentTarget.removeEventListener('pointermove', onMove as EventListener); };
+                          e.currentTarget.addEventListener('pointermove', onMove as EventListener);
+                          e.currentTarget.addEventListener('pointerup', onUp, { once: true });
+                        }}
+                        className="absolute cursor-move px-2 max-w-[90%] whitespace-pre-wrap break-words select-none"
+                        style={{
+                          left: `${xPct}%`,
+                          top: `${yPct}%`,
+                          transform: `translate(-50%, -50%) rotate(${p.rotation ?? 0}deg)`,
+                          color: p.color ?? '#ffffff',
+                          fontSize: Math.max(10, (p.fontSize ?? 32) * 0.4),
+                          opacity: clamp(p.opacity ?? 1, 0, 1),
+                          fontFamily: p.fontFamily ?? 'sans-serif',
+                          fontWeight: p.fontWeight ?? 'bold',
+                          fontStyle: p.fontStyle ?? 'normal',
+                          textAlign: (p.textAlign ?? 'center') as 'left' | 'center' | 'right',
+                          textShadow: p.backgroundColor ? 'none' : '0 1px 3px rgba(0,0,0,0.8)',
+                          backgroundColor: p.backgroundColor ?? undefined,
+                          borderRadius: p.backgroundColor ? '4px' : undefined,
+                          padding: p.backgroundColor ? '2px 6px' : undefined,
+                          outline: isSelected ? '2px dashed rgba(251,191,36,0.8)' : 'none',
+                          outlineOffset: '2px',
+                        }}
+                      >
+                        {p.text ?? ''}
+                      </span>
+                    );
+                  })}
+                  {!videoSrc && activeAudioItem && (
+                    <div className="text-gray-400 text-sm text-center space-y-2 p-4">
+                      <Volume2 className="w-10 h-10 mx-auto opacity-50" />
+                      <p className="opacity-70 font-medium">Audio track</p>
+                      <p className="text-xs opacity-40">{activeAudioEntry?.label ?? 'Playing audio…'}</p>
+                    </div>
+                  )}
+                  {!videoSrc && !activeAudioItem && !activeTimelineItem && (
+                    <div className="text-gray-600 text-sm text-center space-y-1 p-4">
+                      <Film className="w-8 h-8 mx-auto opacity-40" />
+                      <p className="opacity-60">Approximate preview</p>
+                      <p className="text-xs opacity-40">Add media to the timeline to preview it here</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* Transport bar */}
