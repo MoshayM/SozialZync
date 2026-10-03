@@ -6104,112 +6104,117 @@ export default function EditorWorkspacePage() {
           {/* Timeline — Professional dark multi-track editor */}
           <div className="flex-1 overflow-hidden bg-gray-900 flex flex-col" style={{ paddingBottom: 0 }}>
             {/* Timeline toolbar */}
-            <div className="shrink-0 flex items-center gap-1 px-2 py-1 bg-gray-800 border-b border-gray-700">
-              <button
-                onClick={handleUndo}
-                disabled={!canUndo}
-                className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white"
-                title="Undo (Ctrl+Z)"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={handleRedo}
-                disabled={!canRedo}
-                className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white"
-                title="Redo (Ctrl+Shift+Z)"
-              >
-                <RotateCw className="w-3.5 h-3.5" />
-              </button>
-              <div className="w-px h-4 bg-white/20 mx-0.5" />
-              <button
-                onClick={() => selectedItemId ? handleSplitItem(selectedItemId, currentTimeMsRef.current) : handleSplitAtPlayhead()}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 text-white"
-                title="Split clip at playhead (S)"
-              >
-                <Scissors className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Split</span>
-              </button>
-              <button
-                onClick={() => selectedItemId && handleMergeItem(selectedItemId)}
-                disabled={!mergeTarget}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white"
-                title="Merge with next clip (J)"
-              >
-                <GitMerge className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Merge</span>
-              </button>
-              <button
-                onClick={() => selectedItemId && handleDuplicateItem(selectedItemId)}
-                disabled={!selectedItemId}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white"
-                title="Duplicate selected (D)"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Dupe</span>
-              </button>
-              <button
-                onClick={() => selectedItemId && handleCopyItem(selectedItemId)}
-                disabled={!selectedItemId}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white"
-                title="Copy selected (Ctrl+C)"
-              >
-                <Clipboard className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Copy</span>
-              </button>
-              {clipboard && (
+            <div className="shrink-0 flex items-center gap-2 px-2 py-1 bg-gray-800 border-b border-gray-700">
+              {/* Scrollable action buttons — overflow when toolbar is narrow */}
+              <div className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto scrollbar-none">
                 <button
-                  onClick={handlePasteItem}
-                  className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-brand-500/20 text-brand-400"
-                  title="Paste at playhead (Ctrl+V)"
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                  className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white"
+                  title="Undo (Ctrl+Z)"
                 >
-                  <ClipboardPaste className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Paste</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
                 </button>
-              )}
-              <div className="w-px h-4 bg-white/20 mx-0.5" />
-              <button
-                onClick={() => selectedItemId && handleDeleteItem(selectedItemId)}
-                disabled={!selectedItemId}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-red-500/20 disabled:opacity-30 text-red-400"
-                title="Delete clip (Del)"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Delete</span>
-              </button>
-              <button
-                onClick={() => selectedItemId && handleRippleDeleteItem(selectedItemId)}
-                disabled={!selectedItemId}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-red-500/20 disabled:opacity-30 text-red-400"
-                title="Ripple delete — close gap (Shift+Del)"
-              >
-                <Eraser className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Ripple</span>
-              </button>
-              <div className="w-px h-4 bg-white/20 mx-0.5" />
-              <button
-                onClick={() => setSnapEnabled((s) => !s)}
-                className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${snapEnabled ? 'text-brand-400 bg-brand-900/30' : 'text-gray-500 hover:bg-white/10 hover:text-white'}`}
-                title={snapEnabled ? 'Snap on (click to disable)' : 'Snap off (click to enable)'}
-              >
-                <Magnet className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Snap</span>
-              </button>
-              <div className="flex-1" />
-              <button
-                onClick={() => handleAddTrack('VIDEO')}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-white/10 text-violet-400"
-                title="Add video track"
-              >
-                <Plus className="w-3 h-3" /><Film className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => handleAddTrack('AUDIO')}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-white/10 text-emerald-400"
-                title="Add audio track"
-              >
-                <Plus className="w-3 h-3" /><Volume2 className="w-3 h-3" />
-              </button>
+                <button
+                  onClick={handleRedo}
+                  disabled={!canRedo}
+                  className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white"
+                  title="Redo (Ctrl+Shift+Z)"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                </button>
+                <div className="w-px h-4 bg-white/20 mx-0.5 shrink-0" />
+                <button
+                  onClick={() => selectedItemId ? handleSplitItem(selectedItemId, currentTimeMsRef.current) : handleSplitAtPlayhead()}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 text-white shrink-0"
+                  title="Split clip at playhead (S)"
+                >
+                  <Scissors className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Split</span>
+                </button>
+                <button
+                  onClick={() => selectedItemId && handleMergeItem(selectedItemId)}
+                  disabled={!mergeTarget}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white shrink-0"
+                  title="Merge with next clip (J)"
+                >
+                  <GitMerge className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Merge</span>
+                </button>
+                <button
+                  onClick={() => selectedItemId && handleDuplicateItem(selectedItemId)}
+                  disabled={!selectedItemId}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white shrink-0"
+                  title="Duplicate selected (D)"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Dupe</span>
+                </button>
+                <button
+                  onClick={() => selectedItemId && handleCopyItem(selectedItemId)}
+                  disabled={!selectedItemId}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white shrink-0"
+                  title="Copy selected (Ctrl+C)"
+                >
+                  <Clipboard className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Copy</span>
+                </button>
+                {clipboard && (
+                  <button
+                    onClick={handlePasteItem}
+                    className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-brand-500/20 text-brand-400 shrink-0"
+                    title="Paste at playhead (Ctrl+V)"
+                  >
+                    <ClipboardPaste className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Paste</span>
+                  </button>
+                )}
+                <div className="w-px h-4 bg-white/20 mx-0.5 shrink-0" />
+                <button
+                  onClick={() => selectedItemId && handleDeleteItem(selectedItemId)}
+                  disabled={!selectedItemId}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-red-500/20 disabled:opacity-30 text-red-400 shrink-0"
+                  title="Delete clip (Del)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+                <button
+                  onClick={() => selectedItemId && handleRippleDeleteItem(selectedItemId)}
+                  disabled={!selectedItemId}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-red-500/20 disabled:opacity-30 text-red-400 shrink-0"
+                  title="Ripple delete — close gap (Shift+Del)"
+                >
+                  <Eraser className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Ripple</span>
+                </button>
+                <div className="w-px h-4 bg-white/20 mx-0.5 shrink-0" />
+                <button
+                  onClick={() => setSnapEnabled((s) => !s)}
+                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors shrink-0 ${snapEnabled ? 'text-brand-400 bg-brand-900/30' : 'text-gray-500 hover:bg-white/10 hover:text-white'}`}
+                  title={snapEnabled ? 'Snap on (click to disable)' : 'Snap off (click to enable)'}
+                >
+                  <Magnet className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Snap</span>
+                </button>
+              </div>
+              {/* Always-visible track add buttons — pinned to right, never clipped */}
+              <div className="shrink-0 flex items-center gap-1 border-l border-white/10 pl-1.5">
+                <button
+                  onClick={() => handleAddTrack('VIDEO')}
+                  className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-white/10 text-violet-400"
+                  title="Add video track"
+                >
+                  <Plus className="w-3 h-3" /><Film className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => handleAddTrack('AUDIO')}
+                  className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-white/10 text-emerald-400"
+                  title="Add audio track"
+                >
+                  <Plus className="w-3 h-3" /><Volume2 className="w-3 h-3" />
+                </button>
+              </div>
             </div>
 
             {/* Timeline scroll area */}
