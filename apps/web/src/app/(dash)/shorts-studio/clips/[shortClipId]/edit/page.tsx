@@ -9,6 +9,7 @@ import {
   Film, Music2, Type, Layers, Volume2, VolumeX, Layout,
   Monitor, Smartphone, Square, RectangleHorizontal,
   Mic, Users, ImageIcon, Settings2, Sparkles, Zap, SlidersHorizontal,
+  Copy, GitMerge, Eraser,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { StudioToolPanels } from './StudioToolPanels';
@@ -137,6 +138,7 @@ export default function TimelineEditorPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<{ capability: string; commands: Command[] } | null>(null);
   const [assistBusy, setAssistBusy] = useState<string | null>(null);
+  const [fadeMap, setFadeMap] = useState<Map<string, { fadeIn: boolean; fadeOut: boolean }>>(new Map());
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -530,11 +532,70 @@ export default function TimelineEditorPage() {
     setSelectedId(null);
   }, [selectedId, perform]);
 
+  const duplicateSelected = useCallback(() => {
+    if (!selectedId || selectedId.startsWith('tmp-')) return;
+    perform([{ type: 'DUPLICATE', itemId: selectedId }]);
+  }, [selectedId, perform]);
+
+  const mergeWithAdjacent = useCallback(() => {
+    if (!selectedId || !timeline) return;
+    for (const track of timeline.tracks) {
+      const item = track.items.find((i) => i.id === selectedId);
+      if (!item) continue;
+      const next = track.items.find((i) => i.startMs >= item.endMs - 80 && i.startMs <= item.endMs + 80 && i.id !== selectedId);
+      if (!next) return;
+      perform([
+        { type: 'TRIM', itemId: item.id, newStartMs: item.startMs, newEndMs: next.endMs },
+        { type: 'DELETE', itemId: next.id },
+      ]);
+      return;
+    }
+  }, [selectedId, timeline, perform]);
+
+  const rippleDelete = useCallback(() => {
+    if (!selectedId || selectedId.startsWith('tmp-') || !timeline) return;
+    for (const track of timeline.tracks) {
+      const item = track.items.find((i) => i.id === selectedId);
+      if (!item) continue;
+      const len = item.endMs - item.startMs;
+      const moves: Command[] = timeline.tracks.flatMap((tr) =>
+        tr.items
+          .filter((i) => i.id !== selectedId && i.startMs >= item.endMs)
+          .map((i) => ({ type: 'MOVE' as const, itemId: i.id, toTrackId: i.trackId, toStartMs: i.startMs - len })),
+      );
+      perform([{ type: 'DELETE', itemId: selectedId }, ...moves]);
+      setSelectedId(null);
+      return;
+    }
+  }, [selectedId, timeline, perform]);
+
+  const toggleFade = useCallback((itemId: string, side: 'in' | 'out') => {
+    setFadeMap((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(itemId) ?? { fadeIn: false, fadeOut: false };
+      next.set(itemId, side === 'in' ? { ...cur, fadeIn: !cur.fadeIn } : { ...cur, fadeOut: !cur.fadeOut });
+      return next;
+    });
+  }, []);
+
+  const mergeTarget = useMemo(() => {
+    if (!selectedId || !timeline) return null;
+    for (const track of timeline.tracks) {
+      const item = track.items.find((i) => i.id === selectedId);
+      if (!item) continue;
+      return track.items.find((i) => i.startMs >= item.endMs - 80 && i.startMs <= item.endMs + 80 && i.id !== selectedId) ?? null;
+    }
+    return null;
+  }, [selectedId, timeline]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
       if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
       else if (e.key === 's' || e.key === 'S') splitAtPlayhead();
+      else if (e.key === 'd' || e.key === 'D') { e.preventDefault(); duplicateSelected(); }
+      else if (e.key === 'j' || e.key === 'J') { e.preventDefault(); mergeWithAdjacent(); }
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && e.shiftKey) { e.preventDefault(); rippleDelete(); }
       else if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
       else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); undo(); }
       else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); redo(); }
@@ -545,7 +606,7 @@ export default function TimelineEditorPage() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [togglePlay, splitAtPlayhead, deleteSelected, undo, redo, durationMs]);
+  }, [togglePlay, splitAtPlayhead, deleteSelected, duplicateSelected, mergeWithAdjacent, rippleDelete, undo, redo, durationMs]);
 
   // ── Drag interactions ────────────────────────────────────────────────────────
 
@@ -847,7 +908,11 @@ export default function TimelineEditorPage() {
             <button onClick={redo} disabled={redoStack.length === 0} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Redo (Ctrl+Shift+Z)"><Redo2 className="w-3.5 h-3.5 text-gray-600" /></button>
             <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             <button onClick={splitAtPlayhead} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 shrink-0" title="Split at playhead (S)"><Scissors className="w-3.5 h-3.5 text-gray-600" /></button>
+            <button onClick={mergeWithAdjacent} disabled={!mergeTarget} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Merge with next clip (J)"><GitMerge className="w-3.5 h-3.5 text-gray-600" /></button>
+            <button onClick={duplicateSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Duplicate selected (D)"><Copy className="w-3.5 h-3.5 text-gray-600" /></button>
+            <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
             <button onClick={deleteSelected} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 shrink-0" title="Delete selected (Del)"><Trash2 className="w-3.5 h-3.5 text-gray-600" /></button>
+            <button onClick={rippleDelete} disabled={!selectedId} className="flex items-center justify-center w-7 h-7 border border-red-100 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-40 shrink-0" title="Ripple delete — close gap (Shift+Del)"><Eraser className="w-3.5 h-3.5 text-red-500" /></button>
           </div>
 
           {/* ── Timeline ────────────────────────────────────────────────────── */}
@@ -999,6 +1064,14 @@ export default function TimelineEditorPage() {
                             <span className="absolute bottom-1 left-2 text-[9px] text-white/80 whitespace-nowrap z-10 font-mono">
                               {fmt(item.endMs - item.startMs)}
                             </span>
+                            {/* Fade-in overlay */}
+                            {fadeMap.get(item.id)?.fadeIn && (
+                              <div className="absolute left-0 top-0 bottom-0 w-8 rounded-l-lg pointer-events-none z-[5]" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.7), transparent)' }} />
+                            )}
+                            {/* Fade-out overlay */}
+                            {fadeMap.get(item.id)?.fadeOut && (
+                              <div className="absolute right-0 top-0 bottom-0 w-8 rounded-r-lg pointer-events-none z-[5]" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.7), transparent)' }} />
+                            )}
                             {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
                             <div onMouseDown={(e) => startDrag('trim-l', item, e)} className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/20 hover:bg-white/40 rounded-l-lg z-10" />
                             {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
@@ -1023,7 +1096,7 @@ export default function TimelineEditorPage() {
             </div>
           </div>
           <p className="text-[11px] text-gray-400 mt-2 select-none">
-            Space play/pause · S split · Del delete · Ctrl+Z/Y undo/redo · +/− zoom · ←/→ nudge · drag ruler or diamond to seek · drag edges to trim
+            Space play/pause · S split · J merge · D duplicate · Del delete · Shift+Del ripple delete · Ctrl+Z/Y undo/redo · +/− zoom · ←/→ nudge · drag edges to trim
           </p>
         </div>
 
@@ -1143,16 +1216,51 @@ export default function TimelineEditorPage() {
           </div>
         )}
 
-        {/* Studio tab */}
+        {/* Edit tab (studio) */}
         {desktopTab === 'studio' && (
-          <div className="p-2 max-h-64 overflow-y-auto">
-            <StudioToolPanels
-              timelineId={timeline.id}
-              shortClipId={shortClipId}
-              captionsText={timeline.captions.map((c) => c.text).join(' ')}
-              audioVersionId={timeline.tracks.find((t) => t.type === 'AUDIO')?.items[0]?.sourceAsset?.versions[0]?.id}
-              requestOpen={quickTool}
-            />
+          <div className="p-3 max-h-64 overflow-y-auto space-y-3">
+            {/* Quick edit actions */}
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Edit Actions</p>
+              <div className="flex gap-1.5 flex-wrap">
+                <button onClick={splitAtPlayhead} className="flex items-center gap-1.5 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Scissors className="w-3.5 h-3.5" /> Split (S)</button>
+                <button onClick={mergeWithAdjacent} disabled={!mergeTarget} className="flex items-center gap-1.5 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"><GitMerge className="w-3.5 h-3.5" /> Merge (J)</button>
+                <button onClick={duplicateSelected} disabled={!selectedId} className="flex items-center gap-1.5 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"><Copy className="w-3.5 h-3.5" /> Duplicate (D)</button>
+                <button onClick={rippleDelete} disabled={!selectedId} className="flex items-center gap-1.5 px-2.5 py-1.5 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100 disabled:opacity-40"><Eraser className="w-3.5 h-3.5" /> Ripple Delete</button>
+              </div>
+            </div>
+            {/* Transition controls for selected clip */}
+            {selectedId && (
+              <div>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Transitions</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleFade(selectedId, 'in')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeIn ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    ◁ Fade In
+                  </button>
+                  <button
+                    onClick={() => toggleFade(selectedId, 'out')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeOut ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    Fade Out ▷
+                  </button>
+                </div>
+                {(fadeMap.get(selectedId)?.fadeIn || fadeMap.get(selectedId)?.fadeOut) && (
+                  <p className="text-[10px] text-gray-400 mt-1">Fades preview on the timeline. Applied during render.</p>
+                )}
+              </div>
+            )}
+            <div className="border-t border-gray-100 pt-2">
+              <StudioToolPanels
+                timelineId={timeline.id}
+                shortClipId={shortClipId}
+                captionsText={timeline.captions.map((c) => c.text).join(' ')}
+                audioVersionId={timeline.tracks.find((t) => t.type === 'AUDIO')?.items[0]?.sourceAsset?.versions[0]?.id}
+                requestOpen={quickTool}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -1502,11 +1610,40 @@ export default function TimelineEditorPage() {
               <button onClick={() => { splitAtPlayhead(); setMobileSheet('none'); }} className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50">
                 <Scissors className="w-4 h-4" /> Split
               </button>
+              <button onClick={() => { mergeWithAdjacent(); setMobileSheet('none'); }} disabled={!mergeTarget} className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40">
+                <GitMerge className="w-4 h-4" /> Merge
+              </button>
+              <button onClick={() => { duplicateSelected(); setMobileSheet('none'); }} disabled={!selectedId} className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40">
+                <Copy className="w-4 h-4" /> Duplicate
+              </button>
               <button onClick={() => { deleteSelected(); setMobileSheet('none'); }} disabled={!selectedId} className="flex items-center justify-center gap-2 py-2.5 border border-red-100 bg-red-50 rounded-xl text-sm text-red-600 hover:bg-red-100 disabled:opacity-40">
                 <Trash2 className="w-4 h-4" /> Delete
               </button>
+              <button onClick={() => { rippleDelete(); setMobileSheet('none'); }} disabled={!selectedId} className="col-span-2 flex items-center justify-center gap-2 py-2.5 border border-red-200 rounded-xl text-sm text-red-700 hover:bg-red-50 disabled:opacity-40">
+                <Eraser className="w-4 h-4" /> Ripple Delete (close gap)
+              </button>
             </div>
           </div>
+          {/* Transitions */}
+          {selectedId && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Transitions</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => toggleFade(selectedId, 'in')}
+                  className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeIn ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                >
+                  ◁ Fade In
+                </button>
+                <button
+                  onClick={() => toggleFade(selectedId, 'out')}
+                  className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeOut ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                >
+                  Fade Out ▷
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Captions */}
           <div>

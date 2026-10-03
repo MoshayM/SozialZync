@@ -10,7 +10,7 @@ import {
   SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Sparkles, KeyRound, Link2Off,
   Music, CheckCircle2, HelpCircle, Mic, ListMusic, Lock, Upload,
   Link2, Library, Trash2, Youtube, Search, AlertCircle, Clock, ArrowRight, Layers,
-  Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen,
+  Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen, Copy, GitMerge, Eraser,
   FolderOpen, BookmarkPlus, Smartphone, Monitor, Square,
   Bold, Italic, AlignLeft, AlignCenter, AlignRight,
   FlipHorizontal2, Video, Shield,
@@ -3215,6 +3215,14 @@ function TimelineItem({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
+      {/* Fade-in overlay */}
+      {(item.properties?.fadeInMs ?? 0) > 0 && (
+        <div className="absolute left-0 top-0 bottom-0 w-8 pointer-events-none z-[5] rounded-l" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.7), transparent)' }} />
+      )}
+      {/* Fade-out overlay */}
+      {(item.properties?.fadeOutMs ?? 0) > 0 && (
+        <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none z-[5] rounded-r" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.7), transparent)' }} />
+      )}
       {/* Left trim handle */}
       <div
         className="absolute left-0 top-0 bottom-0 cursor-ew-resize z-10 flex items-center justify-center hover:bg-white/20"
@@ -4372,6 +4380,104 @@ export default function EditorWorkspacePage() {
     });
   }, [updateTimeline]);
 
+  const handleDuplicateItem = useCallback((itemId: string) => {
+    updateTimeline((tl) => {
+      for (const tr of tl.tracks) {
+        const item = (tr.items ?? []).find((it) => it.id === itemId);
+        if (!item) continue;
+        const len = item.timelineEndMs - item.timelineStartMs;
+        const dupe: EditItem = { ...item, id: `item-dup-${Date.now()}`, timelineStartMs: item.timelineEndMs, timelineEndMs: item.timelineEndMs + len, linkedItemId: undefined };
+        return {
+          ...tl,
+          durationMs: Math.max(tl.durationMs, dupe.timelineEndMs),
+          tracks: tl.tracks.map((t) =>
+            t.id === tr.id
+              ? { ...t, items: [...(t.items ?? []), dupe].sort((a, b) => a.timelineStartMs - b.timelineStartMs) }
+              : t,
+          ),
+        };
+      }
+      return tl;
+    });
+  }, [updateTimeline]);
+
+  const handleMergeItem = useCallback((itemId: string) => {
+    updateTimeline((tl) => {
+      for (const tr of tl.tracks) {
+        const items = tr.items ?? [];
+        const item = items.find((it) => it.id === itemId);
+        if (!item) continue;
+        const next = items.find((it) => it.timelineStartMs >= item.timelineEndMs - 80 && it.timelineStartMs <= item.timelineEndMs + 80 && it.id !== itemId);
+        if (!next) continue;
+        return {
+          ...tl,
+          tracks: tl.tracks.map((t) =>
+            t.id === tr.id
+              ? {
+                  ...t,
+                  items: items
+                    .filter((it) => it.id !== next.id)
+                    .map((it) => it.id === itemId ? { ...it, timelineEndMs: next.timelineEndMs, sourceOutMs: next.sourceOutMs } : it),
+                }
+              : t,
+          ),
+        };
+      }
+      return tl;
+    });
+  }, [updateTimeline]);
+
+  const handleRippleDeleteItem = useCallback((itemId: string) => {
+    setSelectedItemId((sel) => (sel === itemId ? null : sel));
+    updateTimeline((tl) => {
+      let len = 0;
+      let endMs = 0;
+      for (const tr of tl.tracks) {
+        const item = (tr.items ?? []).find((it) => it.id === itemId);
+        if (item) { len = item.timelineEndMs - item.timelineStartMs; endMs = item.timelineEndMs; break; }
+      }
+      if (!len) return tl;
+      const tracks = tl.tracks
+        .map((tr) => ({
+          ...tr,
+          items: (tr.items ?? [])
+            .filter((it) => it.id !== itemId)
+            .map((it) =>
+              it.timelineStartMs >= endMs
+                ? { ...it, timelineStartMs: it.timelineStartMs - len, timelineEndMs: it.timelineEndMs - len }
+                : it,
+            ),
+        }))
+        .filter((tr) => (tr.items ?? []).length > 0);
+      const durationMs = tracks.reduce(
+        (max, tr) => (tr.items ?? []).reduce((m, it) => Math.max(m, it.timelineEndMs), max),
+        0,
+      );
+      return { ...tl, tracks, durationMs };
+    });
+  }, [updateTimeline]);
+
+  const [fadeMap, setFadeMap] = useState<Map<string, { fadeIn: boolean; fadeOut: boolean }>>(new Map());
+  const toggleFade = useCallback((itemId: string, side: 'in' | 'out') => {
+    setFadeMap((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(itemId) ?? { fadeIn: false, fadeOut: false };
+      next.set(itemId, side === 'in' ? { ...cur, fadeIn: !cur.fadeIn } : { ...cur, fadeOut: !cur.fadeOut });
+      return next;
+    });
+  }, []);
+
+  const mergeTarget = useMemo(() => {
+    if (!selectedItemId || !timeline) return null;
+    for (const tr of timeline.tracks) {
+      const items = tr.items ?? [];
+      const item = items.find((it) => it.id === selectedItemId);
+      if (!item) continue;
+      return items.find((it) => it.timelineStartMs >= item.timelineEndMs - 80 && it.timelineStartMs <= item.timelineEndMs + 80 && it.id !== selectedItemId) ?? null;
+    }
+    return null;
+  }, [selectedItemId, timeline]);
+
   const handleUndo = useCallback(() => {
     if (historyIndexRef.current <= 0) return;
     historyIndexRef.current -= 1;
@@ -4823,10 +4929,16 @@ export default function EditorWorkspacePage() {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedItemId) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && e.shiftKey && selectedItemId) {
+        e.preventDefault(); handleRippleDeleteItem(selectedItemId);
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedItemId) {
         e.preventDefault(); handleDeleteItem(selectedItemId);
       } else if (e.key === 's' || e.key === 'S') {
         e.preventDefault(); handleSplitAtPlayhead();
+      } else if ((e.key === 'd' || e.key === 'D') && selectedItemId) {
+        e.preventDefault(); handleDuplicateItem(selectedItemId);
+      } else if ((e.key === 'j' || e.key === 'J') && selectedItemId) {
+        e.preventDefault(); handleMergeItem(selectedItemId);
       } else if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
         e.preventDefault(); handleUndo();
       } else if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
@@ -4835,7 +4947,7 @@ export default function EditorWorkspacePage() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedItemId, handleDeleteItem, handleSplitAtPlayhead, handleUndo, handleRedo]);
+  }, [selectedItemId, handleDeleteItem, handleRippleDeleteItem, handleDuplicateItem, handleMergeItem, handleSplitAtPlayhead, handleUndo, handleRedo]);
 
   // Playback via rAF — video is synced directly in the tick (not via React effects)
   // so React state is only updated at ~30 fps for the seek bar / time display.
@@ -5794,6 +5906,25 @@ export default function EditorWorkspacePage() {
                 <span className="hidden sm:inline">Split</span>
               </button>
               <button
+                onClick={() => selectedItemId && handleMergeItem(selectedItemId)}
+                disabled={!mergeTarget}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white"
+                title="Merge with next clip (J)"
+              >
+                <GitMerge className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Merge</span>
+              </button>
+              <button
+                onClick={() => selectedItemId && handleDuplicateItem(selectedItemId)}
+                disabled={!selectedItemId}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-white/10 disabled:opacity-30 text-white"
+                title="Duplicate selected (D)"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Dupe</span>
+              </button>
+              <div className="w-px h-4 bg-white/20 mx-0.5" />
+              <button
                 onClick={() => selectedItemId && handleDeleteItem(selectedItemId)}
                 disabled={!selectedItemId}
                 className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-red-500/20 disabled:opacity-30 text-red-400"
@@ -5801,6 +5932,15 @@ export default function EditorWorkspacePage() {
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Delete</span>
+              </button>
+              <button
+                onClick={() => selectedItemId && handleRippleDeleteItem(selectedItemId)}
+                disabled={!selectedItemId}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-red-500/20 disabled:opacity-30 text-red-400"
+                title="Ripple delete — close gap (Shift+Del)"
+              >
+                <Eraser className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ripple</span>
               </button>
               <div className="w-px h-4 bg-white/20 mx-0.5" />
               <button
@@ -6189,7 +6329,10 @@ export default function EditorWorkspacePage() {
                 { icon: <RotateCcw className="w-5 h-5" />, label: 'Undo', action: handleUndo, disabled: !canUndo, color: 'text-white' },
                 { icon: <RotateCw className="w-5 h-5" />, label: 'Redo', action: handleRedo, disabled: !canRedo, color: 'text-white' },
                 { icon: <Scissors className="w-5 h-5" />, label: 'Split', action: () => selectedItemId ? handleSplitItem(selectedItemId, currentTimeMsRef.current) : handleSplitAtPlayhead(), disabled: false, color: 'text-white' },
+                { icon: <GitMerge className="w-5 h-5" />, label: 'Merge', action: () => selectedItemId && handleMergeItem(selectedItemId), disabled: !mergeTarget, color: 'text-white' },
+                { icon: <Copy className="w-5 h-5" />, label: 'Dupe', action: () => selectedItemId && handleDuplicateItem(selectedItemId), disabled: !selectedItemId, color: 'text-white' },
                 { icon: <Trash2 className="w-5 h-5" />, label: 'Delete', action: () => selectedItemId && handleDeleteItem(selectedItemId), disabled: !selectedItemId, color: 'text-red-400' },
+                { icon: <Eraser className="w-5 h-5" />, label: 'Ripple', action: () => selectedItemId && handleRippleDeleteItem(selectedItemId), disabled: !selectedItemId, color: 'text-red-400' },
                 { icon: <Magnet className="w-5 h-5" />, label: snapEnabled ? 'Snap On' : 'Snap Off', action: () => setSnapEnabled(s => !s), disabled: false, color: snapEnabled ? 'text-brand-400' : 'text-gray-400' },
                 { icon: <Film className="w-5 h-5" />, label: '+ Video', action: () => { handleAddTrack('VIDEO'); setMobileSheet('none'); }, disabled: false, color: 'text-violet-400' },
                 { icon: <Volume2 className="w-5 h-5" />, label: '+ Audio', action: () => { handleAddTrack('AUDIO'); setMobileSheet('none'); }, disabled: false, color: 'text-emerald-400' },
