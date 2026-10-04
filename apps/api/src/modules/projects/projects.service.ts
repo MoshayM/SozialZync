@@ -84,27 +84,34 @@ export class ProjectsService {
   async get(userId: string, projectId: string) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- isDemo pending Prisma client regen after migration
     const project = await (this.prisma.project as any).findFirst({
-      where: { id: projectId, OR: [{ userId }, { isDemo: true }] },
+      where: { AND: [{ id: projectId }, { OR: [{ userId }, { isDemo: true }] }] },
       include: {
-        channel: { select: { id: true, title: true, thumbnailUrl: true, youtubeChannelId: true } },
+        channel: { select: { id: true, title: true, thumbnailUrl: true, youtubeChannelId: true, active: true } },
         jobs: { orderBy: { createdAt: 'desc' }, take: 10 },
         videos: { orderBy: { createdAt: 'desc' } },
-        approvals: { where: { status: 'PENDING' } },
+        approvals: true,
       },
     });
     if (!project) throw new NotFoundException('Project not found');
 
-    // The pipeline tiles derive stage state from the latest COMPLETED job of
-    // each type; those can age out of the recent-10 window above, so merge in
-    // one latest-per-type row (distinct picks the first per type in desc order).
-    const latestPerType = await this.prisma.agentJob.findMany({
+    // Merge in the latest completed job per type so pipeline tiles work even
+    // when those jobs have aged out of the recent-10 window above.
+    // Use in-JS deduplication to avoid Prisma distinct/orderBy constraints.
+    const allCompleted = await this.prisma.agentJob.findMany({
       where: { projectId, status: 'COMPLETED' },
-      orderBy: [{ type: 'asc' }, { createdAt: 'desc' }],
-      distinct: ['type'],
+      orderBy: { createdAt: 'desc' },
+    });
+    const seenTypes = new Set<string>();
+    const latestPerType = allCompleted.filter((j) => {
+      if (seenTypes.has(j.type)) return false;
+      seenTypes.add(j.type);
+      return true;
     });
     const seen = new Set((project.jobs as Array<{ id: string }>).map((j) => j.id));
     const merged = [...(project.jobs as unknown[]), ...latestPerType.filter((j) => !seen.has(j.id))];
-    return { ...project, jobs: merged };
+    // Filter approvals to only PENDING ones (done in JS to avoid Prisma enum string coercion issues)
+    const pendingApprovals = (project.approvals as Array<{ status: string }>).filter((a) => a.status === 'PENDING');
+    return { ...project, jobs: merged, approvals: pendingApprovals };
   }
 
   async update(userId: string, projectId: string, data: Partial<CreateProjectDto> & { status?: string; publishingStatus?: string }, userRole?: string) {
