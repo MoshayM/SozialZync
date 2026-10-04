@@ -933,6 +933,14 @@ export default function TimelineEditorPage() {
             </span>
           )}
           <div className="flex-1" />
+          <button
+            onClick={() => void openInEditor()}
+            disabled={openingInEditor}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            {openingInEditor ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+            Open in Editor
+          </button>
           <Link
             href={`/shorts-studio/clips/${shortClipId}/export`}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pending.length === 0 && !saving ? 'bg-brand-600 text-white hover:bg-brand-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
@@ -1301,7 +1309,7 @@ export default function TimelineEditorPage() {
                           return (
                             <div
                               key={item.id}
-                              onClick={() => { setSelectedId(item.id); setDesktopTab('studio'); }}
+                              onClick={() => { setSelectedId(item.id); setDesktopTab('canvas'); }}
                               className={`absolute top-1.5 bottom-1.5 rounded-lg border border-teal-400 bg-teal-500/40 overflow-hidden cursor-pointer hover:bg-teal-500/60 ${selectedId === item.id ? 'ring-2 ring-white/60 ring-offset-1' : ''}`}
                               style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
                               title="Video audio (embedded) — click to select"
@@ -1323,7 +1331,7 @@ export default function TimelineEditorPage() {
                           <div
                             key={item.id}
                             onMouseDown={(e) => startDrag('move', item, e)}
-                            onClick={() => { if (isAudioTrack) setDesktopTab('studio'); }}
+                            onClick={() => setDesktopTab('canvas')}
                             className={`absolute top-1.5 bottom-1.5 rounded-lg border cursor-grab active:cursor-grabbing overflow-hidden ${TRACK_COLORS[track.type]} ${selectedId === item.id ? 'ring-2 ring-offset-1 ring-white/60' : ''}`}
                             style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
                           >
@@ -1411,6 +1419,149 @@ export default function TimelineEditorPage() {
         {/* Canvas tab */}
         {desktopTab === 'canvas' && (
           <div className="p-4 space-y-4">
+            {/* Per-item inspector */}
+            {(() => {
+              if (selectedId?.startsWith('linked-audio-')) {
+                return (
+                  <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Music2 className="w-4 h-4 text-teal-600 shrink-0" />
+                      <p className="text-sm font-semibold text-teal-800 flex-1">Embedded Video Audio</p>
+                    </div>
+                    <p className="text-xs text-teal-700">This is the original audio track embedded in the video clip. Use fade controls to smooth transitions.</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => toggleFade(selectedId, 'in')}
+                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeIn ? 'border-teal-500 bg-teal-100 text-teal-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                        Fade In
+                      </button>
+                      <button onClick={() => toggleFade(selectedId, 'out')}
+                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeOut ? 'border-teal-500 bg-teal-100 text-teal-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                        Fade Out
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+              if (selectedItem && (selectedTrackType === 'AUDIO' || selectedTrackType === 'MUSIC')) {
+                return (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Music2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <p className="text-sm font-semibold text-emerald-800 flex-1">{selectedTrackType === 'MUSIC' ? 'Music' : 'Audio Clip'}</p>
+                      <span className="text-[10px] font-mono text-emerald-600">{fmt(selectedItem.endMs - selectedItem.startMs)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => splitAtPlayhead()} className="flex items-center justify-center gap-1.5 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Scissors className="w-3.5 h-3.5" /> Split here</button>
+                      <button onClick={() => deleteSelected()} className="flex items-center justify-center gap-1.5 py-2 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => toggleFade(selectedItem.id, 'in')}
+                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeIn ? 'border-emerald-500 bg-emerald-100 text-emerald-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                        Fade In
+                      </button>
+                      <button onClick={() => toggleFade(selectedItem.id, 'out')}
+                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeOut ? 'border-emerald-500 bg-emerald-100 text-emerald-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                        Fade Out
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Audio Tools</p>
+                      {([
+                        { id: 'audio', label: 'AI Enhance Audio', sub: 'Boost clarity & presence', Icon: Sparkles },
+                        { id: 'normalize', label: 'Normalize Loudness', sub: 'Balance volume levels', Icon: SlidersHorizontal },
+                        { id: 'denoise', label: 'Remove Background Noise', sub: 'Clean up the track', Icon: Zap },
+                      ]).map((tool) => (
+                        <button key={tool.id} onClick={() => setQuickTool('audio')}
+                          className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-left hover:bg-gray-50 text-xs text-gray-700">
+                          <tool.Icon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <span className="font-medium">{tool.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              if (selectedItem && selectedTrackType === 'VIDEO') {
+                return (
+                  <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Film className="w-4 h-4 text-violet-600 shrink-0" />
+                      <p className="text-sm font-semibold text-violet-800 flex-1">Video Clip</p>
+                      <span className="text-[10px] font-mono text-violet-600">{fmt(selectedItem.endMs - selectedItem.startMs)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => splitAtPlayhead()} className="flex items-center justify-center gap-1.5 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Scissors className="w-3.5 h-3.5" /> Split here</button>
+                      <button onClick={() => deleteSelected()} className="flex items-center justify-center gap-1.5 py-2 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => toggleFade(selectedItem.id, 'in')}
+                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeIn ? 'border-violet-500 bg-violet-100 text-violet-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                        Fade In
+                      </button>
+                      <button onClick={() => toggleFade(selectedItem.id, 'out')}
+                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeOut ? 'border-violet-500 bg-violet-100 text-violet-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                        Fade Out
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">AI Enhancements</p>
+                      {([
+                        ['remove-silence', 'Remove Silence', 'Cuts out pauses'] ,
+                        ['remove-fillers', 'Remove Filler Words', 'Removes um, uh, like…'],
+                        ['improve-pacing', 'Improve Pacing', 'Tightens rhythm'],
+                      ] as const).map(([cap, label]) => (
+                        <button key={cap} onClick={() => void runAssist(cap)} disabled={assistBusy !== null}
+                          className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-left hover:bg-gray-50 disabled:opacity-50 text-xs text-gray-700">
+                          {assistBusy === cap ? <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600 shrink-0" /> : <Wand2 className="w-3.5 h-3.5 text-brand-500 shrink-0" />}
+                          <span className="font-medium">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              const selText = userTextOverlays.find((o) => o.id === selectedId);
+              if (selText) {
+                return (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Type className="w-4 h-4 text-amber-600 shrink-0" />
+                      <p className="text-sm font-semibold text-amber-800 flex-1">Text Overlay</p>
+                      <button onClick={() => { setUserTextOverlays((prev) => prev.filter((o) => o.id !== selectedId)); setSelectedId(null); }}
+                        className="p-1 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                    <input type="text" value={selText.text}
+                      onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, text: e.target.value } : o))}
+                      placeholder="Text content…"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400" />
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {(['sm', 'md', 'lg'] as const).map((s) => (
+                          <button key={s} onClick={() => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, fontSize: s } : o))}
+                            className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition-colors ${selText.fontSize === s ? 'border-amber-500 bg-amber-100 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                            {s.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-1.5 ml-auto">
+                        {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6', '#22c55e'].map((c) => (
+                          <button key={c} onClick={() => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, color: c } : o))}
+                            className={`w-5 h-5 rounded-full border-2 transition-all ${selText.color === c ? 'border-gray-700 scale-110' : 'border-transparent'}`}
+                            style={{ background: c }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="flex items-center gap-2 py-2 text-xs text-gray-400">
+                  <Settings2 className="w-3.5 h-3.5" />
+                  <span>Click a clip or text overlay to inspect it</span>
+                </div>
+              );
+            })()}
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Canvas Format</p>
             <div className="flex gap-2 flex-wrap">
               {CANVAS_PRESETS.map((p) => {
                 const active = canvasConfig.aspect === p.key;
