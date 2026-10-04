@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, HttpException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { decodeCursor, keysetWhereDesc, clampLimit, pageResult } from '../../common/pagination/cursor';
 
@@ -82,36 +82,44 @@ export class ProjectsService {
   }
 
   async get(userId: string, projectId: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- isDemo pending Prisma client regen after migration
-    const project = await (this.prisma.project as any).findFirst({
-      where: { AND: [{ id: projectId }, { OR: [{ userId }, { isDemo: true }] }] },
-      include: {
-        channel: { select: { id: true, title: true, thumbnailUrl: true, youtubeChannelId: true, active: true } },
-        jobs: { orderBy: { createdAt: 'desc' }, take: 10 },
-        videos: { orderBy: { createdAt: 'desc' } },
-        approvals: true,
-      },
-    });
-    if (!project) throw new NotFoundException('Project not found');
+    let _diagStep = 'findFirst';
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- isDemo pending Prisma client regen after migration
+      const project = await (this.prisma.project as any).findFirst({
+        where: { AND: [{ id: projectId }, { OR: [{ userId }, { isDemo: true }] }] },
+        include: {
+          channel: { select: { id: true, title: true, thumbnailUrl: true, youtubeChannelId: true, active: true } },
+          jobs: { orderBy: { createdAt: 'desc' }, take: 10 },
+          videos: { orderBy: { createdAt: 'desc' } },
+          approvals: true,
+        },
+      });
+      if (!project) throw new NotFoundException('Project not found');
 
-    // Merge in the latest completed job per type so pipeline tiles work even
-    // when those jobs have aged out of the recent-10 window above.
-    // Use in-JS deduplication to avoid Prisma distinct/orderBy constraints.
-    const allCompleted = await this.prisma.agentJob.findMany({
-      where: { projectId, status: 'COMPLETED' },
-      orderBy: { createdAt: 'desc' },
-    });
-    const seenTypes = new Set<string>();
-    const latestPerType = allCompleted.filter((j) => {
-      if (seenTypes.has(j.type)) return false;
-      seenTypes.add(j.type);
-      return true;
-    });
-    const seen = new Set((project.jobs as Array<{ id: string }>).map((j) => j.id));
-    const merged = [...(project.jobs as unknown[]), ...latestPerType.filter((j) => !seen.has(j.id))];
-    // Filter approvals to only PENDING ones (done in JS to avoid Prisma enum string coercion issues)
-    const pendingApprovals = (project.approvals as Array<{ status: string }>).filter((a) => a.status === 'PENDING');
-    return { ...project, jobs: merged, approvals: pendingApprovals };
+      _diagStep = 'agentJob.findMany';
+      const allCompleted = await this.prisma.agentJob.findMany({
+        where: { projectId, status: 'COMPLETED' as import('@prisma/client').JobStatus },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      _diagStep = 'js-dedup';
+      const seenTypes = new Set<string>();
+      const latestPerType = allCompleted.filter((j) => {
+        if (seenTypes.has(j.type)) return false;
+        seenTypes.add(j.type);
+        return true;
+      });
+      const seen = new Set((project.jobs as Array<{ id: string }>).map((j) => j.id));
+      const merged = [...(project.jobs as unknown[]), ...latestPerType.filter((j) => !seen.has(j.id))];
+      const pendingApprovals = (project.approvals as Array<{ status: string }>).filter((a) => a.status === 'PENDING');
+
+      _diagStep = 'return';
+      return { ...project, jobs: merged, approvals: pendingApprovals };
+    } catch (e) {
+      if (e instanceof HttpException) throw e;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic catch
+      throw new InternalServerErrorException(`[diag:${_diagStep}] ${(e as any)?.message ?? String(e)}`);
+    }
   }
 
   async update(userId: string, projectId: string, data: Partial<CreateProjectDto> & { status?: string; publishingStatus?: string }, userRole?: string) {
