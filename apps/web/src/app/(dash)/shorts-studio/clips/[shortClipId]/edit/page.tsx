@@ -10,6 +10,7 @@ import {
   Monitor, Smartphone, Square, RectangleHorizontal,
   Mic, Users, ImageIcon, Settings2, Sparkles, Zap, SlidersHorizontal,
   Copy, GitMerge, Eraser, ExternalLink, ClipboardPaste, Plus,
+  FlipHorizontal2, ChevronDown, Upload,
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { StudioToolPanels } from './StudioToolPanels';
@@ -26,7 +27,7 @@ interface Item {
 }
 interface Track { id: string; type: 'VIDEO' | 'AUDIO' | 'MUSIC' | 'CAPTION' | 'OVERLAY'; orderIndex: number; items: Item[] }
 interface Caption { id: string; startMs: number; endMs: number; text: string; emphasis: boolean; emoji: string | null }
-interface TextOverlay { id: string; startMs: number; endMs: number; text: string; x: number; y: number; fontSize: 'sm' | 'md' | 'lg'; color: string }
+interface TextOverlay { id: string; startMs: number; endMs: number; text: string; x: number; y: number; fontSize: 'sm' | 'md' | 'lg'; color: string; textAnim?: 'none' | 'fade-in' | 'slide-up' }
 interface CanvasConfig { aspect: '9:16' | '16:9' | '1:1' | '4:5'; fit: 'fill' | 'contain'; panX: number; panY: number; scale: number }
 interface TimelineData { id: string; durationMs: number; tracks: Track[]; captions: Caption[]; canvasConfig?: CanvasConfig | null }
 interface ClipData {
@@ -151,6 +152,21 @@ export default function TimelineEditorPage() {
   const [textNewFontSize, setTextNewFontSize] = useState<TextOverlay['fontSize']>('md');
   const [textNewColor, setTextNewColor] = useState('#ffffff');
   const [userTextOverlays, setUserTextOverlays] = useState<TextOverlay[]>([]);
+  // Per-item property overrides (session-only)
+  const [itemPropsMap, setItemPropsMap] = useState<Map<string, {
+    volume?: number; gainDb?: number; speed?: number; fadeInMs?: number; fadeOutMs?: number;
+    duckUnderVoice?: boolean; reverse?: boolean; brightness?: number; contrast?: number;
+    saturation?: number; blur?: number; grayscale?: boolean;
+    transitionIn?: string; transitionInDurMs?: number;
+  }>>(new Map());
+  const [aiEnhanceSteps, setAiEnhanceSteps] = useState({ trimSilence: true, denoise: true, normalize: true });
+  const [aiEnhancing, setAiEnhancing] = useState(false);
+  const [aiEnhanceDone, setAiEnhanceDone] = useState(false);
+  const [aiEnhanceError, setAiEnhanceError] = useState('');
+  const [inspEffectsOpen, setInspEffectsOpen] = useState(true);
+  const [inspTransitionOpen, setInspTransitionOpen] = useState(true);
+  const [inspAudioOpen, setInspAudioOpen] = useState(true);
+  const [inspTextAnimOpen, setInspTextAnimOpen] = useState(true);
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [brand, setBrand] = useState<{
     type: 'text' | 'logo'; text: string; logoUrl?: string;
@@ -164,6 +180,11 @@ export default function TimelineEditorPage() {
   pendingRef.current = pending;
   const timelineRef = useRef<TimelineData | null>(null);
   timelineRef.current = timeline;
+
+  const getItemProps = (id: string) => itemPropsMap.get(id) ?? {};
+  const setItemProp = (id: string, key: string, value: unknown) => {
+    setItemPropsMap((prev) => { const next = new Map(prev); next.set(id, { ...next.get(id), [key]: value }); return next; });
+  };
 
   // Sync timeline from server on first load
   useEffect(() => {
@@ -1416,104 +1437,203 @@ export default function TimelineEditorPage() {
           ))}
         </div>
 
-        {/* Canvas tab */}
+        {/* Inspect tab */}
         {desktopTab === 'canvas' && (
-          <div className="p-4 space-y-4">
+          <div className="flex flex-col" style={{ height: 'calc(100% - 0px)' }}>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* Per-item inspector */}
             {(() => {
               if (selectedId?.startsWith('linked-audio-')) {
+                const ip = getItemProps(selectedId);
                 return (
-                  <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Music2 className="w-4 h-4 text-teal-600 shrink-0" />
-                      <p className="text-sm font-semibold text-teal-800 flex-1">Embedded Video Audio</p>
+                  <div className="border border-teal-200 bg-teal-50 rounded-xl p-3 space-y-3">
+                    <p className="text-xs font-semibold text-teal-700 flex items-center gap-1.5"><Music2 className="w-3.5 h-3.5" /> Embedded Video Audio</p>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Volume</span><span className="font-mono">{Math.round((ip.volume ?? 1) * 100)}%</span></div>
+                      <input type="range" min={0} max={2} step={0.01} value={ip.volume ?? 1} onChange={(e) => setItemProp(selectedId, 'volume', parseFloat(e.target.value))} className="w-full accent-teal-600" />
                     </div>
-                    <p className="text-xs text-teal-700">This is the original audio track embedded in the video clip. Use fade controls to smooth transitions.</p>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Gain</span><span className="font-mono">{(ip.gainDb ?? 0).toFixed(1)} dB</span></div>
+                      <input type="range" min={-60} max={12} step={0.5} value={ip.gainDb ?? 0} onChange={(e) => setItemProp(selectedId, 'gainDb', parseFloat(e.target.value))} className="w-full accent-teal-600" />
+                    </div>
                     <div className="flex gap-2">
-                      <button onClick={() => toggleFade(selectedId, 'in')}
-                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeIn ? 'border-teal-500 bg-teal-100 text-teal-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        Fade In
-                      </button>
-                      <button onClick={() => toggleFade(selectedId, 'out')}
-                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeOut ? 'border-teal-500 bg-teal-100 text-teal-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        Fade Out
+                      <button onClick={() => toggleFade(selectedId, 'in')} className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeIn ? 'border-teal-500 bg-teal-100 text-teal-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>◁ Fade In</button>
+                      <button onClick={() => toggleFade(selectedId, 'out')} className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedId)?.fadeOut ? 'border-teal-500 bg-teal-100 text-teal-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Fade Out ▷</button>
+                    </div>
+                    <div className="border-t border-teal-100 pt-2">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">AI Audio Enhance</p>
+                      {(['trimSilence', 'denoise', 'normalize'] as const).map((step) => (
+                        <label key={step} className="flex items-center gap-2 mb-1.5 cursor-pointer">
+                          <input type="checkbox" checked={aiEnhanceSteps[step]} onChange={(e) => setAiEnhanceSteps((s) => ({ ...s, [step]: e.target.checked }))} className="w-3.5 h-3.5 accent-teal-600 rounded" />
+                          <span className="text-xs text-gray-700">{step === 'trimSilence' ? 'Trim silence' : step === 'denoise' ? 'Noise removal' : 'Normalize (−14 LUFS)'}</span>
+                        </label>
+                      ))}
+                      {aiEnhanceError && <p className="text-[11px] text-red-600 bg-red-50 rounded px-2 py-1 mb-1">{aiEnhanceError}</p>}
+                      {aiEnhanceDone && !aiEnhanceError && <p className="text-[11px] text-emerald-700 bg-emerald-50 rounded px-2 py-1 mb-1 flex items-center gap-1"><Check className="w-3 h-3" /> Audio enhanced</p>}
+                      <button disabled={aiEnhancing} onClick={() => setQuickTool('audio')} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#0d9488,#7c5ae8)' }}>
+                        {aiEnhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        {aiEnhancing ? 'Processing…' : 'Run AI Enhance'}
                       </button>
                     </div>
                   </div>
                 );
               }
               if (selectedItem && (selectedTrackType === 'AUDIO' || selectedTrackType === 'MUSIC')) {
+                const ip = getItemProps(selectedItem.id);
                 return (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Music2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <p className="text-sm font-semibold text-emerald-800 flex-1">{selectedTrackType === 'MUSIC' ? 'Music' : 'Audio Clip'}</p>
+                  <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><Music2 className="w-3.5 h-3.5" /> {selectedTrackType === 'MUSIC' ? 'Music Clip' : 'Audio Clip'}</p>
                       <span className="text-[10px] font-mono text-emerald-600">{fmt(selectedItem.endMs - selectedItem.startMs)}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => splitAtPlayhead()} className="flex items-center justify-center gap-1.5 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Scissors className="w-3.5 h-3.5" /> Split here</button>
-                      <button onClick={() => deleteSelected()} className="flex items-center justify-center gap-1.5 py-2 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
+                    <div className="flex gap-1.5 flex-wrap">
+                      <button onClick={splitAtPlayhead} className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Scissors className="w-3 h-3" /> Split</button>
+                      <button onClick={duplicateSelected} className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Copy className="w-3 h-3" /> Dupe</button>
+                      <button onClick={deleteSelected} className="flex items-center gap-1 px-2.5 py-1.5 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100"><Trash2 className="w-3 h-3" /> Delete</button>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Volume</span><span className="font-mono">{Math.round((ip.volume ?? 1) * 100)}%</span></div>
+                      <input type="range" min={0} max={2} step={0.01} value={ip.volume ?? 1} onChange={(e) => setItemProp(selectedItem.id, 'volume', parseFloat(e.target.value))} className="w-full accent-emerald-600" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Gain</span><span className="font-mono">{(ip.gainDb ?? 0).toFixed(1)} dB</span></div>
+                      <input type="range" min={-60} max={12} step={0.5} value={ip.gainDb ?? 0} onChange={(e) => setItemProp(selectedItem.id, 'gainDb', parseFloat(e.target.value))} className="w-full accent-emerald-600" />
+                      <div className="flex justify-between text-[9px] text-gray-400 mt-0.5"><span>−60</span><span>0 dB</span><span>+12</span></div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => toggleFade(selectedItem.id, 'in')}
-                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeIn ? 'border-emerald-500 bg-emerald-100 text-emerald-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        Fade In
-                      </button>
-                      <button onClick={() => toggleFade(selectedItem.id, 'out')}
-                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeOut ? 'border-emerald-500 bg-emerald-100 text-emerald-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        Fade Out
-                      </button>
+                      <button onClick={() => toggleFade(selectedItem.id, 'in')} className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeIn ? 'border-emerald-500 bg-emerald-100 text-emerald-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>◁ Fade In</button>
+                      <button onClick={() => toggleFade(selectedItem.id, 'out')} className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeOut ? 'border-emerald-500 bg-emerald-100 text-emerald-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Fade Out ▷</button>
                     </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Audio Tools</p>
-                      {([
-                        { id: 'audio', label: 'AI Enhance Audio', sub: 'Boost clarity & presence', Icon: Sparkles },
-                        { id: 'normalize', label: 'Normalize Loudness', sub: 'Balance volume levels', Icon: SlidersHorizontal },
-                        { id: 'denoise', label: 'Remove Background Noise', sub: 'Clean up the track', Icon: Zap },
-                      ]).map((tool) => (
-                        <button key={tool.id} onClick={() => setQuickTool('audio')}
-                          className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-left hover:bg-gray-50 text-xs text-gray-700">
-                          <tool.Icon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                          <span className="font-medium">{tool.label}</span>
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="text-[10px] text-gray-500 mb-1 block">Fade in (ms)</label><input type="number" min={0} max={10000} step={50} value={ip.fadeInMs ?? 0} onChange={(e) => setItemProp(selectedItem.id, 'fadeInMs', Math.max(0, parseInt(e.target.value) || 0))} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs" /></div>
+                      <div><label className="text-[10px] text-gray-500 mb-1 block">Fade out (ms)</label><input type="number" min={0} max={10000} step={50} value={ip.fadeOutMs ?? 0} onChange={(e) => setItemProp(selectedItem.id, 'fadeOutMs', Math.max(0, parseInt(e.target.value) || 0))} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs" /></div>
+                    </div>
+                    {selectedTrackType === 'AUDIO' && (
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={ip.duckUnderVoice ?? false} onChange={(e) => setItemProp(selectedItem.id, 'duckUnderVoice', e.target.checked)} className="w-4 h-4 accent-emerald-600 rounded" />
+                        <span className="text-xs text-gray-700">Duck under voice</span>
+                      </label>
+                    )}
+                    <div className="border-t border-emerald-100 pt-2">
+                      <button className="flex items-center gap-1.5 w-full text-left mb-2" onClick={() => setInspAudioOpen((o) => !o)}>
+                        <Sparkles className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+                        <span className="text-[10px] font-semibold text-brand-600 uppercase tracking-wide flex-1">AI Audio Enhance</span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${inspAudioOpen ? '' : '-rotate-90'}`} />
+                      </button>
+                      {inspAudioOpen && (
+                        <div className="space-y-2">
+                          {(['trimSilence', 'denoise', 'normalize'] as const).map((step) => (
+                            <label key={step} className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={aiEnhanceSteps[step]} onChange={(e) => setAiEnhanceSteps((s) => ({ ...s, [step]: e.target.checked }))} className="w-3.5 h-3.5 accent-brand-600 rounded" />
+                              <span className="text-xs text-gray-700">{step === 'trimSilence' ? 'Trim silence' : step === 'denoise' ? 'Noise removal' : 'Normalize (−14 LUFS)'}</span>
+                            </label>
+                          ))}
+                          {aiEnhanceDone && !aiEnhanceError && <p className="text-[11px] text-emerald-700 bg-emerald-50 rounded px-2 py-1 flex items-center gap-1"><Check className="w-3 h-3" /> Audio enhanced</p>}
+                          {aiEnhanceError && <p className="text-[11px] text-red-600 bg-red-50 rounded px-2 py-1">{aiEnhanceError}</p>}
+                          <button disabled={aiEnhancing} onClick={() => setQuickTool('audio')} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#374151,#7c5ae8)' }}>
+                            {aiEnhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                            {aiEnhancing ? 'Processing…' : 'Run AI Enhance'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               }
               if (selectedItem && selectedTrackType === 'VIDEO') {
+                const ip = getItemProps(selectedItem.id);
                 return (
-                  <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Film className="w-4 h-4 text-violet-600 shrink-0" />
-                      <p className="text-sm font-semibold text-violet-800 flex-1">Video Clip</p>
+                  <div className="border border-violet-200 bg-violet-50 rounded-xl p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-violet-700 flex items-center gap-1.5"><Film className="w-3.5 h-3.5" /> Video Clip</p>
                       <span className="text-[10px] font-mono text-violet-600">{fmt(selectedItem.endMs - selectedItem.startMs)}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => splitAtPlayhead()} className="flex items-center justify-center gap-1.5 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Scissors className="w-3.5 h-3.5" /> Split here</button>
-                      <button onClick={() => deleteSelected()} className="flex items-center justify-center gap-1.5 py-2 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
+                    <div className="flex gap-1.5 flex-wrap">
+                      <button onClick={splitAtPlayhead} className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Scissors className="w-3 h-3" /> Split</button>
+                      <button onClick={duplicateSelected} className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"><Copy className="w-3 h-3" /> Dupe</button>
+                      <button onClick={deleteSelected} className="flex items-center gap-1 px-2.5 py-1.5 border border-red-100 bg-red-50 rounded-lg text-xs text-red-600 hover:bg-red-100"><Trash2 className="w-3 h-3" /> Delete</button>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Speed</span><span className="font-mono">{(ip.speed ?? 1).toFixed(2)}×</span></div>
+                      <input type="range" min={0.25} max={4} step={0.05} value={ip.speed ?? 1} onChange={(e) => setItemProp(selectedItem.id, 'speed', parseFloat(e.target.value))} className="w-full accent-violet-600" />
+                      <div className="flex gap-1 mt-1.5 flex-wrap">
+                        {[0.5, 0.75, 1, 1.5, 2, 4].map((s) => (
+                          <button key={s} onClick={() => setItemProp(selectedItem.id, 'speed', s)} className={`px-2 py-0.5 text-[10px] font-semibold rounded border transition-colors ${Math.abs((ip.speed ?? 1) - s) < 0.01 ? 'border-violet-500 bg-violet-600 text-white' : 'border-gray-200 text-gray-600 hover:border-violet-300'}`}>{s}×</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-700 flex items-center gap-1"><FlipHorizontal2 className="w-3.5 h-3.5" /> Reverse</span>
+                      <button onClick={() => setItemProp(selectedItem.id, 'reverse', !(ip.reverse ?? false))} className={`px-3 py-1 text-xs rounded-full border font-medium transition-colors ${ip.reverse ? 'border-violet-500 bg-violet-100 text-violet-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{ip.reverse ? 'On' : 'Off'}</button>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Volume</span><span className="font-mono">{Math.round((ip.volume ?? 1) * 100)}%</span></div>
+                      <input type="range" min={0} max={2} step={0.01} value={ip.volume ?? 1} onChange={(e) => setItemProp(selectedItem.id, 'volume', parseFloat(e.target.value))} className="w-full accent-violet-600" />
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => toggleFade(selectedItem.id, 'in')}
-                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeIn ? 'border-violet-500 bg-violet-100 text-violet-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        Fade In
-                      </button>
-                      <button onClick={() => toggleFade(selectedItem.id, 'out')}
-                        className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeOut ? 'border-violet-500 bg-violet-100 text-violet-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        Fade Out
-                      </button>
+                      <button onClick={() => toggleFade(selectedItem.id, 'in')} className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeIn ? 'border-violet-500 bg-violet-100 text-violet-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>◁ Fade In</button>
+                      <button onClick={() => toggleFade(selectedItem.id, 'out')} className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${fadeMap.get(selectedItem.id)?.fadeOut ? 'border-violet-500 bg-violet-100 text-violet-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Fade Out ▷</button>
                     </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">AI Enhancements</p>
+                    <div className="border-t border-violet-100 pt-2">
+                      <button className="flex items-center gap-1.5 w-full text-left mb-2" onClick={() => setInspEffectsOpen((o) => !o)}>
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide flex-1">Effects</span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${inspEffectsOpen ? '' : '-rotate-90'}`} />
+                      </button>
+                      {inspEffectsOpen && (
+                        <div className="space-y-2">
+                          {([
+                            { key: 'brightness' as const, label: 'Brightness', min: -1, max: 1,  step: 0.01, def: 0, fmtV: (v: number) => v.toFixed(2) },
+                            { key: 'contrast'   as const, label: 'Contrast',   min: 0,  max: 2,  step: 0.01, def: 1, fmtV: (v: number) => v.toFixed(2) },
+                            { key: 'saturation' as const, label: 'Saturation', min: 0,  max: 3,  step: 0.01, def: 1, fmtV: (v: number) => v.toFixed(2) },
+                            { key: 'blur'       as const, label: 'Blur',       min: 0,  max: 20, step: 0.5,  def: 0, fmtV: (v: number) => `${v.toFixed(1)}px` },
+                          ]).map(({ key, label, min, max, step, def, fmtV }) => (
+                            <div key={key}>
+                              <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>{label}</span><span className="font-mono">{fmtV((ip[key] as number | undefined) ?? def)}</span></div>
+                              <input type="range" min={min} max={max} step={step} value={(ip[key] as number | undefined) ?? def} onChange={(e) => setItemProp(selectedItem.id, key, parseFloat(e.target.value))} className="w-full accent-violet-600" />
+                            </div>
+                          ))}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={ip.grayscale ?? false} onChange={(e) => setItemProp(selectedItem.id, 'grayscale', e.target.checked)} className="w-3.5 h-3.5 accent-violet-600 rounded" />
+                            <span className="text-xs text-gray-700">Grayscale</span>
+                          </label>
+                          <button onClick={() => setItemPropsMap((prev) => { const next = new Map(prev); next.set(selectedItem.id, { ...next.get(selectedItem.id), brightness: 0, contrast: 1, saturation: 1, blur: 0, grayscale: false }); return next; })} className="text-[10px] text-gray-400 hover:text-red-500 underline w-full text-left">Reset effects</button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="border-t border-violet-100 pt-2">
+                      <button className="flex items-center gap-1.5 w-full text-left mb-2" onClick={() => setInspTransitionOpen((o) => !o)}>
+                        <Clapperboard className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide flex-1">Transition In</span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${inspTransitionOpen ? '' : '-rotate-90'}`} />
+                      </button>
+                      {inspTransitionOpen && (
+                        <div className="space-y-2">
+                          <select value={ip.transitionIn ?? 'none'} onChange={(e) => setItemProp(selectedItem.id, 'transitionIn', e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white">
+                            <option value="none">None</option>
+                            <option value="fade">Fade</option>
+                            <option value="dissolve">Dissolve</option>
+                            <option value="slide">Slide</option>
+                          </select>
+                          {ip.transitionIn && ip.transitionIn !== 'none' && (
+                            <div>
+                              <div className="flex justify-between text-[10px] text-gray-500 mb-1"><span>Duration</span><span className="font-mono">{ip.transitionInDurMs ?? 500}ms</span></div>
+                              <input type="range" min={100} max={3000} step={50} value={ip.transitionInDurMs ?? 500} onChange={(e) => setItemProp(selectedItem.id, 'transitionInDurMs', parseInt(e.target.value))} className="w-full accent-violet-600" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="border-t border-violet-100 pt-2">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">AI Enhancements</p>
                       {([
-                        ['remove-silence', 'Remove Silence', 'Cuts out pauses'] ,
+                        ['remove-silence', 'Remove Silence', 'Cuts out pauses'],
                         ['remove-fillers', 'Remove Filler Words', 'Removes um, uh, like…'],
-                        ['improve-pacing', 'Improve Pacing', 'Tightens rhythm'],
-                      ] as const).map(([cap, label]) => (
-                        <button key={cap} onClick={() => void runAssist(cap)} disabled={assistBusy !== null}
-                          className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-left hover:bg-gray-50 disabled:opacity-50 text-xs text-gray-700">
+                        ['improve-pacing', 'Improve Pacing', 'Tightens overall rhythm'],
+                      ] as const).map(([cap, label, sub]) => (
+                        <button key={cap} onClick={() => void runAssist(cap)} disabled={assistBusy !== null} className="w-full flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-left hover:bg-white disabled:opacity-50 text-xs text-gray-700 mb-1">
                           {assistBusy === cap ? <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600 shrink-0" /> : <Wand2 className="w-3.5 h-3.5 text-brand-500 shrink-0" />}
-                          <span className="font-medium">{label}</span>
+                          <div><p className="font-medium">{label}</p><p className="text-[10px] text-gray-400">{sub}</p></div>
                         </button>
                       ))}
                     </div>
@@ -1523,87 +1643,115 @@ export default function TimelineEditorPage() {
               const selText = userTextOverlays.find((o) => o.id === selectedId);
               if (selText) {
                 return (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Type className="w-4 h-4 text-amber-600 shrink-0" />
-                      <p className="text-sm font-semibold text-amber-800 flex-1">Text Overlay</p>
-                      <button onClick={() => { setUserTextOverlays((prev) => prev.filter((o) => o.id !== selectedId)); setSelectedId(null); }}
-                        className="p-1 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <div className="border border-amber-200 bg-amber-50 rounded-xl p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5"><Type className="w-3.5 h-3.5" /> Text Overlay</p>
+                      <button onClick={() => { setUserTextOverlays((prev) => prev.filter((o) => o.id !== selectedId)); setSelectedId(null); }} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700"><Trash2 className="w-3 h-3" /> Delete</button>
                     </div>
-                    <input type="text" value={selText.text}
-                      onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, text: e.target.value } : o))}
-                      placeholder="Text content…"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400" />
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
+                    <div>
+                      <label className="text-[10px] text-gray-500 mb-1 block">Text content</label>
+                      <textarea rows={2} value={selText.text} onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, text: e.target.value } : o))} className="w-full border border-amber-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 mb-1 block">Size</label>
+                      <div className="flex gap-1.5">
                         {(['sm', 'md', 'lg'] as const).map((s) => (
-                          <button key={s} onClick={() => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, fontSize: s } : o))}
-                            className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition-colors ${selText.fontSize === s ? 'border-amber-500 bg-amber-100 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                            {s.toUpperCase()}
-                          </button>
+                          <button key={s} onClick={() => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, fontSize: s } : o))} className={`flex-1 py-1.5 text-xs rounded-lg border font-medium transition-colors ${selText.fontSize === s ? 'border-amber-500 bg-amber-100 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{s.toUpperCase()}</button>
                         ))}
                       </div>
-                      <div className="flex gap-1.5 ml-auto">
-                        {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6', '#22c55e'].map((c) => (
-                          <button key={c} onClick={() => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, color: c } : o))}
-                            className={`w-5 h-5 rounded-full border-2 transition-all ${selText.color === c ? 'border-gray-700 scale-110' : 'border-transparent'}`}
-                            style={{ background: c }} />
-                        ))}
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 mb-1 block">Color</label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={selText.color} onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, color: e.target.value } : o))} className="w-8 h-8 rounded-lg border border-gray-200 cursor-pointer" />
+                        <div className="flex gap-1.5">
+                          {['#ffffff','#000000','#f59e0b','#ef4444','#3b82f6','#22c55e'].map((c) => (
+                            <button key={c} onClick={() => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, color: c } : o))} className={`w-5 h-5 rounded-full border-2 transition-all ${selText.color === c ? 'border-gray-700 scale-110' : 'border-transparent'}`} style={{ background: c }} />
+                          ))}
+                        </div>
                       </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 mb-1 block">Position</label>
+                      <div className="space-y-2">
+                        <div>
+                          <div className="flex justify-between text-[10px] text-gray-400 mb-1"><span>X (horizontal)</span><span className="font-mono">{selText.x}%</span></div>
+                          <input type="range" min={0} max={100} value={selText.x} onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, x: parseInt(e.target.value) } : o))} className="w-full accent-amber-500" />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-[10px] text-gray-400 mb-1"><span>Y (vertical)</span><span className="font-mono">{selText.y}%</span></div>
+                          <input type="range" min={0} max={100} value={selText.y} onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, y: parseInt(e.target.value) } : o))} className="w-full accent-amber-500" />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 mb-1 block">Timing</label>
+                      <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500">
+                        <div>Start: <span className="font-mono">{fmt(selText.startMs)}</span></div>
+                        <div>End: <span className="font-mono">{fmt(selText.endMs)}</span></div>
+                      </div>
+                    </div>
+                    <div className="border-t border-amber-100 pt-2">
+                      <button className="flex items-center gap-1.5 w-full text-left mb-2" onClick={() => setInspTextAnimOpen((o) => !o)}>
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide flex-1">Text Animation</span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${inspTextAnimOpen ? '' : '-rotate-90'}`} />
+                      </button>
+                      {inspTextAnimOpen && (
+                        <select value={selText.textAnim ?? 'none'} onChange={(e) => setUserTextOverlays((prev) => prev.map((o) => o.id === selText.id ? { ...o, textAnim: e.target.value as TextOverlay['textAnim'] } : o))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white">
+                          <option value="none">None</option>
+                          <option value="fade-in">Fade in</option>
+                          <option value="slide-up">Slide up</option>
+                        </select>
+                      )}
                     </div>
                   </div>
                 );
               }
               return (
-                <div className="flex items-center gap-2 py-2 text-xs text-gray-400">
-                  <Settings2 className="w-3.5 h-3.5" />
-                  <span>Click a clip or text overlay to inspect it</span>
+                <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
+                  <Settings2 className="w-8 h-8 text-gray-200" />
+                  <p className="text-xs text-gray-400">Click any clip, audio item,<br/>or text overlay to inspect it here.</p>
                 </div>
               );
             })()}
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Canvas Format</p>
-            <div className="flex gap-2 flex-wrap">
-              {CANVAS_PRESETS.map((p) => {
-                const active = canvasConfig.aspect === p.key;
-                return (
-                  <button
-                    key={p.key}
-                    onClick={() => { const cfg: CanvasConfig = { ...canvasConfig, aspect: p.key }; setCanvasConfig(cfg); updateCanvas.mutate(cfg); }}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-                  >
-                    <p.Icon className={`w-4 h-4 ${active ? 'text-brand-600' : 'text-gray-400'}`} />
-                    <span className="font-medium">{p.label}</span>
-                    <span className={`text-[10px] ${active ? 'text-brand-500' : 'text-gray-400'}`}>{p.sub}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex gap-2">
-              {(['fill', 'contain'] as const).map((f) => (
-                <button key={f} onClick={() => { const cfg: CanvasConfig = { ...canvasConfig, fit: f }; setCanvasConfig(cfg); updateCanvas.mutate(cfg); }} className={`flex-1 max-w-[140px] py-1.5 text-xs rounded-lg border font-medium transition-colors ${canvasConfig.fit === f ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                  {f === 'fill' ? 'Fill (crop)' : 'Contain (letterbox)'}
-                </button>
-              ))}
-            </div>
-            {canvasConfig.fit === 'fill' && (
-              <div className="flex gap-6">
-                <div className="flex-1">
-                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                    <span>Horizontal</span><span className="font-mono">{canvasConfig.panX > 0 ? '+' : ''}{Math.round(canvasConfig.panX * 100)}%</span>
-                  </div>
-                  <input type="range" min="-50" max="50" value={Math.round(canvasConfig.panX * 100)} onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panX: parseInt(e.target.value) / 100 }))} onMouseUp={() => updateCanvas.mutate(canvasConfig)} onTouchEnd={() => updateCanvas.mutate(canvasConfig)} className="w-full h-1.5 accent-brand-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                    <span>Vertical</span><span className="font-mono">{canvasConfig.panY > 0 ? '+' : ''}{Math.round(canvasConfig.panY * 100)}%</span>
-                  </div>
-                  <input type="range" min="-50" max="50" value={Math.round(canvasConfig.panY * 100)} onChange={(e) => setCanvasConfig((prev) => ({ ...prev, panY: parseInt(e.target.value) / 100 }))} onMouseUp={() => updateCanvas.mutate(canvasConfig)} onTouchEnd={() => updateCanvas.mutate(canvasConfig)} className="w-full h-1.5 accent-brand-600" />
-                </div>
-                <button onClick={() => { const cfg: CanvasConfig = { ...canvasConfig, panX: 0, panY: 0 }; setCanvasConfig(cfg); updateCanvas.mutate(cfg); }} className="text-[10px] text-gray-400 hover:text-gray-600 underline self-end mb-1">Reset</button>
+            {/* Canvas Format */}
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Canvas Format</p>
+              <div className="flex gap-2 flex-wrap">
+                {CANVAS_PRESETS.map((p) => {
+                  const active = canvasConfig.aspect === p.key;
+                  return (
+                    <button key={p.key} onClick={() => { const cfg: CanvasConfig = { ...canvasConfig, aspect: p.key }; setCanvasConfig(cfg); updateCanvas.mutate(cfg); }} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                      <p.Icon className={`w-4 h-4 ${active ? 'text-brand-600' : 'text-gray-400'}`} />
+                      <span className="font-medium">{p.label}</span>
+                      <span className={`text-[10px] ${active ? 'text-brand-500' : 'text-gray-400'}`}>{p.sub}</span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-            {updateCanvas.isPending && <p className="text-[10px] text-brand-600 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Saving…</p>}
-            {updateCanvas.isSuccess && <p className="text-[10px] text-green-600 flex items-center gap-1"><Check className="w-3 h-3" /> Canvas saved</p>}
+              <div className="flex gap-2 mt-2">
+                {(['fill', 'contain'] as const).map((f) => (
+                  <button key={f} onClick={() => { const cfg: CanvasConfig = { ...canvasConfig, fit: f }; setCanvasConfig(cfg); updateCanvas.mutate(cfg); }} className={`flex-1 max-w-[140px] py-1.5 text-xs rounded-lg border font-medium transition-colors ${canvasConfig.fit === f ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                    {f === 'fill' ? 'Fill (crop)' : 'Contain (letterbox)'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            </div>
+            {/* Sticky Save + Export footer */}
+            <div className="border-t border-gray-100 p-3 space-y-2 bg-white shrink-0">
+              <button onClick={() => { setSaveError(null); void flush(); }} disabled={saving || pending.length === 0}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 hover:opacity-90 active:scale-[0.98]"
+                style={{ background: saving ? '#6b7280' : 'linear-gradient(135deg,#374151,#7c5ae8)', color: '#fff' }}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {saving ? 'Saving…' : pending.length > 0 ? 'Save Draft' : 'All Changes Saved'}
+              </button>
+              <Link href={`/shorts-studio/clips/${shortClipId}/export`}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-brand-500 text-brand-700 text-sm font-semibold hover:bg-brand-50 transition-colors">
+                <Upload className="w-4 h-4" /> Export &amp; Publish
+              </Link>
+            </div>
           </div>
         )}
 
