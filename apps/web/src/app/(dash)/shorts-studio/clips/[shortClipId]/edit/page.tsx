@@ -999,7 +999,7 @@ export default function TimelineEditorPage() {
                       key={o.id}
                       className={`absolute z-20 cursor-move select-none ${isSel ? 'ring-2 ring-amber-400 ring-offset-1 rounded-lg' : ''}`}
                       style={{ left: `${o.x}%`, top: `${o.y}%`, transform: 'translate(-50%, -50%)' }}
-                      onClick={(e) => { e.stopPropagation(); setSelectedId(o.id); setDesktopTab('text'); }}
+                      onClick={(e) => { e.stopPropagation(); setSelectedId(o.id); setDesktopTab('canvas'); }}
                       onMouseDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -1279,7 +1279,7 @@ export default function TimelineEditorPage() {
                               ...userTextOverlays.map((o) => ({ id: o.id, startMs: o.startMs, endMs: o.endMs, text: o.text, emoji: null }))]).map((c) => (
                             <div
                               key={c.id}
-                              onClick={(e) => { e.stopPropagation(); setSelectedId(c.id); if (userTextOverlays.some((o) => o.id === c.id)) setDesktopTab('text'); }}
+                              onClick={(e) => { e.stopPropagation(); setSelectedId(c.id); setDesktopTab('canvas'); }}
                               className={`absolute top-1.5 bottom-1.5 rounded bg-amber-400/80 border border-amber-300 px-1 overflow-hidden cursor-pointer ${selectedId === c.id ? 'ring-2 ring-white/80 ring-offset-1' : 'hover:border-amber-200 hover:bg-amber-400'}`}
                               style={{ left: (c.startMs / 1000) * pxPerSec, width: Math.max(2, ((c.endMs - c.startMs) / 1000) * pxPerSec) }}
                               title={c.text}
@@ -1331,7 +1331,7 @@ export default function TimelineEditorPage() {
                           <div
                             key={item.id}
                             onMouseDown={(e) => startDrag('move', item, e)}
-                            onClick={() => setDesktopTab('canvas')}
+                            onClick={() => { setSelectedId(item.id); setDesktopTab('canvas'); }}
                             className={`absolute top-1.5 bottom-1.5 rounded-lg border cursor-grab active:cursor-grabbing overflow-hidden ${TRACK_COLORS[track.type]} ${selectedId === item.id ? 'ring-2 ring-offset-1 ring-white/60' : ''}`}
                             style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
                           >

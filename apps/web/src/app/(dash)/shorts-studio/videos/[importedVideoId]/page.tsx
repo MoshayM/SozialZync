@@ -517,16 +517,6 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                     >
                       <Pencil className="w-3.5 h-3.5" /> Re-edit
                     </Link>
-                    <button
-                      type="button"
-                      disabled={openingEditorClipId === c.id}
-                      onClick={(e) => { e.stopPropagation(); openInEditor.mutate(c.id); }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50"
-                      title="Open this clip in the full Video Editor (scoped to clip duration)"
-                    >
-                      {openingEditorClipId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Film className="w-3.5 h-3.5" />}
-                      Full Editor
-                    </button>
                     {/* Publish — opens confirm modal */}
                     {isRendered && (
                       <button
