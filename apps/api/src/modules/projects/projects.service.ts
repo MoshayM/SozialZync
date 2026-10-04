@@ -99,7 +99,7 @@ export class ProjectsService {
     // one latest-per-type row (distinct picks the first per type in desc order).
     const latestPerType = await this.prisma.agentJob.findMany({
       where: { projectId, status: 'COMPLETED' },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ type: 'asc' }, { createdAt: 'desc' }],
       distinct: ['type'],
     });
     const seen = new Set((project.jobs as Array<{ id: string }>).map((j) => j.id));
