@@ -547,13 +547,12 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                           deleteClip.mutate(c.id);
                         }
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-xs hover:bg-red-50 disabled:opacity-50 ml-auto"
+                      className="flex items-center justify-center p-1.5 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 ml-auto"
                       title="Delete this clip"
                     >
                       {deleteClip.isPending && deleteClip.variables === c.id
                         ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         : <Trash2 className="w-3.5 h-3.5" />}
-                      Delete
                     </button>
                   </div>
                   {publishedClips.has(c.id) && <ClipPublishStatus clipId={c.id} />}

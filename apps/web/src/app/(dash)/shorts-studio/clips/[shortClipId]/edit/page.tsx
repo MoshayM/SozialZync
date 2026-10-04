@@ -1229,8 +1229,15 @@ export default function TimelineEditorPage() {
               {displayTracks.map((track) => (
                 <div
                   key={track.id}
-                  className="border-b border-gray-700/30 flex items-center gap-1.5 px-2"
+                  className={`border-b border-gray-700/30 flex items-center gap-1.5 px-2 ${(track.type === 'AUDIO' || track.type === 'MUSIC') && track.items.length > 0 ? 'cursor-pointer hover:bg-white/5' : ''}`}
                   style={{ height: TRACK_HEIGHTS[track.type] ?? 48 }}
+                  onClick={() => {
+                    if ((track.type === 'AUDIO' || track.type === 'MUSIC') && track.items.length > 0) {
+                      setSelectedId(track.items[0].id);
+                      setDesktopTab('canvas');
+                      setMobileSheet('inspect');
+                    }
+                  }}
                 >
                   <div className={`w-[3px] self-stretch my-2 rounded-full shrink-0 ${TRACK_BAR[track.type]}`} />
                   <div className="min-w-0">
@@ -1330,7 +1337,8 @@ export default function TimelineEditorPage() {
                           return (
                             <div
                               key={item.id}
-                              onClick={() => { setSelectedId(item.id); setDesktopTab('canvas'); }}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={() => { setSelectedId(item.id); setDesktopTab('canvas'); setMobileSheet('inspect'); }}
                               className={`absolute top-1.5 bottom-1.5 rounded-lg border border-teal-400 bg-teal-500/40 overflow-hidden cursor-pointer hover:bg-teal-500/60 ${selectedId === item.id ? 'ring-2 ring-white/60 ring-offset-1' : ''}`}
                               style={{ left: (item.startMs / 1000) * pxPerSec, width: w }}
                               title="Video audio (embedded) — click to select"
@@ -2278,7 +2286,7 @@ export default function TimelineEditorPage() {
         <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 shrink-0">
           <Settings2 className="w-4 h-4 text-brand-600" />
           <p className="text-sm font-semibold text-gray-800 flex-1">
-            {selectedTrackType === 'VIDEO' ? 'Video Clip' : selectedTrackType === 'AUDIO' ? 'Audio Clip' : selectedTrackType === 'MUSIC' ? 'Music' : 'Inspector'}
+            {selectedId?.startsWith('linked-audio-') ? 'Audio Clip' : selectedTrackType === 'VIDEO' ? 'Video Clip' : selectedTrackType === 'AUDIO' ? 'Audio Clip' : selectedTrackType === 'MUSIC' ? 'Music' : selectedTrackType === 'CAPTION' ? 'Caption' : 'Inspector'}
           </p>
           {selectedItem && (
             <span className="text-[10px] font-mono text-gray-400 mr-2">{fmt(selectedItem.endMs - selectedItem.startMs)}</span>
@@ -2288,7 +2296,37 @@ export default function TimelineEditorPage() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
-          {!selectedItem ? (
+          {selectedId?.startsWith('linked-audio-') ? (
+            /* Linked-audio (embedded video audio) inspector */
+            <div className="space-y-4">
+              <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+                <p className="text-xs font-semibold text-teal-700 mb-0.5">Video Audio (Embedded)</p>
+                <p className="text-[11px] text-teal-600">This is the audio track embedded in the video clip. Adjust volume and gain below.</p>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-700">Volume</span>
+                    <span className="text-xs text-gray-500">{Math.round((getItemProps(selectedId ?? '').volume ?? 1) * 100)}%</span>
+                  </div>
+                  <input type="range" min={0} max={2} step={0.01}
+                    value={getItemProps(selectedId ?? '').volume ?? 1}
+                    onChange={(e) => setItemProp(selectedId ?? '', 'volume', parseFloat(e.target.value))}
+                    className="w-full accent-teal-500" />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-700">Gain (dB)</span>
+                    <span className="text-xs text-gray-500">{(getItemProps(selectedId ?? '').gainDb ?? 0).toFixed(1)} dB</span>
+                  </div>
+                  <input type="range" min={-20} max={20} step={0.5}
+                    value={getItemProps(selectedId ?? '').gainDb ?? 0}
+                    onChange={(e) => setItemProp(selectedId ?? '', 'gainDb', parseFloat(e.target.value))}
+                    className="w-full accent-teal-500" />
+                </div>
+              </div>
+            </div>
+          ) : !selectedItem ? (
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-gray-400">
               <Layers className="w-8 h-8" />
               <p className="text-sm font-medium">No clip selected</p>
@@ -2338,7 +2376,7 @@ export default function TimelineEditorPage() {
               )}
 
               {/* AUDIO-specific tools */}
-              {(selectedTrackType === 'AUDIO' || selectedTrackType === 'MUSIC') && (
+              {(selectedTrackType === 'AUDIO' || selectedTrackType === 'MUSIC' || selectedId?.startsWith('linked-audio-')) && (
                 <div className="space-y-2">
                   <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Audio Tools</p>
                   {([
