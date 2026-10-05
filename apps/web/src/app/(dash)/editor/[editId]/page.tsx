@@ -13,7 +13,7 @@ import {
   Scissors, RotateCcw, RotateCw, Magnet, VolumeX, Eye, EyeOff, PanelBottom, Settings2, LockOpen, Copy, GitMerge, Eraser,
   FolderOpen, BookmarkPlus, Smartphone, Monitor, Square,
   Bold, Italic, AlignLeft, AlignCenter, AlignRight,
-  FlipHorizontal2, Video, Shield,
+  FlipHorizontal2, Video, Shield, Volume1,
   ArrowUp, ArrowDown, Clipboard, ClipboardPaste,
   LayoutPanelLeft, PictureInPicture2, SplitSquareHorizontal, SplitSquareVertical, Layers3,
 } from 'lucide-react';
@@ -4432,6 +4432,10 @@ export default function EditorWorkspacePage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const globalMutedRef = useRef(false);
   const [globalMuted, setGlobalMuted] = useState(false);
+  const globalVolumeRef = useRef(1);
+  const [globalVolume, setGlobalVolume] = useState(1);
+  const [volumePopoverOpen, setVolumePopoverOpen] = useState(false);
+  const volumeButtonRef = useRef<HTMLButtonElement>(null);
   const historyRef = useRef<EditTimeline[]>([]);
   const historyIndexRef = useRef(-1);
   // Map from itemId → { el, item } for secondary VIDEO track layers synced in rAF tick
@@ -5294,6 +5298,31 @@ export default function EditorWorkspacePage() {
     const a = audioRef.current;
     if (v) v.muted = next;
     if (a) a.muted = next;
+    secondaryVidsRef.current.forEach(({ el }) => { el.muted = next; });
+  }, []);
+
+  const handleVolumeChange = useCallback((vol: number) => {
+    const v = Math.max(0, Math.min(1, vol));
+    globalVolumeRef.current = v;
+    setGlobalVolume(v);
+    const vid = videoRef.current;
+    const aud = audioRef.current;
+    if (vid) vid.volume = v;
+    if (aud) aud.volume = v;
+    secondaryVidsRef.current.forEach(({ el }) => { el.volume = v; });
+    if (v === 0 && !globalMutedRef.current) {
+      globalMutedRef.current = true;
+      setGlobalMuted(true);
+      if (vid) vid.muted = true;
+      if (aud) aud.muted = true;
+      secondaryVidsRef.current.forEach(({ el }) => { el.muted = true; });
+    } else if (v > 0 && globalMutedRef.current) {
+      globalMutedRef.current = false;
+      setGlobalMuted(false);
+      if (vid) vid.muted = false;
+      if (aud) aud.muted = false;
+      secondaryVidsRef.current.forEach(({ el }) => { el.muted = false; });
+    }
   }, []);
 
   const handleRegisterSecondaryVideo = useCallback((itemId: string, el: HTMLVideoElement | null, item: EditItem) => {
@@ -6144,84 +6173,96 @@ export default function EditorWorkspacePage() {
                     const pvY = pvProps?.y ?? 50;
                     const pvScaleVal = pvScale ?? 1;
                     const pvIsSelected = !!(activeVideoItem && selectedItemId === activeVideoItem.id);
-                    return (
-                      <div
-                        className="select-none"
-                        style={pvIsOverlay ? {
-                          position: 'absolute',
-                          left: `${pvX}%`, top: `${pvY}%`,
-                          width: `${pvScaleVal * 100}%`, aspectRatio: '16/9',
-                          transform: 'translate(-50%, -50%)',
-                          zIndex: pvIsSelected ? 50 : 2,
-                          opacity: clamp(pvProps?.opacity ?? 1, 0, 1),
-                          outline: pvIsSelected ? '2px solid rgba(250,204,21,0.8)' : '1px solid rgba(255,255,255,0.15)',
-                          outlineOffset: '2px',
-                          borderRadius: '3px',
-                          cursor: 'move',
-                          overflow: 'visible',
-                        } : {
-                          position: 'absolute', inset: 0, zIndex: 1, cursor: activeVideoItem ? 'default' : undefined,
-                        }}
-                        onClick={(e) => { if (activeVideoItem) { e.stopPropagation(); setSelectedItemId(activeVideoItem.id); } }}
-                        onPointerDown={pvIsOverlay && activeVideoItem ? (e) => {
-                          if ((e.target as HTMLElement).closest('[data-resize-handle]')) return;
-                          e.stopPropagation();
-                          const el = e.currentTarget;
-                          el.setPointerCapture(e.pointerId);
-                          setSelectedItemId(activeVideoItem.id);
-                          const rect = previewFrameRef.current?.getBoundingClientRect();
-                          if (!rect) return;
-                          const startX = e.clientX, startY = e.clientY;
-                          const startXPct = pvX, startYPct = pvY;
-                          const onMove = (ev: PointerEvent) => {
-                            const dx = ((ev.clientX - startX) / rect.width) * 100;
-                            const dy = ((ev.clientY - startY) / rect.height) * 100;
-                            handleUpdateItemProps(activeVideoItem.id, { x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) }, true);
-                          };
-                          const onUp = () => { el.removeEventListener('pointermove', onMove as EventListener); };
-                          el.addEventListener('pointermove', onMove as EventListener);
-                          el.addEventListener('pointerup', onUp, { once: true });
-                        } : undefined}
-                      >
-                        <video
-                          ref={videoRef}
-                          src={videoSrc ?? undefined}
-                          className={pvIsOverlay ? 'w-full h-full object-cover pointer-events-none rounded' : 'w-full h-full object-contain pointer-events-none'}
+                    if (pvIsOverlay && activeVideoItem) {
+                      return (
+                        <div
+                          className="absolute select-none"
                           style={{
-                            opacity: pvIsOverlay ? 1 : clamp(pvProps?.opacity ?? 1, 0, 1),
-                            display: (videoSrc && !pvProps?.hidden) ? undefined : 'none',
+                            left: `${pvX}%`, top: `${pvY}%`,
+                            width: `${pvScaleVal * 100}%`, aspectRatio: '16/9',
+                            transform: 'translate(-50%, -50%)',
+                            zIndex: pvIsSelected ? 50 : 2,
+                            opacity: clamp(pvProps?.opacity ?? 1, 0, 1),
+                            outline: pvIsSelected ? '2px solid rgba(250,204,21,0.8)' : '1px solid rgba(255,255,255,0.15)',
+                            outlineOffset: '2px',
+                            borderRadius: '3px',
+                            cursor: 'move',
+                            overflow: 'visible',
                           }}
-                          onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
-                          playsInline
+                          onClick={(e) => { e.stopPropagation(); setSelectedItemId(activeVideoItem.id); }}
+                          onPointerDown={(e) => {
+                            if ((e.target as HTMLElement).closest('[data-resize-handle]')) return;
+                            e.stopPropagation();
+                            const el = e.currentTarget;
+                            el.setPointerCapture(e.pointerId);
+                            setSelectedItemId(activeVideoItem.id);
+                            const rect = previewFrameRef.current?.getBoundingClientRect();
+                            if (!rect) return;
+                            const startX = e.clientX, startY = e.clientY;
+                            const startXPct = pvX, startYPct = pvY;
+                            const onMove = (ev: PointerEvent) => {
+                              const dx = ((ev.clientX - startX) / rect.width) * 100;
+                              const dy = ((ev.clientY - startY) / rect.height) * 100;
+                              handleUpdateItemProps(activeVideoItem.id, { x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) }, true);
+                            };
+                            const onUp = () => { el.removeEventListener('pointermove', onMove as EventListener); };
+                            el.addEventListener('pointermove', onMove as EventListener);
+                            el.addEventListener('pointerup', onUp, { once: true });
+                          }}
                         >
-                          <track kind="captions" />
-                        </video>
-                        {/* Resize handle when primary video is in overlay mode and selected */}
-                        {pvIsOverlay && pvIsSelected && activeVideoItem && (
-                          <div
-                            data-resize-handle="true"
-                            title="Drag to resize"
-                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-yellow-400 rounded-sm cursor-se-resize flex items-center justify-center z-10"
-                            onPointerDown={(e) => {
-                              e.stopPropagation();
-                              const el = e.currentTarget;
-                              el.setPointerCapture(e.pointerId);
-                              const rect = previewFrameRef.current?.getBoundingClientRect();
-                              if (!rect) return;
-                              const startX = e.clientX, startScl = pvScaleVal;
-                              const onMove = (ev: PointerEvent) => {
-                                const dx = ((ev.clientX - startX) / rect.width) * 2;
-                                handleUpdateItemProps(activeVideoItem.id, { scale: clamp(startScl + dx, 0.05, 1.5) }, true);
-                              };
-                              const onUp = () => { el.removeEventListener('pointermove', onMove as EventListener); };
-                              el.addEventListener('pointermove', onMove as EventListener);
-                              el.addEventListener('pointerup', onUp, { once: true });
-                            }}
+                          <video
+                            ref={videoRef}
+                            src={videoSrc ?? undefined}
+                            className="w-full h-full object-cover pointer-events-none rounded"
+                            style={{ display: (videoSrc && !pvProps?.hidden) ? undefined : 'none' }}
+                            onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
+                            playsInline
                           >
-                            <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 7L7 1M4 7L7 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                          </div>
-                        )}
-                      </div>
+                            <track kind="captions" />
+                          </video>
+                          {pvIsSelected && (
+                            <div
+                              data-resize-handle="true"
+                              title="Drag to resize"
+                              className="absolute -bottom-2 -right-2 w-4 h-4 bg-yellow-400 rounded-sm cursor-se-resize flex items-center justify-center z-10"
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                                const el = e.currentTarget;
+                                el.setPointerCapture(e.pointerId);
+                                const rect = previewFrameRef.current?.getBoundingClientRect();
+                                if (!rect) return;
+                                const startX = e.clientX, startScl = pvScaleVal;
+                                const onMove = (ev: PointerEvent) => {
+                                  const dx = ((ev.clientX - startX) / rect.width) * 2;
+                                  handleUpdateItemProps(activeVideoItem.id, { scale: clamp(startScl + dx, 0.05, 1.5) }, true);
+                                };
+                                const onUp = () => { el.removeEventListener('pointermove', onMove as EventListener); };
+                                el.addEventListener('pointermove', onMove as EventListener);
+                                el.addEventListener('pointerup', onUp, { once: true });
+                              }}
+                            >
+                              <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 7L7 1M4 7L7 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    // Full-canvas mode: render video directly with no wrapper to avoid layout regressions
+                    return (
+                      <video
+                        ref={videoRef}
+                        src={videoSrc ?? undefined}
+                        className="w-full h-full object-contain"
+                        style={{
+                          opacity: clamp(pvProps?.opacity ?? 1, 0, 1),
+                          display: (videoSrc && !pvProps?.hidden) ? undefined : 'none',
+                        }}
+                        onClick={() => { if (activeVideoItem) setSelectedItemId(activeVideoItem.id); }}
+                        onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
+                        playsInline
+                      >
+                        <track kind="captions" />
+                      </video>
                     );
                   })()}
                   {/* Secondary video track layers — real <video> elements that play in sync */}
@@ -6423,15 +6464,55 @@ export default function EditorWorkspacePage() {
               </div>
             </div>
             <span className="text-xs font-mono tabular-nums">{fmtMs(currentTimeMs)} / {fmtMs(dur)}</span>
-            {/* Global mute */}
-            <button
-              onClick={handleGlobalMuteToggle}
-              className={`p-2 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${globalMuted ? 'text-red-400 bg-red-900/30 hover:bg-red-900/50' : 'hover:bg-white/10'}`}
-              title={globalMuted ? 'Unmute all' : 'Mute all'}
-              aria-label={globalMuted ? 'Unmute all' : 'Mute all'}
-            >
-              {globalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
+            {/* Volume popover */}
+            <div className="relative">
+              <button
+                ref={volumeButtonRef}
+                onClick={() => setVolumePopoverOpen(o => !o)}
+                className={`p-2 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${globalMuted || globalVolume === 0 ? 'text-red-400 bg-red-900/30 hover:bg-red-900/50' : 'hover:bg-white/10'}`}
+                title="Volume"
+                aria-label="Volume"
+              >
+                {(globalMuted || globalVolume === 0) ? <VolumeX className="w-4 h-4" /> : globalVolume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              {volumePopoverOpen && volumeButtonRef.current && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setVolumePopoverOpen(false)} />
+                  <div
+                    className="fixed z-40 bg-[#111318] border border-white/10 rounded-2xl shadow-2xl"
+                    style={{
+                      width: 204,
+                      bottom: window.innerHeight - volumeButtonRef.current.getBoundingClientRect().top + 10,
+                      left: Math.max(8, volumeButtonRef.current.getBoundingClientRect().left + volumeButtonRef.current.getBoundingClientRect().width / 2 - 102),
+                    }}
+                  >
+                    <div className="flex items-center gap-2 px-4 pt-3.5 pb-2.5 border-b border-white/[0.06]">
+                      <Volume2 className="w-3.5 h-3.5 text-white/60" />
+                      <span className="text-xs font-semibold text-white">Master Volume</span>
+                      <span className="ml-auto text-[10px] text-white/40 tabular-nums">{Math.round(globalVolume * 100)}%</span>
+                    </div>
+                    <div className="px-4 py-4 flex flex-col gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={Math.round(globalVolume * 100)}
+                        onChange={(e) => handleVolumeChange(parseInt(e.target.value, 10) / 100)}
+                        className="w-full cursor-pointer accent-purple-500"
+                        style={{ height: 4 }}
+                      />
+                      <button
+                        onClick={handleGlobalMuteToggle}
+                        className={`flex items-center gap-2 w-full px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${globalMuted ? 'bg-red-600/20 border-red-500/40 text-red-300' : 'bg-white/[0.03] border-white/[0.06] text-white/50 hover:bg-white/[0.07] hover:text-white/80'}`}
+                      >
+                        {globalMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                        {globalMuted ? 'Unmute' : 'Mute all'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             {/* Zoom controls — visible on all screen sizes */}
             <button
               onClick={() => setPxPerSec((p) => Math.max(1, p - 10))}
