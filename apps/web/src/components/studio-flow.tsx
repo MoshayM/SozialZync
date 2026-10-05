@@ -519,11 +519,17 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           const audienceRunning = isRunning(jobs, 'AUDIENCE_ANALYSIS');
           const audienceFailed = latestFailure(jobs, 'AUDIENCE_ANALYSIS');
           const audienceResult = audienceDone
-            ? (audienceJob?.result as { primaryDemographic?: string; ageRange?: string; interests?: string[]; recommendations?: string[] } | undefined)
+            ? (audienceJob?.result as {
+                primaryDemographic?: string;
+                ageRange?: string;
+                interests?: string[];
+                peakEngagementTimes?: string[];
+                contentPreferences?: string[];
+                recommendations?: string[];
+              } | undefined)
             : undefined;
-          const audienceSummary = audienceResult?.primaryDemographic ?? '';
           return (
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-700">Audience</span>
                 <button
@@ -541,13 +547,58 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               {audienceFailed && !audienceRunning && (
                 <p className="text-red-500 text-[10px]">{(audienceFailed as { error?: string }).error ?? 'Last run failed — try again.'}</p>
               )}
-              {audienceSummary && !audienceRunning && (
-                <p className="text-gray-500 leading-snug line-clamp-3">{audienceSummary}</p>
-              )}
-              {audienceResult?.interests && audienceResult.interests.length > 0 && !audienceRunning && (
-                <p className="text-gray-400 text-[10px] leading-snug line-clamp-2">
-                  Interests: {audienceResult.interests.slice(0, 4).join(' · ')}
-                </p>
+              {audienceResult && !audienceRunning && (
+                <div className="bg-violet-50 border border-violet-100 rounded-xl p-2.5 space-y-2">
+                  {audienceResult.primaryDemographic && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide mb-0.5">Primary Audience</p>
+                      <p className="text-gray-800 font-medium leading-snug">{audienceResult.primaryDemographic}</p>
+                      {audienceResult.ageRange && (
+                        <span className="inline-block mt-1 px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded text-[10px] font-medium">Age {audienceResult.ageRange}</span>
+                      )}
+                    </div>
+                  )}
+                  {audienceResult.interests && audienceResult.interests.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide mb-0.5">Interests</p>
+                      <div className="flex flex-wrap gap-1">
+                        {audienceResult.interests.map((interest, i) => (
+                          <span key={i} className="px-1.5 py-0.5 bg-white border border-violet-100 text-gray-600 rounded text-[10px]">{interest}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {audienceResult.peakEngagementTimes && audienceResult.peakEngagementTimes.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide mb-0.5">Peak Times</p>
+                      <ul className="space-y-0.5 text-gray-600">
+                        {audienceResult.peakEngagementTimes.map((t, i) => (
+                          <li key={i}>· {t}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {audienceResult.contentPreferences && audienceResult.contentPreferences.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide mb-0.5">Content Preferences</p>
+                      <ul className="space-y-0.5 text-gray-600">
+                        {audienceResult.contentPreferences.map((p, i) => (
+                          <li key={i}>· {p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {audienceResult.recommendations && audienceResult.recommendations.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide mb-0.5">Recommendations</p>
+                      <ul className="space-y-0.5 text-gray-600">
+                        {audienceResult.recommendations.map((r, i) => (
+                          <li key={i}>· {r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           );
@@ -563,12 +614,12 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             ? (analyticsJob?.result as {
                 overallScore?: number;
                 summary?: string;
-                insights?: Array<{ finding: string; metric?: string; suggestion?: string }>;
+                insights?: Array<{ finding: string; metric?: string; suggestion?: string; impact?: string }>;
+                retentionIssues?: Array<{ diagnosis: string; dropOffPct?: number }>;
               } | undefined)
             : undefined;
-          const insightText = analyticsResult?.insights?.[0]?.finding ?? analyticsResult?.summary ?? '';
           return (
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-700">Channel report</span>
                 <button
@@ -591,11 +642,39 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 <p className="text-red-500 text-[10px]">{(analyticsFailed as { error?: string }).error ?? 'Last run failed — try again.'}</p>
               )}
               {analyticsDone && analyticsResult && !analyticsRunning && (
-                <div className="text-gray-500 space-y-0.5">
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 space-y-2">
                   {analyticsResult.overallScore != null && (
-                    <span className="inline-block font-semibold text-brand-600 mr-1">Score {analyticsResult.overallScore}/100</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-brand-600 text-sm">{analyticsResult.overallScore}/100</span>
+                      <span className="text-gray-500">channel score</span>
+                    </div>
                   )}
-                  {insightText && <p className="leading-snug line-clamp-2">{insightText}</p>}
+                  {analyticsResult.summary && (
+                    <p className="text-gray-600 leading-snug">{analyticsResult.summary}</p>
+                  )}
+                  {analyticsResult.insights && analyticsResult.insights.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide mb-1">Insights</p>
+                      <ul className="space-y-1.5 text-gray-600">
+                        {analyticsResult.insights.map((ins, i) => (
+                          <li key={i} className="leading-snug">
+                            <span className="font-medium">{ins.finding}</span>
+                            {ins.suggestion && <span className="text-gray-400"> — {ins.suggestion}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {analyticsResult.retentionIssues && analyticsResult.retentionIssues.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide mb-1">Retention Issues</p>
+                      <ul className="space-y-0.5 text-gray-600">
+                        {analyticsResult.retentionIssues.map((iss, i) => (
+                          <li key={i} className="leading-snug">· {iss.diagnosis}{iss.dropOffPct != null ? ` (${iss.dropOffPct}% drop)` : ''}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -610,12 +689,16 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           const growthFailed = latestFailure(jobs, 'GROWTH_REPORT');
           const analyticsDone = isDone(jobs, 'ANALYTICS');
           const growthResult = growthDone
-            ? (growthJob?.result as { nextTopics?: Array<{ topic: string; rationale?: string; opportunityScore?: number }> } | undefined)
+            ? (growthJob?.result as {
+                summary?: string;
+                nextTopics?: Array<{ topic: string; rationale?: string; opportunityScore?: number }>;
+                optimizationActions?: Array<{ action: string; expectedImpact?: string }>;
+              } | undefined)
             : undefined;
           const growthTopics = growthResult?.nextTopics ?? [];
           const locked = !analyticsDone || !channel;
           return (
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-700">Growth ideas</span>
                 <button
@@ -636,12 +719,38 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               {growthFailed && !growthRunning && (
                 <p className="text-red-500 text-[10px]">{(growthFailed as { error?: string }).error ?? 'Last run failed — try again.'}</p>
               )}
-              {growthTopics.length > 0 && !growthRunning && (
-                <ul className="space-y-0.5 text-gray-500">
-                  {growthTopics.slice(0, 3).map((t, i) => (
-                    <li key={i} className="leading-snug">· {t.topic}</li>
-                  ))}
-                </ul>
+              {growthResult && !growthRunning && (
+                <div className="bg-green-50 border border-green-100 rounded-xl p-2.5 space-y-2">
+                  {growthResult.summary && (
+                    <p className="text-gray-600 leading-snug">{growthResult.summary}</p>
+                  )}
+                  {growthTopics.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide mb-1">Next Video Topics</p>
+                      <ul className="space-y-1.5 text-gray-600">
+                        {growthTopics.map((t, i) => (
+                          <li key={i} className="leading-snug">
+                            <span className="font-medium">{t.topic}</span>
+                            {t.opportunityScore != null && (
+                              <span className="ml-1 text-[10px] text-green-600 font-semibold">{t.opportunityScore}/100</span>
+                            )}
+                            {t.rationale && <span className="text-gray-400 block text-[10px]">{t.rationale}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {growthResult.optimizationActions && growthResult.optimizationActions.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide mb-1">Optimisations</p>
+                      <ul className="space-y-0.5 text-gray-600">
+                        {growthResult.optimizationActions.map((a, i) => (
+                          <li key={i} className="leading-snug">· {a.action}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           );
