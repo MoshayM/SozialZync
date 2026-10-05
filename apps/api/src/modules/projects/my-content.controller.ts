@@ -113,11 +113,29 @@ export class MyContentController {
       }
     }
 
+    // Batch-fetch each clip's primary thumbnail (user-selected per clip in Publish panel)
+    const clipIds = rows.map(r => r.shortClipId).filter((id): id is string => !!id);
+    const clipThumbVersionMap = new Map<string, string>(); // shortClipId → assetVersion.id
+    if (clipIds.length > 0) {
+      const primaryThumbs = await this.prisma.shortsThumbnail.findMany({
+        where: { shortClipId: { in: clipIds }, isPrimary: true },
+        include: { asset: { include: { versions: { orderBy: { version: 'desc' }, take: 1, select: { id: true } } } } },
+      });
+      for (const t of primaryThumbs) {
+        const vid = t.asset?.versions?.[0]?.id;
+        if (vid) clipThumbVersionMap.set(t.shortClipId, vid);
+      }
+    }
+
     const items = rows.map((r, idx) => {
       const hasRender = r.renderStatus === 'READY' && !!r.renderAssetId;
       const versionId = r.renderAssetId ? renderVersionMap.get(r.renderAssetId) : undefined;
       const videoUrl = hasRender && versionId ? makeVersionSignedUrl(versionId) : null;
-      const thumbnailUrl = r.project.importedVideos[0]?.thumbnailUrl ?? null;
+      // Prefer clip's own primary thumbnail; fall back to source video thumbnail
+      const clipThumbVersionId = r.shortClipId ? clipThumbVersionMap.get(r.shortClipId) : undefined;
+      const thumbnailUrl = clipThumbVersionId
+        ? makeVersionSignedUrl(clipThumbVersionId)
+        : (r.project.importedVideos[0]?.thumbnailUrl ?? null);
       const rawName = r.project.user.name ?? r.project.user.email.split('@')[0] ?? 'Creator';
       const creator = `@${rawName.replace(/\s+/g, '')}`;
       return {

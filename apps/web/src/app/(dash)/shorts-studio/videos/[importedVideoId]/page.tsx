@@ -405,6 +405,7 @@ function BulkPublishPanel({
       }
     }
     void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+    void qc.invalidateQueries({ queryKey: ['my-content'] });
     if (publishedIds.length > 0) onAllDone(publishedIds);
     setRunning(false);
   };
@@ -477,7 +478,7 @@ function BulkPublishPanel({
           <div className="flex gap-2">
             <button
               type="button"
-              disabled={running || checkedEntries.length === 0 || allDone}
+              disabled={running || checkedEntries.length === 0 || (allDone && mode === 'save')}
               onClick={() => void run('save')}
               className="relative flex-1 py-2 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 overflow-hidden disabled:opacity-40"
             >
@@ -488,7 +489,7 @@ function BulkPublishPanel({
             </button>
             <button
               type="button"
-              disabled={running || checkedEntries.length === 0 || allDone}
+              disabled={running || checkedEntries.length === 0 || (allDone && mode === 'publish')}
               onClick={() => void run('publish')}
               className="relative flex-1 py-2 rounded-xl text-sm font-semibold text-white overflow-hidden disabled:opacity-40"
               style={{ background: '#374151' }}

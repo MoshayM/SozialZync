@@ -562,12 +562,7 @@ function LibraryDrawer({
   );
 }
 
-// ── History Drawer (My Edits — Video Editor + Shorts Studio) ─────────────────
-
-type ShortsEditEntry = {
-  id: string; clipType: string; status: string; title: string;
-  importedVideoId: string | null; lastEditedAt: string;
-};
+// ── History Drawer (My Edits — Video Editor) ─────────────────────────────────
 
 function HistoryDrawer({
   currentEditId,
@@ -589,12 +584,6 @@ function HistoryDrawer({
       return arr.slice().sort((a, b) => new Date(b.lastEditedAt).getTime() - new Date(a.lastEditedAt).getTime());
     }),
     staleTime: 10_000,
-  });
-
-  const { data: shortsEdits = [] } = useQuery<ShortsEditEntry[]>({
-    queryKey: ['shorts-recent-edits'],
-    queryFn: () => api.shortsStudio.recentEdits().then((r) => (Array.isArray(r.data) ? r.data : [])),
-    staleTime: 15_000,
   });
 
   useEffect(() => {
@@ -622,17 +611,7 @@ function HistoryDrawer({
 
   const q = editSearch.trim().toLowerCase();
   const filteredEdits = q ? edits.filter((p) => p.title.toLowerCase().includes(q)) : edits;
-  const filteredShorts = q ? shortsEdits.filter((p) => p.title.toLowerCase().includes(q)) : shortsEdits;
-  const totalCount = edits.length + shortsEdits.length;
-
-  const SHORTS_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-    IN_EDITING: { bg: '#eff6ff', text: '#1d4ed8' },
-    RENDERED:   { bg: '#ecfdf5', text: '#065f46' },
-    PUBLISHED:  { bg: '#f0fdf4', text: '#15803d' },
-    QUEUED:     { bg: '#fefce8', text: '#854d0e' },
-    PROCESSING: { bg: '#fef3c7', text: '#92400e' },
-    FAILED:     { bg: '#fef2f2', text: '#b91c1c' },
-  };
+  const totalCount = edits.length;
 
   return (
     <div
@@ -724,45 +703,11 @@ function HistoryDrawer({
             </div>
           )}
 
-          {/* ── Shorts Studio section ────────────────────────────────────────── */}
-          {filteredShorts.length > 0 && (
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-1 mb-1.5">Shorts Studio</p>
-              <div className="space-y-1.5">
-                {filteredShorts.map((p) => {
-                  const sc = SHORTS_STATUS_COLORS[p.status] ?? { bg: '#f3f4f6', text: '#4b5563' };
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => { router.push(`/shorts-studio/clips/${p.id}/edit`); onClose(); }}
-                      className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-violet-50 hover:border-violet-200 transition-colors text-left"
-                    >
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-violet-100">
-                        <Smartphone className="w-3.5 h-3.5 text-violet-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate text-gray-800">{p.title}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <Clock className="w-2.5 h-2.5 text-gray-400" />
-                          <span className="text-[10px] text-gray-400">{relativeTime(p.lastEditedAt)}</span>
-                          <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold" style={{ background: sc.bg, color: sc.text }}>
-                            {p.status.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
-                          </span>
-                        </div>
-                      </div>
-                      <Clapperboard className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {totalCount === 0 && !editSearch && (
             <p className="text-xs text-gray-400 text-center py-8">No edits yet — create one above.</p>
           )}
-          {(filteredEdits.length === 0 && filteredShorts.length === 0) && editSearch ? (
+          {filteredEdits.length === 0 && editSearch ? (
             <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
               <Search className="w-8 h-8 text-gray-200" />
               <p className="text-xs text-gray-400">No edits match <strong>&quot;{editSearch}&quot;</strong></p>
@@ -5846,6 +5791,31 @@ export default function EditorWorkspacePage() {
         >
           <Maximize2 className="w-4 h-4" />
         </button>
+        {/* Desktop STUDIO tools: Text, Canvas, Record */}
+        <button
+          onClick={() => { handleAddTextItem(); }}
+          className="hidden lg:flex items-center gap-1.5 px-2.5 h-9 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 text-xs shrink-0"
+          title="Add text overlay"
+        >
+          <Type className="w-3.5 h-3.5" />
+          <span className="hidden xl:inline text-xs font-medium">Text</span>
+        </button>
+        <button
+          onClick={() => setMobileSheet('canvas')}
+          className="hidden lg:flex items-center gap-1.5 px-2.5 h-9 rounded-lg border border-purple-200 text-purple-700 hover:bg-purple-50 text-xs shrink-0"
+          title="Canvas size"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span className="hidden xl:inline text-xs font-medium">Canvas</span>
+        </button>
+        <button
+          onClick={() => setMobileSheet('record')}
+          className="hidden lg:flex items-center gap-1.5 px-2.5 h-9 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 text-xs shrink-0"
+          title="Live record"
+        >
+          <Mic className="w-3.5 h-3.5" />
+          <span className="hidden xl:inline text-xs font-medium">Record</span>
+        </button>
 
         {/* AI Edit — visible on all screen sizes */}
         <button
@@ -6541,6 +6511,13 @@ export default function EditorWorkspacePage() {
                 >
                   <Plus className="w-3.5 h-3.5" /><Volume2 className="w-3.5 h-3.5" />
                 </button>
+                <button
+                  onClick={() => handleAddTextItem()}
+                  className="flex items-center gap-1 px-2 py-1.5 rounded bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 transition-colors"
+                  title="Add text overlay"
+                >
+                  <Plus className="w-3.5 h-3.5" /><Type className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
@@ -7055,7 +7032,7 @@ export default function EditorWorkspacePage() {
         />
       )}
       <div
-        className={`fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'text' ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ top: sheetTop, bottom: 56 }}
         role="dialog"
         aria-modal="true"
@@ -7315,14 +7292,14 @@ export default function EditorWorkspacePage() {
       {/* ── Live Record bottom sheet ─────────────────────────────────────── */}
       {mobileSheet === 'record' && !recordFullscreen && (
         <div
-          className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/50"
+          className="fixed inset-x-0 top-0 z-40 bg-black/50"
           style={{ bottom: 56 }}
           onClick={() => { if (!isRecording) setMobileSheet('none'); }}
           role="presentation"
         />
       )}
       <div
-        className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ top: sheetTop, bottom: 56 }}
         role="dialog" aria-modal="true" aria-label="Live record"
       >
