@@ -5047,14 +5047,18 @@ export default function EditorWorkspacePage() {
         cameraSheetPreviewRef.current.srcObject = stream;
         void cameraSheetPreviewRef.current.play();
       }
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+      const mimeType = recordMode === 'video'
+        ? (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm')
+        : (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm');
       const mr = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mr;
       mr.ondataavailable = (e) => { if (e.data.size > 0) recordChunksRef.current.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(recordChunksRef.current, { type: mr.mimeType });
-        const file = new File([blob], `recording-${Date.now()}.webm`, { type: mr.mimeType });
+        // Strip codec params so the File has a clean MIME the server's Content-Type detection can read
+        const cleanMime = (mr.mimeType || mimeType).split(';')[0]?.trim() ?? 'audio/webm';
+        const blob = new Blob(recordChunksRef.current, { type: cleanMime });
+        const file = new File([blob], `recording-${Date.now()}.webm`, { type: cleanMime });
         setIsRecording(false);
         if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
         setRecordSec(0);
@@ -6488,30 +6492,41 @@ export default function EditorWorkspacePage() {
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => setCanvasPopoverOpen(false)} />
                       <div
-                        className="fixed z-40 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-2xl"
+                        className="fixed z-40 bg-[#111318] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                         style={{
-                          width: 208,
-                          bottom: window.innerHeight - canvasButtonRef.current.getBoundingClientRect().top + 8,
+                          width: 224,
+                          bottom: window.innerHeight - canvasButtonRef.current.getBoundingClientRect().top + 10,
                           left: canvasButtonRef.current.getBoundingClientRect().left,
                         }}
                       >
-                        <p className="text-[9px] text-white/40 uppercase tracking-widest font-semibold px-1 mb-2">Canvas Size</p>
-                        <div className="grid grid-cols-2 gap-1.5">
+                        {/* Header */}
+                        <div className="flex items-center gap-2 px-4 pt-3.5 pb-2.5 border-b border-white/[0.06]">
+                          <Layers className="w-3.5 h-3.5 text-purple-400" />
+                          <span className="text-xs font-semibold text-white">Canvas Size</span>
+                        </div>
+                        {/* Size cards */}
+                        <div className="flex flex-col gap-1.5 p-3">
                           {([
-                            { label: 'Shorts/Reels', sub: '9:16', w: 1080, h: 1920 },
-                            { label: 'Square', sub: '1:1', w: 1080, h: 1080 },
-                            { label: 'Portrait', sub: '4:5', w: 1080, h: 1350 },
-                            { label: 'Widescreen', sub: '16:9', w: 1920, h: 1080 },
-                          ] as const).map((p) => {
-                            const active = timeline?.width === p.w && timeline?.height === p.h;
+                            { label: 'Shorts / Reels', sub: '9:16 · 1080×1920', Icon: Smartphone, w: 1080, h: 1920 },
+                            { label: 'Square', sub: '1:1 · 1080×1080', Icon: Square, w: 1080, h: 1080 },
+                            { label: 'Portrait', sub: '4:5 · 1080×1350', Icon: Film, w: 1080, h: 1350 },
+                            { label: 'Widescreen', sub: '16:9 · 1920×1080', Icon: Monitor, w: 1920, h: 1080 },
+                          ] as const).map(({ label, sub, Icon, w, h }) => {
+                            const active = timeline?.width === w && timeline?.height === h;
                             return (
                               <button
-                                key={p.sub}
-                                onClick={() => { updateTimeline(tl => ({ ...tl, width: p.w, height: p.h })); setCanvasPopoverOpen(false); }}
-                                className={`flex flex-col items-start gap-0.5 px-2 py-2 rounded-lg text-xs transition-colors ${active ? 'bg-purple-600/40 text-purple-200 ring-1 ring-purple-500/40' : 'text-white/70 hover:bg-white/10'}`}
+                                key={sub}
+                                onClick={() => { updateTimeline(tl => ({ ...tl, width: w, height: h })); setCanvasPopoverOpen(false); }}
+                                className={`flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border transition-all ${active ? 'bg-purple-600/20 border-purple-500/40 text-white' : 'bg-white/[0.03] border-white/[0.06] text-white/50 hover:bg-white/[0.07] hover:text-white/80'}`}
                               >
-                                <span className="font-semibold leading-tight">{p.label}</span>
-                                <span className="text-[9px] opacity-60">{p.sub}</span>
+                                <span className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${active ? 'bg-purple-500/30 text-purple-300' : 'bg-white/[0.06] text-white/40'}`}>
+                                  <Icon className="w-3.5 h-3.5" />
+                                </span>
+                                <span className="flex flex-col gap-0.5 min-w-0">
+                                  <span className="text-xs font-semibold leading-none">{label}</span>
+                                  <span className={`text-[10px] leading-none ${active ? 'text-white/50' : 'text-white/30'}`}>{sub}</span>
+                                </span>
+                                {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />}
                               </button>
                             );
                           })}
