@@ -5338,6 +5338,7 @@ export default function EditorWorkspacePage() {
 
   const handleVolumeChange = useCallback((vol: number) => {
     const v = Math.max(0, Math.min(1, vol));
+    const prev = globalVolumeRef.current;
     globalVolumeRef.current = v;
     setGlobalVolume(v);
     const vid = videoRef.current;
@@ -5346,13 +5347,15 @@ export default function EditorWorkspacePage() {
     if (vid) vid.volume = clamp((activeVideoItemRef.current?.properties?.volume ?? 1) * v, 0, 1);
     if (aud) aud.volume = clamp((activeAudioItemRef.current?.properties?.volume ?? 1) * v, 0, 1);
     secondaryVidsRef.current.forEach(({ el, item }) => { el.volume = clamp((item.properties?.volume ?? 1) * v, 0, 1); });
+    // Auto-mute when slider hits 0.
     if (v === 0 && !globalMutedRef.current) {
       globalMutedRef.current = true;
       setGlobalMuted(true);
       if (vid) vid.muted = true;
       if (aud) aud.muted = true;
       secondaryVidsRef.current.forEach(({ el }) => { el.muted = true; });
-    } else if (v > 0 && globalMutedRef.current) {
+    // Auto-unmute ONLY when coming back from zero — not when the mute button was pressed manually.
+    } else if (v > 0 && prev === 0 && globalMutedRef.current) {
       globalMutedRef.current = false;
       setGlobalMuted(false);
       if (vid) vid.muted = false;
