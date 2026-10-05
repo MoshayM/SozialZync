@@ -6910,12 +6910,19 @@ export default function EditorWorkspacePage() {
                         style={{ height: 28 }}
                         onPointerDown={(e) => {
                           e.currentTarget.setPointerCapture(e.pointerId);
+                          const wasPlaying = rafRef.current !== null;
+                          if (wasPlaying) stopPlay();
                           const rect = e.currentTarget.getBoundingClientRect();
                           const x = e.clientX - rect.left - LABEL_W;
-                          if (x < 0) return;
-                          const ms = Math.max(0, Math.round(xToMs(x, pxPerSec)));
-                          currentTimeMsRef.current = ms;
-                          setCurrentTimeMs(ms);
+                          if (x >= 0) {
+                            const ms = Math.max(0, Math.round(xToMs(x, pxPerSec)));
+                            currentTimeMsRef.current = ms;
+                            setCurrentTimeMs(ms);
+                          }
+                          if (wasPlaying) {
+                            const el = e.currentTarget;
+                            el.addEventListener('pointerup', () => startPlay(), { once: true });
+                          }
                         }}
                         onPointerMove={(e) => {
                           if (e.buttons !== 1) return;
@@ -6951,9 +6958,31 @@ export default function EditorWorkspacePage() {
                         style={{ left: LABEL_W + msToX(currentTimeMs, pxPerSec), width: 1 }}
                       >
                         <div className="w-full h-full bg-red-500 opacity-80" />
+                        {/* Draggable diamond — pointer-events-auto breaks out of the none parent */}
                         <div
-                          className="absolute -left-1.5 w-3 h-3 bg-red-500 rotate-45"
-                          style={{ top: 22 }}
+                          className="absolute -left-2.5 w-5 h-5 bg-red-500 rotate-45 cursor-ew-resize pointer-events-auto touch-none select-none"
+                          style={{ top: 18 }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            const el = e.currentTarget;
+                            el.setPointerCapture(e.pointerId);
+                            const startX = e.clientX;
+                            const startMs = currentTimeMsRef.current;
+                            const wasPlaying = rafRef.current !== null;
+                            if (wasPlaying) stopPlay();
+                            const onMove = (ev: PointerEvent) => {
+                              const dx = ev.clientX - startX;
+                              const newMs = Math.max(0, Math.min(dur || 60000, Math.round(startMs + (dx / pxPerSec) * 1000)));
+                              currentTimeMsRef.current = newMs;
+                              setCurrentTimeMs(newMs);
+                            };
+                            const onUp = () => {
+                              el.removeEventListener('pointermove', onMove as EventListener);
+                              if (wasPlaying) startPlay();
+                            };
+                            el.addEventListener('pointermove', onMove as EventListener);
+                            el.addEventListener('pointerup', onUp, { once: true });
+                          }}
                         />
                       </div>
 
