@@ -4204,6 +4204,7 @@ export default function EditorWorkspacePage() {
   const [canvasPopoverOpen, setCanvasPopoverOpen] = useState(false);
   const [recordPopoverOpen, setRecordPopoverOpen] = useState(false);
   const canvasButtonRef = useRef<HTMLButtonElement>(null);
+  const recordButtonRef = useRef<HTMLButtonElement>(null);
   const PREVIEW_H_PRESETS = { sm: 160, md: 240, lg: 380 } as const;
   const [previewSizeKey, setPreviewSizeKey] = useState<'sm' | 'md' | 'lg'>('md');
   const [previewH, setPreviewH] = useState(() => {
@@ -5794,15 +5795,6 @@ export default function EditorWorkspacePage() {
         >
           <Maximize2 className="w-4 h-4" />
         </button>
-        {/* Desktop STUDIO tools: Text, Canvas, Record */}
-        <button
-          onClick={() => { handleAddTextItem(); }}
-          className="hidden lg:flex items-center gap-1.5 px-2.5 h-9 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 text-xs shrink-0"
-          title="Add text overlay"
-        >
-          <Type className="w-3.5 h-3.5" />
-          <span className="hidden xl:inline text-xs font-medium">Text</span>
-        </button>
 
         {/* AI Edit — visible on all screen sizes */}
         <button
@@ -6567,6 +6559,7 @@ export default function EditorWorkspacePage() {
                     </button>
                   ) : (
                     <button
+                      ref={recordButtonRef}
                       onClick={() => setRecordPopoverOpen(o => !o)}
                       className={`flex items-center gap-1 px-2 py-1.5 rounded border transition-colors ${recordPopoverOpen ? 'bg-red-600/40 text-red-300 border-red-500/50' : 'bg-red-600/20 hover:bg-red-600/40 text-red-300 border-red-500/30'}`}
                       title="Record audio or video"
@@ -6574,20 +6567,27 @@ export default function EditorWorkspacePage() {
                       <Mic className="w-3.5 h-3.5" />
                     </button>
                   )}
-                  {recordPopoverOpen && !isRecording && (
+                  {recordPopoverOpen && !isRecording && recordButtonRef.current && (
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => setRecordPopoverOpen(false)} />
-                      <div className="absolute bottom-full mb-2 right-0 z-40 bg-gray-900 border border-white/10 rounded-xl p-3 shadow-2xl" style={{ width: 188 }}>
-                        <p className="text-[9px] text-white/40 uppercase tracking-widest font-semibold mb-2">Mode</p>
+                      <div
+                        className="fixed z-40 bg-gray-900 border border-white/10 rounded-xl p-3 shadow-2xl"
+                        style={{
+                          width: 200,
+                          bottom: window.innerHeight - recordButtonRef.current.getBoundingClientRect().top + 8,
+                          right: window.innerWidth - recordButtonRef.current.getBoundingClientRect().right,
+                        }}
+                      >
+                        <p className="text-[9px] text-white/40 uppercase tracking-widest font-semibold mb-2">Record Mode</p>
                         <div className="flex rounded-lg overflow-hidden border border-white/10 mb-2.5">
                           {([
-                            { mode: 'audio' as const, label: 'Audio', Icon: Mic },
-                            { mode: 'video' as const, label: 'Video', Icon: Video },
+                            { mode: 'audio' as const, label: 'Audio Only', Icon: Mic },
+                            { mode: 'video' as const, label: 'Audio + Video', Icon: Video },
                           ]).map(({ mode, label, Icon }) => (
                             <button
                               key={mode}
                               onClick={() => setRecordMode(mode)}
-                              className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold transition-colors ${recordMode === mode ? 'bg-red-600/60 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
+                              className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-semibold transition-colors ${recordMode === mode ? 'bg-red-600/60 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
                             >
                               <Icon className="w-3 h-3" /> {label}
                             </button>
