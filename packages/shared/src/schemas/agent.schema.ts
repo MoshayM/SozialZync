@@ -12,8 +12,8 @@ export const ResearchOutputSchema = z.object({
       publishedAt: z.string().optional(),
     }),
   ),
-  trendScore: z.number().min(0).max(100),
-  audienceInterestSignals: z.array(z.string()),
+  trendScore: z.any().transform((v) => typeof v === 'number' ? Math.min(100, Math.max(0, v)) : 50),
+  audienceInterestSignals: z.array(z.string()).optional().default([]),
 });
 export type ResearchOutput = z.infer<typeof ResearchOutputSchema>;
 
@@ -27,10 +27,10 @@ export const ScriptOutputSchema = z.object({
       durationEstimateSecs: z.number(),
     }),
   ),
-  callToAction: z.string(),
+  callToAction: z.string().optional().default(''),
   totalWordCount: z.number(),
   estimatedDurationMins: z.number(),
-  sources: z.array(z.string()),
+  sources: z.array(z.string()).optional().default([]),
 });
 export type ScriptOutput = z.infer<typeof ScriptOutputSchema>;
 
@@ -49,8 +49,8 @@ export const FactCheckOutputSchema = z.object({
       notes: z.string().optional(),
     }),
   ),
-  issues: z.array(z.string()),
-  recommendations: z.array(z.string()),
+  issues: z.array(z.string()).optional().default([]),
+  recommendations: z.array(z.string()).optional().default([]),
   // AI sometimes omits top-level sources when they're already in claims
   sources: z.array(z.object({ title: z.string(), url: z.string() })).optional().default([]),
 });
@@ -113,7 +113,7 @@ export const AudienceOutputSchema = z.object({
   interests: z.array(z.string()),
   peakEngagementTimes: z.array(z.string()),
   contentPreferences: z.array(z.string()),
-  recommendations: z.array(z.string()),
+  recommendations: z.array(z.string()).optional().default([]),
 });
 export type AudienceOutput = z.infer<typeof AudienceOutputSchema>;
 
@@ -230,7 +230,7 @@ export const VideoScenePlanOutputSchema = z.object({
   sceneCount: z.number().optional().default(0),
   scenes: z.array(SceneSchema),
   productionNotes: z.string().optional(),
-  providerRecommendation: z.string(),
+  providerRecommendation: z.string().optional().default('runway'),
 });
 export type VideoScenePlanOutput = z.infer<typeof VideoScenePlanOutputSchema>;
 
