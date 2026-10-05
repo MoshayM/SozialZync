@@ -517,10 +517,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           const audienceJob = latest(jobs, 'AUDIENCE_ANALYSIS');
           const audienceDone = isDone(jobs, 'AUDIENCE_ANALYSIS');
           const audienceRunning = isRunning(jobs, 'AUDIENCE_ANALYSIS');
+          const audienceFailed = latestFailure(jobs, 'AUDIENCE_ANALYSIS');
           const audienceResult = audienceDone
-            ? (audienceJob?.result as { primaryDemographic?: string; summary?: string } | undefined)
+            ? (audienceJob?.result as { primaryDemographic?: string; ageRange?: string; interests?: string[]; recommendations?: string[] } | undefined)
             : undefined;
-          const audienceSummary = audienceResult?.primaryDemographic ?? audienceResult?.summary ?? '';
+          const audienceSummary = audienceResult?.primaryDemographic ?? '';
           return (
             <div className="space-y-1 text-xs">
               <div className="flex items-center justify-between gap-2">
@@ -537,8 +538,16 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               {audienceRunning && (
                 <span className="flex items-center gap-1 text-gray-400"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
               )}
+              {audienceFailed && !audienceRunning && (
+                <p className="text-red-500 text-[10px]">{(audienceFailed as { error?: string }).error ?? 'Last run failed — try again.'}</p>
+              )}
               {audienceSummary && !audienceRunning && (
                 <p className="text-gray-500 leading-snug line-clamp-3">{audienceSummary}</p>
+              )}
+              {audienceResult?.interests && audienceResult.interests.length > 0 && !audienceRunning && (
+                <p className="text-gray-400 text-[10px] leading-snug line-clamp-2">
+                  Interests: {audienceResult.interests.slice(0, 4).join(' · ')}
+                </p>
               )}
             </div>
           );
@@ -549,25 +558,37 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           const analyticsJob = latest(jobs, 'ANALYTICS');
           const analyticsDone = isDone(jobs, 'ANALYTICS');
           const analyticsRunning = isRunning(jobs, 'ANALYTICS');
+          const analyticsFailed = latestFailure(jobs, 'ANALYTICS');
           const analyticsResult = analyticsDone
-            ? (analyticsJob?.result as { overallScore?: number; summary?: string; insights?: string[] } | undefined)
+            ? (analyticsJob?.result as {
+                overallScore?: number;
+                summary?: string;
+                insights?: Array<{ finding: string; metric?: string; suggestion?: string }>;
+              } | undefined)
             : undefined;
-          const insightText = analyticsResult?.insights?.[0] ?? analyticsResult?.summary ?? '';
+          const insightText = analyticsResult?.insights?.[0]?.finding ?? analyticsResult?.summary ?? '';
           return (
             <div className="space-y-1 text-xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-700">Channel report</span>
                 <button
                   onClick={() => enqueue.mutate({ type: 'ANALYTICS' })}
-                  disabled={busy}
-                  className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40"
+                  disabled={busy || !channel}
+                  title={!channel ? 'Connect a YouTube channel first' : undefined}
+                  className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {analyticsDone ? <RefreshCw className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
                   {analyticsDone ? 'Re-run' : 'Run'}
                 </button>
               </div>
+              {!channel && !analyticsDone && (
+                <p className="text-amber-500 text-[10px]">Connect a YouTube channel to enable this step</p>
+              )}
               {analyticsRunning && (
                 <span className="flex items-center gap-1 text-gray-400"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
+              )}
+              {analyticsFailed && !analyticsRunning && (
+                <p className="text-red-500 text-[10px]">{(analyticsFailed as { error?: string }).error ?? 'Last run failed — try again.'}</p>
               )}
               {analyticsDone && analyticsResult && !analyticsRunning && (
                 <div className="text-gray-500 space-y-0.5">
@@ -586,18 +607,20 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           const growthJob = latest(jobs, 'GROWTH_REPORT');
           const growthDone = isDone(jobs, 'GROWTH_REPORT');
           const growthRunning = isRunning(jobs, 'GROWTH_REPORT');
+          const growthFailed = latestFailure(jobs, 'GROWTH_REPORT');
           const analyticsDone = isDone(jobs, 'ANALYTICS');
           const growthResult = growthDone
             ? (growthJob?.result as { nextTopics?: Array<{ topic: string; rationale?: string; opportunityScore?: number }> } | undefined)
             : undefined;
           const growthTopics = growthResult?.nextTopics ?? [];
+          const locked = !analyticsDone || !channel;
           return (
             <div className="space-y-1 text-xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-700">Growth ideas</span>
                 <button
                   onClick={() => enqueue.mutate({ type: 'GROWTH_REPORT' })}
-                  disabled={busy || !analyticsDone}
+                  disabled={busy || locked}
                   className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {growthDone ? <RefreshCw className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
@@ -609,6 +632,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               )}
               {growthRunning && (
                 <span className="flex items-center gap-1 text-gray-400"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
+              )}
+              {growthFailed && !growthRunning && (
+                <p className="text-red-500 text-[10px]">{(growthFailed as { error?: string }).error ?? 'Last run failed — try again.'}</p>
               )}
               {growthTopics.length > 0 && !growthRunning && (
                 <ul className="space-y-0.5 text-gray-500">
