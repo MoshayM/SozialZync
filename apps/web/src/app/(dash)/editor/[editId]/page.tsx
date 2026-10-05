@@ -4475,6 +4475,10 @@ export default function EditorWorkspacePage() {
   const pxPerSecRef = useRef(40);
   // Scroll container for the timeline — used for auto-scroll during playback and drag.
   const timelineScrollRef = useRef<HTMLDivElement>(null);
+  // True while the active clip's signed URL is still being fetched.
+  // The rAF tick re-anchors its wall-clock every frame when this is set,
+  // freezing the playhead until media is ready.
+  const mediaWaitingRef = useRef(false);
 
   // Initialise timeline from server — normalise Prisma's default {} or null (no tracks)
   useEffect(() => {
@@ -5469,10 +5473,17 @@ export default function EditorWorkspacePage() {
     // Allow restart from beginning if already at the end
     const origin = currentTimeMsRef.current >= dur ? 0 : currentTimeMsRef.current;
     currentTimeMsRef.current = origin;
-    const startWall = Date.now() - origin;
+    let startWall = Date.now() - origin;
     let lastUiMs = -Infinity;
 
     const tick = () => {
+      // If the active clip's signed URL is still loading, freeze the clock
+      // by re-anchoring startWall so elapsed stays at the current position.
+      if (mediaWaitingRef.current) {
+        startWall = Date.now() - currentTimeMsRef.current;
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
       const elapsed = Date.now() - startWall;
       const t = Math.min(elapsed, dur);
       currentTimeMsRef.current = t;
@@ -5680,6 +5691,14 @@ export default function EditorWorkspacePage() {
   const audioSrc   = useSignedMediaUrl(activeAudioEntry?.versionId ?? null);
   const videoSrc   = isActiveImage ? null : displaySrc;
 
+  // Freeze the rAF clock while a clip's signed URL is still being fetched.
+  // Covers: video clip loading, and standalone audio-only clips loading.
+  useEffect(() => {
+    const videoWaiting = !!(activeDisplayEntry?.versionId && !displaySrc);
+    const audioWaiting = !!(activeAudioEntry?.versionId && !audioSrc && !videoSrc);
+    mediaWaitingRef.current = videoWaiting || audioWaiting;
+  }, [activeDisplayEntry?.versionId, displaySrc, activeAudioEntry?.versionId, audioSrc, videoSrc]);
+
   // TEXT items overlapping the playhead — overlaid on the preview as a
   // lower-third approximation of the rendered output.
   const activeTextItems = (timeline?.tracks ?? [])
@@ -5734,7 +5753,7 @@ export default function EditorWorkspacePage() {
     if (!v || !playing || !videoSrc) return;
     const item = activeVideoItemRef.current;
     if (!item) return;
-    const vol = clamp(item.properties?.volume ?? 1, 0, 1);
+    const vol = clamp((item.properties?.volume ?? 1) * globalVolumeRef.current, 0, 1);
     v.volume = vol;
     const linkedAudio = activeLinkedAudioItemRef.current;
     v.muted = globalMutedRef.current || !!linkedAudio?.properties?.muted;
