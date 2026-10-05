@@ -5342,9 +5342,10 @@ export default function EditorWorkspacePage() {
     setGlobalVolume(v);
     const vid = videoRef.current;
     const aud = audioRef.current;
-    if (vid) vid.volume = v;
-    if (aud) aud.volume = v;
-    secondaryVidsRef.current.forEach(({ el }) => { el.volume = v; });
+    // Apply master volume scaled by each element's per-clip volume.
+    if (vid) vid.volume = clamp((activeVideoItemRef.current?.properties?.volume ?? 1) * v, 0, 1);
+    if (aud) aud.volume = clamp((activeAudioItemRef.current?.properties?.volume ?? 1) * v, 0, 1);
+    secondaryVidsRef.current.forEach(({ el, item }) => { el.volume = clamp((item.properties?.volume ?? 1) * v, 0, 1); });
     if (v === 0 && !globalMutedRef.current) {
       globalMutedRef.current = true;
       setGlobalMuted(true);
@@ -5479,7 +5480,7 @@ export default function EditorWorkspacePage() {
       if (v && item) {
         const rate = item.properties?.speed ?? 1;
         if (v.playbackRate !== rate) v.playbackRate = rate;
-        const vol = clamp(item.properties?.volume ?? 1, 0, 1);
+        const vol = clamp((item.properties?.volume ?? 1) * globalVolumeRef.current, 0, 1);
         v.volume = vol;
         // Audio muting is controlled by the AUDIO track clip (linkedAudio), not the VIDEO clip.
         // The VIDEO clip's hidden/eye toggle does not silence audio.
@@ -5499,7 +5500,7 @@ export default function EditorWorkspacePage() {
       const aItem = activeAudioItemRef.current;
       const aSrc = audioSrcRef.current;
       if (a && aItem && aSrc) {
-        const aVol = clamp(aItem.properties?.volume ?? 1, 0, 1);
+        const aVol = clamp((aItem.properties?.volume ?? 1) * globalVolumeRef.current, 0, 1);
         a.volume = aVol;
         a.muted = globalMutedRef.current || aVol === 0 || !!aItem.properties?.muted;
         const sourceSec = Math.max(0, ((aItem.sourceInMs ?? 0) + (t - aItem.timelineStartMs)) / 1000);
@@ -5567,7 +5568,7 @@ export default function EditorWorkspacePage() {
     // Play <video> in the gesture context so the browser unlocks its audio track.
     // v.muted must be false and v.volume > 0 BEFORE calling play().
     if (vNow) {
-      const vol = clamp(itemNow?.properties?.volume ?? 1, 0, 1);
+      const vol = clamp((itemNow?.properties?.volume ?? 1) * globalVolumeRef.current, 0, 1);
       vNow.volume = vol;
       const linkedAudioNow = activeLinkedAudioItemRef.current;
       vNow.muted = globalMutedRef.current || !!linkedAudioNow?.properties?.muted;
@@ -5575,7 +5576,7 @@ export default function EditorWorkspacePage() {
       void vNow.play().catch(() => undefined);
     }
     if (aNow && aItemNow && audioSrcRef.current) {
-      aNow.volume = clamp(aItemNow.properties?.volume ?? 1, 0, 1);
+      aNow.volume = clamp((aItemNow.properties?.volume ?? 1) * globalVolumeRef.current, 0, 1);
       aNow.muted = globalMutedRef.current || !!aItemNow.properties?.muted;
       void aNow.play().catch(() => undefined);
     }
