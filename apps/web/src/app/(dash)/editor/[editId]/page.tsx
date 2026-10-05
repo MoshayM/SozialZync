@@ -1590,9 +1590,27 @@ function EditorLoadingScreen() {
 // key={item.id} on the parent forces a remount — and restarts the sim — each
 // time the selected clip changes.
 
-function PreviewLoadingOverlay({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
+function PreviewLoadingOverlay({
+  playing, onToggle, unavailable,
+}: {
+  playing: boolean;
+  onToggle: () => void;
+  /** true = versionId is null or signed URL returned an error; skip loading animation */
+  unavailable?: boolean;
+}) {
+  const [timedOut, setTimedOut] = useState(false);
   const [pct, setPct] = useState(0);
+
+  // If not immediately unavailable, timeout after 9s → switch to error state
   useEffect(() => {
+    if (unavailable) return;
+    const id = setTimeout(() => setTimedOut(true), 9000);
+    return () => clearTimeout(id);
+  }, [unavailable]);
+
+  // Animate progress ring while loading
+  useEffect(() => {
+    if (unavailable || timedOut) return;
     let v = 0;
     const t = setInterval(() => {
       v = Math.min(90, v + (90 - v) * 0.1 + 0.6);
@@ -1600,7 +1618,19 @@ function PreviewLoadingOverlay({ playing, onToggle }: { playing: boolean; onTogg
       if (v >= 89.5) clearInterval(t);
     }, 100);
     return () => clearInterval(t);
-  }, []);
+  }, [unavailable, timedOut]);
+
+  if (unavailable || timedOut) {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 z-10">
+        <AlertCircle className="w-8 h-8 text-white/30" />
+        <div className="text-center">
+          <p className="text-[12px] text-white/50 font-medium">Source video unavailable</p>
+          <p className="text-[10px] text-white/25 mt-0.5">The original file hasn't been downloaded yet</p>
+        </div>
+      </div>
+    );
+  }
 
   const size = 64;
   const r = (size - 6) / 2;
@@ -5587,11 +5617,11 @@ export default function EditorWorkspacePage() {
 
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 
-  // Find the currently-active item on VIDEO tracks (may be a video clip or an image)
-  const activeTimelineItem = (timeline?.tracks ?? [])
-    .filter((t) => t.kind === 'VIDEO')
-    .flatMap((t) => t.items ?? [])
-    .find((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs) ?? null;
+  // Find the currently-active item on the PRIMARY video track only (first VIDEO track).
+  // Using only the first track avoids falsely detecting overlay clips as the primary source.
+  const primaryVideoTrack = (timeline?.tracks ?? []).find((t) => t.kind === 'VIDEO');
+  const activeTimelineItem = primaryVideoTrack?.items
+    ?.find((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs) ?? null;
 
   const isActiveImage = activeTimelineItem?.kind === 'IMAGE';
   const activeVideoItem = isActiveImage ? null : activeTimelineItem;
@@ -6085,6 +6115,7 @@ export default function EditorWorkspacePage() {
                   key={activeTimelineItem.id}
                   playing={playing}
                   onToggle={() => playing ? stopPlay() : startPlay()}
+                  unavailable={!activeDisplayEntry?.versionId}
                 />
               )}
               {isActiveImage && displaySrc ? (
