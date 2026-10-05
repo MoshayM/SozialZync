@@ -6564,41 +6564,60 @@ export default function EditorWorkspacePage() {
                       className={`flex items-center gap-1 px-2 py-1.5 rounded border transition-colors ${recordPopoverOpen ? 'bg-red-600/40 text-red-300 border-red-500/50' : 'bg-red-600/20 hover:bg-red-600/40 text-red-300 border-red-500/30'}`}
                       title="Record audio or video"
                     >
-                      <Mic className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5" /><Mic className="w-3.5 h-3.5" />
                     </button>
                   )}
                   {recordPopoverOpen && !isRecording && recordButtonRef.current && (
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => setRecordPopoverOpen(false)} />
                       <div
-                        className="fixed z-40 bg-gray-900 border border-white/10 rounded-xl p-3 shadow-2xl"
+                        className="fixed z-40 bg-[#111318] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                         style={{
-                          width: 200,
-                          bottom: window.innerHeight - recordButtonRef.current.getBoundingClientRect().top + 8,
+                          width: 224,
+                          bottom: window.innerHeight - recordButtonRef.current.getBoundingClientRect().top + 10,
                           right: window.innerWidth - recordButtonRef.current.getBoundingClientRect().right,
                         }}
                       >
-                        <p className="text-[9px] text-white/40 uppercase tracking-widest font-semibold mb-2">Record Mode</p>
-                        <div className="flex rounded-lg overflow-hidden border border-white/10 mb-2.5">
-                          {([
-                            { mode: 'audio' as const, label: 'Audio Only', Icon: Mic },
-                            { mode: 'video' as const, label: 'Audio + Video', Icon: Video },
-                          ]).map(({ mode, label, Icon }) => (
-                            <button
-                              key={mode}
-                              onClick={() => setRecordMode(mode)}
-                              className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-semibold transition-colors ${recordMode === mode ? 'bg-red-600/60 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
-                            >
-                              <Icon className="w-3 h-3" /> {label}
-                            </button>
-                          ))}
+                        {/* Header */}
+                        <div className="flex items-center gap-2 px-4 pt-3.5 pb-2.5 border-b border-white/[0.06]">
+                          <span className="w-2 h-2 rounded-full bg-red-500" />
+                          <span className="text-xs font-semibold text-white">Live Capture</span>
                         </div>
-                        <button
-                          onClick={() => { setRecordPopoverOpen(false); void handleStartRecord(); }}
-                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-500 hover:bg-red-400 text-white text-xs font-bold transition-colors"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> Start Recording
-                        </button>
+                        {/* Mode cards */}
+                        <div className="flex flex-col gap-1.5 p-3">
+                          {([
+                            { mode: 'audio' as const, Icon: Mic, label: 'Audio Only', sub: 'Voice narration, no camera' },
+                            { mode: 'video' as const, Icon: Video, label: 'Audio + Video', sub: 'Record with camera' },
+                          ]).map(({ mode, Icon, label, sub }) => {
+                            const active = recordMode === mode;
+                            return (
+                              <button
+                                key={mode}
+                                onClick={() => setRecordMode(mode)}
+                                className={`flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border transition-all ${active ? 'bg-red-600/20 border-red-500/40 text-white' : 'bg-white/[0.03] border-white/[0.06] text-white/50 hover:bg-white/[0.07] hover:text-white/80'}`}
+                              >
+                                <span className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${active ? 'bg-red-500/30 text-red-300' : 'bg-white/[0.06] text-white/40'}`}>
+                                  <Icon className="w-3.5 h-3.5" />
+                                </span>
+                                <span className="flex flex-col gap-0.5 min-w-0">
+                                  <span className="text-xs font-semibold leading-none">{label}</span>
+                                  <span className={`text-[10px] leading-none ${active ? 'text-white/50' : 'text-white/30'}`}>{sub}</span>
+                                </span>
+                                {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Start button */}
+                        <div className="px-3 pb-3">
+                          <button
+                            onClick={() => { setRecordPopoverOpen(false); void handleStartRecord(); }}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 active:scale-[0.98] text-white text-xs font-bold transition-all"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+                            Start Recording
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
