@@ -6336,16 +6336,35 @@ export default function EditorWorkspacePage() {
             </button>
             {/* Zoom controls — visible on all screen sizes */}
             <button
-              onClick={() => setPxPerSec((p) => Math.max(5, p - 10))}
+              onClick={() => setPxPerSec((p) => Math.max(1, p - 10))}
               className="flex p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] items-center justify-center"
               title="Zoom out (timeline)"
               aria-label="Zoom out"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="text-xs text-white/60 tabular-nums w-8 text-center">{pxPerSec}</span>
+            <input
+              type="number"
+              value={pxPerSec}
+              min={1}
+              max={500}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (!isNaN(v) && v > 0) setPxPerSec(Math.min(500, v));
+              }}
+              onBlur={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setPxPerSec(isNaN(v) ? 40 : Math.max(1, Math.min(500, v)));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+              }}
+              className="w-10 text-xs text-white/80 tabular-nums text-center bg-white/10 rounded-md px-1 py-0.5 border border-white/10 focus:outline-none focus:border-white/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              title="Zoom level — type to set"
+              aria-label="Zoom level"
+            />
             <button
-              onClick={() => setPxPerSec((p) => Math.min(200, p + 10))}
+              onClick={() => setPxPerSec((p) => Math.min(500, p + 10))}
               className="flex p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px] items-center justify-center"
               title="Zoom in (timeline)"
               aria-label="Zoom in"
