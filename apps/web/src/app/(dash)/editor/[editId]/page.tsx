@@ -4201,6 +4201,9 @@ export default function EditorWorkspacePage() {
   const [canRedo, setCanRedo] = useState(false);
   const [binPanelOpen, setBinPanelOpen] = useState(true);
   const [inspectorPanelOpen, setInspectorPanelOpen] = useState(true);
+  const [canvasPopoverOpen, setCanvasPopoverOpen] = useState(false);
+  const [recordPopoverOpen, setRecordPopoverOpen] = useState(false);
+  const canvasButtonRef = useRef<HTMLButtonElement>(null);
   const PREVIEW_H_PRESETS = { sm: 160, md: 240, lg: 380 } as const;
   const [previewSizeKey, setPreviewSizeKey] = useState<'sm' | 'md' | 'lg'>('md');
   const [previewH, setPreviewH] = useState(() => {
@@ -5800,22 +5803,6 @@ export default function EditorWorkspacePage() {
           <Type className="w-3.5 h-3.5" />
           <span className="hidden xl:inline text-xs font-medium">Text</span>
         </button>
-        <button
-          onClick={() => setMobileSheet('canvas')}
-          className="hidden lg:flex items-center gap-1.5 px-2.5 h-9 rounded-lg border border-purple-200 text-purple-700 hover:bg-purple-50 text-xs shrink-0"
-          title="Canvas size"
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span className="hidden xl:inline text-xs font-medium">Canvas</span>
-        </button>
-        <button
-          onClick={() => setMobileSheet('record')}
-          className="hidden lg:flex items-center gap-1.5 px-2.5 h-9 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 text-xs shrink-0"
-          title="Live record"
-        >
-          <Mic className="w-3.5 h-3.5" />
-          <span className="hidden xl:inline text-xs font-medium">Record</span>
-        </button>
 
         {/* AI Edit — visible on all screen sizes */}
         <button
@@ -6494,6 +6481,53 @@ export default function EditorWorkspacePage() {
                   <Magnet className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Snap</span>
                 </button>
+                {/* Canvas size — desktop only inline popover (hidden on mobile) */}
+                <div className="relative hidden lg:block shrink-0">
+                  <button
+                    ref={canvasButtonRef}
+                    onClick={() => setCanvasPopoverOpen(o => !o)}
+                    className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors shrink-0 ${canvasPopoverOpen ? 'text-purple-400 bg-purple-900/30' : 'text-gray-500 hover:bg-white/10 hover:text-white'}`}
+                    title="Canvas size"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Canvas</span>
+                  </button>
+                  {canvasPopoverOpen && canvasButtonRef.current && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setCanvasPopoverOpen(false)} />
+                      <div
+                        className="fixed z-40 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-2xl"
+                        style={{
+                          width: 208,
+                          bottom: window.innerHeight - canvasButtonRef.current.getBoundingClientRect().top + 8,
+                          left: canvasButtonRef.current.getBoundingClientRect().left,
+                        }}
+                      >
+                        <p className="text-[9px] text-white/40 uppercase tracking-widest font-semibold px-1 mb-2">Canvas Size</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {([
+                            { label: 'Shorts/Reels', sub: '9:16', w: 1080, h: 1920 },
+                            { label: 'Square', sub: '1:1', w: 1080, h: 1080 },
+                            { label: 'Portrait', sub: '4:5', w: 1080, h: 1350 },
+                            { label: 'Widescreen', sub: '16:9', w: 1920, h: 1080 },
+                          ] as const).map((p) => {
+                            const active = timeline?.width === p.w && timeline?.height === p.h;
+                            return (
+                              <button
+                                key={p.sub}
+                                onClick={() => { updateTimeline(tl => ({ ...tl, width: p.w, height: p.h })); setCanvasPopoverOpen(false); }}
+                                className={`flex flex-col items-start gap-0.5 px-2 py-2 rounded-lg text-xs transition-colors ${active ? 'bg-purple-600/40 text-purple-200 ring-1 ring-purple-500/40' : 'text-white/70 hover:bg-white/10'}`}
+                              >
+                                <span className="font-semibold leading-tight">{p.label}</span>
+                                <span className="text-[9px] opacity-60">{p.sub}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               {/* Always-visible track add buttons — pinned to right, never clipped */}
               <div className="shrink-0 flex items-center gap-1 border-l border-white/10 pl-2">
@@ -6518,6 +6552,57 @@ export default function EditorWorkspacePage() {
                 >
                   <Plus className="w-3.5 h-3.5" /><Type className="w-3.5 h-3.5" />
                 </button>
+                {/* Record — desktop only inline popover (hidden on mobile) */}
+                <div className="relative hidden lg:block shrink-0">
+                  {isRecording ? (
+                    <button
+                      onClick={handleStopRecord}
+                      className="flex items-center gap-1 px-2 py-1.5 rounded bg-red-600/40 text-red-300 border border-red-500/50 transition-colors"
+                      title="Stop recording"
+                    >
+                      <Square className="w-3 h-3 fill-current" />
+                      <span className="text-[10px] font-mono tabular-nums ml-0.5">
+                        {String(Math.floor(recordSec / 60)).padStart(2, '0')}:{String(recordSec % 60).padStart(2, '0')}
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setRecordPopoverOpen(o => !o)}
+                      className={`flex items-center gap-1 px-2 py-1.5 rounded border transition-colors ${recordPopoverOpen ? 'bg-red-600/40 text-red-300 border-red-500/50' : 'bg-red-600/20 hover:bg-red-600/40 text-red-300 border-red-500/30'}`}
+                      title="Record audio or video"
+                    >
+                      <Mic className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {recordPopoverOpen && !isRecording && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setRecordPopoverOpen(false)} />
+                      <div className="absolute bottom-full mb-2 right-0 z-40 bg-gray-900 border border-white/10 rounded-xl p-3 shadow-2xl" style={{ width: 188 }}>
+                        <p className="text-[9px] text-white/40 uppercase tracking-widest font-semibold mb-2">Mode</p>
+                        <div className="flex rounded-lg overflow-hidden border border-white/10 mb-2.5">
+                          {([
+                            { mode: 'audio' as const, label: 'Audio', Icon: Mic },
+                            { mode: 'video' as const, label: 'Video', Icon: Video },
+                          ]).map(({ mode, label, Icon }) => (
+                            <button
+                              key={mode}
+                              onClick={() => setRecordMode(mode)}
+                              className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold transition-colors ${recordMode === mode ? 'bg-red-600/60 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
+                            >
+                              <Icon className="w-3 h-3" /> {label}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => { setRecordPopoverOpen(false); void handleStartRecord(); }}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-500 hover:bg-red-400 text-white text-xs font-bold transition-colors"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> Start Recording
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -6902,7 +6987,7 @@ export default function EditorWorkspacePage() {
 
         {/* Canvas Size bottom sheet */}
         <div
-          className={`fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'canvas' ? 'translate-y-0' : 'translate-y-full'}`}
+          className={`lg:hidden fixed left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'canvas' ? 'translate-y-0' : 'translate-y-full'}`}
           style={{ top: sheetTop, bottom: 56 }}
           role="dialog"
           aria-modal="true"
@@ -7292,14 +7377,14 @@ export default function EditorWorkspacePage() {
       {/* ── Live Record bottom sheet ─────────────────────────────────────── */}
       {mobileSheet === 'record' && !recordFullscreen && (
         <div
-          className="fixed inset-x-0 top-0 z-40 bg-black/50"
+          className="lg:hidden fixed inset-x-0 top-0 z-40 bg-black/50"
           style={{ bottom: 56 }}
           onClick={() => { if (!isRecording) setMobileSheet('none'); }}
           role="presentation"
         />
       )}
       <div
-        className={`fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ top: sheetTop, bottom: 56 }}
         role="dialog" aria-modal="true" aria-label="Live record"
       >
