@@ -129,23 +129,34 @@ export class TopicSegmentationService {
       }
 
       const transcriptText = w.rows.map((r) => `[${r.startMs}–${r.endMs}] ${r.text}`).join('\n');
-      const result = await callAIStructured(
-        [{
-          role: 'user',
-          content: [
-            `Transcript window (each line is "[startMs–endMs] text"):`,
-            transcriptText,
-            '',
-            `Scene changes at (ms): ${sceneCuts.slice(0, 60).join(', ') || 'none detected'}`,
-            `Speaker changes at (ms): ${speakerChanges.slice(0, 60).join(', ') || 'none detected'}`,
-            '',
-            'Identify the self-contained topic segments in this window.',
-            'Respond with JSON: {"segments":[{"startMs":0,"endMs":0,"category":"STORY","title":"...","summary":"...","confidence":0.9}]}',
-          ].join('\n'),
-        }],
-        TopicSegmentationOutputSchema,
-        { systemPrompt: TOPIC_SYSTEM, maxTokens: 4096 },
-      );
+      const aiMessages: Parameters<typeof callAIStructured>[0] = [{
+        role: 'user',
+        content: [
+          `Transcript window (each line is "[startMs–endMs] text"):`,
+          transcriptText,
+          '',
+          `Scene changes at (ms): ${sceneCuts.slice(0, 60).join(', ') || 'none detected'}`,
+          `Speaker changes at (ms): ${speakerChanges.slice(0, 60).join(', ') || 'none detected'}`,
+          '',
+          'Identify the self-contained topic segments in this window.',
+          'Respond with JSON: {"segments":[{"startMs":0,"endMs":0,"category":"STORY","title":"...","summary":"...","confidence":0.9}]}',
+        ].join('\n'),
+      }];
+
+      // callAIStructured already retries 429s with exponential backoff (up to 5×).
+      // If all those retries exhaust (sustained rate limit on long videos), wait 60 s
+      // at the stage level and try the window once more before propagating.
+      const result = await callAIStructured(aiMessages, TopicSegmentationOutputSchema, { systemPrompt: TOPIC_SYSTEM, maxTokens: 4096 })
+        .catch(async (err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          const is429 = (err as { status?: number }).status === 429 || /429|rate.?limit|too many/i.test(msg);
+          if (!is429) throw err;
+          const waitSec = 60;
+          this.logger.warn(`[TopicSegmentation] 429 on window ${i + 1}/${pending.length} — waiting ${waitSec}s before stage-level retry`);
+          onLog?.(`Rate limit hit on window ${i + 1} — waiting ${waitSec} s then retrying…`);
+          await new Promise((r) => setTimeout(r, waitSec * 1000));
+          return callAIStructured(aiMessages, TopicSegmentationOutputSchema, { systemPrompt: TOPIC_SYSTEM, maxTokens: 4096 });
+        });
 
       const clean = this.sanitize(result.segments, w, video.durationMs);
       const merged = await this.mergeAgainstExisting(importedVideoId, clean);
@@ -162,6 +173,11 @@ export class TopicSegmentationService {
           })),
         });
         created += merged.length;
+      }
+
+      // 500 ms pacing between windows to reduce rate-limit pressure on long videos.
+      if (i < pending.length - 1) {
+        await new Promise((r) => setTimeout(r, 500));
       }
     }
 

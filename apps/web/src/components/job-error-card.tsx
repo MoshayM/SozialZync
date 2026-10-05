@@ -136,10 +136,17 @@ export function JobErrorCard({
       ? CODE_COPY[errorCode as JobErrorCode]
       : GENERIC_COPY;
 
+  // Detect rate-limit errors regardless of errorCode so we can give a useful message.
+  const isRateLimit = !!error && /429|rate.?limit|too many requests/i.test(error);
+
   // Resolve description: use copy.desc when set; otherwise try to use the job
   // `error` string — but only if it looks like a clean human sentence.
   let description: string;
-  if (copy.desc !== null) {
+  let fix: string = copy.fix;
+  if (isRateLimit) {
+    description = 'The AI provider hit its rate limit while processing this video. This is temporary.';
+    fix = 'Wait a minute, then hit Retry — the video will resume from where it stopped.';
+  } else if (copy.desc !== null) {
     description = copy.desc;
   } else if (error && !isTechnicalError(error)) {
     description = error;
@@ -164,7 +171,7 @@ export function JobErrorCard({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-red-800">{copy.title}</p>
           <p className="text-xs text-red-700 mt-0.5">{description}</p>
-          <p className="text-xs text-red-600 mt-1 italic">{copy.fix}</p>
+          <p className="text-xs text-red-600 mt-1 italic">{fix}</p>
 
           {(showRetry || showReconnect || showRemove || showDetails) && (
             <div className="flex items-center gap-2 mt-3 flex-wrap">
