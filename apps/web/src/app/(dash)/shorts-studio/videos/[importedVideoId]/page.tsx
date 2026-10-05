@@ -385,7 +385,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const previewClip = previewClipId ? clips.find((c) => c.id === previewClipId) : null;
   const publishModalClip = publishModalClipId ? clips.find((c) => c.id === publishModalClipId) : null;
 
-  const readyClips = clips.filter((c) => c.status === 'RENDERED' || c.status === 'EXPORTED' || c.status === 'PUBLISHED' || c.status === 'PENDING_APPROVAL' || c.status === 'APPROVED');
+  const readyClips = clips.filter((c) => c.status === 'RENDERED' || c.status === 'CANDIDATE' || c.status === 'EXPORTED' || c.status === 'PUBLISHED' || c.status === 'PENDING_APPROVAL' || c.status === 'APPROVED');
   const pendingClips = clips.filter((c) => !readyClips.includes(c));
 
   return (
