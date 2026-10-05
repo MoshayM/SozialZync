@@ -127,6 +127,7 @@ function SecondaryVideoPlayer({
   onRegister,
   onUpdateProps,
   previewContainerRef,
+  zIndexBase = 10,
 }: {
   item: EditItem;
   versionId: string | null;
@@ -136,11 +137,11 @@ function SecondaryVideoPlayer({
   onRegister: (itemId: string, el: HTMLVideoElement | null, item: EditItem) => void;
   onUpdateProps: (itemId: string, updates: Partial<EditItemProperties>, skipHistory?: boolean) => void;
   previewContainerRef: { current: HTMLDivElement | null };
+  zIndexBase?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const src = useSignedMediaUrl(versionId);
 
-  // Register on mount, unregister on unmount
   useEffect(() => {
     const v = videoRef.current;
     if (v) onRegister(item.id, v, item);
@@ -148,14 +149,12 @@ function SecondaryVideoPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When src becomes available ensure the ref is registered
   useEffect(() => {
     const v = videoRef.current;
     if (src && v) onRegister(item.id, v, item);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
-  // Keep timing-relevant item fields fresh in the parent map so rAF tick stays in sync
   useEffect(() => {
     const v = videoRef.current;
     if (v) onRegister(item.id, v, item);
@@ -169,20 +168,41 @@ function SecondaryVideoPlayer({
 
   if (item.properties?.hidden) return null;
 
+  function makeResizeHandler(corner: 'se' | 'sw' | 'ne' | 'nw') {
+    return (e: React.PointerEvent<HTMLDivElement>) => {
+      e.stopPropagation();
+      const el = e.currentTarget;
+      el.setPointerCapture(e.pointerId);
+      const rect = previewContainerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const startX = e.clientX, startScale = scale;
+      const dir = corner === 'se' || corner === 'ne' ? 1 : -1;
+      const onMove = (ev: PointerEvent) => {
+        const dx = ((ev.clientX - startX) / rect.width) * 2 * dir;
+        onUpdateProps(item.id, { scale: clamp(startScale + dx, 0.05, 1.5) }, true);
+      };
+      const onUp = () => { el.removeEventListener('pointermove', onMove as EventListener); };
+      el.addEventListener('pointermove', onMove as EventListener);
+      el.addEventListener('pointerup', onUp, { once: true });
+    };
+  }
+
   return (
     <div
-      className={`absolute overflow-hidden rounded cursor-move select-none ${isSelected ? 'ring-2 ring-yellow-400' : 'ring-1 ring-white/20 hover:ring-white/50'}`}
+      className={`absolute overflow-visible rounded select-none ${isSelected ? 'ring-2 ring-yellow-400' : 'ring-1 ring-white/20 hover:ring-white/50'}`}
       style={{
         left: `${x}%`, top: `${y}%`,
         width: `${scale * 100}%`, aspectRatio: '16/9',
         transform: 'translate(-50%, -50%)',
-        zIndex: isSelected ? 15 : 10,
+        zIndex: isSelected ? 50 : zIndexBase,
         opacity,
+        cursor: 'move',
       }}
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest('[data-resize-handle]')) return;
         e.stopPropagation();
-        e.currentTarget.setPointerCapture(e.pointerId);
+        const el = e.currentTarget;
+        el.setPointerCapture(e.pointerId);
         onSelect();
         const rect = previewContainerRef.current?.getBoundingClientRect();
         if (!rect) return;
@@ -193,58 +213,62 @@ function SecondaryVideoPlayer({
           const dy = ((ev.clientY - startY) / rect.height) * 100;
           onUpdateProps(item.id, { x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) }, true);
         };
-        e.currentTarget.addEventListener('pointermove', onMove as EventListener);
-        e.currentTarget.addEventListener('pointerup', () =>
-          e.currentTarget?.removeEventListener('pointermove', onMove as EventListener),
-          { once: true });
+        const onUp = () => { el.removeEventListener('pointermove', onMove as EventListener); };
+        el.addEventListener('pointermove', onMove as EventListener);
+        el.addEventListener('pointerup', onUp, { once: true });
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
     >
-      <video
-        ref={videoRef}
-        src={src ?? undefined}
-        className="w-full h-full object-cover pointer-events-none"
-        playsInline
-        muted
-        onLoadedMetadata={() => {
-          const v = videoRef.current;
-          if (!v) return;
-          const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (currentTimeMs - item.timelineStartMs)) / 1000);
-          v.currentTime = sourceSec;
-        }}
-      />
-      {!src && (
-        <div className="absolute inset-0 bg-violet-900/80 flex items-center justify-center gap-1 pointer-events-none">
-          <Film className="w-4 h-4 text-violet-300" />
-          <span className="text-violet-200 text-[10px] font-semibold">Loading…</span>
-        </div>
-      )}
-      {/* Bottom-right corner drag to resize */}
-      <div
-        data-resize-handle="true"
-        title="Drag to resize"
-        className="absolute bottom-0 right-0 w-5 h-5 bg-yellow-400 cursor-se-resize flex items-center justify-center"
-        style={{ borderRadius: '3px 0 2px 0' }}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          e.currentTarget.setPointerCapture(e.pointerId);
-          const rect = previewContainerRef.current?.getBoundingClientRect();
-          if (!rect) return;
-          const startX = e.clientX, startScale = scale;
-          const onMove = (ev: PointerEvent) => {
-            const dx = ((ev.clientX - startX) / rect.width) * 2;
-            onUpdateProps(item.id, { scale: clamp(startScale + dx, 0.1, 1.5) }, true);
-          };
-          e.currentTarget.addEventListener('pointermove', onMove as EventListener);
-          e.currentTarget.addEventListener('pointerup', () =>
-            e.currentTarget?.removeEventListener('pointermove', onMove as EventListener),
-            { once: true });
-        }}
-      >
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-          <path d="M1 7L7 1M4 7L7 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
+      <div className="w-full h-full overflow-hidden rounded">
+        <video
+          ref={videoRef}
+          src={src ?? undefined}
+          className="w-full h-full object-cover pointer-events-none"
+          playsInline
+          muted
+          onLoadedMetadata={() => {
+            const v = videoRef.current;
+            if (!v) return;
+            const sourceSec = Math.max(0, ((item.sourceInMs ?? 0) + (currentTimeMs - item.timelineStartMs)) / 1000);
+            v.currentTime = sourceSec;
+          }}
+        />
+        {!src && (
+          <div className="absolute inset-0 bg-violet-900/80 flex items-center justify-center gap-1 pointer-events-none">
+            <Film className="w-4 h-4 text-violet-300" />
+            <span className="text-violet-200 text-[10px] font-semibold">Loading…</span>
+          </div>
+        )}
       </div>
+      {/* 4-corner resize handles — visible when selected */}
+      {isSelected && (
+        <>
+          {/* SE */}
+          <div data-resize-handle="true" title="Drag to resize"
+            className="absolute -bottom-2 -right-2 w-4 h-4 bg-yellow-400 rounded-sm cursor-se-resize flex items-center justify-center z-10"
+            onPointerDown={makeResizeHandler('se')}>
+            <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 7L7 1M4 7L7 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </div>
+          {/* SW */}
+          <div data-resize-handle="true" title="Drag to resize"
+            className="absolute -bottom-2 -left-2 w-4 h-4 bg-yellow-400 rounded-sm cursor-sw-resize flex items-center justify-center z-10"
+            onPointerDown={makeResizeHandler('sw')}>
+            <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M7 7L1 1M4 7L1 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </div>
+          {/* NE */}
+          <div data-resize-handle="true" title="Drag to resize"
+            className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-sm cursor-ne-resize flex items-center justify-center z-10"
+            onPointerDown={makeResizeHandler('ne')}>
+            <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 7L7 1M7 4L7 1L4 1" stroke="black" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </div>
+          {/* NW */}
+          <div data-resize-handle="true" title="Drag to resize"
+            className="absolute -top-2 -left-2 w-4 h-4 bg-yellow-400 rounded-sm cursor-nw-resize flex items-center justify-center z-10"
+            onPointerDown={makeResizeHandler('nw')}>
+            <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M7 7L1 1M1 4L1 1L4 1" stroke="black" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -6111,27 +6135,100 @@ export default function EditorWorkspacePage() {
                       user-gesture context is skipped, and the browser blocks audio on
                       every subsequent rAF-triggered play() call. Hidden via CSS when
                       no src so it doesn't affect layout. */}
-                  <video
-                    ref={videoRef}
-                    src={videoSrc ?? undefined}
-                    className="w-full h-full object-contain"
-                    style={{
-                      opacity: clamp(activeVideoItem?.properties?.opacity ?? 1, 0, 1),
-                      // Hide video frames when the clip is toggled off with the Eye button.
-                      // The <video> element stays mounted so audio continues playing.
-                      display: (videoSrc && !activeVideoItem?.properties?.hidden) ? undefined : 'none',
-                    }}
-                    onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
-                    playsInline
-                  >
-                    {/* Source clips carry no sidecar caption file; empty track satisfies a11y. */}
-                    <track kind="captions" />
-                  </video>
+                  {/* Primary video — full-canvas by default; switches to draggable overlay when scale < 1 */}
+                  {(() => {
+                    const pvProps = activeVideoItem?.properties;
+                    const pvScale = pvProps?.scale;
+                    const pvIsOverlay = pvScale !== undefined && pvScale < 1;
+                    const pvX = pvProps?.x ?? 50;
+                    const pvY = pvProps?.y ?? 50;
+                    const pvScaleVal = pvScale ?? 1;
+                    const pvIsSelected = !!(activeVideoItem && selectedItemId === activeVideoItem.id);
+                    return (
+                      <div
+                        className="select-none"
+                        style={pvIsOverlay ? {
+                          position: 'absolute',
+                          left: `${pvX}%`, top: `${pvY}%`,
+                          width: `${pvScaleVal * 100}%`, aspectRatio: '16/9',
+                          transform: 'translate(-50%, -50%)',
+                          zIndex: pvIsSelected ? 50 : 2,
+                          opacity: clamp(pvProps?.opacity ?? 1, 0, 1),
+                          outline: pvIsSelected ? '2px solid rgba(250,204,21,0.8)' : '1px solid rgba(255,255,255,0.15)',
+                          outlineOffset: '2px',
+                          borderRadius: '3px',
+                          cursor: 'move',
+                          overflow: 'visible',
+                        } : {
+                          position: 'absolute', inset: 0, zIndex: 1, cursor: activeVideoItem ? 'default' : undefined,
+                        }}
+                        onClick={(e) => { if (activeVideoItem) { e.stopPropagation(); setSelectedItemId(activeVideoItem.id); } }}
+                        onPointerDown={pvIsOverlay && activeVideoItem ? (e) => {
+                          if ((e.target as HTMLElement).closest('[data-resize-handle]')) return;
+                          e.stopPropagation();
+                          const el = e.currentTarget;
+                          el.setPointerCapture(e.pointerId);
+                          setSelectedItemId(activeVideoItem.id);
+                          const rect = previewFrameRef.current?.getBoundingClientRect();
+                          if (!rect) return;
+                          const startX = e.clientX, startY = e.clientY;
+                          const startXPct = pvX, startYPct = pvY;
+                          const onMove = (ev: PointerEvent) => {
+                            const dx = ((ev.clientX - startX) / rect.width) * 100;
+                            const dy = ((ev.clientY - startY) / rect.height) * 100;
+                            handleUpdateItemProps(activeVideoItem.id, { x: clamp(startXPct + dx, 0, 100), y: clamp(startYPct + dy, 0, 100) }, true);
+                          };
+                          const onUp = () => { el.removeEventListener('pointermove', onMove as EventListener); };
+                          el.addEventListener('pointermove', onMove as EventListener);
+                          el.addEventListener('pointerup', onUp, { once: true });
+                        } : undefined}
+                      >
+                        <video
+                          ref={videoRef}
+                          src={videoSrc ?? undefined}
+                          className={pvIsOverlay ? 'w-full h-full object-cover pointer-events-none rounded' : 'w-full h-full object-contain pointer-events-none'}
+                          style={{
+                            opacity: pvIsOverlay ? 1 : clamp(pvProps?.opacity ?? 1, 0, 1),
+                            display: (videoSrc && !pvProps?.hidden) ? undefined : 'none',
+                          }}
+                          onLoadedMetadata={(e) => { e.currentTarget.currentTime = activeSourceSec; }}
+                          playsInline
+                        >
+                          <track kind="captions" />
+                        </video>
+                        {/* Resize handle when primary video is in overlay mode and selected */}
+                        {pvIsOverlay && pvIsSelected && activeVideoItem && (
+                          <div
+                            data-resize-handle="true"
+                            title="Drag to resize"
+                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-yellow-400 rounded-sm cursor-se-resize flex items-center justify-center z-10"
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              const el = e.currentTarget;
+                              el.setPointerCapture(e.pointerId);
+                              const rect = previewFrameRef.current?.getBoundingClientRect();
+                              if (!rect) return;
+                              const startX = e.clientX, startScl = pvScaleVal;
+                              const onMove = (ev: PointerEvent) => {
+                                const dx = ((ev.clientX - startX) / rect.width) * 2;
+                                handleUpdateItemProps(activeVideoItem.id, { scale: clamp(startScl + dx, 0.05, 1.5) }, true);
+                              };
+                              const onUp = () => { el.removeEventListener('pointermove', onMove as EventListener); };
+                              el.addEventListener('pointermove', onMove as EventListener);
+                              el.addEventListener('pointerup', onUp, { once: true });
+                            }}
+                          >
+                            <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 7L7 1M4 7L7 4" stroke="black" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {/* Secondary video track layers — real <video> elements that play in sync */}
                   {(timeline?.tracks ?? [])
                     .filter((t) => t.kind === 'VIDEO')
                     .slice(1)
-                    .flatMap((t) =>
+                    .flatMap((t, trackIdx) =>
                       (t.items ?? [])
                         .filter((it) => it.timelineStartMs <= currentTimeMs && it.timelineEndMs > currentTimeMs)
                         .map((it) => {
@@ -6147,6 +6244,7 @@ export default function EditorWorkspacePage() {
                               onRegister={handleRegisterSecondaryVideo}
                               onUpdateProps={handleUpdateItemProps}
                               previewContainerRef={previewFrameRef}
+                              zIndexBase={3 + trackIdx}
                             />
                           );
                         })
