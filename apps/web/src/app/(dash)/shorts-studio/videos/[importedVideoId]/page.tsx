@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, X, AlertCircle, Pause, Download, Trash2, Plus, Film } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, ListTree, Trophy, Scissors, CheckCircle2, Clapperboard, Pencil, Upload, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Check, Search, Share2, Copy, Image as ImageIcon, Play, X, AlertCircle, Pause, Download, Trash2, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { JobErrorCard } from '@/components/job-error-card';
 import { PublishConfirmModal } from '../../PublishConfirmModal';
@@ -353,6 +353,173 @@ function ClipPublishStatus({ clipId }: { clipId: string }) {
   );
 }
 
+// ── BulkPublishPanel ─────────────────────────────────────────────────────────
+
+function BulkPublishPanel({
+  clips,
+  importedVideoId,
+  qc,
+  onClose,
+  onAllDone,
+}: {
+  clips: Array<{ id: string; title: string }>;
+  importedVideoId: string;
+  qc: ReturnType<typeof useQueryClient>;
+  onClose: () => void;
+  onAllDone: (publishedIds: string[]) => void;
+}) {
+  type EntryState = 'pending' | 'publishing' | 'published' | 'saved' | 'error';
+  const [entries, setEntries] = useState<Array<{ id: string; title: string; state: EntryState; checked: boolean }>>(() =>
+    clips.map((c) => ({ ...c, state: 'pending' as EntryState, checked: true }))
+  );
+  const [mode, setMode] = useState<'publish' | 'save'>('publish');
+  const [running, setRunning] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const checkedEntries = entries.filter((e) => e.checked);
+  const doneCount = entries.filter((e) => e.state === 'published' || e.state === 'saved').length;
+  const totalActive = checkedEntries.length;
+  const pct = totalActive > 0 ? Math.round((doneCount / totalActive) * 100) : 0;
+  const allDone = doneCount === totalActive && totalActive > 0 && !running;
+
+  const toggle = (id: string) =>
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, checked: !e.checked } : e)));
+
+  const run = async (runMode: 'publish' | 'save') => {
+    setMode(runMode);
+    setRunning(true);
+    const publishedIds: string[] = [];
+    for (const entry of entries.filter((e) => e.checked && e.state === 'pending')) {
+      setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, state: 'publishing' } : e)));
+      try {
+        if (runMode === 'save') {
+          await api.shortsStudio.saveToPrivate(entry.id, {});
+          setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, state: 'saved' } : e)));
+        } else {
+          await api.shortsStudio.quickPublish(entry.id, {});
+          setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, state: 'published' } : e)));
+          publishedIds.push(entry.id);
+        }
+      } catch {
+        setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, state: 'error' } : e)));
+      }
+    }
+    void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+    if (publishedIds.length > 0) onAllDone(publishedIds);
+    setRunning(false);
+  };
+
+  const stateIcon = (state: EntryState) => {
+    if (state === 'publishing') return <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />;
+    if (state === 'published') return <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />;
+    if (state === 'saved') return <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />;
+    if (state === 'error') return <AlertCircle className="w-3.5 h-3.5 text-red-500" />;
+    return null;
+  };
+
+  const stateLabel = (state: EntryState) => {
+    if (state === 'publishing') return 'Publishing…';
+    if (state === 'published') return 'Published';
+    if (state === 'saved') return 'Saved private';
+    if (state === 'error') return 'Failed';
+    return '';
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" style={{ background: 'rgba(0,0,0,0.4)' }}>
+      <div className="bg-white w-full max-w-md flex flex-col shadow-2xl h-full overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          <Upload className="w-4 h-4 text-gray-600" />
+          <span className="font-semibold text-gray-900 flex-1">Publish Clips ({checkedEntries.length} selected)</span>
+          <button type="button" onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700 rounded-lg">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {entries.map((entry) => (
+            <div key={entry.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
+              <input
+                type="checkbox"
+                checked={entry.checked}
+                disabled={entry.state !== 'pending' || running}
+                onChange={() => toggle(entry.id)}
+                className="w-4 h-4 rounded border-gray-300 shrink-0 cursor-pointer"
+                style={{ accentColor: '#374151' }}
+              />
+              <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{entry.title}</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {stateIcon(entry.state)}
+                {entry.state !== 'pending' && (
+                  <span className="text-[11px] text-gray-500">{stateLabel(entry.state)}</span>
+                )}
+              </div>
+              {entry.state === 'pending' && !running && (
+                <button
+                  type="button"
+                  onClick={() => setActiveId(entry.id)}
+                  className="text-[11px] text-brand-600 hover:underline shrink-0"
+                >
+                  Preview
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-gray-100 p-4 space-y-2.5">
+          {running && (
+            <div className="text-xs text-center text-gray-500">{doneCount} of {totalActive} complete…</div>
+          )}
+          {allDone && (
+            <div className="text-xs text-center font-semibold text-green-600">
+              {mode === 'publish' ? '✓ All clips published!' : '✓ All clips saved to private!'}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={running || checkedEntries.length === 0 || allDone}
+              onClick={() => void run('save')}
+              className="relative flex-1 py-2 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 overflow-hidden disabled:opacity-40"
+            >
+              <span className="absolute inset-y-0 left-0 transition-all duration-500" style={{ width: mode === 'save' ? `${pct}%` : '0%', background: '#bfdbfe' }} />
+              <span className="relative z-10">
+                {mode === 'save' && running ? `Saving… ${pct}%` : allDone && mode === 'save' ? 'Saved!' : 'Save Private'}
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={running || checkedEntries.length === 0 || allDone}
+              onClick={() => void run('publish')}
+              className="relative flex-1 py-2 rounded-xl text-sm font-semibold text-white overflow-hidden disabled:opacity-40"
+              style={{ background: '#374151' }}
+            >
+              <span className="absolute inset-y-0 left-0 transition-all duration-500" style={{ width: mode === 'publish' ? `${pct}%` : '0%', background: '#059669' }} />
+              <span className="relative z-10">
+                {mode === 'publish' && running ? `Publishing… ${pct}%` : allDone && mode === 'publish' ? 'Published!' : `Publish (${checkedEntries.length})`}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      {activeId && (() => {
+        const entry = entries.find((e) => e.id === activeId);
+        if (!entry) return null;
+        return (
+          <PublishConfirmModal
+            clipId={activeId}
+            clipTitle={entry.title}
+            onClose={() => setActiveId(null)}
+            onPublished={(id) => {
+              setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, state: 'published', checked: false } : e)));
+              setActiveId(null);
+            }}
+          />
+        );
+      })()}
+    </div>
+  );
+}
+
 /** Clips list with Preview, Re-edit, Save to Private, Publish, Download actions. */
 function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnType<typeof useQueryClient>; importedVideoId: string }) {
   const router = useRouter();
@@ -362,8 +529,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const [publishModalClipId, setPublishModalClipId] = useState<string | null>(null);
   const [openingEditorClipId, setOpeningEditorClipId] = useState<string | null>(null);
   const [selectedClipIds, setSelectedClipIds] = useState<Set<string>>(new Set());
-  const [bulkRendering, setBulkRendering] = useState(false);
-  const publishQueueRef = useRef<string[]>([]);
+  const [showBulkPublishPanel, setShowBulkPublishPanel] = useState(false);
 
   const openInEditor = useMutation({
     mutationFn: (shortClipId: string) => api.editor.createFromShortClip(shortClipId).then((r) => r.data),
@@ -396,22 +562,9 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
     (c.status === 'RENDERED' || c.status === 'EXPORTED' || c.status === 'PUBLISHED' || !!c.renderAsset?.versions[0]) &&
     !publishedClips.has(c.id),
   );
-  const selectedCandidateCount = readyClips.filter((c) => selectedClipIds.has(c.id) && c.status === 'CANDIDATE').length;
-
-  const handleBulkRender = async () => {
-    const toRender = readyClips.filter((c) => selectedClipIds.has(c.id) && c.status === 'CANDIDATE');
-    if (toRender.length === 0) return;
-    setBulkRendering(true);
-    await Promise.allSettled(toRender.map((c) => api.shortsStudio.render(c.id)));
-    setBulkRendering(false);
-    void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
-  };
-
   const handleBulkPublish = () => {
     if (selectedRenderedClips.length === 0) return;
-    const ids = selectedRenderedClips.map((c) => c.id);
-    publishQueueRef.current = ids.slice(1);
-    setPublishModalClipId(ids[0]!);
+    setShowBulkPublishPanel(true);
   };
 
   return (
@@ -427,15 +580,32 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
         <PublishConfirmModal
           clipId={publishModalClipId}
           clipTitle={publishModalClip.topicSegment?.highlight?.titleSuggestion ?? publishModalClip.topicSegment?.title ?? publishModalClip.chapter?.title ?? 'Clip'}
-          onClose={() => {
-            setPublishModalClipId(null);
-            publishQueueRef.current = [];
-          }}
+          onClose={() => setPublishModalClipId(null)}
           onPublished={(id: string) => {
             setPublishedClips((prev) => new Set(prev).add(id));
+            setPublishModalClipId(null);
             void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
-            const nextId = publishQueueRef.current.shift();
-            setPublishModalClipId(nextId ?? null);
+          }}
+        />
+      )}
+      {showBulkPublishPanel && (
+        <BulkPublishPanel
+          clips={selectedRenderedClips.map((c) => ({
+            id: c.id,
+            title: c.topicSegment?.highlight?.titleSuggestion ?? c.topicSegment?.title ?? c.chapter?.title ?? 'Clip',
+          }))}
+          importedVideoId={importedVideoId}
+          qc={qc}
+          onClose={() => {
+            setShowBulkPublishPanel(false);
+            void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+          }}
+          onAllDone={(publishedIds) => {
+            setPublishedClips((prev) => {
+              const next = new Set(prev);
+              publishedIds.forEach((id) => next.add(id));
+              return next;
+            });
           }}
         />
       )}
@@ -470,26 +640,18 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
             {selectedClipIds.size} clip{selectedClipIds.size > 1 ? 's' : ''} selected
           </span>
           <button
+            type="button"
             onClick={() => setSelectedClipIds(new Set())}
             className="text-xs opacity-60 hover:opacity-100 transition-opacity px-1.5"
           >
             Clear
           </button>
           <button
-            onClick={() => void handleBulkRender()}
-            disabled={bulkRendering || selectedCandidateCount === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40"
-            style={{ background: 'rgba(255,255,255,0.18)' }}
-            title={selectedCandidateCount === 0 ? 'No unrendered clips selected' : `Render ${selectedCandidateCount} clip${selectedCandidateCount > 1 ? 's' : ''}`}
-          >
-            {bulkRendering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Film className="w-3.5 h-3.5" />}
-            Render{selectedCandidateCount > 0 ? ` (${selectedCandidateCount})` : ''}
-          </button>
-          <button
+            type="button"
             onClick={handleBulkPublish}
             disabled={selectedRenderedClips.length === 0}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-900 bg-white hover:bg-gray-100 transition-colors disabled:opacity-40"
-            title={selectedRenderedClips.length === 0 ? 'Select rendered clips to publish' : `Publish ${selectedRenderedClips.length} clip${selectedRenderedClips.length > 1 ? 's' : ''} one by one`}
+            title={selectedRenderedClips.length === 0 ? 'Select rendered clips to publish' : `Publish ${selectedRenderedClips.length} clip${selectedRenderedClips.length > 1 ? 's' : ''}`}
           >
             <Upload className="w-3.5 h-3.5" />
             Publish{selectedRenderedClips.length > 0 ? ` (${selectedRenderedClips.length})` : ''}
@@ -596,25 +758,20 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                     >
                       <Pencil className="w-3.5 h-3.5" /> Re-edit
                     </Link>
-                    {/* Publish — opens confirm modal */}
+                    {/* Publish — opens confirm modal; Re-publish after success */}
                     {isRendered && (
                       <button
                         type="button"
-                        disabled={publishedClips.has(c.id)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!publishedClips.has(c.id)) setPublishModalClipId(c.id);
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
-                        style={publishedClips.has(c.id)
+                        onClick={(e) => { e.stopPropagation(); setPublishModalClipId(c.id); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                        style={publishedClips.has(c.id) || c.status === 'PUBLISHED'
                           ? { background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }
                           : { background: '#374151', color: 'white', border: '1px solid #374151' }}
-                        title={publishedClips.has(c.id) ? 'Already queued for publishing' : 'Review & publish to your connected channel'}
+                        title="Review & publish to your connected channel"
                       >
-                        {publishedClips.has(c.id)
-                          ? <CheckCircle2 className="w-3.5 h-3.5" />
-                          : <Upload className="w-3.5 h-3.5" />}
-                        {publishedClips.has(c.id) ? 'Queued!' : 'Publish'}
+                        {publishedClips.has(c.id) || c.status === 'PUBLISHED'
+                          ? <><CheckCircle2 className="w-3.5 h-3.5" /> Re-publish</>
+                          : <><Upload className="w-3.5 h-3.5" /> Publish</>}
                       </button>
                     )}
                     <button
@@ -776,7 +933,7 @@ function RenderProgressButton({ clipIds, onClipsReady }: { clipIds: string[]; on
   );
 }
 
-function HighlightCard({ h, open, onToggle, onClipsReady }: { h: Highlight; open: boolean; onToggle: () => void; onClipsReady?: () => void }) {
+function HighlightCard({ h, open, onToggle, onClipsReady, selected, onSelect }: { h: Highlight; open: boolean; onToggle: () => void; onClipsReady?: () => void; selected?: boolean; onSelect?: (s: boolean) => void }) {
   const qc = useQueryClient();
   const { importedVideoId } = useParams<{ importedVideoId: string }>();
   const [types, setTypes] = useState<string[]>(['YOUTUBE_SHORTS']);
@@ -846,6 +1003,15 @@ function HighlightCard({ h, open, onToggle, onClipsReady }: { h: Highlight; open
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
         className="flex items-center gap-2.5 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
       >
+        <input
+          type="checkbox"
+          checked={selected ?? false}
+          onChange={(e) => { e.stopPropagation(); onSelect?.(e.target.checked); }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-4 h-4 rounded border-gray-300 shrink-0 cursor-pointer"
+          style={{ accentColor: '#374151' }}
+          aria-label="Select highlight"
+        />
         {open ? <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />}
         <span className="text-lg font-bold text-brand-700 shrink-0 w-8 text-center">{Math.round(h.finalScore)}</span>
         <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${CATEGORY_COLORS[h.topicSegment.category] ?? 'bg-gray-100 text-gray-600'}`}>
@@ -974,6 +1140,8 @@ export default function ShortsVideoDetailPage() {
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [chapterTitleDraft, setChapterTitleDraft] = useState('');
   const [clipsOpen, setClipsOpen] = useState(true);
+  const [selectedHighlightIds, setSelectedHighlightIds] = useState<Set<string>>(new Set());
+  const [bulkCreating, setBulkCreating] = useState(false);
   const clipsRef = useRef<HTMLElement>(null);
 
   const scrollToClips = () => {
@@ -981,6 +1149,24 @@ export default function ShortsVideoDetailPage() {
     setTimeout(() => {
       clipsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
+  };
+
+  const handleBulkCreateClips = async () => {
+    const toCreate = highlights.filter((h) => selectedHighlightIds.has(h.id));
+    if (toCreate.length === 0) return;
+    setBulkCreating(true);
+    await Promise.allSettled(
+      toCreate.map((h) =>
+        api.shortsStudio.generateClips(h.id, ['YOUTUBE_SHORTS']).then(async (r) => {
+          const clips = r.data as Array<{ id: string }>;
+          await Promise.allSettled(clips.map((c) => api.shortsStudio.render(c.id)));
+        })
+      )
+    );
+    setBulkCreating(false);
+    setSelectedHighlightIds(new Set());
+    void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+    scrollToClips();
   };
 
   const { data: topics = [], isLoading: loadingTopics } = useQuery<Topic[]>({
@@ -1125,8 +1311,38 @@ export default function ShortsVideoDetailPage() {
               No highlights yet — run Analyze from the Shorts Studio page and wait for the pipeline to finish.
             </p>
           )}
+          {selectedHighlightIds.size > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl" style={{ background: '#374151', color: 'white' }}>
+              <span className="text-sm font-semibold flex-1">
+                {selectedHighlightIds.size} topic{selectedHighlightIds.size > 1 ? 's' : ''} selected
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedHighlightIds(new Set())}
+                className="text-xs opacity-60 hover:opacity-100 transition-opacity px-1.5"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleBulkCreateClips()}
+                disabled={bulkCreating}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-900 bg-white hover:bg-gray-100 transition-colors disabled:opacity-40"
+              >
+                {bulkCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scissors className="w-3.5 h-3.5" />}
+                Create Clips ({selectedHighlightIds.size})
+              </button>
+            </div>
+          )}
           {highlights.length > 0 && (
-            <div className="flex justify-end -mb-2">
+            <div className="flex items-center justify-between -mb-2">
+              <button
+                type="button"
+                onClick={() => setSelectedHighlightIds((prev) => prev.size === highlights.length ? new Set() : new Set(highlights.map((h) => h.id)))}
+                className="text-xs text-gray-500 hover:text-gray-800 transition-colors"
+              >
+                {selectedHighlightIds.size === highlights.length ? 'Deselect all' : 'Select all'}
+              </button>
               <button
                 onClick={() => setOpenHighlights((prev) => prev.size === highlights.length ? new Set() : new Set(highlights.map((h) => h.id)))}
                 className="text-xs text-brand-600 hover:underline"
@@ -1146,6 +1362,12 @@ export default function ShortsVideoDetailPage() {
                 return next;
               })}
               onClipsReady={scrollToClips}
+              selected={selectedHighlightIds.has(h.id)}
+              onSelect={(s) => setSelectedHighlightIds((prev) => {
+                const next = new Set(prev);
+                if (s) next.add(h.id); else next.delete(h.id);
+                return next;
+              })}
             />
           ))}
         </div>
