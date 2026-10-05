@@ -1511,7 +1511,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         // Helper: run one analysis stage as a child AgentJob.
         // Returns null for optional stages that fail (caller decides whether to throw).
-        const runAnalysisStage = async (stageType: string, stageIdx: number): Promise<unknown> => {
+        const runAnalysisStage = async (stageType: JobType, stageIdx: number): Promise<unknown> => {
           this.events.emitJobUpdate(jobId, {
             status: 'RUNNING', type: 'SHORTS_ANALYZE',
             pipelineStage: stageType, pipelineIndex: stageIdx, pipelineCount: SHORTS_IMPORT_STAGES.length,
@@ -1565,7 +1565,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         };
 
         // Stages 0-3 are sequential — each depends on the previous output.
-        const SEQUENTIAL_STAGES = ['VIDEO_IMPORT', 'TRANSCRIPT_ANALYSIS', 'SCENE_DETECTION', 'TOPIC_SEGMENTATION'];
+        const SEQUENTIAL_STAGES: JobType[] = ['VIDEO_IMPORT', 'TRANSCRIPT_ANALYSIS', 'SCENE_DETECTION', 'TOPIC_SEGMENTATION'];
         for (let i = 0; i < SEQUENTIAL_STAGES.length; i++) {
           await runAnalysisStage(SEQUENTIAL_STAGES[i]!, i);
         }
@@ -1574,7 +1574,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         // HIGHLIGHT_DETECTION and CHAPTER_DETECTION both read topic segments,
         // EMBEDDING_GENERATION reads transcript segments (already done at stage 1).
         // Run all three concurrently to cut wall-clock time by ~2–3×.
-        const PARALLEL_STAGES = ['HIGHLIGHT_DETECTION', 'CHAPTER_DETECTION', 'EMBEDDING_GENERATION'];
+        const PARALLEL_STAGES: JobType[] = ['HIGHLIGHT_DETECTION', 'CHAPTER_DETECTION', 'EMBEDDING_GENERATION'];
         this.log(jobId, projectId, 'Running final stages in parallel: HIGHLIGHT_DETECTION, CHAPTER_DETECTION, EMBEDDING_GENERATION…');
         await Promise.all(
           PARALLEL_STAGES.map((stageType, i) => runAnalysisStage(stageType, SEQUENTIAL_STAGES.length + i)),
