@@ -6,8 +6,8 @@ import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tansta
 import {
   Clapperboard, Loader2, Download, Wand2, CheckCircle2, XCircle,
   Clock, Film, Captions, Sparkles, ChevronDown, ChevronRight,
-  Search, X, FolderDown, ListVideo, Trash2, Scissors, Upload, Link2, HardDrive,
-  Briefcase, Mic, FileText, Mail, BookOpen, MessageSquare, Plus, Share2,
+  Search, X, FolderDown, ListVideo, Trash2, Upload, Link2, HardDrive,
+  Briefcase, Mic, FileText, Mail, MessageSquare, Plus,
 } from 'lucide-react';
 import { api, type LibraryVideo, type LibraryPlaylist, type LibraryVideosPage, type LibraryPlaylistsPage, type LibraryPlaylistItemsPage } from '@/lib/api';
 import { usePlan } from '@/lib/plan';
@@ -1025,7 +1025,6 @@ export default function ShortsStudioPage() {
     enabled: !!channelId,
   });
   const importedIds = new Set(imported.map((v) => v.youtubeVideoId));
-  const analyzedVideo = imported.find((v) => v._count.topicSegments > 0);
 
   const analyzeMutation = useMutation({
     mutationFn: (importedVideoId: string) => api.shortsStudio.analyze(importedVideoId),
@@ -1071,69 +1070,6 @@ export default function ShortsStudioPage() {
               <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           )}
-        </div>
-
-        {/* ── AI Quick Tools ─────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-5 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" style={{ color: '#374151' }} />
-              <span className="text-sm font-bold text-gray-800">AI Quick Tools</span>
-            </div>
-            {analyzedVideo ? (
-              <Link
-                href={`/shorts-studio/videos/${analyzedVideo.id}`}
-                className="text-[11px] font-semibold hover:underline transition-colors"
-                style={{ color: '#374151' }}
-              >
-                Open {analyzedVideo.title.length > 28 ? `${analyzedVideo.title.slice(0, 28)}…` : analyzedVideo.title} →
-              </Link>
-            ) : (
-              <span className="text-[11px] text-gray-400">Analyze a video to activate</span>
-            )}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {(
-              [
-                { icon: Share2,   label: 'Social Pack',      desc: 'Twitter, LinkedIn & newsletter copy', color: '#374151' },
-                { icon: BookOpen, label: 'Detect Chapters',  desc: 'Auto-detect & sync to YouTube',      color: '#0891B2' },
-                { icon: Search,   label: 'Semantic Search',  desc: 'Find any moment by meaning',          color: '#059669' },
-                { icon: Scissors, label: 'Small Clips',      desc: 'Auto-generate the full clip set',     color: '#7c3aed' },
-              ] as { icon: React.ElementType; label: string; desc: string; color: string }[]
-            ).map(({ icon: Icon, label, desc, color }) =>
-              analyzedVideo ? (
-                <Link
-                  key={label}
-                  href={`/shorts-studio/videos/${analyzedVideo.id}`}
-                  className="flex items-start gap-2.5 p-3 rounded-xl transition-all hover:bg-[#f3f4f6] no-underline"
-                  style={{ background: '#faf9ff', border: '1px solid #f3f4f6', textDecoration: 'none' }}
-                >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}18`, color }}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-800 leading-tight">{label}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">{desc}</p>
-                  </div>
-                </Link>
-              ) : (
-                <div
-                  key={label}
-                  className="flex items-start gap-2.5 p-3 rounded-xl"
-                  style={{ background: '#faf9ff', border: '1px solid #f3f4f6', opacity: 0.45, cursor: 'not-allowed' }}
-                  title="Analyze a video first to use this tool"
-                >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}18`, color }}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-800 leading-tight">{label}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">{desc}</p>
-                  </div>
-                </div>
-              )
-            )}
-          </div>
         </div>
 
         {/* ── Loading skeleton while channels are fetching ─────────── */}
