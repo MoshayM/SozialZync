@@ -4190,6 +4190,7 @@ export default function EditorWorkspacePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [pxPerSec, setPxPerSec] = useState(40);
+  useEffect(() => { pxPerSecRef.current = pxPerSec; }, [pxPerSec]);
   const [playing, setPlaying] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   // Keep the ref in sync when state changes from outside (e.g. inspector seek)
@@ -4470,6 +4471,10 @@ export default function EditorWorkspacePage() {
   const historyIndexRef = useRef(-1);
   // Map from itemId → { el, item } for secondary VIDEO track layers synced in rAF tick
   const secondaryVidsRef = useRef<Map<string, { el: HTMLVideoElement; item: EditItem }>>(new Map());
+  // Kept in sync with pxPerSec state so the rAF tick can read the current zoom level.
+  const pxPerSecRef = useRef(40);
+  // Scroll container for the timeline — used for auto-scroll during playback and drag.
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
 
   // Initialise timeline from server — normalise Prisma's default {} or null (no tracks)
   useEffect(() => {
@@ -5523,6 +5528,18 @@ export default function EditorWorkspacePage() {
       if (t - lastUiMs >= 33) {
         lastUiMs = t;
         setCurrentTimeMs(t);
+        // Auto-scroll timeline to keep playhead visible during playback.
+        const scrollEl = timelineScrollRef.current;
+        if (scrollEl) {
+          const playheadX = LABEL_W + msToX(t, pxPerSecRef.current);
+          const { scrollLeft, clientWidth } = scrollEl;
+          const MARGIN = 80;
+          if (playheadX > scrollLeft + clientWidth - MARGIN) {
+            scrollEl.scrollLeft = playheadX - clientWidth + MARGIN;
+          } else if (playheadX < scrollLeft + LABEL_W + MARGIN) {
+            scrollEl.scrollLeft = Math.max(0, playheadX - LABEL_W - MARGIN);
+          }
+        }
       }
 
       if (t >= dur) {
@@ -6888,7 +6905,7 @@ export default function EditorWorkspacePage() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 overflow-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+              <div ref={timelineScrollRef} className="flex-1 overflow-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
                 {(() => {
                   const totalW = Math.max(msToX(dur || 60000, pxPerSec) + 200, 600);
                   const tickIntervalMs = (() => {
@@ -6975,6 +6992,18 @@ export default function EditorWorkspacePage() {
                               const newMs = Math.max(0, Math.min(dur || 60000, Math.round(startMs + (dx / pxPerSec) * 1000)));
                               currentTimeMsRef.current = newMs;
                               setCurrentTimeMs(newMs);
+                              // Auto-scroll to keep playhead in view during drag.
+                              const scrollEl = timelineScrollRef.current;
+                              if (scrollEl) {
+                                const playheadX = LABEL_W + msToX(newMs, pxPerSec);
+                                const { scrollLeft, clientWidth } = scrollEl;
+                                const MARGIN = 80;
+                                if (playheadX > scrollLeft + clientWidth - MARGIN) {
+                                  scrollEl.scrollLeft = playheadX - clientWidth + MARGIN;
+                                } else if (playheadX < scrollLeft + LABEL_W + MARGIN) {
+                                  scrollEl.scrollLeft = Math.max(0, playheadX - LABEL_W - MARGIN);
+                                }
+                              }
                             };
                             const onUp = () => {
                               el.removeEventListener('pointermove', onMove as EventListener);
