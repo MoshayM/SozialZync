@@ -7,6 +7,7 @@ import {
   Clapperboard, Loader2, Download, Wand2, CheckCircle2, XCircle,
   Clock, Film, Captions, Sparkles, ChevronDown, ChevronRight,
   Search, X, FolderDown, ListVideo, Trash2, Scissors, Upload, Link2, HardDrive,
+  Briefcase, Mic, FileText, Mail, BookOpen, MessageSquare, Plus,
 } from 'lucide-react';
 import { api, type LibraryVideo, type LibraryPlaylist, type LibraryVideosPage, type LibraryPlaylistsPage, type LibraryPlaylistItemsPage } from '@/lib/api';
 import { usePlan } from '@/lib/plan';
@@ -1000,6 +1001,7 @@ export default function ShortsStudioPage() {
   const [pickerOpen, setPickerOpen]   = useState(false);
   const [urlModalOpen, setUrlModalOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [exportMoreOpen, setExportMoreOpen] = useState(false);
 
   const { data: channels = [], isLoading: channelsLoading } = useQuery<Channel[]>({
     queryKey: ['channels'],
@@ -1103,18 +1105,85 @@ export default function ShortsStudioPage() {
         </div>
 
         {/* ── Export destinations ───────────────────────────────────── */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-xs font-semibold text-gray-500">Export to:</span>
-          {[
-            { label: 'YouTube Shorts',  color: '#EF4444', bg: '#fef2f2' },
-            { label: 'TikTok',          color: '#0EA5E9', bg: '#f0f9ff' },
-            { label: 'Instagram Reels', color: '#EC4899', bg: '#fdf2f8' },
-          ].map(({ label, color, bg }) => (
-            <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: bg, color, border: `1px solid ${color}30` }}>
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-              {label}
-            </span>
-          ))}
+        <div className="bg-white rounded-2xl p-4 space-y-3" style={{ border: '1.5px solid #e3ddf8' }}>
+          {/* Primary row — always visible */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-xs font-semibold text-gray-500 shrink-0">Export to:</span>
+            {[
+              { label: 'YouTube Shorts',  color: '#EF4444', bg: '#fef2f2' },
+              { label: 'TikTok',          color: '#0EA5E9', bg: '#f0f9ff' },
+              { label: 'Instagram Reels', color: '#EC4899', bg: '#fdf2f8' },
+            ].map(({ label, color, bg }) => (
+              <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0" style={{ background: bg, color, border: `1px solid ${color}30` }}>
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+                {label}
+              </span>
+            ))}
+            <button
+              onClick={() => setExportMoreOpen((o) => !o)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0"
+              style={exportMoreOpen
+                ? { background: '#374151', color: 'white', border: '1px solid #374151' }
+                : { background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}
+            >
+              {exportMoreOpen
+                ? <><X className="w-3 h-3" /> Less</>
+                : <><Plus className="w-3 h-3" /> More formats</>}
+            </button>
+          </div>
+
+          {/* Expanded section — progressive disclosure */}
+          {exportMoreOpen && (
+            <div className="space-y-3 pt-1" style={{ borderTop: '1px solid #f3f4f6' }}>
+
+              {/* Short-form Social */}
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Short-form Social</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[
+                    { icon: Briefcase,  label: 'LinkedIn Clips',       desc: 'Square clips for professionals',  color: '#0077B5', bg: '#eff6ff' },
+                    { icon: Film,       label: 'Facebook Reels',        desc: 'Vertical reels for FB feed',      color: '#1877F2', bg: '#eff6ff' },
+                    { icon: Mic,        label: 'Podcast Highlights',    desc: 'Widescreen audiogram clips',      color: '#7C3AED', bg: '#f5f3ff' },
+                  ].map(({ icon: Icon, label, desc, color, bg }) => (
+                    <div key={label} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: bg, border: `1px solid ${color}20` }}>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}18`, color }}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-gray-800 leading-tight">{label}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5 truncate">{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Content Generation */}
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-2">Content Generation</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { icon: MessageSquare, label: 'Quote Cards',    desc: 'AI-designed share images', color: '#5B21B6', bg: '#f5f3ff' },
+                    { icon: FileText,      label: 'Blog Post',      desc: 'Long-form article draft',  color: '#059669', bg: '#f0fdf4' },
+                    { icon: Mail,          label: 'Newsletter',     desc: 'Email-ready summary',      color: '#D97706', bg: '#fffbeb' },
+                    { icon: BookOpen,      label: 'Auto Chapters',  desc: 'YouTube chapter markers',  color: '#374151', bg: '#f9fafb' },
+                  ].map(({ icon: Icon, label, desc, color, bg }) => (
+                    <div key={label} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: bg, border: `1px solid ${color}20` }}>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}15`, color }}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-gray-800 leading-tight">{label}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5 truncate">{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[10px] text-gray-400 text-center">Available on analyzed videos — open any video and tap <span className="font-semibold">Results</span> to generate</p>
+            </div>
+          )}
         </div>
 
         {/* ── Loading skeleton while channels are fetching ─────────── */}
