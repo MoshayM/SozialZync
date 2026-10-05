@@ -451,7 +451,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
             return next;
           });
           const published = c.status === 'PUBLISHED';
-          const isRendered = !!c.renderAsset?.versions[0];
+          const isRendered = c.status === 'RENDERED' || c.status === 'EXPORTED' || c.status === 'PUBLISHED' || !!c.renderAsset?.versions[0];
           const statusColors: Record<string, string> = {
             PUBLISHED: 'bg-green-100 text-green-700',
             RENDERED: 'bg-blue-100 text-blue-700',

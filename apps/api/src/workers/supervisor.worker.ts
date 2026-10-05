@@ -1508,14 +1508,15 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         if (!importedVideoId) throw new Error('SHORTS_ANALYZE requires payload.importedVideoId');
 
         const stageResults: Record<string, unknown> = {};
-        let idx = 0;
-        for (const stageType of SHORTS_IMPORT_STAGES) {
-          idx += 1;
+
+        // Helper: run one analysis stage as a child AgentJob.
+        // Returns null for optional stages that fail (caller decides whether to throw).
+        const runAnalysisStage = async (stageType: string, stageIdx: number): Promise<unknown> => {
           this.events.emitJobUpdate(jobId, {
             status: 'RUNNING', type: 'SHORTS_ANALYZE',
-            pipelineStage: stageType, pipelineIndex: idx - 1, pipelineCount: SHORTS_IMPORT_STAGES.length,
+            pipelineStage: stageType, pipelineIndex: stageIdx, pipelineCount: SHORTS_IMPORT_STAGES.length,
           }, projectId);
-          this.log(jobId, projectId, `Stage ${idx}/${SHORTS_IMPORT_STAGES.length}: ${stageType}`);
+          this.log(jobId, projectId, `Stage ${stageIdx + 1}/${SHORTS_IMPORT_STAGES.length}: ${stageType}`);
 
           const child = await this.prisma.agentJob.create({
             data: {
@@ -1532,9 +1533,9 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             });
             this.events.emitJobComplete(child.id, { result }, projectId);
             stageResults[stageType] = result;
+            return result;
           } catch (err) {
             const failure = toJobFailure(err);
-            // Structured log for media pipeline stages
             void appendVideoImportLog({
               jobId: child.id,
               type: stageType,
@@ -1555,16 +1556,29 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               } as Parameters<typeof this.prisma.agentJob.update>[0]['data'],
             }).catch(() => undefined);
             this.events.emitJobFailed(child.id, failure.error, projectId);
-            // Optional stages (embeddings power semantic search only) must never
-            // fail the whole analysis — the clip-producing stages above already
-            // completed and persisted. Log and continue instead of aborting.
             if (OPTIONAL_SHORTS_STAGES.has(stageType)) {
               this.log(jobId, projectId, `Optional stage ${stageType} failed — continuing (does not block Shorts): ${failure.error}`);
-              continue;
+              return null;
             }
             throw err;
           }
+        };
+
+        // Stages 0-3 are sequential — each depends on the previous output.
+        const SEQUENTIAL_STAGES = ['VIDEO_IMPORT', 'TRANSCRIPT_ANALYSIS', 'SCENE_DETECTION', 'TOPIC_SEGMENTATION'];
+        for (let i = 0; i < SEQUENTIAL_STAGES.length; i++) {
+          await runAnalysisStage(SEQUENTIAL_STAGES[i]!, i);
         }
+
+        // Stages 4-6 are independent of each other once topics are done:
+        // HIGHLIGHT_DETECTION and CHAPTER_DETECTION both read topic segments,
+        // EMBEDDING_GENERATION reads transcript segments (already done at stage 1).
+        // Run all three concurrently to cut wall-clock time by ~2–3×.
+        const PARALLEL_STAGES = ['HIGHLIGHT_DETECTION', 'CHAPTER_DETECTION', 'EMBEDDING_GENERATION'];
+        this.log(jobId, projectId, 'Running final stages in parallel: HIGHLIGHT_DETECTION, CHAPTER_DETECTION, EMBEDDING_GENERATION…');
+        await Promise.all(
+          PARALLEL_STAGES.map((stageType, i) => runAnalysisStage(stageType, SEQUENTIAL_STAGES.length + i)),
+        );
 
         this.log(jobId, projectId, 'Shorts analysis pipeline complete ✓');
         return { importedVideoId, stages: stageResults };

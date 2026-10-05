@@ -2,8 +2,10 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { embedTexts } from '@cf/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-/** Segments per provider round-trip; each chunk persists before the next starts. */
-const CHUNK_SIZE = 100;
+/** Segments per provider round-trip. Larger chunks = fewer round-trips. */
+const CHUNK_SIZE = 200;
+/** How many chunks to embed concurrently. Bounded by provider rate limits. */
+const PARALLEL_CHUNKS = 4;
 
 /**
  * EMBEDDING_GENERATION job (Ai-video edit.md §5, Phase 5). Fills
@@ -41,33 +43,41 @@ export class EmbeddingGenerationService {
     let done = 0;
     let skippedChunks = 0;
     let tokensIn = 0;
+
+    // Build all chunks upfront, then process in concurrent batches of PARALLEL_CHUNKS.
+    const chunks: Array<{ chunk: typeof pending; offset: number }> = [];
     for (let i = 0; i < pending.length; i += CHUNK_SIZE) {
-      const chunk = pending.slice(i, i + CHUNK_SIZE);
-      onLog?.(`Embedding segments ${i + 1}–${i + chunk.length}/${pending.length}…`);
-      try {
-        const result = await embedTexts(chunk.map((s) => s.text));
-        tokensIn += result.tokensIn;
-        await this.prisma.$transaction(
-          chunk.map((s, j) =>
-            this.prisma.transcriptSegment.update({
-              where: { id: s.id },
-              data: { embedding: result.embeddings[j]! },
-            }),
-          ),
-        );
-        done += chunk.length;
-      } catch (err) {
-        const status = (err as { status?: number }).status ?? 0;
-        const msg = err instanceof Error ? err.message : String(err);
-        const isQuota = status === 429 || /quota|rate.?limit/i.test(msg);
-        // Treat all provider errors (quota, bad params, auth, network) as non-fatal
-        // so that a missing key or unsupported parameter never fails the parent pipeline.
-        // Semantic search degrades gracefully — clips and analysis are already done.
-        const logSuffix = isQuota ? '(will retry on next run)' : `(error: ${msg.slice(0, 120)})`;
-        this.logger.warn(`[EmbeddingGeneration] Skipping chunk ${i + 1}–${i + chunk.length} ${logSuffix}`);
-        onLog?.(`Warning: chunk ${i + 1}–${i + chunk.length} skipped — semantic search will be partial ${logSuffix}`);
-        skippedChunks++;
-      }
+      chunks.push({ chunk: pending.slice(i, i + CHUNK_SIZE), offset: i });
+    }
+
+    for (let b = 0; b < chunks.length; b += PARALLEL_CHUNKS) {
+      const batch = chunks.slice(b, b + PARALLEL_CHUNKS);
+      onLog?.(`Embedding segments batch ${Math.floor(b / PARALLEL_CHUNKS) + 1}/${Math.ceil(chunks.length / PARALLEL_CHUNKS)} (${batch.length} parallel chunks)…`);
+
+      await Promise.all(batch.map(async ({ chunk, offset }) => {
+        try {
+          const result = await embedTexts(chunk.map((s) => s.text));
+          tokensIn += result.tokensIn;
+          await this.prisma.$transaction(
+            chunk.map((s, j) =>
+              this.prisma.transcriptSegment.update({
+                where: { id: s.id },
+                data: { embedding: result.embeddings[j]! },
+              }),
+            ),
+          );
+          done += chunk.length;
+        } catch (err) {
+          const status = (err as { status?: number }).status ?? 0;
+          const msg = err instanceof Error ? err.message : String(err);
+          const isQuota = status === 429 || /quota|rate.?limit/i.test(msg);
+          // Non-fatal: semantic search degrades gracefully when embedding fails.
+          const logSuffix = isQuota ? '(will retry on next run)' : `(error: ${msg.slice(0, 120)})`;
+          this.logger.warn(`[EmbeddingGeneration] Skipping chunk at offset ${offset} ${logSuffix}`);
+          onLog?.(`Warning: chunk at offset ${offset} skipped — semantic search will be partial ${logSuffix}`);
+          skippedChunks++;
+        }
+      }));
     }
 
     if (skippedChunks > 0) {

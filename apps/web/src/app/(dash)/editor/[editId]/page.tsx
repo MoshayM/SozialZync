@@ -7213,7 +7213,7 @@ export default function EditorWorkspacePage() {
         />
       )}
       <div
-        className={`fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`lg:hidden fixed left-0 right-0 z-50 bg-gray-950 rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileSheet === 'record' && !recordFullscreen ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ top: sheetTop, bottom: 56 }}
         role="dialog" aria-modal="true" aria-label="Live record"
       >
