@@ -2606,39 +2606,148 @@ function Inspector({
       {/* ── Text controls (TEXT) ── */}
       {item.kind === 'TEXT' && (
         <>
+          {/* Text content with live style preview */}
           <div>
-            <label htmlFor="insp-text" className="text-xs font-medium text-gray-700 flex items-center gap-1 mb-1.5">
-              <Type className="w-3.5 h-3.5" /> Text
+            <label className="text-xs font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+              <Type className="w-3.5 h-3.5" /> Text content
             </label>
             <textarea
-              id="insp-text"
               value={props.text ?? ''}
               onChange={(e) => setProp('text', e.target.value)}
-              rows={2}
-              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm resize-none"
+              rows={3}
+              placeholder="Enter text…"
+              className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
+              style={{
+                fontFamily: props.fontFamily ?? 'sans-serif',
+                fontWeight: props.fontWeight ?? 'bold',
+                fontStyle: props.fontStyle ?? 'normal',
+                textAlign: (props.textAlign ?? 'center') as 'left' | 'center' | 'right',
+                color: props.color && props.color !== '#ffffff' ? props.color : '#111',
+              }}
             />
           </div>
+
+          {/* Font family */}
           <div>
-            <label htmlFor="insp-fontsize" className="text-xs font-medium text-gray-700 block mb-1.5">Font size</label>
-            <input
-              id="insp-fontsize"
-              type="number"
-              min={8}
-              max={200}
-              value={props.fontSize ?? 32}
-              onChange={(e) => setProp('fontSize', parseInt(e.target.value, 10))}
-              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm"
-            />
+            <label className="text-xs font-medium text-gray-700 block mb-1.5">Font</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {([
+                { label: 'Sans',    value: 'sans-serif' },
+                { label: 'Serif',   value: 'Georgia, serif' },
+                { label: 'Impact',  value: 'Impact, sans-serif' },
+                { label: 'Mono',    value: 'Courier New, monospace' },
+                { label: 'Script',  value: 'cursive' },
+              ] as const).map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => setProp('fontFamily', f.value)}
+                  className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors ${props.fontFamily === f.value ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  style={{ fontFamily: f.value }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Style + Align */}
+          <div className="flex items-start gap-4">
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1.5">Style</label>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setProp('fontWeight', props.fontWeight === 'bold' ? 'normal' : 'bold')}
+                  className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${props.fontWeight === 'bold' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  title="Bold"
+                >
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProp('fontStyle', props.fontStyle === 'italic' ? 'normal' : 'italic')}
+                  className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${props.fontStyle === 'italic' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  title="Italic"
+                >
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1.5">Align</label>
+              <div className="flex gap-1.5">
+                {([
+                  { align: 'left' as const,   Icon: AlignLeft },
+                  { align: 'center' as const, Icon: AlignCenter },
+                  { align: 'right' as const,  Icon: AlignRight },
+                ]).map(({ align, Icon }) => (
+                  <button
+                    key={align}
+                    type="button"
+                    onClick={() => setProp('textAlign', align)}
+                    className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${(props.textAlign ?? 'center') === align ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                    title={align}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Text color */}
           <div>
-            <label htmlFor="insp-color" className="text-xs font-medium text-gray-700 block mb-1.5">Color</label>
-            <input
-              id="insp-color"
-              type="color"
-              value={props.color ?? '#ffffff'}
-              onChange={(e) => setProp('color', e.target.value)}
-              className="w-full h-8 border border-gray-200 rounded-lg cursor-pointer"
-            />
+            <label className="text-xs font-medium text-gray-700 block mb-1.5">Text color</label>
+            <div className="flex gap-1.5 mb-2 flex-wrap">
+              {['#ffffff', '#000000', '#facc15', '#f87171', '#60a5fa', '#4ade80', '#f472b6', '#a78bfa'].map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setProp('color', c)}
+                  className="w-6 h-6 rounded-md border-2 transition-transform hover:scale-110 active:scale-95 shrink-0"
+                  style={{ background: c, borderColor: (props.color ?? '#ffffff') === c ? '#374151' : 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                  title={c}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={props.color ?? '#ffffff'}
+                onChange={(e) => setProp('color', e.target.value)}
+                className="w-8 h-8 border border-gray-200 rounded-lg cursor-pointer shrink-0 p-0.5"
+              />
+              <input
+                type="text"
+                value={props.color ?? '#ffffff'}
+                onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setProp('color', e.target.value); }}
+                className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs font-mono"
+                maxLength={7}
+                spellCheck={false}
+              />
+            </div>
+          </div>
+
+          {/* Background */}
+          <div>
+            <label className="text-xs font-medium text-gray-700 block mb-1.5">Background</label>
+            <div className="flex gap-1.5">
+              {([
+                { label: 'None',  value: undefined },
+                { label: 'Dark',  value: 'rgba(0,0,0,0.55)' },
+                { label: 'Light', value: 'rgba(255,255,255,0.65)' },
+              ] as const).map(({ label, value }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setProp('backgroundColor', value as string | undefined)}
+                  className={`flex-1 py-1.5 rounded-lg border text-xs font-medium transition-colors ${(props.backgroundColor ?? undefined) === value ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}
