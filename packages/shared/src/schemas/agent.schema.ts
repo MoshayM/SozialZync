@@ -75,8 +75,8 @@ export const TrendOutputSchema = z.object({
       peakTime: z.string().optional(),
     }),
   ),
-  recommendations: z.array(z.string()),
-  analysisDate: z.string(),
+  recommendations: z.array(z.string()).optional().default([]),
+  analysisDate: z.string().optional().default(''),
   liveDataUsed: z.boolean().optional(),
 });
 export type TrendOutput = z.infer<typeof TrendOutputSchema>;
@@ -91,7 +91,7 @@ export const GapsOutputSchema = z.object({
     }),
   ).max(10),
   niche: z.string(),
-  analysisDate: z.string(),
+  analysisDate: z.string().optional().default(''),
   liveDataUsed: z.boolean().optional(),
 });
 export type GapsOutput = z.infer<typeof GapsOutputSchema>;
