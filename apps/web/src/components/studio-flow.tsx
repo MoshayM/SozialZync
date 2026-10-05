@@ -522,23 +522,24 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             : undefined;
           const audienceSummary = audienceResult?.primaryDemographic ?? audienceResult?.summary ?? '';
           return (
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-medium text-gray-700 shrink-0">Audience</span>
-              <span className="flex-1 text-gray-500 truncate text-right mr-2">
-                {audienceRunning
-                  ? <span className="flex items-center justify-end gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
-                  : audienceSummary
-                    ? audienceSummary.slice(0, 60) + (audienceSummary.length > 60 ? '…' : '')
-                    : null}
-              </span>
-              <button
-                onClick={() => enqueue.mutate({ type: 'AUDIENCE_ANALYSIS' })}
-                disabled={busy}
-                className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40"
-              >
-                {audienceDone ? <RefreshCw className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
-                {audienceDone ? 'Re-run' : 'Run'}
-              </button>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-gray-700">Audience</span>
+                <button
+                  onClick={() => enqueue.mutate({ type: 'AUDIENCE_ANALYSIS' })}
+                  disabled={busy}
+                  className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40"
+                >
+                  {audienceDone ? <RefreshCw className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+                  {audienceDone ? 'Re-run' : 'Run'}
+                </button>
+              </div>
+              {audienceRunning && (
+                <span className="flex items-center gap-1 text-gray-400"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
+              )}
+              {audienceSummary && !audienceRunning && (
+                <p className="text-gray-500 leading-snug line-clamp-3">{audienceSummary}</p>
+              )}
             </div>
           );
         })()}
@@ -551,25 +552,31 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           const analyticsResult = analyticsDone
             ? (analyticsJob?.result as { overallScore?: number; summary?: string; insights?: string[] } | undefined)
             : undefined;
-          const firstInsight = analyticsResult?.insights?.[0] ?? analyticsResult?.summary ?? '';
+          const insightText = analyticsResult?.insights?.[0] ?? analyticsResult?.summary ?? '';
           return (
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-medium text-gray-700 shrink-0">Channel report</span>
-              <span className="flex-1 text-gray-500 truncate text-right mr-2">
-                {analyticsRunning
-                  ? <span className="flex items-center justify-end gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
-                  : analyticsDone && analyticsResult
-                    ? `Score ${analyticsResult.overallScore ?? '?'}/100${firstInsight ? ` · ${firstInsight.slice(0, 40)}${firstInsight.length > 40 ? '…' : ''}` : ''}`
-                    : null}
-              </span>
-              <button
-                onClick={() => enqueue.mutate({ type: 'ANALYTICS' })}
-                disabled={busy}
-                className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40"
-              >
-                {analyticsDone ? <RefreshCw className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
-                {analyticsDone ? 'Re-run' : 'Run'}
-              </button>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-gray-700">Channel report</span>
+                <button
+                  onClick={() => enqueue.mutate({ type: 'ANALYTICS' })}
+                  disabled={busy}
+                  className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40"
+                >
+                  {analyticsDone ? <RefreshCw className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+                  {analyticsDone ? 'Re-run' : 'Run'}
+                </button>
+              </div>
+              {analyticsRunning && (
+                <span className="flex items-center gap-1 text-gray-400"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
+              )}
+              {analyticsDone && analyticsResult && !analyticsRunning && (
+                <div className="text-gray-500 space-y-0.5">
+                  {analyticsResult.overallScore != null && (
+                    <span className="inline-block font-semibold text-brand-600 mr-1">Score {analyticsResult.overallScore}/100</span>
+                  )}
+                  {insightText && <p className="leading-snug line-clamp-2">{insightText}</p>}
+                </div>
+              )}
             </div>
           );
         })()}
@@ -583,26 +590,33 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           const growthResult = growthDone
             ? (growthJob?.result as { nextTopics?: Array<{ topic: string; rationale?: string; opportunityScore?: number }> } | undefined)
             : undefined;
-          const firstGrowthTopic = growthResult?.nextTopics?.[0]?.topic ?? '';
+          const growthTopics = growthResult?.nextTopics ?? [];
           return (
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-medium text-gray-700 shrink-0">Growth ideas</span>
-              <span className="flex-1 text-gray-500 truncate text-right mr-2">
-                {growthRunning
-                  ? <span className="flex items-center justify-end gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
-                  : firstGrowthTopic
-                    ? firstGrowthTopic.slice(0, 50) + (firstGrowthTopic.length > 50 ? '…' : '')
-                    : null}
-              </span>
-              <button
-                onClick={() => enqueue.mutate({ type: 'GROWTH_REPORT' })}
-                disabled={busy || !analyticsDone}
-                title={!analyticsDone ? 'Run Channel report first' : 'Run Growth ideas'}
-                className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {growthDone ? <RefreshCw className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
-                {growthDone ? 'Re-run' : 'Run'}
-              </button>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-gray-700">Growth ideas</span>
+                <button
+                  onClick={() => enqueue.mutate({ type: 'GROWTH_REPORT' })}
+                  disabled={busy || !analyticsDone}
+                  className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border border-brand-200 text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {growthDone ? <RefreshCw className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+                  {growthDone ? 'Re-run' : 'Run'}
+                </button>
+              </div>
+              {!analyticsDone && !growthDone && (
+                <p className="text-gray-400 text-[10px]">Run Channel report first to unlock</p>
+              )}
+              {growthRunning && (
+                <span className="flex items-center gap-1 text-gray-400"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>
+              )}
+              {growthTopics.length > 0 && !growthRunning && (
+                <ul className="space-y-0.5 text-gray-500">
+                  {growthTopics.slice(0, 3).map((t, i) => (
+                    <li key={i} className="leading-snug">· {t.topic}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           );
         })()}
