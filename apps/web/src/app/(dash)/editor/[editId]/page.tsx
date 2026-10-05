@@ -1591,15 +1591,21 @@ function EditorLoadingScreen() {
 // time the selected clip changes.
 
 function PreviewLoadingOverlay({
-  playing, onToggle, unavailable,
+  playing, onToggle, unavailable, completed, onHidden,
 }: {
   playing: boolean;
   onToggle: () => void;
   /** true = versionId is null or signed URL returned an error; skip loading animation */
   unavailable?: boolean;
+  /** true = URL has arrived; animate ring to 100% then call onHidden */
+  completed?: boolean;
+  onHidden?: () => void;
 }) {
   const [timedOut, setTimedOut] = useState(false);
   const [pct, setPct] = useState(0);
+  const pctRef = useRef(0);
+  const onHiddenRef = useRef(onHidden);
+  useEffect(() => { onHiddenRef.current = onHidden; }, [onHidden]);
 
   // If not immediately unavailable, timeout after 9s → switch to error state
   useEffect(() => {
@@ -1608,17 +1614,30 @@ function PreviewLoadingOverlay({
     return () => clearTimeout(id);
   }, [unavailable]);
 
-  // Animate progress ring while loading
+  // Loading: ease ring toward 90% (stops when completed or timed out)
   useEffect(() => {
-    if (unavailable || timedOut) return;
-    let v = 0;
+    if (unavailable || timedOut || completed) return;
     const t = setInterval(() => {
-      v = Math.min(90, v + (90 - v) * 0.1 + 0.6);
-      setPct(Math.floor(v));
-      if (v >= 89.5) clearInterval(t);
+      pctRef.current = Math.min(90, pctRef.current + (90 - pctRef.current) * 0.1 + 0.6);
+      setPct(Math.floor(pctRef.current));
+      if (pctRef.current >= 89.5) clearInterval(t);
     }, 100);
     return () => clearInterval(t);
-  }, [unavailable, timedOut]);
+  }, [unavailable, timedOut, completed]);
+
+  // Completion: sprint from current position to 100%, then call onHidden
+  useEffect(() => {
+    if (!completed) return;
+    const t = setInterval(() => {
+      pctRef.current = Math.min(100, pctRef.current + 5);
+      setPct(Math.floor(pctRef.current));
+      if (pctRef.current >= 100) {
+        clearInterval(t);
+        setTimeout(() => onHiddenRef.current?.(), 500);
+      }
+    }, 20);
+    return () => clearInterval(t);
+  }, [completed]);
 
   if (unavailable || timedOut) {
     return (
@@ -1632,35 +1651,40 @@ function PreviewLoadingOverlay({
     );
   }
 
-  const size = 64;
-  const r = (size - 6) / 2;
+  const size = 72;
+  const strokeW = 5;
+  const r = (size - strokeW) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - pct / 100);
+  const ringColor = completed ? 'rgba(74,222,128,0.9)' : 'rgba(255,255,255,0.85)';
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 z-10">
-      <div className="relative" style={{ width: size, height: size }}>
+      <button
+        onClick={onToggle}
+        className="relative hover:opacity-80 transition-opacity"
+        aria-label={playing ? 'Pause' : 'Play'}
+        style={{ width: size, height: size }}
+      >
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={strokeW} />
           <circle
             cx={size / 2} cy={size / 2} r={r}
-            fill="none" stroke="rgba(255,255,255,0.85)"
-            strokeWidth="4" strokeLinecap="round"
+            fill="none" stroke={ringColor}
+            strokeWidth={strokeW} strokeLinecap="round"
             strokeDasharray={circ} strokeDashoffset={offset}
-            style={{ transition: 'stroke-dashoffset 0.18s ease-out' }}
+            style={{ transition: 'stroke-dashoffset 0.12s linear, stroke 0.3s ease' }}
           />
         </svg>
-        <button
-          onClick={onToggle}
-          className="absolute inset-0 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-          aria-label={playing ? 'Pause' : 'Play'}
-        >
-          {playing
-            ? <Pause className="w-5 h-5 text-white" />
-            : <Play className="w-5 h-5 text-white" />}
-        </button>
-      </div>
-      <p className="text-[11px] text-white/50">Loading preview…</p>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-semibold text-white" style={{ fontSize: 16, letterSpacing: '-0.5px' }}>
+            {pct}%
+          </span>
+        </div>
+      </button>
+      <p className="text-[11px] text-white/50">
+        {completed ? 'Ready!' : 'Loading preview…'}
+      </p>
     </div>
   );
 }
@@ -4193,6 +4217,8 @@ export default function EditorWorkspacePage() {
   useEffect(() => { pxPerSecRef.current = pxPerSec; }, [pxPerSec]);
   const [playing, setPlaying] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
+  type MediaLoadPhase = { kind: 'idle' } | { kind: 'loading' | 'completing'; itemId: string };
+  const [mediaLoadPhase, setMediaLoadPhase] = useState<MediaLoadPhase>({ kind: 'idle' });
   // Keep the ref in sync when state changes from outside (e.g. inspector seek)
   useEffect(() => { currentTimeMsRef.current = currentTimeMs; }, [currentTimeMs]);
   const [showExport, setShowExport] = useState(false);
@@ -5699,6 +5725,24 @@ export default function EditorWorkspacePage() {
     mediaWaitingRef.current = videoWaiting || audioWaiting;
   }, [activeDisplayEntry?.versionId, displaySrc, activeAudioEntry?.versionId, audioSrc, videoSrc]);
 
+  // Drive the preview loading overlay state machine:
+  //   idle → loading (clip with versionId selected, URL pending)
+  //   loading → completing (URL arrives)
+  //   completing → idle (overlay calls onHidden after 100% animation)
+  useEffect(() => {
+    const itemId = activeTimelineItem?.id;
+    const hasVersion = !!activeDisplayEntry?.versionId;
+    if (itemId && hasVersion && !displaySrc) {
+      if (mediaLoadPhase.kind === 'idle' || (mediaLoadPhase.kind !== 'idle' && mediaLoadPhase.itemId !== itemId)) {
+        setMediaLoadPhase({ kind: 'loading', itemId });
+      }
+    } else if (displaySrc && mediaLoadPhase.kind === 'loading' && mediaLoadPhase.itemId === itemId) {
+      setMediaLoadPhase({ kind: 'completing', itemId: mediaLoadPhase.itemId });
+    } else if (!itemId || !hasVersion) {
+      if (mediaLoadPhase.kind !== 'idle') setMediaLoadPhase({ kind: 'idle' });
+    }
+  }, [activeTimelineItem?.id, activeDisplayEntry?.versionId, displaySrc, mediaLoadPhase]);
+
   // TEXT items overlapping the playhead — overlaid on the preview as a
   // lower-third approximation of the rendered output.
   const activeTextItems = (timeline?.tracks ?? [])
@@ -6150,12 +6194,14 @@ export default function EditorWorkspacePage() {
                 maxHeight: '100%',
               }}
             >
-              {activeTimelineItem && !displaySrc && (
+              {mediaLoadPhase.kind !== 'idle' && activeTimelineItem?.id === mediaLoadPhase.itemId && (
                 <PreviewLoadingOverlay
-                  key={activeTimelineItem.id}
+                  key={mediaLoadPhase.itemId}
                   playing={playing}
                   onToggle={() => playing ? stopPlay() : startPlay()}
                   unavailable={!activeDisplayEntry?.versionId}
+                  completed={mediaLoadPhase.kind === 'completing'}
+                  onHidden={() => setMediaLoadPhase({ kind: 'idle' })}
                 />
               )}
               {isActiveImage && displaySrc ? (
