@@ -361,6 +361,9 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const [publishedClips, setPublishedClips] = useState<Set<string>>(new Set());
   const [publishModalClipId, setPublishModalClipId] = useState<string | null>(null);
   const [openingEditorClipId, setOpeningEditorClipId] = useState<string | null>(null);
+  const [selectedClipIds, setSelectedClipIds] = useState<Set<string>>(new Set());
+  const [bulkRendering, setBulkRendering] = useState(false);
+  const publishQueueRef = useRef<string[]>([]);
 
   const openInEditor = useMutation({
     mutationFn: (shortClipId: string) => api.editor.createFromShortClip(shortClipId).then((r) => r.data),
@@ -388,6 +391,29 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
   const readyClips = clips.filter((c) => c.status === 'RENDERED' || c.status === 'CANDIDATE' || c.status === 'EXPORTED' || c.status === 'PUBLISHED' || c.status === 'PENDING_APPROVAL' || c.status === 'APPROVED');
   const pendingClips = clips.filter((c) => !readyClips.includes(c));
 
+  const selectedRenderedClips = readyClips.filter(
+    (c) => selectedClipIds.has(c.id) &&
+    (c.status === 'RENDERED' || c.status === 'EXPORTED' || c.status === 'PUBLISHED' || !!c.renderAsset?.versions[0]) &&
+    !publishedClips.has(c.id),
+  );
+  const selectedCandidateCount = readyClips.filter((c) => selectedClipIds.has(c.id) && c.status === 'CANDIDATE').length;
+
+  const handleBulkRender = async () => {
+    const toRender = readyClips.filter((c) => selectedClipIds.has(c.id) && c.status === 'CANDIDATE');
+    if (toRender.length === 0) return;
+    setBulkRendering(true);
+    await Promise.allSettled(toRender.map((c) => api.shortsStudio.render(c.id)));
+    setBulkRendering(false);
+    void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+  };
+
+  const handleBulkPublish = () => {
+    if (selectedRenderedClips.length === 0) return;
+    const ids = selectedRenderedClips.map((c) => c.id);
+    publishQueueRef.current = ids.slice(1);
+    setPublishModalClipId(ids[0]!);
+  };
+
   return (
     <>
       {previewClipId && previewClip && (
@@ -401,10 +427,15 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
         <PublishConfirmModal
           clipId={publishModalClipId}
           clipTitle={publishModalClip.topicSegment?.highlight?.titleSuggestion ?? publishModalClip.topicSegment?.title ?? publishModalClip.chapter?.title ?? 'Clip'}
-          onClose={() => setPublishModalClipId(null)}
+          onClose={() => {
+            setPublishModalClipId(null);
+            publishQueueRef.current = [];
+          }}
           onPublished={(id: string) => {
             setPublishedClips((prev) => new Set(prev).add(id));
             void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+            const nextId = publishQueueRef.current.shift();
+            setPublishModalClipId(nextId ?? null);
           }}
         />
       )}
@@ -432,8 +463,47 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
           })}
         </div>
       )}
+      {/* Bulk action bar — shown when ≥1 clip selected */}
+      {selectedClipIds.size > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl mb-2" style={{ background: '#374151', color: 'white' }}>
+          <span className="text-sm font-semibold flex-1">
+            {selectedClipIds.size} clip{selectedClipIds.size > 1 ? 's' : ''} selected
+          </span>
+          <button
+            onClick={() => setSelectedClipIds(new Set())}
+            className="text-xs opacity-60 hover:opacity-100 transition-opacity px-1.5"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => void handleBulkRender()}
+            disabled={bulkRendering || selectedCandidateCount === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40"
+            style={{ background: 'rgba(255,255,255,0.18)' }}
+            title={selectedCandidateCount === 0 ? 'No unrendered clips selected' : `Render ${selectedCandidateCount} clip${selectedCandidateCount > 1 ? 's' : ''}`}
+          >
+            {bulkRendering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Film className="w-3.5 h-3.5" />}
+            Render{selectedCandidateCount > 0 ? ` (${selectedCandidateCount})` : ''}
+          </button>
+          <button
+            onClick={handleBulkPublish}
+            disabled={selectedRenderedClips.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-900 bg-white hover:bg-gray-100 transition-colors disabled:opacity-40"
+            title={selectedRenderedClips.length === 0 ? 'Select rendered clips to publish' : `Publish ${selectedRenderedClips.length} clip${selectedRenderedClips.length > 1 ? 's' : ''} one by one`}
+          >
+            <Upload className="w-3.5 h-3.5" />
+            Publish{selectedRenderedClips.length > 0 ? ` (${selectedRenderedClips.length})` : ''}
+          </button>
+        </div>
+      )}
       {readyClips.length > 0 && (
-        <div className="flex justify-end mb-1">
+        <div className="flex items-center justify-between mb-1">
+          <button
+            onClick={() => setSelectedClipIds((prev) => prev.size === readyClips.length ? new Set() : new Set(readyClips.map((c) => c.id)))}
+            className="text-xs text-gray-500 hover:text-gray-800 transition-colors"
+          >
+            {selectedClipIds.size === readyClips.length ? 'Deselect all' : 'Select all'}
+          </button>
           <button
             onClick={() => setOpenClips((prev) => prev.size === readyClips.length ? new Set() : new Set(readyClips.map((c) => c.id)))}
             className="text-xs text-brand-600 hover:underline"
@@ -468,6 +538,15 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
                 className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
               >
+                <input
+                  type="checkbox"
+                  checked={selectedClipIds.has(c.id)}
+                  onChange={() => setSelectedClipIds((prev) => { const next = new Set(prev); if (next.has(c.id)) next.delete(c.id); else next.add(c.id); return next; })}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-4 h-4 rounded border-gray-300 shrink-0 cursor-pointer"
+                  style={{ accentColor: '#374151' }}
+                  aria-label="Select clip"
+                />
                 {open ? <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />}
                 <p className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
                   {c.topicSegment?.highlight?.titleSuggestion ?? c.topicSegment?.title ?? c.chapter?.title ?? 'Clip'}
