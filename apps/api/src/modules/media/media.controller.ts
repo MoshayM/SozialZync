@@ -584,7 +584,8 @@ export class MediaController {
     @CurrentUser() user: JwtPayload,
     @Query('ttl') ttl?: string,
   ) {
-    this.assertExportAllowed(user);
+    // No export gate here — signed URLs are used for in-browser streaming (editor preview),
+    // not for download. Ownership is still verified below.
     const version = await this.prisma.assetVersion.findUnique({
       where: { id: versionId },
       select: { r2Key: true, asset: { select: { project: { select: { userId: true } } } } },
