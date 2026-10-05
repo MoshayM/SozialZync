@@ -120,13 +120,13 @@ export type AudienceOutput = z.infer<typeof AudienceOutputSchema>;
 // ── Beta: Media Pipeline Agents ────────────────────────────────────────────────
 
 export const VoiceSpecSchema = z.object({
-  sectionId: z.string(),
-  heading: z.string(),
-  ssmlMarkup: z.string(),
+  sectionId: z.string().optional().default(''),
+  heading: z.string().optional().default(''),
+  ssmlMarkup: z.string().optional().default(''),
   voiceId: z.string().optional(),
   provider: z.string().default('elevenlabs'),
-  speed: z.number().min(0.5).max(2.0).default(1.0),
-  stability: z.number().min(0).max(1).default(0.75),
+  speed: z.any().transform((v) => { const n = Number(v); return Number.isFinite(n) ? Math.min(2.0, Math.max(0.5, n)) : 1.0; }),
+  stability: z.any().transform((v) => { const n = Number(v); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.75; }),
   // AI sometimes returns objects like {word, phonetic} — coerce to string
   pronunciationNotes: z.array(
     z.union([z.string(), z.record(z.unknown()).transform(v => (v['word'] ? String(v['word']) : JSON.stringify(v)))])
@@ -137,11 +137,11 @@ export type VoiceSpec = z.infer<typeof VoiceSpecSchema>;
 export const VoiceSpecOutputSchema = z.object({
   projectId: z.string().optional(),
   voiceProfile: z.object({
-    name: z.string(),
-    style: z.string(),
-    tone: z.string(),
-    pace: z.string(),
-  }),
+    name: z.string().optional().default('Default'),
+    style: z.string().optional().default('conversational'),
+    tone: z.string().optional().default('friendly'),
+    pace: z.string().optional().default('normal'),
+  }).optional().default({}),
   sections: z.array(VoiceSpecSchema).default([]),
   estimatedDurationMins: z.number().optional().default(10),
   disclosureRequired: z.boolean().default(false),
@@ -157,7 +157,10 @@ export const ImageBriefSchema = z.object({
   style: z.string(),
   aspectRatio: z.string().default('16:9'),
   count: z.number().int().min(1).max(4).default(2),
-  purpose: z.enum(['b-roll', 'background', 'diagram', 'thumbnail-candidate']),
+  purpose: z.string().transform(v => {
+    const map: Record<string, string> = { 'b-roll': 'b-roll', 'background': 'background', 'diagram': 'diagram', 'thumbnail-candidate': 'thumbnail-candidate' };
+    return map[v] ?? 'b-roll';
+  }).pipe(z.enum(['b-roll', 'background', 'diagram', 'thumbnail-candidate'])),
 });
 export type ImageBrief = z.infer<typeof ImageBriefSchema>;
 
@@ -179,9 +182,15 @@ export type ImageBriefOutput = z.infer<typeof ImageBriefOutputSchema>;
 export const MusicBriefOutputSchema = z.object({
   mood: z.string(),
   genre: z.string(),
-  bpm: z.number().int().min(60).max(200),
+  bpm: z.any().transform((v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(200, Math.max(60, Math.round(n))) : 120;
+  }),
   instruments: z.array(z.string()),
-  energy: z.enum(['low', 'medium', 'high', 'dynamic']),
+  energy: z.string().transform(v => {
+    const map: Record<string, string> = { low: 'low', medium: 'medium', moderate: 'medium', high: 'high', energetic: 'high', dynamic: 'dynamic' };
+    return map[v?.toLowerCase?.()] ?? 'medium';
+  }).pipe(z.enum(['low', 'medium', 'high', 'dynamic'])),
   durationSecs: z.number(),
   // AI sometimes returns array or object — coerce to string
   structure: z.any().transform(v => Array.isArray(v) ? (v as unknown[]).map(i => typeof i === 'string' ? i : JSON.stringify(i)).join(' → ') : typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')),
@@ -199,10 +208,10 @@ export const SceneSchema = z.object({
   narration: z.string().optional().default(''),
   startSecs: z.number().optional().default(0),
   endSecs: z.number().optional().default(0),
-  durationSecs: z.number(),
-  shotType: z.string(),
+  durationSecs: z.any().transform((v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : 20; }),
+  shotType: z.string().optional().default('medium'),
   imagePrompt: z.string().optional().default(''),
-  videoPrompt: z.string(),
+  videoPrompt: z.string().optional().default(''),
   negativePrompt: z.string().optional(),
   transition: z.string().default('cut'),
   cameraMotion: z.string().optional().default('static'),
@@ -225,7 +234,7 @@ export type Scene = z.infer<typeof SceneSchema>;
 
 export const VideoScenePlanOutputSchema = z.object({
   projectId: z.string().optional(),
-  totalDurationSecs: z.number(),
+  totalDurationSecs: z.any().transform((v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : 120; }),
   semanticMethod: z.string().optional().default('cinematic-director'),
   sceneCount: z.number().optional().default(0),
   scenes: z.array(SceneSchema),
@@ -261,14 +270,17 @@ export const SubtitleOutputSchema = z.object({
 export type SubtitleOutput = z.infer<typeof SubtitleOutputSchema>;
 
 export const TimelineClipSchema = z.object({
-  id: z.string(),
+  id: z.string().optional().default(''),
   // Nullable: a first-cut clip may reference an asset that doesn't exist yet
   assetId: z.string().nullable().optional(),
   assetVersionId: z.string().nullable().optional(),
-  kind: z.enum(['voice', 'video', 'image', 'music', 'subtitle', 'overlay']),
-  startMs: z.number().int(),
-  durationMs: z.number().int(),
-  trackIndex: z.number().int(),
+  kind: z.string().transform(v => {
+    const allowed = ['voice','video','image','music','subtitle','overlay'];
+    return allowed.includes(String(v)) ? v : 'video';
+  }).pipe(z.enum(['voice', 'video', 'image', 'music', 'subtitle', 'overlay'])),
+  startMs: z.any().transform((v) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0; }),
+  durationMs: z.any().transform((v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.round(n) : 1000; }),
+  trackIndex: z.any().transform((v) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0; }),
   label: z.string().optional(),
   effects: z.array(z.record(z.unknown())).default([]),
   transition: z.string().optional(),
@@ -281,7 +293,7 @@ export const EditPlanOutputSchema = z.object({
   fps: z.number().int().default(30),
   resolution: z.object({ width: z.number().int(), height: z.number().int() })
     .default({ width: 1920, height: 1080 }),
-  totalDurationMs: z.number().int(),
+  totalDurationMs: z.any().transform((v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.round(n) : 120000; }),
   tracks: z.array(z.object({
     // Optional: array position is the authoritative order; filled in on save
     index: z.number().int().optional(),
