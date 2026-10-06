@@ -5,7 +5,7 @@ import {
   Youtube, BarChart2, Lightbulb, FileText, Mic, Music, Clapperboard,
   Play, RefreshCw, Loader2, CheckCircle, ChevronDown, ChevronUp, Save, Pencil, AlertTriangle, X,
   KeyRound, Sparkles, Download, FileVideo, FileAudio, FileImage, FileText as FileTextIcon, ShieldCheck,
-  Square, Volume2, Upload,
+  Square, Volume2, Upload, Plus, ExternalLink, Check,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ElapsedBadge, formatElapsed } from '@/components/ai-activity';
@@ -50,7 +50,7 @@ interface ScriptResult {
 
 interface Props {
   projectId: string;
-  channel: { title: string; youtubeChannelId: string } | null;
+  channel: { id?: string; title: string; youtubeChannelId: string } | null;
   jobs: Job[];
   anyPipelineRunning: boolean;
   progress: PipelineProgress | null;
@@ -330,6 +330,12 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     (typeof window !== 'undefined' ? (localStorage.getItem(`cf_preset_${projectId}`) as (typeof PRESETS)[number]['value'] | null) : null) ?? 'LANDSCAPE');
   const [refreshMedia, setRefreshMedia] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
+  // Batch project creation
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchChecked, setBatchChecked] = useState<Set<string>>(new Set());
+  const [batchCreating, setBatchCreating] = useState(false);
+  type BatchStatus = { status: 'creating' | 'done' | 'error'; projectId?: string; error?: string };
+  const [batchResults, setBatchResults] = useState<Map<string, BatchStatus>>(new Map());
   const [mood, setMood] = useState('');
   const [genre, setGenre] = useState('');
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
@@ -445,6 +451,26 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     setTopic(t);
     localStorage.setItem(`cf_topic_${projectId}`, t);
   }
+
+  const handleBatchCreate = useCallback(async (topics: string[]) => {
+    if (!topics.length) return;
+    setBatchCreating(true);
+    setBatchResults(new Map(topics.map((t) => [t, { status: 'creating' }])));
+    await Promise.allSettled(
+      topics.map(async (t) => {
+        try {
+          const res = await api.projects.create({ title: t, channelId: channel?.id || undefined });
+          const newId = (res.data as { id: string }).id;
+          localStorage.setItem(`cf_topic_${newId}`, t);
+          setBatchResults((prev) => { const m = new Map(prev); m.set(t, { status: 'done', projectId: newId }); return m; });
+        } catch (e) {
+          const err = e as { response?: { data?: { message?: string } } };
+          setBatchResults((prev) => { const m = new Map(prev); m.set(t, { status: 'error', error: err.response?.data?.message ?? 'Failed' }); return m; });
+        }
+      }),
+    );
+    setBatchCreating(false);
+  }, [channel?.id]);
 
   function choosePlatform(p: (typeof PLATFORMS)[number]) {
     setPlatform(p);
@@ -911,6 +937,125 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             ))}
           </div>
         )}
+
+        {/* ── Batch project creation ── */}
+        {(trends.length > 0 || growthTopics.length > 0) && (() => {
+          const allTopics = [
+            ...trends.map((t) => t.topic),
+            ...growthTopics.map((g) => g.topic),
+          ].filter((t, i, arr) => arr.indexOf(t) === i); // dedupe
+
+          const toggleTopic = (t: string) => {
+            setBatchChecked((prev) => {
+              const next = new Set(prev);
+              next.has(t) ? next.delete(t) : next.add(t);
+              return next;
+            });
+          };
+
+          const checkedTopics = allTopics.filter((t) => batchChecked.has(t));
+          const allSelected = allTopics.every((t) => batchChecked.has(t));
+          const hasResults = batchResults.size > 0;
+
+          return (
+            <div className="mt-3 border-t border-gray-100 pt-3">
+              <button
+                onClick={() => { setBatchOpen((o) => !o); if (!batchOpen) { setBatchResults(new Map()); } }}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-600 hover:text-brand-700 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Create separate projects per topic
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${batchOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {batchOpen && (
+                <div className="mt-3 space-y-2.5">
+                  {/* Select-all / clear row */}
+                  {!hasResults && (
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setBatchChecked(allSelected ? new Set() : new Set(allTopics))}
+                        className="text-[10px] text-gray-500 hover:text-gray-700 underline"
+                      >
+                        {allSelected ? 'Clear all' : 'Select all'}
+                      </button>
+                      <span className="text-[10px] text-gray-400">{batchChecked.size} selected</span>
+                    </div>
+                  )}
+
+                  {/* Topic checklist */}
+                  {!hasResults && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {allTopics.map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => toggleTopic(t)}
+                          className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border transition-colors ${
+                            batchChecked.has(t)
+                              ? 'bg-brand-600 text-white border-brand-600'
+                              : 'border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-brand-50'
+                          }`}
+                        >
+                          {batchChecked.has(t) && <Check className="w-2.5 h-2.5 shrink-0" />}
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Create button */}
+                  {!hasResults && (
+                    <button
+                      onClick={() => handleBatchCreate(checkedTopics)}
+                      disabled={checkedTopics.length === 0 || batchCreating}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 text-white text-xs font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-40 transition-colors"
+                    >
+                      {batchCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                      {batchCreating
+                        ? 'Creating projects…'
+                        : checkedTopics.length === 0
+                        ? 'Select topics above'
+                        : `Create ${checkedTopics.length} Project${checkedTopics.length > 1 ? 's' : ''}`}
+                    </button>
+                  )}
+
+                  {/* Per-topic results */}
+                  {hasResults && (
+                    <div className="space-y-1.5">
+                      {[...batchResults.entries()].map(([t, r]) => (
+                        <div key={t} className="flex items-center gap-2 text-xs">
+                          {r.status === 'creating' && <Loader2 className="w-3 h-3 animate-spin text-brand-500 shrink-0" />}
+                          {r.status === 'done' && <CheckCircle className="w-3 h-3 text-green-500 shrink-0" />}
+                          {r.status === 'error' && <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />}
+                          <span className="flex-1 truncate text-gray-700">{t}</span>
+                          {r.status === 'done' && r.projectId && (
+                            <a
+                              href={`/projects/${r.projectId}`}
+                              className="shrink-0 flex items-center gap-0.5 text-brand-600 hover:underline font-medium"
+                            >
+                              Open <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
+                          {r.status === 'error' && (
+                            <span className="shrink-0 text-red-500">{r.error}</span>
+                          )}
+                        </div>
+                      ))}
+                      {!batchCreating && (
+                        <button
+                          onClick={() => { setBatchResults(new Map()); setBatchChecked(new Set()); }}
+                          className="text-[10px] text-gray-400 hover:text-gray-600 underline mt-1"
+                        >
+                          Start over
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     );
   })();
