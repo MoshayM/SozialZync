@@ -580,13 +580,23 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
       const { voiceId } = await res.json() as { voiceId: string };
       setClonedVoiceId(voiceId);
       enqueue.mutate({ type: 'FULL_PRODUCTION', payload: { scope: 'VOICE', referenceVoiceId: voiceId, lang: targetLang, regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } });
-    } catch (err) {
-      setCloneError(err instanceof Error ? err.message : 'Clone failed');
+    } catch {
+      // Cloning unavailable (no server key or missing permissions) — fall back to AI voice
+      setCloneError('fallback');
+      enqueue.mutate({
+        type: 'FULL_PRODUCTION',
+        payload: {
+          scope: 'VOICE',
+          regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
+          voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
+          lang: targetLang,
+        },
+      });
     } finally {
       setCloneLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refBlob, targetLang]);
+  }, [refBlob, targetLang, voiceStyle]);
 
   function chooseTopic(t: string) {
     setTopic(t);
@@ -1788,22 +1798,22 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 )}
               </div>
 
-              {cloneError && (
-                <p className="text-xs text-red-500">
-                  {cloneError.includes('not configured')
-                    ? 'Voice cloning requires server configuration. Use Record Full Script instead, or contact support.'
-                    : cloneError}
-                </p>
-              )}
-
               {/* Step 2: Clone & Generate */}
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">2. Generate in your voice</p>
-                {clonedVoiceId && (
+                {clonedVoiceId && !cloneError && (
                   <p className="text-[11px] text-green-700 font-medium flex items-center gap-1">
                     <CheckCircle className="w-3.5 h-3.5" />
                     Voice cloned — narration queued
                   </p>
+                )}
+                {cloneError === 'fallback' && (
+                  <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                    <p className="text-[11px] text-amber-700 leading-relaxed">
+                      Voice cloning is not available on this server — generating narration with your selected AI voice style instead.
+                    </p>
+                  </div>
                 )}
                 <button
                   onClick={cloneAndGenerate}
@@ -1811,7 +1821,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-brand-600 text-white rounded-full hover:bg-brand-700 disabled:opacity-40 transition-colors shadow-sm"
                 >
                   {cloneLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                  {cloneLoading ? 'Cloning voice…' : clonedVoiceId ? 'Regenerate' : 'Clone Voice & Generate'}
+                  {cloneLoading ? 'Generating narration…' : (clonedVoiceId || cloneError) ? 'Regenerate' : 'Clone Voice & Generate'}
                 </button>
                 {!refBlob && (
                   <p className="text-[11px] text-gray-400">Record or import a sample above first</p>
