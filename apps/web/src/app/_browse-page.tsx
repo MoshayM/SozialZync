@@ -258,7 +258,7 @@ function FeedSlide({
   item, isActive, isLiked, isSaved, currentIdx, totalCount,
   isLoggedIn, onClose, onLike, onSave, onNext, onPrev,
   muted, onToggleMute, quality, onQualityChange, captionLang, onCaptionLangChange,
-  isFollowing, onFollow,
+  isFollowing, onFollow, videoPreload = 'none',
 }: {
   item: FeedItem; isActive: boolean; isLiked: boolean; isSaved: boolean;
   currentIdx: number; totalCount: number; isLoggedIn: boolean;
@@ -269,6 +269,7 @@ function FeedSlide({
   quality: string; onQualityChange: (q: string) => void;
   captionLang: string | null; onCaptionLangChange: (lang: string | null) => void;
   isFollowing: boolean; onFollow: (creator: string) => void;
+  videoPreload?: 'auto' | 'metadata' | 'none';
 }) {
   const isPortrait = item.kind === 'short' || item.kind === 'reel';
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -318,6 +319,15 @@ function FeedSlide({
     }
   }, [isActive]);
 
+  // When a nearby (non-active) slide transitions from preload="none" to
+  // metadata/auto, the browser won't honour the new attribute unless we
+  // call load() — but only if it hasn't already started buffering.
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || isActive || videoPreload === 'none') return;
+    if (vid.readyState < HTMLMediaElement.HAVE_METADATA) vid.load();
+  }, [videoPreload, isActive]);
+
   useEffect(() => {
     if (!captionLang || !isActive) { setCaptionIdx(0); return; }
     const iv = setInterval(() => setCaptionIdx(i => (i + 1) % captionLines.length), 2800);
@@ -365,7 +375,7 @@ function FeedSlide({
                   loop
                   muted={muted}
                   playsInline
-                  preload="auto"
+                  preload={videoPreload}
                   onWaiting={() => setBuffering(true)}
                   onCanPlay={() => setBuffering(false)}
                   onPlaying={() => setBuffering(false)}
@@ -410,7 +420,7 @@ function FeedSlide({
                   loop
                   muted={muted}
                   playsInline
-                  preload="auto"
+                  preload={videoPreload}
                   onWaiting={() => setBuffering(true)}
                   onCanPlay={() => setBuffering(false)}
                   onPlaying={() => setBuffering(false)}
@@ -883,6 +893,7 @@ function FeedView({
             key={`${item.id}-${item.kind}`}
             item={item}
             isActive={activeIdx === idx}
+            videoPreload={idx === activeIdx ? 'auto' : Math.abs(idx - activeIdx) <= 2 ? 'metadata' : 'none'}
             isLiked={likedKeys.has(`${item.id}-${item.kind}`)}
             isSaved={savedKeys.has(`${item.id}-${item.kind}`)}
             currentIdx={idx}
