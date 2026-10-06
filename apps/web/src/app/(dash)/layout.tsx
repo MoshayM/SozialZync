@@ -70,26 +70,56 @@ const BOTTOM_ITEMS: NavItem[] = [
 ];
 
 const UI_LANGUAGES = [
-  { code: 'en',    name: 'English',    flag: '🇺🇸' },
-  { code: 'es',    name: 'Español',    flag: '🇪🇸' },
-  { code: 'fr',    name: 'Français',   flag: '🇫🇷' },
-  { code: 'de',    name: 'Deutsch',    flag: '🇩🇪' },
-  { code: 'pt',    name: 'Português',  flag: '🇧🇷' },
-  { code: 'hi',    name: 'हिन्दी',     flag: '🇮🇳' },
-  { code: 'ar',    name: 'العربية',    flag: '🇸🇦' },
-  { code: 'ja',    name: '日本語',      flag: '🇯🇵' },
-  { code: 'ko',    name: '한국어',      flag: '🇰🇷' },
-  { code: 'zh',    name: '中文',       flag: '🇨🇳' },
-  { code: 'id',    name: 'Bahasa',     flag: '🇮🇩' },
-  { code: 'ru',    name: 'Русский',    flag: '🇷🇺' },
-  { code: 'it',    name: 'Italiano',   flag: '🇮🇹' },
-  { code: 'tr',    name: 'Türkçe',     flag: '🇹🇷' },
-  { code: 'vi',    name: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'th',    name: 'ไทย',        flag: '🇹🇭' },
-  { code: 'ms',    name: 'Melayu',     flag: '🇲🇾' },
-  { code: 'tl',    name: 'Filipino',   flag: '🇵🇭' },
-  { code: 'pl',    name: 'Polski',     flag: '🇵🇱' },
-  { code: 'nl',    name: 'Nederlands', flag: '🇳🇱' },
+  // World top — shown first
+  { code: 'en',    name: 'English',             nativeName: 'English',      flag: '🇺🇸' },
+  { code: 'zh',    name: 'Chinese',             nativeName: '中文',          flag: '🇨🇳' },
+  { code: 'hi',    name: 'Hindi',               nativeName: 'हिन्दी',       flag: '🇮🇳' },
+  { code: 'es',    name: 'Spanish',             nativeName: 'Español',      flag: '🇪🇸' },
+  { code: 'ar',    name: 'Arabic',              nativeName: 'العربية',      flag: '🇸🇦' },
+  { code: 'bn',    name: 'Bengali',             nativeName: 'বাংলা',        flag: '🇧🇩' },
+  { code: 'fr',    name: 'French',              nativeName: 'Français',     flag: '🇫🇷' },
+  { code: 'pt',    name: 'Portuguese',          nativeName: 'Português',    flag: '🇧🇷' },
+  { code: 'ru',    name: 'Russian',             nativeName: 'Русский',      flag: '🇷🇺' },
+  { code: 'ur',    name: 'Urdu',                nativeName: 'اردو',         flag: '🇵🇰' },
+  { code: 'id',    name: 'Indonesian',          nativeName: 'Bahasa Indonesia', flag: '🇮🇩' },
+  { code: 'de',    name: 'German',              nativeName: 'Deutsch',      flag: '🇩🇪' },
+  { code: 'ja',    name: 'Japanese',            nativeName: '日本語',        flag: '🇯🇵' },
+  { code: 'te',    name: 'Telugu',              nativeName: 'తెలుగు',       flag: '🇮🇳' },
+  { code: 'mr',    name: 'Marathi',             nativeName: 'मराठी',        flag: '🇮🇳' },
+  { code: 'ta',    name: 'Tamil',               nativeName: 'தமிழ்',        flag: '🇮🇳' },
+  { code: 'ko',    name: 'Korean',              nativeName: '한국어',        flag: '🇰🇷' },
+  { code: 'vi',    name: 'Vietnamese',          nativeName: 'Tiếng Việt',  flag: '🇻🇳' },
+  { code: 'zh-TW', name: 'Chinese (Traditional)', nativeName: '繁體中文',   flag: '🇹🇼' },
+  { code: 'tr',    name: 'Turkish',             nativeName: 'Türkçe',      flag: '🇹🇷' },
+  { code: 'it',    name: 'Italian',             nativeName: 'Italiano',    flag: '🇮🇹' },
+  { code: 'th',    name: 'Thai',                nativeName: 'ภาษาไทย',     flag: '🇹🇭' },
+  { code: 'gu',    name: 'Gujarati',            nativeName: 'ગુજરાતી',     flag: '🇮🇳' },
+  { code: 'kn',    name: 'Kannada',             nativeName: 'ಕನ್ನಡ',       flag: '🇮🇳' },
+  { code: 'ml',    name: 'Malayalam',           nativeName: 'മലയാളം',      flag: '🇮🇳' },
+  { code: 'pa',    name: 'Punjabi',             nativeName: 'ਪੰਜਾਬੀ',      flag: '🇮🇳' },
+  { code: 'ms',    name: 'Malay',               nativeName: 'Bahasa Melayu', flag: '🇲🇾' },
+  { code: 'tl',    name: 'Filipino',            nativeName: 'Filipino',    flag: '🇵🇭' },
+  { code: 'pl',    name: 'Polish',              nativeName: 'Polski',      flag: '🇵🇱' },
+  { code: 'nl',    name: 'Dutch',               nativeName: 'Nederlands',  flag: '🇳🇱' },
+  { code: 'sv',    name: 'Swedish',             nativeName: 'Svenska',     flag: '🇸🇪' },
+  { code: 'no',    name: 'Norwegian',           nativeName: 'Norsk',       flag: '🇳🇴' },
+  { code: 'da',    name: 'Danish',              nativeName: 'Dansk',       flag: '🇩🇰' },
+  { code: 'fi',    name: 'Finnish',             nativeName: 'Suomi',       flag: '🇫🇮' },
+  { code: 'el',    name: 'Greek',               nativeName: 'Ελληνικά',   flag: '🇬🇷' },
+  { code: 'cs',    name: 'Czech',               nativeName: 'Čeština',    flag: '🇨🇿' },
+  { code: 'ro',    name: 'Romanian',            nativeName: 'Română',     flag: '🇷🇴' },
+  { code: 'hu',    name: 'Hungarian',           nativeName: 'Magyar',     flag: '🇭🇺' },
+  { code: 'uk',    name: 'Ukrainian',           nativeName: 'Українська', flag: '🇺🇦' },
+  { code: 'he',    name: 'Hebrew',              nativeName: 'עברית',      flag: '🇮🇱' },
+  { code: 'sw',    name: 'Swahili',             nativeName: 'Kiswahili',  flag: '🇰🇪' },
+  { code: 'af',    name: 'Afrikaans',           nativeName: 'Afrikaans',  flag: '🇿🇦' },
+  { code: 'hr',    name: 'Croatian',            nativeName: 'Hrvatski',   flag: '🇭🇷' },
+  { code: 'sk',    name: 'Slovak',              nativeName: 'Slovenčina', flag: '🇸🇰' },
+  { code: 'bg',    name: 'Bulgarian',           nativeName: 'Български',  flag: '🇧🇬' },
+  { code: 'lt',    name: 'Lithuanian',          nativeName: 'Lietuvių',   flag: '🇱🇹' },
+  { code: 'lv',    name: 'Latvian',             nativeName: 'Latviešu',   flag: '🇱🇻' },
+  { code: 'et',    name: 'Estonian',            nativeName: 'Eesti',      flag: '🇪🇪' },
+  { code: 'ca',    name: 'Catalan',             nativeName: 'Català',     flag: '🏴󠁥󠁳󠁣󠁴󠁿' },
 ];
 
 /* Every searchable destination in the app — used by the quick search */
@@ -580,6 +610,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
   const [uiLang, setUiLang] = useState<string>(() => {
     if (typeof window === 'undefined') return 'en';
     const stored = localStorage.getItem('sz_ui_lang') ?? 'en';
@@ -642,6 +673,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
         setLangMenuOpen(false);
+        setLangSearch('');
       }
     }
     document.addEventListener('mousedown', onOutside);
@@ -1088,7 +1120,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           {userMenuOpen && (
             <div
               className="absolute right-0 z-50 bg-white overflow-hidden"
-              style={{ top: 'calc(100% + 8px)', width: '220px', border: '1px solid #ECECF3', borderRadius: '16px', boxShadow: '0 20px 50px -12px rgba(30,27,46,.25)' }}
+              style={{ top: 'calc(100% + 8px)', width: langMenuOpen ? '280px' : '220px', border: '1px solid #ECECF3', borderRadius: '16px', boxShadow: '0 20px 50px -12px rgba(30,27,46,.25)', transition: 'width 180ms ease' }}
             >
               <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #F1EFF7' }}>
                 <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#1E1B2E' }}>{meData?.name ?? userName}</div>
@@ -1143,54 +1175,131 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 )}
               </div>
               {/* Language switcher */}
-              <div style={{ padding: '0 6px 4px', borderTop: '1px solid #F1EFF7', marginTop: '2px', paddingTop: '6px' }}>
+              <div style={{ borderTop: '1px solid #F1EFF7', marginTop: '2px' }}>
+                {/* Trigger row */}
                 <button
                   type="button"
-                  onClick={() => setLangMenuOpen(o => !o)}
+                  onClick={() => { setLangMenuOpen(o => !o); setLangSearch(''); }}
                   className="flex items-center gap-2.5 w-full border-none cursor-pointer transition-colors touch-manipulation"
-                  style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, background: 'transparent', color: '#3d3a52', fontFamily: 'inherit', textAlign: 'left' }}
+                  style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 500, background: 'transparent', color: '#3d3a52', fontFamily: 'inherit', textAlign: 'left' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 >
                   <Globe style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280', opacity: .85 }} />
                   <span style={{ flex: '1 1 auto' }}>Language</span>
-                  <span style={{ fontSize: '15px', lineHeight: 1 }}>
+                  <span style={{ fontSize: '15px', lineHeight: 1, marginRight: '2px' }}>
                     {UI_LANGUAGES.find(l => l.code === uiLang)?.flag ?? '🌐'}
                   </span>
-                  <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af', transform: langMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />
+                  <ChevronDown style={{ width: '13px', height: '13px', color: '#9ca3af', transform: langMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />
                 </button>
-                {langMenuOpen && (
-                  <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '4px 0', borderRadius: '8px' }}>
-                    {UI_LANGUAGES.map((l) => (
-                      <button
-                        key={l.code}
-                        type="button"
-                        onClick={() => {
-                          setUiLang(l.code);
-                          setLangMenuOpen(false);
-                          localStorage.setItem('sz_ui_lang', l.code);
-                          document.documentElement.lang = l.code;
-                        }}
-                        className="flex items-center gap-2.5 w-full border-none cursor-pointer transition-colors touch-manipulation"
-                        style={{
-                          padding: '8px 10px', borderRadius: '8px', fontSize: '12.5px', fontWeight: uiLang === l.code ? 700 : 500,
-                          background: uiLang === l.code ? '#EDE9FD' : 'transparent', color: uiLang === l.code ? '#6d28d9' : '#3d3a52',
-                          fontFamily: 'inherit', textAlign: 'left',
-                        }}
-                        onMouseEnter={e => { if (uiLang !== l.code) (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
-                        onMouseLeave={e => { if (uiLang !== l.code) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                      >
-                        <span style={{ fontSize: '14px', lineHeight: 1 }}>{l.flag}</span>
-                        <span style={{ flex: '1 1 auto' }}>{l.name}</span>
-                        {uiLang === l.code && (
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: '#6d28d9' }}>
-                            <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
+
+                {/* Expanded picker */}
+                {langMenuOpen && (() => {
+                  const q = langSearch.trim().toLowerCase();
+                  const filtered = q
+                    ? UI_LANGUAGES.filter(l =>
+                        l.name.toLowerCase().includes(q) ||
+                        l.nativeName.toLowerCase().includes(q) ||
+                        l.code.toLowerCase().includes(q)
+                      )
+                    : UI_LANGUAGES;
+                  const activeLang = UI_LANGUAGES.find(l => l.code === uiLang);
+                  return (
+                    <div style={{ padding: '0 8px 8px' }}>
+                      {/* Search box */}
+                      <div style={{ position: 'relative', marginBottom: '6px' }}>
+                        <svg
+                          width="13" height="13" viewBox="0 0 13 13" fill="none"
+                          style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }}
+                        >
+                          <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4" />
+                          <path d="M9 9L11.5 11.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        </svg>
+                        <input
+                          autoFocus
+                          type="text"
+                          placeholder="Search language…"
+                          value={langSearch}
+                          onChange={e => setLangSearch(e.target.value)}
+                          style={{
+                            width: '100%', boxSizing: 'border-box',
+                            padding: '7px 10px 7px 28px',
+                            border: '1px solid #e5e7eb', borderRadius: '8px',
+                            fontSize: '12.5px', fontFamily: 'inherit', color: '#374151',
+                            background: '#f9fafb', outline: 'none',
+                          }}
+                          onFocus={e => { (e.currentTarget as HTMLInputElement).style.borderColor = '#c4b5fd'; (e.currentTarget as HTMLInputElement).style.background = '#fff'; }}
+                          onBlur={e => { (e.currentTarget as HTMLInputElement).style.borderColor = '#e5e7eb'; (e.currentTarget as HTMLInputElement).style.background = '#f9fafb'; }}
+                        />
+                        {langSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setLangSearch('')}
+                            style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '2px', display: 'flex' }}
+                          >
+                            <X style={{ width: '12px', height: '12px' }} />
+                          </button>
                         )}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                      </div>
+
+                      {/* Currently selected — pinned at top when not searching */}
+                      {!q && activeLang && (
+                        <div style={{ marginBottom: '4px', padding: '2px 0' }}>
+                          <p style={{ fontSize: '10.5px', fontWeight: 600, color: '#9ca3af', letterSpacing: '.04em', textTransform: 'uppercase', padding: '0 6px 4px' }}>Current</p>
+                          <div
+                            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: '#EDE9FD', color: '#6d28d9' }}
+                          >
+                            <span style={{ fontSize: '16px', lineHeight: 1 }}>{activeLang.flag}</span>
+                            <span style={{ flex: '1 1 auto', fontSize: '13px', fontWeight: 700 }}>{activeLang.name}</span>
+                            <span style={{ fontSize: '11px', color: '#a78bfa', fontWeight: 500 }}>{activeLang.nativeName}</span>
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: '#6d28d9' }}>
+                              <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                          <p style={{ fontSize: '10.5px', fontWeight: 600, color: '#9ca3af', letterSpacing: '.04em', textTransform: 'uppercase', padding: '8px 6px 4px' }}>All languages</p>
+                        </div>
+                      )}
+
+                      {/* Language list */}
+                      <div style={{ maxHeight: '216px', overflowY: 'auto', marginRight: '-2px', paddingRight: '2px' }}>
+                        {filtered.length === 0 ? (
+                          <div style={{ padding: '16px 10px', textAlign: 'center', fontSize: '12.5px', color: '#9ca3af' }}>
+                            No language found for &ldquo;{langSearch}&rdquo;
+                          </div>
+                        ) : filtered.map((l) => {
+                          const isActive = l.code === uiLang;
+                          return (
+                            <button
+                              key={l.code}
+                              type="button"
+                              onClick={() => {
+                                setUiLang(l.code);
+                                setLangMenuOpen(false);
+                                setLangSearch('');
+                                localStorage.setItem('sz_ui_lang', l.code);
+                                document.documentElement.lang = l.code;
+                              }}
+                              className="flex items-center w-full border-none cursor-pointer touch-manipulation"
+                              style={{
+                                gap: '10px', padding: '8px 10px', borderRadius: '8px',
+                                background: isActive ? '#EDE9FD' : 'transparent',
+                                color: isActive ? '#6d28d9' : '#374151',
+                                fontFamily: 'inherit', textAlign: 'left',
+                                transition: 'background 120ms ease',
+                              }}
+                              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
+                              onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                            >
+                              <span style={{ fontSize: '16px', lineHeight: 1, flexShrink: 0 }}>{l.flag}</span>
+                              <span style={{ flex: '1 1 auto', fontSize: '12.5px', fontWeight: isActive ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.name}</span>
+                              <span style={{ fontSize: '11px', color: isActive ? '#a78bfa' : '#9ca3af', fontWeight: 500, flexShrink: 0 }}>{l.nativeName}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
               <div style={{ padding: '0 6px 6px', borderTop: '1px solid #F1EFF7', marginTop: '2px', paddingTop: '6px' }}>
                 <button
