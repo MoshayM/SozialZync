@@ -291,6 +291,7 @@ function FeedSlide({
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [shareToast, setShareToast] = useState(false);
+  const [buffering, setBuffering] = useState(false);
   const itemComments = useMemo(() => {
     const seed = item.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
     return Array.from({ length: 5 }, (_, i) => MOCK_COMMENT_POOL[(seed + i) % MOCK_COMMENT_POOL.length]);
@@ -323,7 +324,7 @@ function FeedSlide({
     return () => clearInterval(iv);
   }, [captionLang, isActive, captionLines.length]);
 
-  useEffect(() => { if (!isActive) setVideoProgress(0); }, [isActive]);
+  useEffect(() => { if (!isActive) { setVideoProgress(0); setBuffering(false); } }, [isActive]);
 
   function handleTap(e: React.MouseEvent) {
     const target = e.target as HTMLElement;
@@ -355,17 +356,33 @@ function FeedSlide({
           <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ height: '85dvh', aspectRatio: '9/16', maxWidth: '380px' }}>
             <div className="absolute inset-0" style={{ background: G[item.gi % 8] }} />
             {item.videoUrl ? (
-              <video
-                ref={videoRef}
-                key={item.videoUrl}
-                src={item.videoUrl}
-                className="absolute inset-0 w-full h-full object-cover"
-                loop
-                muted={muted}
-                playsInline
-                onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) setVideoProgress(v.currentTime / v.duration); }}
-                onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  key={item.videoUrl}
+                  src={item.videoUrl}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loop
+                  muted={muted}
+                  playsInline
+                  preload="auto"
+                  onWaiting={() => setBuffering(true)}
+                  onCanPlay={() => setBuffering(false)}
+                  onPlaying={() => setBuffering(false)}
+                  onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) setVideoProgress(v.currentTime / v.duration); }}
+                  onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
+                />
+                {isActive && buffering && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className={`w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm transition-all duration-500 ${isActive ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}
@@ -384,17 +401,33 @@ function FeedSlide({
           <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl" style={{ maxWidth: '860px', aspectRatio: item.kind === 'image' ? '4/3' : '16/9' }}>
             <div className="absolute inset-0" style={{ background: G[item.gi % 8] }} />
             {item.videoUrl ? (
-              <video
-                ref={videoRef}
-                key={item.videoUrl}
-                src={item.videoUrl}
-                className="absolute inset-0 w-full h-full object-cover"
-                loop
-                muted={muted}
-                playsInline
-                onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) setVideoProgress(v.currentTime / v.duration); }}
-                onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  key={item.videoUrl}
+                  src={item.videoUrl}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loop
+                  muted={muted}
+                  playsInline
+                  preload="auto"
+                  onWaiting={() => setBuffering(true)}
+                  onCanPlay={() => setBuffering(false)}
+                  onPlaying={() => setBuffering(false)}
+                  onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) setVideoProgress(v.currentTime / v.duration); }}
+                  onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
+                />
+                {isActive && buffering && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                      <svg className="w-7 h-7 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : item.kind === 'image' ? (
               <img
                 src={`/api/thumb?seed=${item.id}&w=640&h=480&kind=image`}

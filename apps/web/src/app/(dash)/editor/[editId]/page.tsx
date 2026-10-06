@@ -3952,6 +3952,12 @@ function MediaBin({
           </button>
         </>
       )}
+      {urlImporting && !showUrlBar && (
+        <div className="w-full flex items-center gap-2 px-3 py-2 bg-brand-50 border border-brand-200 rounded-lg text-xs text-brand-700 font-medium">
+          <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+          Importing from URL…
+        </div>
+      )}
       {onImportUrl && (
         showUrlBar ? (
           <>
@@ -5641,6 +5647,13 @@ export default function EditorWorkspacePage() {
       if (!sv.paused) sv.pause();
     }
   }, []);
+
+  // Stop immediately when the timeline becomes empty
+  useEffect(() => {
+    if (!playing) return;
+    const hasItems = timeline?.tracks.some((t) => (t.items ?? []).length > 0) ?? false;
+    if (!hasItems) stopPlay();
+  }, [timeline, playing, stopPlay]);
 
   // Space = play/pause  |  ← → = seek ±1 s
   useEffect(() => {
