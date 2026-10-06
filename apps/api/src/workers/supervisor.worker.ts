@@ -804,9 +804,10 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         const t0 = Date.now();
         this.log(jobId, projectId, 'Generating voice-over narration…', `${rawNarration.split(/\s+/).length} words`);
+        const referenceVoiceId = payload['referenceVoiceId'] as string | undefined;
         const stored = await this.media.generateVoice(projectId, 'Narration', {
           text: narration,
-          voiceId: spec?.sections?.[0]?.voiceId,
+          voiceId: referenceVoiceId ?? spec?.sections?.[0]?.voiceId,
           speed: spec?.sections?.[0]?.speed,
           language: (payload['lang'] as string | undefined) ?? project.targetLang,
         });

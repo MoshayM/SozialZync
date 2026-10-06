@@ -120,6 +120,28 @@ export class VoiceService {
     return { voices };
   }
 
+  async cloneVoice(audioBuffer: Buffer, mimeType: string): Promise<{ voiceId: string; name: string }> {
+    const apiKey = process.env['ELEVENLABS_API_KEY'];
+    if (!apiKey) throw new InternalServerErrorException('ElevenLabs API key not configured — voice cloning requires ElevenLabs.');
+    const name = `SZK-clone-${Date.now()}`;
+    const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('mp3') ? 'mp3' : mimeType.includes('wav') ? 'wav' : 'webm';
+    const form = new FormData();
+    form.append('name', name);
+    form.append('files', new Blob([audioBuffer], { type: mimeType }), `sample.${ext}`);
+    const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey },
+      body: form as unknown as BodyInit,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new InternalServerErrorException(`ElevenLabs voice clone failed: ${res.status} ${text.slice(0, 200)}`);
+    }
+    const data = await res.json() as { voice_id: string };
+    this.logger.log(`Voice cloned — voice_id="${data.voice_id}" name="${name}"`);
+    return { voiceId: data.voice_id, name };
+  }
+
   async autoSelectVoice(scriptText: string): Promise<{
     voiceId: string;
     provider: 'elevenlabs' | 'openai';
