@@ -131,7 +131,7 @@ export class VoiceService {
     const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
       method: 'POST',
       headers: { 'xi-api-key': apiKey },
-      body: form as unknown as BodyInit,
+      body: form as never,
     });
     if (!res.ok) {
       const text = await res.text();
