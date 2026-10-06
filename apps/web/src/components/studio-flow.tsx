@@ -150,6 +150,16 @@ const CONTENT_LANGS = [
   { code: 'sw',    name: 'Swahili',             nativeName: 'Kiswahili',        flag: '🇰🇪' },
 ];
 
+type VoiceStyleId = 'default' | 'male' | 'female' | 'storyteller' | 'deep' | 'warm';
+const VOICE_STYLES: Array<{ id: VoiceStyleId; label: string; icon: string; desc: string; voiceProfile: Record<string, string> }> = [
+  { id: 'default',     label: 'Default',     icon: '🎙️', desc: 'AI auto-selects best voice',         voiceProfile: { gender: 'neutral', style: 'conversational', tone: 'engaging',     pace: 'moderate' } },
+  { id: 'male',        label: 'Male',         icon: '👨', desc: 'Clear confident male voice',          voiceProfile: { gender: 'male',    style: 'professional',  tone: 'confident',    pace: 'moderate' } },
+  { id: 'female',      label: 'Female',       icon: '👩', desc: 'Friendly energetic female voice',     voiceProfile: { gender: 'female',  style: 'friendly',      tone: 'warm',         pace: 'moderate' } },
+  { id: 'storyteller', label: 'Storyteller',  icon: '📖', desc: 'Warm narrative storytelling tone',    voiceProfile: { gender: 'neutral', style: 'narrative',     tone: 'dramatic',     pace: 'slow'     } },
+  { id: 'deep',        label: 'Deep',         icon: '🎚️', desc: 'Rich authoritative deep voice',       voiceProfile: { gender: 'male',    style: 'authoritative', tone: 'serious',      pace: 'slow'     } },
+  { id: 'warm',        label: 'Warm',         icon: '✨', desc: 'Soft expressive female voice',        voiceProfile: { gender: 'female',  style: 'expressive',    tone: 'soft',         pace: 'gentle'   } },
+];
+
 function latest(jobs: Job[], type: string): Job | undefined {
   return jobs
     .filter((j) => j.type === type)
@@ -413,6 +423,8 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [cloneLoading, setCloneLoading] = useState(false);
   const [cloneError, setCloneError] = useState('');
   const [clonedVoiceId, setClonedVoiceId] = useState<string | null>(null);
+  const [voiceStyle, setVoiceStyle] = useState<VoiceStyleId>('default');
+  const [elevenLabsOpen, setElevenLabsOpen] = useState(false);
   // Pre-render settings dialog
   const [showRenderDialog, setShowRenderDialog] = useState(false);
   const [renderPlatform, setRenderPlatform] = useState<RenderPlatformValue>(() =>
@@ -1521,7 +1533,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
       {/* AI Voice mode */}
       {voiceMode === 'ai' && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {voiceResult?.versionId && (
             <div className="flex items-center gap-2">
               <MediaPlayer versionId={voiceResult.versionId} kind="audio" />
@@ -1538,46 +1550,88 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             </div>
           )}
           {voiceResult?.notes && <p className="text-xs text-amber-600">{voiceResult.notes}</p>}
-          {!voiceResult?.versionId && (
-            <p className="text-sm text-gray-500">Run the pipeline to generate AI narration from your script.</p>
-          )}
-          <div className="border border-brand-200 bg-brand-50 rounded-xl p-3 space-y-2">
-            <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-              {voiceKeySaved ? 'ElevenLabs enabled — regenerate to use it' : 'AI voice options'}
-            </p>
-            <p className="text-[11px] text-gray-500">
-              ElevenLabs (highest quality) · OpenAI TTS · Free self-hosted: Kokoro · Piper
-            </p>
-            {!voiceKeySaved && (
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={voiceKey}
-                  onChange={(e) => setVoiceKey(e.target.value)}
-                  placeholder="ElevenLabs API key (optional)"
-                  aria-label="ElevenLabs API key"
-                  className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400"
-                />
+
+          {/* Voice style selector */}
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Voice Style</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {VOICE_STYLES.map((s) => (
                 <button
-                  onClick={() => saveVoiceKey.mutate(voiceKey)}
-                  disabled={!voiceKey.trim() || saveVoiceKey.isPending}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-xl disabled:opacity-40"
+                  key={s.id}
+                  onClick={() => setVoiceStyle(s.id)}
+                  title={s.desc}
+                  className={`flex flex-col items-center gap-0.5 p-2 rounded-xl border text-center transition-all ${
+                    voiceStyle === s.id
+                      ? 'border-brand-500 bg-brand-50 shadow-sm'
+                      : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
+                  }`}
                 >
-                  {saveVoiceKey.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
-                  Save
+                  <span className="text-base">{s.icon}</span>
+                  <span className={`text-[10px] font-semibold ${voiceStyle === s.id ? 'text-brand-700' : 'text-gray-600'}`}>{s.label}</span>
                 </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-400">{VOICE_STYLES.find((s) => s.id === voiceStyle)?.desc}</p>
+          </div>
+
+          {/* Generate button */}
+          <button
+            onClick={() => enqueue.mutate({
+              type: 'FULL_PRODUCTION',
+              payload: {
+                scope: 'VOICE',
+                regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
+                voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
+              },
+            })}
+            disabled={busy}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-brand-600 text-white rounded-full hover:bg-brand-700 disabled:opacity-40 transition-colors shadow-sm"
+          >
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {voiceResult?.versionId ? 'Regenerate AI Narration' : 'Generate AI Narration'}
+          </button>
+
+          {/* ElevenLabs optional collapsible */}
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setElevenLabsOpen((o) => !o)}
+              className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+            >
+              <span className="flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-gray-400" />
+                ElevenLabs — optional premium voices (your own API key)
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${elevenLabsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {elevenLabsOpen && (
+              <div className="px-3 pb-3 pt-1 space-y-2 border-t border-gray-100">
+                <p className="text-[11px] text-gray-500">Your key unlocks ElevenLabs premium voices. Leave blank to use free built-in voices (OpenAI TTS · Kokoro · Piper).</p>
+                {!voiceKeySaved ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={voiceKey}
+                      onChange={(e) => setVoiceKey(e.target.value)}
+                      placeholder="sk-... ElevenLabs API key"
+                      aria-label="ElevenLabs API key"
+                      className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400"
+                    />
+                    <button
+                      onClick={() => saveVoiceKey.mutate(voiceKey)}
+                      disabled={!voiceKey.trim() || saveVoiceKey.isPending}
+                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-xl disabled:opacity-40"
+                    >
+                      {saveVoiceKey.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-green-700 font-medium flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    ElevenLabs key saved — your next generation will use it.
+                  </p>
+                )}
               </div>
-            )}
-            {(voiceKeySaved || voiceResult?.versionId) && (
-              <button
-                onClick={() => enqueue.mutate({ type: 'FULL_PRODUCTION', payload: { scope: 'VOICE', regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } })}
-                disabled={busy}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-full disabled:opacity-40"
-              >
-                <RefreshCw className="w-3 h-3" />
-                {voiceKeySaved ? 'Regenerate with ElevenLabs' : 'Regenerate narration'}
-              </button>
             )}
           </div>
         </div>
@@ -1734,7 +1788,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 )}
               </div>
 
-              {cloneError && <p className="text-xs text-red-500">{cloneError}</p>}
+              {cloneError && (
+                <p className="text-xs text-red-500">
+                  {cloneError.includes('not configured')
+                    ? 'Voice cloning requires server configuration. Use Record Full Script instead, or contact support.'
+                    : cloneError}
+                </p>
+              )}
 
               {/* Step 2: Clone & Generate */}
               <div className="space-y-1.5">

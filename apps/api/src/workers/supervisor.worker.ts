@@ -517,7 +517,8 @@ export class SupervisorWorker extends WorkerHost {
           ?? await this.lastResult<ScriptOutput>(projectId, 'SCRIPT');
         if (!script) throw new Error('Script not found — complete the Write Script step first.');
         const channel = await this.prisma.channel.findFirst({ where: { projects: { some: { id: projectId } } } });
-        const voiceProfile = channel?.voiceProfile as Record<string, unknown> | undefined;
+        const payloadVoiceProfile = payload['voiceProfile'] as Record<string, unknown> | undefined;
+        const voiceProfile = payloadVoiceProfile ?? (channel?.voiceProfile as Record<string, unknown> | undefined);
         const t0 = Date.now();
         this.log(jobId, projectId, 'Generating per-section voice narration specs…', `${script.sections.length} sections`);
         const result = await this.voice.generateSpec(script, projectId, voiceProfile);
