@@ -5746,7 +5746,7 @@ export default function EditorWorkspacePage() {
     const itemId = activeTimelineItem?.id;
     const hasVersion = !!activeDisplayEntry?.versionId;
     if (itemId && hasVersion && !displaySrc) {
-      if (mediaLoadPhase.kind === 'idle' || (mediaLoadPhase.kind !== 'idle' && mediaLoadPhase.itemId !== itemId)) {
+      if (mediaLoadPhase.kind === 'idle' || mediaLoadPhase.itemId !== itemId) {
         setMediaLoadPhase({ kind: 'loading', itemId });
       }
     } else if (displaySrc && mediaLoadPhase.kind === 'loading' && mediaLoadPhase.itemId === itemId) {
