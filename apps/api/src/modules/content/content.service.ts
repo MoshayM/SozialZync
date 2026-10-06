@@ -6,6 +6,26 @@ import {
   type RepurposePlatform, type ScriptQualityOutput, type ABTestOutput, type SeriesPlanOutput,
 } from '@cf/shared';
 
+// BCP-47 code → full English name used in AI prompts so the model gets an
+// unambiguous instruction (e.g. "Tamil" is clearer than the bare code "ta").
+const LANG_NAMES: Record<string, string> = {
+  en: 'English', 'en-US': 'English', zh: 'Chinese (Simplified)', 'zh-TW': 'Chinese (Traditional)',
+  hi: 'Hindi', es: 'Spanish', ar: 'Arabic', bn: 'Bengali', fr: 'French', pt: 'Portuguese',
+  ru: 'Russian', ur: 'Urdu', id: 'Indonesian', de: 'German', ja: 'Japanese',
+  te: 'Telugu', mr: 'Marathi', ta: 'Tamil', ko: 'Korean', vi: 'Vietnamese',
+  tr: 'Turkish', it: 'Italian', th: 'Thai', gu: 'Gujarati', kn: 'Kannada',
+  ml: 'Malayalam', pa: 'Punjabi', ms: 'Malay', tl: 'Filipino', pl: 'Polish',
+  nl: 'Dutch', sv: 'Swedish', no: 'Norwegian', da: 'Danish', fi: 'Finnish',
+  el: 'Greek', cs: 'Czech', ro: 'Romanian', hu: 'Hungarian', uk: 'Ukrainian',
+  he: 'Hebrew', sw: 'Swahili', af: 'Afrikaans', hr: 'Croatian', sk: 'Slovak',
+  bg: 'Bulgarian', lt: 'Lithuanian', lv: 'Latvian', et: 'Estonian', ca: 'Catalan',
+};
+
+function langLabel(code: string): string {
+  const name = LANG_NAMES[code];
+  return name ? `${name} (${code})` : code;
+}
+
 const RESEARCH_SYSTEM = `You are a professional YouTube content researcher. Research topics thoroughly, find trending angles, and identify trustworthy sources. Always cite sources with URLs.`;
 
 const SCRIPT_SYSTEM = `You are an expert YouTube scriptwriter. Create engaging, well-structured scripts with a strong hook, clear sections, and a compelling CTA. Scripts must be factually accurate.`;
@@ -26,8 +46,11 @@ const PLATFORM_GUIDES: Record<string, string> = {
 @Injectable()
 export class ContentService {
   async research(topic: string, niche?: string, targetLang = 'en'): Promise<ResearchOutput> {
+    const langInstruction = targetLang && targetLang !== 'en' && targetLang !== 'en-US'
+      ? `\nContent Language: ${langLabel(targetLang)} — write ALL text fields (summary, keyPoints, audienceInterestSignals) in ${langLabel(targetLang)}.`
+      : '\nContent Language: English';
     return callAIStructured(
-      [{ role: 'user', content: `Research this YouTube video topic comprehensively:\n\nTopic: ${topic}\nNiche: ${niche ?? 'General'}\nLanguage: ${targetLang}\n\nFind trending angles, statistics, and authoritative sources. Include up to 5 sources maximum.\n\nRespond with EXACTLY this JSON structure (no extra text, no markdown, no code fences):\n{"topic":"${topic}","summary":"2-3 sentence overview","keyPoints":["key point 1","key point 2","key point 3"],"sources":[{"url":"https://example.com/article","title":"Article Title","snippet":"Brief excerpt from the source","publishedAt":"2024-01-01"}],"trendScore":75,"audienceInterestSignals":["signal 1","signal 2","signal 3"]}` }],
+      [{ role: 'user', content: `Research this YouTube video topic comprehensively:\n\nTopic: ${topic}\nNiche: ${niche ?? 'General'}${langInstruction}\n\nFind trending angles, statistics, and authoritative sources. Include up to 5 sources maximum.\n\nRespond with EXACTLY this JSON structure (no extra text, no markdown, no code fences):\n{"topic":"${topic}","summary":"2-3 sentence overview","keyPoints":["key point 1","key point 2","key point 3"],"sources":[{"url":"https://example.com/article","title":"Article Title","snippet":"Brief excerpt from the source","publishedAt":"2024-01-01"}],"trendScore":75,"audienceInterestSignals":["signal 1","signal 2","signal 3"]}` }],
       ResearchOutputSchema,
       { systemPrompt: RESEARCH_SYSTEM, maxTokens: 6000 },
     );
@@ -35,7 +58,7 @@ export class ContentService {
 
   async writeScript(research: ResearchOutput, targetDurationMins = 10, targetLang = 'en'): Promise<ScriptOutput> {
     const langNote = targetLang && targetLang !== 'en' && targetLang !== 'en-US'
-      ? `\n\nIMPORTANT: Write the entire script in ${targetLang} (BCP-47). All narration, headings, hook and CTA must be in that language.`
+      ? `\n\nCRITICAL LANGUAGE REQUIREMENT: You MUST write the ENTIRE script in ${langLabel(targetLang)}. This means the title, hook, every section heading, every section content paragraph, and the call-to-action must ALL be written in ${langLabel(targetLang)}. Do NOT use English. Do NOT mix languages.`
       : '';
     return callAIStructured(
       [{

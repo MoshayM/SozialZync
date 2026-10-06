@@ -257,7 +257,7 @@ export class SupervisorWorker extends WorkerHost {
       return { channelId, synced: true };
     }
 
-    const project = await this.prisma.project.findUniqueOrThrow({ where: { id: projectId } });
+    let project = await this.prisma.project.findUniqueOrThrow({ where: { id: projectId } });
 
     switch (type) {
       case 'TREND_ANALYSIS': {
@@ -290,8 +290,9 @@ export class SupervisorWorker extends WorkerHost {
           ? `${baseTopic} — content formatted for ${platform}`
           : baseTopic;
         const t0 = Date.now();
-        this.log(jobId, projectId, 'Starting research…', `"${topic.slice(0, 70)}"`);
-        const result = await this.content.research(topic, project.niche ?? undefined, project.targetLang);
+        const contentLang = (payload['lang'] as string | undefined) ?? project.targetLang ?? 'en';
+        this.log(jobId, projectId, 'Starting research…', `"${topic.slice(0, 70)}" · lang=${contentLang}`);
+        const result = await this.content.research(topic, project.niche ?? undefined, contentLang);
         const r = result as { sources?: unknown[]; trendScore?: number };
         this.log(jobId, projectId, 'Research complete', `${r.sources?.length ?? 0} sources · trend score ${r.trendScore ?? '?'}`);
         await this.jobs.logStep(jobId, 'ResearchAgent', 'research', { topic }, result, 0, 0, Date.now() - t0);
@@ -305,8 +306,9 @@ export class SupervisorWorker extends WorkerHost {
           ?? await this.lastResult<ResearchOutput>(projectId, 'RESEARCH');
         if (!research) throw new Error('Research not found — complete the Research Topic step first.');
         const t0 = Date.now();
-        this.log(jobId, projectId, 'Calling AI script writer…', `Topic: "${research.topic.slice(0, 60)}"`);
-        const script = await this.content.writeScript(research, undefined, project.targetLang ?? undefined);
+        const scriptLang = (payload['lang'] as string | undefined) ?? project.targetLang ?? 'en';
+        this.log(jobId, projectId, 'Calling AI script writer…', `Topic: "${research.topic.slice(0, 60)}" · lang=${scriptLang}`);
+        const script = await this.content.writeScript(research, undefined, scriptLang);
         const s = script as { totalWordCount?: number; sections?: unknown[]; estimatedDurationMins?: number; title?: string };
         this.log(jobId, projectId, 'Script ready', `${s.totalWordCount ?? '?'} words · ${s.sections?.length ?? '?'} sections · ~${s.estimatedDurationMins ?? '?'} min`);
         await this.jobs.logStep(jobId, 'ScriptAgent', 'write', { research: research.topic }, script, 0, 0, Date.now() - t0);
@@ -806,7 +808,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           text: narration,
           voiceId: spec?.sections?.[0]?.voiceId,
           speed: spec?.sections?.[0]?.speed,
-          language: project.targetLang,
+          language: (payload['lang'] as string | undefined) ?? project.targetLang,
         });
         this.log(jobId, projectId, stored.cached ? 'Voice-over reused from cache ✓' : 'Voice-over generated ✓',
           `${stored.provider} · ${Math.round((stored.durationMs ?? 0) / 1000)}s audio`);
@@ -1259,6 +1261,14 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const regenerate = new Set(Array.isArray(payload['regenerate']) ? (payload['regenerate'] as string[]) : []);
         const stages = planPipeline(scope);
 
+        // Persist selected content language so future runs and resume paths
+        // always use the same language without needing the payload field.
+        const incomingLang = payload['lang'] as string | undefined;
+        if (incomingLang && incomingLang !== project.targetLang) {
+          await this.prisma.project.update({ where: { id: projectId }, data: { targetLang: incomingLang } });
+          project = { ...project, targetLang: incomingLang };
+        }
+
         const completedJobs = await this.prisma.agentJob.findMany({
           where: { projectId, status: 'COMPLETED' },
           select: { type: true },
@@ -1323,6 +1333,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (stage.type === 'RENDER' && payload['preset']) stagePayload['preset'] = payload['preset'];
             if (stage.type === 'RENDER' && payload['platform']) stagePayload['platform'] = payload['platform'];
             if (stage.type === 'RENDER' && payload['videoType']) stagePayload['videoType'] = payload['videoType'];
+            // Forward content language to every stage that generates text
+            if (payload['lang']) stagePayload['lang'] = payload['lang'];
             // Stage-level retry with backoff (master prompt §3.2): one retry
             // for transient failures, then the stage FAILS for real.
             let result: unknown;
