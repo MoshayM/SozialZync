@@ -105,6 +105,29 @@ const PLATFORM_TO_RENDER: Record<string, RenderPlatformValue> = {
 
 const FULL_MEDIA_REGENERATE = ['VOICE_GENERATE', 'IMAGE_GENERATE', 'MUSIC_GENERATE', 'VIDEO_GENERATE', 'EDIT_PLAN', 'RENDER'] as const;
 
+const CONTENT_LANGS = [
+  { code: 'en',    name: 'English',    flag: '🇺🇸' },
+  { code: 'es',    name: 'Spanish',    flag: '🇪🇸' },
+  { code: 'fr',    name: 'French',     flag: '🇫🇷' },
+  { code: 'de',    name: 'German',     flag: '🇩🇪' },
+  { code: 'pt',    name: 'Portuguese', flag: '🇧🇷' },
+  { code: 'hi',    name: 'Hindi',      flag: '🇮🇳' },
+  { code: 'ar',    name: 'Arabic',     flag: '🇸🇦' },
+  { code: 'ja',    name: 'Japanese',   flag: '🇯🇵' },
+  { code: 'ko',    name: 'Korean',     flag: '🇰🇷' },
+  { code: 'zh',    name: 'Chinese',    flag: '🇨🇳' },
+  { code: 'id',    name: 'Indonesian', flag: '🇮🇩' },
+  { code: 'ru',    name: 'Russian',    flag: '🇷🇺' },
+  { code: 'it',    name: 'Italian',    flag: '🇮🇹' },
+  { code: 'tr',    name: 'Turkish',    flag: '🇹🇷' },
+  { code: 'vi',    name: 'Vietnamese', flag: '🇻🇳' },
+  { code: 'th',    name: 'Thai',       flag: '🇹🇭' },
+  { code: 'ms',    name: 'Malay',      flag: '🇲🇾' },
+  { code: 'tl',    name: 'Filipino',   flag: '🇵🇭' },
+  { code: 'bn',    name: 'Bengali',    flag: '🇧🇩' },
+  { code: 'pl',    name: 'Polish',     flag: '🇵🇱' },
+];
+
 function latest(jobs: Job[], type: string): Job | undefined {
   return jobs
     .filter((j) => j.type === type)
@@ -331,6 +354,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     (typeof window !== 'undefined' ? (localStorage.getItem(`cf_preset_${projectId}`) as (typeof PRESETS)[number]['value'] | null) : null) ?? 'LANDSCAPE');
   const [refreshMedia, setRefreshMedia] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
+  const [targetLang, setTargetLang] = useState<string>(() =>
+    (typeof window !== 'undefined' ? localStorage.getItem(`cf_lang_${projectId}`) : null) ?? 'en'
+  );
   // Batch project creation
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchChecked, setBatchChecked] = useState<Set<string>>(new Set());
@@ -451,6 +477,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   function chooseTopic(t: string) {
     setTopic(t);
     localStorage.setItem(`cf_topic_${projectId}`, t);
+  }
+
+  function setLang(code: string) {
+    setTargetLang(code);
+    localStorage.setItem(`cf_lang_${projectId}`, code);
   }
 
   const handleBatchCreate = useCallback(async (topics: string[]) => {
@@ -1102,6 +1133,28 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           />
           <p className="text-[11px] text-gray-500 mt-1">Selected suggestions appear here automatically — edit freely before running.</p>
         </div>
+        {/* Content language picker */}
+        <div>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Content Language</label>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {CONTENT_LANGS.map((l) => (
+              <button
+                key={l.code}
+                type="button"
+                onClick={() => setLang(l.code)}
+                className={`text-xs px-2.5 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${
+                  targetLang === l.code
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <span>{l.flag}</span>
+                {l.name}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-500 mt-1">Script, voice-over, and captions will be generated in this language.</p>
+        </div>
         {script ? (
           scriptDraft ? (
             <div className="space-y-3">
@@ -1674,7 +1727,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !effectiveTopic}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'SCRIPT', topic: effectiveTopic, platform, ...(scriptDone ? { regenerate: ['RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE'] } : {}) },
+                  payload: { scope: 'SCRIPT', topic: effectiveTopic, platform, lang: targetLang, ...(scriptDone ? { regenerate: ['RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE'] } : {}) },
                 })}
               />
             }
@@ -1704,7 +1757,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !scriptDone}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VOICE', ...(voiceResult ? { regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } : {}) },
+                  payload: { scope: 'VOICE', lang: targetLang, ...(voiceResult ? { regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } : {}) },
                 })}
               />
             }

@@ -69,6 +69,29 @@ const BOTTOM_ITEMS: NavItem[] = [
   { href: '/guide',     icon: HelpCircle, label: 'Guide' },
 ];
 
+const UI_LANGUAGES = [
+  { code: 'en',    name: 'English',    flag: '🇺🇸' },
+  { code: 'es',    name: 'Español',    flag: '🇪🇸' },
+  { code: 'fr',    name: 'Français',   flag: '🇫🇷' },
+  { code: 'de',    name: 'Deutsch',    flag: '🇩🇪' },
+  { code: 'pt',    name: 'Português',  flag: '🇧🇷' },
+  { code: 'hi',    name: 'हिन्दी',     flag: '🇮🇳' },
+  { code: 'ar',    name: 'العربية',    flag: '🇸🇦' },
+  { code: 'ja',    name: '日本語',      flag: '🇯🇵' },
+  { code: 'ko',    name: '한국어',      flag: '🇰🇷' },
+  { code: 'zh',    name: '中文',       flag: '🇨🇳' },
+  { code: 'id',    name: 'Bahasa',     flag: '🇮🇩' },
+  { code: 'ru',    name: 'Русский',    flag: '🇷🇺' },
+  { code: 'it',    name: 'Italiano',   flag: '🇮🇹' },
+  { code: 'tr',    name: 'Türkçe',     flag: '🇹🇷' },
+  { code: 'vi',    name: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'th',    name: 'ไทย',        flag: '🇹🇭' },
+  { code: 'ms',    name: 'Melayu',     flag: '🇲🇾' },
+  { code: 'tl',    name: 'Filipino',   flag: '🇵🇭' },
+  { code: 'pl',    name: 'Polski',     flag: '🇵🇱' },
+  { code: 'nl',    name: 'Nederlands', flag: '🇳🇱' },
+];
+
 /* Every searchable destination in the app — used by the quick search */
 const ALL_SEARCHABLE_PAGES: NavItem[] = [
   // Core
@@ -522,6 +545,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     setMobileMenuOpen(false);
   }, [pathname]);
 
+
   /* ⌘K / Ctrl+K — focus sidebar search from anywhere in the dashboard */
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -555,6 +579,13 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [uiLang, setUiLang] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'en';
+    const stored = localStorage.getItem('sz_ui_lang') ?? 'en';
+    document.documentElement.lang = stored;
+    return stored;
+  });
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -608,7 +639,10 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     function onOutside(e: MouseEvent) {
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+        setLangMenuOpen(false);
+      }
     }
     document.addEventListener('mousedown', onOutside);
     return () => document.removeEventListener('mousedown', onOutside);
@@ -1106,6 +1140,56 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                       Switch / View Account
                     </Link>
                   </>
+                )}
+              </div>
+              {/* Language switcher */}
+              <div style={{ padding: '0 6px 4px', borderTop: '1px solid #F1EFF7', marginTop: '2px', paddingTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setLangMenuOpen(o => !o)}
+                  className="flex items-center gap-2.5 w-full border-none cursor-pointer transition-colors touch-manipulation"
+                  style={{ padding: '10px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 500, background: 'transparent', color: '#3d3a52', fontFamily: 'inherit', textAlign: 'left' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <Globe style={{ width: '16px', height: '16px', flexShrink: 0, color: '#6b7280', opacity: .85 }} />
+                  <span style={{ flex: '1 1 auto' }}>Language</span>
+                  <span style={{ fontSize: '15px', lineHeight: 1 }}>
+                    {UI_LANGUAGES.find(l => l.code === uiLang)?.flag ?? '🌐'}
+                  </span>
+                  <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af', transform: langMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />
+                </button>
+                {langMenuOpen && (
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '4px 0', borderRadius: '8px' }}>
+                    {UI_LANGUAGES.map((l) => (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => {
+                          setUiLang(l.code);
+                          setLangMenuOpen(false);
+                          localStorage.setItem('sz_ui_lang', l.code);
+                          document.documentElement.lang = l.code;
+                        }}
+                        className="flex items-center gap-2.5 w-full border-none cursor-pointer transition-colors touch-manipulation"
+                        style={{
+                          padding: '8px 10px', borderRadius: '8px', fontSize: '12.5px', fontWeight: uiLang === l.code ? 700 : 500,
+                          background: uiLang === l.code ? '#EDE9FD' : 'transparent', color: uiLang === l.code ? '#6d28d9' : '#3d3a52',
+                          fontFamily: 'inherit', textAlign: 'left',
+                        }}
+                        onMouseEnter={e => { if (uiLang !== l.code) (e.currentTarget as HTMLElement).style.background = '#F6F5FC'; }}
+                        onMouseLeave={e => { if (uiLang !== l.code) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                      >
+                        <span style={{ fontSize: '14px', lineHeight: 1 }}>{l.flag}</span>
+                        <span style={{ flex: '1 1 auto' }}>{l.name}</span>
+                        {uiLang === l.code && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: '#6d28d9' }}>
+                            <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
               <div style={{ padding: '0 6px 6px', borderTop: '1px solid #F1EFF7', marginTop: '2px', paddingTop: '6px' }}>
