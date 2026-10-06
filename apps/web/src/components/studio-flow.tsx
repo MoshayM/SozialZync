@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import {
   Youtube, BarChart2, Lightbulb, FileText, Mic, Music, Clapperboard,
   Play, RefreshCw, Loader2, CheckCircle, ChevronDown, ChevronUp, Save, Pencil, AlertTriangle, X,
@@ -1029,12 +1030,12 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                           {r.status === 'error' && <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />}
                           <span className="flex-1 truncate text-gray-700">{t}</span>
                           {r.status === 'done' && r.projectId && (
-                            <a
+                            <Link
                               href={`/projects/${r.projectId}`}
                               className="shrink-0 flex items-center gap-0.5 text-brand-600 hover:underline font-medium"
                             >
                               Open <ExternalLink className="w-2.5 h-2.5" />
-                            </a>
+                            </Link>
                           )}
                           {r.status === 'error' && (
                             <span className="shrink-0 text-red-500">{r.error}</span>
