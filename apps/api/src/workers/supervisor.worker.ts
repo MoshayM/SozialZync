@@ -1335,6 +1335,10 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (stage.type === 'RENDER' && payload['preset']) stagePayload['preset'] = payload['preset'];
             if (stage.type === 'RENDER' && payload['platform']) stagePayload['platform'] = payload['platform'];
             if (stage.type === 'RENDER' && payload['videoType']) stagePayload['videoType'] = payload['videoType'];
+            // Voice cloning: forward the cloned voice ID to VOICE_GENERATE and
+            // the style profile to VOICE_SPEC so the pipeline uses them.
+            if (stage.type === 'VOICE_SPEC' && payload['voiceProfile']) stagePayload['voiceProfile'] = payload['voiceProfile'];
+            if (stage.type === 'VOICE_GENERATE' && payload['referenceVoiceId']) stagePayload['referenceVoiceId'] = payload['referenceVoiceId'];
             // Forward content language to every stage that generates text
             if (payload['lang']) stagePayload['lang'] = payload['lang'];
             // Stage-level retry with backoff (master prompt §3.2): one retry
