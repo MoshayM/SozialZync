@@ -6,7 +6,7 @@ import { enhanceMusicPrompt } from '@cf/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { MusicExternalService } from './music-external.service';
 
-const MUSIC_SYSTEM = `You are a music director for YouTube content. Create detailed AI music generation briefs. All output is original creator-licensed AI generation. Respond only with valid JSON.`;
+const MUSIC_SYSTEM = `You are an expert film composer and music director for YouTube content. Your task is to create highly specific, content-aware music production briefs. Study the script deeply — its emotional arc, pacing, energy shifts, narrative beats, and key moments — and produce music guidance that makes the background track feel professionally composed for THIS specific video, not generic background music. All output is original creator-licensed AI generation. Respond only with valid JSON.`;
 
 export interface CreateMusicTrackDto {
   title: string;
@@ -54,18 +54,24 @@ export class MusicService {
     const durationSecs = Math.round(script.estimatedDurationMins * 60);
 
     try {
+      const sectionSummary = script.sections
+        ?.slice(0, 8)
+        .map((s: { title?: string; content?: string; emotion?: string }, i: number) =>
+          `Section ${i + 1}${s.title ? ` "${s.title}"` : ''}: ${(s.content ?? '').slice(0, 120)}${s.emotion ? ` [emotion: ${s.emotion}]` : ''}`)
+        .join('\n') ?? '';
+
       const raw = await callAIStructured(
         [{
           role: 'user',
-          content: `Create a music generation brief for YouTube video "${script.title}"\nDuration: ${durationSecs}s\nMood: ${mood ?? 'professional and engaging'}\nGenre: ${genre ?? 'electronic/ambient'}\nHook: "${script.hook.slice(0, 150)}"\n\nGenerate: mood, genre, bpm (60-160), instruments (array), energy (low/medium/high/dynamic), durationSecs, structure, prompt, provider ("suno").`,
+          content: `Create a content-aware music production brief for YouTube video "${script.title}".\n\nDuration: ${durationSecs}s\nOverall mood hint: ${mood ?? 'derive from script'}\nGenre hint: ${genre ?? 'derive from script'}\n\nHook (first 250 chars): "${script.hook.slice(0, 250)}"\n\nScript sections:\n${sectionSummary}\n\nCall to action: "${(script.callToAction ?? '').slice(0, 100)}"\n\nRequirements:\n- mood: single evocative word matching the script's dominant emotion\n- genre: music genre that fits the content theme\n- bpm: 60-160 matching energy/pacing of narration\n- instruments: array of 3-6 instruments fitting the mood\n- energy: one of low/medium/high/dynamic — match the script's intensity\n- durationSecs: ${durationSecs}\n- structure: describe how music should evolve (e.g. "builds in chorus, softens in CTA")\n- emotionalArc: one sentence describing the music's emotional journey matching the script arc\n- prompt: vivid 60-100 word content-specific music direction — reference the video's theme, key moments, emotional beats, pacing. Make it unique to THIS video.\n- provider: "suno"`,
         }],
         MusicBriefOutputSchema,
         { systemPrompt: MUSIC_SYSTEM, maxTokens: 2048 },
       ) as MusicBriefOutput;
 
-      // Rebuild the prompt with organic/human-feel directives before it reaches
-      // Suno/MusicGen/Replicate — improves realism and emotional alignment.
-      const { prompt } = enhanceMusicPrompt(raw);
+      // Enrich the AI-generated prompt with organic/human-feel directives before
+      // it reaches Suno/MusicGen/Replicate — improves realism and emotional alignment.
+      const { prompt } = enhanceMusicPrompt({ ...raw, emotionalArc: raw.emotionalArc });
       return { ...raw, prompt };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

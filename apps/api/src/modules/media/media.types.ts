@@ -35,6 +35,8 @@ export interface MusicRequest {
   bpm: number;
   energy: 'low' | 'medium' | 'high' | 'dynamic';
   durationSecs: number;
+  prompt?: string;
+  emotionalArc?: string;
 }
 
 export interface SceneVideoRequest {

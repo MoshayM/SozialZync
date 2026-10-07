@@ -11,6 +11,7 @@ const ENERGY_WORDS: Record<MusicRequest['energy'], string> = {
 };
 
 function buildPrompt(req: MusicRequest): string {
+  if (req.prompt?.trim()) return req.prompt;
   const energy = ENERGY_WORDS[req.energy];
   return `${req.genre} instrumental background music, ${req.mood} mood, ${energy}, ${req.bpm} BPM, no vocals, royalty-free`;
 }

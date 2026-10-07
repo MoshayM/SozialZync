@@ -31,6 +31,7 @@ function piHeaders(): Record<string, string> {
 }
 
 function buildPrompt(req: MusicRequest): string {
+  if (req.prompt?.trim()) return req.prompt;
   const energyWords: Record<MusicRequest['energy'], string> = {
     low:     'ambient, peaceful, soft',
     medium:  'moderate, flowing, smooth',

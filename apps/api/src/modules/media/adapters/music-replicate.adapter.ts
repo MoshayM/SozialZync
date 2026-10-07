@@ -34,7 +34,7 @@ export class ReplicateMusicAdapter implements MusicAdapter {
 
   async compose(req: MusicRequest): Promise<GeneratedMedia> {
     const duration = Math.min(Math.max(req.durationSecs, 5), MAX_DURATION_SECS);
-    const prompt = `${req.genre} instrumental music, ${req.mood} mood, ${req.bpm} BPM, background score, no vocals`;
+    const prompt = req.prompt?.trim() || `${req.genre} instrumental music, ${req.mood} mood, ${req.bpm} BPM, background score, no vocals`;
 
     const startRes = await fetch(PREDICTIONS_URL, {
       method: 'POST',

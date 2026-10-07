@@ -860,6 +860,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           bpm: brief.bpm,
           energy: brief.energy,
           durationSecs: brief.durationSecs,
+          prompt: brief.prompt,
+          emotionalArc: brief.emotionalArc,
         });
         this.log(jobId, projectId, stored.cached ? 'Music reused from cache ✓' : 'Music track ready ✓',
           `${stored.provider} · ${Math.round((stored.durationMs ?? 0) / 1000)}s`);

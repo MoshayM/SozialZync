@@ -196,6 +196,7 @@ export const MusicBriefOutputSchema = z.object({
   structure: z.any().transform(v => Array.isArray(v) ? (v as unknown[]).map(i => typeof i === 'string' ? i : JSON.stringify(i)).join(' → ') : typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')),
   prompt: z.string(),
   provider: z.string().default('suno'),
+  emotionalArc: z.string().optional(),
   notes: z.string().optional(),
 });
 export type MusicBriefOutput = z.infer<typeof MusicBriefOutputSchema>;

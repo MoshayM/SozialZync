@@ -21,7 +21,7 @@ export class MusicGenLocalAdapter implements MusicAdapter {
 
   async compose(req: MusicRequest): Promise<GeneratedMedia> {
     const duration = Math.min(Math.max(req.durationSecs, 5), MAX_DURATION_SECS);
-    const prompt = `${req.genre} instrumental music, ${req.mood} mood, ${req.bpm} BPM, background score, no lyrics, no vocals`;
+    const prompt = req.prompt?.trim() || `${req.genre} instrumental music, ${req.mood} mood, ${req.bpm} BPM, background score, no lyrics, no vocals`;
 
     const body = JSON.stringify({ prompt, duration, output_format: 'mp3' });
     const res = await fetch(`${BASE_URL}/generate`, {

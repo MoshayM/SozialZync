@@ -80,7 +80,7 @@ export function enhanceVideoPrompt(
 // ── Music ──────────────────────────────────────────────────────────────────────
 
 export function enhanceMusicPrompt(
-  brief: Pick<MusicBriefOutput, 'mood' | 'genre' | 'bpm' | 'energy' | 'instruments' | 'prompt'>,
+  brief: Pick<MusicBriefOutput, 'mood' | 'genre' | 'bpm' | 'energy' | 'instruments' | 'prompt'> & { emotionalArc?: string },
 ): EnhancedMusicPrompt {
   const base = brief.prompt?.trim() || `${brief.genre} background music`;
   const instruments =
@@ -88,12 +88,14 @@ export function enhanceMusicPrompt(
       ? `featuring ${brief.instruments.slice(0, 4).join(', ')}`
       : '';
   const energyDesc = ENERGY_DESCRIPTORS[brief.energy] ?? '';
+  const arcLine = brief.emotionalArc ? `emotional arc: ${brief.emotionalArc}` : '';
 
   const prompt = [
     `${brief.genre} instrumental, ${brief.mood} mood`,
     `${brief.bpm} BPM`,
     energyDesc,
     instruments,
+    arcLine,
     base,
     MUSIC_HUMANIZING,
     'no vocals, background score, royalty-free AI composition',
