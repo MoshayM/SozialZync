@@ -400,6 +400,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [mood, setMood] = useState('');
   const [genre, setGenre] = useState('');
   const [musicPromptOverride, setMusicPromptOverride] = useState<string | undefined>(undefined);
+  const [briefOpen, setBriefOpen] = useState(false);
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
   const [voiceKey, setVoiceKey] = useState('');
   const [voiceKeySaved, setVoiceKeySaved] = useState(false);
@@ -1874,53 +1875,72 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
         </div>
       ) : <p className="text-xs text-gray-500">Set a mood/genre (or leave blank for AI&rsquo;s pick) and run.</p>}
 
-      {/* AI Music Brief — visible/editable once MUSIC_BRIEF has run */}
+      {/* AI Music Brief — collapsible, appears once MUSIC_BRIEF has run */}
       {(musicBrief?.prompt || musicPromptOverride !== undefined) && (
-        <div className="space-y-2 pt-2 border-t border-gray-100">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">AI Music Brief</p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => navigator.clipboard.writeText(musicPromptDisplay)}
-                className="text-[11px] text-gray-400 hover:text-brand-600 px-2 py-0.5 rounded"
-                title="Copy prompt"
-              >
-                Copy
-              </button>
-              <button
-                onClick={() => {
-                  const blob = new Blob([musicPromptDisplay], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url; a.download = 'music-brief.txt'; a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                className="flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-brand-600 px-2 py-0.5 rounded"
-                title="Download brief as text"
-              >
-                <Download className="w-3 h-3" />
-              </button>
+        <div className="pt-2 border-t border-gray-100">
+          <button
+            onClick={() => setBriefOpen((o) => !o)}
+            className="flex items-center justify-between w-full group"
+          >
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide group-hover:text-brand-600 transition-colors">
+              AI Music Brief
+              {musicPromptOverride !== undefined && musicPromptOverride !== musicBrief?.prompt && (
+                <span className="ml-1.5 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full normal-case font-medium">custom</span>
+              )}
+            </p>
+            <div className="flex items-center gap-1 text-gray-400 group-hover:text-brand-600 transition-colors">
+              {musicBrief?.bpm && !briefOpen && (
+                <span className="text-[10px] bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-medium mr-1">{musicBrief.bpm} BPM</span>
+              )}
+              {briefOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </div>
-          </div>
-          <textarea
-            value={musicPromptDisplay}
-            onChange={(e) => setMusicPromptOverride(e.target.value)}
-            rows={4}
-            className="w-full text-xs px-3 py-2 border border-gray-200 rounded-xl resize-y leading-relaxed"
-            placeholder="Music prompt will appear here after the brief runs…"
-          />
-          {musicBrief?.emotionalArc && (
-            <p className="text-[11px] text-gray-500 italic leading-snug">{musicBrief.emotionalArc}</p>
-          )}
-          {musicBrief?.bpm && (
-            <div className="flex flex-wrap gap-1.5">
-              <span className="text-[10px] bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-medium">{musicBrief.bpm} BPM</span>
-              {musicBrief.mood && <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{musicBrief.mood}</span>}
-              {musicBrief.genre && <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{musicBrief.genre}</span>}
+          </button>
+
+          {briefOpen && (
+            <div className="space-y-2 mt-2">
+              <div className="flex items-center justify-end gap-1">
+                <button
+                  onClick={() => navigator.clipboard.writeText(musicPromptDisplay)}
+                  className="text-[11px] text-gray-400 hover:text-brand-600 px-2 py-0.5 rounded"
+                  title="Copy prompt"
+                >
+                  Copy
+                </button>
+                <button
+                  onClick={() => {
+                    const blob = new Blob([musicPromptDisplay], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'music-brief.txt'; a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-brand-600 px-2 py-0.5 rounded"
+                  title="Download brief as text"
+                >
+                  <Download className="w-3 h-3" />
+                </button>
+              </div>
+              <textarea
+                value={musicPromptDisplay}
+                onChange={(e) => setMusicPromptOverride(e.target.value)}
+                rows={4}
+                className="w-full text-xs px-3 py-2 border border-gray-200 rounded-xl resize-y leading-relaxed"
+                placeholder="Music prompt will appear here after the brief runs…"
+              />
+              {musicBrief?.emotionalArc && (
+                <p className="text-[11px] text-gray-500 italic leading-snug">{musicBrief.emotionalArc}</p>
+              )}
+              {musicBrief?.bpm && (
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="text-[10px] bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-medium">{musicBrief.bpm} BPM</span>
+                  {musicBrief.mood && <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{musicBrief.mood}</span>}
+                  {musicBrief.genre && <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{musicBrief.genre}</span>}
+                </div>
+              )}
+              {musicPromptOverride !== undefined && musicPromptOverride !== musicBrief?.prompt && (
+                <p className="text-[11px] text-amber-600">Custom prompt active — will be used on next regenerate.</p>
+              )}
             </div>
-          )}
-          {musicPromptOverride !== undefined && musicPromptOverride !== musicBrief?.prompt && (
-            <p className="text-[11px] text-amber-600">Custom prompt active — will be used on next regenerate (brief re-runs for BPM/instruments, your prompt overrides).</p>
           )}
         </div>
       )}
