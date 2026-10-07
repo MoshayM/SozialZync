@@ -860,7 +860,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           bpm: brief.bpm,
           energy: brief.energy,
           durationSecs: brief.durationSecs,
-          prompt: brief.prompt,
+          prompt: (payload['musicPrompt'] as string | undefined) || brief.prompt,
           emotionalArc: brief.emotionalArc,
         });
         this.log(jobId, projectId, stored.cached ? 'Music reused from cache ✓' : 'Music track ready ✓',
@@ -1334,6 +1334,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               if (payload['mood']) stagePayload['mood'] = payload['mood'];
               if (payload['genre']) stagePayload['genre'] = payload['genre'];
             }
+            if (stage.type === 'MUSIC_GENERATE' && payload['musicPrompt']) stagePayload['musicPrompt'] = payload['musicPrompt'];
             if (stage.type === 'RENDER' && payload['preset']) stagePayload['preset'] = payload['preset'];
             if (stage.type === 'RENDER' && payload['platform']) stagePayload['platform'] = payload['platform'];
             if (stage.type === 'RENDER' && payload['videoType']) stagePayload['videoType'] = payload['videoType'];
