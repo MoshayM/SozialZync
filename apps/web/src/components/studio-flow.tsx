@@ -1889,12 +1889,15 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               )}
             </p>
             <div className="flex items-center gap-1 text-gray-400 group-hover:text-brand-600 transition-colors">
-              {musicBrief?.bpm && !briefOpen && (
+              {!briefOpen && musicBrief?.bpm && (
                 <span className="text-[10px] bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-medium mr-1">{musicBrief.bpm} BPM</span>
               )}
               {briefOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </div>
           </button>
+          {!briefOpen && musicBrief?.emotionalArc && (
+            <p className="text-[11px] text-gray-400 italic leading-snug mt-1 line-clamp-1">{musicBrief.emotionalArc}</p>
+          )}
 
           {briefOpen && (
             <div className="space-y-2 mt-2">
@@ -1927,9 +1930,12 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 className="w-full text-xs px-3 py-2 border border-gray-200 rounded-xl resize-y leading-relaxed"
                 placeholder="Music prompt will appear here after the brief runs…"
               />
-              {musicBrief?.emotionalArc && (
-                <p className="text-[11px] text-gray-500 italic leading-snug">{musicBrief.emotionalArc}</p>
-              )}
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Emotional Arc</p>
+                <p className="text-[11px] text-gray-600 italic leading-snug">
+                  {musicBrief?.emotionalArc ?? <span className="text-gray-400 not-italic">— run Music stage to generate</span>}
+                </p>
+              </div>
               {musicBrief?.bpm && (
                 <div className="flex flex-wrap gap-1.5">
                   <span className="text-[10px] bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-medium">{musicBrief.bpm} BPM</span>
