@@ -13,19 +13,68 @@ const VOICE_SYSTEM = buildEnhancedVoiceSystemPrompt(
 export class VoiceService {
   private readonly logger = new Logger(VoiceService.name);
 
-  async generateSpec(script: ScriptOutput, projectId: string, voiceProfile?: Record<string, unknown>): Promise<VoiceSpecOutput> {
-    this.logger.log(`Generating voice spec — projectId="${projectId}" sections=${script.sections.length}`);
+  /** Detect character names from script sections (e.g. "NARRATOR:", "HOST:", "GUEST:"). */
+  private detectCharacters(script: ScriptOutput): string[] {
+    const pattern = /^([A-Z][A-Z\s]{1,20}):/gm;
+    const found = new Set<string>();
+    for (const section of script.sections) {
+      for (const match of section.content.matchAll(pattern)) {
+        if (match[1]) found.add(match[1].trim());
+      }
+    }
+    return Array.from(found);
+  }
+
+  async generateSpec(script: ScriptOutput, projectId: string, voiceProfile?: Record<string, unknown>, characterVoices?: boolean): Promise<VoiceSpecOutput> {
+    this.logger.log(`Generating voice spec — projectId="${projectId}" sections=${script.sections.length} characterVoices=${characterVoices ?? false}`);
     try {
-      const profile = voiceProfile ?? { name: 'Narrator', style: 'conversational', tone: 'engaging', pace: 'moderate' };
       const sectionsJson = JSON.stringify(
-        script.sections.map((s, i) => ({ id: `section-${i}`, heading: s.heading, content: s.content.slice(0, 300) })),
+        script.sections.map((s, i) => ({ id: `section-${i}`, heading: s.heading, content: s.content.slice(0, 400) })),
       );
 
+      let userContent: string;
+
+      if (characterVoices) {
+        const characters = this.detectCharacters(script);
+        const characterList = characters.length > 0
+          ? characters.join(', ')
+          : 'Narrator (single narrator)';
+
+        userContent = [
+          `Create character-aware voice narration specifications for this YouTube script. Different characters must have distinctly different voices, tones, and delivery styles.`,
+          ``,
+          `TITLE: "${script.title}"`,
+          `DETECTED CHARACTERS: ${characterList}`,
+          ``,
+          `SECTIONS:`,
+          sectionsJson,
+          ``,
+          `INSTRUCTIONS:`,
+          `- Detect character dialogue lines (e.g. "HOST:", "NARRATOR:", "GUEST:", or inferred from context).`,
+          `- Assign each character a distinct voice profile: different gender, pace, pitch, energy, and emotional tone.`,
+          `- For each section, write ssmlMarkup that uses <prosody>, <emphasis>, and <break> tags to reflect the character's personality and the emotional weight of the moment.`,
+          `- Vary speed (0.7–1.3) and stability (0.6–0.9) per character to sound natural.`,
+          `- Dialogue between characters should feel like a real conversation — vary energy and pacing.`,
+          `- For each section: sectionId ("section-0" etc), heading, ssmlMarkup, provider ("openai"), speed, stability, pronunciationNotes (array).`,
+          `- totalDurationEstimateSecs: sum of all section durations.`,
+          `- disclosureRequired: true.`,
+        ].join('\n');
+      } else {
+        const profile = voiceProfile ?? { name: 'Narrator', style: 'conversational', tone: 'engaging', pace: 'moderate' };
+        userContent = [
+          `Create voice narration specifications for YouTube script.`,
+          ``,
+          `Voice Profile: ${JSON.stringify(profile)}`,
+          `Title: "${script.title}"`,
+          `Sections: ${sectionsJson}`,
+          `Project: ${projectId}`,
+          ``,
+          `For each section, include: sectionId (e.g. "section-0"), heading, ssmlMarkup (with <prosody> and <emphasis> tags matching the section's emotion and energy), provider ("openai"), speed (0.5–2.0, default 1.0), stability (0–1, default 0.75), pronunciationNotes (array). Total duration estimate. Set disclosureRequired: true.`,
+        ].join('\n');
+      }
+
       return await callAIStructured(
-        [{
-          role: 'user',
-          content: `Create voice narration specifications for YouTube script.\n\nVoice Profile: ${JSON.stringify(profile)}\nTitle: "${script.title}"\nSections: ${sectionsJson}\nProject: ${projectId}\n\nFor each section, include: sectionId (e.g. "section-0"), heading, ssmlMarkup, provider (use "elevenlabs"), speed (number 0.5-2.0, default 1.0), stability (number 0-1, default 0.75), pronunciationNotes (array). Total duration estimate. Set disclosureRequired: true.`,
-        }],
+        [{ role: 'user', content: userContent }],
         VoiceSpecOutputSchema,
         { systemPrompt: VOICE_SYSTEM, maxTokens: 4096 },
       ) as VoiceSpecOutput;

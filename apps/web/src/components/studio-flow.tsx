@@ -247,7 +247,7 @@ function StatusBadge({ state, updatedAt }: { state: 'done' | 'running' | 'failed
 
 function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | 'video' }) {
   const [url, setUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
   async function load() {
@@ -263,6 +263,9 @@ function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | '
     }
   }
 
+  // Auto-load on mount — don't require the user to click Play first
+  useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!url) {
     return (
       <span className="flex items-center gap-2">
@@ -274,7 +277,7 @@ function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | '
           {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
           {loading ? 'Loading…' : loadError ? 'Retry' : kind === 'audio' ? 'Play audio' : 'Play video'}
         </button>
-        {loadError && <span className="text-[11px] text-red-500">Couldn&rsquo;t load media</span>}
+        {loadError && <span className="text-[11px] text-amber-600 text-xs">File unavailable — regenerate to restore</span>}
       </span>
     );
   }
@@ -401,6 +404,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [genre, setGenre] = useState('');
   const [musicPromptOverride, setMusicPromptOverride] = useState<string | undefined>(undefined);
   const [briefOpen, setBriefOpen] = useState(false);
+  const [characterVoices, setCharacterVoices] = useState(false);
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
   const [voiceKey, setVoiceKey] = useState('');
   const [voiceKeySaved, setVoiceKeySaved] = useState(false);
@@ -1586,6 +1590,18 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             <p className="text-[11px] text-gray-400">{VOICE_STYLES.find((s) => s.id === voiceStyle)?.desc}</p>
           </div>
 
+          {/* Character voices toggle */}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={characterVoices}
+              onChange={(e) => setCharacterVoices(e.target.checked)}
+              className="rounded accent-brand-600 w-3.5 h-3.5"
+            />
+            <span className="text-xs text-gray-700">Character-aware voices</span>
+            <span className="text-[10px] text-gray-400">(AI assigns different voices per character/emotion)</span>
+          </label>
+
           {/* Generate button */}
           <button
             onClick={() => enqueue.mutate({
@@ -1593,7 +1609,8 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               payload: {
                 scope: 'VOICE',
                 regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
-                voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
+                voiceProfile: characterVoices ? undefined : VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
+                characterVoices,
               },
             })}
             disabled={busy}
@@ -1712,7 +1729,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   </button>
                 )}
               </div>
-              {recordingError && <p className="text-xs text-red-500">{recordingError}</p>}
+              {recordingError && !uploadRecording.isError && <p className="text-xs text-red-500">{recordingError}</p>}
               {recordedBlob && !recording && (
                 <div className="space-y-2">
                   <p className="text-[11px] text-gray-500">
@@ -1726,10 +1743,32 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     {uploadRecording.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                     Use as Narration
                   </button>
-                  {uploadRecording.isSuccess && (
-                    <p className="text-xs text-green-600 font-medium">
-                      Uploaded — your recording is now the voice track.
+                  {uploadRecording.isError && (
+                    <p className="text-xs text-red-500">
+                      {uploadRecording.error instanceof Error
+                        ? uploadRecording.error.message.includes('Project not found')
+                          ? 'Upload failed — project not found. Try refreshing the page and recording again.'
+                          : uploadRecording.error.message
+                        : 'Upload failed. Please try again.'}
                     </p>
+                  )}
+                  {uploadRecording.isSuccess && uploadRecording.data?.data?.versionId && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-semibold text-green-700">Your narration is ready</p>
+                      <div className="flex items-center gap-2">
+                        <MediaPlayer versionId={uploadRecording.data.data.versionId} kind="audio" />
+                        <button
+                          onClick={async () => {
+                            const res = await api.media.versionFile(uploadRecording.data!.data!.versionId);
+                            await downloadBlob(res, 'my-narration');
+                          }}
+                          className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
+                          title="Download narration"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}

@@ -519,9 +519,10 @@ export class SupervisorWorker extends WorkerHost {
         const channel = await this.prisma.channel.findFirst({ where: { projects: { some: { id: projectId } } } });
         const payloadVoiceProfile = payload['voiceProfile'] as Record<string, unknown> | undefined;
         const voiceProfile = payloadVoiceProfile ?? (channel?.voiceProfile as Record<string, unknown> | undefined);
+        const characterVoices = payload['characterVoices'] as boolean | undefined;
         const t0 = Date.now();
         this.log(jobId, projectId, 'Generating per-section voice narration specs…', `${script.sections.length} sections`);
-        const result = await this.voice.generateSpec(script, projectId, voiceProfile);
+        const result = await this.voice.generateSpec(script, projectId, voiceProfile, characterVoices);
         const sectionCount = (result as { sections?: unknown[] }).sections?.length ?? 0;
         this.log(jobId, projectId, 'Voice specs ready ✓', `${sectionCount} section(s) · disclosure: ${(result as { disclosureRequired?: boolean }).disclosureRequired ? 'required' : 'not required'}`);
         await this.jobs.logStep(jobId, 'VoiceAgent', 'spec', { sections: sectionCount }, result, 0, 0, Date.now() - t0);
@@ -1341,6 +1342,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             // Voice cloning: forward the cloned voice ID to VOICE_GENERATE and
             // the style profile to VOICE_SPEC so the pipeline uses them.
             if (stage.type === 'VOICE_SPEC' && payload['voiceProfile']) stagePayload['voiceProfile'] = payload['voiceProfile'];
+            if (stage.type === 'VOICE_SPEC' && payload['characterVoices']) stagePayload['characterVoices'] = payload['characterVoices'];
             if (stage.type === 'VOICE_GENERATE' && payload['referenceVoiceId']) stagePayload['referenceVoiceId'] = payload['referenceVoiceId'];
             // Forward content language to every stage that generates text
             if (payload['lang']) stagePayload['lang'] = payload['lang'];
