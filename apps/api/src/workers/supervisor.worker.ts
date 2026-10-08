@@ -1368,6 +1368,22 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             });
             return;
           }
+
+          if (stage.type === 'AUDIO_MIX') {
+            this.log(jobId, projectId, 'Mixing narration + background music…');
+            const voiceResult = (stageResults['VOICE_GENERATE'] ?? await this.lastResult<{ versionId?: string }>(projectId, 'VOICE_GENERATE')) as { versionId?: string } | null;
+            const musicResult = (stageResults['MUSIC_GENERATE'] ?? await this.lastResult<{ versionId?: string }>(projectId, 'MUSIC_GENERATE')) as { versionId?: string } | null;
+            if (!voiceResult?.versionId || !musicResult?.versionId) {
+              this.log(jobId, projectId, 'Audio Mix skipped — narration or music not yet available');
+              stageResults['AUDIO_MIX'] = null;
+              return;
+            }
+            const t0 = Date.now();
+            const mixed = await this.media.mixAudio(projectId, voiceResult.versionId, musicResult.versionId, 'Narration + Music Mix');
+            stageResults['AUDIO_MIX'] = { assetId: mixed.assetId, versionId: mixed.versionId, provider: 'ffmpeg-mix', durationMs: mixed.durationMs };
+            this.log(jobId, projectId, 'Audio mix ready ✓', `ffmpeg-mix · ${Math.round((mixed.durationMs ?? 0) / 1000)}s · ${Date.now() - t0}ms`);
+            return;
+          }
           // Each stage is a real child job: results persist for resume and
           // downstream lastResult() reads, and the dashboard cards light up.
           const child = await this.prisma.agentJob.create({
@@ -1482,6 +1498,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           stagesRun: run.map((s) => s.type),
           stagesSkipped: skipped.map((s) => s.type),
           exports: stageResults['PACKAGE'] ?? [],
+          audioMix: stageResults['AUDIO_MIX'] ?? null,
         };
       }
 

@@ -1,9 +1,9 @@
 import type { JobType } from '@cf/shared';
 
-export type PipelineScope = 'FULL' | 'SCRIPT' | 'VOICE' | 'MUSIC' | 'IMAGES' | 'VIDEO' | 'SONG';
+export type PipelineScope = 'FULL' | 'SCRIPT' | 'VOICE' | 'MUSIC' | 'IMAGES' | 'VIDEO' | 'SONG' | 'SMART_MIX';
 
 export interface PipelineStage {
-  type: JobType | 'PACKAGE';
+  type: JobType | 'PACKAGE' | 'AUDIO_MIX';
   label: string;
   /** Stages sharing a group run concurrently (update.txt: "Parallel execution wherever possible"). */
   parallelGroup?: number;
@@ -58,6 +58,15 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
   MUSIC: [...FOUNDATION, S('MUSIC_BRIEF', 'Music Brief', 30), S('MUSIC_GENERATE', 'Background Music', 20), S('PACKAGE', 'Package', 5)],
   IMAGES: [...FOUNDATION, S('IMAGE_BRIEF', 'Image Briefs', 35), S('IMAGE_GENERATE', 'Scene Images', 40), S('PACKAGE', 'Package', 5)],
   SONG: [...FOUNDATION, S('SONG_GENERATE', 'AI Song', 90)],
+  // Narration + background music — FFmpeg-mixed, free by default (no Suno needed)
+  SMART_MIX: [
+    ...FOUNDATION,
+    S('VOICE_SPEC', 'Voice Direction', 35, { parallelGroup: 1 }),
+    S('MUSIC_BRIEF', 'Music Brief', 30, { parallelGroup: 1 }),
+    S('VOICE_GENERATE', 'Narration', 30, { parallelGroup: 2 }),
+    S('MUSIC_GENERATE', 'Background Music', 20, { parallelGroup: 2 }),
+    S('AUDIO_MIX', 'Mix Audio', 15),
+  ],
   VIDEO: [
     ...FOUNDATION,
     S('VIDEO_SCENE_PLAN', 'Storyboard', 40),

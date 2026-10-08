@@ -520,3 +520,27 @@ export async function toTempFile(buffer: Buffer, ext: string): Promise<string> {
   await fs.writeFile(p, buffer);
   return p;
 }
+
+/**
+ * Mix a narration voice track with a background music track using FFmpeg's
+ * amix filter. Voice runs at full volume; music is ducked to musicVolume
+ * (default 0.15 ≈ −16 dB). Output matches the voice track duration.
+ */
+export async function mixAudioTracks(opts: {
+  voicePath: string;
+  musicPath: string;
+  outPath: string;
+  musicVolume?: number;
+}): Promise<void> {
+  await fs.mkdir(path.dirname(opts.outPath), { recursive: true });
+  const musicVol = opts.musicVolume ?? 0.15;
+  await runFfmpeg([
+    '-i', opts.voicePath,
+    '-stream_loop', '-1', '-i', opts.musicPath,
+    '-filter_complex',
+    `[0:a]volume=1.0[voice];[1:a]volume=${musicVol}[bgm];[voice][bgm]amix=inputs=2:duration=first:dropout_transition=2[aout]`,
+    '-map', '[aout]',
+    '-c:a', 'aac', '-b:a', '160k', '-ar', '44100', '-ac', '2',
+    opts.outPath,
+  ]);
+}

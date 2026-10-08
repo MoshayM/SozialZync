@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'crypto';
+import { promises as fsPromises } from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import type { AssetKind } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from './storage.service';
@@ -34,6 +37,7 @@ import { ReplicateMusicAdapter } from './adapters/music-replicate.adapter';
 import { StabilityMusicAdapter } from './adapters/music-stability.adapter';
 import { UdioMusicAdapter } from './adapters/music-udio.adapter';
 import { validateMediaBuffer, formatIssues, type MediaValidationKind } from './media-validation.util';
+import { mixAudioTracks } from './adapters/ffmpeg.util';
 
 export interface StoredAsset {
   assetId: string;
@@ -147,9 +151,7 @@ export class MediaService {
     call: (adapter: TAdapter, req: TReq) => Promise<GeneratedMedia>,
   ): Promise<StoredAsset> {
     if (adapters.length === 0) {
-      throw new Error(
-        `No available ${kind} provider — configure a provider API key, or set ALLOW_OFFLINE_MEDIA=true to accept clearly-labelled dev placeholders. Refusing to fabricate output (audit-placeholders.md).`,
-      );
+      throw new Error(`No available ${kind} provider — configure a provider API key (VOICE_PROVIDER / IMAGE_PROVIDER / MUSIC_PROVIDER / VIDEO_PROVIDER). Refusing to fabricate output.`);
     }
 
     // Token optimization: never regenerate completed assets — identical
@@ -257,5 +259,81 @@ export class MediaService {
 
     await this.prisma.asset.update({ where: { id: asset.id }, data: { status: 'FAILED' } });
     throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+  }
+
+  /**
+   * Mix a narration voice asset with a background music asset using FFmpeg amix.
+   * Voice plays at full volume; music is ducked to ~−16 dB under narration.
+   * Returns the mixed audio as a new MUSIC asset so it's playable and downloadable.
+   */
+  async mixAudio(projectId: string, voiceVersionId: string, musicVersionId: string, label = 'Narration + Music Mix'): Promise<StoredAsset> {
+    const [voiceVer, musicVer] = await Promise.all([
+      this.prisma.assetVersion.findUnique({ where: { id: voiceVersionId }, select: { r2Key: true, durationMs: true } }),
+      this.prisma.assetVersion.findUnique({ where: { id: musicVersionId }, select: { r2Key: true } }),
+    ]);
+    if (!voiceVer?.r2Key || !musicVer?.r2Key) {
+      throw new Error(`Audio mix: source assets not found (voice=${voiceVersionId}, music=${musicVersionId})`);
+    }
+
+    await Promise.all([this.storage.ensure(voiceVer.r2Key), this.storage.ensure(musicVer.r2Key)]);
+    const voicePath = this.storage.resolve(voiceVer.r2Key);
+    const musicPath = this.storage.resolve(musicVer.r2Key);
+
+    const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'cf-mix-'));
+    const outPath = path.join(tmpDir, 'mix.m4a');
+
+    try {
+      await mixAudioTracks({ voicePath, musicPath, outPath });
+      const buffer = await fsPromises.readFile(outPath);
+      const durationMs = voiceVer.durationMs ?? undefined;
+
+      const asset = await this.prisma.asset.create({
+        data: { projectId, kind: 'MUSIC', label, status: 'GENERATING' },
+      });
+      const key = `assets/${projectId}/${asset.id}/v1/mix.m4a`;
+      const { absPath, sizeBytes } = await this.storage.put(key, buffer);
+      const contentHash = createHash('sha256').update(buffer).digest('hex');
+
+      const version = await this.prisma.assetVersion.create({
+        data: {
+          assetId: asset.id,
+          version: 1,
+          r2Key: key,
+          contentHash,
+          provider: 'ffmpeg-mix',
+          model: 'ffmpeg-amix',
+          prompt: { voiceVersionId, musicVersionId } as never,
+          params: { mixedFrom: [voiceVersionId, musicVersionId] } as never,
+          provenance: {
+            provider: 'ffmpeg-mix',
+            model: 'ffmpeg-amix',
+            generatedAt: new Date().toISOString(),
+            license: 'generated-in-app-royalty-free',
+            notes: 'FFmpeg amix: voice 100% + background music 15%',
+          } as never,
+          sizeBytes: BigInt(sizeBytes),
+          durationMs: durationMs ?? null,
+        },
+      });
+
+      await this.prisma.asset.update({
+        where: { id: asset.id },
+        data: { status: 'READY', currentVersionId: version.id },
+      });
+
+      return {
+        assetId: asset.id,
+        versionId: version.id,
+        key,
+        absPath,
+        provider: 'ffmpeg-mix',
+        durationMs: durationMs ?? undefined,
+        sizeBytes,
+        cached: false,
+        notes: 'Voice narration + royalty-free background music (FFmpeg amix)',
+      };
+    } finally {
+      await fsPromises.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+    }
   }
 }

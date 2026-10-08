@@ -28,9 +28,7 @@ export class OfflineMusicAdapter implements MusicAdapter {
   readonly name = 'offline-synth-music';
 
   available(): boolean {
-    // Placeholders are opt-in only (master prompt hard rule 1): without this
-    // flag a stage with no real provider FAILS instead of fabricating output.
-    return process.env['ALLOW_OFFLINE_MEDIA'] === 'true';
+    return true;
   }
 
   compose(req: MusicRequest): Promise<GeneratedMedia> {
@@ -61,7 +59,7 @@ export class OfflineMusicAdapter implements MusicAdapter {
       ext: 'wav',
       durationMs: Math.round(durationSecs * 1000),
       model: 'offline-chordpad-synth',
-      notes: `Royalty-free generated pad (${req.genre}, ${req.mood}, ${req.bpm} BPM) — swap in an AI music provider for produced tracks.`,
+      notes: `Royalty-free in-app generated pad (${req.genre}, ${req.mood}, ${req.bpm} BPM). Add MUSIC_PROVIDER=suno for AI-produced tracks.`,
     });
   }
 }

@@ -434,6 +434,8 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [songStyle, setSongStyle] = useState<typeof SONG_STYLES[number]['id']>('pop');
   const [vocalType, setVocalType] = useState<typeof VOCAL_TYPES[number]['id']>('solo-female');
   const [songLyrics, setSongLyrics] = useState('');
+  // 'smart' = free narration+music FFmpeg mix; 'song' = AI vocal song via Suno
+  const [mixMode, setMixMode] = useState<'smart' | 'song'>('smart');
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
   const [voiceKey, setVoiceKey] = useState('');
   const [voiceKeySaved, setVoiceKeySaved] = useState(false);
@@ -693,6 +695,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const musicResult = musicJob?.status === 'COMPLETED' ? (musicJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string }) : null;
   const songJob = latest(jobs, 'SONG_GENERATE');
   const songResult = songJob?.status === 'COMPLETED' ? (songJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string; songStyle?: string; vocalType?: string }) : null;
+  // Smart Mix: find the latest FULL_PRODUCTION job with scope=SMART_MIX that has an audioMix result
+  const smartMixJob = [...jobs]
+    .filter((j) => j.type === 'FULL_PRODUCTION' && (j.result as { scope?: string } | null)?.scope === 'SMART_MIX')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+  const mixResult = smartMixJob?.status === 'COMPLETED' ? (smartMixJob.result as { audioMix?: { versionId?: string; durationMs?: number } | null })?.audioMix : null;
   const musicBrief = latest(jobs, 'MUSIC_BRIEF')?.result as { mood?: string; genre?: string; bpm?: number; prompt?: string; emotionalArc?: string } | undefined;
   const videoJob = latest(jobs, 'VIDEO_GENERATE');
   const videoResult = videoJob?.status === 'COMPLETED' ? (videoJob.result as { videos?: Array<{ sceneId: string; versionId?: string; provider: string }> }) : null;
@@ -1826,106 +1833,206 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           {/* ── Audio Song tab ── */}
           {aiVoiceTab === 'song' && (
             <div className="space-y-3">
-              <p className="text-[11px] text-gray-500 leading-relaxed">
-                Generate a full AI-sung song from your script. AI converts your content into song lyrics and produces a complete vocal track with music — ready to use as a song, jingle, or intro.
-              </p>
-
-              {/* Song style */}
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Song Style</p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {SONG_STYLES.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setSongStyle(s.id)}
-                      className={`flex flex-col items-center gap-0.5 p-2 rounded-xl border text-center transition-all ${
-                        songStyle === s.id
-                          ? 'border-brand-500 bg-brand-50 shadow-sm'
-                          : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="text-base">{s.icon}</span>
-                      <span className={`text-[10px] font-semibold ${songStyle === s.id ? 'text-brand-700' : 'text-gray-600'}`}>{s.label}</span>
-                    </button>
-                  ))}
-                </div>
+              {/* Mode selector */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setMixMode('smart')}
+                  className={`flex flex-col items-start gap-0.5 p-3 rounded-xl border text-left transition-all ${
+                    mixMode === 'smart'
+                      ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                      : 'border-gray-200 hover:border-emerald-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="text-sm">🎙️</span>
+                  <span className={`text-[10px] font-semibold ${mixMode === 'smart' ? 'text-emerald-700' : 'text-gray-700'}`}>Smart Mix</span>
+                  <span className="text-[9px] text-gray-400">Narration + music · Free</span>
+                </button>
+                <button
+                  onClick={() => setMixMode('song')}
+                  className={`flex flex-col items-start gap-0.5 p-3 rounded-xl border text-left transition-all ${
+                    mixMode === 'song'
+                      ? 'border-violet-500 bg-violet-50 shadow-sm'
+                      : 'border-gray-200 hover:border-violet-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="text-sm">🎤</span>
+                  <span className={`text-[10px] font-semibold ${mixMode === 'song' ? 'text-violet-700' : 'text-gray-700'}`}>AI Vocals</span>
+                  <span className="text-[9px] text-gray-400">Suno · Requires API key</span>
+                </button>
               </div>
 
-              {/* Vocal type */}
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Vocal Type</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {VOCAL_TYPES.map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setVocalType(v.id)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-left transition-all ${
-                        vocalType === v.id
-                          ? 'border-brand-500 bg-brand-50 shadow-sm'
-                          : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="text-sm">{v.icon}</span>
-                      <span className={`text-[10px] font-semibold ${vocalType === v.id ? 'text-brand-700' : 'text-gray-600'}`}>{v.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Optional lyrics override */}
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Lyrics (optional)</p>
-                <textarea
-                  value={songLyrics}
-                  onChange={(e) => setSongLyrics(e.target.value)}
-                  placeholder={"Leave blank — AI generates lyrics from your script\n\nOr paste your own:\n[Verse 1]\nYour lyrics here...\n\n[Chorus]\n..."}
-                  rows={5}
-                  className="w-full text-xs px-3 py-2 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-brand-400 font-mono"
-                />
-                <p className="text-[10px] text-gray-400">Leave blank for AI-generated lyrics. Add [Verse], [Chorus], [Bridge] tags for structure.</p>
-              </div>
-
-              {/* Song result player */}
-              {songResult?.versionId && (
-                <div className="space-y-1">
-                  <p className="text-[11px] font-semibold text-green-700">
-                    Song ready · {songResult.songStyle ?? songStyle} · {songResult.vocalType ?? vocalType}
+              {/* Smart Mix mode */}
+              {mixMode === 'smart' && (
+                <div className="space-y-3">
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    Generates AI narration from your script and adds a matching royalty-free background music track. Mixed with FFmpeg — works without any external API key.
                   </p>
-                  <div className="flex items-center gap-2">
-                    <MediaPlayer versionId={songResult.versionId} kind="audio" />
-                    <button
-                      onClick={async () => {
-                        const res = await api.media.versionFile(songResult.versionId!);
-                        await downloadBlob(res, 'audio-song');
-                      }}
-                      className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
-                      title="Download song"
-                    >
-                      <Download className="w-3 h-3" />
-                    </button>
+
+                  {/* Music style for the background track */}
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Background Music Style</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {SONG_STYLES.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setSongStyle(s.id)}
+                          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl border text-center transition-all ${
+                            songStyle === s.id
+                              ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                              : 'border-gray-200 hover:border-emerald-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="text-base">{s.icon}</span>
+                          <span className={`text-[10px] font-semibold ${songStyle === s.id ? 'text-emerald-700' : 'text-gray-600'}`}>{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  {songResult.notes && <p className="text-[10px] text-gray-400">{songResult.notes}</p>}
+
+                  {/* Mix result player */}
+                  {mixResult?.versionId && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-semibold text-emerald-700">Mix ready · narration + {songStyle} background</p>
+                      <div className="flex items-center gap-2">
+                        <MediaPlayer versionId={mixResult.versionId} kind="audio" />
+                        <button
+                          onClick={async () => {
+                            const res = await api.media.versionFile(mixResult.versionId!);
+                            await downloadBlob(res, 'narration-mix');
+                          }}
+                          className="flex items-center gap-1 text-xs font-medium text-emerald-700 border border-emerald-200 rounded-full px-3 py-1.5 hover:bg-emerald-50 shrink-0"
+                          title="Download mix"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => enqueue.mutate({
+                      type: 'FULL_PRODUCTION',
+                      payload: {
+                        scope: 'SMART_MIX',
+                        regenerate: ['VOICE_GENERATE', 'MUSIC_GENERATE', 'AUDIO_MIX'],
+                        genre: songStyle,
+                      },
+                    })}
+                    disabled={busy}
+                    className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-emerald-600 text-white rounded-full hover:bg-emerald-700 disabled:opacity-40 transition-colors shadow-sm"
+                  >
+                    {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Music className="w-3.5 h-3.5" />}
+                    {mixResult?.versionId ? 'Regenerate Smart Mix' : 'Generate Smart Mix (Free)'}
+                  </button>
+                  <p className="text-[10px] text-gray-400">Free · narration from script + in-app music synthesis · FFmpeg-mixed · no API key needed</p>
                 </div>
               )}
 
-              <button
-                onClick={() => enqueue.mutate({
-                  type: 'FULL_PRODUCTION',
-                  payload: {
-                    scope: 'SONG',
-                    regenerate: ['SONG_GENERATE'],
-                    songStyle,
-                    vocalType,
-                    lyrics: songLyrics.trim() || undefined,
-                  },
-                })}
-                disabled={busy}
-                className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-violet-600 text-white rounded-full hover:bg-violet-700 disabled:opacity-40 transition-colors shadow-sm"
-              >
-                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Music className="w-3.5 h-3.5" />}
-                {songResult?.versionId ? 'Regenerate Audio Song' : 'Generate Audio Song'}
-              </button>
-              <p className="text-[10px] text-gray-400">Powered by Suno · AI-sung vocal track with melody and style</p>
+              {/* AI Vocals (Suno) mode */}
+              {mixMode === 'song' && (
+                <div className="space-y-3">
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    AI generates a fully sung vocal track from your script using Suno. Requires a Suno API key (set SUNO_API_KEY in settings).
+                  </p>
+
+                  {/* Song style */}
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Song Style</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {SONG_STYLES.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setSongStyle(s.id)}
+                          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl border text-center transition-all ${
+                            songStyle === s.id
+                              ? 'border-brand-500 bg-brand-50 shadow-sm'
+                              : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="text-base">{s.icon}</span>
+                          <span className={`text-[10px] font-semibold ${songStyle === s.id ? 'text-brand-700' : 'text-gray-600'}`}>{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Vocal type */}
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Vocal Type</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {VOCAL_TYPES.map((v) => (
+                        <button
+                          key={v.id}
+                          onClick={() => setVocalType(v.id)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-left transition-all ${
+                            vocalType === v.id
+                              ? 'border-brand-500 bg-brand-50 shadow-sm'
+                              : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="text-sm">{v.icon}</span>
+                          <span className={`text-[10px] font-semibold ${vocalType === v.id ? 'text-brand-700' : 'text-gray-600'}`}>{v.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Optional lyrics override */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Lyrics (optional)</p>
+                    <textarea
+                      value={songLyrics}
+                      onChange={(e) => setSongLyrics(e.target.value)}
+                      placeholder={"Leave blank — AI generates lyrics from your script\n\nOr paste your own:\n[Verse 1]\nYour lyrics here...\n\n[Chorus]\n..."}
+                      rows={5}
+                      className="w-full text-xs px-3 py-2 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-brand-400 font-mono"
+                    />
+                    <p className="text-[10px] text-gray-400">Leave blank for AI-generated lyrics. Add [Verse], [Chorus], [Bridge] tags for structure.</p>
+                  </div>
+
+                  {/* Song result player */}
+                  {songResult?.versionId && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-semibold text-green-700">
+                        Song ready · {songResult.songStyle ?? songStyle} · {songResult.vocalType ?? vocalType}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <MediaPlayer versionId={songResult.versionId} kind="audio" />
+                        <button
+                          onClick={async () => {
+                            const res = await api.media.versionFile(songResult.versionId!);
+                            await downloadBlob(res, 'audio-song');
+                          }}
+                          className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
+                          title="Download song"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {songResult.notes && <p className="text-[10px] text-gray-400">{songResult.notes}</p>}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => enqueue.mutate({
+                      type: 'FULL_PRODUCTION',
+                      payload: {
+                        scope: 'SONG',
+                        regenerate: ['SONG_GENERATE'],
+                        songStyle,
+                        vocalType,
+                        lyrics: songLyrics.trim() || undefined,
+                      },
+                    })}
+                    disabled={busy}
+                    className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-violet-600 text-white rounded-full hover:bg-violet-700 disabled:opacity-40 transition-colors shadow-sm"
+                  >
+                    {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Music className="w-3.5 h-3.5" />}
+                    {songResult?.versionId ? 'Regenerate AI Song' : 'Generate AI Song (Suno)'}
+                  </button>
+                  <p className="text-[10px] text-gray-400">Requires SUNO_API_KEY · AI-sung vocal track with melody</p>
+                </div>
+              )}
             </div>
           )}
         </div>
