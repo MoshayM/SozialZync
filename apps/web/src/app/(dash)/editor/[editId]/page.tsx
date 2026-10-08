@@ -1953,6 +1953,7 @@ function AiEditDialog({
         ...prev,
         { role: 'assistant', text: res.data.reply, autoApplied: hasTimeline },
       ]);
+      setMinimized(false); // expand so the reply is visible
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
       setError(e.response?.data?.message ?? 'Request failed — please try again.');
@@ -2024,6 +2025,15 @@ function AiEditDialog({
             </button>
           )}
           <button
+            onClick={toggleVoice}
+            disabled={busy}
+            className={`p-1.5 rounded-lg shrink-0 transition-colors disabled:opacity-40 ${listening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:bg-gray-100'}`}
+            title={listening ? 'Listening — click to stop' : 'Voice input'}
+            aria-label={listening ? 'Stop voice input' : 'Voice input'}
+          >
+            <Mic className="w-3.5 h-3.5" />
+          </button>
+          <button
             onClick={toggleAutoSpeak}
             className={`p-1.5 rounded-lg shrink-0 transition-colors ${autoSpeak ? 'bg-brand-100 text-brand-600' : 'text-gray-400 hover:bg-gray-100'}`}
             title={autoSpeak ? 'Voice replies on — click to disable' : 'Voice replies off — click to enable'}
@@ -2043,6 +2053,29 @@ function AiEditDialog({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Compact interaction bar — visible only when collapsed */}
+        {minimized && (
+          <div className="border-t border-gray-100 px-3 pb-3 pt-2 flex gap-1.5 items-center">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); }
+              }}
+              placeholder={listening ? 'Listening…' : 'Type a message…'}
+              className="flex-1 min-w-0 text-sm border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-brand-400 bg-white/80"
+            />
+            <button
+              onClick={() => void submit()}
+              disabled={!input.trim() || busy}
+              className="flex items-center justify-center w-7 h-7 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-40 shrink-0"
+              aria-label="Send"
+            >
+              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        )}
 
         {!minimized && <>
         {/* Chat area */}

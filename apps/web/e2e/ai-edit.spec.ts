@@ -204,22 +204,15 @@ test.describe('AI Edit dialog — mobile layout', () => {
     // Textarea must be visible (not cut off below fold)
     await expect(d.locator('textarea')).toBeVisible({ timeout: 5_000 });
 
-    // Dialog should occupy most of the 740px viewport (h-dvh on mobile ≈ 740px)
+    // Panel is a floating card (max-h-[62dvh] ≈ 458px at 740px) — NOT full-height modal
     const box = await d.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.height).toBeGreaterThan(600);
+    expect(box!.height).toBeGreaterThan(300);   // panel has meaningful height
+    expect(box!.height).toBeLessThan(740);       // but does NOT fill the viewport
 
-    // The mobile bottom tab bar (Media/Inspect/Tools) must be hidden behind the dialog
-    // — it's at z-[60], the dialog overlay is z-[100]
-    const tabBar = page.locator('nav.lg\\:hidden').filter({ hasText: /media|inspect|tools/i });
-    if (await tabBar.count() > 0) {
-      const tabBox = await tabBar.boundingBox();
-      // Either the tab bar is outside the dialog bounds or overlapped by the dialog
-      if (tabBox && box) {
-        // Tab bar must not be ABOVE the dialog's bottom — it should be covered by z-[100] overlay
-        expect(box.y + box.height).toBeGreaterThanOrEqual(tabBox.y);
-      }
-    }
+    // Panel is pinned near the bottom of the viewport (bottom-20 = 80px clearance)
+    const vp = page.viewportSize()!;
+    expect(box!.y + box!.height).toBeGreaterThan(vp.height * 0.6);
 
     await page.screenshot({ path: 'e2e/ai-edit-mobile.png' });
   });
