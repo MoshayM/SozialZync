@@ -42,6 +42,7 @@ export class SocialDownloadService {
   async download(
     url: string,
     title?: string,
+    options?: { skipSignInGate?: boolean },
   ): Promise<{ buffer: Buffer; filename: string; mimeType: string }> {
     const tmpDir = os.tmpdir();
     const id = `ytdl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -87,9 +88,13 @@ export class SocialDownloadService {
     if (isYouTube) {
       args.push('--extractor-args', 'youtube:player_client=android,mweb,ios,web_creator,web_embedded,web');
     }
+    // Privileged users (SUPER_ADMIN / OWNER): inject cookies if configured so they can
+    // download age-gated or sign-in-required videos.
+    const cookiesFile = options?.skipSignInGate ? (process.env.YT_COOKIES_FILE ?? null) : null;
+    if (cookiesFile) args.push('--cookies', cookiesFile);
     // Point yt-dlp at ffmpeg-static's pre-built binary so stream merging works
     if (ffmpegPath) args.push('--ffmpeg-location', ffmpegPath);
-    await this.runYtDlp(args);
+    await this.runYtDlp(args, { skipSignInGate: options?.skipSignInGate });
 
     const outFile = fs.existsSync(expectedMp4)
       ? expectedMp4
@@ -152,7 +157,7 @@ export class SocialDownloadService {
     } catch { return null; }
   }
 
-  private runYtDlp(args: string[]): Promise<void> {
+  private runYtDlp(args: string[], opts?: { skipSignInGate?: boolean }): Promise<void> {
     return new Promise((resolve, reject) => {
       let proc: ReturnType<typeof spawn>;
       try {
@@ -186,7 +191,11 @@ export class SocialDownloadService {
         if (tail.includes('geo') || tail.includes('country'))
           return reject(new BadRequestException('That video is geo-blocked and cannot be imported.'));
         if (tail.includes('sign in') || tail.includes('login') || tail.includes('logged-in') || tail.includes('log in') || tail.includes('credentials'))
-          return reject(new BadRequestException('That video requires sign-in — only public videos can be imported.'));
+          return reject(new BadRequestException(
+            opts?.skipSignInGate
+              ? 'That video requires platform authentication. Set the YT_COOKIES_FILE environment variable on the server to enable authenticated imports.'
+              : 'That video requires sign-in — only public videos can be imported.',
+          ));
         if (tail.includes('impersonation') || tail.includes('curl_cffi'))
           return reject(new BadRequestException('That platform requires browser-level access which is not supported. Try a YouTube or direct video link instead.'));
         if (tail.includes('unexpected response') || tail.includes('report this issue'))

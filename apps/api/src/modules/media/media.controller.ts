@@ -241,10 +241,10 @@ export class MediaController {
     // ── Social platform URLs → yt-dlp ────────────────────────────────────────
     if (this.socialDl.isSocialUrl(rawUrl)) {
       const ytVideoId = extractYouTubeVideoId(rawUrl);
+      const isPrivileged = user.role === 'SUPER_ADMIN' || user.role === 'OWNER' || user.role === 'ADMIN';
 
       if (ytVideoId) {
         // SUPER_ADMIN, OWNER, and ADMIN can import any YouTube URL without channel linkage.
-        const isPrivileged = user.role === 'SUPER_ADMIN' || user.role === 'OWNER' || user.role === 'ADMIN';
         if (!isPrivileged) {
           // YouTube ToS §5.H: verify the video belongs to the user's connected channel.
           const owned = await this.prisma.libraryVideo.findFirst({
@@ -269,7 +269,7 @@ export class MediaController {
         }
       }
 
-      const { buffer, filename, mimeType } = await this.socialDl.download(rawUrl, body.title);
+      const { buffer, filename, mimeType } = await this.socialDl.download(rawUrl, body.title, { skipSignInGate: isPrivileged });
       const safeFilename = sanitizeFilename(filename);
       const platform = this.socialDl.platformLabel(rawUrl) ?? 'social';
       return this.storeVideoBuffer(buffer, safeFilename, mimeType, resolvedProjectId, `social-import:${platform}`);
