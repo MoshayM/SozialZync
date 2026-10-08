@@ -1821,6 +1821,11 @@ function AiEditDialog({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const [autoSpeak, setAutoSpeak] = useState(() => {
+    try { return typeof window !== 'undefined' && localStorage.getItem('ai-edit-auto-speak') === '1'; } catch { return false; }
+  });
+  const [speaking, setSpeaking] = useState(false);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
 
   function toggleVoice() {
     if (listening) {
@@ -1854,6 +1859,31 @@ function AiEditDialog({
     setListening(true);
   }
 
+  function speakText(text: string) {
+    const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
+    if (!synth) return;
+    synth.cancel();
+    setSpeaking(true);
+    synthRef.current = synth;
+    const u = new SpeechSynthesisUtterance(text.replace(/[^\x00-\x7F]/g, ' '));
+    u.rate = 1.05;
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    synth.speak(u);
+  }
+
+  function stopSpeaking() {
+    synthRef.current?.cancel();
+    setSpeaking(false);
+  }
+
+  function toggleAutoSpeak() {
+    const next = !autoSpeak;
+    setAutoSpeak(next);
+    try { localStorage.setItem('ai-edit-auto-speak', next ? '1' : '0'); } catch { /* ignore */ }
+    if (!next) stopSpeaking();
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -1869,6 +1899,14 @@ function AiEditDialog({
     if (messages.length === 0) return;
     try { localStorage.setItem(storageKey, JSON.stringify(messages.slice(-50))); } catch { /* ignore */ }
   }, [messages, storageKey]);
+
+  // Auto-speak last AI reply when voice output is enabled
+  useEffect(() => {
+    if (!autoSpeak || busy) return;
+    const last = messages[messages.length - 1];
+    if (last?.role === 'assistant') speakText(last.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   // Build history for the API from current messages array
   const historyForApi = (msgs: ChatMsg[]) =>
@@ -1934,10 +1972,10 @@ function AiEditDialog({
           .join(', ')}${mediaBin.length > 3 ? ` +${mediaBin.length - 3} more` : ''}`;
 
   const SUGGESTIONS = [
+    '🔍 Analyze — what needs editing in this video?',
     'Add all files to the timeline',
     'Extend background music to cover the full video',
-    'Add fade transition between all clips',
-    'Set music volume to 30%',
+    '✨ Prepare for publish — add transitions and fade out',
   ];
 
   return (
@@ -1950,8 +1988,7 @@ function AiEditDialog({
         role="dialog"
         aria-modal="true"
         aria-label="AI edit assistant"
-        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-xl flex flex-col"
-        style={{ maxHeight: 'min(90dvh, 90vh)', minHeight: 'min(420px, 70vh)' }}
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-xl flex flex-col overflow-hidden h-dvh sm:h-auto sm:max-h-[90dvh] sm:min-h-[420px]"
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
@@ -1971,6 +2008,14 @@ function AiEditDialog({
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
           )}
+          <button
+            onClick={toggleAutoSpeak}
+            className={`p-1.5 rounded-lg shrink-0 transition-colors ${autoSpeak ? 'bg-brand-100 text-brand-600' : 'text-gray-400 hover:bg-gray-100'}`}
+            title={autoSpeak ? 'Voice replies on — click to disable' : 'Voice replies off — click to enable'}
+            aria-label="Toggle voice replies"
+          >
+            {autoSpeak ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+          </button>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 shrink-0">
             <X className="w-4 h-4" />
           </button>
@@ -1986,7 +2031,7 @@ function AiEditDialog({
               </div>
               <p className="text-sm font-semibold text-gray-800 mb-1">What would you like to edit?</p>
               <p className="text-xs text-gray-400 max-w-[260px] mx-auto mb-4">
-                I can see your Working Files and current timeline. Ask me to add clips, extend music, trim, apply transitions, and more.
+                I can see your Working Files and timeline. Ask me to analyze the video, add clips, trim filler words, extend music, or prepare for publish.
               </p>
               <div className="flex flex-wrap gap-1.5 justify-center">
                 {SUGGESTIONS.map((s) => (
@@ -2013,6 +2058,16 @@ function AiEditDialog({
                 <div className="max-w-[88%] space-y-2">
                   <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
                     {msg.text}
+                    <div className="flex justify-end mt-1.5 -mb-0.5">
+                      <button
+                        onClick={() => speaking ? stopSpeaking() : speakText(msg.text)}
+                        className="p-0.5 text-gray-300 hover:text-gray-500 transition-colors rounded"
+                        title={speaking ? 'Stop' : 'Read aloud'}
+                        aria-label="Read message aloud"
+                      >
+                        <Volume2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                   {msg.pendingTimeline != null && (
                     <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2">

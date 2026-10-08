@@ -1064,17 +1064,34 @@ ${transcriptSection ? `\n${transcriptSection}` : ''}
 **5. Loop / extend background music** to cover the full video duration:
   - Add multiple instances of the same MUSIC asset back-to-back (each with a unique item id).
 
+**6. Analyze and suggest edits** — use when the user asks "what's wrong with this video", "what should I edit", "analyze this", "review this", or any open-ended question without a specific change:
+  - Examine the transcript for filler words ("um", "uh", "like", "you know"), long pauses (>3 s gaps between segments), and repeated phrases — note exact timestamps
+  - Examine the timeline for clips missing transitions, gaps between clips, very long clips (>90 s without a cut), low/silent voice tracks
+  - Return timeline: null and give a numbered action list with specific timestamps, e.g.:
+    "1. [0:15–0:22] Filler phrase 'you know' repeated 4 times — suggest trimming
+     2. [1:05] 4-second pause detected — suggest cutting to 0.5 s
+     3. Clip 'intro.mp4' has no transition — suggest adding a fade-in"
+  - End each analysis with: "Would you like me to apply any of these changes?"
+
+**7. Prepare for publish**:
+  - Add a fadeIn transition to the first clip (durationMs: 800)
+  - Add fadeOut to the last clip by setting fadeOutMs: 1500
+  - Close any gaps between clips — shift later clips left so they connect seamlessly
+  - Set all MUSIC track items volume to 0.15 so narration stays clear
+
 ## RULES
-1. ONLY use sourceAssetId values listed in the Media Bin section above.
+1. ONLY use sourceAssetId values from the Media Bin section above — never invent an id.
 2. NEVER change the id, kind, or sourceAssetId of EXISTING clips.
-3. Keep all existing clips unless the user explicitly asks to remove them.
-4. timelineEndMs must always be greater than timelineStartMs for every item.
-5. Return the COMPLETE modified timeline including ALL tracks and ALL items.
-6. If the user is only asking a question (not requesting an edit), return timeline as null.
-${transcriptSection ? '7. When trimming based on the transcript, use precise ms values derived from the segment timestamps above.' : ''}
+3. Keep ALL existing clips unless the user explicitly asks to remove them.
+4. timelineEndMs must always be > timelineStartMs by at least 100 ms for every item.
+5. sourceOutMs must be > sourceInMs whenever both are set.
+6. All item ids must be unique — for new items use "item-<unix-timestamp>-v" and "item-<unix-timestamp>-a".
+7. Return the COMPLETE modified timeline including ALL tracks and ALL items.
+8. If the user is only asking a question or requesting analysis, return timeline: null.
+${transcriptSection ? '9. When trimming based on the transcript, use precise ms values derived from the segment timestamps.' : ''}
 
 ## RESPONSE FORMAT — valid JSON only, no markdown fences
-{ "reply": "1-2 sentence plain-English description of the changes", "timeline": <complete timeline JSON> | null }`;
+{ "reply": "1-2 sentence description of what was done or found", "timeline": <complete timeline JSON> | null }`;
 
     const EditorResponseSchema = z.object({
       reply: z.string(),
@@ -1101,18 +1118,57 @@ ${transcriptSection ? '7. When trimming based on the transcript, use precise ms 
       return { reply: res.reply, timeline: null };
     }
 
-    const validated = EditTimelineSchema.safeParse(res.timeline);
+    let validated = EditTimelineSchema.safeParse(res.timeline);
     if (!validated.success) {
-      this.logger.warn(
-        `[EditorCopilot] AI returned invalid timeline: ${validated.error.issues[0]?.message}`,
-      );
-      return {
-        reply: `${res.reply}\n\n(Some proposed changes could not be validated — please try again or rephrase your request.)`,
-        timeline: null,
-      };
+      const issueList = validated.error.issues
+        .slice(0, 6)
+        .map((iss) => `• ${iss.path.length ? iss.path.join('.') + ': ' : ''}${iss.message}`)
+        .join('\n');
+      this.logger.warn(`[EditorCopilot] Validation failed — attempting repair:\n${issueList}`);
+
+      const repairMessages: { role: 'user' | 'assistant'; content: string }[] = [
+        ...messages,
+        { role: 'assistant' as const, content: JSON.stringify(res) },
+        {
+          role: 'user' as const,
+          content:
+            `The timeline JSON you returned has these validation errors:\n${issueList}\n\n` +
+            `Fix only those issues (do not change anything else) and return the corrected complete timeline in the same JSON envelope.`,
+        },
+      ];
+
+      const repair = await callAIStructured(repairMessages, EditorResponseSchema, {
+        systemPrompt,
+        bypassCache: true,
+      }).catch(() => null);
+
+      const repairValidated = repair?.timeline
+        ? EditTimelineSchema.safeParse(repair.timeline)
+        : null;
+
+      if (repairValidated?.success) {
+        this.logger.log('[EditorCopilot] Repair pass succeeded');
+        return { reply: res.reply, timeline: repairValidated.data };
+      }
+
+      const hint = this.buildValidationHint(validated.error.issues);
+      return { reply: `${res.reply}\n\n${hint}`, timeline: null };
     }
 
     return { reply: res.reply, timeline: validated.data };
+  }
+
+  private buildValidationHint(issues: z.ZodIssue[]): string {
+    const first = issues[0];
+    if (!first) return '💡 Try rephrasing your request with more specific instructions.';
+    const path = first.path.join('.');
+    if (path.includes('sourceAssetId'))
+      return '💡 I can only use files in your Working Files panel — make sure the file is uploaded there first.';
+    if (path.includes('timelineEndMs') || path.includes('timelineStartMs'))
+      return '💡 Try specifying times in seconds (e.g. "trim from 10s to 45s") so I can calculate exact values.';
+    if (path.includes('items') || path.includes('tracks'))
+      return '💡 Try describing the edit in smaller steps — e.g. "move clip 1 to start at 10 seconds".';
+    return '💡 Try rephrasing with more specific instructions — e.g. which clip, what change, and at what time.';
   }
 
   // ── Worker body: runRender ───────────────────────────────────────────────────
