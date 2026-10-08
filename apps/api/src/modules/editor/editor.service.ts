@@ -1067,7 +1067,7 @@ ${transcriptSection ? `\n${transcriptSection}` : ''}
 **1. Modify existing clips** (adjust timing, trim, or apply properties):
   - Move in time: change timelineStartMs and timelineEndMs (integers, ms)
   - Trim source: sourceInMs / sourceOutMs (trim the clip itself, not its timeline position)
-  - Properties: volume(0-2), speed(0.1-10), opacity(0-1), scale(0.1-3), x/y(pixels)
+  - Properties: volume(0-2), speed(0.1-10), opacity(0-1), scale(0.1-3), x/y(pixels for VIDEO/IMAGE; percentages 0-100 for TEXT)
   - Filters: { brightness: -1..1, contrast: 0..2, saturation: 0..3, grayscale: bool, blur: 0..20 }
   - Transition: transitionIn: { type: 'fade'|'dissolve'|'slide', durationMs: integer }
   - Audio controls: fadeInMs(0-5000), fadeOutMs(0-5000), gainDb(-60..12), duckUnderVoice(bool)
@@ -1122,6 +1122,26 @@ ${transcriptSection ? `\n${transcriptSection}` : ''}
   - For font/colour/position: apply the smart defaults above and state them in your reply —
     do not ask the user unless they explicitly say they want to choose.
   - For each TEXT item your reply MUST confirm: text content, fontSize, colour, x/y position, and duration.
+
+  ✅ CORRECT TEXT ITEM STRUCTURE (copy this exactly):
+  {
+    "id": "item-1728000000000-t",
+    "kind": "TEXT",
+    "timelineStartMs": 0,
+    "timelineEndMs": 4000,
+    "properties": {
+      "text": "How I Built a YouTube Channel",
+      "fontSize": 130,
+      "color": "#FFFFFF",
+      "fontFamily": "Arial",
+      "fontWeight": "bold",
+      "textAlign": "center",
+      "x": 50,
+      "y": 45,
+      "textAnim": "fade-in"
+    }
+  }
+  Note: NO sourceAssetId on TEXT items. All styling inside "properties".
 
 **4. Create new tracks** when no suitable track exists:
   - Give a unique id (e.g. "track-v1", "track-audio-2", "track-text-1"), kind ("VIDEO"|"AUDIO"|"TEXT"), and label.
