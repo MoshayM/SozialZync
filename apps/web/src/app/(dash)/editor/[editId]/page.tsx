@@ -1980,7 +1980,7 @@ function AiEditDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[100] bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="presentation"
     >
@@ -6037,7 +6037,7 @@ export default function EditorWorkspacePage() {
 
         {/* AI Edit — visible on all screen sizes */}
         <button
-          onClick={() => setShowAiEdit(true)}
+          onClick={() => { setShowAiEdit(true); setMobileSheet('none'); }}
           className="flex items-center gap-1.5 px-2 sm:px-3 h-9 border border-brand-200 text-brand-700 rounded-lg text-xs hover:bg-brand-50 shrink-0"
           title="AI edit"
         >

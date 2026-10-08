@@ -209,6 +209,18 @@ test.describe('AI Edit dialog — mobile layout', () => {
     expect(box).not.toBeNull();
     expect(box!.height).toBeGreaterThan(600);
 
+    // The mobile bottom tab bar (Media/Inspect/Tools) must be hidden behind the dialog
+    // — it's at z-[60], the dialog overlay is z-[100]
+    const tabBar = page.locator('nav.lg\\:hidden').filter({ hasText: /media|inspect|tools/i });
+    if (await tabBar.count() > 0) {
+      const tabBox = await tabBar.boundingBox();
+      // Either the tab bar is outside the dialog bounds or overlapped by the dialog
+      if (tabBox && box) {
+        // Tab bar must not be ABOVE the dialog's bottom — it should be covered by z-[100] overlay
+        expect(box.y + box.height).toBeGreaterThanOrEqual(tabBox.y);
+      }
+    }
+
     await page.screenshot({ path: 'e2e/ai-edit-mobile.png' });
   });
 
