@@ -1889,7 +1889,7 @@ function AiEditDialog({
     setSpeaking(true);
     synthRef.current = synth;
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = (typeof navigator !== 'undefined' ? navigator.language : null) ?? 'en-US';
+    u.lang = sttLang;
     u.rate = 1.05;
     u.onend = () => setSpeaking(false);
     u.onerror = () => setSpeaking(false);
