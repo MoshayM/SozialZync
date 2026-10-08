@@ -1775,16 +1775,48 @@ function StatusTray({
 // Maps spoken/typed language names → BCP-47 locale codes for STT/TTS auto-switch.
 // Triggered when user says "listen in Tamil", "reply in Hindi", "switch to Chinese", etc.
 const LANG_DETECT_MAP: [RegExp, string][] = [
-  [/\b(tamil|தமிழ்)\b/i, 'ta-IN'],
-  [/\b(hindi|हिंदी)\b/i, 'hi-IN'],
-  [/\b(chinese|mandarin|中文|普通话)\b/i, 'zh-CN'],
-  [/\b(japanese|日本語)\b/i, 'ja-JP'],
-  [/\b(korean|한국어)\b/i, 'ko-KR'],
-  [/\b(german|deutsch)\b/i, 'de-DE'],
-  [/\b(french|français)\b/i, 'fr-FR'],
-  [/\b(spanish|español)\b/i, 'es-ES'],
-  [/\b(arabic|عربي|العربية)\b/i, 'ar-SA'],
-  [/\b(english)\b/i, 'en-US'],
+  // ── Indian languages ────────────────────────────────────────────────────────
+  [/\b(tamil|தமிழ்)\b/i,                              'ta-IN'],
+  [/\b(hindi|हिंदी|हिन्दी)\b/i,                       'hi-IN'],
+  [/\b(telugu|తెలుగు)\b/i,                             'te-IN'],
+  [/\b(kannada|ಕನ್ನಡ)\b/i,                             'kn-IN'],
+  [/\b(malayalam|മലയാളം)\b/i,                          'ml-IN'],
+  [/\b(bengali|bangla|বাংলা)\b/i,                      'bn-IN'],
+  [/\b(marathi|मराठी)\b/i,                             'mr-IN'],
+  [/\b(gujarati|ગુજરાતી)\b/i,                          'gu-IN'],
+  [/\b(punjabi|ਪੰਜਾਬੀ|پنجابی)\b/i,                    'pa-IN'],
+  [/\b(odia|oriya|ଓଡ଼ିଆ)\b/i,                          'or-IN'],
+  [/\b(assamese|অসমীয়া)\b/i,                          'as-IN'],
+  [/\b(urdu|اردو)\b/i,                                 'ur-IN'],
+  [/\b(sanskrit|संस्कृत)\b/i,                          'sa-IN'],
+  [/\b(nepali|नेपाली)\b/i,                             'ne-NP'],
+  [/\b(sinhala|sinhalese|සිංහල)\b/i,                   'si-LK'],
+  // ── East / Southeast Asian ──────────────────────────────────────────────────
+  [/\b(chinese|mandarin|中文|普通话|粤语|cantonese)\b/i, 'zh-CN'],
+  [/\b(japanese|日本語)\b/i,                            'ja-JP'],
+  [/\b(korean|한국어)\b/i,                              'ko-KR'],
+  [/\b(vietnamese|tiếng việt)\b/i,                     'vi-VN'],
+  [/\b(thai|ภาษาไทย)\b/i,                              'th-TH'],
+  [/\b(indonesian|bahasa indonesia)\b/i,               'id-ID'],
+  [/\b(malay|bahasa melayu)\b/i,                       'ms-MY'],
+  [/\b(filipino|tagalog)\b/i,                          'fil-PH'],
+  // ── European ────────────────────────────────────────────────────────────────
+  [/\b(german|deutsch)\b/i,                            'de-DE'],
+  [/\b(french|français)\b/i,                           'fr-FR'],
+  [/\b(spanish|español)\b/i,                           'es-ES'],
+  [/\b(portuguese|português)\b/i,                      'pt-PT'],
+  [/\b(italian|italiano)\b/i,                          'it-IT'],
+  [/\b(dutch|nederlands)\b/i,                          'nl-NL'],
+  [/\b(russian|русский)\b/i,                           'ru-RU'],
+  [/\b(polish|polski)\b/i,                             'pl-PL'],
+  [/\b(turkish|türkçe)\b/i,                            'tr-TR'],
+  [/\b(ukrainian|українська)\b/i,                      'uk-UA'],
+  // ── Middle East / African ───────────────────────────────────────────────────
+  [/\b(arabic|عربي|العربية)\b/i,                       'ar-SA'],
+  [/\b(persian|farsi|فارسی)\b/i,                       'fa-IR'],
+  [/\b(swahili|kiswahili)\b/i,                         'sw-KE'],
+  // ── English (last — most likely, but also most generic match) ───────────────
+  [/\b(english)\b/i,                                   'en-US'],
 ];
 
 function autoDetectLang(text: string): string | null {
@@ -2244,16 +2276,50 @@ function AiEditDialog({
               className="h-9 mb-0.5 shrink-0 text-xs border border-gray-200 rounded-xl px-1.5 text-gray-500 bg-white focus:outline-none focus:border-brand-400"
               title="Speech recognition language"
             >
-              <option value="en-US">EN</option>
-              <option value="ta-IN">Tamil</option>
-              <option value="hi-IN">Hindi</option>
-              <option value="zh-CN">中文</option>
-              <option value="ja-JP">日本語</option>
-              <option value="ko-KR">한국어</option>
-              <option value="de-DE">DE</option>
-              <option value="fr-FR">FR</option>
-              <option value="es-ES">ES</option>
-              <option value="ar-SA">عربي</option>
+              <optgroup label="Indian Languages">
+                <option value="en-US">English</option>
+                <option value="hi-IN">हिंदी (Hindi)</option>
+                <option value="ta-IN">தமிழ் (Tamil)</option>
+                <option value="te-IN">తెలుగు (Telugu)</option>
+                <option value="kn-IN">ಕನ್ನಡ (Kannada)</option>
+                <option value="ml-IN">മലയാളം (Malayalam)</option>
+                <option value="bn-IN">বাংলা (Bengali)</option>
+                <option value="mr-IN">मराठी (Marathi)</option>
+                <option value="gu-IN">ગુજરાતી (Gujarati)</option>
+                <option value="pa-IN">ਪੰਜਾਬੀ (Punjabi)</option>
+                <option value="or-IN">ଓଡ଼ିଆ (Odia)</option>
+                <option value="as-IN">অসমীয়া (Assamese)</option>
+                <option value="ur-IN">اردو (Urdu)</option>
+                <option value="ne-NP">नेपाली (Nepali)</option>
+                <option value="si-LK">සිංහල (Sinhala)</option>
+              </optgroup>
+              <optgroup label="East / SE Asian">
+                <option value="zh-CN">中文 (Chinese)</option>
+                <option value="ja-JP">日本語 (Japanese)</option>
+                <option value="ko-KR">한국어 (Korean)</option>
+                <option value="vi-VN">Tiếng Việt (Vietnamese)</option>
+                <option value="th-TH">ภาษาไทย (Thai)</option>
+                <option value="id-ID">Bahasa Indonesia</option>
+                <option value="ms-MY">Bahasa Melayu (Malay)</option>
+                <option value="fil-PH">Filipino / Tagalog</option>
+              </optgroup>
+              <optgroup label="European">
+                <option value="de-DE">Deutsch (German)</option>
+                <option value="fr-FR">Français (French)</option>
+                <option value="es-ES">Español (Spanish)</option>
+                <option value="pt-PT">Português (Portuguese)</option>
+                <option value="it-IT">Italiano (Italian)</option>
+                <option value="nl-NL">Nederlands (Dutch)</option>
+                <option value="ru-RU">Русский (Russian)</option>
+                <option value="pl-PL">Polski (Polish)</option>
+                <option value="tr-TR">Türkçe (Turkish)</option>
+                <option value="uk-UA">Українська (Ukrainian)</option>
+              </optgroup>
+              <optgroup label="Middle East / African">
+                <option value="ar-SA">عربي (Arabic)</option>
+                <option value="fa-IR">فارسی (Persian)</option>
+                <option value="sw-KE">Kiswahili (Swahili)</option>
+              </optgroup>
             </select>
             <button
               onClick={toggleVoice}
