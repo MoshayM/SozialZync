@@ -1840,6 +1840,15 @@ function AiEditDialog({
     return -1;
   }, [messages]);
   const [minimized, setMinimized] = useState(false);
+  const [sttLang, setSttLang] = useState<string>(() =>
+    typeof navigator !== 'undefined' ? navigator.language : 'en-US',
+  );
+  const voiceStatusText =
+    listening ? 'Listening…'
+    : busy ? 'Processing…'
+    : speaking ? 'Responding…'
+    : input.trim() ? 'Voice captured — tap Proceed'
+    : 'Tap mic to speak';
 
   function toggleVoice() {
     if (listening) {
@@ -1856,7 +1865,7 @@ function AiEditDialog({
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = false;
-    rec.lang = (typeof navigator !== 'undefined' ? navigator.language : null) ?? 'en-US';
+    rec.lang = sttLang;
     rec.onresult = (e) => {
       const parts: string[] = [];
       for (let i = 0; i < e.results.length; i++) {
@@ -2055,33 +2064,48 @@ function AiEditDialog({
           </button>
         </div>
 
-        {/* Voice status bar — visible only when collapsed */}
+        {/* Voice mode panel — visible only when collapsed */}
         {minimized && (
-          <div className="border-t border-gray-100 px-4 pb-3 pt-2.5 flex items-center gap-2 min-h-[44px]">
-            {listening ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                <span className="flex-1 text-xs text-red-600 font-medium">Listening…</span>
-              </>
-            ) : busy ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin shrink-0" />
-                <span className="flex-1 text-xs text-gray-500 font-medium">Processing…</span>
-              </>
-            ) : input.trim() ? (
-              <>
-                <span className="flex-1 text-xs text-gray-700 truncate">{input.trim()}</span>
+          <div className="border-t border-gray-100 px-4 pb-3 pt-2.5 flex flex-col gap-2">
+            {/* Language selector */}
+            <div className="flex gap-1 flex-wrap">
+              {([['en-US', 'EN'], ['ta-IN', 'TA'], ['hi-IN', 'HI'], ['zh-CN', 'ZH'], ['ja-JP', 'JA']] as [string, string][]).map(([code, label]) => (
                 <button
-                  onClick={() => void submit()}
-                  className="shrink-0 text-xs px-3 py-1.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium transition-colors"
-                  aria-label="Proceed with voice command"
+                  key={code}
+                  onClick={() => setSttLang(code)}
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${sttLang === code ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                 >
-                  Proceed
+                  {label}
                 </button>
-              </>
-            ) : (
-              <span className="flex-1 text-xs text-gray-400">Tap mic to speak…</span>
-            )}
+              ))}
+            </div>
+            {/* Status + Proceed */}
+            <div className="flex items-center gap-2 min-h-[28px]">
+              {listening ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                  <span className="flex-1 text-xs text-red-600 font-medium">Listening…</span>
+                </>
+              ) : busy ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin shrink-0" />
+                  <span className="flex-1 text-xs text-gray-500 font-medium">Processing…</span>
+                </>
+              ) : input.trim() ? (
+                <>
+                  <span className="flex-1 text-xs text-gray-700 truncate">{input.trim()}</span>
+                  <button
+                    onClick={() => void submit()}
+                    className="shrink-0 text-xs px-3 py-1.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium transition-colors"
+                    aria-label="Proceed with voice command"
+                  >
+                    Proceed
+                  </button>
+                </>
+              ) : (
+                <span className="flex-1 text-xs text-gray-400">Tap mic to speak…</span>
+              )}
+            </div>
           </div>
         )}
 
@@ -2204,6 +2228,23 @@ function AiEditDialog({
               placeholder="Add all clips to the timeline, extend music to cover the whole video…  (Enter to send)"
               className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 resize-none leading-relaxed"
             />
+            <select
+              value={sttLang}
+              onChange={(e) => setSttLang(e.target.value)}
+              className="h-9 mb-0.5 shrink-0 text-xs border border-gray-200 rounded-xl px-1.5 text-gray-500 bg-white focus:outline-none focus:border-brand-400"
+              title="Speech recognition language"
+            >
+              <option value="en-US">EN</option>
+              <option value="ta-IN">Tamil</option>
+              <option value="hi-IN">Hindi</option>
+              <option value="zh-CN">中文</option>
+              <option value="ja-JP">日本語</option>
+              <option value="ko-KR">한국어</option>
+              <option value="de-DE">DE</option>
+              <option value="fr-FR">FR</option>
+              <option value="es-ES">ES</option>
+              <option value="ar-SA">عربي</option>
+            </select>
             <button
               onClick={toggleVoice}
               type="button"

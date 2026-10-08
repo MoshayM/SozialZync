@@ -243,8 +243,8 @@ export class MediaController {
       const ytVideoId = extractYouTubeVideoId(rawUrl);
 
       if (ytVideoId) {
-        // SUPER_ADMIN and OWNER can import any YouTube URL without channel linkage.
-        const isPrivileged = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
+        // SUPER_ADMIN, OWNER, and ADMIN can import any YouTube URL without channel linkage.
+        const isPrivileged = user.role === 'SUPER_ADMIN' || user.role === 'OWNER' || user.role === 'ADMIN';
         if (!isPrivileged) {
           // YouTube ToS §5.H: verify the video belongs to the user's connected channel.
           const owned = await this.prisma.libraryVideo.findFirst({
