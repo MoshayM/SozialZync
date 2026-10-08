@@ -1910,6 +1910,7 @@ function AiEditDialog({
       setListening(false);
       return;
     }
+    stopSpeaking(); // stop TTS so mic and AI audio don't overlap
     // @reason: window.SpeechRecognition and webkitSpeechRecognition absent from TS Window type
     const w = typeof window !== 'undefined'
       ? (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor })
@@ -1978,9 +1979,9 @@ function AiEditDialog({
     try { localStorage.setItem(storageKey, JSON.stringify(messages.slice(-50))); } catch { /* ignore */ }
   }, [messages, storageKey]);
 
-  // Auto-speak last AI reply when voice output is enabled
+  // Auto-speak last AI reply when voice output is enabled (skip if mic is active)
   useEffect(() => {
-    if (!autoSpeak || busy) return;
+    if (!autoSpeak || busy || listening) return;
     const last = messages[messages.length - 1];
     if (last?.role === 'assistant') speakText(last.text);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2256,76 +2257,72 @@ function AiEditDialog({
 
         {/* Input bar */}
         <div
-          className="shrink-0 px-4 pt-2 border-t border-gray-100"
-          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+          className="shrink-0 px-3 pt-2 border-t border-gray-100"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
         >
-          <div className="flex gap-2 items-end">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); }
-              }}
-              rows={2}
-              placeholder="Add all clips to the timeline, extend music to cover the whole video…  (Enter to send)"
-              className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 resize-none leading-relaxed"
-            />
+          {/* Controls row: compact lang picker + mic + send */}
+          <div className="flex gap-1.5 items-center mb-1.5">
+            {/* Compact language selector — shows only the 2-letter code, full list in dropdown */}
             <select
               value={sttLang}
               onChange={(e) => setSttLang(e.target.value)}
-              className="h-9 mb-0.5 shrink-0 text-xs border border-gray-200 rounded-xl px-1.5 text-gray-500 bg-white focus:outline-none focus:border-brand-400"
-              title="Speech recognition language"
+              className="h-7 shrink-0 text-[11px] font-semibold border border-gray-200 rounded-lg px-1 text-gray-500 bg-white focus:outline-none focus:border-brand-400 cursor-pointer"
+              title="Speech & reply language"
+              style={{ maxWidth: '52px' }}
             >
               <optgroup label="Indian Languages">
-                <option value="en-US">English</option>
-                <option value="hi-IN">हिंदी (Hindi)</option>
-                <option value="ta-IN">தமிழ் (Tamil)</option>
-                <option value="te-IN">తెలుగు (Telugu)</option>
-                <option value="kn-IN">ಕನ್ನಡ (Kannada)</option>
-                <option value="ml-IN">മലയാളം (Malayalam)</option>
-                <option value="bn-IN">বাংলা (Bengali)</option>
-                <option value="mr-IN">मराठी (Marathi)</option>
-                <option value="gu-IN">ગુજરાતી (Gujarati)</option>
-                <option value="pa-IN">ਪੰਜਾਬੀ (Punjabi)</option>
-                <option value="or-IN">ଓଡ଼ିଆ (Odia)</option>
-                <option value="as-IN">অসমীয়া (Assamese)</option>
-                <option value="ur-IN">اردو (Urdu)</option>
-                <option value="ne-NP">नेपाली (Nepali)</option>
-                <option value="si-LK">සිංහල (Sinhala)</option>
+                <option value="en-US">EN</option>
+                <option value="hi-IN">HI</option>
+                <option value="ta-IN">TA</option>
+                <option value="te-IN">TE</option>
+                <option value="kn-IN">KN</option>
+                <option value="ml-IN">ML</option>
+                <option value="bn-IN">BN</option>
+                <option value="mr-IN">MR</option>
+                <option value="gu-IN">GU</option>
+                <option value="pa-IN">PA</option>
+                <option value="or-IN">OR</option>
+                <option value="as-IN">AS</option>
+                <option value="ur-IN">UR</option>
+                <option value="ne-NP">NE</option>
+                <option value="si-LK">SI</option>
               </optgroup>
               <optgroup label="East / SE Asian">
-                <option value="zh-CN">中文 (Chinese)</option>
-                <option value="ja-JP">日本語 (Japanese)</option>
-                <option value="ko-KR">한국어 (Korean)</option>
-                <option value="vi-VN">Tiếng Việt (Vietnamese)</option>
-                <option value="th-TH">ภาษาไทย (Thai)</option>
-                <option value="id-ID">Bahasa Indonesia</option>
-                <option value="ms-MY">Bahasa Melayu (Malay)</option>
-                <option value="fil-PH">Filipino / Tagalog</option>
+                <option value="zh-CN">ZH</option>
+                <option value="ja-JP">JA</option>
+                <option value="ko-KR">KO</option>
+                <option value="vi-VN">VI</option>
+                <option value="th-TH">TH</option>
+                <option value="id-ID">ID</option>
+                <option value="ms-MY">MS</option>
+                <option value="fil-PH">FIL</option>
               </optgroup>
               <optgroup label="European">
-                <option value="de-DE">Deutsch (German)</option>
-                <option value="fr-FR">Français (French)</option>
-                <option value="es-ES">Español (Spanish)</option>
-                <option value="pt-PT">Português (Portuguese)</option>
-                <option value="it-IT">Italiano (Italian)</option>
-                <option value="nl-NL">Nederlands (Dutch)</option>
-                <option value="ru-RU">Русский (Russian)</option>
-                <option value="pl-PL">Polski (Polish)</option>
-                <option value="tr-TR">Türkçe (Turkish)</option>
-                <option value="uk-UA">Українська (Ukrainian)</option>
+                <option value="de-DE">DE</option>
+                <option value="fr-FR">FR</option>
+                <option value="es-ES">ES</option>
+                <option value="pt-PT">PT</option>
+                <option value="it-IT">IT</option>
+                <option value="nl-NL">NL</option>
+                <option value="ru-RU">RU</option>
+                <option value="pl-PL">PL</option>
+                <option value="tr-TR">TR</option>
+                <option value="uk-UA">UK</option>
               </optgroup>
               <optgroup label="Middle East / African">
-                <option value="ar-SA">عربي (Arabic)</option>
-                <option value="fa-IR">فارسی (Persian)</option>
-                <option value="sw-KE">Kiswahili (Swahili)</option>
+                <option value="ar-SA">AR</option>
+                <option value="fa-IR">FA</option>
+                <option value="sw-KE">SW</option>
               </optgroup>
             </select>
+            <span className="text-[10px] text-gray-400 flex-1 truncate" title="Auto-detected or manually set language">
+              {sttLang.split('-')[0].toUpperCase()} · voice lang
+            </span>
             <button
               onClick={toggleVoice}
               type="button"
               disabled={busy}
-              className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 mb-0.5 transition-colors disabled:opacity-40 ${
+              className={`flex items-center justify-center w-8 h-8 rounded-xl shrink-0 transition-colors disabled:opacity-40 ${
                 listening ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
               aria-label={listening ? 'Stop voice input' : 'Start voice input'}
@@ -2336,12 +2333,23 @@ function AiEditDialog({
             <button
               onClick={() => void submit()}
               disabled={!input.trim() || busy}
-              className="flex items-center justify-center w-9 h-9 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-40 shrink-0 mb-0.5"
+              className="flex items-center justify-center w-8 h-8 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-40 shrink-0"
               aria-label="Send"
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
             </button>
           </div>
+          {/* Textarea — full width, comfortable height */}
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); }
+            }}
+            rows={3}
+            placeholder="Add all clips to the timeline, extend music to cover the whole video…  (Enter to send, Shift+Enter for new line)"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 resize-none leading-relaxed"
+          />
         </div>
         </>}
       </div>
@@ -7429,7 +7437,7 @@ export default function EditorWorkspacePage() {
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Size</label>
                         <span className="text-xs text-gray-500 font-mono">{tp.fontSize ?? 36}px</span>
                       </div>
-                      <input type="range" min={12} max={120} step={2} value={tp.fontSize ?? 36} onChange={(e) => setT('fontSize', parseInt(e.target.value, 10))} className="w-full accent-amber-500" />
+                      <input type="range" min={12} max={200} step={2} value={tp.fontSize ?? 36} onChange={(e) => setT('fontSize', parseInt(e.target.value, 10))} className="w-full accent-amber-500" />
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -7597,7 +7605,7 @@ export default function EditorWorkspacePage() {
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Size</label>
                       <span className="text-xs text-gray-500 font-mono">{tp.fontSize ?? 36}px</span>
                     </div>
-                    <input type="range" min={12} max={120} step={2} value={tp.fontSize ?? 36} onChange={(e) => setT('fontSize', parseInt(e.target.value, 10))} className="w-full accent-amber-500" />
+                    <input type="range" min={12} max={200} step={2} value={tp.fontSize ?? 36} onChange={(e) => setT('fontSize', parseInt(e.target.value, 10))} className="w-full accent-amber-500" />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
