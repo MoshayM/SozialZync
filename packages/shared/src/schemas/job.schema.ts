@@ -51,6 +51,8 @@ export const JobTypeSchema = z.enum([
   'EDIT_RENDER',
   // Phase 6 AI Autonomy: queued calendar generation with credit reservation
   'CALENDAR_PROPOSAL',
+  // Audio song generation — AI sings the script with vocals
+  'SONG_GENERATE',
 ]);
 export type JobType = z.infer<typeof JobTypeSchema>;
 
