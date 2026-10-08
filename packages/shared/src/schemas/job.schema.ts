@@ -53,6 +53,9 @@ export const JobTypeSchema = z.enum([
   'CALENDAR_PROPOSAL',
   // Audio song generation — AI sings the script with vocals
   'SONG_GENERATE',
+  // Character Story pipeline — cast extraction + per-character media
+  'CHARACTER_CAST',
+  'CHARACTER_IMAGE_GENERATE',
 ]);
 export type JobType = z.infer<typeof JobTypeSchema>;
 

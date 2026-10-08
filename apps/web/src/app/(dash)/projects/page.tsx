@@ -214,6 +214,45 @@ function relativeTime(dateStr: string): string {
 const inputCls = 'w-full bg-white rounded-2xl px-4 py-3 text-sm text-gray-800 outline-none transition-all focus:ring-2 focus:ring-[#374151]/20 focus:border-[#374151] placeholder:text-gray-600';
 const inputStyle = { border: '1.5px solid #e3e0f0' };
 
+// ── Production modes (for video formats) ─────────────────────────────────────
+
+type ProductionMode = 'FULL' | 'CHARACTER_STORY' | 'SONG';
+
+interface ProductionModeDef {
+  mode: ProductionMode;
+  emoji: string;
+  label: string;
+  desc: string;
+  badge?: string;
+}
+
+const PRODUCTION_MODES: ProductionModeDef[] = [
+  {
+    mode: 'FULL',
+    emoji: '🎬',
+    label: 'Standard Video',
+    desc: 'AI research, script, voice over, scene images, music, and final render.',
+  },
+  {
+    mode: 'CHARACTER_STORY',
+    emoji: '🎭',
+    label: 'Character Story',
+    badge: '⭐ NEW',
+    desc: 'Multi-character narrative with distinct voices, AI character portraits, dialogue scenes, and synced music. Perfect for Reels & TikTok.',
+  },
+  {
+    mode: 'SONG',
+    emoji: '🎵',
+    label: 'Song / Music Video',
+    desc: 'AI composes an original song or jingle with lyrics, melody, and matching visuals.',
+  },
+];
+
+const VIDEO_FORMATS = new Set([
+  'YT_VIDEO', 'YT_SHORT', 'IG_REEL', 'TT_VIDEO', 'X_VIDEO',
+  'LI_VIDEO', 'TH_VIDEO', 'FB_VIDEO', 'FB_REEL',
+]);
+
 // ── Projects sub-components ───────────────────────────────────────────────────
 
 function PlatformIcon({ platform, size = 16 }: { platform: Platform; size?: number }) {
@@ -495,6 +534,7 @@ interface ProjectsTabProps {
   setCreateError: (v: string | null) => void;
   form: {
     platform: Platform; contentFormat: ContentFormat;
+    productionMode: ProductionMode;
     primaryChannelId: string; crossPostChannelIds: string[];
     title: string; niche: string; goal: string; targetLang: string;
   };
@@ -799,7 +839,7 @@ function ProjectsTab({
                             key={pd.platform} type="button"
                             onClick={() => {
                               if (isLocked) return;
-                              setForm(f => ({ ...f, platform: pd.platform, contentFormat: pd.formats[0]!.type, primaryChannelId: '', crossPostChannelIds: [] }));
+                              setForm(f => ({ ...f, platform: pd.platform, contentFormat: pd.formats[0]!.type, productionMode: 'FULL', primaryChannelId: '', crossPostChannelIds: [] }));
                             }}
                             title={isLocked ? 'Upgrade to Pro to create projects for this platform' : undefined}
                             style={form.platform === pd.platform
@@ -836,6 +876,48 @@ function ProjectsTab({
                       ))}
                     </div>
                   </div>
+
+                  {/* Production Mode — only shown for video formats */}
+                  {VIDEO_FORMATS.has(form.contentFormat) && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <p className="text-xs font-semibold text-gray-600">Production Style</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>AI-Powered</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {PRODUCTION_MODES.map(pm => (
+                          <button
+                            key={pm.mode} type="button"
+                            onClick={() => setForm(f => ({ ...f, productionMode: pm.mode }))}
+                            style={form.productionMode === pm.mode
+                              ? { background: 'linear-gradient(135deg, #f3f0ff, #ede9fe)', border: '2px solid #7c5ae8' }
+                              : { background: '#faf9ff', border: '1.5px solid #e3ddf8' }}
+                            className="relative flex flex-col items-start gap-1.5 p-3.5 rounded-2xl text-left transition-all hover:border-[#7c5ae8]/40"
+                          >
+                            {pm.badge && (
+                              <span className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#7c5ae8', color: '#fff' }}>{pm.badge}</span>
+                            )}
+                            <span style={{ fontSize: 20 }}>{pm.emoji}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: form.productionMode === pm.mode ? '#7c5ae8' : '#374151' }}>{pm.label}</span>
+                            <span style={{ fontSize: 10, color: '#4b5563', lineHeight: 1.4 }}>{pm.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {form.productionMode === 'CHARACTER_STORY' && (
+                        <div className="mt-2.5 rounded-2xl px-4 py-3 text-xs" style={{ background: 'linear-gradient(135deg, #f3f0ff, #fdf4ff)', border: '1.5px solid #e9d5ff' }}>
+                          <p className="font-bold mb-1" style={{ color: '#7c3aed' }}>What AI will create:</p>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]" style={{ color: '#6b21a8' }}>
+                            <span>🎭 Detect & cast characters</span>
+                            <span>🎙️ Distinct voice per character</span>
+                            <span>🖼️ AI portrait for each character</span>
+                            <span>🎬 Dialogue scene videos</span>
+                            <span>🎵 Matching background music</span>
+                            <span>📱 Fully synced final video</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
                   <button type="button" onClick={closeCreate} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
@@ -1073,6 +1155,7 @@ function ProjectsInner() {
   const [form, setForm] = useState({
     platform: 'YOUTUBE' as Platform,
     contentFormat: 'YT_VIDEO' as ContentFormat,
+    productionMode: 'FULL' as ProductionMode,
     primaryChannelId: '',
     crossPostChannelIds: [] as string[],
     title: '',
@@ -1097,7 +1180,7 @@ function ProjectsInner() {
     setShowCreate(false);
     setCreateStep(1);
     setCreateError(null);
-    setForm({ platform: 'YOUTUBE', contentFormat: 'YT_VIDEO', primaryChannelId: '', crossPostChannelIds: [], title: '', niche: '', goal: '', targetLang: 'en' });
+    setForm({ platform: 'YOUTUBE', contentFormat: 'YT_VIDEO', productionMode: 'FULL', primaryChannelId: '', crossPostChannelIds: [], title: '', niche: '', goal: '', targetLang: 'en' });
   }
 
   const createMutation = useMutation({
@@ -1125,6 +1208,9 @@ function ProjectsInner() {
       }
       localStorage.setItem(`cf_ct_${newId}`, form.contentFormat);
       localStorage.setItem(`cf_platform_${newId}`, form.platform);
+      if (form.productionMode !== 'FULL') {
+        localStorage.setItem(`cf_prodmode_${newId}`, form.productionMode);
+      }
       if (form.crossPostChannelIds.length > 0) {
         localStorage.setItem(`cf_crosspost_${newId}`, JSON.stringify(form.crossPostChannelIds));
       }

@@ -421,6 +421,10 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     (typeof window !== 'undefined' ? localStorage.getItem(`cf_platform_${projectId}`) : null) as (typeof PLATFORMS)[number] | null ?? 'YouTube');
   const [preset, setPreset] = useState<(typeof PRESETS)[number]['value']>(() =>
     (typeof window !== 'undefined' ? (localStorage.getItem(`cf_preset_${projectId}`) as (typeof PRESETS)[number]['value'] | null) : null) ?? 'LANDSCAPE');
+  // Production mode set during New Project wizard (CHARACTER_STORY, SONG, or FULL default)
+  const productionMode = typeof window !== 'undefined'
+    ? (localStorage.getItem(`cf_prodmode_${projectId}`) ?? 'FULL')
+    : 'FULL';
   const [refreshMedia, setRefreshMedia] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
   const [pendingTopic, setPendingTopic] = useState('');
@@ -702,6 +706,15 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const detectedCharacters: DetectedCharacter[] = (specJob?.status === 'COMPLETED'
     ? ((specJob.result as { characters?: DetectedCharacter[] })?.characters ?? [])
     : []);
+  // Character Story pipeline
+  const castJob = latest(jobs, 'CHARACTER_CAST');
+  type CastCharacter = { name: string; role: string; gender: string; ageGroup: string; personality: string; voiceStyle: { voiceId: string; emotion: string; speed: number }; visualDescription: string };
+  const castResult = castJob?.status === 'COMPLETED'
+    ? (castJob.result as { characters?: CastCharacter[]; totalCharacters?: number; narrativeStyle?: string }) : null;
+  const portraitJob = latest(jobs, 'CHARACTER_IMAGE_GENERATE');
+  type Portrait = { name: string; assetId?: string; versionId?: string; key?: string; provider?: string };
+  const portraits: Portrait[] = portraitJob?.status === 'COMPLETED'
+    ? ((portraitJob.result as { portraits?: Portrait[] })?.portraits ?? []) : [];
   const musicJob = latest(jobs, 'MUSIC_GENERATE');
   const musicResult = musicJob?.status === 'COMPLETED' ? (musicJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string }) : null;
   const songJob = latest(jobs, 'SONG_GENERATE');
@@ -2619,23 +2632,61 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
   // Detail panel icon + title map (mirrors card header look)
   const agentMeta: Record<string, { icon: React.ReactNode; title: string }> = {
-    analyse:    { icon: <BarChart2 className="w-5 h-5" />,    title: 'Analyse' },
-    suggestion: { icon: <Lightbulb className="w-5 h-5" />,    title: 'Suggestion' },
-    script:     { icon: <FileText className="w-5 h-5" />,     title: 'Script' },
-    voice:      { icon: <Mic className="w-5 h-5" />,          title: 'Voice over' },
-    music:      { icon: <Music className="w-5 h-5" />,        title: 'Music' },
-    video:      { icon: <Clapperboard className="w-5 h-5" />, title: 'Video' },
+    analyse:        { icon: <BarChart2 className="w-5 h-5" />,    title: 'Analyse' },
+    suggestion:     { icon: <Lightbulb className="w-5 h-5" />,    title: 'Suggestion' },
+    script:         { icon: <FileText className="w-5 h-5" />,     title: 'Script' },
+    character_cast: { icon: <span style={{ fontSize: 18 }}>🎭</span>, title: 'Character Cast' },
+    voice:          { icon: <Mic className="w-5 h-5" />,          title: 'Voice over' },
+    music:          { icon: <Music className="w-5 h-5" />,        title: 'Music' },
+    video:          { icon: <Clapperboard className="w-5 h-5" />, title: 'Video' },
   };
+
+  const characterCastDetail = castResult?.characters && castResult.characters.length > 0 ? (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xs font-bold text-gray-700">Character Roster</span>
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#ede9fe', color: '#7c3aed' }}>{castResult.narrativeStyle}</span>
+      </div>
+      {castResult.characters.map((char, i) => {
+        const portrait = portraits.find((p) => p.name === char.name);
+        return (
+          <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: '#faf9ff', border: '1.5px solid #e9e5f8' }}>
+            <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center" style={{ background: '#ede9fe' }}>
+              {portrait?.assetId ? (
+                <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 800 }}>✓ Generated</span>
+              ) : (
+                <span style={{ fontSize: 26 }}>{char.gender === 'female' ? '👩' : char.gender === 'male' ? '👨' : '🧑'}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-extrabold text-gray-900">{char.name}</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: '#ede9fe', color: '#7c3aed' }}>{char.role}</span>
+                <span className="text-[10px] text-gray-400">{char.ageGroup}</span>
+              </div>
+              <p className="text-xs text-gray-500 mb-2 leading-relaxed">{char.personality}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f0fdf4', color: '#15803d' }}>🎙️ voice: {char.voiceStyle.voiceId}</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#fff7ed', color: '#c2410c' }}>💫 {char.voiceStyle.emotion}</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#f0f9ff', color: '#0369a1' }}>⚡ {char.voiceStyle.speed}x</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  ) : null;
 
   function detailFor(key: string): React.ReactNode {
     switch (key) {
-      case 'analyse':    return analyseDetail;
-      case 'suggestion': return suggestionDetail;
-      case 'script':     return scriptDetail;
-      case 'voice':      return voiceDetail;
-      case 'music':      return musicDetail;
-      case 'video':      return videoDetail;
-      default:           return null;
+      case 'analyse':        return analyseDetail;
+      case 'suggestion':     return suggestionDetail;
+      case 'script':         return scriptDetail;
+      case 'character_cast': return characterCastDetail;
+      case 'voice':          return voiceDetail;
+      case 'music':          return musicDetail;
+      case 'video':          return videoDetail;
+      default:               return null;
     }
   }
 
@@ -2749,6 +2800,75 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             <div key="script" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('script')}</div>
           )}
         </div>
+
+        {/* 3.5 · Character Cast (CHARACTER_STORY mode only) */}
+        {productionMode === 'CHARACTER_STORY' && (
+          <div>
+            <Tile
+              icon={<span style={{ fontSize: 18 }}>🎭</span>}
+              title="Character Cast"
+              subtitle={
+                castResult
+                  ? `${castResult.totalCharacters ?? castResult.characters?.length ?? 0} character(s) · ${castResult.narrativeStyle ?? 'narrated'}`
+                  : 'Extract characters, voices & portraits'
+              }
+              status={castResult ? 'done' : scriptDone ? 'ready' : 'locked'}
+              running={isRunning(jobs, 'CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE')}
+              failed={latestFailure(jobs, 'CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE')}
+              updatedAt={completedAt(jobs, 'CHARACTER_CAST')}
+              selected={expanded === 'character_cast'}
+              hasDetail={!!castResult}
+              onToggle={() => toggle('character_cast')}
+              action={
+                <RunButton
+                  label={castResult ? 'Regenerate' : 'Run'}
+                  rerun={!!castResult}
+                  disabled={busy || !scriptDone}
+                  onClick={() => enqueue.mutate({
+                    type: 'FULL_PRODUCTION',
+                    payload: { scope: 'CHARACTER_STORY', lang: targetLang, ...(castResult ? { regenerate: ['CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE'] } : {}) },
+                  })}
+                />
+              }
+            />
+            {isMobile && expanded === 'character_cast' && (
+              <div key="character_cast" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">
+                {castResult?.characters && castResult.characters.length > 0 ? (
+                  <div className="space-y-3">
+                    {castResult.characters.map((char, i) => {
+                      const portrait = portraits.find((p) => p.name === char.name);
+                      return (
+                        <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: '#faf9ff', border: '1.5px solid #e9e5f8' }}>
+                          <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center" style={{ background: '#ede9fe' }}>
+                            {portrait?.assetId ? (
+                              <span style={{ fontSize: 10, color: '#7c3aed', fontWeight: 700 }}>✓</span>
+                            ) : (
+                              <span style={{ fontSize: 22 }}>{char.gender === 'female' ? '👩' : char.gender === 'male' ? '👨' : '🧑'}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-extrabold text-gray-900 truncate">{char.name}</span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#ede9fe', color: '#7c3aed' }}>{char.role}</span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 truncate mb-1">{char.personality}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#f0fdf4', color: '#15803d' }}>🎙️ {char.voiceStyle.voiceId}</span>
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#fff7ed', color: '#c2410c' }}>⚡ {char.voiceStyle.emotion}</span>
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#f0f9ff', color: '#0369a1' }}>🚀 {char.voiceStyle.speed}x</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">Run Character Cast to see characters here.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 4 · Voice over */}
         <div>
@@ -2952,7 +3072,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 enqueue.mutate({
                   type: 'FULL_PRODUCTION',
                   payload: {
-                    scope: 'FULL',
+                    scope: productionMode,
                     platform: renderPlatform,
                     videoType: renderVideoType,
                     ...(refreshMedia

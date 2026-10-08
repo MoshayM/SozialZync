@@ -1,6 +1,6 @@
 import type { JobType } from '@cf/shared';
 
-export type PipelineScope = 'FULL' | 'SCRIPT' | 'VOICE' | 'MUSIC' | 'IMAGES' | 'VIDEO' | 'SONG' | 'SMART_MIX';
+export type PipelineScope = 'FULL' | 'SCRIPT' | 'VOICE' | 'MUSIC' | 'IMAGES' | 'VIDEO' | 'SONG' | 'SMART_MIX' | 'CHARACTER_STORY';
 
 export interface PipelineStage {
   type: JobType | 'PACKAGE' | 'AUDIO_MIX';
@@ -76,6 +76,31 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
     S('SUBTITLE_GENERATE', 'Subtitles', 45, { optional: true }),
     S('THUMBNAIL', 'Thumbnail', 10),
     S('PACKAGE', 'Package', 5),
+  ],
+  // Multi-character short-form video (Instagram Reel / TikTok / Shorts style)
+  // Each character gets a distinct voice and a generated portrait image.
+  // Scene images + videos are generated for all dialogue scenes.
+  CHARACTER_STORY: [
+    ...FOUNDATION,
+    SEO_STAGE,
+    // Cast extraction: identify characters, assign voice profiles + visual descriptions
+    S('CHARACTER_CAST', 'Character Cast', 40),
+    // Parallel spec/brief generation
+    S('VOICE_SPEC', 'Voice Direction', 35, { parallelGroup: 1 }),
+    S('IMAGE_BRIEF', 'Scene Briefs', 35, { parallelGroup: 1 }),
+    S('MUSIC_BRIEF', 'Music Brief', 30, { parallelGroup: 1 }),
+    // Parallel media generation
+    S('VOICE_GENERATE', 'Character Voices', 30, { parallelGroup: 2 }),
+    S('CHARACTER_IMAGE_GENERATE', 'Character Portraits', 45, { parallelGroup: 2 }),
+    S('MUSIC_GENERATE', 'Background Music', 20, { parallelGroup: 2 }),
+    // Scene assembly
+    S('VIDEO_SCENE_PLAN', 'Storyboard', 40),
+    S('IMAGE_GENERATE', 'Scene Images', 40),
+    S('VIDEO_GENERATE', 'Scene Videos', 60),
+    S('SUBTITLE_GENERATE', 'Subtitles', 45, { optional: true }),
+    S('THUMBNAIL', 'Thumbnail', 10),
+    S('RENDER', 'Rendering', 90),
+    S('PACKAGE', 'Upload-Ready Package', 5),
   ],
 };
 

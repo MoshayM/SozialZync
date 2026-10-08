@@ -12,6 +12,7 @@ import { AudienceService } from '../modules/audience/audience.service';
 import { ApprovalsService } from '../modules/approvals/approvals.service';
 import { JobsService } from '../modules/jobs/jobs.service';
 import { VoiceService } from '../modules/voice/voice.service';
+import { CharacterCastService } from '../modules/voice/character-cast.service';
 import { MusicService } from '../modules/music/music.service';
 import { ImageService } from '../modules/image/image.service';
 import { AnalyticsService } from '../modules/analytics/analytics.service';
@@ -49,6 +50,7 @@ import { enhanceImagePrompt, enhanceVideoPrompt, mergeNegativePrompts, buildVoic
 import type {
   JobType, ResearchOutput, ScriptOutput, AnalyticsOutput,
   VoiceSpecOutput, ImageBriefOutput, MusicBriefOutput, VideoScenePlanOutput, SubtitleOutput,
+  CharacterCastOutput,
 } from '@cf/shared';
 import { promises as fsp } from 'fs';
 import * as path from 'path';
@@ -92,6 +94,7 @@ export class SupervisorWorker extends WorkerHost {
     private readonly approvals: ApprovalsService,
     private readonly jobs: JobsService,
     private readonly voice: VoiceService,
+    private readonly characterCast: CharacterCastService,
     private readonly music: MusicService,
     private readonly image: ImageService,
     private readonly analytics: AnalyticsService,
@@ -530,6 +533,58 @@ export class SupervisorWorker extends WorkerHost {
         return result;
       }
 
+      // ── Character Story pipeline stages ──────────────────────────────────────
+
+      case 'CHARACTER_CAST': {
+        this.log(jobId, projectId, 'Extracting characters from script…');
+        const script = (payload['script'] as ScriptOutput | undefined)
+          ?? await this.lastResult<ScriptOutput>(projectId, 'SCRIPT');
+        if (!script) throw new Error('Script not found — complete the Write Script step first.');
+        const t0 = Date.now();
+        const result = await this.characterCast.extractCharacters(script, projectId);
+        const r = result as CharacterCastOutput;
+        this.log(jobId, projectId, `Character cast complete ✓`, `${r.totalCharacters} character(s): ${r.characters.map((c) => c.name).join(', ')}`);
+        await this.jobs.logStep(jobId, 'CharacterCastAgent', 'cast', { title: script.title }, result, 0, 0, Date.now() - t0);
+        this.events.emitJobUpdate(jobId, { step: 'CHARACTER_CAST', status: 'COMPLETED' }, projectId);
+        return result;
+      }
+
+      case 'CHARACTER_IMAGE_GENERATE': {
+        this.log(jobId, projectId, 'Generating character portrait images…');
+        const castResult = (payload['characterCast'] as CharacterCastOutput | undefined)
+          ?? await this.lastResult<CharacterCastOutput>(projectId, 'CHARACTER_CAST');
+        if (!castResult || castResult.characters.length === 0) {
+          this.log(jobId, projectId, 'No character cast found — skipping character portraits');
+          return { portraits: [], skipped: true };
+        }
+        const t0 = Date.now();
+        const portraits: Array<{ name: string; assetId?: string; versionId?: string; key?: string; provider?: string }> = [];
+        for (const char of castResult.characters) {
+          try {
+            this.log(jobId, projectId, `Generating portrait for "${char.name}"…`, char.visualDescription.slice(0, 80));
+            const imageResult = await this.media.generateImage(
+              projectId,
+              `character-portrait-${char.name.toLowerCase().replace(/\s+/g, '-')}`,
+              {
+                prompt: `Cinematic character portrait: ${char.visualDescription}. High quality, professional studio lighting, clean background, no text, no watermarks.`,
+                negativePrompt: 'text, watermark, logo, blurry, distorted, cartoon, anime',
+                width: 576,
+                height: 1024,
+              },
+            );
+            portraits.push({ name: char.name, assetId: imageResult.assetId, versionId: imageResult.versionId, key: imageResult.key, provider: imageResult.provider });
+            this.log(jobId, projectId, `Portrait for "${char.name}" ready ✓`, `provider: ${imageResult.provider}`);
+          } catch (imgErr) {
+            const msg = imgErr instanceof Error ? imgErr.message : String(imgErr);
+            this.log(jobId, projectId, `Portrait for "${char.name}" failed — skipping`, msg.slice(0, 120));
+            portraits.push({ name: char.name });
+          }
+        }
+        this.log(jobId, projectId, `Character portraits complete ✓`, `${portraits.filter((p) => p.assetId).length}/${castResult.characters.length} generated in ${Date.now() - t0}ms`);
+        this.events.emitJobUpdate(jobId, { step: 'CHARACTER_IMAGE_GENERATE', status: 'COMPLETED' }, projectId);
+        return { portraits, totalCharacters: castResult.totalCharacters };
+      }
+
       case 'IMAGE_BRIEF': {
         this.log(jobId, projectId, 'Loading script for image briefs…');
         const script = (payload['script'] as ScriptOutput | undefined)
@@ -807,6 +862,19 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const t0 = Date.now();
         this.log(jobId, projectId, 'Generating voice-over narration…', `${rawNarration.split(/\s+/).length} words`);
         const referenceVoiceId = payload['referenceVoiceId'] as string | undefined;
+
+        // In-app voice style cloning: "local:<versionId>" references a user-uploaded audio sample.
+        if (referenceVoiceId?.startsWith('local:')) {
+          const refVersionId = referenceVoiceId.slice(6);
+          this.log(jobId, projectId, 'Applying voice style transfer from reference sample…');
+          const stored = await this.media.generateVoiceWithStyleReference(projectId, narration, spec ?? null, refVersionId);
+          this.log(jobId, projectId, 'Voice-over with style reference ready ✓',
+            `${stored.provider} · ${Math.round((stored.durationMs ?? 0) / 1000)}s audio`);
+          await this.jobs.logStep(jobId, 'VoiceAgent', 'style-generate', { words: narration.split(/\s+/).length }, { assetId: stored.assetId, provider: stored.provider }, 0, 0, Date.now() - t0);
+          this.events.emitJobUpdate(jobId, { step: 'VOICE_GENERATE', status: 'COMPLETED' }, projectId);
+          return { assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, durationMs: stored.durationMs, cached: stored.cached, notes: stored.notes ?? 'Voice style matched to your recording using in-app pitch analysis' };
+        }
+
         const stored = await this.media.generateVoice(projectId, 'Narration', {
           text: narration,
           voiceId: referenceVoiceId ?? spec?.sections?.[0]?.voiceId,
@@ -1418,6 +1486,13 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (stage.type === 'VOICE_SPEC' && payload['voiceProfile']) stagePayload['voiceProfile'] = payload['voiceProfile'];
             if (stage.type === 'VOICE_SPEC' && payload['characterVoices']) stagePayload['characterVoices'] = payload['characterVoices'];
             if (stage.type === 'VOICE_GENERATE' && payload['referenceVoiceId']) stagePayload['referenceVoiceId'] = payload['referenceVoiceId'];
+            // CHARACTER_STORY scope: auto-enable character-aware voice direction and
+            // forward the CHARACTER_CAST result to CHARACTER_IMAGE_GENERATE.
+            if (scope === 'CHARACTER_STORY' && stage.type === 'VOICE_SPEC') stagePayload['characterVoices'] = true;
+            if (scope === 'CHARACTER_STORY' && stage.type === 'CHARACTER_IMAGE_GENERATE') {
+              stagePayload['characterCast'] = stageResults['CHARACTER_CAST']
+                ?? await this.lastResult<CharacterCastOutput>(projectId, 'CHARACTER_CAST');
+            }
             // Forward content language to every stage that generates text
             if (payload['lang']) stagePayload['lang'] = payload['lang'];
             // Stage-level retry with backoff (master prompt §3.2): one retry

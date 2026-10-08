@@ -96,6 +96,38 @@ export const GapsOutputSchema = z.object({
 });
 export type GapsOutput = z.infer<typeof GapsOutputSchema>;
 
+// ── Character Story pipeline ───────────────────────────────────────────────────
+
+export const CharacterVoiceStyleSchema = z.object({
+  provider: z.string().default('openai'),
+  voiceId: z.string().default('nova'),
+  speed: z.number().min(0.7).max(1.3).default(1.0),
+  emotion: z.string().default('warm'),
+  stability: z.number().min(0.5).max(1.0).default(0.75),
+});
+export type CharacterVoiceStyle = z.infer<typeof CharacterVoiceStyleSchema>;
+
+export const CharacterProfileSchema = z.object({
+  name: z.string(),
+  role: z.string(),
+  gender: z.enum(['male', 'female', 'neutral']),
+  ageGroup: z.string(),
+  personality: z.string(),
+  voiceStyle: CharacterVoiceStyleSchema,
+  visualDescription: z.string(),
+  dialogueLines: z.array(z.string()).optional().default([]),
+});
+export type CharacterProfile = z.infer<typeof CharacterProfileSchema>;
+
+export const CharacterCastOutputSchema = z.object({
+  characters: z.array(CharacterProfileSchema),
+  hasMultipleCharacters: z.boolean(),
+  narrativeStyle: z.enum(['dialogue-driven', 'narrated', 'interview', 'monologue']).default('narrated'),
+  totalCharacters: z.number(),
+  scriptTitle: z.string().optional(),
+});
+export type CharacterCastOutput = z.infer<typeof CharacterCastOutputSchema>;
+
 export const SEOOutputSchema = z.object({
   primaryKeyword: z.string(),
   secondaryKeywords: z.array(z.string()),
