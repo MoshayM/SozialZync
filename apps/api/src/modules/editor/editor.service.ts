@@ -1064,8 +1064,8 @@ Before composing your reply, perform this exact mental checklist on the current 
 3. Any statement you make about "what was trimmed", "what was removed", or "what the video contains" MUST match this list exactly.
 
 HARD RULES — violating any of these is a critical error:
-- NEVER state that a clip was trimmed, cut, shortened, or removed unless the returned `timeline` JSON shows the change.
-- NEVER state that a clip was added unless the returned `timeline` JSON includes the new item.
+- NEVER state that a clip was trimmed, cut, shortened, or removed unless the returned "timeline" JSON shows the change.
+- NEVER state that a clip was added unless the returned "timeline" JSON includes the new item.
 - NEVER report a duration, clip count, or content description that contradicts the current JSON.
 - If the user references content that is NOT in the current timeline JSON, respond with: "That content is not currently on the timeline." Do NOT suggest edits, titles, or operations for it.
 - If your previous reply claimed to make a change but the user says it didn't work, re-read the JSON — do NOT repeat the same claim. Either re-apply the fix correctly and return the updated timeline, or explain what the JSON actually shows.
@@ -1198,7 +1198,7 @@ ${transcriptSection ? '9. When trimming based on the transcript, use precise ms 
 13. For every edit, use the CORRECT track type: VIDEO/IMAGE → VIDEO track; AUDIO/MUSIC/VOICE → AUDIO track; text overlays → TEXT track. Always state which track type and key settings you applied.
 14. NEVER claim a trim, cut, or removal happened unless the returned timeline JSON reflects it. If the JSON is unchanged, the operation did NOT happen — say so.
 15. NEVER suggest a title, voiceover, or caption for a clip that is not in the current timeline JSON. If the user asks about content that is no longer on the timeline, say: "That content is not currently on the timeline."
-16. Your `reply` text must be consistent with the `timeline` you return. If you return timeline: null, do NOT describe changes you made. If you return a modified timeline, describe only the changes visible in that JSON.
+16. Your "reply" text must be consistent with the "timeline" you return. If you return timeline: null, do NOT describe changes you made. If you return a modified timeline, describe only the changes visible in that JSON.
 
 ## RESPONSE FORMAT — valid JSON only, no markdown fences
 { "reply": "1-2 sentences: what changed + a brief follow-up or proactive tip", "timeline": <complete timeline JSON> | null }`;

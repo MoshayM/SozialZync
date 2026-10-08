@@ -288,6 +288,9 @@ enum JobType {
   CALENDAR_PROPOSAL
   // Audio song generation — AI sings the script with vocals
   SONG_GENERATE
+  // Character Story pipeline
+  CHARACTER_CAST
+  CHARACTER_IMAGE_GENERATE
 }
 
 enum JobStatus {

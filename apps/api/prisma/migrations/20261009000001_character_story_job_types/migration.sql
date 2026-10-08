@@ -1,0 +1,3 @@
+-- AlterEnum: add Character Story job types
+ALTER TYPE "JobType" ADD VALUE 'CHARACTER_CAST';
+ALTER TYPE "JobType" ADD VALUE 'CHARACTER_IMAGE_GENERATE';
