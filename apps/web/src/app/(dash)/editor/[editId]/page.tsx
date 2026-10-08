@@ -1781,7 +1781,7 @@ const AUTO_EDIT_INSTRUCTION =
 
 type ChatMsg =
   | { role: 'user'; text: string }
-  | { role: 'assistant'; text: string; pendingTimeline?: unknown | null };
+  | { role: 'assistant'; text: string; autoApplied?: boolean; reverted?: boolean };
 
 // @reason: SpeechRecognition interface is absent from TypeScript's DOM lib (still experimental)
 interface SpeechRecognitionLike {
@@ -1812,7 +1812,11 @@ function AiEditDialog({
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
-      return saved ? (JSON.parse(saved) as ChatMsg[]).slice(-50) : [];
+      if (!saved) return [];
+      // Strip apply/revert state on reload — only keep role+text to avoid stale indicators
+      return (JSON.parse(saved) as ChatMsg[]).slice(-50).map((m) =>
+        m.role === 'assistant' ? { role: 'assistant' as const, text: m.text } : m,
+      );
     } catch { return []; }
   });
   const [busy, setBusy] = useState(false);
@@ -1826,6 +1830,15 @@ function AiEditDialog({
   });
   const [speaking, setSpeaking] = useState(false);
   const synthRef = useRef<SpeechSynthesis | null>(null);
+  // Snapshot of the timeline before the last auto-applied AI edit — enables one-click undo
+  const prevTimelineRef = useRef<unknown>(null);
+  const lastAutoAppliedIdx = useMemo(() => {
+    for (let mi = messages.length - 1; mi >= 0; mi--) {
+      const m = messages[mi];
+      if (m.role === 'assistant' && m.autoApplied && !m.reverted) return mi;
+    }
+    return -1;
+  }, [messages]);
 
   function toggleVoice() {
     if (listening) {
@@ -1930,9 +1943,14 @@ function AiEditDialog({
         clientTimeline: timeline,
         history: historyForApi(updated.slice(0, -1)), // exclude the message we're sending now
       });
+      const hasTimeline = res.data.timeline != null;
+      if (hasTimeline) {
+        prevTimelineRef.current = timeline; // snapshot for undo
+        onApplyTimeline(res.data.timeline); // live update — canvas refreshes immediately
+      }
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', text: res.data.reply, pendingTimeline: res.data.timeline ?? null },
+        { role: 'assistant', text: res.data.reply, autoApplied: hasTimeline },
       ]);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -2069,16 +2087,34 @@ function AiEditDialog({
                       </button>
                     </div>
                   </div>
-                  {msg.pendingTimeline != null && (
-                    <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                      <p className="text-xs text-green-800 flex-1">Timeline changes ready</p>
-                      <button
-                        onClick={() => onApplyTimeline(msg.pendingTimeline)}
-                        className="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 shrink-0"
-                      >
-                        Apply
-                      </button>
+                  {msg.autoApplied && !msg.reverted && (
+                    <div className="flex items-center gap-2 mt-0.5 px-0.5">
+                      <div className="flex-1 flex items-center gap-1.5 text-xs text-emerald-700">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Applied to timeline</span>
+                      </div>
+                      {i === lastAutoAppliedIdx && prevTimelineRef.current != null && (
+                        <button
+                          onClick={() => {
+                            onApplyTimeline(prevTimelineRef.current);
+                            prevTimelineRef.current = null;
+                            setMessages((prev) =>
+                              prev.map((m, mi) =>
+                                mi === i && m.role === 'assistant' ? { ...m, reverted: true } : m,
+                              ),
+                            );
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-600 underline shrink-0"
+                        >
+                          Undo
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {msg.reverted && (
+                    <div className="flex items-center gap-1.5 mt-0.5 px-0.5 text-xs text-gray-400">
+                      <RotateCcw className="w-3 h-3 shrink-0" />
+                      <span>Reverted</span>
                     </div>
                   )}
                 </div>

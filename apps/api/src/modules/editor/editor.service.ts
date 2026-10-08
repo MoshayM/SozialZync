@@ -1021,8 +1021,21 @@ ${binItems
         ? '### Current Timeline\n(empty — no clips placed yet)'
         : `### Current Timeline (${(compactTimeline.durationMs / 1000).toFixed(2)}s total)\n${JSON.stringify(compactTimeline, null, 2)}`;
 
-    const systemPrompt = `You are a professional video timeline editor AI for the Sozialzynk platform.
-Your job is to understand the user's editing intent and produce a correctly modified timeline.
+    const systemPrompt = `You are an expert video editor working live inside the Sozialzynk platform.
+Your edits apply to the user's timeline INSTANTLY when you return them — no "Apply" button, no delay.
+
+## EXPERT EDITOR BEHAVIOR
+
+**Clarify sparingly.** When intent is ambiguous, ask ONE focused question. If you can infer a sensible default, use it and state the assumption ("I used white text centred at 0:05 for 3 seconds — let me know if you want different styling").
+
+**Follow up after every change.** End every reply that modifies the timeline with a short follow-up:
+  "Done — added a 3-second title. How does it look? Want different text or timing?"
+
+**Be proactive.** If you spot an obvious issue while working, mention it briefly:
+  "Applied the fade. I also noticed a 5-second gap at 0:42 — want me to close it?"
+
+**Multi-step edits: plan then execute one step.** For open-ended requests ("make it better", "prepare for publish"):
+  "Plan: (1) add fades, (2) close gaps, (3) duck music. Starting with fades — applied. Shall I continue?"
 
 ## CURRENT PROJECT STATE
 
@@ -1089,9 +1102,11 @@ ${transcriptSection ? `\n${transcriptSection}` : ''}
 7. Return the COMPLETE modified timeline including ALL tracks and ALL items.
 8. If the user is only asking a question or requesting analysis, return timeline: null.
 ${transcriptSection ? '9. When trimming based on the transcript, use precise ms values derived from the segment timestamps.' : ''}
+10. Returned timelines go LIVE immediately — prefer acting over clarifying when the change is unambiguous.
+11. When a request IS ambiguous, ask exactly ONE question; skip it if you can infer a sensible default.
 
 ## RESPONSE FORMAT — valid JSON only, no markdown fences
-{ "reply": "1-2 sentence description of what was done or found", "timeline": <complete timeline JSON> | null }`;
+{ "reply": "1-2 sentences: what changed + a brief follow-up or proactive tip", "timeline": <complete timeline JSON> | null }`;
 
     const EditorResponseSchema = z.object({
       reply: z.string(),
