@@ -1061,6 +1061,7 @@ ${transcriptSection ? `\n${transcriptSection}` : ''}
   - Filters: { brightness: -1..1, contrast: 0..2, saturation: 0..3, grayscale: bool, blur: 0..20 }
   - Transition: transitionIn: { type: 'fade'|'dissolve'|'slide', durationMs: integer }
   - Audio controls: fadeInMs(0-5000), fadeOutMs(0-5000), gainDb(-60..12), duckUnderVoice(bool)
+  - TEXT item properties: text(string), fontSize(px), color(hex/rgba), fontFamily, fontWeight('normal'|'bold'), fontStyle('normal'|'italic'), textAlign('left'|'center'|'right'), backgroundColor(hex/rgba), textAnim('none'|'fade-in'|'slide-up'), rotation(-180..180)
 
 **2. Split a clip** to cut out a section (e.g. remove filler words at 15s–22s from a 60s clip):
   - Create two items from the same sourceAssetId: first item ends at the cut-in; second starts at cut-out
@@ -1075,8 +1076,25 @@ ${transcriptSection ? `\n${transcriptSection}` : ''}
     and the AUDIO item gets linkedItemId = the VIDEO item's id.
   - Generate unique item ids like "item-<timestamp>-v" and "item-<timestamp>-a".
 
+**3b. Add text overlays / titles / subtitles / lower thirds** (TEXT track — MANDATORY):
+  - Titles, captions, lower thirds, subtitles → kind: "TEXT" on a TEXT track. NEVER add these to a VIDEO track.
+  - No sourceAssetId — TEXT items are generated, not from the Media Bin.
+  - Required: properties.text (the string to display)
+  - Smart defaults (apply when user doesn't specify; ALWAYS state what you chose):
+    - fontSize: 64  |  color: "#FFFFFF"  |  fontFamily: "Arial"  |  fontWeight: "bold"
+    - textAlign: "center"  |  x: (canvas_width / 2)  |  y: (canvas_height * 0.85)  for titles
+    - textAnim: "fade-in" for title cards; "none" for lower thirds
+    - backgroundColor: "rgba(0,0,0,0.5)" if contrast is needed; omit otherwise
+  - For each TEXT item, your reply MUST mention: text content, font, colour, position, and duration.
+  - If the user hasn't said what the text content is, ask exactly ONE question: "What text should it say?"
+  - For font/colour/position: apply smart defaults and state them — do not ask unless the user says they want to choose.
+  - Intelligent property guidance for all text requests:
+    - Opening title → large font (72+), centred, fade-in animation, near vertical centre
+    - Lower third (name/location overlay) → smaller font (36–48), left-aligned, y near 85% of canvas height
+    - End card / outro → consider bold, contrasting colour, centred
+
 **4. Create new tracks** when no suitable track exists:
-  - Give a unique id (e.g. "track-v1", "track-audio-2"), kind ("VIDEO"|"AUDIO"), and label.
+  - Give a unique id (e.g. "track-v1", "track-audio-2", "track-text-1"), kind ("VIDEO"|"AUDIO"|"TEXT"), and label.
 
 **5. Loop / extend background music** to cover the full video duration:
   - Add multiple instances of the same MUSIC asset back-to-back (each with a unique item id).
@@ -1108,6 +1126,8 @@ ${transcriptSection ? `\n${transcriptSection}` : ''}
 ${transcriptSection ? '9. When trimming based on the transcript, use precise ms values derived from the segment timestamps.' : ''}
 10. Returned timelines go LIVE immediately — prefer acting over clarifying when the change is unambiguous.
 11. When a request IS ambiguous, ask exactly ONE question; skip it if you can infer a sensible default.
+12. Text overlays, titles, captions, and subtitles MUST use kind: "TEXT" on a TEXT track. Using kind: "VIDEO" for text is a hard error.
+13. For every edit, use the CORRECT track type: VIDEO/IMAGE → VIDEO track; AUDIO/MUSIC/VOICE → AUDIO track; text overlays → TEXT track. Always state which track type and key settings you applied.
 
 ## RESPONSE FORMAT — valid JSON only, no markdown fences
 { "reply": "1-2 sentences: what changed + a brief follow-up or proactive tip", "timeline": <complete timeline JSON> | null }`;
