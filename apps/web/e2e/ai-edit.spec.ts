@@ -74,8 +74,8 @@ test.describe('AI Edit dialog — UI', () => {
     // Voice output toggle (speaker icon) in header
     await expect(d.getByRole('button', { name: /toggle voice replies/i })).toBeVisible();
 
-    // Mic input button in input bar
-    await expect(d.getByRole('button', { name: /voice input/i })).toBeVisible();
+    // Mic button(s) — now in header AND input bar (two buttons match /voice input/)
+    expect(await d.getByRole('button', { name: /voice input/i }).count()).toBeGreaterThan(0);
 
     // Target chip buttons explicitly (avoids matching the description text)
     await expect(d.getByRole('button', { name: /analyze.*what needs editing/i })).toBeVisible();
