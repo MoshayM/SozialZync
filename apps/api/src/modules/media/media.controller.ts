@@ -243,16 +243,20 @@ export class MediaController {
       const ytVideoId = extractYouTubeVideoId(rawUrl);
 
       if (ytVideoId) {
-        // YouTube ToS §5.H: verify the video belongs to the user's connected channel.
-        const owned = await this.prisma.libraryVideo.findFirst({
-          where: { youtubeVideoId: ytVideoId, channel: { userId: user.sub } },
-          select: { id: true },
-        });
-        if (!owned) {
-          throw new ForbiddenException(
-            'You can only import videos from your own connected YouTube channels. ' +
-            'Connect the channel first via Settings → Channels, then sync your library.',
-          );
+        // SUPER_ADMIN and OWNER can import any YouTube URL without channel linkage.
+        const isPrivileged = user.role === 'SUPER_ADMIN' || user.role === 'OWNER';
+        if (!isPrivileged) {
+          // YouTube ToS §5.H: verify the video belongs to the user's connected channel.
+          const owned = await this.prisma.libraryVideo.findFirst({
+            where: { youtubeVideoId: ytVideoId, channel: { userId: user.sub } },
+            select: { id: true },
+          });
+          if (!owned) {
+            throw new ForbiddenException(
+              'You can only import videos from your own connected YouTube channels. ' +
+              'Connect the channel first via Settings → Channels, then sync your library.',
+            );
+          }
         }
       } else {
         // Non-YouTube social platforms (TikTok, Instagram, X, etc.):
