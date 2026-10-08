@@ -855,7 +855,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         const t0 = Date.now();
         this.log(jobId, projectId, 'Composing background music…', `${brief.genre} · ${brief.bpm} BPM · ${brief.energy}`);
-        const stored = await this.media.generateMusic(projectId, 'Background music', {
+        const audioSong = !!(payload['audioSong'] as boolean | undefined);
+        const stored = await this.media.generateMusic(projectId, audioSong ? 'Audio song' : 'Background music', {
           mood: brief.mood,
           genre: brief.genre,
           bpm: brief.bpm,
@@ -863,12 +864,59 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           durationSecs: brief.durationSecs,
           prompt: (payload['musicPrompt'] as string | undefined) || brief.prompt,
           emotionalArc: brief.emotionalArc,
+          lyrics: payload['songLyrics'] as string | undefined,
+          vocalType: payload['vocalType'] as string | undefined,
+          songStyle: payload['songStyle'] as string | undefined,
+          songMode: audioSong,
         });
         this.log(jobId, projectId, stored.cached ? 'Music reused from cache ✓' : 'Music track ready ✓',
           `${stored.provider} · ${Math.round((stored.durationMs ?? 0) / 1000)}s`);
         await this.jobs.logStep(jobId, 'MusicAgent', 'generate', { genre: brief.genre }, { assetId: stored.assetId, provider: stored.provider }, 0, 0, Date.now() - t0);
         this.events.emitJobUpdate(jobId, { step: 'MUSIC_GENERATE', status: 'COMPLETED' }, projectId);
         return { assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, durationMs: stored.durationMs, cached: stored.cached, notes: stored.notes };
+      }
+
+      case 'SONG_GENERATE': {
+        this.log(jobId, projectId, 'Loading script for AI song generation…');
+        const script = (payload['script'] as ScriptOutput | undefined)
+          ?? await this.lastResult<ScriptOutput>(projectId, 'SCRIPT');
+        if (!script) throw new Error('Script not found — complete the Write Script step first.');
+
+        const rawLyrics = (payload['lyrics'] as string | undefined)?.trim();
+        const songStyle = (payload['songStyle'] as string | undefined) ?? 'pop';
+        const vocalType = (payload['vocalType'] as string | undefined) ?? 'female-solo';
+
+        // Use provided lyrics, or derive from script
+        const lyrics = rawLyrics || [
+          script.hook,
+          ...script.sections.map((s) => s.content),
+          script.callToAction,
+        ].filter(Boolean).join('\n\n');
+
+        const durSecs = Math.min(240, (script.estimatedDurationMins ?? 3) * 60);
+        const t0 = Date.now();
+        this.log(jobId, projectId, 'Generating AI vocal song…', `${songStyle} · ${vocalType}`);
+        const stored = await this.media.generateMusic(projectId, 'AI Song', {
+          mood: 'emotional',
+          genre: songStyle,
+          bpm: 120,
+          energy: 'medium',
+          durationSecs: durSecs,
+          lyrics,
+          songMode: true,
+          songStyle,
+          vocalType,
+          prompt: `${songStyle} song, ${vocalType.replace('-', ' ')} vocals, emotional and engaging`,
+        });
+        this.log(jobId, projectId, stored.cached ? 'Song reused from cache ✓' : 'Song ready ✓',
+          `${stored.provider} · ${Math.round((stored.durationMs ?? 0) / 1000)}s`);
+        await this.jobs.logStep(jobId, 'MusicAgent', 'song', { style: songStyle }, { assetId: stored.assetId, provider: stored.provider }, 0, 0, Date.now() - t0);
+        this.events.emitJobUpdate(jobId, { step: 'SONG_GENERATE', status: 'COMPLETED' }, projectId);
+        return {
+          assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider,
+          durationMs: stored.durationMs, cached: stored.cached, notes: stored.notes,
+          songStyle, vocalType,
+        };
       }
 
       case 'VIDEO_GENERATE': {
@@ -1336,6 +1384,16 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               if (payload['genre']) stagePayload['genre'] = payload['genre'];
             }
             if (stage.type === 'MUSIC_GENERATE' && payload['musicPrompt']) stagePayload['musicPrompt'] = payload['musicPrompt'];
+            if (stage.type === 'MUSIC_GENERATE' && payload['songLyrics']) stagePayload['songLyrics'] = payload['songLyrics'];
+            if (stage.type === 'MUSIC_GENERATE' && payload['vocalType']) stagePayload['vocalType'] = payload['vocalType'];
+            if (stage.type === 'MUSIC_GENERATE' && payload['songStyle']) stagePayload['songStyle'] = payload['songStyle'];
+            if (stage.type === 'MUSIC_GENERATE' && payload['audioSong']) stagePayload['audioSong'] = payload['audioSong'];
+            // Song generation: forward lyrics, style, vocal type
+            if (stage.type === 'SONG_GENERATE') {
+              if (payload['lyrics']) stagePayload['lyrics'] = payload['lyrics'];
+              if (payload['songStyle']) stagePayload['songStyle'] = payload['songStyle'];
+              if (payload['vocalType']) stagePayload['vocalType'] = payload['vocalType'];
+            }
             if (stage.type === 'RENDER' && payload['preset']) stagePayload['preset'] = payload['preset'];
             if (stage.type === 'RENDER' && payload['platform']) stagePayload['platform'] = payload['platform'];
             if (stage.type === 'RENDER' && payload['videoType']) stagePayload['videoType'] = payload['videoType'];

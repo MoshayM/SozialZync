@@ -58,6 +58,7 @@ export class VoiceService {
           `- For each section: sectionId ("section-0" etc), heading, ssmlMarkup, provider ("openai"), speed, stability, pronunciationNotes (array).`,
           `- totalDurationEstimateSecs: sum of all section durations.`,
           `- disclosureRequired: true.`,
+          `- characters: array of each detected character with fields: name, gender ("male"/"female"/"neutral"), style (e.g. "warm", "energetic", "calm"), tone (e.g. "friendly", "authoritative", "playful"), pace ("slow"/"moderate"/"fast"), description (one sentence about this character's voice).`,
         ].join('\n');
       } else {
         const profile = voiceProfile ?? { name: 'Narrator', style: 'conversational', tone: 'engaging', pace: 'moderate' };

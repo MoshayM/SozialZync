@@ -1,6 +1,6 @@
 import type { JobType } from '@cf/shared';
 
-export type PipelineScope = 'FULL' | 'SCRIPT' | 'VOICE' | 'MUSIC' | 'IMAGES' | 'VIDEO';
+export type PipelineScope = 'FULL' | 'SCRIPT' | 'VOICE' | 'MUSIC' | 'IMAGES' | 'VIDEO' | 'SONG';
 
 export interface PipelineStage {
   type: JobType | 'PACKAGE';
@@ -57,6 +57,7 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
   VOICE: [...FOUNDATION, S('VOICE_SPEC', 'Voice Direction', 35), S('VOICE_GENERATE', 'Voice Over', 30), S('PACKAGE', 'Package', 5)],
   MUSIC: [...FOUNDATION, S('MUSIC_BRIEF', 'Music Brief', 30), S('MUSIC_GENERATE', 'Background Music', 20), S('PACKAGE', 'Package', 5)],
   IMAGES: [...FOUNDATION, S('IMAGE_BRIEF', 'Image Briefs', 35), S('IMAGE_GENERATE', 'Scene Images', 40), S('PACKAGE', 'Package', 5)],
+  SONG: [...FOUNDATION, S('SONG_GENERATE', 'AI Song', 90)],
   VIDEO: [
     ...FOUNDATION,
     S('VIDEO_SCENE_PLAN', 'Storyboard', 40),

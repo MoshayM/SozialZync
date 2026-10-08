@@ -160,6 +160,31 @@ const VOICE_STYLES: Array<{ id: VoiceStyleId; label: string; icon: string; desc:
   { id: 'warm',        label: 'Warm',         icon: '✨', desc: 'Soft expressive female voice',        voiceProfile: { gender: 'female',  style: 'expressive',    tone: 'soft',         pace: 'gentle'   } },
 ];
 
+const SONG_STYLES = [
+  { id: 'pop',        label: 'Pop',        icon: '🎵' },
+  { id: 'hip-hop',    label: 'Hip-Hop',    icon: '🎤' },
+  { id: 'rnb',        label: 'R&B',        icon: '🎸' },
+  { id: 'rock',       label: 'Rock',       icon: '🥁' },
+  { id: 'electronic', label: 'Electronic', icon: '🎛️' },
+  { id: 'country',    label: 'Country',    icon: '🤠' },
+] as const;
+
+const VOCAL_TYPES = [
+  { id: 'solo-female', label: 'Female Solo', icon: '👩' },
+  { id: 'solo-male',   label: 'Male Solo',   icon: '👨' },
+  { id: 'duet',        label: 'Duet',        icon: '👥' },
+  { id: 'group',       label: 'Group Choir', icon: '🎭' },
+] as const;
+
+const CHARACTER_COLORS = [
+  { bg: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-800',    chip: 'bg-blue-100 text-blue-700'    },
+  { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', chip: 'bg-emerald-100 text-emerald-700' },
+  { bg: 'bg-violet-50',  border: 'border-violet-200',  text: 'text-violet-800',  chip: 'bg-violet-100 text-violet-700'  },
+  { bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-800',   chip: 'bg-amber-100 text-amber-700'    },
+  { bg: 'bg-rose-50',    border: 'border-rose-200',    text: 'text-rose-800',    chip: 'bg-rose-100 text-rose-700'      },
+  { bg: 'bg-cyan-50',    border: 'border-cyan-200',    text: 'text-cyan-800',    chip: 'bg-cyan-100 text-cyan-700'      },
+] as const;
+
 function latest(jobs: Job[], type: string): Job | undefined {
   return jobs
     .filter((j) => j.type === type)
@@ -404,13 +429,17 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [genre, setGenre] = useState('');
   const [musicPromptOverride, setMusicPromptOverride] = useState<string | undefined>(undefined);
   const [briefOpen, setBriefOpen] = useState(false);
-  const [characterVoices, setCharacterVoices] = useState(false);
+  // AI Voice sub-tabs: narration · character cast · audio song
+  const [aiVoiceTab, setAiVoiceTab] = useState<'narration' | 'character' | 'song'>('narration');
+  const [songStyle, setSongStyle] = useState<typeof SONG_STYLES[number]['id']>('pop');
+  const [vocalType, setVocalType] = useState<typeof VOCAL_TYPES[number]['id']>('solo-female');
+  const [songLyrics, setSongLyrics] = useState('');
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
   const [voiceKey, setVoiceKey] = useState('');
   const [voiceKeySaved, setVoiceKeySaved] = useState(false);
   // Voice mode: 'ai' = AI Voice, 'record' = Your Voice
   const [voiceMode, setVoiceMode] = useState<'ai' | 'record'>('ai');
-  const [yourVoiceMode, setYourVoiceMode] = useState<'full' | 'ref'>('full');
+  const [yourVoiceMode, setYourVoiceMode] = useState<'full' | 'character' | 'ref'>('full');
   // Full-script recording
   const [recording, setRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -655,8 +684,15 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const script = scriptJob?.status === 'COMPLETED' ? (scriptJob.result as ScriptResult) : null;
   const voiceJob = latest(jobs, 'VOICE_GENERATE');
   const voiceResult = voiceJob?.status === 'COMPLETED' ? (voiceJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string }) : null;
+  const specJob = latest(jobs, 'VOICE_SPEC');
+  type DetectedCharacter = { name: string; gender?: string; style?: string; tone?: string; pace?: string; description?: string };
+  const detectedCharacters: DetectedCharacter[] = (specJob?.status === 'COMPLETED'
+    ? ((specJob.result as { characters?: DetectedCharacter[] })?.characters ?? [])
+    : []);
   const musicJob = latest(jobs, 'MUSIC_GENERATE');
   const musicResult = musicJob?.status === 'COMPLETED' ? (musicJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string }) : null;
+  const songJob = latest(jobs, 'SONG_GENERATE');
+  const songResult = songJob?.status === 'COMPLETED' ? (songJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string; songStyle?: string; vocalType?: string }) : null;
   const musicBrief = latest(jobs, 'MUSIC_BRIEF')?.result as { mood?: string; genre?: string; bpm?: number; prompt?: string; emotionalArc?: string } | undefined;
   const videoJob = latest(jobs, 'VIDEO_GENERATE');
   const videoResult = videoJob?.status === 'COMPLETED' ? (videoJob.result as { videos?: Array<{ sceneId: string; versionId?: string; provider: string }> }) : null;
@@ -1523,7 +1559,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
   const voiceDetail = (
     <div className="space-y-3">
-      {/* Mode selector cards */}
+      {/* Top-level mode selector: AI Voice / Your Voice */}
       <div className="grid grid-cols-2 gap-2">
         {([
           ['ai', Sparkles, 'AI Voice', 'Let AI generate narration from your script'],
@@ -1550,119 +1586,348 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
       {/* AI Voice mode */}
       {voiceMode === 'ai' && (
         <div className="space-y-3">
-          {voiceResult?.versionId && (
-            <div className="flex items-center gap-2">
-              <MediaPlayer versionId={voiceResult.versionId} kind="audio" />
+          {/* AI sub-tab switcher */}
+          <div className="flex gap-0.5 p-1 bg-gray-100 rounded-xl">
+            {([
+              ['narration', '🎙️', 'AI Narration'],
+              ['character', '🎭', 'Character Cast'],
+              ['song',      '🎵', 'Audio Song'],
+            ] as const).map(([tab, emoji, label]) => (
               <button
-                onClick={async () => {
-                  const res = await api.media.versionFile(voiceResult.versionId!);
-                  await downloadBlob(res, 'voice-narration');
-                }}
-                className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
-                title="Download narration"
+                key={tab}
+                onClick={() => setAiVoiceTab(tab)}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold flex-1 justify-center transition-all ${
+                  aiVoiceTab === tab
+                    ? 'bg-white text-brand-800 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                <Download className="w-3 h-3" />
+                <span>{emoji}</span>{label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── AI Narration tab ── */}
+          {aiVoiceTab === 'narration' && (
+            <div className="space-y-3">
+              {voiceResult?.versionId && (
+                <div className="flex items-center gap-2">
+                  <MediaPlayer versionId={voiceResult.versionId} kind="audio" />
+                  <button
+                    onClick={async () => {
+                      const res = await api.media.versionFile(voiceResult.versionId!);
+                      await downloadBlob(res, 'voice-narration');
+                    }}
+                    className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
+                    title="Download narration"
+                  >
+                    <Download className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              {voiceResult?.notes && <p className="text-xs text-amber-600">{voiceResult.notes}</p>}
+
+              {/* Voice Timeline — section-by-section word-count bars */}
+              {voiceResult?.versionId && script?.sections?.length ? (
+                <div className="pt-1 space-y-1.5">
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Voice Timeline</p>
+                  <div className="space-y-1">
+                    {(() => {
+                      const SEG_COLORS = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#9333ea'];
+                      const totalWords = script.sections.reduce((sum, s) => sum + s.content.split(/\s+/).length, 0) || 1;
+                      return script.sections.map((sec, i) => {
+                        const words = sec.content.split(/\s+/).length;
+                        const pct = Math.max(6, Math.round((words / totalWords) * 100));
+                        const color = SEG_COLORS[i % SEG_COLORS.length]!;
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <p className="w-16 shrink-0 text-right text-[9px] text-gray-400 truncate">{sec.heading.slice(0, 10)}</p>
+                            <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-500 opacity-75" style={{ width: `${pct}%`, backgroundColor: color }} />
+                            </div>
+                            <p className="w-6 text-[9px] text-gray-400 tabular-nums shrink-0">{words}w</p>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                  <p className="text-[9px] text-gray-300">Bar width = word count per section</p>
+                </div>
+              ) : null}
+
+              {/* Voice style selector */}
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Voice Style</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {VOICE_STYLES.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setVoiceStyle(s.id)}
+                      title={s.desc}
+                      className={`flex flex-col items-center gap-0.5 p-2 rounded-xl border text-center transition-all ${
+                        voiceStyle === s.id
+                          ? 'border-brand-500 bg-brand-50 shadow-sm'
+                          : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-base">{s.icon}</span>
+                      <span className={`text-[10px] font-semibold ${voiceStyle === s.id ? 'text-brand-700' : 'text-gray-600'}`}>{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-gray-400">{VOICE_STYLES.find((s) => s.id === voiceStyle)?.desc}</p>
+              </div>
+
+              <button
+                onClick={() => enqueue.mutate({
+                  type: 'FULL_PRODUCTION',
+                  payload: {
+                    scope: 'VOICE',
+                    regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
+                    voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
+                    characterVoices: false,
+                  },
+                })}
+                disabled={busy}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-brand-600 text-white rounded-full hover:bg-brand-700 disabled:opacity-40 transition-colors shadow-sm"
+              >
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {voiceResult?.versionId ? 'Regenerate AI Narration' : 'Generate AI Narration'}
+              </button>
+
+              {/* ElevenLabs optional collapsible */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setElevenLabsOpen((o) => !o)}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-gray-400" />
+                    ElevenLabs — optional premium voices (your own API key)
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${elevenLabsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {elevenLabsOpen && (
+                  <div className="px-3 pb-3 pt-1 space-y-2 border-t border-gray-100">
+                    <p className="text-[11px] text-gray-500">Your key unlocks ElevenLabs premium voices. Leave blank to use free built-in voices (OpenAI TTS · Kokoro · Piper).</p>
+                    {!voiceKeySaved ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={voiceKey}
+                          onChange={(e) => setVoiceKey(e.target.value)}
+                          placeholder="sk-... ElevenLabs API key"
+                          aria-label="ElevenLabs API key"
+                          className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400"
+                        />
+                        <button
+                          onClick={() => saveVoiceKey.mutate(voiceKey)}
+                          disabled={!voiceKey.trim() || saveVoiceKey.isPending}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-xl disabled:opacity-40"
+                        >
+                          {saveVoiceKey.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
+                          Save
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-green-700 font-medium flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        ElevenLabs key saved — your next generation will use it.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Character Cast tab ── */}
+          {aiVoiceTab === 'character' && (
+            <div className="space-y-3">
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                AI detects characters in your script and assigns each a distinct voice — different gender, tone, energy, and pacing. Generates character dialogue that sounds like a real conversation.
+              </p>
+
+              {/* Character map (populated after VOICE_SPEC runs) */}
+              {detectedCharacters.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                    Detected Characters ({detectedCharacters.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {detectedCharacters.map((char, i) => {
+                      const color = CHARACTER_COLORS[i % CHARACTER_COLORS.length]!;
+                      return (
+                        <div key={char.name} className={`${color.bg} ${color.border} border rounded-xl px-3 py-2.5 flex items-start gap-2`}>
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${color.chip}`}>
+                            <span className="text-xs font-bold">{char.name[0]}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-semibold ${color.text}`}>{char.name}</p>
+                            {char.description && (
+                              <p className="text-[10px] text-gray-500 leading-snug mt-0.5 line-clamp-2">{char.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {char.gender && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${color.chip}`}>{char.gender}</span>}
+                              {char.style && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${color.chip}`}>{char.style}</span>}
+                              {char.tone && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${color.chip}`}>{char.tone}</span>}
+                              {char.pace && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${color.chip}`}>{char.pace} pace</span>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : specJob?.status === 'COMPLETED' ? (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                  <p className="text-[11px] text-amber-700">No named characters detected in this script. AI will generate with context-aware voice variation instead.</p>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                  <p className="text-[11px] text-gray-500">Generate once to detect characters — character cards appear here after the first run.</p>
+                </div>
+              )}
+
+              {voiceResult?.versionId && (
+                <div className="flex items-center gap-2">
+                  <MediaPlayer versionId={voiceResult.versionId} kind="audio" />
+                  <button
+                    onClick={async () => {
+                      const res = await api.media.versionFile(voiceResult.versionId!);
+                      await downloadBlob(res, 'voice-character-cast');
+                    }}
+                    className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
+                    title="Download narration"
+                  >
+                    <Download className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={() => enqueue.mutate({
+                  type: 'FULL_PRODUCTION',
+                  payload: {
+                    scope: 'VOICE',
+                    regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
+                    characterVoices: true,
+                  },
+                })}
+                disabled={busy}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-brand-600 text-white rounded-full hover:bg-brand-700 disabled:opacity-40 transition-colors shadow-sm"
+              >
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {specJob?.status === 'COMPLETED' ? 'Regenerate Character Cast' : 'Generate Character Cast'}
               </button>
             </div>
           )}
-          {voiceResult?.notes && <p className="text-xs text-amber-600">{voiceResult.notes}</p>}
 
-          {/* Voice style selector */}
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Voice Style</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {VOICE_STYLES.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setVoiceStyle(s.id)}
-                  title={s.desc}
-                  className={`flex flex-col items-center gap-0.5 p-2 rounded-xl border text-center transition-all ${
-                    voiceStyle === s.id
-                      ? 'border-brand-500 bg-brand-50 shadow-sm'
-                      : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="text-base">{s.icon}</span>
-                  <span className={`text-[10px] font-semibold ${voiceStyle === s.id ? 'text-brand-700' : 'text-gray-600'}`}>{s.label}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-gray-400">{VOICE_STYLES.find((s) => s.id === voiceStyle)?.desc}</p>
-          </div>
+          {/* ── Audio Song tab ── */}
+          {aiVoiceTab === 'song' && (
+            <div className="space-y-3">
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Generate a full AI-sung song from your script. AI converts your content into song lyrics and produces a complete vocal track with music — ready to use as a song, jingle, or intro.
+              </p>
 
-          {/* Character voices toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={characterVoices}
-              onChange={(e) => setCharacterVoices(e.target.checked)}
-              className="rounded accent-brand-600 w-3.5 h-3.5"
-            />
-            <span className="text-xs text-gray-700">Character-aware voices</span>
-            <span className="text-[10px] text-gray-400">(AI assigns different voices per character/emotion)</span>
-          </label>
-
-          {/* Generate button */}
-          <button
-            onClick={() => enqueue.mutate({
-              type: 'FULL_PRODUCTION',
-              payload: {
-                scope: 'VOICE',
-                regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
-                voiceProfile: characterVoices ? undefined : VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
-                characterVoices,
-              },
-            })}
-            disabled={busy}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-brand-600 text-white rounded-full hover:bg-brand-700 disabled:opacity-40 transition-colors shadow-sm"
-          >
-            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            {voiceResult?.versionId ? 'Regenerate AI Narration' : 'Generate AI Narration'}
-          </button>
-
-          {/* ElevenLabs optional collapsible */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <button
-              onClick={() => setElevenLabsOpen((o) => !o)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
-            >
-              <span className="flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-gray-400" />
-                ElevenLabs — optional premium voices (your own API key)
-              </span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${elevenLabsOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {elevenLabsOpen && (
-              <div className="px-3 pb-3 pt-1 space-y-2 border-t border-gray-100">
-                <p className="text-[11px] text-gray-500">Your key unlocks ElevenLabs premium voices. Leave blank to use free built-in voices (OpenAI TTS · Kokoro · Piper).</p>
-                {!voiceKeySaved ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={voiceKey}
-                      onChange={(e) => setVoiceKey(e.target.value)}
-                      placeholder="sk-... ElevenLabs API key"
-                      aria-label="ElevenLabs API key"
-                      className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400"
-                    />
+              {/* Song style */}
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Song Style</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {SONG_STYLES.map((s) => (
                     <button
-                      onClick={() => saveVoiceKey.mutate(voiceKey)}
-                      disabled={!voiceKey.trim() || saveVoiceKey.isPending}
-                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-600 text-white rounded-xl disabled:opacity-40"
+                      key={s.id}
+                      onClick={() => setSongStyle(s.id)}
+                      className={`flex flex-col items-center gap-0.5 p-2 rounded-xl border text-center transition-all ${
+                        songStyle === s.id
+                          ? 'border-brand-500 bg-brand-50 shadow-sm'
+                          : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
+                      }`}
                     >
-                      {saveVoiceKey.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
-                      Save
+                      <span className="text-base">{s.icon}</span>
+                      <span className={`text-[10px] font-semibold ${songStyle === s.id ? 'text-brand-700' : 'text-gray-600'}`}>{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Vocal type */}
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Vocal Type</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {VOCAL_TYPES.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setVocalType(v.id)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-left transition-all ${
+                        vocalType === v.id
+                          ? 'border-brand-500 bg-brand-50 shadow-sm'
+                          : 'border-gray-200 hover:border-brand-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-sm">{v.icon}</span>
+                      <span className={`text-[10px] font-semibold ${vocalType === v.id ? 'text-brand-700' : 'text-gray-600'}`}>{v.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Optional lyrics override */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Lyrics (optional)</p>
+                <textarea
+                  value={songLyrics}
+                  onChange={(e) => setSongLyrics(e.target.value)}
+                  placeholder={"Leave blank — AI generates lyrics from your script\n\nOr paste your own:\n[Verse 1]\nYour lyrics here...\n\n[Chorus]\n..."}
+                  rows={5}
+                  className="w-full text-xs px-3 py-2 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-brand-400 font-mono"
+                />
+                <p className="text-[10px] text-gray-400">Leave blank for AI-generated lyrics. Add [Verse], [Chorus], [Bridge] tags for structure.</p>
+              </div>
+
+              {/* Song result player */}
+              {songResult?.versionId && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold text-green-700">
+                    Song ready · {songResult.songStyle ?? songStyle} · {songResult.vocalType ?? vocalType}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <MediaPlayer versionId={songResult.versionId} kind="audio" />
+                    <button
+                      onClick={async () => {
+                        const res = await api.media.versionFile(songResult.versionId!);
+                        await downloadBlob(res, 'audio-song');
+                      }}
+                      className="flex items-center gap-1 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 shrink-0"
+                      title="Download song"
+                    >
+                      <Download className="w-3 h-3" />
                     </button>
                   </div>
-                ) : (
-                  <p className="text-[11px] text-green-700 font-medium flex items-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    ElevenLabs key saved — your next generation will use it.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+                  {songResult.notes && <p className="text-[10px] text-gray-400">{songResult.notes}</p>}
+                </div>
+              )}
+
+              <button
+                onClick={() => enqueue.mutate({
+                  type: 'FULL_PRODUCTION',
+                  payload: {
+                    scope: 'SONG',
+                    regenerate: ['SONG_GENERATE'],
+                    songStyle,
+                    vocalType,
+                    lyrics: songLyrics.trim() || undefined,
+                  },
+                })}
+                disabled={busy}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-violet-600 text-white rounded-full hover:bg-violet-700 disabled:opacity-40 transition-colors shadow-sm"
+              >
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Music className="w-3.5 h-3.5" />}
+                {songResult?.versionId ? 'Regenerate Audio Song' : 'Generate Audio Song'}
+              </button>
+              <p className="text-[10px] text-gray-400">Powered by Suno · AI-sung vocal track with melody and style</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -1670,10 +1935,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
       {voiceMode === 'record' && (
         <div className="space-y-3">
           {/* Sub-mode pills */}
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 flex-wrap">
             {([
-              ['full', '📖', 'Record Full Script'],
-              ['ref', '🎤', 'Voice Reference'],
+              ['full',      '📖', 'Record Full Script'],
+              ['character', '🎭', 'Per Character'],
+              ['ref',       '🎤', 'Voice Reference'],
             ] as const).map(([sub, emoji, label]) => (
               <button
                 key={sub}
@@ -1770,6 +2036,61 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Per Character recording */}
+          {yourVoiceMode === 'character' && (
+            <div className="space-y-3">
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Record yourself speaking as each character. AI uses your voice for that character&apos;s dialogue throughout the narration.
+              </p>
+              {detectedCharacters.length > 0 ? (
+                <div className="space-y-2">
+                  {detectedCharacters.map((char, i) => {
+                    const color = CHARACTER_COLORS[i % CHARACTER_COLORS.length]!;
+                    return (
+                      <div key={char.name} className={`${color.bg} ${color.border} border rounded-xl p-3 space-y-2`}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${color.chip}`}>
+                            <span className="text-xs font-bold">{char.name[0]}</span>
+                          </div>
+                          <div>
+                            <p className={`text-xs font-semibold ${color.text}`}>{char.name}</p>
+                            {char.description && <p className="text-[10px] text-gray-500">{char.description}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-500 text-white rounded-full hover:bg-red-600"
+                            onClick={() => { void startRecording(); }}
+                          >
+                            <Mic className="w-3 h-3" />
+                            Record as {char.name}
+                          </button>
+                          <p className="text-[10px] text-gray-400">Read {char.name}&apos;s lines in your natural voice</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-[10px] text-gray-400">
+                    After recording each character, use &ldquo;Record Full Script&rdquo; tab to record the full narration with all characters.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 space-y-1.5">
+                  <p className="text-xs font-semibold text-amber-800">Run Character Cast first</p>
+                  <p className="text-[11px] text-amber-700 leading-relaxed">
+                    Switch to AI Voice &rarr; Character Cast and generate once. Character cards appear here after AI detects the characters in your script.
+                  </p>
+                  <button
+                    onClick={() => { setVoiceMode('ai'); setAiVoiceTab('character'); }}
+                    className="flex items-center gap-1 text-xs font-semibold text-amber-700 hover:underline"
+                  >
+                    Go to Character Cast &rarr;
+                  </button>
                 </div>
               )}
             </div>
@@ -2236,9 +2557,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             title="Voice over"
             subtitle={voiceResult ? `${voiceResult.provider} · ${Math.round((voiceResult.durationMs ?? 0) / 1000)}s` : 'Narrate the script'}
             status={voiceResult ? 'done' : scriptDone ? 'ready' : 'locked'}
-            running={isRunning(jobs, 'VOICE_SPEC', 'VOICE_GENERATE')}
-            failed={latestFailure(jobs, 'VOICE_SPEC', 'VOICE_GENERATE')}
-            updatedAt={completedAt(jobs, 'VOICE_GENERATE')}
+            running={isRunning(jobs, 'VOICE_SPEC', 'VOICE_GENERATE', 'SONG_GENERATE')}
+            failed={latestFailure(jobs, 'VOICE_SPEC', 'VOICE_GENERATE', 'SONG_GENERATE')}
+            updatedAt={completedAt(jobs, 'VOICE_GENERATE') ?? completedAt(jobs, 'SONG_GENERATE')}
             selected={expanded === 'voice'}
             hasDetail={true}
             onToggle={() => toggle('voice')}

@@ -37,6 +37,11 @@ export interface MusicRequest {
   durationSecs: number;
   prompt?: string;
   emotionalArc?: string;
+  /** Song mode: AI generates a vocal track instead of instrumental background music */
+  songMode?: boolean;
+  lyrics?: string;
+  songStyle?: string;
+  vocalType?: string;
 }
 
 export interface SceneVideoRequest {

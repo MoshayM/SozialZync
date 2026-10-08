@@ -30,15 +30,25 @@ function piHeaders(): Record<string, string> {
   };
 }
 
-function buildPrompt(req: MusicRequest): string {
-  if (req.prompt?.trim()) return req.prompt;
+function buildPrompt(req: MusicRequest): { prompt: string; tags?: string; customMode: boolean } {
+  if (req.songMode && req.lyrics?.trim()) {
+    const style = req.songStyle ?? req.genre ?? 'pop';
+    const vocal = req.vocalType ?? 'female-solo';
+    const tags = `${style}, ${req.mood ?? 'emotional'}, ${vocal.replace('-', ' ')} vocals`;
+    // Suno custom mode: prompt = lyrics, tags = style
+    return { prompt: req.lyrics.slice(0, 3000), tags, customMode: true };
+  }
+  if (req.prompt?.trim()) return { prompt: req.prompt, customMode: false };
   const energyWords: Record<MusicRequest['energy'], string> = {
     low:     'calm, soft, gentle',
     medium:  'moderate, flowing, relaxed',
     high:    'energetic, upbeat, driving',
     dynamic: 'cinematic, epic, building',
   };
-  return `${req.genre} ${req.mood} background music, ${energyWords[req.energy]}, ${req.bpm} BPM, no vocals, instrumental`;
+  return {
+    prompt: `${req.genre} ${req.mood} background music, ${energyWords[req.energy]}, ${req.bpm} BPM, no vocals, instrumental`,
+    customMode: false,
+  };
 }
 
 /**
@@ -54,19 +64,31 @@ export class SunoMusicAdapter implements MusicAdapter {
   }
 
   async compose(req: MusicRequest): Promise<GeneratedMedia> {
-    const duration = Math.min(Math.max(req.durationSecs, 15), 120);
-    const prompt = buildPrompt(req);
+    const duration = Math.min(Math.max(req.durationSecs, 15), req.songMode ? 240 : 120);
+    const { prompt, tags, customMode } = buildPrompt(req);
+
+    const body = customMode
+      ? {
+          model: 'chirp-v4-5',
+          mv: 'chirp-v4-5',
+          custom_mode: true,
+          prompt,
+          tags,
+          audio_duration: duration,
+          make_instrumental: false,
+        }
+      : {
+          prompt,
+          model: 'chirp-v4-5',
+          audio_duration: duration,
+          make_instrumental: true,
+          mv: 'chirp-v4-5',
+        };
 
     const startRes = await fetch(`${BASE_URL}/music`, {
       method: 'POST',
       headers: piHeaders(),
-      body: JSON.stringify({
-        prompt,
-        model: 'chirp-v4-5',
-        audio_duration: duration,
-        make_instrumental: true,
-        mv: 'chirp-v4-5',
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!startRes.ok) {
@@ -112,7 +134,7 @@ export class SunoMusicAdapter implements MusicAdapter {
       ext: 'mp3',
       durationMs: duration * 1000,
       model: 'suno-chirp-v4-5',
-      notes: `prompt: "${prompt}"`,
+      notes: customMode ? `song: ${tags ?? ''}` : `prompt: "${prompt.slice(0, 100)}"`,
     };
   }
 }
