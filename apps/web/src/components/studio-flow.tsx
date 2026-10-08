@@ -273,6 +273,7 @@ function StatusBadge({ state, updatedAt }: { state: 'done' | 'running' | 'failed
 function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | 'video' }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retries, setRetries] = useState(0);
   const [loadError, setLoadError] = useState(false);
 
   async function load() {
@@ -288,21 +289,29 @@ function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | '
     }
   }
 
-  // Auto-load on mount — don't require the user to click Play first
+  // Auto-load on mount and retry once after a short delay (handles cold-start
+  // race where the file is being written to disk for the first time).
   useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!loadError || retries >= 1) return;
+    const t = setTimeout(() => { setRetries((r) => r + 1); void load(); }, 1500);
+    return () => clearTimeout(t);
+  }, [loadError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!url) {
     return (
       <span className="flex items-center gap-2">
         <button
-          onClick={() => void load()}
+          onClick={() => { setRetries(0); void load(); }}
           disabled={loading}
           className="flex items-center gap-1.5 text-xs font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 hover:bg-brand-50 disabled:opacity-50"
         >
           {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
           {loading ? 'Loading…' : loadError ? 'Retry' : kind === 'audio' ? 'Play audio' : 'Play video'}
         </button>
-        {loadError && <span className="text-[11px] text-amber-600 text-xs">File unavailable — regenerate to restore</span>}
+        {loadError && retries >= 1 && (
+          <span className="text-[11px] text-amber-600">File not available — click Regenerate to rebuild it</span>
+        )}
       </span>
     );
   }
@@ -617,7 +626,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     try {
       const form = new FormData();
       form.append('audio', refBlob, 'voice-sample.webm');
-      const res = await fetch('/api/proxy/voice/clone', {
+      const res = await fetch(`/api/proxy/voice/clone?projectId=${encodeURIComponent(projectId)}`, {
         method: 'POST',
         body: form,
         headers: { Authorization: `Bearer ${localStorage.getItem('cf_token') ?? ''}` },
@@ -2268,7 +2277,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 space-y-1">
                 <p className="text-xs font-semibold text-violet-800">How it works</p>
                 <p className="text-[11px] text-gray-600 leading-relaxed">
-                  Record or import a short voice sample (5–30 s). AI clones your voice style and generates the full narration with natural emotion and pacing.
+                  {cloneAvailability?.provider === 'in-app'
+                    ? 'Record a 10–30 s voice sample. The AI analyses your pitch and style, generates the full narration, then pitch-matches it to your voice — no external API needed.'
+                    : 'Record or import a short voice sample (5–30 s). AI clones your voice style and generates the full narration with natural emotion and pacing.'}
                 </p>
               </div>
 
@@ -2338,7 +2349,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 {clonedVoiceId && !cloneError && (
                   <p className="text-[11px] text-green-700 font-medium flex items-center gap-1">
                     <CheckCircle className="w-3.5 h-3.5" />
-                    Voice cloned — narration queued
+                    {cloneAvailability?.provider === 'in-app' ? 'Voice sample uploaded — narration queued' : 'Voice cloned — narration queued'}
                   </p>
                 )}
                 {cloneError && (
@@ -2372,7 +2383,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold bg-brand-600 text-white rounded-full hover:bg-brand-700 disabled:opacity-40 transition-colors shadow-sm"
                 >
                   {cloneLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                  {cloneLoading ? 'Generating narration…' : (clonedVoiceId && !cloneError) ? 'Regenerate' : 'Clone Voice & Generate'}
+                  {cloneLoading ? 'Generating narration…' : (clonedVoiceId && !cloneError) ? 'Regenerate' : cloneAvailability?.provider === 'in-app' ? 'Match My Voice & Generate' : 'Clone Voice & Generate'}
                 </button>
                 {!refBlob && (
                   <p className="text-[11px] text-gray-400">Record or import a sample above first</p>

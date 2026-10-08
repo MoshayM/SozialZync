@@ -37,7 +37,9 @@ import { ReplicateMusicAdapter } from './adapters/music-replicate.adapter';
 import { StabilityMusicAdapter } from './adapters/music-stability.adapter';
 import { UdioMusicAdapter } from './adapters/music-udio.adapter';
 import { validateMediaBuffer, formatIssues, type MediaValidationKind } from './media-validation.util';
-import { mixAudioTracks } from './adapters/ffmpeg.util';
+import { mixAudioTracks, toTempFile } from './adapters/ffmpeg.util';
+import { analyzeReferenceVoice, applyVoiceStyleTransfer } from './adapters/voice-style-transfer.util';
+import type { VoiceSpecOutput } from '@cf/shared';
 
 export interface StoredAsset {
   assetId: string;
@@ -161,25 +163,48 @@ export class MediaService {
     const requestHash = createHash('sha256')
       .update(`${kind}:${label}:${adapters[0]!.name}:${JSON.stringify(req)}`)
       .digest('hex');
-    const cachedVersion = await this.prisma.assetVersion.findFirst({
+    // Select only scalar metadata — never load the data blob in cache checks.
+    const cachedMeta = await this.prisma.assetVersion.findFirst({
       where: {
         params: { path: ['requestHash'], equals: requestHash },
         asset: { projectId, kind, deletedAt: null, status: { in: ['READY', 'ACCEPTED'] } },
       },
-      include: { asset: true },
+      select: { id: true, assetId: true, r2Key: true, provider: true, durationMs: true, sizeBytes: true },
       orderBy: { createdAt: 'desc' },
     });
-    if (cachedVersion?.r2Key && this.storage.exists(cachedVersion.r2Key)) {
-      return {
-        assetId: cachedVersion.assetId,
-        versionId: cachedVersion.id,
-        key: cachedVersion.r2Key,
-        absPath: this.storage.resolve(cachedVersion.r2Key),
-        provider: cachedVersion.provider ?? 'unknown',
-        durationMs: cachedVersion.durationMs ?? undefined,
-        sizeBytes: Number(cachedVersion.sizeBytes),
-        cached: true,
-      };
+    if (cachedMeta?.r2Key) {
+      if (this.storage.exists(cachedMeta.r2Key)) {
+        return {
+          assetId: cachedMeta.assetId,
+          versionId: cachedMeta.id,
+          key: cachedMeta.r2Key,
+          absPath: this.storage.resolve(cachedMeta.r2Key),
+          provider: cachedMeta.provider ?? 'unknown',
+          durationMs: cachedMeta.durationMs ?? undefined,
+          sizeBytes: Number(cachedMeta.sizeBytes),
+          cached: true,
+        };
+      }
+      // Disk file missing (ephemeral restart) — restore from DB blob if present.
+      // This keeps the versionId stable across restarts so downstream job results
+      // remain valid and the character-cast player doesn't show "file unavailable".
+      const withData = await this.prisma.assetVersion.findUnique({
+        where: { id: cachedMeta.id },
+        select: { data: true },
+      });
+      if (withData?.data) {
+        await this.storage.put(cachedMeta.r2Key, Buffer.from(withData.data)).catch(() => undefined);
+        return {
+          assetId: cachedMeta.assetId,
+          versionId: cachedMeta.id,
+          key: cachedMeta.r2Key,
+          absPath: this.storage.resolve(cachedMeta.r2Key),
+          provider: cachedMeta.provider ?? 'unknown',
+          durationMs: cachedMeta.durationMs ?? undefined,
+          sizeBytes: Number(cachedMeta.sizeBytes),
+          cached: true,
+        };
+      }
     }
 
     const asset = await this.prisma.asset.create({
@@ -233,6 +258,7 @@ export class MediaService {
             } as never,
             sizeBytes: BigInt(sizeBytes),
             durationMs: media.durationMs ?? null,
+            data: sizeBytes < 8 * 1024 * 1024 ? media.buffer : undefined,
           },
         });
         await this.prisma.asset.update({
@@ -313,6 +339,7 @@ export class MediaService {
           } as never,
           sizeBytes: BigInt(sizeBytes),
           durationMs: durationMs ?? null,
+          data: sizeBytes < 8 * 1024 * 1024 ? buffer : undefined,
         },
       });
 
@@ -331,6 +358,123 @@ export class MediaService {
         sizeBytes,
         cached: false,
         notes: 'Voice narration + royalty-free background music (FFmpeg amix)',
+      };
+    } finally {
+      await fsPromises.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+    }
+  }
+
+  /**
+   * Generate narration via best available TTS then apply FFmpeg pitch-style
+   * transfer to loosely match a user-recorded reference voice sample.
+   * The referenceVersionId is the AssetVersion.id of the stored reference audio
+   * (stored by VoiceService.cloneVoice as "local:<versionId>").
+   */
+  async generateVoiceWithStyleReference(
+    projectId: string,
+    narrationText: string,
+    spec: VoiceSpecOutput | null,
+    referenceVersionId: string,
+  ): Promise<StoredAsset> {
+    // 1. Resolve reference audio
+    const refVer = await this.prisma.assetVersion.findUnique({
+      where: { id: referenceVersionId },
+      select: { r2Key: true, data: true },
+    });
+    if (!refVer?.r2Key) throw new Error(`Voice reference asset not found: ${referenceVersionId}`);
+
+    // Restore from DB blob if disk file is missing
+    let refOnDisk = this.storage.exists(refVer.r2Key);
+    if (!refOnDisk && refVer.data) {
+      await this.storage.put(refVer.r2Key, refVer.data);
+      refOnDisk = true;
+    }
+    if (!refOnDisk) throw new Error('Voice reference file not available — upload your voice sample again.');
+
+    const refPath = this.storage.resolve(refVer.r2Key);
+
+    // 2. Analyze reference voice characteristics
+    const refStats = await analyzeReferenceVoice(refPath);
+
+    // 3. Generate TTS narration with best available voice adapter
+    const ttsAdapters = this.orderedAdapters(this.voice);
+    if (ttsAdapters.length === 0) throw new Error('No TTS voice provider available.');
+
+    let ttsBuffer: Buffer | null = null;
+    let ttsDurationMs: number | undefined;
+    let ttsExt = 'mp3';
+    for (const adapter of ttsAdapters) {
+      try {
+        const media = await adapter.synthesize({
+          text: narrationText,
+          voiceId: spec?.sections?.[0]?.voiceId,
+          speed: spec?.sections?.[0]?.speed,
+        });
+        ttsBuffer = media.buffer;
+        ttsDurationMs = media.durationMs;
+        ttsExt = media.ext;
+        break;
+      } catch {
+        // try next adapter
+      }
+    }
+    if (!ttsBuffer) throw new Error('TTS generation failed for all available adapters.');
+
+    // 4. Apply pitch-style transfer
+    const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'cf-vstyle-'));
+    const ttsPath = path.join(tmpDir, `tts.${ttsExt}`);
+    const styledPath = path.join(tmpDir, 'styled.mp3');
+    try {
+      await fsPromises.writeFile(ttsPath, ttsBuffer);
+      await applyVoiceStyleTransfer(ttsPath, refStats, styledPath);
+      const styledBuffer = await fsPromises.readFile(styledPath);
+
+      // 5. Store as new VOICE asset
+      const asset = await this.prisma.asset.create({
+        data: { projectId, kind: 'VOICE', label: 'Narration (Voice Style Match)', status: 'GENERATING' },
+      });
+      const key = `assets/${projectId}/${asset.id}/v1/styled.mp3`;
+      const { absPath, sizeBytes } = await this.storage.put(key, styledBuffer);
+      const contentHash = createHash('sha256').update(styledBuffer).digest('hex');
+
+      const version = await this.prisma.assetVersion.create({
+        data: {
+          assetId: asset.id,
+          version: 1,
+          r2Key: key,
+          contentHash,
+          provider: 'in-app-style-transfer',
+          model: 'ffmpeg-pitch',
+          prompt: { narrationText: narrationText.slice(0, 200), referenceVersionId } as never,
+          params: { zcrRate: refStats.zcrRate, rmsDb: refStats.rmsDb } as never,
+          provenance: {
+            provider: 'in-app-style-transfer',
+            model: 'ffmpeg-pitch',
+            generatedAt: new Date().toISOString(),
+            license: 'generated-in-app-royalty-free',
+            notes: 'TTS narration pitch-matched to user voice reference via FFmpeg asetrate',
+          } as never,
+          sizeBytes: BigInt(sizeBytes),
+          durationMs: ttsDurationMs ?? null,
+          data: sizeBytes < 8 * 1024 * 1024 ? styledBuffer : undefined,
+        },
+      });
+
+      await this.prisma.asset.update({
+        where: { id: asset.id },
+        data: { status: 'READY', currentVersionId: version.id },
+      });
+
+      return {
+        assetId: asset.id,
+        versionId: version.id,
+        key,
+        absPath,
+        provider: 'in-app-style-transfer',
+        durationMs: ttsDurationMs,
+        sizeBytes,
+        cached: false,
+        notes: 'Voice style matched to your recording using in-app pitch analysis (FFmpeg)',
       };
     } finally {
       await fsPromises.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);

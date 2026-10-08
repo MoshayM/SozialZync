@@ -571,6 +571,7 @@ model AssetVersion {
   sizeBytes      BigInt   @default(0)
   durationMs     Int?
   wordTimestamps Json?
+  data           Bytes?
   createdAt      DateTime @default(now())
 
   asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)

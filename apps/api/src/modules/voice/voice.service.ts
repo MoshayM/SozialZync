@@ -1,9 +1,12 @@
-import { Injectable, InternalServerErrorException, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { callAIStructured } from '@cf/shared';
 import { VoiceSpecOutputSchema, type VoiceSpecOutput } from '@cf/shared';
 import type { ScriptOutput } from '@cf/shared';
 import { buildEnhancedVoiceSystemPrompt } from '@cf/shared';
 import { z } from 'zod';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { StorageService } from '../media/storage.service';
 
 const VOICE_SYSTEM = buildEnhancedVoiceSystemPrompt(
   `You are a professional voice direction specialist for YouTube narration. Create detailed TTS specifications. Respond only with valid JSON.`,
@@ -12,6 +15,11 @@ const VOICE_SYSTEM = buildEnhancedVoiceSystemPrompt(
 @Injectable()
 export class VoiceService {
   private readonly logger = new Logger(VoiceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /** Detect character names from script sections (e.g. "NARRATOR:", "HOST:", "GUEST:"). */
   private detectCharacters(script: ScriptOutput): string[] {
@@ -170,63 +178,60 @@ export class VoiceService {
     return { voices };
   }
 
-  async cloneVoice(audioBuffer: Buffer, mimeType: string): Promise<{ voiceId: string; name: string }> {
-    const apiKey = process.env['ELEVENLABS_API_KEY'];
-    if (!apiKey) {
-      throw new ServiceUnavailableException('Voice cloning requires an ElevenLabs API key — contact your administrator to enable it.');
-    }
-    const name = `SZK-clone-${Date.now()}`;
-    const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('mp3') ? 'mp3' : mimeType.includes('wav') ? 'wav' : 'webm';
-    const form = new FormData();
-    form.append('name', name);
-    form.append('files', new Blob([audioBuffer], { type: mimeType }), `sample.${ext}`);
-    const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
-      method: 'POST',
-      headers: { 'xi-api-key': apiKey },
-      body: form as never,
-      signal: AbortSignal.timeout(30_000),
+  /**
+   * In-app voice style cloning — no external API required.
+   * Stores the reference audio as an asset in the user's project and returns a
+   * "local:<versionId>" voice ID. The supervisor's VOICE_GENERATE stage
+   * detects this prefix and applies FFmpeg pitch-style transfer.
+   */
+  async cloneVoice(audioBuffer: Buffer, mimeType: string, projectId: string): Promise<{ voiceId: string; name: string }> {
+    const ext = mimeType.includes('webm') ? 'webm'
+      : mimeType.includes('mp3') ? 'mp3'
+      : mimeType.includes('wav') ? 'wav'
+      : 'webm';
+
+    const asset = await this.prisma.asset.create({
+      data: { projectId, kind: 'VOICE', label: 'Voice Reference Sample', status: 'GENERATING' },
     });
-    if (!res.ok) {
-      const body = await res.text();
-      let detail = `ElevenLabs returned ${res.status}`;
-      try {
-        const parsed = JSON.parse(body) as { detail?: { message?: string; status?: string } | string };
-        const d = parsed.detail;
-        if (typeof d === 'object' && d?.message) detail = d.message;
-        else if (typeof d === 'string') detail = d;
-        else detail = body.slice(0, 300);
-      } catch { detail = body.slice(0, 300); }
-      throw new InternalServerErrorException(detail);
-    }
-    const data = await res.json() as { voice_id: string };
-    this.logger.log(`Voice cloned — voice_id="${data.voice_id}" name="${name}"`);
-    return { voiceId: data.voice_id, name };
+
+    const key = `assets/${projectId}/${asset.id}/v1/reference.${ext}`;
+    const { sizeBytes } = await this.storage.put(key, audioBuffer);
+    const contentHash = createHash('sha256').update(audioBuffer).digest('hex');
+
+    const version = await this.prisma.assetVersion.create({
+      data: {
+        assetId: asset.id,
+        version: 1,
+        r2Key: key,
+        contentHash,
+        provider: 'user-upload',
+        model: 'reference-sample',
+        prompt: { source: 'user-voice-clone-upload' } as never,
+        params: {} as never,
+        provenance: {
+          provider: 'user-upload',
+          model: 'reference-sample',
+          generatedAt: new Date().toISOString(),
+          license: 'user-recorded',
+          notes: 'Voice reference sample uploaded by user for in-app style matching',
+        } as never,
+        sizeBytes: BigInt(sizeBytes),
+        data: audioBuffer.length < 8 * 1024 * 1024 ? audioBuffer : undefined,
+      },
+    });
+
+    await this.prisma.asset.update({
+      where: { id: asset.id },
+      data: { status: 'READY', currentVersionId: version.id },
+    });
+
+    this.logger.log(`Voice reference stored — versionId="${version.id}" size=${sizeBytes}B`);
+    return { voiceId: `local:${version.id}`, name: 'Your Voice (Style Match)' };
   }
 
-  async checkCloneAvailability(): Promise<{ available: boolean; reason?: string; provider?: string }> {
-    const apiKey = process.env['ELEVENLABS_API_KEY'];
-    if (!apiKey) {
-      return { available: false, reason: 'ELEVENLABS_API_KEY is not configured on this server. Ask your administrator to add it.' };
-    }
-    try {
-      const res = await fetch('https://api.elevenlabs.io/v1/user/subscription', {
-        headers: { 'xi-api-key': apiKey },
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (!res.ok) {
-        return { available: false, reason: `ElevenLabs authentication failed (${res.status}) — check your API key.` };
-      }
-      const sub = await res.json() as { can_use_instant_voice_cloning?: boolean; tier?: string; status?: string };
-      if (sub.can_use_instant_voice_cloning === false) {
-        return {
-          available: false,
-          reason: `Your ElevenLabs plan (${sub.tier ?? 'current plan'}) does not include Instant Voice Cloning. Upgrade to Creator or higher at elevenlabs.io/subscription.`,
-        };
-      }
-      return { available: true, provider: 'elevenlabs' };
-    } catch {
-      return { available: false, reason: 'Could not reach ElevenLabs to verify cloning capability. Check server connectivity.' };
-    }
+  /** In-app voice style cloning is always available — no external API needed. */
+  checkCloneAvailability(): Promise<{ available: boolean; reason?: string; provider?: string }> {
+    return Promise.resolve({ available: true, provider: 'in-app' });
   }
 
   async autoSelectVoice(scriptText: string): Promise<{
