@@ -258,7 +258,7 @@ export class MediaService {
             } as never,
             sizeBytes: BigInt(sizeBytes),
             durationMs: media.durationMs ?? null,
-            data: sizeBytes < 8 * 1024 * 1024 ? media.buffer : undefined,
+            data: sizeBytes < 8 * 1024 * 1024 ? (media.buffer as unknown as Uint8Array<ArrayBuffer>) : null,
           },
         });
         await this.prisma.asset.update({
@@ -386,7 +386,7 @@ export class MediaService {
     // Restore from DB blob if disk file is missing
     let refOnDisk = this.storage.exists(refVer.r2Key);
     if (!refOnDisk && refVer.data) {
-      await this.storage.put(refVer.r2Key, refVer.data);
+      await this.storage.put(refVer.r2Key, Buffer.from(refVer.data));
       refOnDisk = true;
     }
     if (!refOnDisk) throw new Error('Voice reference file not available — upload your voice sample again.');

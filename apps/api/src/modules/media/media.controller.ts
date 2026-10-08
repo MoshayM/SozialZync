@@ -531,7 +531,10 @@ export class MediaController {
   ): Promise<StreamableFile> {
     const version = await this.prisma.assetVersion.findUnique({
       where: { id: versionId },
-      include: { asset: { include: { project: { select: { userId: true } } } } },
+      select: {
+        r2Key: true,
+        asset: { select: { project: { select: { userId: true } } } },
+      },
     });
     // Signature access proved ownership at issuance; JWT access proves it here.
     // (The JWT payload carries the user id in `sub` — there is no `id` field.)
@@ -553,7 +556,25 @@ export class MediaController {
     }
     // Local storage driver — ensure file is present then stream from disk
     const available = await this.storage.ensure(version.r2Key);
-    if (!available) throw new NotFoundException('Asset file not found');
+    if (!available) {
+      // Disk file missing (ephemeral Railway restart) — try DB blob fallback
+      const withData = await this.prisma.assetVersion.findUnique({
+        where: { id: versionId },
+        select: { data: true, r2Key: true },
+      });
+      if (withData?.data) {
+        // Write back to disk so subsequent requests hit the fast path
+        if (withData.r2Key) {
+          await this.storage.put(withData.r2Key, Buffer.from(withData.data)).catch(() => undefined);
+        }
+        const { Readable } = await import('stream');
+        return new StreamableFile(Readable.from(withData.data), {
+          type: mimeFor(name),
+          disposition: `inline; filename="${name}"`,
+        });
+      }
+      throw new NotFoundException('Asset file not found');
+    }
     return new StreamableFile(this.storage.stream(version.r2Key), {
       type: mimeFor(name),
       disposition: `inline; filename="${name}"`,

@@ -216,7 +216,7 @@ export class VoiceService {
           notes: 'Voice reference sample uploaded by user for in-app style matching',
         } as never,
         sizeBytes: BigInt(sizeBytes),
-        data: audioBuffer.length < 8 * 1024 * 1024 ? audioBuffer : undefined,
+        data: audioBuffer.length < 8 * 1024 * 1024 ? (audioBuffer as unknown as Uint8Array<ArrayBuffer>) : null,
       },
     });
 
