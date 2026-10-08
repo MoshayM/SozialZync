@@ -556,7 +556,10 @@ export function CopilotPanel() {
   const [recording, setRecording]         = useState(false);
   const [micError, setMicError]           = useState<string|null>(null);
   const [serverStt, setServerStt]         = useState<boolean|null>(null);
-  const [lang]                            = useState<string>('en-US');
+  const [lang]                            = useState<string>(() => {
+    if (typeof navigator !== 'undefined') return navigator.language ?? 'en-US';
+    return 'en-US';
+  });
   const [speakingIdx, setSpeakingIdx]     = useState<number|null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ttsAvailable, setTtsAvailable]   = useState<boolean|null>(null);
@@ -1136,7 +1139,7 @@ export function CopilotPanel() {
       const res = await apiClient.post('/copilot/chat', {
         messages: nextMessages.slice(-10),
         inputMode: conversationRef.current ? 'voice' : 'text',
-        lang: 'en',
+        lang,
         ...(confirmedCommand ? { confirmedCommand } : {}),
         ...(!confirmedCommand && pending ? { pendingCommand: pending } : {}),
       }, { timeout: 90_000, signal: abortControllerRef.current.signal });

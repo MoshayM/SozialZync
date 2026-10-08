@@ -1839,6 +1839,7 @@ function AiEditDialog({
     }
     return -1;
   }, [messages]);
+  const [minimized, setMinimized] = useState(false);
 
   function toggleVoice() {
     if (listening) {
@@ -1997,16 +1998,12 @@ function AiEditDialog({
   ];
 
   return (
-    <div
-      className="fixed inset-0 z-[100] bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-[100] pointer-events-none" role="presentation">
       <div
         role="dialog"
-        aria-modal="true"
+        aria-modal="false"
         aria-label="AI edit assistant"
-        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-xl flex flex-col overflow-hidden h-dvh sm:h-auto sm:max-h-[90dvh] sm:min-h-[420px]"
+        className={`absolute pointer-events-auto flex flex-col overflow-hidden rounded-2xl shadow-2xl border border-gray-200/60 bg-white/95 backdrop-blur-xl left-3 right-3 bottom-20 sm:bottom-6 sm:left-auto sm:right-5 sm:w-[400px] transition-all duration-200${!minimized ? ' max-h-[62dvh] sm:max-h-[72vh]' : ''}`}
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
@@ -2034,11 +2031,20 @@ function AiEditDialog({
           >
             {autoSpeak ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
           </button>
+          <button
+            onClick={() => setMinimized((m) => !m)}
+            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 shrink-0"
+            title={minimized ? 'Expand panel' : 'Collapse panel'}
+            aria-label={minimized ? 'Expand panel' : 'Collapse panel'}
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200${minimized ? ' rotate-180' : ''}`} />
+          </button>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
 
+        {!minimized && <>
         {/* Chat area */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
           {/* Empty state with quick chips */}
@@ -2179,6 +2185,7 @@ function AiEditDialog({
             </button>
           </div>
         </div>
+        </>}
       </div>
     </div>
   );
