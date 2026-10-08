@@ -163,7 +163,7 @@ test.describe('AI Edit — floating glass panel', () => {
     await page.screenshot({ path: 'e2e/ai-edit-float-mobile.png' });
   });
 
-  test('collapsed panel shows compact input bar and mic/speaker buttons', async ({ page }) => {
+  test('collapsed panel shows voice status bar — no text input, mic/speaker in header', async ({ page }) => {
     await goToEditor(page);
     await page.waitForLoadState('networkidle');
     await openPanel(page);
@@ -173,17 +173,20 @@ test.describe('AI Edit — floating glass panel', () => {
     await d.getByRole('button', { name: /collapse panel/i }).click();
     await expect(d.locator('textarea')).not.toBeVisible({ timeout: 3_000 });
 
-    // Compact single-line input must be visible
-    await expect(d.locator('input[placeholder*="message"]')).toBeVisible({ timeout: 3_000 });
+    // Compact text input must NOT be visible (replaced by pure voice mode)
+    await expect(d.locator('input[placeholder*="message"]')).not.toBeVisible({ timeout: 2_000 });
 
     // Mic and speaker buttons must be in the header (always accessible)
     await expect(d.getByRole('button', { name: /voice input/i })).toBeVisible();
     await expect(d.getByRole('button', { name: /toggle voice replies/i })).toBeVisible();
 
-    // Send button must be visible next to the compact input
-    await expect(d.getByRole('button', { name: /send/i })).toBeVisible();
+    // Voice status bar shows idle hint text
+    await expect(d.getByText(/tap mic to speak/i)).toBeVisible({ timeout: 3_000 });
 
-    await page.screenshot({ path: 'e2e/ai-edit-float-collapsed-input.png' });
+    // AI Edit title still visible
+    await expect(d.getByText('AI Edit')).toBeVisible();
+
+    await page.screenshot({ path: 'e2e/ai-edit-float-collapsed-voice.png' });
   });
 
   test('Escape key still closes the floating panel', async ({ page }) => {

@@ -1856,7 +1856,7 @@ function AiEditDialog({
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = false;
-    rec.lang = 'en-US';
+    rec.lang = (typeof navigator !== 'undefined' ? navigator.language : null) ?? 'en-US';
     rec.onresult = (e) => {
       const parts: string[] = [];
       for (let i = 0; i < e.results.length; i++) {
@@ -1879,7 +1879,8 @@ function AiEditDialog({
     synth.cancel();
     setSpeaking(true);
     synthRef.current = synth;
-    const u = new SpeechSynthesisUtterance(text.replace(/[^\x00-\x7F]/g, ' '));
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = (typeof navigator !== 'undefined' ? navigator.language : null) ?? 'en-US';
     u.rate = 1.05;
     u.onend = () => setSpeaking(false);
     u.onerror = () => setSpeaking(false);
@@ -2013,7 +2014,7 @@ function AiEditDialog({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-900 leading-tight">AI Edit</p>
-            <p className="text-[10px] text-gray-400 truncate">{binSummary}</p>
+            {!minimized && <p className="text-[10px] text-gray-400 truncate">{binSummary}</p>}
           </div>
           {messages.length > 0 && (
             <button
@@ -2054,26 +2055,33 @@ function AiEditDialog({
           </button>
         </div>
 
-        {/* Compact interaction bar — visible only when collapsed */}
+        {/* Voice status bar — visible only when collapsed */}
         {minimized && (
-          <div className="border-t border-gray-100 px-3 pb-3 pt-2 flex gap-1.5 items-center">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); }
-              }}
-              placeholder={listening ? 'Listening…' : 'Type a message…'}
-              className="flex-1 min-w-0 text-sm border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-brand-400 bg-white/80"
-            />
-            <button
-              onClick={() => void submit()}
-              disabled={!input.trim() || busy}
-              className="flex items-center justify-center w-7 h-7 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-40 shrink-0"
-              aria-label="Send"
-            >
-              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
-            </button>
+          <div className="border-t border-gray-100 px-4 pb-3 pt-2.5 flex items-center gap-2 min-h-[44px]">
+            {listening ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                <span className="flex-1 text-xs text-red-600 font-medium">Listening…</span>
+              </>
+            ) : busy ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin shrink-0" />
+                <span className="flex-1 text-xs text-gray-500 font-medium">Processing…</span>
+              </>
+            ) : input.trim() ? (
+              <>
+                <span className="flex-1 text-xs text-gray-700 truncate">{input.trim()}</span>
+                <button
+                  onClick={() => void submit()}
+                  className="shrink-0 text-xs px-3 py-1.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium transition-colors"
+                  aria-label="Proceed with voice command"
+                >
+                  Proceed
+                </button>
+              </>
+            ) : (
+              <span className="flex-1 text-xs text-gray-400">Tap mic to speak…</span>
+            )}
           </div>
         )}
 
