@@ -183,10 +183,6 @@ test.describe('AI Edit — floating glass panel', () => {
     // Voice status bar shows idle hint text
     await expect(d.getByText(/tap mic to speak/i)).toBeVisible({ timeout: 3_000 });
 
-    // Language selector pills must be visible
-    await expect(d.getByRole('button', { name: 'EN' })).toBeVisible({ timeout: 3_000 });
-    await expect(d.getByRole('button', { name: 'TA' })).toBeVisible({ timeout: 3_000 });
-
     // AI Edit title still visible
     await expect(d.getByText('AI Edit')).toBeVisible();
 

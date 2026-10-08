@@ -1772,6 +1772,28 @@ function StatusTray({
 
 // ── AI Edit Dialog ────────────────────────────────────────────────────────────
 
+// Maps spoken/typed language names → BCP-47 locale codes for STT/TTS auto-switch.
+// Triggered when user says "listen in Tamil", "reply in Hindi", "switch to Chinese", etc.
+const LANG_DETECT_MAP: [RegExp, string][] = [
+  [/\b(tamil|தமிழ்)\b/i, 'ta-IN'],
+  [/\b(hindi|हिंदी)\b/i, 'hi-IN'],
+  [/\b(chinese|mandarin|中文|普通话)\b/i, 'zh-CN'],
+  [/\b(japanese|日本語)\b/i, 'ja-JP'],
+  [/\b(korean|한국어)\b/i, 'ko-KR'],
+  [/\b(german|deutsch)\b/i, 'de-DE'],
+  [/\b(french|français)\b/i, 'fr-FR'],
+  [/\b(spanish|español)\b/i, 'es-ES'],
+  [/\b(arabic|عربي|العربية)\b/i, 'ar-SA'],
+  [/\b(english)\b/i, 'en-US'],
+];
+
+function autoDetectLang(text: string): string | null {
+  for (const [re, code] of LANG_DETECT_MAP) {
+    if (re.test(text)) return code;
+  }
+  return null;
+}
+
 const AUTO_EDIT_INSTRUCTION =
   'I just opened this video in the editor from Shorts Studio. ' +
   'Use the transcript (if available) to identify filler words, repeated phrases, and long pauses to cut. ' +
@@ -1943,6 +1965,9 @@ function AiEditDialog({
   const submit = async (text?: string, currentMessages?: ChatMsg[]) => {
     const prompt = (text ?? input).trim();
     if (!prompt || busy) return;
+    // Auto-switch STT/TTS language when user mentions a specific language
+    const detectedLang = autoDetectLang(prompt);
+    if (detectedLang) setSttLang(detectedLang);
     setInput('');
     setError(null);
     const updated: ChatMsg[] = [...(currentMessages ?? messages), { role: 'user', text: prompt }];
@@ -2064,48 +2089,33 @@ function AiEditDialog({
           </button>
         </div>
 
-        {/* Voice mode panel — visible only when collapsed */}
+        {/* Voice status bar — visible only when collapsed */}
         {minimized && (
-          <div className="border-t border-gray-100 px-4 pb-3 pt-2.5 flex flex-col gap-2">
-            {/* Language selector */}
-            <div className="flex gap-1 flex-wrap">
-              {([['en-US', 'EN'], ['ta-IN', 'TA'], ['hi-IN', 'HI'], ['zh-CN', 'ZH'], ['ja-JP', 'JA']] as [string, string][]).map(([code, label]) => (
+          <div className="border-t border-gray-100 px-4 pb-3 pt-2.5 flex items-center gap-2 min-h-[44px]">
+            {listening ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                <span className="flex-1 text-xs text-red-600 font-medium">Listening…</span>
+              </>
+            ) : busy ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin shrink-0" />
+                <span className="flex-1 text-xs text-gray-500 font-medium">Processing…</span>
+              </>
+            ) : input.trim() ? (
+              <>
+                <span className="flex-1 text-xs text-gray-700 truncate">{input.trim()}</span>
                 <button
-                  key={code}
-                  onClick={() => setSttLang(code)}
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${sttLang === code ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                  onClick={() => void submit()}
+                  className="shrink-0 text-xs px-3 py-1.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium transition-colors"
+                  aria-label="Proceed with voice command"
                 >
-                  {label}
+                  Proceed
                 </button>
-              ))}
-            </div>
-            {/* Status + Proceed */}
-            <div className="flex items-center gap-2 min-h-[28px]">
-              {listening ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                  <span className="flex-1 text-xs text-red-600 font-medium">Listening…</span>
-                </>
-              ) : busy ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin shrink-0" />
-                  <span className="flex-1 text-xs text-gray-500 font-medium">Processing…</span>
-                </>
-              ) : input.trim() ? (
-                <>
-                  <span className="flex-1 text-xs text-gray-700 truncate">{input.trim()}</span>
-                  <button
-                    onClick={() => void submit()}
-                    className="shrink-0 text-xs px-3 py-1.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium transition-colors"
-                    aria-label="Proceed with voice command"
-                  >
-                    Proceed
-                  </button>
-                </>
-              ) : (
-                <span className="flex-1 text-xs text-gray-400">Tap mic to speak…</span>
-              )}
-            </div>
+              </>
+            ) : (
+              <span className="flex-1 text-xs text-gray-400">Tap mic to speak…</span>
+            )}
           </div>
         )}
 
