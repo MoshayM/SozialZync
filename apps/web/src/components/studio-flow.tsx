@@ -712,7 +712,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     : undefined;
 
   const runningFoundation = isRunning(jobs, 'RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE', 'FULL_PRODUCTION');
-  const effectiveTopic = topic || customTopic;
+  const effectiveTopic = topic || pendingTopic || customTopic;
 
   const toggle = (key: string) => setExpanded((e) => (e === key ? null : key));
 
@@ -1105,9 +1105,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             {trends.map((t, i) => (
               <button
                 key={i}
-                onClick={() => chooseTopic(t.topic)}
+                onClick={() => setPendingTopic((p) => p === t.topic ? '' : t.topic)}
                 className={`text-xs px-2.5 py-1.5 rounded-full border transition-colors ${
-                  topic === t.topic ? 'bg-brand-600 text-white border-brand-600' : 'border-brand-200 text-brand-700 hover:bg-brand-50'
+                  (pendingTopic === t.topic || (topic === t.topic && !pendingTopic)) ? 'bg-brand-600 text-white border-brand-600' : 'border-brand-200 text-brand-700 hover:bg-brand-50'
                 }`}
               >
                 {t.topic}
@@ -1122,9 +1122,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               {growthTopics.map((g, i) => (
                 <button
                   key={i}
-                  onClick={() => chooseTopic(g.topic)}
+                  onClick={() => setPendingTopic((p) => p === g.topic ? '' : g.topic)}
                   className={`text-xs px-2.5 py-1.5 rounded-full border transition-colors ${
-                    topic === g.topic ? 'bg-brand-600 text-white border-brand-600' : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+                    (pendingTopic === g.topic || (topic === g.topic && !pendingTopic)) ? 'bg-brand-600 text-white border-brand-600' : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
                   }`}
                 >
                   {g.topic}
@@ -1133,6 +1133,28 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             </div>
           </>
         )}
+        {pendingTopic && (
+          <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-brand-600 font-semibold uppercase tracking-wide mb-0.5">Selected topic</p>
+              <p className="text-xs font-medium text-brand-900 truncate">{pendingTopic}</p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setPendingTopic('')}
+                className="text-[10px] text-gray-400 hover:text-gray-600 px-2 py-0.5 rounded"
+              >
+                ✕
+              </button>
+              <button
+                onClick={() => { chooseTopic(pendingTopic); setPendingTopic(''); setExpanded('script'); }}
+                className="flex items-center gap-1 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-full px-3 py-1.5 transition-colors"
+              >
+                Use this topic →
+              </button>
+            </div>
+          </div>
+        )}
         <div className="flex gap-2">
           <input
             value={customTopic}
@@ -1140,6 +1162,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             onKeyDown={(e) => {
               if (e.key === 'Enter' && customTopic.trim()) {
                 chooseTopic(customTopic.trim());
+                setPendingTopic('');
                 setCustomTopic('');
               }
             }}
@@ -1150,6 +1173,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             onClick={() => {
               if (!customTopic.trim()) return;
               chooseTopic(customTopic.trim());
+              setPendingTopic('');
               setCustomTopic('');
               setExpanded('script');
             }}

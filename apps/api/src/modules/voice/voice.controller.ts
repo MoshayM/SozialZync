@@ -25,6 +25,11 @@ export class VoiceController {
     return this.voice.generateSpec(body.script as never, body.projectId, body.voiceProfile);
   }
 
+  @Get('clone-available')
+  checkCloneAvailability() {
+    return this.voice.checkCloneAvailability();
+  }
+
   @Post('clone')
   @UseInterceptors(FileInterceptor('audio', { limits: { fileSize: 10 * 1024 * 1024 } }))
   async cloneVoice(@UploadedFile() file: Express.Multer.File | undefined): Promise<{ voiceId: string; name: string }> {

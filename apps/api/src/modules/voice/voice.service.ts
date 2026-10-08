@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { callAIStructured } from '@cf/shared';
 import { VoiceSpecOutputSchema, type VoiceSpecOutput } from '@cf/shared';
 import type { ScriptOutput } from '@cf/shared';
@@ -172,7 +172,9 @@ export class VoiceService {
 
   async cloneVoice(audioBuffer: Buffer, mimeType: string): Promise<{ voiceId: string; name: string }> {
     const apiKey = process.env['ELEVENLABS_API_KEY'];
-    if (!apiKey) throw new InternalServerErrorException('ElevenLabs API key not configured — voice cloning requires ElevenLabs.');
+    if (!apiKey) {
+      throw new ServiceUnavailableException('Voice cloning requires an ElevenLabs API key — contact your administrator to enable it.');
+    }
     const name = `SZK-clone-${Date.now()}`;
     const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('mp3') ? 'mp3' : mimeType.includes('wav') ? 'wav' : 'webm';
     const form = new FormData();
@@ -182,14 +184,49 @@ export class VoiceService {
       method: 'POST',
       headers: { 'xi-api-key': apiKey },
       body: form as never,
+      signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) {
-      const text = await res.text();
-      throw new InternalServerErrorException(`ElevenLabs voice clone failed: ${res.status} ${text.slice(0, 200)}`);
+      const body = await res.text();
+      let detail = `ElevenLabs returned ${res.status}`;
+      try {
+        const parsed = JSON.parse(body) as { detail?: { message?: string; status?: string } | string };
+        const d = parsed.detail;
+        if (typeof d === 'object' && d?.message) detail = d.message;
+        else if (typeof d === 'string') detail = d;
+        else detail = body.slice(0, 300);
+      } catch { detail = body.slice(0, 300); }
+      throw new InternalServerErrorException(detail);
     }
     const data = await res.json() as { voice_id: string };
     this.logger.log(`Voice cloned — voice_id="${data.voice_id}" name="${name}"`);
     return { voiceId: data.voice_id, name };
+  }
+
+  async checkCloneAvailability(): Promise<{ available: boolean; reason?: string; provider?: string }> {
+    const apiKey = process.env['ELEVENLABS_API_KEY'];
+    if (!apiKey) {
+      return { available: false, reason: 'ELEVENLABS_API_KEY is not configured on this server. Ask your administrator to add it.' };
+    }
+    try {
+      const res = await fetch('https://api.elevenlabs.io/v1/user/subscription', {
+        headers: { 'xi-api-key': apiKey },
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (!res.ok) {
+        return { available: false, reason: `ElevenLabs authentication failed (${res.status}) — check your API key.` };
+      }
+      const sub = await res.json() as { can_use_instant_voice_cloning?: boolean; tier?: string; status?: string };
+      if (sub.can_use_instant_voice_cloning === false) {
+        return {
+          available: false,
+          reason: `Your ElevenLabs plan (${sub.tier ?? 'current plan'}) does not include Instant Voice Cloning. Upgrade to Creator or higher at elevenlabs.io/subscription.`,
+        };
+      }
+      return { available: true, provider: 'elevenlabs' };
+    } catch {
+      return { available: false, reason: 'Could not reach ElevenLabs to verify cloning capability. Check server connectivity.' };
+    }
   }
 
   async autoSelectVoice(scriptText: string): Promise<{
