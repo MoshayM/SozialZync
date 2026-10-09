@@ -294,8 +294,17 @@ export class SupervisorWorker extends WorkerHost {
           : baseTopic;
         const t0 = Date.now();
         const contentLang = (payload['lang'] as string | undefined) ?? project.targetLang ?? 'en';
+        const creativePrefs = payload['creativePrefs'] as Record<string, string> | undefined;
+        const prefsResearchHint = creativePrefs && Object.keys(creativePrefs).length > 0
+          ? ` [Creator intent: ${[
+              creativePrefs['scriptStyle'] ? `style=${creativePrefs['scriptStyle']}` : '',
+              creativePrefs['videoStyle'] ? `video=${creativePrefs['videoStyle']}` : '',
+              creativePrefs['tone'] ? `tone=${creativePrefs['tone']}` : '',
+              creativePrefs['targetAudience'] ? `audience=${creativePrefs['targetAudience']}` : '',
+            ].filter(Boolean).join(', ')}]`
+          : '';
         this.log(jobId, projectId, 'Starting research…', `"${topic.slice(0, 70)}" · lang=${contentLang}`);
-        const result = await this.content.research(topic, project.niche ?? undefined, contentLang);
+        const result = await this.content.research(topic + prefsResearchHint, project.niche ?? undefined, contentLang);
         const r = result as { sources?: unknown[]; trendScore?: number };
         this.log(jobId, projectId, 'Research complete', `${r.sources?.length ?? 0} sources · trend score ${r.trendScore ?? '?'}`);
         await this.jobs.logStep(jobId, 'ResearchAgent', 'research', { topic }, result, 0, 0, Date.now() - t0);
@@ -310,8 +319,9 @@ export class SupervisorWorker extends WorkerHost {
         if (!research) throw new Error('Research not found — complete the Research Topic step first.');
         const t0 = Date.now();
         const scriptLang = (payload['lang'] as string | undefined) ?? project.targetLang ?? 'en';
+        const scriptPrefs = payload['creativePrefs'] as Record<string, string> | undefined;
         this.log(jobId, projectId, 'Calling AI script writer…', `Topic: "${research.topic.slice(0, 60)}" · lang=${scriptLang}`);
-        const script = await this.content.writeScript(research, undefined, scriptLang);
+        const script = await this.content.writeScript(research, undefined, scriptLang, scriptPrefs);
         const s = script as { totalWordCount?: number; sections?: unknown[]; estimatedDurationMins?: number; title?: string };
         this.log(jobId, projectId, 'Script ready', `${s.totalWordCount ?? '?'} words · ${s.sections?.length ?? '?'} sections · ~${s.estimatedDurationMins ?? '?'} min`);
         await this.jobs.logStep(jobId, 'ScriptAgent', 'write', { research: research.topic }, script, 0, 0, Date.now() - t0);
@@ -592,9 +602,10 @@ export class SupervisorWorker extends WorkerHost {
         if (!script) throw new Error('Script not found — complete the Write Script step first.');
         const channel2 = await this.prisma.channel.findFirst({ where: { projects: { some: { id: projectId } } } });
         const brandKit = channel2?.brandKit as Record<string, unknown> | undefined;
+        const imagePrefs = payload['creativePrefs'] as Record<string, string> | undefined;
         const t0 = Date.now();
         this.log(jobId, projectId, 'Generating per-scene image briefs…', `${script.sections.length} scenes`);
-        const result = await this.image.generateBriefs(script, projectId, brandKit);
+        const result = await this.image.generateBriefs(script, projectId, brandKit, imagePrefs);
         const briefCount = (result as { briefs?: unknown[] }).briefs?.length ?? 0;
         this.log(jobId, projectId, 'Image briefs ready ✓', `${briefCount} brief(s)`);
         await this.jobs.logStep(jobId, 'ImageAgent', 'brief', { scenes: briefCount }, result, 0, 0, Date.now() - t0);
@@ -610,8 +621,9 @@ export class SupervisorWorker extends WorkerHost {
         const t0 = Date.now();
         const mood = payload['mood'] as string | undefined;
         const genre = payload['genre'] as string | undefined;
+        const musicPrefs = payload['creativePrefs'] as Record<string, string> | undefined;
         this.log(jobId, projectId, 'Generating music production brief…', mood ? `Mood: ${mood}` : undefined);
-        const result = await this.music.generateBrief(script, projectId, mood, genre);
+        const result = await this.music.generateBrief(script, projectId, mood, genre, musicPrefs);
         const brief = result as { genre?: string; bpm?: number; energy?: string };
         this.log(jobId, projectId, 'Music brief ready ✓', `${brief.genre ?? '?'} · ${brief.bpm ?? '?'} BPM · ${brief.energy ?? '?'} energy`);
         await this.jobs.logStep(jobId, 'MusicAgent', 'brief', { duration: script.estimatedDurationMins }, result, 0, 0, Date.now() - t0);

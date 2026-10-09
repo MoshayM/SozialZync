@@ -56,14 +56,24 @@ export class ContentService {
     );
   }
 
-  async writeScript(research: ResearchOutput, targetDurationMins = 10, targetLang = 'en'): Promise<ScriptOutput> {
+  async writeScript(research: ResearchOutput, targetDurationMins = 10, targetLang = 'en', prefs?: Record<string, string>): Promise<ScriptOutput> {
     const langNote = targetLang && targetLang !== 'en' && targetLang !== 'en-US'
       ? `\n\nCRITICAL LANGUAGE REQUIREMENT: You MUST write the ENTIRE script in ${langLabel(targetLang)}. This means the title, hook, every section heading, every section content paragraph, and the call-to-action must ALL be written in ${langLabel(targetLang)}. Do NOT use English. Do NOT mix languages.`
+      : '';
+    const prefsNote = prefs && Object.keys(prefs).length > 0
+      ? `\n\nCreator Preferences (follow these closely):\n${[
+          prefs['titleFeedback'] ? `- Title feedback: ${prefs['titleFeedback']}` : '',
+          prefs['scriptStyle'] ? `- Script style: ${prefs['scriptStyle']}` : '',
+          prefs['videoStyle'] ? `- Video style: ${prefs['videoStyle']}` : '',
+          prefs['tone'] ? `- Tone: ${prefs['tone']}` : '',
+          prefs['targetAudience'] ? `- Target audience: ${prefs['targetAudience']}` : '',
+          prefs['notes'] ? `- Additional notes: ${prefs['notes']}` : '',
+        ].filter(Boolean).join('\n')}`
       : '';
     return callAIStructured(
       [{
         role: 'user',
-        content: `Write a YouTube script based on this research:\n\nTopic: ${research.topic}\nSummary: ${research.summary}\nKey Points: ${research.keyPoints.join('\n')}\nTarget Duration: ${targetDurationMins} minutes\n\nSources to reference:\n${research.sources.map((s) => `- ${s.title}: ${s.url}`).join('\n')}${langNote}\n\nRespond with EXACTLY this JSON structure (no extra text, no markdown, no code fences):\n{"title":"Video title here","hook":"Opening hook sentence that grabs attention","sections":[{"heading":"Section heading","content":"Full section content paragraph","durationEstimateSecs":120}],"callToAction":"Subscribe and hit the bell icon for more videos like this","totalWordCount":1500,"estimatedDurationMins":${targetDurationMins},"sources":["https://source1.com","https://source2.com"]}`,
+        content: `Write a YouTube script based on this research:\n\nTopic: ${research.topic}\nSummary: ${research.summary}\nKey Points: ${research.keyPoints.join('\n')}\nTarget Duration: ${targetDurationMins} minutes\n\nSources to reference:\n${research.sources.map((s) => `- ${s.title}: ${s.url}`).join('\n')}${prefsNote}${langNote}\n\nRespond with EXACTLY this JSON structure (no extra text, no markdown, no code fences):\n{"title":"Video title here","hook":"Opening hook sentence that grabs attention","sections":[{"heading":"Section heading","content":"Full section content paragraph","durationEstimateSecs":120}],"callToAction":"Subscribe and hit the bell icon for more videos like this","totalWordCount":1500,"estimatedDurationMins":${targetDurationMins},"sources":["https://source1.com","https://source2.com"]}`,
       }],
       ScriptOutputSchema,
       { systemPrompt: SCRIPT_SYSTEM, maxTokens: 8192 },

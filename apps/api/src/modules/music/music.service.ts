@@ -49,7 +49,7 @@ export class MusicService {
 
   // ── AI brief generation (original capability, used by SupervisorWorker) ──────
 
-  async generateBrief(script: ScriptOutput, projectId: string, mood?: string, genre?: string): Promise<MusicBriefOutput> {
+  async generateBrief(script: ScriptOutput, projectId: string, mood?: string, genre?: string, prefs?: Record<string, string>): Promise<MusicBriefOutput> {
     this.logger.log(`Generating music brief — projectId="${projectId}"`);
     const durationSecs = Math.round(script.estimatedDurationMins * 60);
 
@@ -60,10 +60,17 @@ export class MusicService {
           `Section ${i + 1}${s.title ? ` "${s.title}"` : ''}: ${(s.content ?? '').slice(0, 120)}${s.emotion ? ` [emotion: ${s.emotion}]` : ''}`)
         .join('\n') ?? '';
 
+      const prefsNote = prefs && Object.keys(prefs).length > 0
+        ? `\nCreator preferences: ${[
+            prefs['tone'] ? `tone=${prefs['tone']}` : '',
+            prefs['videoStyle'] ? `video style=${prefs['videoStyle']}` : '',
+            prefs['notes'] ? `notes: ${prefs['notes']}` : '',
+          ].filter(Boolean).join(', ')}.`
+        : '';
       const raw = await callAIStructured(
         [{
           role: 'user',
-          content: `Create a content-aware music production brief for YouTube video "${script.title}".\n\nDuration: ${durationSecs}s\nOverall mood hint: ${mood ?? 'derive from script'}\nGenre hint: ${genre ?? 'derive from script'}\n\nHook (first 250 chars): "${script.hook.slice(0, 250)}"\n\nScript sections:\n${sectionSummary}\n\nCall to action: "${(script.callToAction ?? '').slice(0, 100)}"\n\nRequirements:\n- mood: single evocative word matching the script's dominant emotion\n- genre: music genre that fits the content theme\n- bpm: 60-160 matching energy/pacing of narration\n- instruments: array of 3-6 instruments fitting the mood\n- energy: one of low/medium/high/dynamic — match the script's intensity\n- durationSecs: ${durationSecs}\n- structure: describe how music should evolve (e.g. "builds in chorus, softens in CTA")\n- emotionalArc: one sentence describing the music's emotional journey matching the script arc\n- prompt: vivid 60-100 word content-specific music direction — reference the video's theme, key moments, emotional beats, pacing. Make it unique to THIS video.\n- provider: "internal"`,
+          content: `Create a content-aware music production brief for YouTube video "${script.title}".\n\nDuration: ${durationSecs}s\nOverall mood hint: ${mood ?? 'derive from script'}\nGenre hint: ${genre ?? 'derive from script'}\n\nHook (first 250 chars): "${script.hook.slice(0, 250)}"\n\nScript sections:\n${sectionSummary}\n\nCall to action: "${(script.callToAction ?? '').slice(0, 100)}"${prefsNote}\n\nRequirements:\n- mood: single evocative word matching the script's dominant emotion\n- genre: music genre that fits the content theme\n- bpm: 60-160 matching energy/pacing of narration\n- instruments: array of 3-6 instruments fitting the mood\n- energy: one of low/medium/high/dynamic — match the script's intensity\n- durationSecs: ${durationSecs}\n- structure: describe how music should evolve (e.g. "builds in chorus, softens in CTA")\n- emotionalArc: one sentence describing the music's emotional journey matching the script arc\n- prompt: vivid 60-100 word content-specific music direction — reference the video's theme, key moments, emotional beats, pacing. Make it unique to THIS video.\n- provider: "internal"`,
         }],
         MusicBriefOutputSchema,
         { systemPrompt: MUSIC_SYSTEM, maxTokens: 2048 },

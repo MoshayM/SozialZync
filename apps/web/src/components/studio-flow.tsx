@@ -510,6 +510,26 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     PLATFORM_TO_RENDER[platform] ?? 'YOUTUBE');
   const [renderVideoType, setRenderVideoType] = useState<typeof VIDEO_TYPES[number]['value']>('long-form');
 
+  // ── Creative Preferences (optional pre-script user guidance) ─────────────
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const [creativePrefs, setCreativePrefs] = useState<{
+    scriptStyle: string; videoStyle: string; tone: string;
+    targetAudience: string; titleFeedback: string; notes: string;
+  }>(() => {
+    try {
+      const stored = localStorage.getItem(`cf_prefs_${projectId}`);
+      return stored ? JSON.parse(stored) as { scriptStyle: string; videoStyle: string; tone: string; targetAudience: string; titleFeedback: string; notes: string } : { scriptStyle: '', videoStyle: '', tone: '', targetAudience: '', titleFeedback: '', notes: '' };
+    } catch { return { scriptStyle: '', videoStyle: '', tone: '', targetAudience: '', titleFeedback: '', notes: '' }; }
+  });
+
+  function savePrefs(next: typeof creativePrefs) {
+    setCreativePrefs(next);
+    localStorage.setItem(`cf_prefs_${projectId}`, JSON.stringify(next));
+  }
+
+  const hasPrefs = Object.values(creativePrefs).some(v => v.trim().length > 0);
+  const prefsPayload = hasPrefs ? { creativePrefs } : {};
+
   const { data: channels = [] } = useQuery({
     queryKey: ['channels'],
     queryFn: () => api.channels.list().then((r) => r.data as Array<{ id: string; title: string; youtubeChannelId: string }>),
@@ -1675,6 +1695,128 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             <p className="text-xs text-gray-500">Generated during the Video stage.</p>
           )}
         </div>
+
+        {/* Creative Brief — optional pre-script user preferences */}
+        <div className="border-t border-gray-100 pt-4">
+          <button
+            className="w-full flex items-center justify-between text-left group"
+            onClick={() => setPrefsOpen(!prefsOpen)}
+          >
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Creative Brief</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {hasPrefs ? 'Preferences set — AI will follow these' : 'Optional: guide the AI before running'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {hasPrefs && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">Active</span>}
+              {prefsOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+            </div>
+          </button>
+
+          {prefsOpen && (
+            <div className="mt-3 space-y-3">
+              <div>
+                <p className="text-[11px] font-medium text-gray-600 mb-1">What do you think about this title?</p>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Make it more attention-grabbing, focus on the surprise factor…"
+                  value={creativePrefs.titleFeedback}
+                  onChange={e => savePrefs({ ...creativePrefs, titleFeedback: e.target.value })}
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
+                />
+              </div>
+
+              <div>
+                <p className="text-[11px] font-medium text-gray-600 mb-1.5">Script style</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Educational', 'Storytelling', 'Tutorial', 'Commentary', 'Listicle', 'Review'].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => savePrefs({ ...creativePrefs, scriptStyle: creativePrefs.scriptStyle === s.toLowerCase() ? '' : s.toLowerCase() })}
+                      className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                        creativePrefs.scriptStyle === s.toLowerCase()
+                          ? 'bg-brand-600 text-white border-brand-600'
+                          : 'border-gray-200 text-gray-600 hover:border-brand-300'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-medium text-gray-600 mb-1.5">Video style</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Talking Head', 'Cinematic', 'Screencast', 'Animated', 'Vlog'].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => savePrefs({ ...creativePrefs, videoStyle: creativePrefs.videoStyle === s.toLowerCase().replace(' ', '-') ? '' : s.toLowerCase().replace(' ', '-') })}
+                      className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                        creativePrefs.videoStyle === s.toLowerCase().replace(' ', '-')
+                          ? 'bg-brand-600 text-white border-brand-600'
+                          : 'border-gray-200 text-gray-600 hover:border-brand-300'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-medium text-gray-600 mb-1.5">Tone</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Professional', 'Casual', 'Energetic', 'Calm', 'Humorous'].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => savePrefs({ ...creativePrefs, tone: creativePrefs.tone === s.toLowerCase() ? '' : s.toLowerCase() })}
+                      className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                        creativePrefs.tone === s.toLowerCase()
+                          ? 'bg-brand-600 text-white border-brand-600'
+                          : 'border-gray-200 text-gray-600 hover:border-brand-300'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-medium text-gray-600 mb-1">Target audience</p>
+                <input
+                  type="text"
+                  placeholder="e.g. Tech enthusiasts aged 25-35, beginners, parents…"
+                  value={creativePrefs.targetAudience}
+                  onChange={e => savePrefs({ ...creativePrefs, targetAudience: e.target.value })}
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                />
+              </div>
+
+              <div>
+                <p className="text-[11px] font-medium text-gray-600 mb-1">Any other notes for the AI?</p>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Include real examples, avoid technical jargon, end with a strong hook for part 2…"
+                  value={creativePrefs.notes}
+                  onChange={e => savePrefs({ ...creativePrefs, notes: e.target.value })}
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
+                />
+              </div>
+
+              {hasPrefs && (
+                <button
+                  onClick={() => savePrefs({ scriptStyle: '', videoStyle: '', tone: '', targetAudience: '', titleFeedback: '', notes: '' })}
+                  className="text-[11px] text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  Clear preferences
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   })();
@@ -1805,6 +1947,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   type: 'FULL_PRODUCTION',
                   payload: {
                     scope: 'VOICE',
+                    ...prefsPayload,
                     regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
                     voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
                     characterVoices: false,
@@ -1932,6 +2075,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   type: 'FULL_PRODUCTION',
                   payload: {
                     scope: 'VOICE',
+                    ...prefsPayload,
                     regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
                     characterVoices: true,
                   },
@@ -2029,6 +2173,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       type: 'FULL_PRODUCTION',
                       payload: {
                         scope: 'SMART_MIX',
+                        ...prefsPayload,
                         regenerate: ['VOICE_GENERATE', 'MUSIC_GENERATE', 'AUDIO_MIX'],
                         genre: songStyle,
                       },
@@ -2133,6 +2278,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       type: 'FULL_PRODUCTION',
                       payload: {
                         scope: 'SONG',
+                        ...prefsPayload,
                         regenerate: ['SONG_GENERATE'],
                         songStyle,
                         vocalType,
@@ -2411,6 +2557,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                             type: 'FULL_PRODUCTION',
                             payload: {
                               scope: 'VOICE',
+                              ...prefsPayload,
                               regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
                               voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
                               lang: targetLang,
@@ -2878,7 +3025,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !effectiveTopic}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'SCRIPT', topic: effectiveTopic, platform, lang: targetLang, ...(scriptDone ? { regenerate: ['RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE'] } : {}) },
+                  payload: { scope: 'SCRIPT', topic: effectiveTopic, platform, lang: targetLang, ...prefsPayload, ...(scriptDone ? { regenerate: ['RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE'] } : {}) },
                 })}
               />
             }
@@ -2913,7 +3060,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   disabled={busy || !scriptDone}
                   onClick={() => enqueue.mutate({
                     type: 'FULL_PRODUCTION',
-                    payload: { scope: 'CHARACTER_STORY', lang: targetLang, ...(castResult ? { regenerate: ['CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE'] } : {}) },
+                    payload: { scope: 'CHARACTER_STORY', lang: targetLang, ...prefsPayload, ...(castResult ? { regenerate: ['CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE'] } : {}) },
                   })}
                 />
               }
@@ -2977,7 +3124,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !scriptDone}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VOICE', lang: targetLang, ...(voiceResult ? { regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } : {}) },
+                  payload: { scope: 'VOICE', lang: targetLang, ...prefsPayload, ...(voiceResult ? { regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } : {}) },
                 })}
               />
             }
@@ -3009,6 +3156,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   type: 'FULL_PRODUCTION',
                   payload: {
                     scope: 'MUSIC',
+                    ...prefsPayload,
                     ...(mood.trim() ? { mood: mood.trim() } : {}),
                     ...(genre.trim() ? { genre: genre.trim() } : {}),
                     ...(musicPromptOverride ? { musicPrompt: musicPromptOverride } : {}),
@@ -3051,6 +3199,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   type: 'FULL_PRODUCTION',
                   payload: {
                     scope: 'IMAGES',
+                    ...prefsPayload,
                     ...(imageGenResult
                       ? { regenerate: ['IMAGE_BRIEF', 'IMAGE_GENERATE'] }
                       : imageBriefResult
@@ -3086,7 +3235,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !scriptDone}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VIDEO', ...(videoResult ? { regenerate: ['VIDEO_SCENE_PLAN', 'IMAGE_BRIEF', 'IMAGE_GENERATE', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL'] } : {}) },
+                  payload: { scope: 'VIDEO', ...prefsPayload, ...(videoResult ? { regenerate: ['VIDEO_SCENE_PLAN', 'IMAGE_BRIEF', 'IMAGE_GENERATE', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL'] } : {}) },
                 })}
               />
             }
@@ -3208,6 +3357,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     scope: productionMode,
                     platform: renderPlatform,
                     videoType: renderVideoType,
+                    ...prefsPayload,
                     ...(refreshMedia
                       ? { regenerate: [...FULL_MEDIA_REGENERATE] }
                       : renderDone

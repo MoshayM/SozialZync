@@ -515,3 +515,15 @@ export const GrowthOutputSchema = z.object({
   memoryNotes: z.array(z.any().transform(v => typeof v === 'string' ? v : JSON.stringify(v))).optional().default([]),
 });
 export type GrowthOutput = z.infer<typeof GrowthOutputSchema>;
+
+// ── Creative Preferences (optional user guidance before script generation) ──
+
+export const CreativePrefsSchema = z.object({
+  scriptStyle: z.string().optional(),
+  videoStyle: z.string().optional(),
+  tone: z.string().optional(),
+  targetAudience: z.string().optional(),
+  titleFeedback: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type CreativePrefs = z.infer<typeof CreativePrefsSchema>;

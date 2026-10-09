@@ -10,7 +10,7 @@ const IMAGE_SYSTEM = `You are a visual content director for YouTube. Create deta
 export class ImageService {
   private readonly logger = new Logger(ImageService.name);
 
-  async generateBriefs(script: ScriptOutput, projectId: string, brandKit?: Record<string, unknown>): Promise<ImageBriefOutput> {
+  async generateBriefs(script: ScriptOutput, projectId: string, brandKit?: Record<string, unknown>, prefs?: Record<string, string>): Promise<ImageBriefOutput> {
     this.logger.log(`Generating image briefs — projectId="${projectId}" sections=${script.sections.length}`);
     const brand = brandKit ?? { colorPalette: ['#1a1a2e', '#16213e', '#0f3460'], fontStyle: 'modern', visualMood: 'professional' };
 
@@ -19,10 +19,17 @@ export class ImageService {
         script.sections.map((s, i) => ({ id: `scene-${i}`, heading: s.heading, content: s.content.slice(0, 150) })),
       );
 
+      const prefsNote = prefs && Object.keys(prefs).length > 0
+        ? `\nCreator preferences: ${[
+            prefs['videoStyle'] ? `video style=${prefs['videoStyle']}` : '',
+            prefs['tone'] ? `tone=${prefs['tone']}` : '',
+            prefs['notes'] ? `notes: ${prefs['notes']}` : '',
+          ].filter(Boolean).join(', ')}.`
+        : '';
       const raw = await callAIStructured(
         [{
           role: 'user',
-          content: `Create image briefs for YouTube video "${script.title}"\nBrand: ${JSON.stringify(brand)}\nSections: ${sectionsJson}\nProject: ${projectId}\n\nFor each section, include: sceneId, sectionHeading, prompt (descriptive, no people/IP), negativePrompt, style, aspectRatio ("16:9"), count (2), purpose ("b-roll").`,
+          content: `Create image briefs for YouTube video "${script.title}"\nBrand: ${JSON.stringify(brand)}\nSections: ${sectionsJson}\nProject: ${projectId}${prefsNote}\n\nFor each section, include: sceneId, sectionHeading, prompt (descriptive, no people/IP), negativePrompt, style, aspectRatio ("16:9"), count (2), purpose ("b-roll").`,
         }],
         ImageBriefOutputSchema,
         { systemPrompt: IMAGE_SYSTEM, maxTokens: 4096 },
