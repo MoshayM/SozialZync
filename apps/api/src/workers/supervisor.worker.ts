@@ -890,15 +890,28 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
       case 'IMAGE_GENERATE': {
         this.log(jobId, projectId, 'Loading image briefs…');
-        const briefResult = (payload['imageBriefs'] as ImageBriefOutput | undefined)
+        let briefResult = (payload['imageBriefs'] as ImageBriefOutput | undefined)
           ?? await this.lastResult<ImageBriefOutput>(projectId, 'IMAGE_BRIEF');
-        const briefs = briefResult?.briefs ?? [];
-        if (briefs.length === 0) throw new Error('Image briefs not found — complete the Image Briefs step first.');
+        let briefs = briefResult?.briefs ?? [];
+
+        // Auto-generate briefs from script rather than hard-failing — makes VIDEO scope self-healing.
+        if (briefs.length === 0) {
+          this.log(jobId, projectId, 'No image briefs cached — generating from script…');
+          const script = (payload['script'] as ScriptOutput | undefined)
+            ?? await this.lastResult<ScriptOutput>(projectId, 'SCRIPT');
+          if (!script) throw new Error('Script not found — complete the Script step first.');
+          const chan = await this.prisma.channel.findFirst({ where: { projects: { some: { id: projectId } } } });
+          const brandKit = chan?.brandKit as Record<string, unknown> | undefined;
+          briefResult = await this.image.generateBriefs(script, projectId, brandKit);
+          briefs = briefResult?.briefs ?? [];
+          if (briefs.length === 0) throw new Error('Image brief generation produced no results — please try again.');
+          this.log(jobId, projectId, `Auto-generated ${briefs.length} image brief(s) ✓`);
+        }
 
         const maxScenes = Math.min(briefs.length, Number(payload['maxScenes'] ?? 8));
         const t0 = Date.now();
         this.log(jobId, projectId, `Generating ${maxScenes} scene image(s)…`);
-        const images: Array<{ sceneId: string; assetId: string; provider: string; cached: boolean }> = [];
+        const images: Array<{ sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean }> = [];
         for (let i = 0; i < maxScenes; i++) {
           const brief = briefs[i]!;
           const stored = await this.media.generateImage(projectId, `Scene ${i + 1} · ${brief.sceneId}`, {
@@ -907,7 +920,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             width: 1280,
             height: 720,
           });
-          images.push({ sceneId: brief.sceneId, assetId: stored.assetId, provider: stored.provider, cached: stored.cached });
+          images.push({ sceneId: brief.sceneId, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
           this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'ready ✓'}`, stored.provider);
         }
         await this.jobs.logStep(jobId, 'ImageAgent', 'generate', { scenes: maxScenes }, { images }, 0, 0, Date.now() - t0);

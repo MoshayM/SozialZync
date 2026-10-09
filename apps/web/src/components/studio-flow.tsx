@@ -6,7 +6,7 @@ import {
   Youtube, BarChart2, Lightbulb, FileText, Mic, Music, Clapperboard,
   Play, RefreshCw, Loader2, CheckCircle, ChevronDown, ChevronUp, Save, Pencil, AlertTriangle, X,
   KeyRound, Sparkles, Download, FileVideo, FileAudio, FileImage, FileText as FileTextIcon, ShieldCheck,
-  Square, Upload, Plus, ExternalLink, Check,
+  Square, Upload, Plus, ExternalLink, Check, Image as ImageIcon,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ElapsedBadge, formatElapsed } from '@/components/ai-activity';
@@ -320,6 +320,33 @@ function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | '
     ? <audio controls src={url} className="w-full h-9" />
     // eslint-disable-next-line jsx-a11y/media-has-caption -- AI-generated preview; caption track not produced
     : <video controls src={url} className="w-full rounded-xl max-h-56 bg-black" />;
+}
+
+// ── Image preview (blob-backed, auth header needed) ────────────────────────
+
+function ImagePreview({ versionId }: { versionId: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
+    api.media.versionFile(versionId)
+      .then((res) => { if (!cancelled) setUrl(URL.createObjectURL(res.data as Blob)); })
+      .catch(() => { if (!cancelled) setLoadError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [versionId]);
+
+  if (loading) return <div className="w-full aspect-video bg-gray-100 rounded-xl animate-pulse" />;
+  if (loadError || !url) return (
+    <div className="w-full aspect-video bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100">
+      <span className="text-[11px] text-gray-400">Preview unavailable</span>
+    </div>
+  );
+  return <img src={url} alt="" className="w-full rounded-xl aspect-video object-cover" />;
 }
 
 // ── Tile shell ────────────────────────────────────────────────────────────────
@@ -719,6 +746,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const musicResult = musicJob?.status === 'COMPLETED' ? (musicJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string }) : null;
   const songJob = latest(jobs, 'SONG_GENERATE');
   const songResult = songJob?.status === 'COMPLETED' ? (songJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string; songStyle?: string; vocalType?: string }) : null;
+  // Image pipeline results
+  const imageBriefJob = latest(jobs, 'IMAGE_BRIEF');
+  type ImageBriefItem = { sceneId: string; sectionHeading: string; prompt: string; style: string; aspectRatio: string };
+  const imageBriefResult = imageBriefJob?.status === 'COMPLETED' ? (imageBriefJob.result as { briefs?: ImageBriefItem[] }) : null;
+  const imageGenJob = latest(jobs, 'IMAGE_GENERATE');
+  type ImageGenItem = { sceneId: string; assetId: string; versionId?: string; provider: string };
+  const imageGenResult = imageGenJob?.status === 'COMPLETED' ? (imageGenJob.result as { images?: ImageGenItem[] }) : null;
   // Smart Mix: find the latest FULL_PRODUCTION job with scope=SMART_MIX that has an audioMix result
   const smartMixJob = [...jobs]
     .filter((j) => j.type === 'FULL_PRODUCTION' && (j.result as { scope?: string } | null)?.scope === 'SMART_MIX')
@@ -2630,6 +2664,57 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     </div>
   );
 
+  // ── Image detail ─────────────────────────────────────────────────────────────
+  const imageDetail = (
+    <div className="space-y-4">
+      {/* Scene Briefs */}
+      <div>
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Scene Briefs</p>
+        {imageBriefResult?.briefs?.length ? (
+          <div className="space-y-2">
+            {imageBriefResult.briefs.map((brief, i) => (
+              <div key={brief.sceneId} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">Scene {i + 1}</span>
+                  <span className="text-[10px] text-gray-400">{brief.style} · {brief.aspectRatio}</span>
+                </div>
+                <p className="text-xs text-gray-700 line-clamp-3">{brief.prompt}</p>
+                {brief.sectionHeading && (
+                  <p className="text-[10px] text-gray-400 mt-1 italic">{brief.sectionHeading}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-500">Run Images to generate scene briefs.</p>
+        )}
+      </div>
+
+      {/* Generated Images */}
+      {imageGenResult?.images?.length ? (
+        <div>
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Generated Images</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {imageGenResult.images.map((img, i) => (
+              <div key={img.sceneId} className="rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+                {img.versionId ? (
+                  <ImagePreview versionId={img.versionId} />
+                ) : (
+                  <div className="w-full aspect-video bg-gray-100 flex items-center justify-center">
+                    <ImageIcon className="w-6 h-6 text-gray-300" />
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-500 px-2 py-1.5 truncate">Scene {i + 1} · {img.provider}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : imageBriefResult?.briefs?.length ? (
+        <p className="text-xs text-gray-500">Briefs ready — tap <strong>Run</strong> to generate images.</p>
+      ) : null}
+    </div>
+  );
+
   // Detail panel icon + title map (mirrors card header look)
   const agentMeta: Record<string, { icon: React.ReactNode; title: string }> = {
     analyse:        { icon: <BarChart2 className="w-5 h-5" />,    title: 'Analyse' },
@@ -2638,6 +2723,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     character_cast: { icon: <span style={{ fontSize: 18 }}>🎭</span>, title: 'Character Cast' },
     voice:          { icon: <Mic className="w-5 h-5" />,          title: 'Voice over' },
     music:          { icon: <Music className="w-5 h-5" />,        title: 'Music' },
+    images:         { icon: <ImageIcon className="w-5 h-5" />,    title: 'Images' },
     video:          { icon: <Clapperboard className="w-5 h-5" />, title: 'Video' },
   };
 
@@ -2685,6 +2771,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
       case 'character_cast': return characterCastDetail;
       case 'voice':          return voiceDetail;
       case 'music':          return musicDetail;
+      case 'images':         return imageDetail;
       case 'video':          return videoDetail;
       default:               return null;
     }
@@ -2779,7 +2866,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             subtitle={script ? `"${script.title.slice(0, 40)}…"` : effectiveTopic ? `Topic: ${effectiveTopic.slice(0, 40)}${effectiveTopic.length > 40 ? '…' : ''}` : 'Research the topic and write the script'}
             status={scriptDone ? 'done' : effectiveTopic ? 'ready' : 'locked'}
             running={runningFoundation}
-            failed={latestFailure(jobs, 'RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE', 'FULL_PRODUCTION')}
+            failed={latestFailure(jobs, 'RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE')}
             updatedAt={completedAt(jobs, 'SCRIPT')}
             selected={expanded === 'script'}
             hasDetail={true}
@@ -2936,7 +3023,50 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           )}
         </div>
 
-        {/* 6 · Video */}
+        {/* 6 · Images */}
+        <div>
+          <Tile
+            icon={<ImageIcon className="w-5 h-5" />}
+            title="Images"
+            subtitle={
+              imageGenResult?.images?.length
+                ? `${imageGenResult.images.length} scene image(s) generated`
+                : imageBriefResult?.briefs?.length
+                ? `${imageBriefResult.briefs.length} brief(s) ready — tap Run to generate`
+                : 'Generate scene image briefs & stills'
+            }
+            status={imageGenResult ? 'done' : scriptDone ? 'ready' : 'locked'}
+            running={isRunning(jobs, 'IMAGE_BRIEF', 'IMAGE_GENERATE')}
+            failed={latestFailure(jobs, 'IMAGE_BRIEF', 'IMAGE_GENERATE')}
+            updatedAt={completedAt(jobs, 'IMAGE_GENERATE') ?? completedAt(jobs, 'IMAGE_BRIEF')}
+            selected={expanded === 'images'}
+            hasDetail={!!(imageBriefResult || imageGenResult)}
+            onToggle={() => toggle('images')}
+            action={
+              <RunButton
+                label={imageGenResult ? 'Regenerate' : 'Run'}
+                rerun={!!imageGenResult}
+                disabled={busy || !scriptDone}
+                onClick={() => enqueue.mutate({
+                  type: 'FULL_PRODUCTION',
+                  payload: {
+                    scope: 'IMAGES',
+                    ...(imageGenResult
+                      ? { regenerate: ['IMAGE_BRIEF', 'IMAGE_GENERATE'] }
+                      : imageBriefResult
+                      ? { regenerate: ['IMAGE_GENERATE'] }
+                      : {}),
+                  },
+                })}
+              />
+            }
+          />
+          {isMobile && expanded === 'images' && (
+            <div key="images" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('images')}</div>
+          )}
+        </div>
+
+        {/* 7 · Video */}
         <div>
           <Tile
             icon={<Clapperboard className="w-5 h-5" />}
@@ -2944,7 +3074,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             subtitle={videoResult?.videos?.length ? `${videoResult.videos.length} scene(s) · scenes, rendering & final delivery` : 'Scenes, rendering & final delivery'}
             status={videoResult ? 'done' : scriptDone ? 'ready' : 'locked'}
             running={isRunning(jobs, 'VIDEO_SCENE_PLAN', 'IMAGE_BRIEF', 'IMAGE_GENERATE', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL')}
-            failed={latestFailure(jobs, 'VIDEO_SCENE_PLAN', 'IMAGE_BRIEF', 'IMAGE_GENERATE', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL')}
+            failed={latestFailure(jobs, 'VIDEO_SCENE_PLAN', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL')}
             updatedAt={completedAt(jobs, 'VIDEO_GENERATE')}
             selected={expanded === 'video'}
             hasDetail={true}
