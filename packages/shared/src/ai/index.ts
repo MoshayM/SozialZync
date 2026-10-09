@@ -1420,14 +1420,15 @@ export async function transcribeWithWhisper(
   const needsTranslation = !!targetLang && normalise(detectedLang) !== normalise(targetLang);
 
   if (needsTranslation && text) {
-    const result = await callAIStructured({
-      provider: 'openai',
-      model: 'gpt-4o-mini',
-      systemPrompt: 'You are a translation assistant. Translate the user text to the requested language. Return ONLY the translated text, nothing else.',
-      userContent: `Translate to ${targetLang}:\n\n${text}`,
-      schema: z.object({ translated: z.string() }),
-      label: 'voice-transcribe-translate',
-    });
+    const result = await callAIStructured<{ translated: string }>(
+      [{ role: 'user', content: `Translate to ${targetLang}:\n\n${text}` }],
+      z.object({ translated: z.string() }),
+      {
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        systemPrompt: 'You are a translation assistant. Translate the user text to the requested language. Return ONLY the translated text, nothing else.',
+      },
+    );
     text = result.translated ?? text;
   }
 
