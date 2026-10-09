@@ -2527,7 +2527,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   );
 
   const videoDetail = (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-20 md:pb-0">
       {/* Scenes */}
       <div>
         <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Scenes</p>
@@ -2994,8 +2994,8 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
     {/* ── Pre-render settings dialog ──────────────────────────────────────── */}
     {showRenderDialog && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:p-4 bg-black/40 backdrop-blur-sm">
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md flex flex-col max-h-[90vh]">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div>
@@ -3007,59 +3007,62 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             </button>
           </div>
 
-          {/* Platform grid */}
-          <div className="px-5 pt-4 pb-2">
-            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Target platform</p>
-            <div className="grid grid-cols-1 gap-1.5">
-              {RENDER_PLATFORMS.map((p) => (
-                <button
-                  key={p.value}
-                  onClick={() => setRenderPlatform(p.value)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${
-                    renderPlatform === p.value
-                      ? 'border-brand-500 bg-brand-50 text-brand-900'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <span className="w-6 h-6 flex items-center justify-center text-xs font-bold rounded-md bg-gray-100 shrink-0">{p.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold">{p.label}</span>
-                      <span className="text-[10px] text-gray-500 ml-2 shrink-0">{p.format}</span>
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            {/* Platform grid */}
+            <div className="px-5 pt-4 pb-2">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Target platform</p>
+              <div className="grid grid-cols-1 gap-1.5">
+                {RENDER_PLATFORMS.map((p) => (
+                  <button
+                    key={p.value}
+                    onClick={() => setRenderPlatform(p.value)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                      renderPlatform === p.value
+                        ? 'border-brand-500 bg-brand-50 text-brand-900'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    <span className="w-6 h-6 flex items-center justify-center text-xs font-bold rounded-md bg-gray-100 shrink-0">{p.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold">{p.label}</span>
+                        <span className="text-[10px] text-gray-500 ml-2 shrink-0">{p.format}</span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 truncate">{p.quality}</p>
                     </div>
-                    <p className="text-[10px] text-gray-400 truncate">{p.quality}</p>
-                  </div>
-                  {renderPlatform === p.value && (
-                    <CheckCircle className="w-4 h-4 text-brand-500 shrink-0" />
-                  )}
-                </button>
-              ))}
+                    {renderPlatform === p.value && (
+                      <CheckCircle className="w-4 h-4 text-brand-500 shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Video type */}
-          <div className="px-5 pt-3 pb-2">
-            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Video type</p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {VIDEO_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => setRenderVideoType(t.value)}
-                  className={`flex flex-col px-3 py-2 rounded-xl border text-left transition-colors ${
-                    renderVideoType === t.value
-                      ? 'border-brand-500 bg-brand-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="text-xs font-semibold text-gray-900">{t.label}</span>
-                  <span className="text-[10px] text-gray-400 mt-0.5">{t.hint}</span>
-                </button>
-              ))}
+            {/* Video type */}
+            <div className="px-5 pt-3 pb-4">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Video type</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {VIDEO_TYPES.map((t) => (
+                  <button
+                    key={t.value}
+                    onClick={() => setRenderVideoType(t.value)}
+                    className={`flex flex-col px-3 py-2 rounded-xl border text-left transition-colors ${
+                      renderVideoType === t.value
+                        ? 'border-brand-500 bg-brand-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-xs font-semibold text-gray-900">{t.label}</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">{t.hint}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
+          <div className="px-5 py-4 pb-8 sm:pb-4 border-t border-gray-100 flex gap-2 justify-end shrink-0">
             <button
               onClick={() => setShowRenderDialog(false)}
               className="px-4 py-2 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
