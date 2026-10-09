@@ -3040,7 +3040,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             failed={latestFailure(jobs, 'IMAGE_BRIEF', 'IMAGE_GENERATE')}
             updatedAt={completedAt(jobs, 'IMAGE_GENERATE') ?? completedAt(jobs, 'IMAGE_BRIEF')}
             selected={expanded === 'images'}
-            hasDetail={!!(imageBriefResult || imageGenResult)}
+            hasDetail={true}
             onToggle={() => toggle('images')}
             action={
               <RunButton
