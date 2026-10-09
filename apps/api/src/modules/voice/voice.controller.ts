@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { VoiceService } from './voice.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -40,6 +40,25 @@ export class VoiceController {
    * No external API required — reference audio is stored locally and the
    * pipeline applies FFmpeg pitch-matching when generating narration.
    */
+  /**
+   * Transcribe spoken audio (any language) and optionally translate to targetLang.
+   * Used by the Creative Brief voice input buttons on the frontend.
+   */
+  @Post('transcribe')
+  @UseInterceptors(FileInterceptor('audio', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  async transcribeAudio(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query('targetLang') targetLang?: string,
+  ): Promise<{ text: string; detectedLang: string; translated: boolean }> {
+    if (!file?.buffer?.length) throw new BadRequestException('Audio file is required');
+    try {
+      return await this.voice.transcribeAudio(file.buffer, file.mimetype || 'audio/webm', targetLang);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new InternalServerErrorException(`Transcription failed: ${msg}`);
+    }
+  }
+
   @Post('clone')
   @UseInterceptors(FileInterceptor('audio', { limits: { fileSize: 10 * 1024 * 1024 } }))
   async cloneVoice(

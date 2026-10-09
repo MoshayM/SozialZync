@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { createHash } from 'crypto';
+import OpenAI from 'openai';
 import { callAIStructured } from '@cf/shared';
 import { VoiceSpecOutputSchema, type VoiceSpecOutput } from '@cf/shared';
 import type { ScriptOutput } from '@cf/shared';
@@ -31,6 +32,49 @@ export class VoiceService {
       }
     }
     return Array.from(found);
+  }
+
+  // ── Audio transcription + translation for Creative Brief voice input ────
+
+  async transcribeAudio(
+    buffer: Buffer,
+    mimeType: string,
+    targetLang?: string,
+  ): Promise<{ text: string; detectedLang: string; translated: boolean }> {
+    const key = process.env['OPENAI_API_KEY'];
+    if (!key) throw new InternalServerErrorException('OPENAI_API_KEY not configured');
+    const openai = new OpenAI({ apiKey: key });
+
+    // Whisper auto-detects the spoken language
+    const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'webm';
+    const file = new File([buffer], `audio.${ext}`, { type: mimeType });
+
+    const transcription = await openai.audio.transcriptions.create({
+      model: 'whisper-1',
+      file,
+      response_format: 'verbose_json',
+    });
+
+    const detectedLang = (transcription as { language?: string }).language ?? 'en';
+    let text = transcription.text?.trim() ?? '';
+
+    // Translate if detected language differs from the target script language
+    const normalise = (l: string) => l.toLowerCase().split('-')[0];
+    const needsTranslation = targetLang && normalise(detectedLang) !== normalise(targetLang);
+
+    if (needsTranslation && text) {
+      const result = await callAIStructured({
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        systemPrompt: 'You are a translation assistant. Translate the user text to the requested language. Return ONLY the translated text, nothing else.',
+        userContent: `Translate to ${targetLang}:\n\n${text}`,
+        schema: z.object({ translated: z.string() }),
+        label: 'voice-transcribe-translate',
+      });
+      text = result.translated ?? text;
+    }
+
+    return { text, detectedLang, translated: !!needsTranslation };
   }
 
   async generateSpec(script: ScriptOutput, projectId: string, voiceProfile?: Record<string, unknown>, characterVoices?: boolean): Promise<VoiceSpecOutput> {

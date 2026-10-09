@@ -349,6 +349,97 @@ function ImagePreview({ versionId }: { versionId: string }) {
   return <img src={url} alt="" className="w-full rounded-xl aspect-video object-cover" />;
 }
 
+// ── Voice input mic button (for Creative Brief fields) ───────────────────────
+
+function MicButton({
+  onText,
+  targetLang,
+  className = '',
+}: {
+  onText: (text: string, translated: boolean, fromLang: string) => void;
+  targetLang: string;
+  className?: string;
+}) {
+  const [status, setStatus] = useState<'idle' | 'recording' | 'processing'>('idle');
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  async function toggle() {
+    if (status === 'recording') {
+      mediaRef.current?.stop();
+      return;
+    }
+    if (status === 'processing') return;
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      alert('Microphone access denied. Please allow microphone in browser settings.');
+      return;
+    }
+
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+    const recorder = new MediaRecorder(stream, { mimeType });
+    chunksRef.current = [];
+
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+
+    recorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      setStatus('processing');
+      try {
+        const blob = new Blob(chunksRef.current, { type: mimeType });
+        const form = new FormData();
+        form.append('audio', blob, 'recording.webm');
+        const token = localStorage.getItem('cf_token') ?? '';
+        const res = await fetch(`/api/proxy/voice/transcribe?targetLang=${encodeURIComponent(targetLang)}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const { text, detectedLang, translated } = await res.json() as { text: string; detectedLang: string; translated: boolean };
+        if (text) onText(text, translated, detectedLang);
+      } catch (err) {
+        console.error('Transcription error', err);
+        alert('Could not transcribe audio. Please try typing instead.');
+      } finally {
+        setStatus('idle');
+      }
+    };
+
+    recorder.start();
+    mediaRef.current = recorder;
+    setStatus('recording');
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      title={status === 'recording' ? 'Stop recording' : status === 'processing' ? 'Processing…' : 'Speak your answer'}
+      className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors shrink-0 ${
+        status === 'recording'
+          ? 'bg-red-500 border-red-500 text-white animate-pulse'
+          : status === 'processing'
+          ? 'bg-gray-100 border-gray-200 text-gray-400'
+          : 'bg-white border-gray-200 text-gray-400 hover:border-brand-400 hover:text-brand-600'
+      } ${className}`}
+    >
+      {status === 'processing' ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      ) : status === 'recording' ? (
+        <Square className="w-3 h-3 fill-current" />
+      ) : (
+        <Mic className="w-3.5 h-3.5" />
+      )}
+    </button>
+  );
+}
+
 // ── Tile shell ────────────────────────────────────────────────────────────────
 
 function Tile({
@@ -1717,10 +1808,19 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           {prefsOpen && (
             <div className="mt-3 space-y-3">
               <div>
-                <p className="text-[11px] font-medium text-gray-600 mb-1">What do you think about this title?</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[11px] font-medium text-gray-600">What do you think about this title?</p>
+                  <MicButton
+                    targetLang={targetLang}
+                    onText={(text, translated, fromLang) => {
+                      savePrefs({ ...creativePrefs, titleFeedback: (creativePrefs.titleFeedback ? creativePrefs.titleFeedback + ' ' : '') + text });
+                      if (translated) console.log(`Translated from ${fromLang} → ${targetLang}`);
+                    }}
+                  />
+                </div>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Make it more attention-grabbing, focus on the surprise factor…"
+                  placeholder="e.g. Make it more attention-grabbing, focus on the surprise factor… (or tap mic to speak)"
                   value={creativePrefs.titleFeedback}
                   onChange={e => savePrefs({ ...creativePrefs, titleFeedback: e.target.value })}
                   className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
@@ -1785,10 +1885,16 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               </div>
 
               <div>
-                <p className="text-[11px] font-medium text-gray-600 mb-1">Target audience</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[11px] font-medium text-gray-600">Target audience</p>
+                  <MicButton
+                    targetLang={targetLang}
+                    onText={(text) => savePrefs({ ...creativePrefs, targetAudience: text })}
+                  />
+                </div>
                 <input
                   type="text"
-                  placeholder="e.g. Tech enthusiasts aged 25-35, beginners, parents…"
+                  placeholder="e.g. Tech enthusiasts aged 25-35, beginners, parents… (or tap mic)"
                   value={creativePrefs.targetAudience}
                   onChange={e => savePrefs({ ...creativePrefs, targetAudience: e.target.value })}
                   className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
@@ -1796,10 +1902,16 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               </div>
 
               <div>
-                <p className="text-[11px] font-medium text-gray-600 mb-1">Any other notes for the AI?</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[11px] font-medium text-gray-600">Any other notes for the AI?</p>
+                  <MicButton
+                    targetLang={targetLang}
+                    onText={(text) => savePrefs({ ...creativePrefs, notes: (creativePrefs.notes ? creativePrefs.notes + ' ' : '') + text })}
+                  />
+                </div>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Include real examples, avoid technical jargon, end with a strong hook for part 2…"
+                  placeholder="e.g. Include real examples, avoid technical jargon… (or tap mic to speak)"
                   value={creativePrefs.notes}
                   onChange={e => savePrefs({ ...creativePrefs, notes: e.target.value })}
                   className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
