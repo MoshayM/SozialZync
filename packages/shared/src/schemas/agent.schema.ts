@@ -235,7 +235,7 @@ export const MusicBriefOutputSchema = z.object({
   // AI sometimes returns array or object — coerce to string
   structure: z.any().transform(v => Array.isArray(v) ? (v as unknown[]).map(i => typeof i === 'string' ? i : JSON.stringify(i)).join(' → ') : typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')),
   prompt: z.string(),
-  provider: z.string().default('suno'),
+  provider: z.string().default('internal'),
   emotionalArc: z.string().optional(),
   notes: z.string().optional(),
 });

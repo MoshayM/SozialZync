@@ -79,8 +79,10 @@ export class MediaService {
   };
   private readonly music: AdapterChain<MusicAdapter> = {
     configured: process.env['MUSIC_PROVIDER'],
-    // Cloud: Suno (PiAPI), Udio, Replicate, Stability — then local MusicGen — then synth placeholder
-    adapters: [new SunoMusicAdapter(), new UdioMusicAdapter(), new ReplicateMusicAdapter(), new StabilityMusicAdapter(), new MusicGenLocalAdapter(), new OfflineMusicAdapter()],
+    // Default: in-app synth (always available, no key needed) → self-hosted MusicGen (MUSICGEN_URL)
+    // → Replicate/Stability (API keys) → Suno/Udio (PiAPI key, opt-in only).
+    // Set MUSIC_PROVIDER=<name> to promote any adapter to first position.
+    adapters: [new OfflineMusicAdapter(), new MusicGenLocalAdapter(), new ReplicateMusicAdapter(), new StabilityMusicAdapter(), new SunoMusicAdapter(), new UdioMusicAdapter()],
   };
   private readonly video: AdapterChain<VideoAdapter> = {
     configured: process.env['VIDEO_PROVIDER'],

@@ -63,7 +63,7 @@ export class MusicService {
       const raw = await callAIStructured(
         [{
           role: 'user',
-          content: `Create a content-aware music production brief for YouTube video "${script.title}".\n\nDuration: ${durationSecs}s\nOverall mood hint: ${mood ?? 'derive from script'}\nGenre hint: ${genre ?? 'derive from script'}\n\nHook (first 250 chars): "${script.hook.slice(0, 250)}"\n\nScript sections:\n${sectionSummary}\n\nCall to action: "${(script.callToAction ?? '').slice(0, 100)}"\n\nRequirements:\n- mood: single evocative word matching the script's dominant emotion\n- genre: music genre that fits the content theme\n- bpm: 60-160 matching energy/pacing of narration\n- instruments: array of 3-6 instruments fitting the mood\n- energy: one of low/medium/high/dynamic — match the script's intensity\n- durationSecs: ${durationSecs}\n- structure: describe how music should evolve (e.g. "builds in chorus, softens in CTA")\n- emotionalArc: one sentence describing the music's emotional journey matching the script arc\n- prompt: vivid 60-100 word content-specific music direction — reference the video's theme, key moments, emotional beats, pacing. Make it unique to THIS video.\n- provider: "suno"`,
+          content: `Create a content-aware music production brief for YouTube video "${script.title}".\n\nDuration: ${durationSecs}s\nOverall mood hint: ${mood ?? 'derive from script'}\nGenre hint: ${genre ?? 'derive from script'}\n\nHook (first 250 chars): "${script.hook.slice(0, 250)}"\n\nScript sections:\n${sectionSummary}\n\nCall to action: "${(script.callToAction ?? '').slice(0, 100)}"\n\nRequirements:\n- mood: single evocative word matching the script's dominant emotion\n- genre: music genre that fits the content theme\n- bpm: 60-160 matching energy/pacing of narration\n- instruments: array of 3-6 instruments fitting the mood\n- energy: one of low/medium/high/dynamic — match the script's intensity\n- durationSecs: ${durationSecs}\n- structure: describe how music should evolve (e.g. "builds in chorus, softens in CTA")\n- emotionalArc: one sentence describing the music's emotional journey matching the script arc\n- prompt: vivid 60-100 word content-specific music direction — reference the video's theme, key moments, emotional beats, pacing. Make it unique to THIS video.\n- provider: "internal"`,
         }],
         MusicBriefOutputSchema,
         { systemPrompt: MUSIC_SYSTEM, maxTokens: 2048 },
@@ -162,7 +162,7 @@ export class MusicService {
       durationSecs: 300,
       structure: '',
       prompt: '',
-      provider: 'suno',
+      provider: 'internal',
     } as MusicBriefOutput));
 
     const mood = typeof brief.mood === 'string' ? brief.mood : 'upbeat';
