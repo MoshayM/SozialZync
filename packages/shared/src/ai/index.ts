@@ -1392,3 +1392,44 @@ export function simulateRouting(
     return { provider, model, healthy: available, estCostUsd, wouldRoute, reason };
   });
 }
+
+// ── Whisper transcription (exported so API packages can use without importing openai directly) ──
+
+export async function transcribeWithWhisper(
+  buffer: Buffer,
+  mimeType: string,
+  targetLang?: string,
+): Promise<{ text: string; detectedLang: string; translated: boolean }> {
+  const key = process.env['OPENAI_API_KEY'];
+  if (!key) throw new Error('OPENAI_API_KEY not set');
+  const client = getOpenAI();
+
+  const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'webm';
+  const file = new File([buffer], `audio.${ext}`, { type: mimeType });
+
+  const transcription = await client.audio.transcriptions.create({
+    model: 'whisper-1',
+    file,
+    response_format: 'verbose_json',
+  });
+
+  const detectedLang = (transcription as { language?: string }).language ?? 'en';
+  let text = (transcription as { text?: string }).text?.trim() ?? '';
+
+  const normalise = (l: string) => l.toLowerCase().split('-')[0];
+  const needsTranslation = !!targetLang && normalise(detectedLang) !== normalise(targetLang);
+
+  if (needsTranslation && text) {
+    const result = await callAIStructured({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      systemPrompt: 'You are a translation assistant. Translate the user text to the requested language. Return ONLY the translated text, nothing else.',
+      userContent: `Translate to ${targetLang}:\n\n${text}`,
+      schema: z.object({ translated: z.string() }),
+      label: 'voice-transcribe-translate',
+    });
+    text = result.translated ?? text;
+  }
+
+  return { text, detectedLang, translated: needsTranslation };
+}
