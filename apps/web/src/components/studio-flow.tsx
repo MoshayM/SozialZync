@@ -324,7 +324,7 @@ function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | '
 
 // ── Image preview (blob-backed, auth header needed) ────────────────────────
 
-function ImagePreview({ versionId }: { versionId: string }) {
+function ImagePreview({ versionId, onClick }: { versionId: string; onClick?: (url: string) => void }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -346,7 +346,14 @@ function ImagePreview({ versionId }: { versionId: string }) {
       <span className="text-[11px] text-gray-400">Preview unavailable</span>
     </div>
   );
-  return <img src={url} alt="" className="w-full rounded-xl aspect-video object-cover" />;
+  return (
+    <img
+      src={url}
+      alt=""
+      className={`w-full rounded-xl aspect-video object-cover${onClick ? ' cursor-zoom-in' : ''}`}
+      onClick={onClick ? () => onClick(url) : undefined}
+    />
+  );
 }
 
 // ── Voice input mic button (for Creative Brief fields) ───────────────────────
@@ -620,6 +627,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
   const hasPrefs = Object.values(creativePrefs).some(v => v.trim().length > 0);
   const prefsPayload = hasPrefs ? { creativePrefs } : {};
+
+  // ── Image editing state ───────────────────────────────────────────────────
+  const [imgEditIdx, setImgEditIdx] = useState<number | null>(null);
+  const [imgEditPrompt, setImgEditPrompt] = useState('');
+  const [imgAddOpen, setImgAddOpen] = useState(false);
+  const [imgAddPrompt, setImgAddPrompt] = useState('');
+  const [imgLightbox, setImgLightbox] = useState<string | null>(null);
 
   const { data: channels = [] } = useQuery({
     queryKey: ['channels'],
@@ -2925,51 +2939,227 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
   // ── Image detail ─────────────────────────────────────────────────────────────
   const imageDetail = (
-    <div className="space-y-4">
-      {/* Scene Briefs */}
+    <div className="space-y-5">
+      {/* Lightbox */}
+      {imgLightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setImgLightbox(null)}
+        >
+          <img
+            src={imgLightbox}
+            alt=""
+            className="max-w-full max-h-[88vh] rounded-2xl object-contain shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-4 right-4 bg-white/10 backdrop-blur text-white rounded-full p-2 hover:bg-white/20 transition-colors"
+            onClick={() => setImgLightbox(null)}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Scene Briefs ── */}
       <div>
         <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Scene Briefs</p>
         {imageBriefResult?.briefs?.length ? (
           <div className="space-y-2">
             {imageBriefResult.briefs.map((brief, i) => (
-              <div key={brief.sceneId} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">Scene {i + 1}</span>
-                  <span className="text-[10px] text-gray-400">{brief.style} · {brief.aspectRatio}</span>
+              <div key={brief.sceneId} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">Scene {i + 1}</span>
+                    <span className="text-[10px] text-gray-400 bg-white px-2 py-0.5 rounded-full border border-gray-100">{brief.style}</span>
+                    <span className="text-[10px] text-gray-400">{brief.aspectRatio}</span>
+                  </div>
+                  {imageGenResult?.images?.[i] && (
+                    <button
+                      className="text-[10px] font-medium text-brand-600 hover:underline shrink-0"
+                      onClick={() => { setImgEditIdx(i); setImgEditPrompt(brief.prompt); }}
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
-                <p className="text-xs text-gray-700 line-clamp-3">{brief.prompt}</p>
                 {brief.sectionHeading && (
-                  <p className="text-[10px] text-gray-400 mt-1 italic">{brief.sectionHeading}</p>
+                  <p className="text-[11px] font-semibold text-gray-700 mb-1">{brief.sectionHeading}</p>
                 )}
+                <p className="text-[11px] text-gray-600 leading-relaxed">{brief.prompt}</p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-500">Run Images to generate scene briefs.</p>
+          <p className="text-xs text-gray-500 italic">Run Images to generate scene briefs.</p>
         )}
       </div>
 
-      {/* Generated Images */}
+      {/* ── Generated Images ── */}
       {imageGenResult?.images?.length ? (
         <div>
-          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Generated Images</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {imageGenResult.images.map((img, i) => (
-              <div key={img.sceneId} className="rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
-                {img.versionId ? (
-                  <ImagePreview versionId={img.versionId} />
-                ) : (
-                  <div className="w-full aspect-video bg-gray-100 flex items-center justify-center">
-                    <ImageIcon className="w-6 h-6 text-gray-300" />
-                  </div>
-                )}
-                <p className="text-[10px] text-gray-500 px-2 py-1.5 truncate">Scene {i + 1} · {img.provider}</p>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Scene Images</p>
+            <button
+              className="text-[10px] font-semibold text-brand-600 flex items-center gap-1 hover:underline disabled:opacity-40 transition-opacity"
+              disabled={busy}
+              onClick={() => { setImgAddOpen(v => !v); setImgAddPrompt(''); }}
+            >
+              <Plus className="w-3 h-3" />
+              Add image
+            </button>
           </div>
+
+          {/* Add-new-image form */}
+          {imgAddOpen && (
+            <div className="rounded-xl border border-brand-100 bg-brand-50 p-3 mb-3 space-y-2">
+              <p className="text-[11px] font-semibold text-brand-700">New Scene Image</p>
+              <textarea
+                className="w-full text-xs rounded-lg border border-gray-200 bg-white p-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
+                rows={3}
+                placeholder="Describe the scene you want to generate…"
+                value={imgAddPrompt}
+                onChange={e => setImgAddPrompt(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button
+                  className="text-[11px] font-semibold bg-brand-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 transition-opacity"
+                  disabled={busy || !imgAddPrompt.trim()}
+                  onClick={() => {
+                    enqueue.mutate({
+                      type: 'FULL_PRODUCTION',
+                      payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], addNewScene: { prompt: imgAddPrompt.trim() }, ...prefsPayload },
+                    });
+                    setImgAddOpen(false);
+                    setImgAddPrompt('');
+                  }}
+                >
+                  Generate
+                </button>
+                <button
+                  className="text-[11px] text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 bg-white"
+                  onClick={() => { setImgAddOpen(false); setImgAddPrompt(''); }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {imageGenResult.images.map((img, i) => {
+              const brief = imageBriefResult?.briefs?.[i];
+              const isEditingThis = imgEditIdx === i;
+              return (
+                <div key={img.sceneId} className="rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm">
+                  {/* Image — click to expand */}
+                  <div className="relative group">
+                    {img.versionId ? (
+                      <ImagePreview versionId={img.versionId} onClick={setImgLightbox} />
+                    ) : (
+                      <div className="w-full aspect-video bg-gray-100 flex items-center justify-center">
+                        <ImageIcon className="w-6 h-6 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Image info + controls */}
+                  <div className="px-3 py-2.5 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-gray-800 truncate">
+                        {brief?.sectionHeading ?? `Scene ${i + 1}`}
+                      </span>
+                      <span className="shrink-0 text-[9px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                        {img.provider}
+                      </span>
+                    </div>
+
+                    {/* Brief prompt preview */}
+                    {brief?.prompt && (
+                      <p className="text-[10px] text-gray-500 leading-relaxed line-clamp-2">{brief.prompt}</p>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex gap-1.5 pt-0.5">
+                      <button
+                        className="flex-1 text-[10px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-lg px-2 py-1.5 transition-colors disabled:opacity-40"
+                        disabled={busy}
+                        onClick={() => {
+                          if (isEditingThis) { setImgEditIdx(null); }
+                          else { setImgEditIdx(i); setImgEditPrompt(brief?.prompt ?? ''); }
+                        }}
+                      >
+                        {isEditingThis ? 'Close' : 'Edit Prompt'}
+                      </button>
+                      <button
+                        className="flex-1 text-[10px] font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1.5 transition-colors disabled:opacity-40"
+                        disabled={busy}
+                        onClick={() => enqueue.mutate({
+                          type: 'FULL_PRODUCTION',
+                          payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, ...prefsPayload },
+                        })}
+                      >
+                        Regenerate
+                      </button>
+                    </div>
+
+                    {/* Inline prompt editor */}
+                    {isEditingThis && (
+                      <div className="space-y-1.5 pt-1.5 border-t border-gray-100">
+                        <textarea
+                          className="w-full text-[11px] rounded-lg border border-gray-200 p-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400 bg-gray-50"
+                          rows={4}
+                          value={imgEditPrompt}
+                          onChange={e => setImgEditPrompt(e.target.value)}
+                          placeholder="Describe what you want this scene to look like…"
+                        />
+                        <button
+                          className="w-full text-[11px] font-semibold bg-brand-600 text-white rounded-lg px-3 py-1.5 disabled:opacity-40 transition-opacity"
+                          disabled={busy || !imgEditPrompt.trim()}
+                          onClick={() => {
+                            enqueue.mutate({
+                              type: 'FULL_PRODUCTION',
+                              payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, regenPrompt: imgEditPrompt.trim(), ...prefsPayload },
+                            });
+                            setImgEditIdx(null);
+                          }}
+                        >
+                          Apply & Regenerate
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sync Video notice — shown when video exists */}
+          {videoResult && (
+            <div className="mt-2 rounded-xl border border-amber-100 bg-amber-50 p-3 flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-amber-800">Video may be out of sync</p>
+                <p className="text-[11px] text-amber-600 mt-0.5">Re-render to apply these images to the video.</p>
+              </div>
+              <button
+                className="shrink-0 text-[11px] font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg px-3 py-1.5 disabled:opacity-40 transition-colors"
+                disabled={busy}
+                onClick={() => enqueue.mutate({
+                  type: 'FULL_PRODUCTION',
+                  payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL'], ...prefsPayload },
+                })}
+              >
+                Sync Video
+              </button>
+            </div>
+          )}
         </div>
       ) : imageBriefResult?.briefs?.length ? (
-        <p className="text-xs text-gray-500">Briefs ready — tap <strong>Run</strong> to generate images.</p>
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-center space-y-2">
+          <ImageIcon className="w-8 h-8 text-gray-300 mx-auto" />
+          <p className="text-xs text-gray-500">Briefs ready — tap <strong>Run</strong> to generate images.</p>
+        </div>
       ) : null}
     </div>
   );

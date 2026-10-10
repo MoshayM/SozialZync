@@ -920,6 +920,49 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           this.log(jobId, projectId, `Auto-generated ${briefs.length} image brief(s) ✓`);
         }
 
+        // ── Single-image regen / add new scene ──────────────────────────────
+        type ImgEntry = { sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean };
+        const regenOneIndex = typeof payload['regenOneIndex'] === 'number' ? (payload['regenOneIndex'] as number) : null;
+        const addNewScene = payload['addNewScene'] as { prompt: string; negativePrompt?: string } | undefined;
+
+        if (regenOneIndex !== null || addNewScene) {
+          const prevResult = await this.lastResult<{ images: ImgEntry[] }>(projectId, 'IMAGE_GENERATE');
+          const existingImages: ImgEntry[] = prevResult?.images ?? [];
+
+          if (regenOneIndex !== null) {
+            const brief = briefs[regenOneIndex];
+            const customPrompt = (payload['regenPrompt'] as string | undefined) ?? brief?.prompt ?? '';
+            const customNeg = (payload['regenNegativePrompt'] as string | undefined) ?? brief?.negativePrompt;
+            if (!customPrompt) throw new Error(`No prompt available for scene ${regenOneIndex + 1}`);
+            this.log(jobId, projectId, `Regenerating scene ${regenOneIndex + 1}…`);
+            const stored = await this.media.generateImage(
+              projectId,
+              `Scene ${regenOneIndex + 1} · ${brief?.sceneId ?? 'custom'} · regen-${regenOneIndex}-${Date.now()}`,
+              { prompt: customPrompt, negativePrompt: customNeg, width: 1280, height: 720 },
+            );
+            const updated = [...existingImages];
+            const entry: ImgEntry = { sceneId: brief?.sceneId ?? `scene-${regenOneIndex}`, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: false };
+            if (regenOneIndex < updated.length) updated[regenOneIndex] = entry;
+            else updated.push(entry);
+            this.log(jobId, projectId, `Scene ${regenOneIndex + 1} regenerated ✓`, stored.provider);
+            this.events.emitJobUpdate(jobId, { step: 'IMAGE_GENERATE', status: 'COMPLETED' }, projectId);
+            return { images: updated };
+          }
+
+          // addNewScene branch
+          const newSceneId = `custom-${Date.now()}`;
+          this.log(jobId, projectId, 'Generating new scene image…');
+          const newStored = await this.media.generateImage(
+            projectId,
+            `Custom Scene · ${newSceneId}`,
+            { prompt: addNewScene!.prompt, negativePrompt: addNewScene!.negativePrompt, width: 1280, height: 720 },
+          );
+          const newEntry: ImgEntry = { sceneId: newSceneId, assetId: newStored.assetId, versionId: newStored.versionId, provider: newStored.provider, cached: newStored.cached };
+          this.log(jobId, projectId, 'New scene image ready ✓', newStored.provider);
+          this.events.emitJobUpdate(jobId, { step: 'IMAGE_GENERATE', status: 'COMPLETED' }, projectId);
+          return { images: [...existingImages, newEntry] };
+        }
+
         const maxScenes = Math.min(briefs.length, Number(payload['maxScenes'] ?? 8));
         const t0 = Date.now();
         this.log(jobId, projectId, `Generating ${maxScenes} scene image(s)…`);

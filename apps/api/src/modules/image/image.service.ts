@@ -16,8 +16,13 @@ export class ImageService {
 
     try {
       const sectionsJson = JSON.stringify(
-        script.sections.map((s, i) => ({ id: `scene-${i}`, heading: s.heading, content: s.content.slice(0, 150) })),
+        script.sections.map((s, i) => ({ id: `scene-${i}`, heading: s.heading, content: s.content.slice(0, 400) })),
       );
+      const scriptHook = (script as { hook?: string }).hook ?? '';
+      const charNote = (() => {
+        const chars = (script as { characters?: Array<{ name: string; description?: string }> }).characters;
+        return chars?.length ? `\nCharacters: ${chars.map(c => `${c.name}${c.description ? ` (${c.description})` : ''}`).join(', ')}.` : '';
+      })();
 
       const prefsNote = prefs && Object.keys(prefs).length > 0
         ? `\nCreator preferences: ${[
@@ -26,11 +31,28 @@ export class ImageService {
             prefs['notes'] ? `notes: ${prefs['notes']}` : '',
           ].filter(Boolean).join(', ')}.`
         : '';
+
+      const userContent = `Create image generation briefs for each section of this YouTube video.
+
+Title: "${script.title}"
+Hook: "${scriptHook}"
+Brand style: ${JSON.stringify(brand)}${charNote}${prefsNote}
+
+Sections:
+${sectionsJson}
+
+For EACH section produce one image brief:
+- sceneId: "scene-0", "scene-1", etc.
+- sectionHeading: the section title
+- prompt: A vivid 2-3 sentence visual description. Include exact setting, lighting, colors, camera angle, emotional mood. Represent the section's MESSAGE visually. Reference characters by appearance/role (not real names). NO real people, celebrities, brands, or copyrighted characters.
+- negativePrompt: "blurry, low quality, watermark, text overlay, distorted faces, amateur"
+- style: "cinematic" for narrative, "photorealistic" for how-to, "infographic" for data/stats, "illustration" for abstract concepts
+- aspectRatio: "16:9"
+- count: 1
+- purpose: "b-roll" for story scenes, "diagram" for explanation, "thumbnail-candidate" for the most striking scene`;
+
       const raw = await callAIStructured(
-        [{
-          role: 'user',
-          content: `Create image briefs for YouTube video "${script.title}"\nBrand: ${JSON.stringify(brand)}\nSections: ${sectionsJson}\nProject: ${projectId}${prefsNote}\n\nFor each section, include: sceneId, sectionHeading, prompt (descriptive, no people/IP), negativePrompt, style, aspectRatio ("16:9"), count (2), purpose ("b-roll").`,
-        }],
+        [{ role: 'user', content: userContent }],
         ImageBriefOutputSchema,
         { systemPrompt: IMAGE_SYSTEM, maxTokens: 4096 },
       ) as ImageBriefOutput;
