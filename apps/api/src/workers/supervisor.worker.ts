@@ -1561,6 +1561,13 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               stagePayload['characterCast'] = stageResults['CHARACTER_CAST']
                 ?? await this.lastResult<CharacterCastOutput>(projectId, 'CHARACTER_CAST');
             }
+            // Forward image-regen controls to IMAGE_GENERATE
+            if (stage.type === 'IMAGE_GENERATE') {
+              if (payload['regenOneIndex'] != null) stagePayload['regenOneIndex'] = payload['regenOneIndex'];
+              if (payload['addNewScene'] != null) stagePayload['addNewScene'] = payload['addNewScene'];
+              if (payload['regenPrompt'] != null) stagePayload['regenPrompt'] = payload['regenPrompt'];
+              if (payload['regenNegativePrompt'] != null) stagePayload['regenNegativePrompt'] = payload['regenNegativePrompt'];
+            }
             // Forward content language to every stage that generates text
             if (payload['lang']) stagePayload['lang'] = payload['lang'];
             // Stage-level retry with backoff (master prompt §3.2): one retry
