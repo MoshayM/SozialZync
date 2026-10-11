@@ -14,7 +14,7 @@ import { getErrorMessage } from '@/lib/getErrorMessage';
 
 /**
  * Guided in-project production flow (design refs: image.png layout —
- * channel → Analyse / Suggestion / Script / Voice over / Music / Video —
+ * channel → Analyse / Suggestion / Script / Images / Voice over / Music / Video —
  * with project.PNG's soft lavender clay tiles). Every tile wraps the
  * compliance-gated pipeline with resume, and every stage result is editable:
  * edits persist via the stage-override endpoint so downstream stages use
@@ -3406,74 +3406,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           </div>
         )}
 
-        {/* 4 · Voice over */}
-        <div>
-          <Tile
-            icon={<Mic className="w-5 h-5" />}
-            title="Voice over"
-            subtitle={voiceResult ? `${voiceResult.provider} · ${Math.round((voiceResult.durationMs ?? 0) / 1000)}s` : 'Narrate the script'}
-            status={voiceResult ? 'done' : scriptDone ? 'ready' : 'locked'}
-            running={isRunning(jobs, 'VOICE_SPEC', 'VOICE_GENERATE', 'SONG_GENERATE')}
-            failed={latestFailure(jobs, 'VOICE_SPEC', 'VOICE_GENERATE', 'SONG_GENERATE')}
-            updatedAt={completedAt(jobs, 'VOICE_GENERATE') ?? completedAt(jobs, 'SONG_GENERATE')}
-            selected={expanded === 'voice'}
-            hasDetail={true}
-            onToggle={() => toggle('voice')}
-            action={
-              <RunButton
-                label={voiceResult ? 'Regenerate' : 'Run'}
-                rerun={!!voiceResult}
-                disabled={busy || !scriptDone}
-                onClick={() => enqueue.mutate({
-                  type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VOICE', lang: targetLang, ...prefsPayload, ...(voiceResult ? { regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } : {}) },
-                })}
-              />
-            }
-          />
-          {isMobile && expanded === 'voice' && (
-            <div key="voice" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('voice')}</div>
-          )}
-        </div>
-
-        {/* 5 · Music */}
-        <div>
-          <Tile
-            icon={<Music className="w-5 h-5" />}
-            title="Music"
-            subtitle={musicResult ? `${musicResult.provider} · ${Math.round((musicResult.durationMs ?? 0) / 1000)}s` : 'Background music for the video'}
-            status={musicResult ? 'done' : scriptDone ? 'ready' : 'locked'}
-            running={isRunning(jobs, 'MUSIC_BRIEF', 'MUSIC_GENERATE')}
-            failed={latestFailure(jobs, 'MUSIC_BRIEF', 'MUSIC_GENERATE')}
-            updatedAt={completedAt(jobs, 'MUSIC_GENERATE')}
-            selected={expanded === 'music'}
-            hasDetail={true}
-            onToggle={() => toggle('music')}
-            action={
-              <RunButton
-                label={musicResult ? 'Regenerate' : 'Run'}
-                rerun={!!musicResult}
-                disabled={busy || !scriptDone}
-                onClick={() => enqueue.mutate({
-                  type: 'FULL_PRODUCTION',
-                  payload: {
-                    scope: 'MUSIC',
-                    ...prefsPayload,
-                    ...(mood.trim() ? { mood: mood.trim() } : {}),
-                    ...(genre.trim() ? { genre: genre.trim() } : {}),
-                    ...(musicPromptOverride ? { musicPrompt: musicPromptOverride } : {}),
-                    ...(musicResult ? { regenerate: musicPromptOverride ? ['MUSIC_GENERATE'] : ['MUSIC_BRIEF', 'MUSIC_GENERATE'] } : {}),
-                  },
-                })}
-              />
-            }
-          />
-          {isMobile && expanded === 'music' && (
-            <div key="music" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('music')}</div>
-          )}
-        </div>
-
-        {/* 6 · Images */}
+        {/* 4 · Images */}
         <div>
           <Tile
             icon={<ImageIcon className="w-5 h-5" />}
@@ -3514,6 +3447,73 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           />
           {isMobile && expanded === 'images' && (
             <div key="images" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('images')}</div>
+          )}
+        </div>
+
+        {/* 5 · Voice over */}
+        <div>
+          <Tile
+            icon={<Mic className="w-5 h-5" />}
+            title="Voice over"
+            subtitle={voiceResult ? `${voiceResult.provider} · ${Math.round((voiceResult.durationMs ?? 0) / 1000)}s` : 'Narrate the script'}
+            status={voiceResult ? 'done' : scriptDone ? 'ready' : 'locked'}
+            running={isRunning(jobs, 'VOICE_SPEC', 'VOICE_GENERATE', 'SONG_GENERATE')}
+            failed={latestFailure(jobs, 'VOICE_SPEC', 'VOICE_GENERATE', 'SONG_GENERATE')}
+            updatedAt={completedAt(jobs, 'VOICE_GENERATE') ?? completedAt(jobs, 'SONG_GENERATE')}
+            selected={expanded === 'voice'}
+            hasDetail={true}
+            onToggle={() => toggle('voice')}
+            action={
+              <RunButton
+                label={voiceResult ? 'Regenerate' : 'Run'}
+                rerun={!!voiceResult}
+                disabled={busy || !scriptDone}
+                onClick={() => enqueue.mutate({
+                  type: 'FULL_PRODUCTION',
+                  payload: { scope: 'VOICE', lang: targetLang, ...prefsPayload, ...(voiceResult ? { regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } : {}) },
+                })}
+              />
+            }
+          />
+          {isMobile && expanded === 'voice' && (
+            <div key="voice" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('voice')}</div>
+          )}
+        </div>
+
+        {/* 6 · Music */}
+        <div>
+          <Tile
+            icon={<Music className="w-5 h-5" />}
+            title="Music"
+            subtitle={musicResult ? `${musicResult.provider} · ${Math.round((musicResult.durationMs ?? 0) / 1000)}s` : 'Background music for the video'}
+            status={musicResult ? 'done' : scriptDone ? 'ready' : 'locked'}
+            running={isRunning(jobs, 'MUSIC_BRIEF', 'MUSIC_GENERATE')}
+            failed={latestFailure(jobs, 'MUSIC_BRIEF', 'MUSIC_GENERATE')}
+            updatedAt={completedAt(jobs, 'MUSIC_GENERATE')}
+            selected={expanded === 'music'}
+            hasDetail={true}
+            onToggle={() => toggle('music')}
+            action={
+              <RunButton
+                label={musicResult ? 'Regenerate' : 'Run'}
+                rerun={!!musicResult}
+                disabled={busy || !scriptDone}
+                onClick={() => enqueue.mutate({
+                  type: 'FULL_PRODUCTION',
+                  payload: {
+                    scope: 'MUSIC',
+                    ...prefsPayload,
+                    ...(mood.trim() ? { mood: mood.trim() } : {}),
+                    ...(genre.trim() ? { genre: genre.trim() } : {}),
+                    ...(musicPromptOverride ? { musicPrompt: musicPromptOverride } : {}),
+                    ...(musicResult ? { regenerate: musicPromptOverride ? ['MUSIC_GENERATE'] : ['MUSIC_BRIEF', 'MUSIC_GENERATE'] } : {}),
+                  },
+                })}
+              />
+            }
+          />
+          {isMobile && expanded === 'music' && (
+            <div key="music" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('music')}</div>
           )}
         </div>
 

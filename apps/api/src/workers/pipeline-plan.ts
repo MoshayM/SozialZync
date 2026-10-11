@@ -38,14 +38,14 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
     ...FOUNDATION,
     SEO_STAGE,
     S('VIDEO_SCENE_PLAN', 'Storyboard', 40),
-    // Specs/briefs in parallel…
+    // Images first — briefs then generation (sequential so images are ready before voice timing)
+    S('IMAGE_BRIEF', 'Image Briefs', 35),
+    S('IMAGE_GENERATE', 'Scene Images', 40),
+    // Voice + music in parallel after images
     S('VOICE_SPEC', 'Voice Direction', 35, { parallelGroup: 1 }),
-    S('IMAGE_BRIEF', 'Image Briefs', 35, { parallelGroup: 1 }),
     S('MUSIC_BRIEF', 'Music Brief', 30, { parallelGroup: 1 }),
     S('SUBTITLE_GENERATE', 'Subtitles', 45, { parallelGroup: 1, optional: true }),
-    // …then asset generation in parallel
     S('VOICE_GENERATE', 'Voice Over', 30, { parallelGroup: 2 }),
-    S('IMAGE_GENERATE', 'Scene Images', 40, { parallelGroup: 2 }),
     S('MUSIC_GENERATE', 'Background Music', 20, { parallelGroup: 2 }),
     S('VIDEO_GENERATE', 'Scene Videos', 60),
     S('THUMBNAIL', 'Thumbnail', 10),
