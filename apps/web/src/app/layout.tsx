@@ -32,11 +32,11 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
   icons: {
     icon: [
+      { url: '/icon.svg', type: 'image/svg+xml', sizes: 'any' },
       { url: '/logo.jpeg', type: 'image/jpeg', sizes: 'any' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
     ],
-    shortcut: '/logo.jpeg',
-    apple: [{ url: '/logo.jpeg', sizes: '512x512', type: 'image/jpeg' }],
+    shortcut: '/icon.svg',
+    apple: [{ url: '/icon.svg', sizes: '512x512', type: 'image/svg+xml' }],
   },
   // PWA / mobile app meta
   appleWebApp: {
