@@ -11,7 +11,8 @@
   "categories": ["productivity", "social", "entertainment"],
   "lang": "en",
   "icons": [
-    { "src": "/logo.jpeg",   "sizes": "any",     "type": "image/jpeg", "purpose": "any maskable" },
+    { "src": "/icon.svg",  "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/logo.jpeg", "sizes": "any", "type": "image/jpeg" },
     { "src": "/logo-16.png",  "sizes": "16x16",   "type": "image/png" },
     { "src": "/logo-32.png",  "sizes": "32x32",   "type": "image/png" },
     { "src": "/logo-64.png",  "sizes": "64x64",   "type": "image/png" },
@@ -25,13 +26,13 @@
       "name": "Shorts Studio",
       "short_name": "Shorts",
       "url": "/shorts-studio",
-      "icons": [{ "src": "/icon.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
       "name": "My Content",
       "short_name": "Content",
       "url": "/my-content",
-      "icons": [{ "src": "/icon.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }
