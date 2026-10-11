@@ -9,10 +9,13 @@ interface LogoMarkProps {
 }
 
 /**
- * SozialZynk brand mark — always renders /icon.svg which carries its own
- * white background, so it displays correctly on any surface.
+ * SozialZynk brand mark — renders the ZK mountain logo JPEG.
+ * 'dark' variant (white bg logo) for light surfaces; 'light' variant (dark bg logo) for dark surfaces.
+ * Note: SVGs with embedded <image> refs don't load when used as <img> src (browser security),
+ * so we use the JPEG directly.
  */
-export function LogoMark({ className, style, variant: _variant = 'dark' }: LogoMarkProps) {
+export function LogoMark({ className, style, variant = 'dark' }: LogoMarkProps) {
+  const src = variant === 'light' ? '/logo-dark.jpeg' : '/logo.jpeg';
   return (
     <span
       className={className}
@@ -27,7 +30,7 @@ export function LogoMark({ className, style, variant: _variant = 'dark' }: LogoM
       }}
     >
       <Image
-        src="/icon.svg"
+        src={src}
         alt="SozialZynk"
         width={96}
         height={96}
