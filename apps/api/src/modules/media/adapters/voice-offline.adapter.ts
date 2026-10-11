@@ -2,7 +2,9 @@ import type { VoiceAdapter, VoiceRequest, GeneratedMedia } from '../media.types'
 import { encodeWav } from './codec.util';
 
 const WORDS_PER_SECOND = 2.5;
-const SAMPLE_RATE = 22050;
+// 8 kHz keeps placeholder WAVs tiny (≈1 MB/min) so they fit in the 50 MB DB blob
+// and survive Railway ephemeral-disk restarts. Quality doesn't matter — it's a timing placeholder.
+const SAMPLE_RATE = 8000;
 
 /**
  * Always-available fallback voice track: a timing-accurate narration

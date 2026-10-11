@@ -261,7 +261,9 @@ export class MediaService {
             } as never,
             sizeBytes: BigInt(sizeBytes),
             durationMs: media.durationMs ?? null,
-            data: sizeBytes < 8 * 1024 * 1024 ? (media.buffer as unknown as Uint8Array<ArrayBuffer>) : null,
+            // 50 MB threshold — covers generated audio (WAV/MP3), images, and most scene videos.
+            // Files persisted here survive Railway ephemeral-disk restarts via the DB blob fallback.
+            data: sizeBytes < 50 * 1024 * 1024 ? (media.buffer as unknown as Uint8Array<ArrayBuffer>) : null,
           },
         });
         await this.prisma.asset.update({

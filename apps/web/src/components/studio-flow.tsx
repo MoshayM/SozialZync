@@ -328,6 +328,7 @@ function ImagePreview({ versionId, onClick }: { versionId: string; onClick?: (ur
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -338,12 +339,16 @@ function ImagePreview({ versionId, onClick }: { versionId: string; onClick?: (ur
       .catch(() => { if (!cancelled) setLoadError(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [versionId]);
+  }, [versionId, retryKey]);
 
   if (loading) return <div className="w-full aspect-video bg-gray-100 rounded-xl animate-pulse" />;
   if (loadError || !url) return (
-    <div className="w-full aspect-video bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100">
+    <div className="w-full aspect-video bg-gray-50 rounded-xl flex flex-col items-center justify-center gap-2 border border-gray-100">
       <span className="text-[11px] text-gray-400">Preview unavailable</span>
+      <button
+        onClick={() => setRetryKey((k) => k + 1)}
+        className="text-[11px] text-brand-600 border border-brand-200 rounded-full px-2 py-0.5 hover:bg-brand-50"
+      >Retry</button>
     </div>
   );
   return (

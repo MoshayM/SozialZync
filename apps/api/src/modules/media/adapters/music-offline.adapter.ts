@@ -1,7 +1,9 @@
 import type { MusicAdapter, MusicRequest, GeneratedMedia } from '../media.types';
 import { encodeWav } from './codec.util';
 
-const SAMPLE_RATE = 44100;
+// 22050 Hz halves WAV size vs 44100 Hz — keeps tracks ≤ 50 MB DB blob threshold
+// even for long videos (10 min ≈ 26 MB at 22050 Hz mono 16-bit).
+const SAMPLE_RATE = 22050;
 const TWO_PI = 2 * Math.PI;
 
 // Root frequency for each musical key (Hz, middle-low octave for warmth)
