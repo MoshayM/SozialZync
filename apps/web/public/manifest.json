@@ -11,12 +11,14 @@
   "categories": ["productivity", "social", "entertainment"],
   "lang": "en",
   "icons": [
+    { "src": "/logo.jpeg", "sizes": "any",     "type": "image/jpeg" },
+    { "src": "/logo.jpeg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any maskable" },
     { "src": "/logo-16.png",  "sizes": "16x16",   "type": "image/png" },
     { "src": "/logo-32.png",  "sizes": "32x32",   "type": "image/png" },
     { "src": "/logo-64.png",  "sizes": "64x64",   "type": "image/png" },
     { "src": "/logo-128.png", "sizes": "128x128", "type": "image/png" },
     { "src": "/logo-256.png", "sizes": "256x256", "type": "image/png" },
-    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png" }
   ],
   "screenshots": [],
   "shortcuts": [
@@ -24,13 +26,13 @@
       "name": "Shorts Studio",
       "short_name": "Shorts",
       "url": "/shorts-studio",
-      "icons": [{ "src": "/logo-64.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/logo.jpeg", "sizes": "96x96" }]
     },
     {
       "name": "My Content",
       "short_name": "Content",
       "url": "/my-content",
-      "icons": [{ "src": "/logo-64.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/logo.jpeg", "sizes": "96x96" }]
     }
   ]
 }

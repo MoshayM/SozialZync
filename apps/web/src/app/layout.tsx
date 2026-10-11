@@ -31,9 +31,12 @@ export const metadata: Metadata = {
   applicationName: 'SozialZynk',
   alternates: { canonical: '/' },
   icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-    shortcut: '/icon.svg',
-    apple: [{ url: '/icon.svg', sizes: '512x512', type: 'image/svg+xml' }],
+    icon: [
+      { url: '/logo.jpeg', type: 'image/jpeg', sizes: 'any' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/logo.jpeg',
+    apple: [{ url: '/logo.jpeg', sizes: '512x512', type: 'image/jpeg' }],
   },
   // PWA / mobile app meta
   appleWebApp: {
