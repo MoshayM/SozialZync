@@ -634,6 +634,8 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [imgAddOpen, setImgAddOpen] = useState(false);
   const [imgAddPrompt, setImgAddPrompt] = useState('');
   const [imgLightbox, setImgLightbox] = useState<string | null>(null);
+  type ImageVisualStyle = 'realistic' | 'cinematic' | 'cartoon' | 'animation' | 'text-carousel' | 'minimal' | 'ai-best';
+  const [visualStyle, setVisualStyle] = useState<ImageVisualStyle>('ai-best');
 
   const { data: channels = [] } = useQuery({
     queryKey: ['channels'],
@@ -2961,6 +2963,48 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
         </div>
       )}
 
+      {/* ── Visual Style Picker ── */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Visual Style</p>
+          {visualStyle !== 'ai-best' && (
+            <button
+              className="text-[10px] text-gray-400 hover:text-gray-600 underline"
+              onClick={() => setVisualStyle('ai-best')}
+            >
+              Reset to AI picks best
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {([
+            { key: 'ai-best',       emoji: '✨', label: 'AI picks' },
+            { key: 'realistic',     emoji: '📷', label: 'Realistic' },
+            { key: 'cinematic',     emoji: '🎬', label: 'Cinematic' },
+            { key: 'cartoon',       emoji: '🎨', label: 'Cartoon' },
+            { key: 'animation',     emoji: '🎭', label: 'Animation' },
+            { key: 'text-carousel', emoji: '📊', label: 'Slides' },
+            { key: 'minimal',       emoji: '🖼️', label: 'Minimal' },
+          ] as { key: ImageVisualStyle; emoji: string; label: string }[]).map(({ key, emoji, label }) => (
+            <button
+              key={key}
+              onClick={() => setVisualStyle(key)}
+              className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl border text-center transition-all ${
+                visualStyle === key
+                  ? 'border-brand-400 bg-brand-50 text-brand-700'
+                  : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-white'
+              }`}
+            >
+              <span className="text-lg leading-none">{emoji}</span>
+              <span className="text-[9px] font-semibold leading-tight">{label}</span>
+            </button>
+          ))}
+        </div>
+        {visualStyle === 'ai-best' && (
+          <p className="mt-1.5 text-[10px] text-gray-400">AI will choose the best style for each scene automatically. Select a style above to override.</p>
+        )}
+      </div>
+
       {/* ── Scene Briefs ── */}
       <div>
         <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Scene Briefs</p>
@@ -3028,7 +3072,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   onClick={() => {
                     enqueue.mutate({
                       type: 'FULL_PRODUCTION',
-                      payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], addNewScene: { prompt: imgAddPrompt.trim() }, ...prefsPayload },
+                      payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], addNewScene: { prompt: imgAddPrompt.trim() }, visualStyle, ...prefsPayload },
                     });
                     setImgAddOpen(false);
                     setImgAddPrompt('');
@@ -3096,7 +3140,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         disabled={busy}
                         onClick={() => enqueue.mutate({
                           type: 'FULL_PRODUCTION',
-                          payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, ...prefsPayload },
+                          payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, visualStyle, ...prefsPayload },
                         })}
                       >
                         Regenerate
@@ -3119,7 +3163,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                           onClick={() => {
                             enqueue.mutate({
                               type: 'FULL_PRODUCTION',
-                              payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, regenPrompt: imgEditPrompt.trim(), ...prefsPayload },
+                              payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, regenPrompt: imgEditPrompt.trim(), visualStyle, ...prefsPayload },
                             });
                             setImgEditIdx(null);
                           }}
@@ -3435,6 +3479,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   payload: {
                     scope: 'IMAGES',
                     ...prefsPayload,
+                    visualStyle,
                     ...(imageGenResult
                       ? { regenerate: ['IMAGE_BRIEF', 'IMAGE_GENERATE'] }
                       : imageBriefResult

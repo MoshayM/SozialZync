@@ -25,6 +25,7 @@ import { ComfyUIImageAdapter } from './adapters/image-comfyui.adapter';
 import { A1111ImageAdapter } from './adapters/image-a1111.adapter';
 import { OpenAiImageAdapter } from './adapters/image-openai.adapter';
 import { GeminiImageAdapter } from './adapters/image-gemini.adapter';
+import { PollinationsImageAdapter } from './adapters/image-pollinations.adapter';
 import { ComfyUIVideoAdapter } from './adapters/video-comfyui.adapter';
 import { KlingVideoAdapter } from './adapters/video-kling.adapter';
 import { LumaVideoAdapter } from './adapters/video-luma.adapter';
@@ -74,8 +75,8 @@ export class MediaService {
   };
   private readonly image: AdapterChain<ImageAdapter> = {
     configured: process.env['IMAGE_PROVIDER'],
-    // Cloud: OpenAI DALL-E 3, Gemini Imagen — then self-hosted — then placeholder
-    adapters: [new OpenAiImageAdapter(), new GeminiImageAdapter(), new ComfyUIImageAdapter(), new A1111ImageAdapter(), new OfflineImageAdapter()],
+    // Cloud: OpenAI DALL-E 3, Gemini Imagen → Pollinations (free, always on) → self-hosted → placeholder
+    adapters: [new OpenAiImageAdapter(), new GeminiImageAdapter(), new PollinationsImageAdapter(), new ComfyUIImageAdapter(), new A1111ImageAdapter(), new OfflineImageAdapter()],
   };
   private readonly music: AdapterChain<MusicAdapter> = {
     configured: process.env['MUSIC_PROVIDER'],

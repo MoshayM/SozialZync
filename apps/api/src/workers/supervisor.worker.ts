@@ -603,9 +603,10 @@ export class SupervisorWorker extends WorkerHost {
         const channel2 = await this.prisma.channel.findFirst({ where: { projects: { some: { id: projectId } } } });
         const brandKit = channel2?.brandKit as Record<string, unknown> | undefined;
         const imagePrefs = payload['creativePrefs'] as Record<string, string> | undefined;
+        const visualStyle = (payload['visualStyle'] as import('../modules/media/media.types').ImageVisualStyle | undefined) ?? 'ai-best';
         const t0 = Date.now();
-        this.log(jobId, projectId, 'Generating per-scene image briefs…', `${script.sections.length} scenes`);
-        const result = await this.image.generateBriefs(script, projectId, brandKit, imagePrefs);
+        this.log(jobId, projectId, 'Generating per-scene image briefs…', `${script.sections.length} scenes, style=${visualStyle}`);
+        const result = await this.image.generateBriefs(script, projectId, brandKit, imagePrefs, visualStyle);
         const briefCount = (result as { briefs?: unknown[] }).briefs?.length ?? 0;
         this.log(jobId, projectId, 'Image briefs ready ✓', `${briefCount} brief(s)`);
         await this.jobs.logStep(jobId, 'ImageAgent', 'brief', { scenes: briefCount }, result, 0, 0, Date.now() - t0);
@@ -906,6 +907,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           ?? await this.lastResult<ImageBriefOutput>(projectId, 'IMAGE_BRIEF');
         let briefs = briefResult?.briefs ?? [];
 
+        const visualStyle = (payload['visualStyle'] as import('../modules/media/media.types').ImageVisualStyle | undefined) ?? 'ai-best';
+
         // Auto-generate briefs from script rather than hard-failing — makes VIDEO scope self-healing.
         if (briefs.length === 0) {
           this.log(jobId, projectId, 'No image briefs cached — generating from script…');
@@ -914,7 +917,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           if (!script) throw new Error('Script not found — complete the Script step first.');
           const chan = await this.prisma.channel.findFirst({ where: { projects: { some: { id: projectId } } } });
           const brandKit = chan?.brandKit as Record<string, unknown> | undefined;
-          briefResult = await this.image.generateBriefs(script, projectId, brandKit);
+          briefResult = await this.image.generateBriefs(script, projectId, brandKit, undefined, visualStyle);
           briefs = briefResult?.briefs ?? [];
           if (briefs.length === 0) throw new Error('Image brief generation produced no results — please try again.');
           this.log(jobId, projectId, `Auto-generated ${briefs.length} image brief(s) ✓`);
@@ -938,7 +941,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             const stored = await this.media.generateImage(
               projectId,
               `Scene ${regenOneIndex + 1} · ${brief?.sceneId ?? 'custom'} · regen-${regenOneIndex}-${Date.now()}`,
-              { prompt: customPrompt, negativePrompt: customNeg, width: 1280, height: 720 },
+              { prompt: customPrompt, negativePrompt: customNeg, width: 1280, height: 720, style: visualStyle },
             );
             const updated = [...existingImages];
             const entry: ImgEntry = { sceneId: brief?.sceneId ?? `scene-${regenOneIndex}`, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: false };
@@ -955,7 +958,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           const newStored = await this.media.generateImage(
             projectId,
             `Custom Scene · ${newSceneId}`,
-            { prompt: addNewScene!.prompt, negativePrompt: addNewScene!.negativePrompt, width: 1280, height: 720 },
+            { prompt: addNewScene!.prompt, negativePrompt: addNewScene!.negativePrompt, width: 1280, height: 720, style: visualStyle },
           );
           const newEntry: ImgEntry = { sceneId: newSceneId, assetId: newStored.assetId, versionId: newStored.versionId, provider: newStored.provider, cached: newStored.cached };
           this.log(jobId, projectId, 'New scene image ready ✓', newStored.provider);
@@ -974,6 +977,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             negativePrompt: brief.negativePrompt,
             width: 1280,
             height: 720,
+            style: visualStyle,
           });
           images.push({ sceneId: brief.sceneId, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
           this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'ready ✓'}`, stored.provider);
@@ -1561,8 +1565,11 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               stagePayload['characterCast'] = stageResults['CHARACTER_CAST']
                 ?? await this.lastResult<CharacterCastOutput>(projectId, 'CHARACTER_CAST');
             }
-            // Forward image-regen controls to IMAGE_GENERATE
+            // Forward visual style to image stages
+            if (stage.type === 'IMAGE_BRIEF' && payload['visualStyle'] != null) stagePayload['visualStyle'] = payload['visualStyle'];
+            // Forward image-regen controls and visual style to IMAGE_GENERATE
             if (stage.type === 'IMAGE_GENERATE') {
+              if (payload['visualStyle'] != null) stagePayload['visualStyle'] = payload['visualStyle'];
               if (payload['regenOneIndex'] != null) stagePayload['regenOneIndex'] = payload['regenOneIndex'];
               if (payload['addNewScene'] != null) stagePayload['addNewScene'] = payload['addNewScene'];
               if (payload['regenPrompt'] != null) stagePayload['regenPrompt'] = payload['regenPrompt'];

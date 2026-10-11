@@ -21,12 +21,16 @@ export interface VoiceRequest {
   language?: string;
 }
 
+export type ImageVisualStyle = 'realistic' | 'cinematic' | 'cartoon' | 'animation' | 'text-carousel' | 'minimal' | 'ai-best';
+
 export interface ImageRequest {
   prompt: string;
   negativePrompt?: string;
   width: number;
   height: number;
   seed?: number;
+  /** Visual style preference from the user's pre-generate style picker */
+  style?: ImageVisualStyle;
 }
 
 export interface MusicRequest {
