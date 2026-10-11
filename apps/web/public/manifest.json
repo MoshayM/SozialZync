@@ -11,8 +11,7 @@
   "categories": ["productivity", "social", "entertainment"],
   "lang": "en",
   "icons": [
-    { "src": "/icon.svg",    "sizes": "any",     "type": "image/svg+xml", "purpose": "any maskable" },
-    { "src": "/logo.jpeg",   "sizes": "any",     "type": "image/jpeg" },
+    { "src": "/logo.jpeg",   "sizes": "any",     "type": "image/jpeg", "purpose": "any maskable" },
     { "src": "/logo-16.png",  "sizes": "16x16",   "type": "image/png" },
     { "src": "/logo-32.png",  "sizes": "32x32",   "type": "image/png" },
     { "src": "/logo-64.png",  "sizes": "64x64",   "type": "image/png" },
