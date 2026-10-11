@@ -608,6 +608,9 @@ export class SupervisorWorker extends WorkerHost {
         this.log(jobId, projectId, 'Generating per-scene image briefs…', `${script.sections.length} scenes, style=${visualStyle}`);
         const result = await this.image.generateBriefs(script, projectId, brandKit, imagePrefs, visualStyle);
         const briefCount = (result as { briefs?: unknown[] }).briefs?.length ?? 0;
+        if (briefCount === 0) {
+          throw new Error(`Image brief generation returned 0 briefs for ${script.sections.length} section(s). Retry to get a fresh response.`);
+        }
         this.log(jobId, projectId, 'Image briefs ready ✓', `${briefCount} brief(s)`);
         await this.jobs.logStep(jobId, 'ImageAgent', 'brief', { scenes: briefCount }, result, 0, 0, Date.now() - t0);
         this.events.emitJobUpdate(jobId, { step: 'IMAGE_BRIEF', status: 'COMPLETED' }, projectId);

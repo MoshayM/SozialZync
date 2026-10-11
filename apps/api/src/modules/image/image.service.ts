@@ -88,31 +88,58 @@ export class ImageService {
         ? `style: choose "cinematic" for narrative, "photorealistic" for demonstrations, "infographic" for data/stats, "illustration" for abstract concepts`
         : `style: always use "${defaultBriefStyle}" (user selected ${visualStyle} style)`;
 
-      const userContent = `Create image generation briefs for each section of this video.
+      const userContent = `Create image generation briefs for each section of this video. Return ONLY a JSON object with this exact structure — no other keys, no markdown:
 
+{
+  "briefs": [
+    {
+      "sceneId": "scene-0",
+      "sectionHeading": "section title here",
+      "prompt": "vivid 2-3 sentence visual description",
+      "negativePrompt": "things to avoid",
+      "style": "cinematic",
+      "aspectRatio": "16:9",
+      "count": 1,
+      "purpose": "b-roll"
+    }
+  ]
+}
+
+Video details:
 Title: "${script.title}"
 Hook: "${scriptHook}"
 Brand style: ${JSON.stringify(brand)}${charNote}${prefsNote}
 Visual style requested: ${visualStyle}
 
-Sections:
+Sections (produce exactly one brief per section):
 ${sectionsJson}
 
-For EACH section produce one image brief:
-- sceneId: "scene-0", "scene-1", etc.
-- sectionHeading: the section title
-- prompt: A vivid 2-3 sentence visual description in the ${visualStyle} style. Include exact setting, lighting, colors, camera angle, emotional mood. Make it HIGHLY SPECIFIC — no generic descriptions. Reference characters by appearance/role (not real names). NO real people, celebrities, brands, or copyrighted characters.
+Rules for each brief:
+- sceneId: "scene-0", "scene-1", ... (incrementing, matching section order)
+- sectionHeading: copy the section heading exactly
+- prompt: A vivid 2-3 sentence visual description in the ${visualStyle} style. Include setting, lighting, colors, camera angle, emotional mood. HIGHLY SPECIFIC — no generic descriptions. Reference characters by appearance/role not real names. NO real people, celebrities, brands, or copyrighted characters.
 - negativePrompt: "${styleNeg}, blurry, low quality, watermark, distorted"
 - ${styleInstruction}
 - aspectRatio: "16:9"
 - count: 1
-- purpose: "b-roll" for story scenes, "diagram" for explanation, "thumbnail-candidate" for the most striking scene`;
+- purpose: "b-roll" for story/narrative scenes, "diagram" for data/explanation scenes, "thumbnail-candidate" for the single most visually striking scene
+
+Produce exactly ${script.sections.length} brief(s) — one per section. The top-level key MUST be "briefs".`;
 
       const raw = await callAIStructured(
         [{ role: 'user', content: userContent }],
         ImageBriefOutputSchema,
         { systemPrompt, maxTokens: 4096 },
       ) as ImageBriefOutput;
+
+      // Explicit guard: if the AI returned valid JSON but wrong key name, briefs will be [].
+      // Throw early with a clear message rather than silently storing empty results.
+      if (!raw.briefs || raw.briefs.length === 0) {
+        throw new Error(
+          `AI returned 0 image briefs for ${script.sections.length} section(s). ` +
+          `The model may have used a different JSON key. Retry to get a fresh response.`,
+        );
+      }
 
       return {
         ...raw,
