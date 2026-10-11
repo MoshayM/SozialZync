@@ -82,14 +82,17 @@ test.describe('Images pipeline tile', () => {
     console.log(`✅ Tile titles: ${labels.join(' → ')}`);
 
     const imagesIdx = labels.findIndex(l => /^Images$/i.test(l));
-    const musicIdx  = labels.findIndex(l => /^Music$/i.test(l));
+    const scriptIdx = labels.findIndex(l => /^Script$/i.test(l));
+    const voiceIdx  = labels.findIndex(l => /^Voice over$/i.test(l));
     const videoIdx  = labels.findIndex(l => /^Video$/i.test(l));
 
     expect(imagesIdx).toBeGreaterThan(-1);
-    if (musicIdx >= 0 && videoIdx >= 0) {
-      expect(imagesIdx).toBeGreaterThan(musicIdx);
-      expect(imagesIdx).toBeLessThan(videoIdx);
-      console.log('✅ Images correctly positioned between Music and Video');
+    console.log(`✅ Images at index ${imagesIdx} (Script=${scriptIdx}, Voice over=${voiceIdx}, Video=${videoIdx})`);
+    // New order: Script → Images → Voice over → … → Video
+    if (scriptIdx >= 0 && voiceIdx >= 0) {
+      expect(imagesIdx).toBeGreaterThan(scriptIdx);
+      expect(imagesIdx).toBeLessThan(voiceIdx);
+      console.log('✅ Images correctly positioned between Script and Voice over');
     }
 
     await page.screenshot({ path: 'pw-verify-fixes/images-tile-visible.png' });
