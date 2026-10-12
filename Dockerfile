@@ -1,4 +1,4 @@
-# build-buster: 20261009-v2
+# build-buster: 20261012-v1
 FROM node:22-slim AS base
 RUN apt-get update && apt-get install -y openssl libatomic1 curl python3 python3-pip python3-venv ffmpeg && \
     curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y openssl libatomic1 curl python3 python3
     python3 -m pip install --quiet --break-system-packages curl_cffi && \
     rm -rf /var/lib/apt/lists/* && \
     npm install -g pnpm@10 && \
-    echo "deploy-20261009-v2"
+    echo "deploy-20261012-v1"
 
 WORKDIR /app
 
