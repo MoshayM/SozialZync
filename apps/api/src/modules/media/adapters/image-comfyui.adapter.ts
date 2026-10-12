@@ -1,6 +1,16 @@
-import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage, ImageAdapter, ImageRequest, GeneratedMedia } from '../media.types';
+import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage, ImageAdapter, ImageRequest, GeneratedMedia, ImageVisualStyle } from '../media.types';
 
 const BASE_URL = process.env['COMFYUI_URL'] ?? 'http://localhost:8188';
+
+const STYLE_SUFFIX: Record<ImageVisualStyle, string> = {
+  realistic:       ', photorealistic, DSLR photography, sharp focus, natural lighting',
+  cinematic:       ', cinematic shot, anamorphic lens, dramatic color grading, film quality',
+  cartoon:         ', flat illustration, bold clean outlines, vibrant colors, vector art',
+  animation:       ', Pixar 3D animation style, smooth shading, studio lighting, high quality render',
+  'text-carousel': ', clean slide design, bold typography, minimal background, infographic style',
+  minimal:         ', minimalist composition, white space, clean lines, editorial photography',
+  'ai-best':       ', high quality, professional, highly detailed',
+};
 
 type ComfyHistoryEntry = {
   outputs?: Record<
@@ -105,9 +115,11 @@ export class ComfyUIImageAdapter implements SelfHostedImageAdapter, ImageAdapter
   }
 
   async generateImage(req: ImageRequest): Promise<GeneratedMedia> {
+    const style = (req.style ?? 'ai-best') as ImageVisualStyle;
+    const suffix = STYLE_SUFFIX[style] ?? '';
     const result = await this.generate({
-      prompt: req.prompt,
-      negativePrompt: req.negativePrompt,
+      prompt: `${req.prompt}${suffix}`,
+      negativePrompt: req.negativePrompt ?? 'blurry, low quality, watermark, text, logo',
       width: req.width,
       height: req.height,
       seed: req.seed,

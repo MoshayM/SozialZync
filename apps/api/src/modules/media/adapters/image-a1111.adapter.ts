@@ -1,6 +1,27 @@
-import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage, ImageAdapter, ImageRequest, GeneratedMedia } from '../media.types';
+import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage, ImageAdapter, ImageRequest, GeneratedMedia, ImageVisualStyle } from '../media.types';
 
 const BASE_URL = process.env['A1111_URL'] ?? 'http://localhost:7860';
+
+const STYLE_SUFFIX: Record<ImageVisualStyle, string> = {
+  realistic:       ', photorealistic, DSLR photography, sharp focus, natural lighting',
+  cinematic:       ', cinematic shot, anamorphic lens, dramatic color grading, film quality',
+  cartoon:         ', flat illustration, bold clean outlines, vibrant colors, vector art',
+  animation:       ', Pixar 3D animation style, smooth shading, studio lighting, high quality render',
+  'text-carousel': ', clean slide design, bold typography, minimal background, infographic style',
+  minimal:         ', minimalist composition, white space, clean lines, editorial photography',
+  'ai-best':       ', high quality, professional, highly detailed',
+};
+
+// A1111 style → sampler + steps tuning
+const STYLE_SAMPLER: Record<ImageVisualStyle, { sampler: string; steps: number; cfg: number }> = {
+  realistic:       { sampler: 'DPM++ 2M Karras', steps: 30, cfg: 7 },
+  cinematic:       { sampler: 'DPM++ 2M Karras', steps: 35, cfg: 8 },
+  cartoon:         { sampler: 'Euler a',          steps: 25, cfg: 7 },
+  animation:       { sampler: 'DPM++ 2M Karras', steps: 30, cfg: 7 },
+  'text-carousel': { sampler: 'Euler',            steps: 20, cfg: 6 },
+  minimal:         { sampler: 'Euler a',          steps: 25, cfg: 6 },
+  'ai-best':       { sampler: 'DPM++ 2M Karras', steps: 30, cfg: 7 },
+};
 
 type A1111Response = { images: string[]; info?: string };
 type A1111InfoJson = { seed?: number };
@@ -87,12 +108,17 @@ export class A1111ImageAdapter implements SelfHostedImageAdapter, ImageAdapter {
   }
 
   async generateImage(req: ImageRequest): Promise<GeneratedMedia> {
+    const style = (req.style ?? 'ai-best') as ImageVisualStyle;
+    const suffix = STYLE_SUFFIX[style] ?? '';
+    const tuning = STYLE_SAMPLER[style] ?? STYLE_SAMPLER['ai-best']!;
     const result = await this.generate({
-      prompt: req.prompt,
-      negativePrompt: req.negativePrompt,
+      prompt: `${req.prompt}${suffix}`,
+      negativePrompt: req.negativePrompt ?? 'blurry, low quality, watermark, text, logo, deformed',
       width: req.width,
       height: req.height,
       seed: req.seed,
+      steps: tuning.steps,
+      cfgScale: tuning.cfg,
     });
     return {
       buffer: result.buffer,
