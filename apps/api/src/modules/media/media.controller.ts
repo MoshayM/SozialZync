@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Body, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createHash } from 'crypto';
@@ -53,10 +53,11 @@ function mimeFor(name: string): string {
 
 type MediaRequest = Request & { signedMediaAccess?: boolean; user?: JwtPayload };
 
-@TierRateLimit({ bucket: 'media-upload', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
 @Controller('media')
 @UseGuards(JwtAuthGuard)
 export class MediaController {
+  private readonly logger = new Logger(MediaController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
@@ -102,6 +103,7 @@ export class MediaController {
    * VOICE asset so downstream pipeline stages can use it as the narration
    * track instead of TTS. Max 100 MB.
    */
+  @TierRateLimit({ bucket: 'media-upload', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
   @Post('voice/upload')
   @UseInterceptors(FileInterceptor('audio', { limits: { fileSize: 100 * 1024 * 1024 } }))
   async uploadVoice(
@@ -176,6 +178,7 @@ export class MediaController {
    * Detects the file type from MIME and stores it as VIDEO / IMAGE / MUSIC accordingly.
    * Max 500 MB. Optional ?projectId= — resolves to user's most-recent project if omitted.
    */
+  @TierRateLimit({ bucket: 'media-upload', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
   @Post('media/upload')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 500 * 1024 * 1024 } }))
   async uploadMedia(
@@ -206,6 +209,7 @@ export class MediaController {
    * Accept a local video file upload and store it as a VIDEO asset.
    * Max 500 MB. Optional ?projectId= — resolves to user's most-recent project if omitted.
    */
+  @TierRateLimit({ bucket: 'media-upload', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
   @Post('video/upload')
   @UseInterceptors(FileInterceptor('video', { limits: { fileSize: 500 * 1024 * 1024 } }))
   async uploadVideo(
@@ -228,6 +232,7 @@ export class MediaController {
    * Direct video URLs are fetched via axios with SSRF validation. Max 500 MB.
    * Body: { url, title?, projectId? }
    */
+  @TierRateLimit({ bucket: 'media-upload', windowSecs: 3600, limits: { FREE: 5, STARTER: 20, PRO: 60, AGENCY: 150, default: 5 } })
   @Post('video/import-from-url')
   async importVideoFromUrl(
     @Body() body: { url?: string; title?: string; projectId?: string; confirmOwnership?: boolean },
@@ -526,6 +531,8 @@ export class MediaController {
   // Signed access (docs4/09): file routes accept `?exp=&sig=` OR a JWT.
   // @Public neutralises the controller-level JWT guard; SignedMediaOrJwtGuard
   // still enforces JWT when no valid signature is presented.
+  // File streaming uses its own high-limit bucket — separate from the upload/generation quota.
+  @TierRateLimit({ bucket: 'media-stream', windowSecs: 60, limits: { FREE: 300, STARTER: 600, PRO: 1200, AGENCY: 6000, default: 300 } })
   @Public()
   @UseGuards(SignedMediaOrJwtGuard)
   @Get('versions/:versionId/file')
@@ -542,9 +549,15 @@ export class MediaController {
     });
     // Signature access proved ownership at issuance; JWT access proves it here.
     // (The JWT payload carries the user id in `sub` — there is no `id` field.)
+    // SUPER_ADMIN may access any asset for auditing and support purposes.
     const authorized =
-      req.signedMediaAccess === true || version?.asset.project.userId === req.user?.sub;
+      req.signedMediaAccess === true ||
+      version?.asset.project.userId === req.user?.sub ||
+      req.user?.role === 'SUPER_ADMIN';
     if (!version?.r2Key || !authorized) {
+      this.logger.warn(
+        `[versionFile] 404 versionId=${versionId} found=${!!version} r2Key=${version?.r2Key ?? 'null'} authorized=${authorized} userSub=${req.user?.sub ?? 'none'} projectOwner=${version?.asset?.project?.userId ?? 'none'}`,
+      );
       throw new NotFoundException('Asset file not found');
     }
     const name = version.r2Key.split('/').pop() ?? 'file';
@@ -562,11 +575,13 @@ export class MediaController {
     const available = await this.storage.ensure(version.r2Key);
     if (!available) {
       // Disk file missing (ephemeral Railway restart) — try DB blob fallback
+      this.logger.log(`[versionFile] disk miss versionId=${versionId} r2Key=${version.r2Key} — checking DB blob`);
       const withData = await this.prisma.assetVersion.findUnique({
         where: { id: versionId },
         select: { data: true, r2Key: true },
       });
       if (withData?.data) {
+        this.logger.log(`[versionFile] DB blob hit versionId=${versionId} size=${(withData.data as Buffer).length}`);
         // Write back to disk so subsequent requests hit the fast path
         if (withData.r2Key) {
           await this.storage.put(withData.r2Key, Buffer.from(withData.data)).catch(() => undefined);
@@ -577,6 +592,7 @@ export class MediaController {
           disposition: `inline; filename="${name}"`,
         });
       }
+      this.logger.warn(`[versionFile] DB blob miss versionId=${versionId} hasRecord=${!!withData} dataNull=${withData?.data == null}`);
       throw new NotFoundException('Asset file not found');
     }
     return new StreamableFile(this.storage.stream(version.r2Key), {
