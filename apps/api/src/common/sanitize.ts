@@ -185,7 +185,7 @@ const IMAGE_MAGIC: Array<{ bytes: number[]; offset?: number }> = [
   { bytes: [0x00, 0x00, 0x00], offset: 4 },        // AVIF / HEIF (ftyp box)
 ];
 
-export function validateImageFile(file: Express.Multer.File): void {
+export function validateImageFile(file: Pick<Express.Multer.File, 'mimetype' | 'buffer'>): void {
   const { BadRequestException } = require('@nestjs/common') as typeof import('@nestjs/common');
 
   const mime = (file.mimetype ?? '').toLowerCase().split(';')[0]?.trim() ?? '';
