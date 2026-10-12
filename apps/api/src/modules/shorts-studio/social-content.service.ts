@@ -125,7 +125,7 @@ export class SocialContentService {
         ].join('\n'),
       }],
       SocialContentOutputSchema,
-      { systemPrompt: SOCIAL_SYSTEM, maxTokens: 8192 },
+      { systemPrompt: SOCIAL_SYSTEM, maxTokens: 3500 },
     );
 
     const rows = socialOutputToRows(result, video.durationMs);

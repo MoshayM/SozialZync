@@ -64,6 +64,12 @@ import { EditorService } from '../modules/editor/editor.service';
 import { toJobFailure } from '../modules/media/media.errors';
 import { appendVideoImportLog } from '../modules/media/video-import-log.util';
 
+/** Trim large text to maxChars before sending to AI — reduces token cost. */
+function trimContext(text: string, maxChars: number): string {
+  if (!text || text.length <= maxChars) return text;
+  return text.slice(0, maxChars) + '…';
+}
+
 interface JobPayload {
   jobId: string;
   projectId: string;
@@ -358,7 +364,8 @@ export class SupervisorWorker extends WorkerHost {
         const result = await this.compliance.enforce(
           {
             title: script.title,
-            script: script.sections.map((s) => s.content).join('\n\n'),
+            // Trim to 2000 chars — compliance checks headlines + claims, not every word
+            script: trimContext(script.sections.map((s) => s.content).join('\n\n'), 2000),
           },
           (event) => {
             if (event.type === 'RETRYING') {
@@ -525,6 +532,15 @@ export class SupervisorWorker extends WorkerHost {
       }
 
       case 'VOICE_SPEC': {
+        // Rule 3: reuse cached voice spec unless forced
+        if (!payload['force']) {
+          const cached = await this.lastResult<VoiceSpecOutput>(projectId, 'VOICE_SPEC');
+          if (cached?.sections?.length) {
+            this.log(jobId, projectId, `Voice spec reused from cache ✓ (${cached.sections.length} section(s)) — pass force=true to regenerate`);
+            this.events.emitJobUpdate(jobId, { step: 'VOICE_SPEC', status: 'COMPLETED' }, projectId);
+            return cached;
+          }
+        }
         this.log(jobId, projectId, 'Loading script for voice direction…');
         const script = (payload['script'] as ScriptOutput | undefined)
           ?? await this.lastResult<ScriptOutput>(projectId, 'SCRIPT');
@@ -596,6 +612,15 @@ export class SupervisorWorker extends WorkerHost {
       }
 
       case 'IMAGE_BRIEF': {
+        // Rule 3: reuse cached briefs unless caller explicitly forces regeneration
+        if (!payload['force']) {
+          const cached = await this.lastResult<ImageBriefOutput>(projectId, 'IMAGE_BRIEF');
+          if (cached?.briefs?.length) {
+            this.log(jobId, projectId, `Image briefs reused from cache ✓ (${cached.briefs.length} brief(s)) — pass force=true to regenerate`);
+            this.events.emitJobUpdate(jobId, { step: 'IMAGE_BRIEF', status: 'COMPLETED' }, projectId);
+            return cached;
+          }
+        }
         this.log(jobId, projectId, 'Loading script for image briefs…');
         const script = (payload['script'] as ScriptOutput | undefined)
           ?? await this.lastResult<ScriptOutput>(projectId, 'SCRIPT');
@@ -618,6 +643,15 @@ export class SupervisorWorker extends WorkerHost {
       }
 
       case 'MUSIC_BRIEF': {
+        // Rule 3: reuse cached brief unless forced
+        if (!payload['force']) {
+          const cached = await this.lastResult<MusicBriefOutput>(projectId, 'MUSIC_BRIEF');
+          if (cached?.genre) {
+            this.log(jobId, projectId, `Music brief reused from cache ✓ (${cached.genre} · ${cached.bpm ?? '?'} BPM) — pass force=true to regenerate`);
+            this.events.emitJobUpdate(jobId, { step: 'MUSIC_BRIEF', status: 'COMPLETED' }, projectId);
+            return cached;
+          }
+        }
         this.log(jobId, projectId, 'Loading script for music brief…');
         const script = (payload['script'] as ScriptOutput | undefined)
           ?? await this.lastResult<ScriptOutput>(projectId, 'SCRIPT');
@@ -828,6 +862,15 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
       }
 
       case 'ANALYTICS': {
+        // Rule 3: reuse cached analytics report unless forced (analytics is expensive)
+        if (!payload['force']) {
+          const cached = await this.lastResult<AnalyticsOutput>(projectId, 'ANALYTICS');
+          if (cached && (cached as { overallScore?: number }).overallScore != null) {
+            this.log(jobId, projectId, `Analytics report reused from cache ✓ (score ${(cached as { overallScore?: number }).overallScore}/100) — pass force=true to refresh`);
+            this.events.emitJobUpdate(jobId, { step: 'ANALYTICS', status: 'COMPLETED' }, projectId);
+            return cached;
+          }
+        }
         this.log(jobId, projectId, 'Loading channel data for analytics report…');
         const channel4 = await this.prisma.channel.findFirst({ where: { projects: { some: { id: projectId } } } });
         if (!channel4) throw new Error('Channel not found for this project.');

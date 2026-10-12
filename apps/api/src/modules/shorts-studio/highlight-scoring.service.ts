@@ -70,7 +70,7 @@ export class HighlightScoringService {
           ].join('\n'),
         }],
         HighlightScoringOutputSchema,
-        { systemPrompt: SCORING_SYSTEM, maxTokens: 4096 },
+        { systemPrompt: SCORING_SYSTEM, maxTokens: 2048 },
       );
 
       for (const score of result.scores) {

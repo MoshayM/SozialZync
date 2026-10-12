@@ -102,7 +102,7 @@ export class ChurchPackService {
         ].join('\n'),
       }],
       ChurchPackOutputSchema,
-      { systemPrompt: CHURCH_PACK_SYSTEM, maxTokens: 8192 },
+      { systemPrompt: CHURCH_PACK_SYSTEM, maxTokens: 3500 },
     );
 
     const updates = mergePackIntoChapters(pending.map((c) => c.id), result.chapters);

@@ -141,7 +141,7 @@ export class ChapterDetectionService {
         ].join('\n'),
       }],
       ChapterDetectionOutputSchema,
-      { systemPrompt: CHAPTER_SYSTEM, maxTokens: 4096 },
+      { systemPrompt: CHAPTER_SYSTEM, maxTokens: 2048 },
     );
 
     const chapters = normalizeChapters(result.chapters, topics.map((t) => t.startMs), video.durationMs);

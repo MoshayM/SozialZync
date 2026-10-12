@@ -72,7 +72,7 @@ export class CaptionGenerationService {
         ].join('\n'),
       }],
       CaptionStylingOutputSchema,
-      { systemPrompt: STYLING_SYSTEM, maxTokens: 4096 },
+      { systemPrompt: STYLING_SYSTEM, maxTokens: 2048 },
     );
     const styleByIndex = new Map(styling.captions.map((c) => [c.index, c]));
 

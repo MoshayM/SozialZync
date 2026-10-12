@@ -146,7 +146,7 @@ export class TopicSegmentationService {
       // callAIStructured already retries 429s with exponential backoff (up to 5×).
       // If all those retries exhaust (sustained rate limit on long videos), wait 60 s
       // at the stage level and try the window once more before propagating.
-      const result = await callAIStructured(aiMessages, TopicSegmentationOutputSchema, { systemPrompt: TOPIC_SYSTEM, maxTokens: 4096 })
+      const result = await callAIStructured(aiMessages, TopicSegmentationOutputSchema, { systemPrompt: TOPIC_SYSTEM, maxTokens: 2048 })
         .catch(async (err: unknown) => {
           const msg = err instanceof Error ? err.message : String(err);
           const is429 = (err as { status?: number }).status === 429 || /429|rate.?limit|too many/i.test(msg);
@@ -155,7 +155,7 @@ export class TopicSegmentationService {
           this.logger.warn(`[TopicSegmentation] 429 on window ${i + 1}/${pending.length} — waiting ${waitSec}s before stage-level retry`);
           onLog?.(`Rate limit hit on window ${i + 1} — waiting ${waitSec} s then retrying…`);
           await new Promise((r) => setTimeout(r, waitSec * 1000));
-          return callAIStructured(aiMessages, TopicSegmentationOutputSchema, { systemPrompt: TOPIC_SYSTEM, maxTokens: 4096 });
+          return callAIStructured(aiMessages, TopicSegmentationOutputSchema, { systemPrompt: TOPIC_SYSTEM, maxTokens: 2048 });
         });
 
       const clean = this.sanitize(result.segments, w, video.durationMs);
