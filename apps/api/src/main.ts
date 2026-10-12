@@ -1,4 +1,4 @@
-// Sentry must be initialized before any other imports
+// Sentry must be initialized before any other imports — deploy-20261012
 import './instrument';
 import 'reflect-metadata';
 
