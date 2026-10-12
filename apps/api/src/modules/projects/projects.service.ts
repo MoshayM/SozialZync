@@ -41,7 +41,8 @@ export class ProjectsService {
       if (!channel) throw new ForbiddenException('Channel not found or not owned');
     }
 
-    return this.prisma.project.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- contentType pending Prisma client regen after migration
+    return (this.prisma.project as any).create({
       data: {
         userId,
         title: dto.title,
