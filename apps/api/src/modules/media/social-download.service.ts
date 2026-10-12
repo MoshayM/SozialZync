@@ -19,6 +19,11 @@ const SOCIAL_PATTERNS: Array<[RegExp, string]> = [
   [/dailymotion\.com/, 'Dailymotion'],
   [/reddit\.com/, 'Reddit'],
   [/bilibili\.com/, 'Bilibili'],
+  [/pinterest\.com|pin\.it/, 'Pinterest'],
+  [/flickr\.com/, 'Flickr'],
+  [/tumblr\.com/, 'Tumblr'],
+  [/snapchat\.com/, 'Snapchat'],
+  [/threads\.net/, 'Threads'],
 ];
 
 @Injectable()
@@ -108,23 +113,45 @@ export class SocialDownloadService {
 
     try {
       const buffer = fs.readFileSync(outFile);
-      if (buffer.length === 0) throw new BadRequestException('Downloaded video is empty');
+      if (buffer.length === 0) throw new BadRequestException('Downloaded media is empty');
 
-      const ext = path.extname(outFile).slice(1) || 'mp4';
-      const mime =
-        ext === 'webm' ? 'video/webm'
-        : ext === 'mov' ? 'video/quicktime'
-        : 'video/mp4';
+      const ext = path.extname(outFile).slice(1).toLowerCase() || 'mp4';
+      const mime = this.mimeFromExt(ext, buffer);
+      const mediaWord = mime.startsWith('image/') ? 'image' : 'video';
       const base = title
         ? title.replace(/[^\w\s-]/g, '_').slice(0, 80)
-        : `video`;
+        : mediaWord;
       const filename = `${base}.${ext}`;
 
-      this.logger.log(`yt-dlp done — ${(buffer.length / 1024 / 1024).toFixed(1)} MB from ${url}`);
+      this.logger.log(`yt-dlp done — ${(buffer.length / 1024 / 1024).toFixed(1)} MB (${mime}) from ${url}`);
       return { buffer, filename, mimeType: mime };
     } finally {
       try { fs.unlinkSync(outFile); } catch { /* best-effort cleanup */ }
     }
+  }
+
+  /** Detect MIME type from file extension and magic bytes fallback. */
+  private mimeFromExt(ext: string, buf: Buffer): string {
+    const IMAGE_EXTS: Record<string, string> = {
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+      webp: 'image/webp', gif: 'image/gif', avif: 'image/avif',
+      heic: 'image/heic', heif: 'image/heif',
+    };
+    const VIDEO_EXTS: Record<string, string> = {
+      mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime',
+      avi: 'video/x-msvideo', mkv: 'video/x-matroska',
+      m4v: 'video/mp4', '3gp': 'video/3gpp', ogv: 'video/ogg',
+    };
+    if (IMAGE_EXTS[ext]) return IMAGE_EXTS[ext]!;
+    if (VIDEO_EXTS[ext]) return VIDEO_EXTS[ext]!;
+    // Magic-byte fallback for extensionless or ambiguous downloads
+    if (buf.length >= 4) {
+      if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg';          // JPEG
+      if (buf[0] === 0x89 && buf[1] === 0x50) return 'image/png';           // PNG
+      if (buf[0] === 0x52 && buf[1] === 0x49 && buf[4] === 0x57) return 'image/webp'; // RIFF/WEBP
+      if (buf[0] === 0x47 && buf[1] === 0x49) return 'image/gif';           // GIF
+    }
+    return 'video/mp4'; // safe default
   }
 
   /** Fetch the video title from yt-dlp metadata only (no download). Times out at 15s. */

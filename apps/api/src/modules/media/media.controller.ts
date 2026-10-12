@@ -277,7 +277,13 @@ export class MediaController {
       const { buffer, filename, mimeType } = await this.socialDl.download(rawUrl, body.title, { skipSignInGate: isPrivileged });
       const safeFilename = sanitizeFilename(filename);
       const platform = this.socialDl.platformLabel(rawUrl) ?? 'social';
-      return this.storeVideoBuffer(buffer, safeFilename, mimeType, resolvedProjectId, `social-import:${platform}`);
+      const provider = `social-import:${platform}`;
+      // Route to image store for image media (e.g. Pinterest pins, Flickr photos)
+      if (mimeType.startsWith('image/')) {
+        validateImageFile({ mimetype: mimeType, buffer });
+        return this.storeMediaBuffer(buffer, safeFilename, mimeType, resolvedProjectId, 'IMAGE', provider);
+      }
+      return this.storeVideoBuffer(buffer, safeFilename, mimeType, resolvedProjectId, provider);
     }
 
     // ── Direct URL → axios (SSRF-validated) ──────────────────────────────────
@@ -303,22 +309,37 @@ export class MediaController {
 
     if (buf.length === 0) throw new BadRequestException('Downloaded file is empty');
 
-    // Infer MIME from URL extension if server returned octet-stream
-    if (detectedMime === 'application/octet-stream' || !detectedMime.startsWith('video/')) {
+    // Infer MIME from URL extension when server returns octet-stream or text/html
+    if (detectedMime === 'application/octet-stream' || detectedMime === 'text/html' || detectedMime === 'text/plain') {
       const ext = rawUrl.split('?')[0]?.split('.').pop()?.toLowerCase() ?? '';
       const extMime: Record<string, string> = {
         mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime',
         avi: 'video/x-msvideo', mkv: 'video/x-matroska', ogv: 'video/ogg',
+        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+        webp: 'image/webp', gif: 'image/gif', avif: 'image/avif',
       };
       detectedMime = extMime[ext] ?? detectedMime;
     }
 
-    validateVideoFile({ mimetype: detectedMime, buffer: buf });
+    // If we still got text/html, the URL is a web page — not a direct media link
+    if (detectedMime === 'text/html' || detectedMime.startsWith('text/')) {
+      throw new BadRequestException(
+        'That URL points to a web page, not a media file. ' +
+        'For Pinterest, Instagram, TikTok and similar platforms, paste the post URL and check the "I own this content" box. ' +
+        'For direct imports, use a URL that ends in .mp4, .jpg, .png, etc.',
+      );
+    }
 
     const rawName = body.title
-      ? `${body.title}.${this.extFromMime(detectedMime)}`
-      : (rawUrl.split('?')[0]?.split('/').pop() ?? `video.${this.extFromMime(detectedMime)}`);
+      ? `${body.title}.${this.extFromAnyMime(detectedMime)}`
+      : (rawUrl.split('?')[0]?.split('/').pop() ?? `media.${this.extFromAnyMime(detectedMime)}`);
     const safeFilename = sanitizeFilename(rawName);
+
+    if (detectedMime.startsWith('image/')) {
+      validateImageFile({ mimetype: detectedMime, buffer: buf });
+      return this.storeMediaBuffer(buf, safeFilename, detectedMime, resolvedProjectId, 'IMAGE', 'url-import');
+    }
+    validateVideoFile({ mimetype: detectedMime, buffer: buf });
     return this.storeVideoBuffer(buf, safeFilename, detectedMime, resolvedProjectId, 'url-import');
   }
 
