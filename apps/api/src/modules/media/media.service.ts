@@ -344,7 +344,7 @@ export class MediaService {
           } as never,
           sizeBytes: BigInt(sizeBytes),
           durationMs: durationMs ?? null,
-          data: sizeBytes < 8 * 1024 * 1024 ? buffer : undefined,
+          data: sizeBytes < 50 * 1024 * 1024 ? buffer : undefined,
         },
       });
 
@@ -461,7 +461,7 @@ export class MediaService {
           } as never,
           sizeBytes: BigInt(sizeBytes),
           durationMs: ttsDurationMs ?? null,
-          data: sizeBytes < 8 * 1024 * 1024 ? styledBuffer : undefined,
+          data: sizeBytes < 50 * 1024 * 1024 ? styledBuffer : undefined,
         },
       });
 
