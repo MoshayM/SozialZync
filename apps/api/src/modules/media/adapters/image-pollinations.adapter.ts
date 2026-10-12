@@ -6,15 +6,15 @@ import type { ImageAdapter, ImageRequest, GeneratedMedia, ImageVisualStyle } fro
  * Free tier, suitable for production use (rate-limited by IP, not credits).
  */
 
-// Map visual style → Pollinations model that produces the best output
+// Map visual style → Pollinations free-tier model (flux-pro returns 402 — paid only)
 const STYLE_MODEL: Record<ImageVisualStyle, string> = {
   realistic:       'flux-realism',
-  cinematic:       'flux-pro',
+  cinematic:       'flux-realism',  // flux-pro is paid; realism gives cinematic quality
   cartoon:         'flux-anime',
   animation:       'flux-3d',
   'text-carousel': 'flux',
-  minimal:         'flux-pro',
-  'ai-best':       'flux-pro',
+  minimal:         'flux',          // flux-pro is paid; base flux handles clean minimal shots
+  'ai-best':       'flux-realism',  // flux-pro is paid; realism is best free alternative
 };
 
 // Style-specific prompt suffixes to anchor generation quality
@@ -37,7 +37,7 @@ export class PollinationsImageAdapter implements ImageAdapter {
 
   async generateImage(req: ImageRequest): Promise<GeneratedMedia> {
     const style: ImageVisualStyle = (req.style ?? 'ai-best') as ImageVisualStyle;
-    const model  = STYLE_MODEL[style]  ?? 'flux-pro';
+    const model  = STYLE_MODEL[style]  ?? 'flux-realism';
     const suffix = STYLE_SUFFIX[style] ?? '';
 
     const fullPrompt = req.negativePrompt
