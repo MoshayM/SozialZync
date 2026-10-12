@@ -158,6 +158,7 @@ model Project {
   isDemo      Boolean       @default(false)
   niche       String?
   contentFormat String?
+  contentType   String?
   platforms     String[]  @default([])
   targetLang  String        @default("en")
   /** Phase 5 §10: when set, agent-job spend reserves on this org's shared wallet. */

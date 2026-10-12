@@ -11,6 +11,7 @@ export interface CreateProjectDto {
   /** Phase 5 §10: bill agent-job spend to this org's shared wallet; null/'' clears. */
   billingOrgId?: string | null;
   contentFormat?: string;
+  contentType?: string;
   platforms?: string[];
 }
 
@@ -49,6 +50,7 @@ export class ProjectsService {
         targetLang: dto.targetLang ?? 'en',
         billingOrgId: await this.resolveBillingOrgId(userId, dto.billingOrgId),
         contentFormat: dto.contentFormat,
+        contentType: dto.contentType,
         platforms: dto.platforms ?? [],
         ...(dto.channelId ? { channelId: dto.channelId } : {}),
       },

@@ -253,6 +253,97 @@ const VIDEO_FORMATS = new Set([
   'LI_VIDEO', 'TH_VIDEO', 'FB_VIDEO', 'FB_REEL',
 ]);
 
+// ── Content Types ─────────────────────────────────────────────────────────────
+
+type ContentType = 'educational' | 'movie-drama' | 'story' | 'series' | 'commercial' | 'documentary' | 'motivational' | 'comedy';
+
+interface ContentTypeDef {
+  type: ContentType;
+  emoji: string;
+  label: string;
+  desc: string;
+  tags: string[];
+  defaultProductionMode: ProductionMode;
+  color: string;
+  bg: string;
+  border: string;
+}
+
+const CONTENT_TYPES: ContentTypeDef[] = [
+  {
+    type: 'educational',
+    emoji: '📚',
+    label: 'Educational',
+    desc: 'Teach, explain, and inform. Phonics, science, maths, how-to guides.',
+    tags: ['Learning', 'Explainer', 'Tutorial'],
+    defaultProductionMode: 'FULL',
+    color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe',
+  },
+  {
+    type: 'movie-drama',
+    emoji: '🎬',
+    label: 'Movie & Drama',
+    desc: 'Short films, dramatic scenes, emotional cinematic stories.',
+    tags: ['Cinematic', 'Dialogue', 'Narrative'],
+    defaultProductionMode: 'CHARACTER_STORY',
+    color: '#7c2d12', bg: '#fff7ed', border: '#fed7aa',
+  },
+  {
+    type: 'story',
+    emoji: '📖',
+    label: 'Story',
+    desc: 'Short stories, moral tales, children\'s stories, bedtime narratives.',
+    tags: ['Children', 'Moral', 'Bedtime'],
+    defaultProductionMode: 'CHARACTER_STORY',
+    color: '#065f46', bg: '#ecfdf5', border: '#a7f3d0',
+  },
+  {
+    type: 'series',
+    emoji: '🎭',
+    label: 'Series / Serial',
+    desc: 'Multi-episode content with consistent characters and continuing storylines.',
+    tags: ['Episodes', 'Characters', 'Ongoing'],
+    defaultProductionMode: 'CHARACTER_STORY',
+    color: '#6b21a8', bg: '#faf5ff', border: '#e9d5ff',
+  },
+  {
+    type: 'commercial',
+    emoji: '📢',
+    label: 'Commercial / Ad',
+    desc: 'Product videos, brand ads, promotional content, launch videos.',
+    tags: ['Brand', 'Promo', 'Marketing'],
+    defaultProductionMode: 'FULL',
+    color: '#b45309', bg: '#fffbeb', border: '#fde68a',
+  },
+  {
+    type: 'documentary',
+    emoji: '🎥',
+    label: 'Documentary',
+    desc: 'Research-based, factual storytelling. Real events and deep dives.',
+    tags: ['Factual', 'Research', 'Journalism'],
+    defaultProductionMode: 'FULL',
+    color: '#374151', bg: '#f9fafb', border: '#e5e7eb',
+  },
+  {
+    type: 'motivational',
+    emoji: '⚡',
+    label: 'Motivational',
+    desc: 'Inspirational speeches, life lessons, success stories, mindset content.',
+    tags: ['Inspiration', 'Mindset', 'Growth'],
+    defaultProductionMode: 'FULL',
+    color: '#92400e', bg: '#fffbeb', border: '#fcd34d',
+  },
+  {
+    type: 'comedy',
+    emoji: '😄',
+    label: 'Comedy / Sketch',
+    desc: 'Funny sketches, parodies, humorous takes, entertainment content.',
+    tags: ['Humor', 'Sketch', 'Entertainment'],
+    defaultProductionMode: 'CHARACTER_STORY',
+    color: '#be185d', bg: '#fdf2f8', border: '#fbcfe8',
+  },
+];
+
 // ── Projects sub-components ───────────────────────────────────────────────────
 
 function PlatformIcon({ platform, size = 16 }: { platform: Platform; size?: number }) {
@@ -528,11 +619,12 @@ interface ProjectsTabProps {
   searchQuery: string;
   showCreate: boolean;
   setShowCreate: (v: boolean) => void;
-  createStep: 1 | 2;
-  setCreateStep: (v: 1 | 2) => void;
+  createStep: 1 | 2 | 3;
+  setCreateStep: (v: 1 | 2 | 3) => void;
   createError: string | null;
   setCreateError: (v: string | null) => void;
   form: {
+    contentType: ContentType;
     platform: Platform; contentFormat: ContentFormat;
     productionMode: ProductionMode;
     primaryChannelId: string; crossPostChannelIds: string[];
@@ -813,12 +905,12 @@ function ProjectsTab({
             <div className="px-7 py-5 flex items-start justify-between gap-4" style={{ borderBottom: '1.5px solid #f3f4f6' }}>
               <div className="space-y-2.5">
                 <h2 className="text-lg font-extrabold text-gray-900">New Project</h2>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  {[{ n: 1, label: 'Platform & Format' }, { n: 2, label: 'Accounts & Details' }].map(({ n, label }) => (
-                    <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {([{ n: 1, label: 'Content Type' }, { n: 2, label: 'Platform & Format' }, { n: 3, label: 'Details' }] as { n: 1 | 2 | 3; label: string }[]).map(({ n, label }) => (
+                    <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <span style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: createStep >= n ? '#374151' : '#e5e7eb', color: createStep >= n ? '#fff' : '#4b5563' }}>{n}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: createStep === n ? '#374151' : '#4b5563' }}>{label}</span>
-                      {n < 2 && <span style={{ width: 24, height: 2, background: '#e5e7eb', borderRadius: 2 }} />}
+                      <span style={{ fontSize: 11, fontWeight: 600, color: createStep === n ? '#374151' : '#9ca3af' }}>{label}</span>
+                      {n < 3 && <span style={{ width: 20, height: 2, background: '#e5e7eb', borderRadius: 2 }} />}
                     </div>
                   ))}
                 </div>
@@ -826,9 +918,65 @@ function ProjectsTab({
               <button type="button" onClick={closeCreate} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-colors text-lg leading-none shrink-0">×</button>
             </div>
 
+            {/* ── Step 1: Content Type ── */}
             {createStep === 1 && (
               <>
+                <div className="px-7 py-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600 mb-1">What are you creating?</p>
+                    <p className="text-[11px] text-gray-500 mb-3">Choose your content category. AI will tailor the script, voice, and visual style to match.</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {CONTENT_TYPES.map(ct => (
+                        <button
+                          key={ct.type} type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            contentType: ct.type,
+                            productionMode: ct.defaultProductionMode,
+                          }))}
+                          style={form.contentType === ct.type
+                            ? { background: ct.bg, border: `2px solid ${ct.color}` }
+                            : { background: '#faf9ff', border: '1.5px solid #e3ddf8' }}
+                          className="flex flex-col items-start gap-1.5 p-3 rounded-2xl text-left transition-all hover:border-gray-300"
+                        >
+                          <span style={{ fontSize: 22 }}>{ct.emoji}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: form.contentType === ct.type ? ct.color : '#374151' }}>{ct.label}</span>
+                          <span style={{ fontSize: 9.5, color: '#6b7280', lineHeight: 1.35 }}>{ct.desc}</span>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {ct.tags.map(t => (
+                              <span key={t} style={{ fontSize: 9, fontWeight: 600, background: form.contentType === ct.type ? ct.bg : '#f3f4f6', color: form.contentType === ct.type ? ct.color : '#6b7280', border: `1px solid ${form.contentType === ct.type ? ct.border : '#e5e7eb'}`, borderRadius: 999, padding: '1px 6px' }}>{t}</span>
+                            ))}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
+                  <button type="button" onClick={closeCreate} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
+                  <button
+                    type="button" onClick={() => setCreateStep(2)}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ── Step 2: Platform & Format ── */}
+            {createStep === 2 && (
+              <>
                 <div className="px-7 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                  {/* Content type context chip */}
+                  {(() => { const ct = CONTENT_TYPES.find(c => c.type === form.contentType); return ct ? (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-semibold" style={{ background: ct.bg, border: `1.5px solid ${ct.border}`, color: ct.color }}>
+                      <span>{ct.emoji}</span>
+                      <span>{ct.label}</span>
+                      <span className="ml-auto text-[10px] font-medium opacity-70">← change in step 1</span>
+                    </div>
+                  ) : null; })()}
                   <div>
                     <p className="text-xs font-semibold text-gray-600 mb-3">Platform</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -920,9 +1068,9 @@ function ProjectsTab({
                   )}
                 </div>
                 <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
-                  <button type="button" onClick={closeCreate} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">Cancel</button>
+                  <button type="button" onClick={() => setCreateStep(1)} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">← Back</button>
                   <button
-                    type="button" onClick={() => setCreateStep(2)}
+                    type="button" onClick={() => setCreateStep(3)}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
                     style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 16px rgba(55,65,81,0.30)' }}
                   >
@@ -932,7 +1080,8 @@ function ProjectsTab({
               </>
             )}
 
-            {createStep === 2 && (
+            {/* ── Step 3: Accounts & Details ── */}
+            {createStep === 3 && (
               <>
                 <div className="px-7 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
                   {isFreeTier && (
@@ -1089,7 +1238,7 @@ function ProjectsTab({
 
                 {createError && <p className="px-7 pb-2 text-sm text-red-600">{createError}</p>}
                 <div className="px-7 py-5 flex items-center justify-between gap-3" style={{ borderTop: '1.5px solid #f3f4f6' }}>
-                  <button type="button" onClick={() => setCreateStep(1)} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">← Back</button>
+                  <button type="button" onClick={() => setCreateStep(2)} className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors">← Back</button>
                   <button
                     type="button" onClick={() => createMutation.mutate()}
                     disabled={!form.title || createMutation.isPending}
@@ -1150,9 +1299,10 @@ function ProjectsInner() {
       }
     } catch {}
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [createStep, setCreateStep] = useState<1 | 2>(1);
+  const [createStep, setCreateStep] = useState<1 | 2 | 3>(1);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState({
+    contentType: 'educational' as ContentType,
     platform: 'YOUTUBE' as Platform,
     contentFormat: 'YT_VIDEO' as ContentFormat,
     productionMode: 'FULL' as ProductionMode,
@@ -1180,7 +1330,7 @@ function ProjectsInner() {
     setShowCreate(false);
     setCreateStep(1);
     setCreateError(null);
-    setForm({ platform: 'YOUTUBE', contentFormat: 'YT_VIDEO', productionMode: 'FULL', primaryChannelId: '', crossPostChannelIds: [], title: '', niche: '', goal: '', targetLang: 'en' });
+    setForm({ contentType: 'educational', platform: 'YOUTUBE', contentFormat: 'YT_VIDEO', productionMode: 'FULL', primaryChannelId: '', crossPostChannelIds: [], title: '', niche: '', goal: '', targetLang: 'en' });
   }
 
   const createMutation = useMutation({
@@ -1190,6 +1340,7 @@ function ProjectsInner() {
         title: form.title,
         niche: form.niche || undefined,
         contentFormat: form.contentFormat,
+        contentType: form.contentType,
         targetLang: form.targetLang !== 'en' ? form.targetLang : undefined,
         platforms: [
           form.platform,
@@ -1208,6 +1359,7 @@ function ProjectsInner() {
       }
       localStorage.setItem(`cf_ct_${newId}`, form.contentFormat);
       localStorage.setItem(`cf_platform_${newId}`, form.platform);
+      localStorage.setItem(`cf_contenttype_${newId}`, form.contentType);
       if (form.productionMode !== 'FULL') {
         localStorage.setItem(`cf_prodmode_${newId}`, form.productionMode);
       }

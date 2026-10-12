@@ -3,13 +3,34 @@ import type { SelfHostedImageAdapter, SelfHostedImageRequest, GeneratedImage, Im
 const BASE_URL = process.env['COMFYUI_URL'] ?? 'http://localhost:8188';
 
 const STYLE_SUFFIX: Record<ImageVisualStyle, string> = {
-  realistic:       ', photorealistic, DSLR photography, sharp focus, natural lighting',
-  cinematic:       ', cinematic shot, anamorphic lens, dramatic color grading, film quality',
-  cartoon:         ', flat illustration, bold clean outlines, vibrant colors, vector art',
-  animation:       ', Pixar 3D animation style, smooth shading, studio lighting, high quality render',
-  'text-carousel': ', clean slide design, bold typography, minimal background, infographic style',
-  minimal:         ', minimalist composition, white space, clean lines, editorial photography',
-  'ai-best':       ', high quality, professional, highly detailed',
+  'ai-best':          ', high quality, professional, highly detailed',
+  realistic:          ', photorealistic, DSLR photography, sharp focus, natural lighting',
+  'hyper-realistic':  ', hyper-realistic, ultra-detailed, 8K photography, medium format camera',
+  cinematic:          ', cinematic shot, anamorphic lens, dramatic color grading, film quality',
+  documentary:        ', documentary photography, handheld, natural lighting, candid, photojournalism',
+  commercial:         ', commercial photography, studio lighting, product advertisement quality',
+  '3d-animation':     ', Pixar 3D animation style, smooth shading, studio lighting, high quality render',
+  cartoon:            ', flat illustration, bold clean outlines, vibrant colors, vector art',
+  anime:              ', anime art style, cel-shaded, expressive eyes, Studio Ghibli quality',
+  claymation:         ', claymation stop-motion, clay texture, soft plasticine figures',
+  'low-poly':         ', low poly art, geometric faceted shapes, flat shading, digital minimalist',
+  'pixel-art':        ', pixel art, 8-bit retro game style, chunky pixels, limited colour palette',
+  watercolor:         ', watercolor painting, soft fluid washes, paper texture, delicate brushwork',
+  'oil-painting':     ', oil painting, thick impasto brushstrokes, rich pigments, classical style',
+  sketch:             ', pencil sketch, line art, hatching, hand-drawn illustration',
+  storybook:          ', children\'s storybook illustration, warm colours, rounded shapes, picture book',
+  'paper-cutout':     ', paper cutout collage, layered flat shapes, shadow casting, craft aesthetic',
+  'comic-book':       ', comic book illustration, bold outlines, Ben-Day dots, graphic novel panel',
+  cyberpunk:          ', cyberpunk, neon lights, rain-slicked streets, holographic ads, dystopian city',
+  'neon-synthwave':   ', synthwave, neon purples and pinks, grid landscape, 1980s retro-futurism',
+  'vintage-retro':    ', vintage photography, film grain, faded Kodachrome colours, retro analogue',
+  'black-white-noir': ', black and white, film noir, high contrast shadows, chiaroscuro, monochrome',
+  surreal:            ', surreal dreamscape, dreamlike impossible imagery, ethereal glow, fantasy',
+  minimalist:         ', minimalist composition, white space, clean lines, editorial photography',
+  'text-carousel':    ', clean slide design, bold typography, minimal background, infographic style',
+  // Legacy aliases
+  animation:          ', Pixar 3D animation style, smooth shading, studio lighting, high quality render',
+  minimal:            ', minimalist composition, white space, clean lines, editorial photography',
 };
 
 type ComfyHistoryEntry = {

@@ -639,7 +639,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [imgAddOpen, setImgAddOpen] = useState(false);
   const [imgAddPrompt, setImgAddPrompt] = useState('');
   const [imgLightbox, setImgLightbox] = useState<string | null>(null);
-  type ImageVisualStyle = 'realistic' | 'cinematic' | 'cartoon' | 'animation' | 'text-carousel' | 'minimal' | 'ai-best';
+  type ImageVisualStyle =
+    | 'ai-best'
+    | 'realistic' | 'hyper-realistic' | 'cinematic' | 'documentary' | 'commercial'
+    | '3d-animation' | 'cartoon' | 'anime' | 'claymation' | 'low-poly' | 'pixel-art'
+    | 'watercolor' | 'oil-painting' | 'sketch' | 'storybook' | 'paper-cutout' | 'comic-book'
+    | 'cyberpunk' | 'neon-synthwave' | 'vintage-retro' | 'black-white-noir' | 'surreal' | 'minimalist' | 'text-carousel'
+    | 'animation' | 'minimal';
   const [visualStyle, setVisualStyle] = useState<ImageVisualStyle>('ai-best');
 
   const { data: channels = [] } = useQuery({
@@ -2981,28 +2987,76 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             </button>
           )}
         </div>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="space-y-2.5">
           {([
-            { key: 'ai-best',       emoji: '✨', label: 'AI picks' },
-            { key: 'realistic',     emoji: '📷', label: 'Realistic' },
-            { key: 'cinematic',     emoji: '🎬', label: 'Cinematic' },
-            { key: 'cartoon',       emoji: '🎨', label: 'Cartoon' },
-            { key: 'animation',     emoji: '🎭', label: 'Animation' },
-            { key: 'text-carousel', emoji: '📊', label: 'Slides' },
-            { key: 'minimal',       emoji: '🖼️', label: 'Minimal' },
-          ] as { key: ImageVisualStyle; emoji: string; label: string }[]).map(({ key, emoji, label }) => (
-            <button
-              key={key}
-              onClick={() => setVisualStyle(key)}
-              className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl border text-center transition-all ${
-                visualStyle === key
-                  ? 'border-brand-400 bg-brand-50 text-brand-700'
-                  : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-white'
-              }`}
-            >
-              <span className="text-lg leading-none">{emoji}</span>
-              <span className="text-[9px] font-semibold leading-tight">{label}</span>
-            </button>
+            {
+              group: 'Auto',
+              styles: [{ key: 'ai-best', emoji: '✨', label: 'AI Picks' }],
+            },
+            {
+              group: 'Realistic & Cinematic',
+              styles: [
+                { key: 'realistic',       emoji: '📷', label: 'Realistic' },
+                { key: 'hyper-realistic', emoji: '🔍', label: 'Hyper-Real' },
+                { key: 'cinematic',       emoji: '🎬', label: 'Cinematic' },
+                { key: 'documentary',     emoji: '🎥', label: 'Documentary' },
+                { key: 'commercial',      emoji: '📢', label: 'Commercial' },
+              ],
+            },
+            {
+              group: 'Animation & 3D',
+              styles: [
+                { key: '3d-animation', emoji: '🎲', label: '3D Anim' },
+                { key: 'cartoon',      emoji: '🎨', label: 'Cartoon' },
+                { key: 'anime',        emoji: '⛩️', label: 'Anime' },
+                { key: 'claymation',   emoji: '🧸', label: 'Claymation' },
+                { key: 'low-poly',     emoji: '🔷', label: 'Low Poly' },
+                { key: 'pixel-art',    emoji: '🕹️', label: 'Pixel Art' },
+              ],
+            },
+            {
+              group: 'Artistic & Illustrated',
+              styles: [
+                { key: 'watercolor',   emoji: '🖌️', label: 'Watercolor' },
+                { key: 'oil-painting', emoji: '🖼️', label: 'Oil Paint' },
+                { key: 'sketch',       emoji: '✏️', label: 'Sketch' },
+                { key: 'storybook',    emoji: '📚', label: 'Storybook' },
+                { key: 'paper-cutout', emoji: '✂️', label: 'Paper Cut' },
+                { key: 'comic-book',   emoji: '💥', label: 'Comic Book' },
+              ],
+            },
+            {
+              group: 'Stylized & Creative',
+              styles: [
+                { key: 'cyberpunk',       emoji: '🌆', label: 'Cyberpunk' },
+                { key: 'neon-synthwave',  emoji: '🌈', label: 'Synthwave' },
+                { key: 'vintage-retro',   emoji: '📻', label: 'Retro' },
+                { key: 'black-white-noir',emoji: '⬛', label: 'B&W / Noir' },
+                { key: 'surreal',         emoji: '🌀', label: 'Surreal' },
+                { key: 'minimalist',      emoji: '◻️', label: 'Minimalist' },
+                { key: 'text-carousel',   emoji: '📊', label: 'Slides' },
+              ],
+            },
+          ] as { group: string; styles: { key: ImageVisualStyle; emoji: string; label: string }[] }[]).map(({ group, styles }) => (
+            <div key={group}>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{group}</p>
+              <div className="grid grid-cols-4 gap-1">
+                {styles.map(({ key, emoji, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setVisualStyle(key)}
+                    className={`flex flex-col items-center gap-0.5 py-1.5 px-0.5 rounded-xl border text-center transition-all ${
+                      visualStyle === key
+                        ? 'border-brand-400 bg-brand-50 text-brand-700'
+                        : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-white'
+                    }`}
+                  >
+                    <span className="text-base leading-none">{emoji}</span>
+                    <span className="text-[8px] font-semibold leading-tight">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         {visualStyle === 'ai-best' && (

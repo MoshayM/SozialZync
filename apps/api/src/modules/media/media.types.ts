@@ -21,7 +21,18 @@ export interface VoiceRequest {
   language?: string;
 }
 
-export type ImageVisualStyle = 'realistic' | 'cinematic' | 'cartoon' | 'animation' | 'text-carousel' | 'minimal' | 'ai-best';
+export type ImageVisualStyle =
+  | 'ai-best'
+  // Realistic & Cinematic
+  | 'realistic' | 'hyper-realistic' | 'cinematic' | 'documentary' | 'commercial'
+  // Animation & 3D
+  | '3d-animation' | 'cartoon' | 'anime' | 'claymation' | 'low-poly' | 'pixel-art'
+  // Artistic & Illustrated
+  | 'watercolor' | 'oil-painting' | 'sketch' | 'storybook' | 'paper-cutout' | 'comic-book'
+  // Stylized & Creative
+  | 'cyberpunk' | 'neon-synthwave' | 'vintage-retro' | 'black-white-noir' | 'surreal' | 'minimalist' | 'text-carousel'
+  // Legacy aliases kept for backward compatibility
+  | 'animation' | 'minimal';
 
 export interface ImageRequest {
   prompt: string;
