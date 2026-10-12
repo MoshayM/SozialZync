@@ -44,32 +44,65 @@ export class PollinationsImageAdapter implements ImageAdapter {
       ? `${req.prompt}${suffix}. Avoid: ${req.negativePrompt}`
       : `${req.prompt}${suffix}`;
 
-    const url = new URL(`https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}`);
-    url.searchParams.set('width',   String(req.width));
-    url.searchParams.set('height',  String(req.height));
-    url.searchParams.set('model',   model);
-    url.searchParams.set('nologo',  'true');
-    url.searchParams.set('enhance', 'true');
-    if (req.seed !== undefined) url.searchParams.set('seed', String(req.seed));
+    const buildUrl = (enhance: boolean): string => {
+      const url = new URL(`https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}`);
+      url.searchParams.set('width',   String(req.width));
+      url.searchParams.set('height',  String(req.height));
+      url.searchParams.set('model',   model);
+      url.searchParams.set('nologo',  'true');
+      url.searchParams.set('enhance', String(enhance));
+      if (req.seed !== undefined) url.searchParams.set('seed', String(req.seed));
+      return url.toString();
+    };
 
-    const res = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(90_000),
-      headers: { Accept: 'image/*' },
-    });
+    // Attempt 1: enhance=true (better prompt expansion, but slower)
+    // Attempt 2: enhance=false (direct, more reliable on rate-limited IPs)
+    const attempts: Array<{ enhance: boolean; timeoutMs: number }> = [
+      { enhance: true,  timeoutMs: 75_000 },
+      { enhance: false, timeoutMs: 90_000 },
+    ];
 
-    if (!res.ok) {
-      throw new Error(`Pollinations image generation failed: ${res.status} ${await res.text().then(t => t.slice(0, 200)).catch(() => '')}`);
+    let lastError = '';
+    for (const attempt of attempts) {
+      try {
+        const res = await fetch(buildUrl(attempt.enhance), {
+          signal: AbortSignal.timeout(attempt.timeoutMs),
+          headers: { Accept: 'image/*' },
+        });
+
+        if (!res.ok) {
+          lastError = `Pollinations ${res.status} ${await res.text().then(t => t.slice(0, 200)).catch(() => '')}`;
+          // 429 on this IP — no point retrying with same enhance flag; try without
+          continue;
+        }
+
+        const contentType = res.headers.get('content-type') ?? 'image/jpeg';
+        // Guard against HTML error pages served with 200
+        if (!contentType.startsWith('image/')) {
+          lastError = `Pollinations returned non-image content-type: ${contentType}`;
+          continue;
+        }
+
+        const buffer = Buffer.from(await res.arrayBuffer());
+        if (buffer.length < 2048) {
+          lastError = `Pollinations returned suspiciously small buffer (${buffer.length} bytes)`;
+          continue;
+        }
+
+        const ext = contentType.includes('png') ? 'png' : 'jpg';
+        return {
+          buffer,
+          mimeType: contentType as 'image/png' | 'image/jpeg',
+          ext,
+          model: `pollinations-${model}`,
+          notes: attempt.enhance ? undefined : 'Generated with enhance=false (retry path)',
+        };
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+        // AbortError = timeout — try next attempt
+      }
     }
 
-    const contentType = res.headers.get('content-type') ?? 'image/jpeg';
-    const ext = contentType.includes('png') ? 'png' : 'jpg';
-    const buffer = Buffer.from(await res.arrayBuffer());
-
-    return {
-      buffer,
-      mimeType: contentType as 'image/png' | 'image/jpeg',
-      ext,
-      model: `pollinations-${model}`,
-    };
+    throw new Error(`Pollinations image generation failed after ${attempts.length} attempts: ${lastError}`);
   }
 }

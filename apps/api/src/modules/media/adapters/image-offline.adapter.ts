@@ -11,9 +11,11 @@ export class OfflineImageAdapter implements ImageAdapter {
   readonly name = 'offline-gradient-image';
 
   available(): boolean {
-    // Placeholders are opt-in only (master prompt hard rule 1): without this
-    // flag a stage with no real provider FAILS instead of fabricating output.
-    return process.env['ALLOW_OFFLINE_MEDIA'] === 'true';
+    // Uses its OWN flag (not ALLOW_OFFLINE_MEDIA) so that enabling the voice
+    // placeholder doesn't accidentally activate gradient image fallback.
+    // Without ALLOW_OFFLINE_IMAGES=true, a missing image provider throws a
+    // hard error rather than silently producing a gradient placeholder.
+    return process.env['ALLOW_OFFLINE_IMAGES'] === 'true';
   }
 
   generateImage(req: ImageRequest): Promise<GeneratedMedia> {

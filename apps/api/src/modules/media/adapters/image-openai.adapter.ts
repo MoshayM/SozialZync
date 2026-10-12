@@ -34,7 +34,9 @@ export class OpenAiImageAdapter implements ImageAdapter {
       }),
     });
     if (!res.ok) {
-      if (res.status === 401) this.authFailed = true;
+      // 401 = revoked key; 429 = no credits remaining — both mean this adapter
+      // should be skipped for the rest of this process lifetime.
+      if (res.status === 401 || res.status === 429) this.authFailed = true;
       throw new Error(`OpenAI image generation failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
     }
     const json = (await res.json()) as { data?: Array<{ b64_json?: string }> };
