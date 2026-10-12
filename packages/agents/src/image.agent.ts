@@ -46,7 +46,7 @@ Rules:
 Project ID: ${input.projectId}`,
       }],
       ImageBriefOutputSchema,
-      { maxTokens: 4096 },
+      { maxTokens: 3000 },
     ) as Promise<ImageBriefOutput>;
   }
 }

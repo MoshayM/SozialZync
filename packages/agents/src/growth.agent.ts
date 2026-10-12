@@ -41,7 +41,7 @@ Generate:
 Focus on actionable, specific recommendations tied to the analytics data.`,
       }],
       GrowthOutputSchema,
-      { maxTokens: 4096 },
+      { maxTokens: 3000 },
     ) as Promise<GrowthOutput>;
   }
 }

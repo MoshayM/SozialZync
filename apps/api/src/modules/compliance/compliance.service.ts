@@ -162,7 +162,7 @@ export class ComplianceService implements OnModuleDestroy {
         ].join('\n'),
       }],
       ComplianceResultSchema,
-      { systemPrompt: COMPLIANCE_SYSTEM, maxTokens: 2048, onProgress },
+      { systemPrompt: COMPLIANCE_SYSTEM, model: 'claude-haiku-4-5-20251001', maxTokens: 1536, onProgress },
     );
 
     await this.setInCache(key, result);

@@ -20,7 +20,7 @@ export class MetadataAgent extends BaseAgent<MetadataInput, MetadataOutput> {
         content: `Generate optimized YouTube metadata for this video:\n\n${scriptSummary}\n\nNiche: ${input.niche ?? 'General'}\nLanguage: ${input.targetLang ?? 'en'}\n\nProvide a thumbnail prompt that describes a compelling visual concept.`,
       }],
       MetadataOutputSchema,
-      { maxTokens: 2048 },
+      { model: 'claude-haiku-4-5-20251001', maxTokens: 1024 },
     );
   }
 }

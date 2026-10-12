@@ -36,7 +36,7 @@ export class GrowthService {
           content: `Create growth strategy for channel "${channel.title}" (${channel.niche ?? 'General'}).\n\nAnalytics Score: ${analyticsReport.overallScore}/100\nTop Insights: ${analyticsReport.insights.slice(0, 5).map(i => i.finding).join('; ')}\nExisting Topics: ${existingTopics.slice(0, 10).join(', ')}\n\nGenerate: 5-10 next video topics with opportunity scores, 5 optimization actions, 3-5 channel memory notes.`,
         }],
         GrowthOutputSchema,
-        { systemPrompt: GROWTH_SYSTEM, maxTokens: 4096 },
+        { systemPrompt: GROWTH_SYSTEM, maxTokens: 3000 },
       ) as never as GrowthOutput;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

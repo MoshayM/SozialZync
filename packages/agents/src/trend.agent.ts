@@ -17,7 +17,7 @@ export class TrendAgent extends BaseAgent<TrendInput, TrendOutput> {
         content: `Analyze trending YouTube topics for niche: "${input.niche}"${input.region ? ` in region: ${input.region}` : ''}.\n\nReturn the top 5-10 trending topics with scores, related keywords, and peak engagement times.`,
       }],
       TrendOutputSchema,
-      { maxTokens: 2048 },
+      { model: 'claude-haiku-4-5-20251001', maxTokens: 1024 },
     );
   }
 }

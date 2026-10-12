@@ -49,7 +49,7 @@ Estimate total narration duration. Synthetic voice ALWAYS requires disclosure.
 Project ID: ${input.projectId}`,
       }],
       VoiceSpecOutputSchema,
-      { maxTokens: 4096 },
+      { maxTokens: 3000 },
     ) as Promise<VoiceSpecOutput>;
   }
 }

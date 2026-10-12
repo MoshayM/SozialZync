@@ -17,7 +17,7 @@ export class AudienceAgent extends BaseAgent<AudienceInput, AudienceOutput> {
         content: `Analyze the YouTube audience for this niche:\n\nNiche: ${input.niche}${input.channelDescription ? `\nChannel: ${input.channelDescription}` : ''}\n\nProvide demographics, interests, peak engagement times, content preferences, and growth recommendations.`,
       }],
       AudienceOutputSchema,
-      { maxTokens: 2048 },
+      { model: 'claude-haiku-4-5-20251001', maxTokens: 1024 },
     );
   }
 }

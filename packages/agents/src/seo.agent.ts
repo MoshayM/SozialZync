@@ -18,7 +18,7 @@ export class SEOAgent extends BaseAgent<SEOInput, SEOOutput> {
         content: `Optimize this YouTube video for search:\n\nTitle: ${input.title}\nDescription: ${input.description}\nNiche: ${input.niche ?? 'General'}\n\nIdentify keywords, competition level, and provide an optimized title + description + tag set.`,
       }],
       SEOOutputSchema,
-      { maxTokens: 2048 },
+      { model: 'claude-haiku-4-5-20251001', maxTokens: 1024 },
     );
   }
 }

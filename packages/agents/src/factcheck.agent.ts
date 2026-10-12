@@ -21,7 +21,7 @@ export class FactCheckAgent extends BaseAgent<FactCheckInput, FactCheckOutput> {
         content: `Fact-check this YouTube script against the provided sources:\n\nScript Title: ${input.script.title}\n\nScript Content:\n${scriptText}\n\nAvailable Sources:\n${input.sources.map((s) => `- ${s.title} (${s.url}): ${s.snippet}`).join('\n')}`,
       }],
       FactCheckOutputSchema,
-      { maxTokens: 4096 },
+      { maxTokens: 2048 },
     );
   }
 }

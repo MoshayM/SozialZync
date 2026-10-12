@@ -50,7 +50,7 @@ Analyze:
 If repairable, provide correctedOutput. Otherwise recommend retry or escalate.`,
       }],
       QualityControlOutputSchema,
-      { maxTokens: 3000 },
+      { model: 'claude-haiku-4-5-20251001', maxTokens: 1500 },
     );
   }
 
@@ -67,7 +67,7 @@ If repairable, provide correctedOutput. Otherwise recommend retry or escalate.`,
         content: `Agent "${agentName}" output failed validation: ${validationError}\n\nSchema: ${schemaDescription}\n\nOutput: ${JSON.stringify(output).slice(0, 1500)}\n\nAttempt repair if possible.`,
       }],
       QualityControlOutputSchema,
-      { systemPrompt, maxTokens: 2000 },
+      { systemPrompt, model: 'claude-haiku-4-5-20251001', maxTokens: 1500 },
     );
   }
 }

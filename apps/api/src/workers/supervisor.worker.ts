@@ -688,7 +688,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const raw = await callAIStructured(
           [{ role: 'user', content: userMsg }],
           VideoScenePlanOutputSchema,
-          { systemPrompt: CINEMATIC_DIRECTOR_PROMPT, maxTokens: 6000 },
+          { systemPrompt: CINEMATIC_DIRECTOR_PROMPT, maxTokens: 3000 },
         );
 
         // Enforce cumulative timestamps in code so model drift can't break pipeline
@@ -801,7 +801,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const result = await callAIStructured(
           [{ role: 'user', content: `Create AI first-cut timeline for "${script.title}". Format: 16:9. Sections: ${JSON.stringify(script.sections.map((s) => ({ heading: s.heading, durationSecs: s.durationEstimateSecs })))}. Assets: ${JSON.stringify(availableAssets.slice(0, 20))}. Brand: ${JSON.stringify(brandKit ?? {})}. Project: ${projectId}. Generate multi-track timeline: voice, video, music, subtitle, overlay tracks. Required top-level fields: label, fps (30), resolution {width, height}, totalDurationMs, tracks. Each track: index (0-based), kind, label, clips. Each clip: id, kind, startMs, durationMs, trackIndex, label; assetId ONLY when it matches a provided asset id (omit otherwise, never invent).` }],
           EditPlanOutputSchema,
-          { systemPrompt: EDIT_PROMPT, maxTokens: 6000 },
+          { systemPrompt: EDIT_PROMPT, maxTokens: 4000 },
         );
         // Array position is authoritative for track order
         result.tracks.forEach((t, i) => { t.index ??= i; });

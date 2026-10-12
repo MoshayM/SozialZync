@@ -89,7 +89,7 @@ export class ContentService {
         content: `Fact-check this YouTube script against the provided sources:\n\nTitle: ${script.title}\n\nScript:\n${scriptText}\n\nAvailable Sources:\n${sources.slice(0, 5).map((s) => `- ${s.title} (${s.url}): ${s.snippet}`).join('\n')}\n\nReturn ONLY valid JSON. Do NOT include markdown. Do NOT include explanations. Do NOT include code fences.\n\nRespond with EXACTLY this JSON structure:\n{"overallVerdict":"Mostly Accurate","accuracyScore":85,"summary":"Brief overall assessment","claims":[{"claim":"Specific factual claim","status":"Verified","confidence":0.9,"evidence":"Supporting evidence","source":"Source name","sourceUrl":"https://source.com","notes":"Optional context"}],"issues":["issue 1"],"recommendations":["recommendation 1"],"sources":[{"title":"Source Title","url":"https://source.com"}]}`,
       }],
       FactCheckOutputSchema,
-      { systemPrompt: FACTCHECK_SYSTEM, maxTokens: 6000 },
+      { systemPrompt: FACTCHECK_SYSTEM, maxTokens: 2048 },
     );
   }
 
@@ -119,7 +119,7 @@ export class ContentService {
         content: `Score this YouTube script across 6 quality dimensions:\n\nTitle: ${title}\nNiche: ${niche ?? 'General'}\n\nScript:\n${truncated}\n\nScore each dimension 0-100. Return ONLY valid JSON (no markdown, no code fences):\n{"overallScore":75,"grade":"B","summary":"One sentence overall assessment","dimensions":[{"name":"Hook Strength","score":80,"feedback":"The opening grabs attention in the first 5 seconds","tips":["tip1","tip2"]},{"name":"Audience Retention","score":70,"feedback":"Pacing is good but could use more pattern interrupts","tips":[]},{"name":"SEO Alignment","score":65,"feedback":"Title keywords present but description could improve","tips":[]},{"name":"Brand Voice","score":80,"feedback":"Consistent tone throughout","tips":[]},{"name":"Educational Value","score":75,"feedback":"Good depth on key points","tips":[]},{"name":"Virality Potential","score":60,"feedback":"Shareable moments exist but hook could be stronger","tips":[]}],"strengths":["Strong hook","Clear structure"],"improvements":["Add a pattern interrupt mid-video","Include more specific data points"],"estimatedRetentionPct":65}`,
       }],
       ScriptQualityOutputSchema,
-      { systemPrompt: `You are an expert YouTube content strategist. Analyze scripts across 6 dimensions: Hook Strength, Audience Retention, SEO Alignment, Brand Voice, Educational Value, and Virality Potential. Be rigorous but constructive.`, maxTokens: 4000 },
+      { systemPrompt: `You are an expert YouTube content strategist. Analyze scripts across 6 dimensions: Hook Strength, Audience Retention, SEO Alignment, Brand Voice, Educational Value, and Virality Potential. Be rigorous but constructive.`, model: 'claude-haiku-4-5-20251001', maxTokens: 2000 },
     );
   }
 
@@ -133,7 +133,7 @@ export class ContentService {
       SeriesPlanOutputSchema,
       {
         systemPrompt: `You are an expert YouTube series strategist. Design binge-worthy series with clear narrative arcs and audience retention strategies. Each episode should have standalone value while contributing to the overall series.`,
-        maxTokens: 6000,
+        maxTokens: 3000,
       },
     );
   }

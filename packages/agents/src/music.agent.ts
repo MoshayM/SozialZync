@@ -41,7 +41,7 @@ Create a complete music brief with:
 The music must be original, royalty-free AI generation.`,
       }],
       MusicBriefOutputSchema,
-      { maxTokens: 2048 },
+      { model: 'claude-haiku-4-5-20251001', maxTokens: 1024 },
     ) as Promise<MusicBriefOutput>;
   }
 }

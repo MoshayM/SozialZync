@@ -46,7 +46,7 @@ Rules: No real people/faces, no copyrighted locations or IP.
 Project ID: ${input.projectId}`,
       }],
       VideoScenePlanOutputSchema,
-      { maxTokens: 4096 },
+      { maxTokens: 3000 },
     ) as Promise<VideoScenePlanOutput>;
   }
 }

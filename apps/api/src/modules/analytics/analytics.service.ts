@@ -102,7 +102,7 @@ export class AnalyticsService {
           content: `Analyze channel "${channel.title}" (${channel.niche ?? 'General'}) performance.\n\nMetrics: ${JSON.stringify(metrics, null, 2)}\n\nGenerate insights, top performers, retention issues, and overall score.`,
         }],
         AnalyticsOutputSchema,
-        { systemPrompt: ANALYTICS_SYSTEM, maxTokens: 4096 },
+        { systemPrompt: ANALYTICS_SYSTEM, model: 'claude-haiku-4-5-20251001', maxTokens: 2048 },
       ) as never as AnalyticsOutput;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

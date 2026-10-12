@@ -19,7 +19,7 @@ export class ComplianceAgent extends BaseAgent<ComplianceInput, ComplianceResult
         content: `Perform a full compliance audit of this YouTube video content:\n\nTitle: ${input.title}\n\nScript:\n${input.script}\n\nDescription: ${input.description ?? 'N/A'}\n\nTags: ${input.tags?.join(', ') ?? 'N/A'}`,
       }],
       ComplianceResultSchema,
-      { maxTokens: 2048 },
+      { model: 'claude-haiku-4-5-20251001', maxTokens: 1536 },
     );
 
     // Compliance is a hard gate — throws if content fails or any BLOCK flag is present.

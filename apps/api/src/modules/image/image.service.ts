@@ -129,7 +129,7 @@ Produce exactly ${script.sections.length} brief(s) — one per section. The top-
       const raw = await callAIStructured(
         [{ role: 'user', content: userContent }],
         ImageBriefOutputSchema,
-        { systemPrompt, maxTokens: 4096 },
+        { systemPrompt, maxTokens: 2048 },
       ) as ImageBriefOutput;
 
       // Explicit guard: if the AI returned valid JSON but wrong key name, briefs will be [].

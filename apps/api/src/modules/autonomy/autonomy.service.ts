@@ -362,7 +362,7 @@ export class AutonomyService {
           },
         ],
         CalendarProposalSchema,
-        { systemPrompt: CALENDAR_SYSTEM, maxTokens: 4000 },
+        { systemPrompt: CALENDAR_SYSTEM, maxTokens: 3000 },
       );
     } catch (err) {
       this.logger.warn(`AI calendar failed, using heuristic: ${err instanceof Error ? err.message : String(err)}`);
@@ -443,7 +443,7 @@ export class AutonomyService {
         },
       ],
       CritiqueSchema,
-      { systemPrompt: CALENDAR_SYSTEM, maxTokens: 2000 },
+      { systemPrompt: CALENDAR_SYSTEM, model: 'claude-haiku-4-5-20251001', maxTokens: 1500 },
     );
 
     const byIndex = new Map(critique.verdicts.map((v) => [v.index, v]));
@@ -968,7 +968,7 @@ export class AutonomyService {
       CrossChannelSchema,
       {
         systemPrompt: 'You are a YouTube growth strategist analyzing multiple channels for cross-channel optimization.',
-        maxTokens: 2000,
+        model: 'claude-haiku-4-5-20251001', maxTokens: 1500,
       },
     );
 
@@ -1057,7 +1057,7 @@ export class AutonomyService {
       GoalPlanOutputSchema,
       {
         systemPrompt: 'You are a YouTube growth strategist. Create specific, actionable, data-driven content plans. Each video suggestion must have a concrete title — not a template.',
-        maxTokens: 6000,
+        maxTokens: 4000,
       },
     );
   }
