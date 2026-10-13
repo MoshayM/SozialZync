@@ -929,6 +929,25 @@ export const api = {
       apiClient.post('/projects', data),
     update: (id: string, data: Record<string, unknown>) => apiClient.put(`/projects/${id}`, data),
     delete: (id: string) => apiClient.delete(`/projects/${id}`),
+    saveScript: (id: string, script: Record<string, unknown>) =>
+      apiClient.post(`/projects/${id}/script`, script),
+  },
+  content: {
+    repurpose: (scriptText: string, title: string, platforms: string[]) =>
+      apiClient.post<{
+        originalTitle: string;
+        summary: string;
+        items: Array<{
+          platform: string;
+          headline: string;
+          content: string;
+          hashtags?: string[];
+          callToAction?: string;
+          durationNote?: string;
+          visualTips?: string[];
+          hook?: string;
+        }>;
+      }>('/content/repurpose', { scriptText, title, platforms }),
   },
   jobs: {
     enqueue: (projectId: string, type: string, payload?: Record<string, unknown>) =>

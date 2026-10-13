@@ -6,7 +6,7 @@ import {
   Youtube, BarChart2, Lightbulb, FileText, Mic, Music, Clapperboard,
   Play, RefreshCw, Loader2, CheckCircle, ChevronDown, ChevronUp, Save, Pencil, AlertTriangle, X,
   KeyRound, Sparkles, Download, FileVideo, FileAudio, FileImage, FileText as FileTextIcon, ShieldCheck,
-  Square, Upload, Plus, ExternalLink, Check, Image as ImageIcon,
+  Square, Upload, Plus, ExternalLink, Check, Image as ImageIcon, Repeat, Copy,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ElapsedBadge, formatElapsed } from '@/components/ai-activity';
@@ -581,6 +581,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   // 'smart' = free narration+music FFmpeg mix; 'song' = AI vocal song via Suno
   const [mixMode, setMixMode] = useState<'smart' | 'song'>('smart');
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
+  // Repurpose panel state
+  const [repurposeOpen, setRepurposeOpen] = useState(false);
+  const [repurposePlatforms, setRepurposePlatforms] = useState<Set<string>>(new Set(['shorts', 'twitter', 'linkedin']));
+  type RepurposeItem = { platform: string; headline: string; content: string; hashtags?: string[]; callToAction?: string; hook?: string };
+  const [repurposeResults, setRepurposeResults] = useState<RepurposeItem[] | null>(null);
+  const [repurposing, setRepurposing] = useState(false);
+  const [repurposeError, setRepurposeError] = useState('');
   const [voiceKey, setVoiceKey] = useState('');
   const [voiceKeySaved, setVoiceKeySaved] = useState(false);
   // Voice mode: 'ai' = AI Voice, 'record' = Your Voice
@@ -1753,7 +1760,82 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 >
                   <Pencil className="w-3 h-3" /> Edit script
                 </button>
+                <button
+                  onClick={() => { setRepurposeOpen(!repurposeOpen); setRepurposeResults(null); setRepurposeError(''); }}
+                  className="flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline"
+                >
+                  <Repeat className="w-3 h-3" /> Repurpose
+                </button>
               </div>
+
+              {/* Repurpose panel */}
+              {repurposeOpen && (
+                <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100 space-y-3">
+                  <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Repurpose for platforms</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(['shorts', 'instagram', 'tiktok', 'twitter', 'linkedin', 'newsletter'] as const).map((p) => (
+                      <label key={p} className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={repurposePlatforms.has(p)}
+                          onChange={(e) => {
+                            const next = new Set(repurposePlatforms);
+                            if (e.target.checked) next.add(p); else next.delete(p);
+                            setRepurposePlatforms(next);
+                          }}
+                          className="accent-emerald-600 w-3 h-3"
+                        />
+                        <span className="text-xs text-gray-700 capitalize">{p === 'tiktok' ? 'TikTok' : p === 'twitter' ? 'X/Twitter' : p}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {repurposeError && <p className="text-xs text-red-600">{repurposeError}</p>}
+                  <button
+                    disabled={repurposing || repurposePlatforms.size === 0}
+                    onClick={async () => {
+                      if (!script) return;
+                      setRepurposing(true); setRepurposeError(''); setRepurposeResults(null);
+                      try {
+                        const scriptText = script.sections.map((s) => `${s.heading}\n${s.content}`).join('\n\n');
+                        const res = await api.content.repurpose(scriptText, script.title, Array.from(repurposePlatforms));
+                        setRepurposeResults(res.items ?? []);
+                      } catch (err) {
+                        setRepurposeError(getErrorMessage(err) || 'Repurpose failed');
+                      } finally {
+                        setRepurposing(false);
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    {repurposing ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</> : <><Repeat className="w-3 h-3" /> Generate repurposed content</>}
+                  </button>
+
+                  {repurposeResults && repurposeResults.length > 0 && (
+                    <div className="space-y-3 pt-1">
+                      {repurposeResults.map((item) => (
+                        <div key={item.platform} className="bg-white rounded-lg border border-emerald-100 p-3 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">
+                              {item.platform === 'twitter' ? 'X/Twitter' : item.platform === 'tiktok' ? 'TikTok' : item.platform}
+                            </p>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(item.content)}
+                              className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
+                            >
+                              <Copy className="w-3 h-3" /> Copy
+                            </button>
+                          </div>
+                          {item.hook && <p className="text-xs font-medium text-gray-800 italic">&ldquo;{item.hook}&rdquo;</p>}
+                          <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">{item.content}</p>
+                          {item.hashtags && item.hashtags.length > 0 && (
+                            <p className="text-[11px] text-emerald-600">{item.hashtags.map((h) => `#${h}`).join(' ')}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <p className="text-sm font-semibold text-gray-800">{script.title}</p>
               <p className="text-sm text-gray-600 italic">&ldquo;{script.hook}&rdquo;</p>
               <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
