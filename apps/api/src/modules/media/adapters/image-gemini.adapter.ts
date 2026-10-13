@@ -1,9 +1,16 @@
 import type { ImageAdapter, ImageRequest, GeneratedMedia, ImageVisualStyle } from '../media.types';
 
-// Gemini 2.0 Flash image generation — free tier, no billing required
-// Set IMAGE_GEMINI_MODEL=imagen-3.0-generate-002 to use Imagen 3 (requires billing)
-const DEFAULT_MODEL = process.env['IMAGE_GEMINI_MODEL'] ?? 'gemini-2.0-flash-preview-image-generation';
+// Gemini image generation — free tier via generateContent with IMAGE modality.
+// IMAGE_GEMINI_MODEL env override pins a specific model (e.g. imagen-3.0-generate-002).
+// Without override: probes candidates in order — Google retires preview model names frequently.
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_IMAGE_MODELS: string[] = [
+  process.env['IMAGE_GEMINI_MODEL'] ?? '',
+  'gemini-2.0-flash-exp',                      // experimental, supports IMAGE modality
+  'gemini-2.0-flash',                          // stable channel (may support image output)
+  'gemini-2.0-flash-preview-image-generation', // old preview name (frequently 404s)
+  'gemini-1.5-flash',                          // last-resort fallback
+].filter(Boolean);
 
 const STYLE_SUFFIX: Record<ImageVisualStyle, string> = {
   'ai-best':          ', high quality, professional, highly detailed, award-winning photography',
@@ -56,6 +63,9 @@ export class GeminiImageAdapter implements ImageAdapter {
     return !this.authFailed && !!process.env['GEMINI_API_KEY'];
   }
 
+  // Track the last model that worked to skip retrying failed ones
+  private workingModel: string | null = null;
+
   async generateImage(req: ImageRequest): Promise<GeneratedMedia> {
     const style: ImageVisualStyle = (req.style ?? 'ai-best') as ImageVisualStyle;
     const suffix = STYLE_SUFFIX[style] ?? '';
@@ -63,16 +73,34 @@ export class GeminiImageAdapter implements ImageAdapter {
       ? `${req.prompt}${suffix}. Avoid: ${req.negativePrompt}`
       : `${req.prompt}${suffix}`;
 
-    const model = DEFAULT_MODEL;
     const key = process.env['GEMINI_API_KEY']!;
 
-    // Imagen 3 uses /predict; Gemini Flash uses /generateContent
-    const isImagen = model.startsWith('imagen');
+    // Imagen models use /predict; everything else uses /generateContent
+    const candidates = this.workingModel
+      ? [this.workingModel, ...GEMINI_IMAGE_MODELS.filter((m) => m !== this.workingModel)]
+      : GEMINI_IMAGE_MODELS;
 
-    if (isImagen) {
-      return this.generateViaImagen(fullPrompt, req, model, key);
+    let lastErr = '';
+    for (const model of candidates) {
+      try {
+        let result: GeneratedMedia;
+        if (model.startsWith('imagen')) {
+          result = await this.generateViaImagen(fullPrompt, req, model, key);
+        } else {
+          result = await this.generateViaGeminiFlash(fullPrompt, model, key);
+        }
+        this.workingModel = model;
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        lastErr = msg;
+        // 404 = model not found or not supported — try next candidate
+        if (msg.includes('404') || /not found|not supported/i.test(msg)) continue;
+        // Auth / rate-limit: propagate immediately
+        throw err;
+      }
     }
-    return this.generateViaGeminiFlash(fullPrompt, model, key);
+    throw new Error(`Gemini image generation failed (tried ${candidates.length} models): ${lastErr}`);
   }
 
   /** Gemini 2.0 Flash image generation — free tier */
