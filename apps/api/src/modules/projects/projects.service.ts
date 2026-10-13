@@ -16,6 +16,9 @@ export interface CreateProjectDto {
   platforms?: string[];
 }
 
+/** Shorts Studio container projects must not appear in the main Projects list. */
+const SHORTS_CONTAINER_TITLE = 'Shorts Studio';
+
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -68,7 +71,7 @@ export class ProjectsService {
     // Fetch user's own projects (paginated) and demo projects (always shown) in parallel
     const [userRows, demoRows] = await Promise.all([
       this.prisma.project.findMany({
-        where: { userId, ...keysetWhereDesc('updatedAt', decodeCursor(opts.cursor)) },
+        where: { userId, title: { not: SHORTS_CONTAINER_TITLE }, ...keysetWhereDesc('updatedAt', decodeCursor(opts.cursor)) },
         include,
         orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
         take: take + 1,

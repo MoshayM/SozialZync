@@ -1018,15 +1018,19 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const images: Array<{ sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean }> = [];
         for (let i = 0; i < maxScenes; i++) {
           const brief = briefs[i]!;
-          const stored = await this.media.generateImage(projectId, `Scene ${i + 1} · ${brief.sceneId}`, {
-            prompt: brief.prompt,
-            negativePrompt: brief.negativePrompt,
-            width: 1280,
-            height: 720,
-            style: visualStyle,
-          });
-          images.push({ sceneId: brief.sceneId, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
-          this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'ready ✓'}`, stored.provider);
+          try {
+            const stored = await this.media.generateImage(projectId, `Scene ${i + 1} · ${brief.sceneId}`, {
+              prompt: brief.prompt,
+              negativePrompt: brief.negativePrompt,
+              width: 1280,
+              height: 720,
+              style: visualStyle,
+            });
+            images.push({ sceneId: brief.sceneId, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
+            this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'ready ✓'}`, stored.provider);
+          } catch (imgErr) {
+            this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} image failed — skipping`, imgErr instanceof Error ? imgErr.message.slice(0, 120) : String(imgErr));
+          }
         }
         await this.jobs.logStep(jobId, 'ImageAgent', 'generate', { scenes: maxScenes }, { images }, 0, 0, Date.now() - t0);
         this.events.emitJobUpdate(jobId, { step: 'IMAGE_GENERATE', status: 'COMPLETED' }, projectId);
@@ -1164,12 +1168,16 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               } catch { /* fall through to regenerate */ }
             }
             if (!imgDownloaded) {
-              const still = await this.media.generateImage(projectId, `Scene ${i + 1} still · ${scene.id}`, {
-                prompt: scene.videoPrompt, width: 1280, height: 720,
-              });
-              imagePath = still.absPath;
-              if (cdnBase) imageUrl = `${cdnBase}/${still.key}`;
-              else if (apiBase) imageUrl = `${apiBase}/media/versions/${still.versionId}/file${tokenParam}`;
+              try {
+                const still = await this.media.generateImage(projectId, `Scene ${i + 1} still · ${scene.id}`, {
+                  prompt: scene.videoPrompt, width: 1280, height: 720,
+                });
+                imagePath = still.absPath;
+                if (cdnBase) imageUrl = `${cdnBase}/${still.key}`;
+                else if (apiBase) imageUrl = `${apiBase}/media/versions/${still.versionId}/file${tokenParam}`;
+              } catch (stillErr) {
+                this.log(jobId, projectId, `Scene ${i + 1} still-image fallback failed — proceeding without`, stillErr instanceof Error ? stillErr.message.slice(0, 120) : String(stillErr));
+              }
             }
           }
           const stored = await this.media.generateSceneVideo(projectId, `Scene video ${i + 1} · ${scene.id}`, {

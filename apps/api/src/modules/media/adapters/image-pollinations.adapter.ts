@@ -99,9 +99,10 @@ export class PollinationsImageAdapter implements ImageAdapter {
 
     // Attempt 1: enhance=true (better prompt expansion, but slower)
     // Attempt 2: enhance=false (direct, more reliable on rate-limited IPs)
+    // Shorter timeouts so failures fall through to OfflineImageAdapter quickly.
     const attempts: Array<{ enhance: boolean; timeoutMs: number }> = [
-      { enhance: true,  timeoutMs: 75_000 },
-      { enhance: false, timeoutMs: 90_000 },
+      { enhance: true,  timeoutMs: 40_000 },
+      { enhance: false, timeoutMs: 50_000 },
     ];
 
     let lastError = '';
@@ -113,8 +114,11 @@ export class PollinationsImageAdapter implements ImageAdapter {
         });
 
         if (!res.ok) {
-          lastError = `Pollinations ${res.status} ${await res.text().then(t => t.slice(0, 200)).catch(() => '')}`;
-          // 429 on this IP — no point retrying with same enhance flag; try without
+          const body = await res.text().then(t => t.slice(0, 200)).catch(() => '');
+          lastError = `Pollinations ${res.status} ${body}`;
+          // 402 = IP rate-limited or paid-only model — retrying the same IP won't help
+          if (res.status === 402 || res.status === 403) break;
+          // 429 or 5xx — try next attempt (enhance=false is more lenient)
           continue;
         }
 

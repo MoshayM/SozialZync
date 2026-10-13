@@ -11,11 +11,11 @@ export class OfflineImageAdapter implements ImageAdapter {
   readonly name = 'offline-gradient-image';
 
   available(): boolean {
-    // Uses its OWN flag (not ALLOW_OFFLINE_MEDIA) so that enabling the voice
-    // placeholder doesn't accidentally activate gradient image fallback.
-    // Without ALLOW_OFFLINE_IMAGES=true, a missing image provider throws a
-    // hard error rather than silently producing a gradient placeholder.
-    return process.env['ALLOW_OFFLINE_IMAGES'] === 'true';
+    // Always available as the absolute last-resort fallback.
+    // If all upstream adapters (OpenAI, Gemini, Pollinations, etc.) fail,
+    // this produces a deterministic gradient placeholder so the pipeline
+    // can still complete rather than hard-failing on a provider outage.
+    return true;
   }
 
   generateImage(req: ImageRequest): Promise<GeneratedMedia> {
