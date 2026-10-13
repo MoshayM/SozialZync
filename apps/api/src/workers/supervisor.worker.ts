@@ -1158,6 +1158,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             durationSecs: Math.min(Math.max(scene.durationSecs, 2), 30),
             width: 1280,
             height: 720,
+            sceneIndex: i,
           });
           videos.push({ sceneId: scene.id, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
           this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, stored.provider);

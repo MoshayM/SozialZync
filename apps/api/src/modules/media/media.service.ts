@@ -87,8 +87,9 @@ export class MediaService {
   };
   private readonly video: AdapterChain<VideoAdapter> = {
     configured: process.env['VIDEO_PROVIDER'],
-    // Cloud: Kling, Luma, Runway, Pika, Veo — then self-hosted ComfyUI — then FFmpeg scene builder
-    adapters: [new KlingVideoAdapter(), new LumaVideoAdapter(), new RunwayVideoAdapter(), new PikaVideoAdapter(), new VeoVideoAdapter(), new ComfyUIVideoAdapter(), new FfmpegSceneVideoAdapter()],
+    // Default: FFmpeg Ken Burns (zero cost, always on). Upgrade by setting
+    // VIDEO_PROVIDER=kling-ai|luma|runway|pika|veo (requires matching API key).
+    adapters: [new FfmpegSceneVideoAdapter(), new ComfyUIVideoAdapter(), new KlingVideoAdapter(), new LumaVideoAdapter(), new RunwayVideoAdapter(), new PikaVideoAdapter(), new VeoVideoAdapter()],
   };
 
   constructor(

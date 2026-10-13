@@ -59,6 +59,8 @@ export interface MusicRequest {
   vocalType?: string;
 }
 
+export type SceneMotionStyle = 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right' | 'drift' | 'diagonal';
+
 export interface SceneVideoRequest {
   /** Local filesystem path — used by FFmpeg/ComfyUI (self-hosted) adapters */
   imagePath?: string;
@@ -68,6 +70,10 @@ export interface SceneVideoRequest {
   durationSecs: number;
   width: number;
   height: number;
+  /** 0-based position in the scene list — internal adapters use this to vary motion per scene. */
+  sceneIndex?: number;
+  /** Explicit motion style override; internal adapters cycle styles when omitted. */
+  motionStyle?: SceneMotionStyle;
 }
 
 export interface MediaAdapter {
