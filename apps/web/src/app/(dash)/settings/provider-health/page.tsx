@@ -11,9 +11,27 @@ import {
   Loader2,
   GitBranch,
   ChevronRight,
+  DollarSign,
+  Zap,
+  TrendingUp,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+type CreditStatus = 'healthy' | 'warning' | 'critical' | 'free' | 'unknown';
+
+interface ProviderCreditInfo {
+  provider: string;
+  label: string;
+  status: CreditStatus;
+  remainingPct: number | null;
+  balance: string;
+  estimatedMonthlyCostUsd: number;
+  assetCount: number;
+  breakdown: Record<string, number>;
+  source: 'api' | 'internal' | 'free';
+  note?: string;
+}
 
 interface MediaProviderEntry {
   name: string;
@@ -114,6 +132,102 @@ function StatusBadge({ status }: { status: ProviderHealth['status'] }) {
       {status === 'unknown'  && <Clock className="w-3 h-3" />}
       {s.label}
     </span>
+  );
+}
+
+// ── Credit status helpers ────────────────────────────────────────────────────
+
+function creditStatusStyle(status: CreditStatus) {
+  switch (status) {
+    case 'healthy':  return { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', label: 'Healthy' };
+    case 'warning':  return { bg: '#fefce8', color: '#ca8a04', border: '#fde68a', label: 'Warning' };
+    case 'critical': return { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', label: 'Critical' };
+    case 'free':     return { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe', label: 'Free' };
+    default:         return { bg: '#f9fafb', color: '#6b7280', border: '#e5e7eb', label: 'Unknown' };
+  }
+}
+
+function CreditBar({ pct }: { pct: number | null }) {
+  if (pct === null) return <div className="text-xs text-gray-400">Balance not queryable</div>;
+  const color = pct <= 10 ? '#dc2626' : pct <= 20 ? '#ca8a04' : '#16a34a';
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-500">Remaining</span>
+        <span className="text-xs font-bold" style={{ color }}>{pct}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, background: color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CreditCard({ info }: { info: ProviderCreditInfo }) {
+  const s = creditStatusStyle(info.status);
+  const breakdownEntries = Object.entries(info.breakdown);
+  return (
+    <div className="bg-white rounded-2xl p-5 space-y-4" style={{ border: '1.5px solid #e3ddf8' }}>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-gray-900">{info.label}</p>
+          <p className="text-xs text-gray-400 font-mono mt-0.5">{info.source === 'api' ? 'Live API' : info.source === 'free' ? 'Free tier' : 'Internal tracking'}</p>
+        </div>
+        <span
+          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full shrink-0"
+          style={{ background: s.bg, color: s.color, border: `1.5px solid ${s.border}` }}
+        >
+          {info.status === 'healthy' && <CheckCircle className="w-3 h-3" />}
+          {info.status === 'warning'  && <AlertCircle className="w-3 h-3" />}
+          {info.status === 'critical' && <XCircle className="w-3 h-3" />}
+          {info.status === 'free'     && <Zap className="w-3 h-3" />}
+          {info.status === 'unknown'  && <Clock className="w-3 h-3" />}
+          {s.label}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <CreditBar pct={info.remainingPct} />
+
+      {/* Balance string */}
+      <p className="text-xs text-gray-600">{info.balance}</p>
+
+      {/* Cost + usage */}
+      <div className="flex items-center gap-4 flex-wrap">
+        {info.estimatedMonthlyCostUsd > 0 && (
+          <div className="flex items-center gap-1">
+            <DollarSign className="w-3 h-3 text-gray-400" />
+            <span className="text-xs font-semibold text-gray-700">${info.estimatedMonthlyCostUsd.toFixed(2)}/mo est.</span>
+          </div>
+        )}
+        {info.assetCount > 0 && (
+          <div className="flex items-center gap-1">
+            <TrendingUp className="w-3 h-3 text-gray-400" />
+            <span className="text-xs text-gray-500">{info.assetCount} assets this month</span>
+          </div>
+        )}
+      </div>
+
+      {/* Breakdown pills */}
+      {breakdownEntries.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {breakdownEntries.map(([kind, count]) => (
+            <span key={kind} className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>
+              {kind}: {count}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Note */}
+      {info.note && (
+        <p className="text-[11px] text-gray-400 italic">{info.note}</p>
+      )}
+    </div>
   );
 }
 
@@ -259,6 +373,25 @@ export default function ProviderHealthPage() {
   const [providerError, setProviderError] = useState<string | null>(null);
   const [mediaProviders, setMediaProviders] = useState<MediaProvidersStatus | null>(null);
   const [mediaLoading, setMediaLoading] = useState(true);
+  const [credits, setCredits] = useState<ProviderCreditInfo[]>([]);
+  const [creditsLoading, setCreditsLoading] = useState(true);
+  const [creditsError, setCreditsError] = useState<string | null>(null);
+
+  // Fetch credit balances
+  const fetchCredits = useCallback(() => {
+    setCreditsLoading(true);
+    setCreditsError(null);
+    apiClient
+      .get<ProviderCreditInfo[]>('/admin/providers/credits')
+      .then((r) => setCredits(r.data ?? []))
+      .catch((e: unknown) => {
+        const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        setCreditsError(msg ?? 'Could not load credit data');
+      })
+      .finally(() => setCreditsLoading(false));
+  }, []);
+
+  useEffect(() => { fetchCredits(); }, [fetchCredits]);
 
   // Fetch media adapter status
   useEffect(() => {
@@ -406,6 +539,63 @@ export default function ProviderHealthPage() {
             Re-check All
           </button>
         </div>
+
+        {/* ── Credit Monitoring ──────────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400">
+              API Credit Balances
+            </p>
+            <button
+              type="button"
+              onClick={fetchCredits}
+              disabled={creditsLoading}
+              className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3 h-3 ${creditsLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Critical alert banner */}
+          {credits.some(c => c.status === 'critical') && (
+            <div
+              className="flex items-start gap-3 px-4 py-3 rounded-2xl mb-4"
+              style={{ background: '#fef2f2', border: '1.5px solid #fecaca' }}
+            >
+              <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-red-700">Critical: credits almost exhausted</p>
+                <p className="text-xs text-red-600 mt-0.5">
+                  {credits.filter(c => c.status === 'critical').map(c => c.label).join(', ')} — top up immediately to prevent pipeline failures.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {creditsLoading ? (
+            <div className="flex items-center gap-2 py-6 text-gray-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Loading credit data…</span>
+            </div>
+          ) : creditsError ? (
+            <div
+              className="flex items-start gap-3 px-4 py-4 rounded-2xl"
+              style={{ background: '#fef2f2', border: '1.5px solid #fecaca' }}
+            >
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{creditsError}</p>
+            </div>
+          ) : credits.length === 0 ? (
+            <div className="py-8 text-center bg-white rounded-2xl" style={{ border: '1.5px solid #e3ddf8' }}>
+              <p className="text-sm text-gray-400">No provider keys configured — no credit data available.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {credits.map((c) => <CreditCard key={c.provider} info={c} />)}
+            </div>
+          )}
+        </section>
 
         {/* ── Summary banner ──────────────────────────────────────────────── */}
         {healthList.length > 0 && <SummaryBanner providers={healthList} />}
