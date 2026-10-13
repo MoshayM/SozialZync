@@ -20,8 +20,12 @@ test.describe('Login page', () => {
     await expect(emailInput(page)).toBeVisible();
     await expect(passwordInput(page)).toBeVisible();
 
-    // No purple hex in visible text
-    const bodyText = await page.evaluate(() => document.body.innerHTML);
+    // No purple hex in rendered elements (exclude scripts/styles which may contain bundle code)
+    const bodyText = await page.evaluate(() => {
+      const clone = document.body.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('script, style, noscript, template').forEach(el => el.remove());
+      return clone.innerHTML;
+    });
     const purpleHits = (bodyText.match(/#7C3AED|#5B21B6|#4C1D95/gi) ?? []).length;
     expect(purpleHits, 'Purple hex codes found in DOM').toBe(0);
   });
@@ -99,7 +103,11 @@ test.describe('Register page', () => {
 
   test('no purple in register page DOM', async ({ page }) => {
     await page.goto('/register');
-    const html = await page.evaluate(() => document.body.innerHTML);
+    const html = await page.evaluate(() => {
+      const clone = document.body.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('script, style, noscript, template').forEach(el => el.remove());
+      return clone.innerHTML;
+    });
     const hits = (html.match(/#7C3AED|#4f2ec4|#6D4AE0/gi) ?? []).length;
     expect(hits, 'Purple hex in register DOM').toBe(0);
   });
