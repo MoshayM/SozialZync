@@ -33,9 +33,6 @@ function makeService(): CopilotService {
     noop, // smallVideos
     noop, // chapterSync
     intentCache as unknown as IntentCacheService,
-    noop, // walletService
-    noop, // pricingService
-    noop, // orgs
     noop, // trendService
     noop, // calendarService
     noop, // benchmarkService

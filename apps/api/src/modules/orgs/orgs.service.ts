@@ -86,6 +86,131 @@ export function rolloverWindows(
   return windows;
 }
 
+// ── Spend-gate helpers (exported for tests) ───────────────────────────────────
+
+export type SpendDecision = 'ALLOW' | 'BLOCK_BUDGET' | 'NEEDS_APPROVAL';
+
+export function spendDecision(opts: {
+  hardCap: boolean;
+  remaining: number;
+  amount: number;
+  approvalRequired: boolean;
+  approvalThreshold: number;
+}): SpendDecision {
+  if (opts.hardCap && opts.amount > opts.remaining) return 'BLOCK_BUDGET';
+  if (opts.approvalRequired && opts.amount >= opts.approvalThreshold) return 'NEEDS_APPROVAL';
+  return 'ALLOW';
+}
+
+/** Parse a `org-spend:<orgId>:<userId>:<action>:<timestamp>` key — returns null when malformed. */
+export function parseOrgSpendKey(
+  key: string,
+): { orgId: string; memberUserId: string; action: string } | null {
+  if (!key.startsWith('org-spend:')) return null;
+  const rest = key.slice('org-spend:'.length);
+  const parts = rest.split(':');
+  // Minimum: orgId + userId + action + timestamp = 4 segments
+  if (parts.length < 4) return null;
+  const tsStr = parts[parts.length - 1]!;
+  if (!/^\d+$/.test(tsStr)) return null;
+  const orgId = parts[0]!;
+  const memberUserId = parts[1]!;
+  // Everything between userId and timestamp is the action (may contain colons)
+  const action = parts.slice(2, parts.length - 1).join(':');
+  return { orgId, memberUserId, action };
+}
+
+export interface UsageReportMember {
+  userId: string;
+  email: string;
+  teamId: string | null;
+  role: string;
+  actions: Record<string, { credits: number; count: number }>;
+  totalCredits: number;
+  count: number;
+}
+
+export interface UsageReport {
+  byMember: UsageReportMember[];
+  totalCredits: number;
+  reservationCount: number;
+}
+
+export function buildUsageReport(
+  reservations: Array<{
+    idempotencyKey: string;
+    amount: number;
+    status: string;
+    settledCredits: number | null;
+  }>,
+  members: Array<{ userId: string; teamId: string | null; role: string; email: string }>,
+): UsageReport {
+  const memberMap = new Map(members.map((m) => [m.userId, m]));
+  const byMember = new Map<string, UsageReportMember>();
+  let totalCredits = 0;
+  let reservationCount = 0;
+
+  for (const r of reservations) {
+    const parsed = parseOrgSpendKey(r.idempotencyKey);
+    if (!parsed) continue;
+    const credits = r.status === 'SETTLED' ? (r.settledCredits ?? r.amount) : r.amount;
+    totalCredits += credits;
+    reservationCount++;
+
+    let entry = byMember.get(parsed.memberUserId);
+    if (!entry) {
+      const m = memberMap.get(parsed.memberUserId);
+      entry = {
+        userId: parsed.memberUserId,
+        email: m?.email ?? '',
+        teamId: m?.teamId ?? null,
+        role: m?.role ?? 'REMOVED',
+        actions: {},
+        totalCredits: 0,
+        count: 0,
+      };
+      byMember.set(parsed.memberUserId, entry);
+    }
+    const action = entry.actions[parsed.action] ?? { credits: 0, count: 0 };
+    action.credits += credits;
+    action.count++;
+    entry.actions[parsed.action] = action;
+    entry.totalCredits += credits;
+    entry.count++;
+  }
+
+  const sorted = [...byMember.values()].sort((a, b) => b.totalCredits - a.totalCredits);
+  return { byMember: sorted, totalCredits, reservationCount };
+}
+
+function csvEscape(value: string | null | undefined): string {
+  const s = String(value ?? '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+export function usageReportCsv(report: Pick<UsageReport, 'byMember'>): string {
+  const rows: string[] = ['userId,email,teamId,role,action,credits,count'];
+  for (const member of report.byMember) {
+    for (const [action, stats] of Object.entries(member.actions)) {
+      rows.push(
+        [
+          csvEscape(member.userId),
+          csvEscape(member.email),
+          csvEscape(member.teamId),
+          csvEscape(member.role),
+          csvEscape(action),
+          String(stats.credits),
+          String(stats.count),
+        ].join(','),
+      );
+    }
+  }
+  return rows.join('\n') + '\n';
+}
+
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
 export interface AddMemberDto {

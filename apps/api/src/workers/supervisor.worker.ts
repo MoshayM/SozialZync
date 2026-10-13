@@ -1144,12 +1144,33 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (cdnBase) imageUrl = `${cdnBase}/${imgKey}`;
             else if (apiBase && imgVersionId) imageUrl = `${apiBase}/media/versions/${imgVersionId}/file${tokenParam}`;
           } else {
-            const still = await this.media.generateImage(projectId, `Scene ${i + 1} still · ${scene.id}`, {
-              prompt: scene.videoPrompt, width: 1280, height: 720,
-            });
-            imagePath = still.absPath;
-            if (cdnBase) imageUrl = `${cdnBase}/${still.key}`;
-            else if (apiBase) imageUrl = `${apiBase}/media/versions/${still.versionId}/file${tokenParam}`;
+            // Try to download the previously generated image before regenerating it.
+            const existingDlUrl = imgKey && cdnBase ? `${cdnBase}/${imgKey}`
+              : imgKey && apiBase && imgVersionId ? `${apiBase}/media/versions/${imgVersionId}/file${tokenParam}`
+              : null;
+            let imgDownloaded = false;
+            if (existingDlUrl) {
+              try {
+                const dlRes = await fetch(existingDlUrl);
+                if (dlRes.ok) {
+                  const dlBuf = Buffer.from(await dlRes.arrayBuffer());
+                  const dlExt = path.extname(imgKey ?? '') || '.jpg';
+                  const dlTmp = path.join(os.tmpdir(), `cf-img-${randomUUID()}${dlExt}`);
+                  await fsp.writeFile(dlTmp, dlBuf);
+                  imagePath = dlTmp;
+                  imageUrl = existingDlUrl;
+                  imgDownloaded = true;
+                }
+              } catch { /* fall through to regenerate */ }
+            }
+            if (!imgDownloaded) {
+              const still = await this.media.generateImage(projectId, `Scene ${i + 1} still · ${scene.id}`, {
+                prompt: scene.videoPrompt, width: 1280, height: 720,
+              });
+              imagePath = still.absPath;
+              if (cdnBase) imageUrl = `${cdnBase}/${still.key}`;
+              else if (apiBase) imageUrl = `${apiBase}/media/versions/${still.versionId}/file${tokenParam}`;
+            }
           }
           const stored = await this.media.generateSceneVideo(projectId, `Scene video ${i + 1} · ${scene.id}`, {
             imagePath,
@@ -1257,9 +1278,52 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           ...musicAssets.map((a) => a.versions[0]?.r2Key ? this.storage.ensure(a.versions[0].r2Key) : Promise.resolve(false)),
         ]);
 
-        const resolveKey = (a?: { versions: Array<{ r2Key: string | null }> }) => {
-          const key = a?.versions[0]?.r2Key;
-          return key && this.storage.exists(key) ? this.storage.resolve(key) : undefined;
+        // CDN/API base for downloading assets that are no longer on local disk (ephemeral Railway storage).
+        const renderCdnBase = (process.env['ASSET_CDN_URL'] ?? '').replace(/\/$/, '');
+        const renderApiBase = (process.env['API_BASE_URL'] ?? '').replace(/\/$/, '');
+        const renderToken = process.env['INTERNAL_MEDIA_TOKEN'] ?? '';
+        const renderTokenParam = renderToken ? `?token=${encodeURIComponent(renderToken)}` : '';
+
+        // Resolves an asset to a local path.
+        // Priority: (1) local disk, (2) DB blob restore, (3) CDN/API download.
+        // All three survive Railway ephemeral restarts without needing R2 configured.
+        const resolveKey = async (a?: { versions: Array<{ r2Key: string | null; id: string }> }): Promise<string | undefined> => {
+          const v = a?.versions[0];
+          const key = v?.r2Key;
+          if (!key) return undefined;
+          // 1. Already local
+          if (this.storage.exists(key)) return this.storage.resolve(key);
+          // 2. DB blob (stored for files <50 MB — covers images, audio, short videos)
+          if (v.id) {
+            try {
+              const blob = await this.prisma.assetVersion.findUnique({
+                where: { id: v.id },
+                select: { data: true },
+              });
+              if (blob?.data) {
+                const { absPath } = await this.storage.put(key, Buffer.from(blob.data));
+                this.log(jobId, projectId, `Asset restored from DB blob: ${key}`);
+                return absPath;
+              }
+            } catch { /* fall through */ }
+          }
+          // 3. CDN / API download (for files >50 MB or when DB blob is absent)
+          const dlUrl = renderCdnBase ? `${renderCdnBase}/${key}`
+            : renderApiBase && v.id ? `${renderApiBase}/media/versions/${v.id}/file${renderTokenParam}`
+            : null;
+          if (!dlUrl) return undefined;
+          try {
+            const dlRes = await fetch(dlUrl);
+            if (!dlRes.ok) return undefined;
+            const dlBuf = Buffer.from(await dlRes.arrayBuffer());
+            const dlExt = path.extname(key) || '.bin';
+            const dlTmp = path.join(os.tmpdir(), `cf-asset-${randomUUID()}${dlExt}`);
+            await fsp.writeFile(dlTmp, dlBuf);
+            this.log(jobId, projectId, `Asset fetched from CDN/API: ${key}`);
+            return dlTmp;
+          } catch {
+            return undefined;
+          }
         };
 
         const sceneDurations = plan?.scenes?.map((s) => Math.min(Math.max(s.durationSecs, 2), 30))
@@ -1268,8 +1332,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         const scenes: ComposeScene[] = [];
         for (let i = 0; i < sceneDurations.length; i++) {
-          const videoPath = resolveKey(videoAssets[i]);
-          const imagePath = resolveKey(imageAssets[i]);
+          const videoPath = await resolveKey(videoAssets[i]);
+          const imagePath = await resolveKey(imageAssets[i]);
           if (videoPath) scenes.push({ videoPath, durationSecs: sceneDurations[i]! });
           else if (imagePath) scenes.push({ imagePath, durationSecs: sceneDurations[i]! });
         }
@@ -1297,8 +1361,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         if (scenes.length === 0) throw new Error('No scene videos or images available — run Scene Images / Scene Videos first.');
 
-        const voicePath = resolveKey(voiceAssets[voiceAssets.length - 1]);
-        const musicPath = resolveKey(musicAssets[musicAssets.length - 1]);
+        const voicePath = await resolveKey(voiceAssets[voiceAssets.length - 1]);
+        const musicPath = await resolveKey(musicAssets[musicAssets.length - 1]);
 
         // ── Total scene duration (needed for subtitle rescaling and quality) ──
         const totalSceneSecs = scenes.reduce((s, sc) => s + sc.durationSecs, 0);

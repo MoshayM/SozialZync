@@ -1798,7 +1798,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       try {
                         const scriptText = script.sections.map((s) => `${s.heading}\n${s.content}`).join('\n\n');
                         const res = await api.content.repurpose(scriptText, script.title, Array.from(repurposePlatforms));
-                        setRepurposeResults(res.items ?? []);
+                        setRepurposeResults(res.data.items ?? []);
                       } catch (err) {
                         setRepurposeError(getErrorMessage(err) || 'Repurpose failed');
                       } finally {
