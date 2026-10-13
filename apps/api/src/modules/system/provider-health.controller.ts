@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { roleHasPermission } from '../../common/rbac';
 import { SystemKeyService } from './system-key.service';
+import { CreditMonitorService } from './credit-monitor.service';
 
 interface ProviderStatus {
   name: string;
@@ -143,7 +144,10 @@ class TestKeyDto {
 @Controller('admin/providers')
 @UseGuards(JwtAuthGuard)
 export class ProviderHealthController {
-  constructor(private readonly systemKey: SystemKeyService) {}
+  constructor(
+    private readonly systemKey: SystemKeyService,
+    private readonly creditMonitor: CreditMonitorService,
+  ) {}
 
   private assertAdmin(user: JwtPayload): void {
     if (!roleHasPermission(user.role as never, 'admin:providers')) {
@@ -214,5 +218,12 @@ export class ProviderHealthController {
     this.assertAdmin(user);
     await this.systemKey.delete(envKey);
     return { ok: true, message: 'DB override removed — key now reads from Railway env vars.' };
+  }
+
+  /** Real-time credit balance and monthly usage per AI provider. Admin-only. */
+  @Get('credits')
+  async getCredits(@CurrentUser() user: JwtPayload) {
+    this.assertAdmin(user);
+    return this.creditMonitor.getProviderCredits();
   }
 }

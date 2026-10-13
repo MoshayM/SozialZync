@@ -60,9 +60,15 @@ export class VeoVideoAdapter implements VideoAdapter {
   private allModelsFailed = false;
 
   available(): boolean {
-    // Only VEO_API_KEY activates this adapter.
-    // GEMINI_API_KEY is shared with image/text generation and must not trigger video billing.
-    return !this.allModelsFailed && !!process.env['VEO_API_KEY'];
+    // Veo requires both VEO_API_KEY AND VIDEO_PROVIDER=google-veo-2 to activate.
+    // This keeps ffmpeg-kenburns as the default without needing to unset VEO_API_KEY.
+    // GEMINI_API_KEY is intentionally NOT checked here — it is shared with image/text
+    // generation and must not trigger Veo video billing.
+    return (
+      !this.allModelsFailed &&
+      !!process.env['VEO_API_KEY'] &&
+      process.env['VIDEO_PROVIDER'] === 'google-veo-2'
+    );
   }
 
   async renderScene(req: SceneVideoRequest): Promise<GeneratedMedia> {

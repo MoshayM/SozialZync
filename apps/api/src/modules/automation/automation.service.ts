@@ -5,6 +5,7 @@ import { VideoImportService } from '../shorts-studio/video-import.service';
 import { AutomationSettingsSchema, type AutomationSettings, callAIStructured } from '@cf/shared';
 import { z } from 'zod';
 import { AutonomyService } from '../autonomy/autonomy.service';
+import { CreditMonitorService } from '../system/credit-monitor.service';
 
 /** Default settings returned when no ChannelAutomation row exists yet */
 const DEFAULTS: AutomationSettings = {
@@ -48,6 +49,7 @@ export class AutomationService {
     private readonly jobs: JobsService,
     private readonly videoImport: VideoImportService,
     private readonly autonomy: AutonomyService,
+    private readonly creditMonitor: CreditMonitorService,
   ) {}
 
   private async assertChannelOwnership(channelId: string, userId: string): Promise<void> {
@@ -227,6 +229,13 @@ Return a JSON object with these exact fields:
           `[AutomationTick] Channel ${automation.channelId} tick failed: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
+    }
+
+    // Best-effort credit check — never block or fail the tick
+    try {
+      await this.creditMonitor.checkAndNotifyAdmins();
+    } catch (e) {
+      this.logger.warn(`[AutomationTick] Credit check failed: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     log('[AutomationTick] Tick complete');
