@@ -872,7 +872,7 @@ function FeedView({
 
   if (items.length === 0) {
     return (
-      <div className="fixed inset-0 z-[250] bg-black flex items-center justify-center">
+      <div className="fixed inset-0 z-[250] bg-black flex items-center justify-center" role="dialog" aria-label="Content feed">
         <div className="text-center text-white">
           <p className="text-lg font-bold mb-2">No content to show</p>
           <button onClick={onClose} className="text-sm text-white/60 hover:text-white underline">Go back</button>
