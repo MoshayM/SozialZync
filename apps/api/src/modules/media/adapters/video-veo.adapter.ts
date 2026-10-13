@@ -1,7 +1,6 @@
 import { promises as fs } from 'fs';
 import type { VideoAdapter, SceneVideoRequest, GeneratedMedia } from '../media.types';
 
-const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const POLL_INTERVAL_MS = 8000;
 const MAX_POLLS = 90; // 12 minutes max
 
@@ -9,10 +8,15 @@ const MAX_POLLS = 90; // 12 minutes max
 // VEO_MODEL env override lets operators pin a specific model without redeploying.
 const MODEL_CANDIDATES: string[] = [
   process.env['VEO_MODEL'] ?? '',
-  'veo-2.0-flash-exp',      // developer preview (2025+)
+  'veo-2.0-flash',          // GA name (Google AI Studio 2025)
+  'veo-2',                  // short alias
+  'veo-2.0-flash-exp',      // developer preview name
   'veo-2.0-generate-001',   // original limited-preview name
   'veo-001',                // older alias sometimes used in Vertex routes
 ].filter(Boolean);
+
+// Try v1beta first (standard), then v1 (older stable channel)
+const API_BASES = ['https://generativelanguage.googleapis.com/v1beta', 'https://generativelanguage.googleapis.com/v1'];
 
 interface VeoOperation {
   name: string;
@@ -105,32 +109,37 @@ export class VeoVideoAdapter implements VideoAdapter {
       : MODEL_CANDIDATES;
 
     let lastError = '';
-    for (const model of candidates) {
-      try {
-        const result = await this.tryModel(model, key, req.prompt, duration, ar, imagePayload);
-        this.workingModel = model;
-        return result;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        lastError = msg;
-        // 404 = model not found — try next candidate
-        if (msg.includes('404') || /not found|model.*unavailable/i.test(msg)) continue;
-        // Other errors (quota, auth, timeout) — propagate immediately, don't burn all candidates
-        throw new Error(`Veo video generation failed: ${msg}`);
+    // Try each model name × each API base URL until something works
+    outer: for (const model of candidates) {
+      for (const base of API_BASES) {
+        try {
+          const result = await this.tryModel(model, base, key, req.prompt, duration, ar, imagePayload);
+          this.workingModel = model;
+          return result;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          lastError = msg;
+          // 404 / "not found" = model name wrong or no access — try next combination
+          if (msg.includes('404') || /not found|model.*unavailable|doesn.t exist/i.test(msg)) continue;
+          // Auth / quota / timeout — propagate immediately; retrying won't help
+          break outer;
+        }
       }
     }
 
-    // All model names returned 404 — mark adapter as broken for this process lifetime
+    // All combinations failed — mark adapter unavailable for this process lifetime
     this.allModelsFailed = true;
     throw new Error(
-      `Veo model not available — tried all known model names (${candidates.join(', ')}). ` +
-      `Set VEO_MODEL env to the correct current model name, or leave VEO_API_KEY unset to use internal motion rendering. ` +
+      `Veo model not available — tried all known model names (${candidates.join(', ')}) on both API versions. ` +
+      `Falling back to internal motion rendering (ffmpeg Ken Burns). ` +
+      `To use Veo: set VEO_MODEL to the correct model name and ensure your API key has Veo access. ` +
       `Last error: ${lastError}`,
     );
   }
 
   private async tryModel(
     model: string,
+    base: string,
     key: string,
     prompt: string,
     duration: number,
@@ -141,7 +150,7 @@ export class VeoVideoAdapter implements VideoAdapter {
     if (imagePayload) Object.assign(instance, imagePayload);
 
     const startRes = await fetch(
-      `${BASE_URL}/models/${model}:predictLongRunning?key=${key}`,
+      `${base}/models/${model}:predictLongRunning?key=${key}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,7 +171,8 @@ export class VeoVideoAdapter implements VideoAdapter {
 
     for (let i = 0; i < MAX_POLLS && !op.done; i++) {
       await new Promise<void>((r) => setTimeout(r, POLL_INTERVAL_MS));
-      const pollRes = await fetch(`${BASE_URL}/${op.name}?key=${key}`, {
+      // op.name is a full path like "operations/abc123" — prefix with the same base used to start
+      const pollRes = await fetch(`${base}/${op.name}?key=${key}`, {
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(15_000),
       });

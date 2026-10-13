@@ -1016,14 +1016,19 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           return { images: [...existingImages, newEntry] };
         }
 
-        const maxScenes = Math.min(briefs.length, Number(payload['maxScenes'] ?? 8));
+        // Default: generate ALL briefs. Payload can pass maxScenes to cap it (e.g. preview runs).
+        const maxScenes = payload['maxScenes'] !== undefined
+          ? Math.min(briefs.length, Number(payload['maxScenes']))
+          : briefs.length;
         const t0 = Date.now();
-        this.log(jobId, projectId, `Generating ${maxScenes} scene image(s)…`);
+        this.log(jobId, projectId, `Generating ${maxScenes}/${briefs.length} scene image(s)…`);
         const images: Array<{ sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean }> = [];
         let failedScenes = 0;
         let lastImgError = '';
         for (let i = 0; i < maxScenes; i++) {
           const brief = briefs[i]!;
+          this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes}: generating image…`, brief.sceneId);
+          this.events.emitJobUpdate(jobId, { step: 'IMAGE_GENERATE', status: 'RUNNING', scene: i + 1, totalScenes: maxScenes }, projectId);
           try {
             const stored = await this.media.generateImage(projectId, `Scene ${i + 1} · ${brief.sceneId}`, {
               prompt: brief.prompt,
@@ -1136,9 +1141,12 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           orderBy: { createdAt: 'asc' },
         });
 
-        const maxScenes = Math.min(plan.scenes.length, Number(payload['maxScenes'] ?? 8));
+        // Default: generate ALL scenes from the plan. Payload can cap it for preview runs.
+        const maxScenes = payload['maxScenes'] !== undefined
+          ? Math.min(plan.scenes.length, Number(payload['maxScenes']))
+          : plan.scenes.length;
         const t0 = Date.now();
-        this.log(jobId, projectId, `Generating ${maxScenes} scene video(s)…`);
+        this.log(jobId, projectId, `Generating ${maxScenes}/${plan.scenes.length} scene video(s)…`);
 
         // Build a public base URL for cloud img2vid adapters (Kling, Runway, etc.).
         // ASSET_CDN_URL = Cloudflare R2 public bucket URL (preferred, no token needed).
@@ -1197,6 +1205,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               }
             }
           }
+          this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes}: rendering video…`, scene.id);
+          this.events.emitJobUpdate(jobId, { step: 'VIDEO_GENERATE', status: 'RUNNING', scene: i + 1, totalScenes: maxScenes }, projectId);
           try {
             const stored = await this.media.generateSceneVideo(projectId, `Scene video ${i + 1} · ${scene.id}`, {
               imagePath,
@@ -1208,7 +1218,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               sceneIndex: i,
             });
             videos.push({ sceneId: scene.id, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
-            this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, stored.provider);
+            this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, `${stored.provider}${stored.notes ? ` · ${stored.notes.slice(0, 60)}` : ''}`);
           } catch (vidErr) {
             failedVideoScenes++;
             lastVidError = vidErr instanceof Error ? vidErr.message : String(vidErr);

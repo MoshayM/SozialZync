@@ -11,7 +11,9 @@ export class OfflineImageAdapter implements ImageAdapter {
   readonly name = 'offline-gradient-image';
 
   available(): boolean {
-    return process.env['ALLOW_OFFLINE_IMAGES'] === 'true';
+    // Always available — gradient placeholders keep the pipeline alive when
+    // cloud providers fail. ALLOW_OFFLINE_IMAGES=false disables as escape hatch.
+    return process.env['ALLOW_OFFLINE_IMAGES'] !== 'false';
   }
 
   generateImage(req: ImageRequest): Promise<GeneratedMedia> {
