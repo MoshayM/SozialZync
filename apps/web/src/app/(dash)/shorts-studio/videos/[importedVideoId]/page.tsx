@@ -362,14 +362,14 @@ function BulkPublishPanel({
   onClose,
   onAllDone,
 }: {
-  clips: Array<{ id: string; title: string }>;
+  clips: Array<{ id: string; title: string; clipType?: string; durationMs?: number | null }>;
   importedVideoId: string;
   qc: ReturnType<typeof useQueryClient>;
   onClose: () => void;
   onAllDone: (publishedIds: string[]) => void;
 }) {
   type EntryState = 'pending' | 'publishing' | 'published' | 'saved' | 'error';
-  const [entries, setEntries] = useState<Array<{ id: string; title: string; state: EntryState; checked: boolean }>>(() =>
+  const [entries, setEntries] = useState<Array<{ id: string; title: string; clipType?: string; durationMs?: number | null; state: EntryState; checked: boolean }>>(() =>
     clips.map((c) => ({ ...c, state: 'pending' as EntryState, checked: true }))
   );
   const [mode, setMode] = useState<'publish' | 'save'>('publish');
@@ -447,7 +447,15 @@ function BulkPublishPanel({
                 className="w-4 h-4 rounded border-gray-300 shrink-0 cursor-pointer"
                 style={{ accentColor: '#374151' }}
               />
-              <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{entry.title}</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm text-gray-800 truncate block">{entry.title}</span>
+                {(entry.clipType ?? entry.durationMs) && (
+                  <span className="text-[11px] text-gray-400">
+                    {entry.clipType ? (CLIP_TYPES.find((t) => t.value === entry.clipType)?.label ?? entry.clipType.replace(/_/g, ' ')) : ''}
+                    {entry.durationMs ? ` · ${Math.round(entry.durationMs / 1000)}s` : ''}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {stateIcon(entry.state)}
                 {entry.state !== 'pending' && (
@@ -594,6 +602,8 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
           clips={selectedRenderedClips.map((c) => ({
             id: c.id,
             title: c.topicSegment?.highlight?.titleSuggestion ?? c.topicSegment?.title ?? c.chapter?.title ?? 'Clip',
+            clipType: c.clipType,
+            durationMs: c.timeline?.durationMs ?? c.renderAsset?.versions[0]?.durationMs ?? null,
           }))}
           importedVideoId={importedVideoId}
           qc={qc}
@@ -620,7 +630,7 @@ function ClipsList({ clips, qc, importedVideoId }: { clips: Clip[]; qc: ReturnTy
               <div key={c.id} className="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-xl text-sm">
                 <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
                 <span className="text-gray-700 truncate flex-1 min-w-0">{title}</span>
-                <span className="text-[11px] text-amber-600 font-medium shrink-0">{label}</span>
+                <Link href="/publish" onClick={(e) => e.stopPropagation()} className="text-[11px] text-amber-600 font-medium shrink-0 hover:underline">{label}</Link>
                 <button
                   type="button"
                   onClick={() => { if (window.confirm('Delete this clip?')) deleteClip.mutate(c.id); }}
@@ -1143,6 +1153,8 @@ export default function ShortsVideoDetailPage() {
   const [clipsOpen, setClipsOpen] = useState(true);
   const [selectedHighlightIds, setSelectedHighlightIds] = useState<Set<string>>(new Set());
   const [bulkCreating, setBulkCreating] = useState(false);
+  const [selectedTopicIds, setSelectedTopicIds] = useState<Set<string>>(new Set());
+  const [bulkCreatingTopics, setBulkCreatingTopics] = useState(false);
   const clipsRef = useRef<HTMLElement>(null);
 
   const scrollToClips = () => {
@@ -1166,6 +1178,24 @@ export default function ShortsVideoDetailPage() {
     );
     setBulkCreating(false);
     setSelectedHighlightIds(new Set());
+    void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
+    scrollToClips();
+  };
+
+  const handleBulkCreateFromTopics = async () => {
+    const toCreate = topics.filter((t) => selectedTopicIds.has(t.id) && t.highlight);
+    if (toCreate.length === 0) return;
+    setBulkCreatingTopics(true);
+    await Promise.allSettled(
+      toCreate.map((t) =>
+        api.shortsStudio.generateClips(t.highlight!.id, ['YOUTUBE_SHORTS']).then(async (r) => {
+          const clips = r.data as Array<{ id: string }>;
+          await Promise.allSettled(clips.map((c) => api.shortsStudio.render(c.id)));
+        })
+      )
+    );
+    setBulkCreatingTopics(false);
+    setSelectedTopicIds(new Set());
     void qc.invalidateQueries({ queryKey: ['shorts-clips', importedVideoId] });
     scrollToClips();
   };
@@ -1379,18 +1409,55 @@ export default function ShortsVideoDetailPage() {
           {topics.length === 0 && (
             <p className="text-center text-gray-500 py-16">No topics yet — run Analyze from the Shorts Studio page.</p>
           )}
-          {topics.length > 0 && (
-            <div className="flex justify-end">
+          {selectedTopicIds.size > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl" style={{ background: '#374151', color: 'white' }}>
+              <span className="text-sm font-semibold flex-1">
+                {selectedTopicIds.size} topic{selectedTopicIds.size > 1 ? 's' : ''} selected
+              </span>
               <button
-                onClick={() => setOpenTopics((prev) => prev.size === topics.length ? new Set() : new Set(topics.map((t) => t.id)))}
-                className="text-xs text-brand-600 hover:underline"
+                type="button"
+                onClick={() => setSelectedTopicIds(new Set())}
+                className="text-xs opacity-60 hover:opacity-100 transition-opacity px-1.5"
               >
-                {openTopics.size === topics.length ? 'Collapse all' : 'Expand all'}
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleBulkCreateFromTopics()}
+                disabled={bulkCreatingTopics}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-900 bg-white hover:bg-gray-100 transition-colors disabled:opacity-40"
+              >
+                {bulkCreatingTopics ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scissors className="w-3.5 h-3.5" />}
+                Create Clips ({selectedTopicIds.size})
               </button>
             </div>
           )}
+          {topics.length > 0 && (() => {
+            const topicsWithHighlights = topics.filter((t) => t.highlight);
+            const allHighlightTopicsSelected = topicsWithHighlights.length > 0 && topicsWithHighlights.every((t) => selectedTopicIds.has(t.id));
+            return (
+              <div className="flex items-center justify-between">
+                {topicsWithHighlights.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTopicIds(allHighlightTopicsSelected ? new Set() : new Set(topicsWithHighlights.map((t) => t.id)))}
+                    className="text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    {allHighlightTopicsSelected ? 'Deselect all' : 'Select all highlights'}
+                  </button>
+                ) : <span />}
+                <button
+                  onClick={() => setOpenTopics((prev) => prev.size === topics.length ? new Set() : new Set(topics.map((t) => t.id)))}
+                  className="text-xs text-brand-600 hover:underline"
+                >
+                  {openTopics.size === topics.length ? 'Collapse all' : 'Expand all'}
+                </button>
+              </div>
+            );
+          })()}
           {topics.map((t) => {
             const open = openTopics.has(t.id);
+            const canCreate = !!t.highlight;
             const toggle = () => setOpenTopics((prev) => {
               const next = new Set(prev);
               if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
@@ -1405,6 +1472,17 @@ export default function ShortsVideoDetailPage() {
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
                   className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
+                  <input
+                    type="checkbox"
+                    checked={selectedTopicIds.has(t.id)}
+                    disabled={!canCreate}
+                    onChange={(e) => { e.stopPropagation(); setSelectedTopicIds((prev) => { const next = new Set(prev); if (e.target.checked) next.add(t.id); else next.delete(t.id); return next; }); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 rounded border-gray-300 shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                    style={{ accentColor: '#374151' }}
+                    aria-label="Select topic"
+                    title={canCreate ? 'Select to bulk create clip' : 'No highlight score — cannot bulk create'}
+                  />
                   {open ? <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />}
                   <span className="text-xs text-gray-500 font-mono shrink-0 w-20">{fmt(t.startMs)}–{fmt(t.endMs)}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${CATEGORY_COLORS[t.category] ?? 'bg-gray-100 text-gray-600'}`}>
