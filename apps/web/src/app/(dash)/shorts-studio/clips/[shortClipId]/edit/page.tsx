@@ -176,6 +176,9 @@ export default function TimelineEditorPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Tracks whether the rendered clip URL has been loaded so that the
+  // videoVersionId re-run doesn't replace it with the raw source video.
+  const renderedLoadedRef = useRef(false);
   const pendingRef = useRef<Command[]>([]);
   pendingRef.current = pending;
   const timelineRef = useRef<TimelineData | null>(null);
@@ -229,41 +232,48 @@ export default function TimelineEditorPage() {
       .find((i) => i.sourceAsset?.versions[0])?.sourceAsset?.versions[0]?.id,
   [clip]);
 
-  // Source video — short-lived signed URL enabling Range requests for seeking.
-  // Depends only on videoVersionId (not the full clip) so caption arrival doesn't
-  // reload the video element and break playback.
+  // Video URL loading: prefer the rendered clip URL over the raw source video.
+  // Rendered clip = short file, starts at position 0, plays without a deep seek.
+  // Source video = full YouTube download; seeking to sourceStartMs requires
+  // HTTP Range requests which the R2 stream endpoint doesn't currently support,
+  // causing the browser to buffer from byte 0 and stall on onWaiting.
+  // renderedLoadedRef prevents the videoVersionId re-run from overwriting a
+  // working rendered URL with the source video URL.
   useEffect(() => {
+    if (renderedLoadedRef.current) return; // rendered clip already loaded — keep it
+
     const apiBase = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/api\/v\d+\/?$/, '');
     let cancelled = false;
     setVideoLoading(true);
 
-    const loadRendered = () => {
-      void api.shortsStudio.previewUrl(shortClipId)
+    const loadSourceVideo = () => {
+      if (!videoVersionId) {
+        if (!cancelled) setVideoUrl(null);
+        return;
+      }
+      void apiClient
+        .get<{ url: string }>(`/media/versions/${videoVersionId}/editor-url`)
         .then((r) => {
-          if (!cancelled && r.data.url) {
+          if (!cancelled) {
             setVideoUrl(`${apiBase}${r.data.url}`);
-            setUseRenderedSource(true);
-          } else if (!cancelled) {
-            setVideoUrl(null);
+            setUseRenderedSource(false);
           }
         })
         .catch(() => { if (!cancelled) setVideoUrl(null); });
     };
 
-    if (!videoVersionId) {
-      loadRendered();
-      return () => { cancelled = true; };
-    }
-
-    void apiClient
-      .get<{ url: string }>(`/media/versions/${videoVersionId}/editor-url`)
+    // Try rendered clip first — if not yet rendered, fall back to source video.
+    void api.shortsStudio.previewUrl(shortClipId)
       .then((r) => {
-        if (!cancelled) {
+        if (!cancelled && r.data.url) {
           setVideoUrl(`${apiBase}${r.data.url}`);
-          setUseRenderedSource(false);
+          setUseRenderedSource(true);
+          renderedLoadedRef.current = true;
+        } else if (!cancelled) {
+          loadSourceVideo();
         }
       })
-      .catch(() => { if (!cancelled) loadRendered(); });
+      .catch(() => { if (!cancelled) loadSourceVideo(); });
 
     return () => { cancelled = true; };
   }, [videoVersionId, shortClipId]);
