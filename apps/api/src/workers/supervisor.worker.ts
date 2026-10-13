@@ -1148,6 +1148,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const internalToken = process.env['INTERNAL_MEDIA_TOKEN'] ?? '';
 
         const videos: Array<{ sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean }> = [];
+        let failedVideoScenes = 0;
+        let lastVidError = '';
         for (let i = 0; i < maxScenes; i++) {
           const scene = plan.scenes[i]!;
           let imagePath: string | undefined;
@@ -1195,17 +1197,29 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               }
             }
           }
-          const stored = await this.media.generateSceneVideo(projectId, `Scene video ${i + 1} · ${scene.id}`, {
-            imagePath,
-            imageUrl,
-            prompt: scene.videoPrompt,
-            durationSecs: Math.min(Math.max(scene.durationSecs, 2), 30),
-            width: 1280,
-            height: 720,
-            sceneIndex: i,
-          });
-          videos.push({ sceneId: scene.id, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
-          this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, stored.provider);
+          try {
+            const stored = await this.media.generateSceneVideo(projectId, `Scene video ${i + 1} · ${scene.id}`, {
+              imagePath,
+              imageUrl,
+              prompt: scene.videoPrompt,
+              durationSecs: Math.min(Math.max(scene.durationSecs, 2), 30),
+              width: 1280,
+              height: 720,
+              sceneIndex: i,
+            });
+            videos.push({ sceneId: scene.id, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
+            this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, stored.provider);
+          } catch (vidErr) {
+            failedVideoScenes++;
+            lastVidError = vidErr instanceof Error ? vidErr.message : String(vidErr);
+            this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} failed — skipping`, lastVidError.slice(0, 200));
+          }
+        }
+        if (videos.length === 0) {
+          throw new Error(lastVidError || 'Video generation failed — no scene videos could be rendered. Check that ffmpeg is installed and try again.');
+        }
+        if (failedVideoScenes > 0) {
+          this.log(jobId, projectId, `Warning: ${failedVideoScenes} of ${maxScenes} scene video(s) failed — render will use ${videos.length} available scene(s).`);
         }
         await this.jobs.logStep(jobId, 'VideoAgent', 'generate', { scenes: maxScenes }, { videos }, 0, 0, Date.now() - t0);
         this.events.emitJobUpdate(jobId, { step: 'VIDEO_GENERATE', status: 'COMPLETED' }, projectId);
