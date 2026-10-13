@@ -991,11 +991,12 @@ export default function TimelineEditorPage() {
                   muted={muted}
                   className="absolute inset-0 w-full h-full"
                   style={{ objectFit: videoObjectFit, objectPosition: videoObjectPosition }}
-                  onLoadedMetadata={() => { seekVideo(0); setVideoLoading(false); }}
+                  onLoadedMetadata={() => { setVideoLoading(false); }}
                   onCanPlay={() => setVideoLoading(false)}
                   onWaiting={() => setVideoLoading(true)}
                   onPlaying={() => setVideoLoading(false)}
                   onEnded={() => setPlaying(false)}
+                  onError={() => { setVideoLoading(false); }}
                 />
               ) : (
                 <p className="text-gray-500 text-sm px-4 text-center">
