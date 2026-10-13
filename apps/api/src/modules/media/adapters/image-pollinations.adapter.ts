@@ -97,13 +97,12 @@ export class PollinationsImageAdapter implements ImageAdapter {
       return url.toString();
     };
 
-    // Attempt 1: enhance=true (better prompt expansion, but slower)
-    // Attempt 2: enhance=false (direct, more reliable on rate-limited IPs)
-    // Shorter timeouts so failures fall through to OfflineImageAdapter quickly.
-    const attempts: Array<{ enhance: boolean; timeoutMs: number }> = [
-      { enhance: true,  timeoutMs: 40_000 },
-      { enhance: false, timeoutMs: 50_000 },
-    ];
+    // fast quality: single direct attempt (no enhance expansion — saves ~5-10s)
+    // standard/high: try enhance=true first for better prompt expansion, fallback to direct
+    const attempts: Array<{ enhance: boolean; timeoutMs: number }> =
+      req.quality === 'fast'
+        ? [{ enhance: false, timeoutMs: 40_000 }]
+        : [{ enhance: true, timeoutMs: 40_000 }, { enhance: false, timeoutMs: 50_000 }];
 
     let lastError = '';
     for (const attempt of attempts) {

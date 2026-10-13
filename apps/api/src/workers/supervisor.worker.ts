@@ -954,6 +954,10 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         let briefs = briefResult?.briefs ?? [];
 
         const visualStyle = (payload['visualStyle'] as import('../modules/media/media.types').ImageVisualStyle | undefined) ?? 'ai-best';
+        const imageQuality = (payload['imageQuality'] as 'fast' | 'standard' | 'high' | undefined) ?? 'standard';
+        // Resolution per quality tier — higher tiers cost more but look better
+        const imgW = imageQuality === 'fast' ? 768 : imageQuality === 'high' ? 1280 : 1024;
+        const imgH = imageQuality === 'fast' ? 432 : imageQuality === 'high' ? 720  : 576;
 
         // Auto-generate briefs from script rather than hard-failing — makes VIDEO scope self-healing.
         if (briefs.length === 0) {
@@ -987,7 +991,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             const stored = await this.media.generateImage(
               projectId,
               `Scene ${regenOneIndex + 1} · ${brief?.sceneId ?? 'custom'} · regen-${regenOneIndex}-${Date.now()}`,
-              { prompt: customPrompt, negativePrompt: customNeg, width: 1280, height: 720, style: visualStyle },
+              { prompt: customPrompt, negativePrompt: customNeg, width: imgW, height: imgH, style: visualStyle, quality: imageQuality },
             );
             const updated = [...existingImages];
             const entry: ImgEntry = { sceneId: brief?.sceneId ?? `scene-${regenOneIndex}`, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: false };
@@ -1004,7 +1008,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           const newStored = await this.media.generateImage(
             projectId,
             `Custom Scene · ${newSceneId}`,
-            { prompt: addNewScene!.prompt, negativePrompt: addNewScene!.negativePrompt, width: 1280, height: 720, style: visualStyle },
+            { prompt: addNewScene!.prompt, negativePrompt: addNewScene!.negativePrompt, width: imgW, height: imgH, style: visualStyle, quality: imageQuality },
           );
           const newEntry: ImgEntry = { sceneId: newSceneId, assetId: newStored.assetId, versionId: newStored.versionId, provider: newStored.provider, cached: newStored.cached };
           this.log(jobId, projectId, 'New scene image ready ✓', newStored.provider);
@@ -1024,9 +1028,10 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             const stored = await this.media.generateImage(projectId, `Scene ${i + 1} · ${brief.sceneId}`, {
               prompt: brief.prompt,
               negativePrompt: brief.negativePrompt,
-              width: 1280,
-              height: 720,
+              width: imgW,
+              height: imgH,
               style: visualStyle,
+              quality: imageQuality,
             });
             images.push({ sceneId: brief.sceneId, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
             this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'ready ✓'}`, stored.provider);
@@ -1715,9 +1720,10 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             }
             // Forward visual style to image stages
             if (stage.type === 'IMAGE_BRIEF' && payload['visualStyle'] != null) stagePayload['visualStyle'] = payload['visualStyle'];
-            // Forward image-regen controls and visual style to IMAGE_GENERATE
+            // Forward image-regen controls, visual style, and quality to IMAGE_GENERATE
             if (stage.type === 'IMAGE_GENERATE') {
               if (payload['visualStyle'] != null) stagePayload['visualStyle'] = payload['visualStyle'];
+              if (payload['imageQuality'] != null) stagePayload['imageQuality'] = payload['imageQuality'];
               if (payload['regenOneIndex'] != null) stagePayload['regenOneIndex'] = payload['regenOneIndex'];
               if (payload['addNewScene'] != null) stagePayload['addNewScene'] = payload['addNewScene'];
               if (payload['regenPrompt'] != null) stagePayload['regenPrompt'] = payload['regenPrompt'];

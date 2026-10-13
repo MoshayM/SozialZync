@@ -42,6 +42,13 @@ export interface ImageRequest {
   seed?: number;
   /** Visual style preference from the user's pre-generate style picker */
   style?: ImageVisualStyle;
+  /**
+   * Cost/quality trade-off tier (default: 'standard').
+   *  fast     — free providers only (Pollinations), lowest cost, ~768×432
+   *  standard — free providers first, cheap paid fallback, ~1024×576
+   *  high     — best paid provider (DALL-E 3 / Imagen 3), ~1280×720
+   */
+  quality?: 'fast' | 'standard' | 'high';
 }
 
 export interface MusicRequest {

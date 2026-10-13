@@ -654,6 +654,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     | 'cyberpunk' | 'neon-synthwave' | 'vintage-retro' | 'black-white-noir' | 'surreal' | 'minimalist' | 'text-carousel'
     | 'animation' | 'minimal';
   const [visualStyle, setVisualStyle] = useState<ImageVisualStyle>('ai-best');
+  const [imageQuality, setImageQuality] = useState<'fast' | 'standard' | 'high'>('standard');
 
   const { data: channels = [] } = useQuery({
     queryKey: ['channels'],
@@ -3146,6 +3147,37 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
         )}
       </div>
 
+      {/* ── Image Quality / Cost Selector ── */}
+      <div>
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Image Quality</p>
+        <div className="flex gap-2">
+          {([
+            { key: 'fast',     label: 'Fast',     desc: 'Free · ~3s' },
+            { key: 'standard', label: 'Standard', desc: 'Free first · 1024px' },
+            { key: 'high',     label: 'High',     desc: 'Paid · 1280px' },
+          ] as { key: 'fast' | 'standard' | 'high'; label: string; desc: string }[]).map(({ key, label, desc }) => (
+            <button
+              key={key}
+              onClick={() => setImageQuality(key)}
+              className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl border text-center transition-all ${
+                imageQuality === key
+                  ? 'border-brand-400 bg-brand-50 text-brand-700'
+                  : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-white'
+              }`}
+            >
+              <span className="text-[11px] font-semibold">{label}</span>
+              <span className="text-[9px] mt-0.5 opacity-70">{desc}</span>
+            </button>
+          ))}
+        </div>
+        {imageQuality === 'fast' && (
+          <p className="mt-1.5 text-[10px] text-gray-400">Free provider only — fastest generation, good for previews.</p>
+        )}
+        {imageQuality === 'high' && (
+          <p className="mt-1.5 text-[10px] text-gray-400">Uses DALL-E 3 or best available paid model — highest quality, higher cost.</p>
+        )}
+      </div>
+
       {/* ── Scene Briefs ── */}
       <div>
         <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Scene Briefs</p>
@@ -3213,7 +3245,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   onClick={() => {
                     enqueue.mutate({
                       type: 'FULL_PRODUCTION',
-                      payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], addNewScene: { prompt: imgAddPrompt.trim() }, visualStyle, ...prefsPayload },
+                      payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], addNewScene: { prompt: imgAddPrompt.trim() }, visualStyle, imageQuality, ...prefsPayload },
                     });
                     setImgAddOpen(false);
                     setImgAddPrompt('');
@@ -3281,7 +3313,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         disabled={busy}
                         onClick={() => enqueue.mutate({
                           type: 'FULL_PRODUCTION',
-                          payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, visualStyle, ...prefsPayload },
+                          payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, visualStyle, imageQuality, ...prefsPayload },
                         })}
                       >
                         Regenerate
@@ -3304,7 +3336,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                           onClick={() => {
                             enqueue.mutate({
                               type: 'FULL_PRODUCTION',
-                              payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, regenPrompt: imgEditPrompt.trim(), visualStyle, ...prefsPayload },
+                              payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, regenPrompt: imgEditPrompt.trim(), visualStyle, imageQuality, ...prefsPayload },
                             });
                             setImgEditIdx(null);
                           }}
@@ -3621,6 +3653,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     scope: 'IMAGES',
                     ...prefsPayload,
                     visualStyle,
+                    imageQuality,
                     ...(imageGenResult
                       ? { regenerate: ['IMAGE_BRIEF', 'IMAGE_GENERATE'] }
                       : imageBriefResult

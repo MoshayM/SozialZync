@@ -129,7 +129,30 @@ export class MediaService {
   }
 
   generateImage(projectId: string, label: string, req: ImageRequest): Promise<StoredAsset> {
-    return this.generate(projectId, 'IMAGE', label, req, this.orderedAdapters(this.image), (a, r) => a.generateImage(r));
+    const adapters = this.imagePriorityAdapters(req.quality ?? 'standard');
+    return this.generate(projectId, 'IMAGE', label, req, adapters, (a, r) => a.generateImage(r));
+  }
+
+  /** Quality-aware adapter ordering for image generation.
+   *  When IMAGE_PROVIDER is explicitly set, that always wins (user override).
+   *  Otherwise: fast=free only, standard=free-first+cheap-paid, high=best-paid-first. */
+  private imagePriorityAdapters(quality: 'fast' | 'standard' | 'high'): ImageAdapter[] {
+    // Explicit IMAGE_PROVIDER env always overrides quality-based ordering
+    if (this.image.configured) return this.orderedAdapters(this.image);
+
+    const avail = (names: string[]) =>
+      names.flatMap((n) => this.image.adapters.filter((a) => a.name === n && a.available()));
+
+    if (quality === 'fast') {
+      // Free providers only — no paid API calls
+      return avail(['pollinations-image', 'comfyui', 'a1111']);
+    }
+    if (quality === 'high') {
+      // Best quality: paid premium → free → self-hosted
+      return avail(['openai-image', 'gemini-image', 'pollinations-image', 'comfyui', 'a1111', 'offline-gradient-image']);
+    }
+    // standard (default): free first, then cheap paid fallback
+    return avail(['gemini-image', 'pollinations-image', 'openai-image', 'comfyui', 'a1111', 'offline-gradient-image']);
   }
 
   generateMusic(projectId: string, label: string, req: MusicRequest): Promise<StoredAsset> {
