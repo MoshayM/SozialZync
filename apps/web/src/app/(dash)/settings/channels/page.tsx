@@ -64,6 +64,7 @@ const OAUTH_ERRORS: Record<string, string> = {
   facebook_auth_failed:            'Facebook connection failed. Please try again.',
   tiktok_auth_failed:              'TikTok connection failed. Please try again.',
   linkedin_auth_failed:            'LinkedIn connection failed. Please try again.',
+  x_auth_failed:                   'X / Twitter connection failed. Please try again.',
   pages_permission_denied:         'Instagram requires access to your Facebook Pages. Please re-authorise and allow Pages access.',
   no_instagram_business_account:   'No Instagram Business account linked to your Facebook Page. Switch your Instagram to a Professional account first.',
   wrong_facebook_account:          'No Facebook Pages found. Make sure you logged in with the Facebook account that manages your Page.',

@@ -58,11 +58,15 @@ export class FacebookOAuthController {
     @CurrentUser() user: JwtPayload,
     @Query('returnTo') returnTo: string,
   ) {
+    const appId = process.env['FACEBOOK_APP_ID'] ?? '';
+    if (!appId) {
+      throw new BadRequestException('Facebook is not configured on this server. Please contact support.');
+    }
     const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/facebook/callback`;
     const state = Buffer.from(JSON.stringify({ userId: user.sub, returnTo })).toString('base64');
     const params = new URLSearchParams({
-      client_id: process.env['FACEBOOK_APP_ID'] ?? '',
+      client_id: appId,
       redirect_uri: redirectUri,
       scope: FB_SCOPES,
       response_type: 'code',

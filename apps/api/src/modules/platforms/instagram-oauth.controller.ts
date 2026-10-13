@@ -1,4 +1,4 @@
-import { Controller, Get, Delete, Query, Res, UseGuards, Logger, HttpCode, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Delete, Query, Res, UseGuards, Logger, HttpCode, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { Response } from 'express';
 import axios from 'axios';
@@ -62,11 +62,15 @@ export class InstagramOAuthController {
     @CurrentUser() user: JwtPayload,
     @Query('returnTo') returnTo: string,
   ) {
+    const appId = process.env['FACEBOOK_APP_ID'] ?? '';
+    if (!appId) {
+      throw new BadRequestException('Instagram is not configured on this server (requires a Facebook App). Please contact support.');
+    }
     const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/instagram/callback`;
     const state = Buffer.from(JSON.stringify({ userId: user.sub, returnTo })).toString('base64');
     const params = new URLSearchParams({
-      client_id: process.env['FACEBOOK_APP_ID'] ?? '',
+      client_id: appId,
       redirect_uri: redirectUri,
       scope: IG_SCOPES,
       response_type: 'code',

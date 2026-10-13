@@ -60,7 +60,10 @@ export interface MusicRequest {
 }
 
 export interface SceneVideoRequest {
+  /** Local filesystem path — used by FFmpeg/ComfyUI (self-hosted) adapters */
   imagePath?: string;
+  /** Public HTTPS URL — used by cloud adapters (Kling, Runway, Luma, Pika) */
+  imageUrl?: string;
   prompt: string;
   durationSecs: number;
   width: number;

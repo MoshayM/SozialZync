@@ -903,6 +903,18 @@ export const api = {
   },
   platforms: {
     connectionStatus: () => apiClient.get('/platforms/connection-status'),
+    publish: (platform: string, payload: {
+      title: string;
+      description?: string;
+      tags?: string[];
+      r2Key?: string;
+      versionId?: string;
+      scheduledAt?: string;
+      privacyStatus?: 'public' | 'private' | 'unlisted';
+    }) => apiClient.post<{ ok: boolean; platform: string; postId: string; url: string; publishedAt: string }>(
+      `/platforms/${encodeURIComponent(platform)}/publish`,
+      payload,
+    ),
   },
   projects: {
     list: (opts?: { cursor?: string; limit?: number }) => {

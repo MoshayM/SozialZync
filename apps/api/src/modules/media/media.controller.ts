@@ -559,6 +559,7 @@ export class MediaController {
   @Get('versions/:versionId/file')
   async versionFile(
     @Param('versionId') versionId: string,
+    @Query('token') internalToken: string | undefined,
     @Req() req: MediaRequest,
   ): Promise<StreamableFile> {
     const version = await this.prisma.assetVersion.findUnique({
@@ -568,10 +569,16 @@ export class MediaController {
         asset: { select: { project: { select: { userId: true } } } },
       },
     });
+    // INTERNAL_MEDIA_TOKEN: pre-shared secret used by the supervisor worker to
+    // pass image URLs to cloud video-generation APIs (Kling, Runway, etc.).
+    // The token never appears in client-side code or logs.
+    const internalSecret = process.env['INTERNAL_MEDIA_TOKEN'];
+    const internalAccess = !!internalSecret && internalToken === internalSecret;
     // Signature access proved ownership at issuance; JWT access proves it here.
     // (The JWT payload carries the user id in `sub` — there is no `id` field.)
     // SUPER_ADMIN may access any asset for auditing and support purposes.
     const authorized =
+      internalAccess ||
       req.signedMediaAccess === true ||
       version?.asset.project.userId === req.user?.sub ||
       req.user?.role === 'SUPER_ADMIN';

@@ -1,4 +1,4 @@
-import { Controller, Get, Delete, Query, Res, UseGuards, Logger } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Delete, Query, Res, UseGuards, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import axios from 'axios';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -28,11 +28,15 @@ export class LinkedInOAuthController {
     @CurrentUser() user: JwtPayload,
     @Query('returnTo') returnTo: string,
   ) {
+    const clientId = process.env['LINKEDIN_CLIENT_ID'] ?? '';
+    if (!clientId) {
+      throw new BadRequestException('LinkedIn is not configured on this server. Please contact support.');
+    }
     const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
     const redirectUri = `${apiBase}/platforms/linkedin/callback`;
     const state = Buffer.from(JSON.stringify({ userId: user.sub, returnTo })).toString('base64url');
     const params = new URLSearchParams({
-      client_id: process.env['LINKEDIN_CLIENT_ID'] ?? '',
+      client_id: clientId,
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: LI_SCOPES,

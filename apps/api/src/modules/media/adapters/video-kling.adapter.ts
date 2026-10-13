@@ -74,7 +74,9 @@ export class KlingVideoAdapter implements VideoAdapter {
       duration: String(duration),
       aspect_ratio: ratio,
     };
-    if (req.imagePath) input['img_url'] = req.imagePath;
+    // Cloud adapters need a public HTTPS URL; imageUrl takes priority over local imagePath
+    const imgSource = req.imageUrl ?? req.imagePath;
+    if (imgSource) input['img_url'] = imgSource;
 
     const startRes = await fetch(`${BASE_URL}/kling/videogen`, {
       method: 'POST',

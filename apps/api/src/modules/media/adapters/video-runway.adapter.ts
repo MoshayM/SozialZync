@@ -58,8 +58,10 @@ export class RunwayVideoAdapter implements VideoAdapter {
       watermark: false,
     };
 
-    if (req.imagePath) {
-      body['promptImage'] = req.imagePath;
+    // Cloud adapters need a public HTTPS URL; imageUrl takes priority over local imagePath
+    const imgSource = req.imageUrl ?? req.imagePath;
+    if (imgSource) {
+      body['promptImage'] = imgSource;
     }
 
     const startRes = await fetch(`${BASE_URL}/image_to_video`, {

@@ -1120,21 +1120,40 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const maxScenes = Math.min(plan.scenes.length, Number(payload['maxScenes'] ?? 8));
         const t0 = Date.now();
         this.log(jobId, projectId, `Generating ${maxScenes} scene video(s)…`);
+
+        // Build a public base URL for cloud img2vid adapters (Kling, Runway, etc.).
+        // ASSET_CDN_URL = Cloudflare R2 public bucket URL (preferred, no token needed).
+        // API_BASE_URL  = Railway API URL; paired with INTERNAL_MEDIA_TOKEN for auth.
+        const cdnBase = (process.env['ASSET_CDN_URL'] ?? '').replace(/\/$/, '');
+        const apiBase = (process.env['API_BASE_URL'] ?? '').replace(/\/$/, '');
+        const internalToken = process.env['INTERNAL_MEDIA_TOKEN'] ?? '';
+
         const videos: Array<{ sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean }> = [];
         for (let i = 0; i < maxScenes; i++) {
           const scene = plan.scenes[i]!;
           let imagePath: string | undefined;
-          const imgKey = imageAssets[i]?.versions[0]?.r2Key;
+          let imageUrl: string | undefined;
+          const imgAsset = imageAssets[i];
+          const imgVersion = imgAsset?.versions[0];
+          const imgKey = imgVersion?.r2Key;
+          const imgVersionId = imgVersion?.id;
+          const tokenParam = internalToken ? `?token=${encodeURIComponent(internalToken)}` : '';
           if (imgKey && this.storage.exists(imgKey)) {
             imagePath = this.storage.resolve(imgKey);
+            // Prefer public CDN → authenticated API media endpoint
+            if (cdnBase) imageUrl = `${cdnBase}/${imgKey}`;
+            else if (apiBase && imgVersionId) imageUrl = `${apiBase}/media/versions/${imgVersionId}/file${tokenParam}`;
           } else {
             const still = await this.media.generateImage(projectId, `Scene ${i + 1} still · ${scene.id}`, {
               prompt: scene.videoPrompt, width: 1280, height: 720,
             });
             imagePath = still.absPath;
+            if (cdnBase) imageUrl = `${cdnBase}/${still.key}`;
+            else if (apiBase) imageUrl = `${apiBase}/media/versions/${still.versionId}/file${tokenParam}`;
           }
           const stored = await this.media.generateSceneVideo(projectId, `Scene video ${i + 1} · ${scene.id}`, {
             imagePath,
+            imageUrl,
             prompt: scene.videoPrompt,
             durationSecs: Math.min(Math.max(scene.durationSecs, 2), 30),
             width: 1280,

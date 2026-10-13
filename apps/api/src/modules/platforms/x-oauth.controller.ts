@@ -1,4 +1,4 @@
-import { Controller, Get, Delete, Query, Res, UseGuards, Logger } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Delete, Query, Res, UseGuards, Logger } from '@nestjs/common';
 import { createHmac, randomBytes } from 'crypto';
 import { Response } from 'express';
 import axios from 'axios';
@@ -76,10 +76,14 @@ export class XOAuthController {
     @CurrentUser() user: JwtPayload,
     @Query('returnTo') returnTo: string,
   ) {
-    const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
-    const callbackUrl = `${apiBase}/platforms/x/callback`;
     const consumerKey    = process.env['X_API_KEY']    ?? '';
     const consumerSecret = process.env['X_API_SECRET'] ?? '';
+    if (!consumerKey || !consumerSecret) {
+      throw new BadRequestException('X / Twitter is not configured on this server. Please contact support.');
+    }
+
+    const apiBase = process.env['API_BASE_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4007/api/v1';
+    const callbackUrl = `${apiBase}/platforms/x/callback`;
 
     // Step 1: Get request token
     const authHeader = oauthHeader(
