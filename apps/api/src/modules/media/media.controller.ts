@@ -266,10 +266,11 @@ export class MediaController {
       } else {
         // Non-YouTube social platforms (TikTok, Instagram, X, etc.):
         // no automated ownership check is possible, so require explicit user confirmation.
-        if (!body.confirmOwnership) {
+        // SUPER_ADMIN, OWNER, and ADMIN are trusted and bypass the confirmation requirement.
+        if (!isPrivileged && !body.confirmOwnership) {
           throw new ForbiddenException(
-            'You must confirm this video belongs to your account before importing. ' +
-            'Check the ownership confirmation box and try again.',
+            'Please confirm you own this video before importing. ' +
+            'Tick the "I confirm this video belongs to my account" checkbox below the URL field and try again.',
           );
         }
       }

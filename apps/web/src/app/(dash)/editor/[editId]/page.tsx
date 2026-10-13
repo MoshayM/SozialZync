@@ -4144,6 +4144,7 @@ function MediaBin({
   uploading,
   onImportUrl,
   urlImporting,
+  isAdmin,
   onOpenLibrary,
   onDeleteEntry,
   onLockEntry,
@@ -4155,6 +4156,7 @@ function MediaBin({
   uploading?: boolean;
   onImportUrl?: (url: string, confirmOwnership?: boolean) => void;
   urlImporting?: boolean;
+  isAdmin?: boolean;
   onOpenLibrary?: () => void;
   onDeleteEntry?: (id: string) => void;
   onLockEntry?: (id: string, locked: boolean) => void;
@@ -4166,8 +4168,15 @@ function MediaBin({
   const [ownershipConfirmed, setOwnershipConfirmed] = useState(false);
   const [binSearch, setBinSearch] = useState('');
 
-  const NON_YT_SOCIAL = /tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|linkedin\.com|twitch\.tv|vimeo\.com|dailymotion\.com|reddit\.com|bilibili\.com/i;
-  const isNonYtSocial = NON_YT_SOCIAL.test(urlValue);
+  // URLs the backend will route through yt-dlp but where no automated ownership
+  // check is possible — user must explicitly confirm they own the content.
+  // Excludes YouTube (handled separately via channel library).
+  const NON_YT_SOCIAL = /tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|fb\.watch|linkedin\.com|twitch\.tv|vimeo\.com|dailymotion\.com|reddit\.com|bilibili\.com|rumble\.com|kick\.com|odysee\.com|bitchute\.com/i;
+  const YOUTUBE = /youtu\.be|youtube\.com/i;
+  const isNonYtSocial = NON_YT_SOCIAL.test(urlValue) && !YOUTUBE.test(urlValue);
+  // Admins bypass the ownership confirmation requirement server-side too,
+  // so we skip the checkbox for them entirely.
+  const needsOwnershipConfirm = isNonYtSocial && !isAdmin;
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const SOURCE_KINDS  = new Set(['VIDEO', 'RENDER_SOURCE', 'SHORTS_SOURCE_VIDEO']);
@@ -4193,7 +4202,9 @@ function MediaBin({
   function submitUrl() {
     const u = urlValue.trim();
     if (!u || !onImportUrl) return;
-    onImportUrl(u, isNonYtSocial ? ownershipConfirmed : undefined);
+    // Pass confirmOwnership=true when: user checked the box, OR admin bypasses the requirement
+    const confirmOwnership = isNonYtSocial ? (isAdmin ? true : ownershipConfirmed) : undefined;
+    onImportUrl(u, confirmOwnership);
     setUrlValue('');
     setOwnershipConfirmed(false);
     setShowUrlBar(false);
@@ -4238,7 +4249,7 @@ function MediaBin({
               <button
                 type="button"
                 onClick={submitUrl}
-                disabled={urlImporting || !urlValue.trim() || (isNonYtSocial && !ownershipConfirmed)}
+                disabled={urlImporting || !urlValue.trim() || (needsOwnershipConfirm && !ownershipConfirmed)}
                 className="px-2 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
               >
                 {urlImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Go'}
@@ -4247,15 +4258,15 @@ function MediaBin({
                 <X className="w-3 h-3" />
               </button>
             </div>
-            {isNonYtSocial && (
-              <label className="flex items-start gap-2 px-1 cursor-pointer">
+            {needsOwnershipConfirm && (
+              <label className="flex items-start gap-2 px-2 py-2 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer">
                 <input
                   type="checkbox"
                   checked={ownershipConfirmed}
                   onChange={(e) => setOwnershipConfirmed(e.target.checked)}
-                  className="mt-0.5 accent-brand-600"
+                  className="mt-0.5 accent-brand-600 shrink-0"
                 />
-                <span className="text-[10px] text-amber-700 leading-tight">
+                <span className="text-[11px] text-amber-800 font-medium leading-tight">
                   I confirm this video belongs to my account and I have the right to download it.
                 </span>
               </label>
@@ -6397,6 +6408,7 @@ export default function EditorWorkspacePage() {
                 onDeleteEntry={handleBinDeleteEntry}
                 onLockEntry={handleBinLockEntry}
                 onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
+                isAdmin={isAdmin}
               />
             </>
           )}
@@ -6444,6 +6456,7 @@ export default function EditorWorkspacePage() {
               onDeleteEntry={handleBinDeleteEntry}
               onLockEntry={handleBinLockEntry}
               onEntryDragStart={(e) => { draggedBinEntryRef.current = e; }}
+              isAdmin={isAdmin}
             />
           </div>
         </div>
