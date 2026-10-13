@@ -16,6 +16,9 @@ interface Props {
   captionsText: string;
   audioVersionId?: string;
   requestOpen?: string | null;
+  /** When true, renders only the active panel's content — no list/accordion wrapper.
+   *  Used alongside a horizontal chip selector so the list isn't duplicated. */
+  contentOnly?: boolean;
 }
 
 // ── Panel header (accordion toggle) ──────────────────────────────────────────
@@ -573,7 +576,7 @@ const PANELS = [
 
 type PanelId = typeof PANELS[number]['id'];
 
-export function StudioToolPanels({ timelineId, shortClipId: _shortClipId, captionsText, audioVersionId, requestOpen }: Props) {
+export function StudioToolPanels({ timelineId, shortClipId: _shortClipId, captionsText, audioVersionId, requestOpen, contentOnly }: Props) {
   const [open, setOpen] = useState<PanelId | null>(null);
   const toggle = (id: PanelId) => setOpen((o) => (o === id ? null : id));
 
@@ -591,6 +594,22 @@ export function StudioToolPanels({ timelineId, shortClipId: _shortClipId, captio
       case 'chars':  return <CharactersPanel timelineId={timelineId} captionsText={captionsText} />;
       case 'images': return <ImagesPanel timelineId={timelineId} />;
     }
+  }
+
+  // contentOnly: render just the active panel's content, no accordion list.
+  // The chip row above already serves as the selector.
+  if (contentOnly) {
+    const activePanelId = (requestOpen && PANELS.some((p) => p.id === requestOpen))
+      ? requestOpen as PanelId
+      : null;
+    if (!activePanelId) {
+      return (
+        <div className="flex items-center justify-center py-10 text-xs text-gray-400">
+          Select a tool above to get started
+        </div>
+      );
+    }
+    return <div className="pt-2">{renderContent(activePanelId)}</div>;
   }
 
   return (

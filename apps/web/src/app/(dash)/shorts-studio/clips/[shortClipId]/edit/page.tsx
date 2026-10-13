@@ -2196,6 +2196,7 @@ export default function TimelineEditorPage() {
                 ?.sourceAsset?.versions[0]?.id
             }
             requestOpen={quickTool ?? undefined}
+            contentOnly
           />
         </div>
       </div>
