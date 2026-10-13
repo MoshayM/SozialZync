@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { ScriptOutputSchema, type ScriptOutput } from '@cf/shared';
 import { decodeCursor, keysetWhereDesc, clampLimit, pageResult } from '../../common/pagination/cursor';
 
 export interface CreateProjectDto {
@@ -141,6 +142,32 @@ export class ProjectsService {
       throw new ForbiddenException('Demo projects can only be deleted by a Super Admin');
     }
     await this.prisma.project.delete({ where: { id: projectId } });
+  }
+
+  /**
+   * Save a human-edited script as the authoritative SCRIPT result for this project.
+   * Subsequent pipeline stages (FACT_CHECK, COMPLIANCE, etc.) call lastResult('SCRIPT')
+   * which returns the most recent COMPLETED SCRIPT job — so this override takes effect
+   * without rerunning any stages.
+   */
+  async saveScript(userId: string, projectId: string, raw: unknown): Promise<ScriptOutput> {
+    const project = await this.prisma.project.findFirst({ where: { id: projectId, userId } });
+    if (!project) throw new NotFoundException('Project not found');
+
+    const script = ScriptOutputSchema.parse(raw);
+    const now = new Date();
+    await this.prisma.agentJob.create({
+      data: {
+        projectId,
+        type: 'SCRIPT',
+        status: 'COMPLETED',
+        payload: { source: 'human-edit' } as never,
+        result: script as never,
+        startedAt: now,
+        completedAt: now,
+      },
+    });
+    return script;
   }
 
   /** Returns public demo/advertisement projects visible to all users (no auth required). */

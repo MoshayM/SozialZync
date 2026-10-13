@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { callAIStructured } from '@cf/shared';
+import { WebSearchService } from './web-search.service';
 import {
   ResearchOutputSchema, ScriptOutputSchema, FactCheckOutputSchema, RepurposeOutputSchema, ScriptQualityOutputSchema, ABTestOutputSchema, SeriesPlanOutputSchema,
   type ResearchOutput, type ScriptOutput, type FactCheckOutput, type RepurposeOutput,
@@ -45,12 +46,35 @@ const PLATFORM_GUIDES: Record<string, string> = {
 
 @Injectable()
 export class ContentService {
+  private readonly logger = new Logger(ContentService.name);
+
+  constructor(private readonly webSearch: WebSearchService) {}
+
   async research(topic: string, niche?: string, targetLang = 'en'): Promise<ResearchOutput> {
     const langInstruction = targetLang && targetLang !== 'en' && targetLang !== 'en-US'
       ? `\nContent Language: ${langLabel(targetLang)} — write ALL text fields (summary, keyPoints, audienceInterestSignals) in ${langLabel(targetLang)}.`
       : '\nContent Language: English';
+
+    // Ground the AI with real search results when a search API key is configured.
+    // Without a key, falls back to the model's training data (existing behaviour).
+    let groundingBlock = '';
+    if (this.webSearch.isAvailable()) {
+      try {
+        const { results, provider } = await this.webSearch.search(`${topic} ${niche ?? ''}`.trim(), 8);
+        if (results.length > 0) {
+          const lines = results.map((r, i) =>
+            `[${i + 1}] ${r.title}\nURL: ${r.url}\nSnippet: ${r.snippet}${r.publishedAt ? `\nDate: ${r.publishedAt}` : ''}`,
+          ).join('\n\n');
+          groundingBlock = `\n\nLIVE SEARCH RESULTS (provider: ${provider}) — use these as your primary sources:\n${lines}\n\nDo NOT fabricate sources. Only cite URLs from the list above or widely known authoritative sources (Wikipedia, major news outlets, official docs) that you are certain exist.`;
+          this.logger.log(`Research grounded with ${results.length} live results (${provider})`);
+        }
+      } catch (err) {
+        this.logger.warn(`Web search failed, proceeding without live results: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     return callAIStructured(
-      [{ role: 'user', content: `Research this YouTube video topic comprehensively:\n\nTopic: ${topic}\nNiche: ${niche ?? 'General'}${langInstruction}\n\nFind trending angles, statistics, and authoritative sources. Include up to 5 sources maximum.\n\nRespond with EXACTLY this JSON structure (no extra text, no markdown, no code fences):\n{"topic":"${topic}","summary":"2-3 sentence overview","keyPoints":["key point 1","key point 2","key point 3"],"sources":[{"url":"https://example.com/article","title":"Article Title","snippet":"Brief excerpt from the source","publishedAt":"2024-01-01"}],"trendScore":75,"audienceInterestSignals":["signal 1","signal 2","signal 3"]}` }],
+      [{ role: 'user', content: `Research this YouTube video topic comprehensively:\n\nTopic: ${topic}\nNiche: ${niche ?? 'General'}${langInstruction}${groundingBlock}\n\nFind trending angles, statistics, and authoritative sources. Include up to 5 sources maximum.\n\nRespond with EXACTLY this JSON structure (no extra text, no markdown, no code fences):\n{"topic":"${topic}","summary":"2-3 sentence overview","keyPoints":["key point 1","key point 2","key point 3"],"sources":[{"url":"https://example.com/article","title":"Article Title","snippet":"Brief excerpt from the source","publishedAt":"2024-01-01"}],"trendScore":75,"audienceInterestSignals":["signal 1","signal 2","signal 3"]}` }],
       ResearchOutputSchema,
       { systemPrompt: RESEARCH_SYSTEM, maxTokens: 6000 },
     );

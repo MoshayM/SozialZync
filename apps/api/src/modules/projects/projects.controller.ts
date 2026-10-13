@@ -120,4 +120,16 @@ export class ProjectsController {
   delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.svc.delete(user.sub, id, user.role);
   }
+
+  /**
+   * Human script review: save an edited script as the authoritative SCRIPT result.
+   * Downstream stages (FACT_CHECK, COMPLIANCE, METADATA…) read via lastResult('SCRIPT')
+   * and will pick up this version over the AI-generated one.
+   * The request body must be a valid ScriptOutput object.
+   */
+  @Post(':id/script')
+  @HttpCode(HttpStatus.OK)
+  saveScript(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: JwtPayload) {
+    return this.svc.saveScript(user.sub, id, body);
+  }
 }
