@@ -149,6 +149,14 @@ export class PollinationsImageAdapter implements ImageAdapter {
       }
     }
 
-    throw new Error(`Pollinations image generation failed after ${attempts.length} attempts: ${lastError}`);
+    let userMessage: string;
+    if (lastError.includes('402') || lastError.includes('403')) {
+      userMessage = 'Image generation is temporarily unavailable — the free image service quota is exhausted. Please try again in a few minutes.';
+    } else if (/abort|timeout/i.test(lastError)) {
+      userMessage = 'Image generation timed out — the image service is taking too long to respond. Please try again.';
+    } else {
+      userMessage = 'Image generation failed — the image service is temporarily unavailable. Please try again.';
+    }
+    throw new Error(userMessage);
   }
 }

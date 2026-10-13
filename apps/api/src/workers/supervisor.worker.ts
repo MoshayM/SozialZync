@@ -1016,6 +1016,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const t0 = Date.now();
         this.log(jobId, projectId, `Generating ${maxScenes} scene image(s)…`);
         const images: Array<{ sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean }> = [];
+        let failedScenes = 0;
+        let lastImgError = '';
         for (let i = 0; i < maxScenes; i++) {
           const brief = briefs[i]!;
           try {
@@ -1029,8 +1031,16 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             images.push({ sceneId: brief.sceneId, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
             this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'ready ✓'}`, stored.provider);
           } catch (imgErr) {
-            this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} image failed — skipping`, imgErr instanceof Error ? imgErr.message.slice(0, 120) : String(imgErr));
+            failedScenes++;
+            lastImgError = imgErr instanceof Error ? imgErr.message : String(imgErr);
+            this.log(jobId, projectId, `Scene ${i + 1}/${maxScenes} image failed`, lastImgError.slice(0, 200));
           }
+        }
+        if (images.length === 0) {
+          throw new Error(lastImgError || 'Image generation failed — no images could be generated. Please try again.');
+        }
+        if (failedScenes > 0) {
+          this.log(jobId, projectId, `Warning: ${failedScenes} of ${maxScenes} scene image(s) could not be generated — video will use ${images.length} available scene(s).`);
         }
         await this.jobs.logStep(jobId, 'ImageAgent', 'generate', { scenes: maxScenes }, { images }, 0, 0, Date.now() - t0);
         this.events.emitJobUpdate(jobId, { step: 'IMAGE_GENERATE', status: 'COMPLETED' }, projectId);
