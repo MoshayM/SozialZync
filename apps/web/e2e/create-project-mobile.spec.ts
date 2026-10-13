@@ -95,16 +95,22 @@ test.describe('Create project — mobile (fix /projects/undefined)', () => {
 
     await page.screenshot({ path: 'e2e/create-project-modal.png' });
 
-    // 4. Step 1 — YouTube + default format already selected; click Next
+    // 4. Step 1 — Content Type: Educational is pre-selected; click Next
+    await expect(page.getByText('What are you creating?')).toBeVisible({ timeout: 10_000 });
+    await page.screenshot({ path: 'e2e/create-project-modal.png' });
     await page.getByRole('button', { name: /next/i }).click();
 
-    // 5. Step 2 — fill in the project title (first "e.g." input on this step)
+    // 5. Step 2 — Platform & Format: YouTube + default format already selected; click Next
+    await expect(page.getByText('Platform & Format')).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // 6. Step 3 — Accounts & Details: fill in the project title
     await expect(page.getByText('Project title')).toBeVisible({ timeout: 10_000 });
     await page.locator('input[placeholder*="e.g."]').first().fill('Mobile test project');
 
     await page.screenshot({ path: 'e2e/create-project-step2.png' });
 
-    // 6. Submit — button is enabled once title is non-empty
+    // 7. Submit — button is enabled once title is non-empty
     await page.getByRole('button', { name: /create project/i }).click();
 
     // 7. Must navigate to /projects/{id}, NOT /projects/undefined
