@@ -6,7 +6,7 @@ import {
   Youtube, BarChart2, Lightbulb, FileText, Mic, Music, Clapperboard,
   Play, RefreshCw, Loader2, CheckCircle, ChevronDown, ChevronUp, Save, Pencil, AlertTriangle, X,
   KeyRound, Sparkles, Download, FileVideo, FileAudio, FileImage, FileText as FileTextIcon, ShieldCheck,
-  Square, Upload, Plus, ExternalLink, Check, Image as ImageIcon, Repeat, Copy,
+  Square, Upload, Plus, ExternalLink, Check, Image as ImageIcon, Repeat, Copy, PenLine,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ElapsedBadge, formatElapsed } from '@/components/ai-activity';
@@ -542,11 +542,23 @@ function Tile({
           </div>
         </div>
       )}
-      {failed && !running && (
-        <p className="text-[11px] text-red-500 mt-2 line-clamp-2" title={(failed as { error?: string }).error ?? ''}>
-          {(failed as { error?: string }).error ?? 'The last run failed — try again.'}
-        </p>
-      )}
+      {failed && !running && (() => {
+        const errMsg = (failed as { error?: string }).error ?? 'The last run failed — try again.';
+        const isGuardError = errMsg.startsWith('⚠️ Content not allowed');
+        const [guardMain, guardSuggestion] = isGuardError ? errMsg.split('\n\n') : [errMsg, undefined];
+        return isGuardError ? (
+          <div className="mt-2 rounded-lg px-2.5 py-2 bg-amber-50 border border-amber-200 space-y-1">
+            <p className="text-[11px] text-amber-800 font-medium">{guardMain}</p>
+            {guardSuggestion && (
+              <p className="text-[11px] text-amber-700">{guardSuggestion}</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-[11px] text-red-500 mt-2 line-clamp-2" title={errMsg}>
+            {errMsg}
+          </p>
+        );
+      })()}
     </div>
   );
 }
@@ -701,6 +713,10 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [imageQuality, setImageQuality] = useState<'fast' | 'standard' | 'high'>('standard');
   const [videoGenQuality, setVideoGenQuality] = useState<'fast' | 'cinematic'>('fast');
   const [sceneMotionOverrides, setSceneMotionOverrides] = useState<Record<number, string>>({});
+  const [scenePromptOverrides, setScenePromptOverrides] = useState<Record<number, string>>({});
+  const [scenePromptEditing, setScenePromptEditing] = useState<Record<number, boolean>>({});
+  const [scenePromptEnhancing, setScenePromptEnhancing] = useState<Record<number, boolean>>({});
+  const [voiceRecording, setVoiceRecording] = useState<number | null>(null);
   const [musicFileUnavailable, setMusicFileUnavailable] = useState(false);
 
   const { data: channels = [] } = useQuery({
@@ -911,6 +927,41 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   }
 
   const busy = enqueue.isPending || anyPipelineRunning;
+
+  async function enhanceScenePrompt(sceneIndex: number, currentPrompt: string) {
+    if (!currentPrompt.trim() || scenePromptEnhancing[sceneIndex]) return;
+    setScenePromptEnhancing((prev) => ({ ...prev, [sceneIndex]: true }));
+    try {
+      const result = await api.contentGuard.enhancePrompt(currentPrompt, 'video-scene');
+      if (result.data.enhanced && result.data.enhanced !== currentPrompt) {
+        setScenePromptOverrides((prev) => ({ ...prev, [sceneIndex]: result.data.enhanced }));
+      }
+    } catch { /* non-critical — leave prompt as-is */ }
+    finally { setScenePromptEnhancing((prev) => ({ ...prev, [sceneIndex]: false })); }
+  }
+
+  // @reason: browser speech API, SpeechRecognition is a DOM global available in Chrome/Edge
+  function startVoiceInput(sceneIndex: number) {
+    const hasSR = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+    if (!hasSR) { alert('Voice input requires Chrome or Edge.'); return; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR: new () => SpeechRecognition = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    const recognition = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    setVoiceRecording(sceneIndex);
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0]?.[0]?.transcript ?? '';
+      if (transcript) {
+        setScenePromptOverrides((prev) => ({ ...prev, [sceneIndex]: transcript }));
+        if (transcript.trim().split(' ').length < 6) void enhanceScenePrompt(sceneIndex, transcript);
+      }
+    };
+    recognition.onend = () => setVoiceRecording(null);
+    recognition.onerror = () => setVoiceRecording(null);
+    recognition.start();
+  }
 
   // Live per-step progress from WebSocket (scene index, totalScenes, pct)
   const liveProgress = useLiveStageProgress(projectId);
@@ -3060,6 +3111,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             {videoResult.videos.map((v, i) => {
               const vidLive = liveProgress['VIDEO_GENERATE'];
               const isThisClipGenerating = !!isRunning(jobs, 'VIDEO_GENERATE') && vidLive?.scene === i + 1;
+              const sceneVideoPrompt = (videoResult as { videos: Array<{ sceneId: string; provider: string; versionId?: string; prompt?: string }> }).videos[i]?.prompt;
               return (
                 <div key={`${v.sceneId}-${i}`} className={`relative rounded-lg border transition-colors ${isThisClipGenerating ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-white'}`}>
                   <div className="flex items-center justify-between gap-3 px-2 py-1.5">
@@ -3111,6 +3163,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                                 regenOneIndex: i,
                                 videoQuality: videoGenQuality,
                                 ...(sceneMotionOverrides[i] ? { motionStyle: sceneMotionOverrides[i] } : {}),
+                                ...(scenePromptOverrides[i] ? { prompt: scenePromptOverrides[i] } : {}),
                                 ...prefsPayload,
                               },
                             })}
@@ -3122,6 +3175,67 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       )}
                     </div>
                   </div>
+
+                  {/* Per-scene prompt editor */}
+                  {!isThisClipGenerating && (
+                    <div className="px-2 pb-2">
+                      {scenePromptEditing[i] ? (
+                        <div className="flex flex-col gap-1">
+                          <textarea
+                            value={scenePromptOverrides[i] ?? sceneVideoPrompt ?? ''}
+                            onChange={(e) => setScenePromptOverrides((prev) => ({ ...prev, [i]: e.target.value }))}
+                            rows={2}
+                            placeholder="Describe what should happen in this scene…"
+                            className="w-full text-[10px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#374151]/20 resize-none"
+                          />
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => startVoiceInput(i)}
+                              disabled={voiceRecording !== null}
+                              title="Speak to set this scene's prompt"
+                              className="flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
+                              style={{ color: voiceRecording === i ? '#dc2626' : '#6b7280' }}
+                            >
+                              <Mic className="w-2.5 h-2.5" />
+                              {voiceRecording === i ? 'Listening…' : 'Speak'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void enhanceScenePrompt(i, scenePromptOverrides[i] ?? sceneVideoPrompt ?? '')}
+                              disabled={!!scenePromptEnhancing[i]}
+                              title="AI will improve this prompt"
+                              className="flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md border border-gray-200 bg-white hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 transition-colors disabled:opacity-50"
+                              style={{ color: '#6b7280' }}
+                            >
+                              <Sparkles className="w-2.5 h-2.5" />
+                              {scenePromptEnhancing[i] ? 'Enhancing…' : 'Enhance'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setScenePromptEditing((prev) => ({ ...prev, [i]: false }))}
+                              className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-[#374151] text-white hover:opacity-90 transition-opacity"
+                            >
+                              Done
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setScenePromptEditing((prev) => ({ ...prev, [i]: true }))}
+                          className="w-full flex items-center gap-1 text-[9px] text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-md px-1.5 py-1 transition-colors text-left"
+                          title="Edit video prompt for this scene"
+                        >
+                          <PenLine className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate flex-1">
+                            {scenePromptOverrides[i] ?? sceneVideoPrompt ?? 'Tap to add a video prompt…'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* Bottom filler bar for actively-generating scene */}
                   {isThisClipGenerating && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-lg overflow-hidden bg-brand-100">

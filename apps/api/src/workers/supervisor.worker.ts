@@ -63,6 +63,7 @@ import { AutonomyService } from '../modules/autonomy/autonomy.service';
 import { EditorService } from '../modules/editor/editor.service';
 import { toJobFailure } from '../modules/media/media.errors';
 import { appendVideoImportLog } from '../modules/media/video-import-log.util';
+import { ContentGuardService } from '../modules/media/content-guard.service';
 
 /** Trim large text to maxChars before sending to AI — reduces token cost. */
 function trimContext(text: string, maxChars: number): string {
@@ -127,6 +128,7 @@ export class SupervisorWorker extends WorkerHost {
     private readonly automation: AutomationService,
     private readonly autonomy: AutonomyService,
     private readonly editorSvc: EditorService,
+    private readonly contentGuard: ContentGuardService,
   ) {
     super();
   }
@@ -247,6 +249,14 @@ export class SupervisorWorker extends WorkerHost {
     this.events.emitJobLog(jobId, projectId, message, detail);
   }
 
+  private async failWithGuardError(jobId: string, guard: import('../modules/media/content-guard.service').GuardResult): Promise<void> {
+    const message = this.contentGuard.formatBlockMessage(guard);
+    await this.prisma.agentJob.update({
+      where: { id: jobId },
+      data: { status: 'FAILED', error: message, completedAt: new Date() },
+    });
+  }
+
   private async dispatch(
     type: JobType,
     projectId: string,
@@ -323,6 +333,14 @@ export class SupervisorWorker extends WorkerHost {
         const research = (payload['research'] as ResearchOutput | undefined)
           ?? await this.lastResult<ResearchOutput>(projectId, 'RESEARCH');
         if (!research) throw new Error('Research not found — complete the Research Topic step first.');
+        {
+          const topicToCheck = String((research as { topic?: unknown }).topic ?? project.title ?? '');
+          const scriptGuard = this.contentGuard.check(topicToCheck, 'script');
+          if (!scriptGuard.allowed) {
+            await this.failWithGuardError(jobId, scriptGuard);
+            return;
+          }
+        }
         const t0 = Date.now();
         const scriptLang = (payload['lang'] as string | undefined) ?? project.targetLang ?? 'en';
         const scriptPrefs = payload['creativePrefs'] as Record<string, string> | undefined;
@@ -1027,6 +1045,18 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const regenOneIndex = typeof payload['regenOneIndex'] === 'number' ? (payload['regenOneIndex'] as number) : null;
         const addNewScene = payload['addNewScene'] as { prompt: string; negativePrompt?: string } | undefined;
 
+        // Guard check on user-supplied prompt overrides (regen or new scene)
+        {
+          const userPrompt = (payload['regenPrompt'] as string | undefined) ?? (addNewScene?.prompt);
+          if (userPrompt) {
+            const imgGuard = this.contentGuard.check(userPrompt, 'image');
+            if (!imgGuard.allowed) {
+              await this.failWithGuardError(jobId, imgGuard);
+              return;
+            }
+          }
+        }
+
         if (regenOneIndex !== null || addNewScene) {
           const prevResult = await this.lastResult<{ images: ImgEntry[] }>(projectId, 'IMAGE_GENERATE');
           const existingImages: ImgEntry[] = prevResult?.images ?? [];
@@ -1222,6 +1252,18 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const cdnBase = (process.env['ASSET_CDN_URL'] ?? '').replace(/\/$/, '');
         const apiBase = (process.env['API_BASE_URL'] ?? '').replace(/\/$/, '');
         const internalToken = process.env['INTERNAL_MEDIA_TOKEN'] ?? '';
+
+        // Guard check on user-supplied video prompt override
+        {
+          const userVideoPrompt = payload['prompt'] as string | undefined;
+          if (userVideoPrompt) {
+            const vidGuard = this.contentGuard.check(userVideoPrompt, 'video');
+            if (!vidGuard.allowed) {
+              await this.failWithGuardError(jobId, vidGuard);
+              return;
+            }
+          }
+        }
 
         // ── Single-scene video regeneration ─────────────────────────────────
         type VidEntry = { sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean };

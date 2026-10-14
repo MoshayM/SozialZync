@@ -12,6 +12,7 @@ import { ImageExternalService } from './image-external.service';
 import { ThumbnailService } from './thumbnail.service';
 import { MediaLibraryController } from './media-library.controller';
 import { SocialDownloadService } from './social-download.service';
+import { ContentGuardService } from './content-guard.service';
 
 @Module({
   controllers: [MediaController, ImageGenerationController, VideoGenerationController, MediaLibraryController],
@@ -23,6 +24,7 @@ import { SocialDownloadService } from './social-download.service';
     ImageExternalService,
     ThumbnailService,
     SocialDownloadService,
+    ContentGuardService,
     {
       provide: StorageService,
       useFactory: (): StorageService =>
@@ -31,6 +33,6 @@ import { SocialDownloadService } from './social-download.service';
           : new StorageService(),
     },
   ],
-  exports: [MediaService, StorageService, ExportsService, ImageGenerationService, VideoGenerationService, ImageExternalService, ThumbnailService, SocialDownloadService],
+  exports: [MediaService, StorageService, ExportsService, ImageGenerationService, VideoGenerationService, ImageExternalService, ThumbnailService, SocialDownloadService, ContentGuardService],
 })
 export class MediaModule {}
