@@ -401,10 +401,10 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
   scenes.forEach((s, i) => {
     if (s.videoPath) {
       args.push('-i', s.videoPath);
-      // setpts=N/fps/TB regenerates timestamps from frame count, bypassing broken
-      // VFR/1/0 container metadata that Kling/Luma/Runway clips often carry.
-      // This makes xfade see a valid constant frame rate during config_props.
-      filters.push(`[${i}:v]setpts=N/${fps}/TB,fps=fps=${fps},scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,trim=duration=${s.durationSecs},setpts=PTS-STARTPTS[v${i}]`);
+      // fps=fps=N must be the LAST filter before the output label so that [vi]'s
+      // frame_rate metadata = N. trim and setpts do not propagate frame_rate, so
+      // placing fps earlier leaves [vi] with 1/0 which xfade rejects at config time.
+      filters.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,trim=duration=${s.durationSecs},setpts=PTS-STARTPTS,fps=fps=${fps}[v${i}]`);
     } else if (s.imagePath) {
       // Still image: zoompan generates durationSecs*fps frames.
       // Cycle 4 KB variants per scene for naturalistic motion variety.
