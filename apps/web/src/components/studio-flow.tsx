@@ -2143,10 +2143,10 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-semibold text-brand-600 uppercase tracking-wide">Per-scene narration · {voiceResult.scenes.length} clips</p>
                   {voiceResult.scenes.map((clip, i) => (
-                    <div key={clip.sceneId} className="flex items-center gap-2">
+                    <div key={clip.sceneId ?? i} className="flex items-center gap-2">
                       <span className="text-[10px] text-gray-500 w-14 shrink-0">Scene {i + 1}</span>
-                      <MediaPlayer versionId={clip.versionId} kind="audio" />
-                      <span className="text-[10px] text-gray-400">{Math.round(clip.durationMs / 1000)}s</span>
+                      {clip.versionId ? <MediaPlayer versionId={clip.versionId} kind="audio" /> : <span className="text-[10px] text-gray-400 italic">pending</span>}
+                      <span className="text-[10px] text-gray-400">{Math.round((clip.durationMs ?? 0) / 1000)}s</span>
                     </div>
                   ))}
                 </div>
@@ -3023,7 +3023,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       {v.versionId && !isThisClipGenerating && <MediaPlayer versionId={v.versionId} kind="video" />}
                       {/* Per-scene narration audio player */}
                       {voicePerSceneMap[v.sceneId]?.versionId && !isThisClipGenerating && (
-                        <MediaPlayer versionId={voicePerSceneMap[v.sceneId]!.versionId} kind="audio" />
+                        <MediaPlayer versionId={voicePerSceneMap[v.sceneId]!.versionId!} kind="audio" />
                       )}
                       {musicResult?.versionId && !isThisClipGenerating && !voicePerSceneMap[v.sceneId] && (
                         <span title="Music: shared track" className="text-[9px] text-gray-400 px-1">♫</span>
@@ -3843,7 +3843,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           <Tile
             icon={<Mic className="w-5 h-5" />}
             title="Voice over"
-            subtitle={voiceResult ? `${voiceResult.provider} · ${Math.round((voiceResult.durationMs ?? 0) / 1000)}s` : 'Narrate the script'}
+            subtitle={voiceResult ? (voiceResult.perScene ? `Per-scene · ${voiceResult.scenes?.length ?? 0} clips` : `${voiceResult.provider ?? 'ai'} · ${Math.round((voiceResult.durationMs ?? 0) / 1000)}s`) : 'Narrate the script'}
             status={voiceResult ? 'done' : scriptDone ? 'ready' : 'locked'}
             running={isRunning(jobs, 'VOICE_SPEC', 'VOICE_GENERATE', 'SONG_GENERATE')}
             failed={latestFailure(jobs, 'VOICE_SPEC', 'VOICE_GENERATE', 'SONG_GENERATE')}
