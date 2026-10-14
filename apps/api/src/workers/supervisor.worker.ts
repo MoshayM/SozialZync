@@ -1551,6 +1551,9 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           const sfxFilters: string[] = [];
           let offsetMs = 0;
           let validIdx = 0;
+          // xfade transitions shorten each boundary by 350ms — subtract that from
+          // scene-start offsets so per-scene voice clips land on the right frame.
+          const XFADE_MS = 350;
           for (let i = 0; i < voiceAssets.length; i++) {
             const clipPath = await resolveKey(voiceAssets[i]);
             const sceneDur = sceneDurations[i] ?? 0;
@@ -1559,7 +1562,9 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               sfxFilters.push(`[${validIdx}:a]adelay=${offsetMs}|${offsetMs}[sv${validIdx}]`);
               validIdx++;
             }
-            offsetMs += Math.round(sceneDur * 1000);
+            // All boundaries except the last lose XFADE_MS to the crossfade overlap
+            const xfadeCorrection = i < voiceAssets.length - 1 ? XFADE_MS : 0;
+            offsetMs += Math.round(sceneDur * 1000) - xfadeCorrection;
           }
           if (validIdx > 0) {
             const mixInputs = Array.from({ length: validIdx }, (_, i) => `[sv${i}]`).join('');

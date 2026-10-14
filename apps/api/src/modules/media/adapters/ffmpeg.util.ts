@@ -371,6 +371,19 @@ export interface ComposeOptions {
    * Prevents abrupt audio starts/stops for a more polished delivery. Default true.
    */
   audioFade?: boolean;
+  /**
+   * Normalize voice loudness to −16 LUFS (streaming/Shorts standard) so the
+   * narration level stays consistent regardless of which TTS provider was used.
+   * Default true.
+   */
+  voiceLoudnorm?: boolean;
+  /**
+   * Dynamically duck background music when narration is active using FFmpeg
+   * sidechaincompress (4:1 ratio, 200ms attack, 800ms release). Music swells
+   * to full in silent gaps and recedes naturally under speech — exactly the
+   * Shorts/Reels audio treatment. Default true when both voice and music present.
+   */
+  duckMusic?: boolean;
 }
 
 /**
@@ -437,22 +450,59 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
 
   const audioInputs: string[] = [];
   let audioIdx = scenes.length;
+  // Whether to use sidechain ducking (needs both voice and music)
+  const useDucking = (opts.duckMusic ?? true) && !!voicePath && !!musicPath;
+
   if (voicePath) {
     args.push('-i', voicePath);
-    // Fade voice in (0.3s) and out (0.8s) for polished, human-sounding delivery.
+    const voiceBase = `[${audioIdx}:a]`;
+    // Normalize loudness to −16 LUFS so output is consistent across TTS providers.
+    const loudnormChain = (opts.voiceLoudnorm ?? true)
+      ? 'loudnorm=I=-16:TP=-1.5:LRA=11,'
+      : '';
     if ((opts.audioFade ?? true) && effectiveTotalSecs > 1.5) {
       const fadeOutStart = Math.max(0, effectiveTotalSecs - 0.8);
-      filters.push(`[${audioIdx}:a]afade=t=in:st=0:d=0.3,afade=t=out:st=${fadeOutStart}:d=0.8[voice_faded]`);
-      audioInputs.push('[voice_faded]');
+      if (useDucking) {
+        // Split the faded voice: one for the mix, one as sidechain signal for bgm ducking.
+        filters.push(
+          `${voiceBase}${loudnormChain}afade=t=in:st=0:d=0.3,afade=t=out:st=${fadeOutStart}:d=0.8,asplit=2[voice_faded][voice_sc]`,
+        );
+        audioInputs.push('[voice_faded]');
+      } else {
+        filters.push(`${voiceBase}${loudnormChain}afade=t=in:st=0:d=0.3,afade=t=out:st=${fadeOutStart}:d=0.8[voice_faded]`);
+        audioInputs.push('[voice_faded]');
+      }
     } else {
-      audioInputs.push(`[${audioIdx}:a]`);
+      if (useDucking) {
+        filters.push(`${voiceBase}${loudnormChain}asplit=2[voice_direct][voice_sc]`);
+        audioInputs.push('[voice_direct]');
+      } else {
+        if (loudnormChain) {
+          filters.push(`${voiceBase}${loudnormChain.replace(/,$/, '')}[voice_norm]`);
+          audioInputs.push('[voice_norm]');
+        } else {
+          audioInputs.push(voiceBase);
+        }
+      }
     }
     audioIdx++;
   }
   if (musicPath) {
     args.push('-stream_loop', '-1', '-i', musicPath);
-    filters.push(`[${audioIdx}:a]volume=${opts.musicVolume ?? 0.25}[bgm]`);
-    audioInputs.push('[bgm]');
+    if (useDucking) {
+      // Start music 0.5 s in — gives narration opening prominence, then music swells.
+      // Base volume is slightly higher than the flat-mixing default because the
+      // sidechain compressor reduces it further when voice is active.
+      const baseVol = (opts.musicVolume ?? 0.25) * 1.5;
+      filters.push(`[${audioIdx}:a]volume=${baseVol},afade=t=in:st=0:d=0.5[bgm_raw]`);
+      // Sidechain compression: voice signal gates music down 4:1 while speaking.
+      // attack 200ms avoids pumping; release 800ms lets music swell back naturally.
+      filters.push(`[bgm_raw][voice_sc]sidechaincompress=threshold=0.01:ratio=4:attack=200:release=800[bgm_ducked]`);
+      audioInputs.push('[bgm_ducked]');
+    } else {
+      filters.push(`[${audioIdx}:a]volume=${opts.musicVolume ?? 0.18}[bgm]`);
+      audioInputs.push('[bgm]');
+    }
     audioIdx++;
   }
 
