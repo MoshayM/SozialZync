@@ -400,11 +400,11 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
 
   scenes.forEach((s, i) => {
     if (s.videoPath) {
-      // Force CFR at decode time so xfade gets a valid, constant frame rate.
-      // AI-generated clips (Kling, Luma, Runway) often have VFR or 1/0 container
-      // rate; -r on the input decoder is the only reliable fix before filtergraph.
-      args.push('-r', String(fps), '-i', s.videoPath);
-      filters.push(`[${i}:v]fps=fps=${fps},scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,trim=duration=${s.durationSecs},setpts=PTS-STARTPTS[v${i}]`);
+      args.push('-i', s.videoPath);
+      // setpts=N/fps/TB regenerates timestamps from frame count, bypassing broken
+      // VFR/1/0 container metadata that Kling/Luma/Runway clips often carry.
+      // This makes xfade see a valid constant frame rate during config_props.
+      filters.push(`[${i}:v]setpts=N/${fps}/TB,fps=fps=${fps},scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,trim=duration=${s.durationSecs},setpts=PTS-STARTPTS[v${i}]`);
     } else if (s.imagePath) {
       // Still image: zoompan generates durationSecs*fps frames.
       // Cycle 4 KB variants per scene for naturalistic motion variety.
