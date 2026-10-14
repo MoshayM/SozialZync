@@ -64,10 +64,12 @@ export class KlingVideoAdapter implements VideoAdapter {
     const imgSource = req.imageUrl && !req.imageUrl.includes('?') ? req.imageUrl : undefined;
     if (imgSource) input['image_url'] = imgSource;
 
+    const body = { model: 'kling', task_type: 'video_generation', input };
+    console.log('[Kling] submitting task — duration:', duration, 'ratio:', ratio, 'img:', !!imgSource, 'prompt[:100]:', String(input['prompt']).slice(0, 100));
     const startRes = await fetch(`${BASE_URL}/task`, {
       method: 'POST',
       headers: piHeaders(),
-      body: JSON.stringify({ model: 'kling', task_type: 'video_generation', input }),
+      body: JSON.stringify(body),
     });
 
     // PiAPI returns HTTP 500 for immediately-failed tasks (still has a response body).
@@ -95,6 +97,7 @@ export class KlingVideoAdapter implements VideoAdapter {
 
     const videoUrl = taskData.output?.video;
     if (taskData.status !== 'completed' || !videoUrl) {
+      console.log('[Kling] task failed — status:', taskData.status, 'error:', JSON.stringify(taskData.error));
       throw new Error(`Kling/PiAPI failed: ${taskData.error?.message ?? taskData.status}`);
     }
 
