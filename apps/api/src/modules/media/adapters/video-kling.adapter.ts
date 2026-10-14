@@ -1,23 +1,16 @@
 import type { VideoAdapter, SceneVideoRequest, GeneratedMedia } from '../media.types';
 
-const BASE_URL = 'https://api.piapi.ai';
-const POLL_INTERVAL_MS = 6000;
+const BASE_URL = 'https://api.piapi.ai/api/v1';
+const POLL_INTERVAL_MS = 8000;
 const MAX_POLLS = 100;
 
-type PiStatus = 'pending' | 'processing' | 'succeed' | 'failed' | 'canceled';
-
-interface PiVideoResult {
-  url: string;
-  duration?: string;
-}
+type PiStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'canceled';
 
 interface PiTaskData {
   task_id: string;
-  status?: PiStatus;
-  task_status?: PiStatus;
-  output?: { works?: Array<{ resource?: { resource?: string } }> };
-  task_result?: { videos?: PiVideoResult[] };
-  error?: { message?: string };
+  status: PiStatus;
+  output?: { video?: string };
+  error?: { code?: number; message?: string };
 }
 
 interface PiResponse {
@@ -41,20 +34,9 @@ function klingRatio(width: number, height: number): '16:9' | '9:16' | '1:1' {
   return '1:1';
 }
 
-function extractVideoUrl(data: PiTaskData): string | undefined {
-  // PiAPI wraps Kling — two known response shapes:
-  return (
-    data.task_result?.videos?.[0]?.url ??
-    data.output?.works?.[0]?.resource?.resource
-  );
-}
-
-function getStatus(data: PiTaskData): PiStatus | undefined {
-  return data.status ?? data.task_status;
-}
-
 /**
- * AI video generation via Kling AI through PiAPI (api.piapi.ai).
+ * AI video generation via Kling AI through PiAPI (api.piapi.ai/api/v1).
+ * Supports text-to-video and image-to-video (imageUrl preferred).
  * Activates when PIAPI_API_KEY is set.
  * Env: PIAPI_API_KEY
  */
@@ -71,17 +53,18 @@ export class KlingVideoAdapter implements VideoAdapter {
 
     const input: Record<string, unknown> = {
       prompt: req.prompt,
-      duration: String(duration),
+      duration,
       aspect_ratio: ratio,
     };
+
     // Cloud adapters need a public HTTPS URL; imageUrl takes priority over local imagePath
     const imgSource = req.imageUrl ?? req.imagePath;
-    if (imgSource) input['img_url'] = imgSource;
+    if (imgSource) input['image_url'] = imgSource;
 
-    const startRes = await fetch(`${BASE_URL}/kling/videogen`, {
+    const startRes = await fetch(`${BASE_URL}/task`, {
       method: 'POST',
       headers: piHeaders(),
-      body: JSON.stringify({ input }),
+      body: JSON.stringify({ model: 'kling', task_type: 'video_generation', input }),
     });
 
     if (!startRes.ok) {
@@ -95,27 +78,20 @@ export class KlingVideoAdapter implements VideoAdapter {
     }
 
     const taskId = startData.data.task_id;
-
     let taskData = startData.data;
-    let status = getStatus(taskData);
 
-    for (let i = 0; i < MAX_POLLS && status !== 'succeed' && status !== 'failed' && status !== 'canceled'; i++) {
+    for (let i = 0; i < MAX_POLLS && taskData.status !== 'completed' && taskData.status !== 'failed' && taskData.status !== 'canceled'; i++) {
       await new Promise<void>((r) => setTimeout(r, POLL_INTERVAL_MS));
-      const pollRes = await fetch(`${BASE_URL}/kling/fetch`, {
-        method: 'POST',
-        headers: piHeaders(),
-        body: JSON.stringify({ task_id: taskId }),
-      });
+      const pollRes = await fetch(`${BASE_URL}/task/${taskId}`, { headers: piHeaders() });
       if (!pollRes.ok) throw new Error(`Kling/PiAPI poll failed: ${pollRes.status}`);
       const pollData = (await pollRes.json()) as PiResponse;
       if (pollData.code !== 200 && pollData.code !== 0) throw new Error(`Kling/PiAPI poll error: ${pollData.message}`);
       taskData = pollData.data;
-      status = getStatus(taskData);
     }
 
-    const videoUrl = extractVideoUrl(taskData);
-    if (status !== 'succeed' || !videoUrl) {
-      throw new Error(`Kling/PiAPI failed: ${taskData.error?.message ?? status}`);
+    const videoUrl = taskData.output?.video;
+    if (taskData.status !== 'completed' || !videoUrl) {
+      throw new Error(`Kling/PiAPI failed: ${taskData.error?.message ?? taskData.status}`);
     }
 
     const videoRes = await fetch(videoUrl);
@@ -128,7 +104,7 @@ export class KlingVideoAdapter implements VideoAdapter {
       ext: 'mp4',
       durationMs: duration * 1000,
       model: 'kling-v1-via-piapi',
-      notes: req.imagePath ? 'image-to-video' : 'text-to-video',
+      notes: imgSource ? 'image-to-video' : 'text-to-video',
     };
   }
 }
