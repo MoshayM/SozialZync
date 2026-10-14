@@ -68,7 +68,7 @@ export interface MusicRequest {
   vocalType?: string;
 }
 
-export type SceneMotionStyle = 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right' | 'drift' | 'diagonal';
+export type SceneMotionStyle = 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right' | 'drift' | 'diagonal' | 'tilt-up' | 'tilt-down';
 
 export interface SceneVideoRequest {
   /** Local filesystem path — used by FFmpeg/ComfyUI (self-hosted) adapters */

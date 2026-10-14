@@ -38,7 +38,7 @@ import { composeVideo, ffmpegPath, runFfmpeg, runFfmpegCapture, type ComposeScen
 import { encodeWhooshWav } from '../modules/media/adapters/codec.util';
 import { checkDurations, analyzeLoudness } from '../modules/media/quality.util';
 import { validateMediaFile, formatIssues } from '../modules/media/media-validation.util';
-import { buildSrt, buildVtt, fitCuesToDuration } from '../modules/media/subtitle.util';
+import { buildSrt, buildVtt, buildAss, fitCuesToDuration } from '../modules/media/subtitle.util';
 import { planPipeline, partitionResume, batchStages, estimateRemainingSecs, OPTIONAL_SHORTS_STAGES, type PipelineScope, type PipelineStage } from './pipeline-plan';
 import { newAccumulator, runWithAiContext } from '../common/ai-usage.context';
 import { runWithCorrelationId } from '../common/correlation.context';
@@ -1635,11 +1635,19 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             });
           }
           srtContent = buildSrt(fitted.cues);
+          // Vertical video (Shorts / Reels): use ASS format so subtitles get
+          // large bold text with outline, positioned in the mobile safe zone.
+          if (preset === 'VERTICAL') {
+            const assContent = buildAss(fitted.cues, { isVertical: true, playResX: width, playResY: height });
+            tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-render-'));
+            subtitlePath = path.join(tmpDir, 'captions.ass');
+            await fsp.writeFile(subtitlePath, assContent, 'utf8');
+          }
         } else {
           srtContent = subtitles?.srt ?? '';
         }
-        if (srtContent) {
-          tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-render-'));
+        if (!subtitlePath && srtContent) {
+          tmpDir ??= await fsp.mkdtemp(path.join(os.tmpdir(), 'cf-render-'));
           subtitlePath = path.join(tmpDir, 'captions.srt');
           await fsp.writeFile(subtitlePath, srtContent, 'utf8');
         }
@@ -1742,6 +1750,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               audioBitrate: renderQuality.audioBitrate,
               audioSampleRate: renderQuality.audioSampleRate,
               audioChannels: renderQuality.audioChannels,
+              colorGrade: true,
               ...(sfxPath && sfxTimestamps.length > 0 ? { sfx: { path: sfxPath, atSecs: sfxTimestamps } } : {}),
             });
             this.log(jobId, projectId, 'Validating render…', 'decode, duration, black-frame and loudness scan');

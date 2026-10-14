@@ -357,6 +357,12 @@ export interface ComposeOptions {
   /** Output audio channels. 1=mono, 2=stereo. Default 2. */
   audioChannels?: number;
   /**
+   * Subtle colour grade: slight saturation boost (1.08×) and contrast (1.03×)
+   * give the video a punchy, social-ready look without visible over-processing.
+   * Applied before film grain and vignette in the post chain. Default true.
+   */
+  colorGrade?: boolean;
+  /**
    * Overlay subtle cinematic film grain on the final video (ffmpeg noise filter).
    * Adds organic texture and reduces the "AI-generated" look. Default true.
    */
@@ -391,15 +397,16 @@ export interface ComposeOptions {
  * music mixed, subtitles burned in. Deterministic infrastructure work — no
  * LLM involved (docs1/media-pipeline.md §8).
  */
-// Ken Burns motion variants — cycle per scene for naturalistic still-image motion.
-// All use sin/cos easing for smooth acceleration (no linear or incremental zoom).
-// 6 variants match the STYLE_CYCLE in video-ffmpeg.adapter.ts for consistent per-scene variety.
+// Ken Burns motion variants — 8-step cycle matching STYLE_CYCLE in video-ffmpeg.adapter.ts.
+// All use sin/cos easing (no linear). y coordinate always specified to avoid defaulting to top edge.
 const KB_VARIANTS: Array<(d: number) => string> = [
-  (d) => `z='1.0+0.22*sin(PI/2*on/${d})':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2'`,                  // centered zoom-in ease-out
-  (d) => `z='1.22-0.22*(1-cos(PI/2*on/${d}))':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2'`,             // centered zoom-out ease-in
-  (d) => `z=1.18:x='(iw-iw/zoom)*sin(PI/2*on/${d})'`,                                              // pan-right ease-out
-  (d) => `z=1.18:x='(iw-iw/zoom)*(1-sin(PI/2*on/${d}))'`,                                         // pan-left ease-in
-  (d) => `z='1.08+0.07*sin(PI*on/${d})':x='(iw-iw/zoom)*0.4*on/${d}':y='(ih-ih/zoom)*0.3*(1-cos(PI*on/${d}))'`, // drift+breathe
+  (d) => `z='1.0+0.22*sin(PI/2*on/${d})':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2'`,                                   // zoom-in centered
+  (d) => `z=1.18:x='(iw-iw/zoom)*sin(PI/2*on/${d})':y='(ih-ih/zoom)/2'`,                                            // pan-right centered
+  (d) => `z=1.18:x='(iw-iw/zoom)/2':y='(ih-ih/zoom)*(1-sin(PI/2*on/${d}))'`,                                        // tilt-up centered
+  (d) => `z='1.22-0.22*(1-cos(PI/2*on/${d}))':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2'`,                              // zoom-out centered
+  (d) => `z=1.18:x='(iw-iw/zoom)*(1-sin(PI/2*on/${d}))':y='(ih-ih/zoom)/2'`,                                        // pan-left centered
+  (d) => `z=1.18:x='(iw-iw/zoom)/2':y='(ih-ih/zoom)*sin(PI/2*on/${d})'`,                                            // tilt-down centered
+  (d) => `z='1.08+0.07*sin(PI*on/${d})':x='(iw-iw/zoom)*0.4*on/${d}':y='(ih-ih/zoom)*0.3*(1-cos(PI*on/${d}))'`,   // drift+breathe
   (d) => `z='1.0+0.18*sin(PI/2*on/${d})':x='(iw-iw/zoom)*sin(PI/2*on/${d})':y='(ih-ih/zoom)*(1-cos(PI/2*on/${d}))'`, // diagonal push
 ];
 
@@ -539,8 +546,10 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     audioIdx++;
   }
 
-  // Scene assembly: xfade crossfade transitions give smooth scene-to-scene cuts.
+  // Scene assembly: xfade transitions give smooth scene-to-scene cuts.
+  // Cycle through 4 transition styles so consecutive scenes feel varied.
   // 0.35 s overlap keeps each clip feeling complete while removing harsh jump cuts.
+  const XFADE_TRANSITIONS = ['fade', 'wipeleft', 'slideleft', 'dissolve'] as const;
   let videoChain: string;
   if (scenes.length === 1) {
     videoChain = '[v0]';
@@ -550,13 +559,15 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     for (let i = 1; i < scenes.length; i++) {
       xOffset += Math.max(0.1, scenes[i - 1]!.durationSecs - XFADE_DUR);
       const out = i < scenes.length - 1 ? `[xf${i}]` : '[xfinal]';
-      filters.push(`${prev}[v${i}]xfade=transition=fade:duration=${XFADE_DUR}:offset=${xOffset.toFixed(3)}${out}`);
+      const transition = XFADE_TRANSITIONS[i % XFADE_TRANSITIONS.length];
+      filters.push(`${prev}[v${i}]xfade=transition=${transition}:duration=${XFADE_DUR}:offset=${xOffset.toFixed(3)}${out}`);
       prev = out;
     }
     videoChain = '[xfinal]';
   }
 
   // Subtitles burned in after assembly so they span the correct timeline.
+  // ASS files use the same subtitles= filter — libass handles both SRT and ASS.
   let prePost: string;
   if (subtitlePath) {
     filters.push(`${videoChain}subtitles='${escapeFilterPath(subtitlePath)}'[vsub]`);
@@ -565,9 +576,10 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     prePost = videoChain;
   }
 
-  // Post-processing: film grain + vignette chain on the composed video.
-  // Both are purely cosmetic, CPU-only, zero extra API cost.
+  // Post-processing chain: colorGrade → filmGrain → vignette.
+  // Order matters: grade the colours before adding grain (grain should not be graded).
   const postChain: string[] = [];
+  if (opts.colorGrade ?? true) postChain.push('eq=saturation=1.08:contrast=1.03:brightness=0.01');
   if (opts.filmGrain ?? true) postChain.push('noise=c0s=6:c0f=t');
   if (opts.vignette ?? true) postChain.push('vignette=PI/4');
   // Always produce [vout]; use null passthrough when no post-processing is active.

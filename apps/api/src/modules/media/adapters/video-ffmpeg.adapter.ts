@@ -59,11 +59,23 @@ function buildMotion(style: SceneMotionStyle, width: number, height: number, fra
         scaleW: sw120, scaleH: sh120,
         filter: `zoompan=z='1.0+0.18*sin(PI/2*on/${f})':x='(iw-iw/zoom)*sin(PI/2*on/${f})':y='(ih-ih/zoom)*(1-cos(PI/2*on/${f}))':d=${f}:s=${wh}:fps=${fps}`,
       };
+    case 'tilt-up':
+      // Upward pan through the centre — camera tilts up while staying level.
+      return {
+        scaleW: sw120, scaleH: sh120,
+        filter: `zoompan=z=1.18:x='(iw-iw/zoom)/2':y='(ih-ih/zoom)*(1-sin(PI/2*on/${f}))':d=${f}:s=${wh}:fps=${fps}`,
+      };
+    case 'tilt-down':
+      // Downward pan through the centre — camera tilts down smoothly.
+      return {
+        scaleW: sw120, scaleH: sh120,
+        filter: `zoompan=z=1.18:x='(iw-iw/zoom)/2':y='(ih-ih/zoom)*sin(PI/2*on/${f})':d=${f}:s=${wh}:fps=${fps}`,
+      };
   }
 }
 
-// Cycle order: varied enough to feel different, deterministic by scene index.
-const STYLE_CYCLE: SceneMotionStyle[] = ['zoom-in', 'pan-right', 'zoom-out', 'pan-left', 'drift', 'diagonal'];
+// 8-step cycle: zoom, pan, tilt, and drift styles so consecutive scenes always look different.
+const STYLE_CYCLE: SceneMotionStyle[] = ['zoom-in', 'pan-right', 'tilt-up', 'zoom-out', 'pan-left', 'tilt-down', 'drift', 'diagonal'];
 
 function pickStyle(req: SceneVideoRequest): SceneMotionStyle {
   if (req.motionStyle) return req.motionStyle;
