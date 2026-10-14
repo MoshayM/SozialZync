@@ -17,7 +17,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, IsOptional, IsIn } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional, IsIn, IsBoolean } from 'class-validator';
 import type { Request, Response } from 'express';
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server';
 import { AuthService } from './auth.service';
@@ -41,6 +41,8 @@ class RegisterDto {
   @IsString() @IsOptional() phone?: string;
   /** Client-side device fingerprint for trial abuse scoring (Phase 6 §6). */
   @IsString() @IsOptional() deviceFingerprint?: string;
+  /** GDPR opt-in for marketing emails — must be an explicit true to record consent. */
+  @IsBoolean() @IsOptional() marketingConsent?: boolean;
 }
 
 class LoginDto {
@@ -164,6 +166,21 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: JwtPayload) {
     return this.auth.getMe(user.sub);
+  }
+
+  /** GDPR right to erasure — soft-deletes and anonymises the caller's account. */
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAccount(@CurrentUser() user: JwtPayload): Promise<void> {
+    await this.auth.deleteAccount(user.sub);
+  }
+
+  /** GDPR data portability — returns all personal data as a JSON export. */
+  @Get('me/export')
+  @UseGuards(JwtAuthGuard)
+  exportData(@CurrentUser() user: JwtPayload) {
+    return this.auth.exportData(user.sub);
   }
 
   @Get('sessions')

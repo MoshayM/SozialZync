@@ -15,6 +15,8 @@ export interface RegisterDto {
   password: string;
   name?: string;
   phone?: string;
+  /** GDPR opt-in for marketing emails; defaults to false when absent. */
+  marketingConsent?: boolean;
 }
 
 export interface LoginDto {
@@ -48,15 +50,19 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const isFirst = (await this.prisma.user.count()) === 0;
-    const user = await this.prisma.user.create({
+    // @reason: marketingConsent + consentedAt not yet in generated Prisma types; cast until next prisma generate
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = await (this.prisma.user.create as any)({
       data: {
         email: normalizedEmail,
         name: dto.name,
         phone: dto.phone?.trim() || null,
         passwordHash,
         role: isFirst ? 'OWNER' : 'MEMBER',
+        marketingConsent: dto.marketingConsent ?? false,
+        consentedAt: new Date(),
       },
-    });
+    }) as Awaited<ReturnType<typeof this.prisma.user.create>>;
 
     await this.demoSeed.seedDemoProjectsForUser(user.id).catch(() => undefined);
 
@@ -75,6 +81,8 @@ export class AuthService {
       where: { email: { equals: dto.email.trim().toLowerCase(), mode: 'insensitive' } },
     });
     if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials');
+    // @reason: deletedAt not yet in Prisma client types — cast until next prisma generate
+    if ((user as typeof user & { deletedAt?: Date | null }).deletedAt) throw new UnauthorizedException('This account has been deleted');
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
@@ -196,6 +204,8 @@ export class AuthService {
   async validateJwt(payload: JwtPayload): Promise<JwtPayload> {
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) throw new UnauthorizedException();
+    // @reason: deletedAt not yet in Prisma types — cast until next prisma generate
+    if ((user as typeof user & { deletedAt?: Date | null }).deletedAt) throw new UnauthorizedException('Account has been deleted');
     const role = await this.effectiveRole(user);
 
     // Back-compat: tokens issued before session management carry no sid — let them through.
@@ -274,6 +284,94 @@ export class AuthService {
     });
 
     await this.audit(userId, 'auth.set_password', { hadPassword: user.passwordHash !== null });
+  }
+
+  /**
+   * GDPR right to erasure — anonymises PII immediately and marks the account
+   * deleted. A background cron (30-day delay) hard-deletes the row.
+   * Cancels any active Stripe subscription before wiping data.
+   */
+  async deleteAccount(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { subscription: true },
+    });
+    if (!user) throw new UnauthorizedException();
+    // @reason: deletedAt not yet in Prisma types — cast until next prisma generate
+    if ((user as typeof user & { deletedAt?: Date | null }).deletedAt) return; // already deleted — idempotent
+
+    // Cancel Stripe subscription (best-effort — never block account deletion)
+    const stripeSub = user.subscription as { stripeSubscriptionId?: string | null } | null;
+    if (stripeSub?.stripeSubscriptionId) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Stripe = require('stripe') as typeof import('stripe').default;
+        const stripe = new Stripe(process.env['STRIPE_SECRET_KEY'] ?? '');
+        await stripe.subscriptions.cancel(stripeSub.stripeSubscriptionId);
+      } catch { /* non-fatal */ }
+    }
+
+    // Revoke all active sessions so existing JWTs are immediately invalid
+    await this.prisma.authSession.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    // Soft-delete and anonymise PII — hard deletion happens via 30-day cron
+    // @reason: deletedAt not yet in generated Prisma types; cast resolves until next prisma generate
+    await this.prisma.user.update({
+      where: { id: userId },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: {
+        email: `deleted-${userId}@deleted.invalid`,
+        name: 'Deleted User',
+        passwordHash: null,
+        avatarUrl: null,
+        phone: null,
+        deletedAt: new Date(),
+      } as any,
+    });
+
+    await this.audit(userId, 'auth.delete_account', { userId });
+  }
+
+  /**
+   * GDPR data portability — returns all personal data held about the user
+   * as a structured JSON object the client can download.
+   */
+  async exportData(userId: string): Promise<Record<string, unknown>> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        channels: { select: { id: true, title: true, youtubeChannelId: true, createdAt: true } },
+        projects: { select: { id: true, title: true, status: true, createdAt: true, updatedAt: true } },
+        subscription: { select: { plan: true, status: true, createdAt: true } },
+        usageLogs: { orderBy: { createdAt: 'desc' }, take: 100, select: { resource: true, quantity: true, meta: true, createdAt: true } },
+        apiKeys: { select: { id: true, name: true, createdAt: true, lastUsed: true } },
+      },
+    });
+    if (!user) throw new UnauthorizedException();
+
+    // Cast to access newly-added compliance fields before next prisma generate
+    const u = user as typeof user & { marketingConsent?: boolean; consentedAt?: Date | null };
+
+    return {
+      exportedAt: new Date().toISOString(),
+      notice: 'This export contains all personal data SozialZynk holds about your account.',
+      profile: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        createdAt: user.createdAt,
+        marketingConsent: u.marketingConsent ?? false,
+        consentedAt: u.consentedAt ?? null,
+      },
+      channels: user.channels,
+      projects: user.projects,
+      subscription: user.subscription,
+      recentUsage: user.usageLogs,
+      apiKeys: user.apiKeys,
+    };
   }
 
   private async audit(

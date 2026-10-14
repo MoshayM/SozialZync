@@ -32,6 +32,12 @@ model User {
   role          UserRole  @default(OWNER)
   /** §7: set by dispute webhooks — blocks new recharges pending fraud review. */
   rechargesFrozen Boolean @default(false)
+  /** GDPR: timestamp of user-requested account deletion (soft delete). */
+  deletedAt     DateTime?
+  /** Consent to receive marketing emails (GDPR opt-in, default false). */
+  marketingConsent Boolean @default(false)
+  /** Timestamp when the user gave consent to Terms + Privacy Policy on signup. */
+  consentedAt   DateTime?
   /** Stripe Connect Express account for creator payouts (acct_xxx). Set after onboarding. */
   stripeConnectAccountId String?
   /** True once the Connect account has completed verification and charges_enabled = true. */
