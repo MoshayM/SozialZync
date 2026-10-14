@@ -31,7 +31,7 @@ function authHeaders(): Record<string, string> {
 
 /**
  * AI video generation via Luma AI Dream Machine.
- * Supports text-to-video and image-to-video (when req.imagePath is a URL).
+ * Supports text-to-video and image-to-video (imageUrl preferred; imagePath as fallback).
  * Activates when LUMA_API_KEY is set.
  * Env: LUMA_API_KEY
  */
@@ -52,10 +52,11 @@ export class LumaVideoAdapter implements VideoAdapter {
       loop: false,
     };
 
-    // Image-to-video when a source image URL is provided
-    if (req.imagePath) {
+    // Cloud adapters need a public HTTPS URL; imageUrl takes priority over local imagePath
+    const imgSource = req.imageUrl ?? req.imagePath;
+    if (imgSource) {
       body['keyframes'] = {
-        frame0: { type: 'image', url: req.imagePath },
+        frame0: { type: 'image', url: imgSource },
       };
     }
 
@@ -94,7 +95,7 @@ export class LumaVideoAdapter implements VideoAdapter {
       ext: 'mp4',
       durationMs: Math.round(duration * 1000),
       model: 'luma-dream-machine',
-      notes: req.imagePath ? 'image-to-video' : 'text-to-video',
+      notes: imgSource ? 'image-to-video' : 'text-to-video',
     };
   }
 }

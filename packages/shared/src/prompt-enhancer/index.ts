@@ -6,6 +6,7 @@ import {
   MUSIC_HUMANIZING,
   SHOT_TYPE_DESCRIPTORS,
   CAMERA_MOTION_DESCRIPTORS,
+  CHARACTER_MOTION_BY_SHOT,
   EMOTION_VISUAL_MODIFIERS,
   ENERGY_DESCRIPTORS,
 } from './templates';
@@ -65,12 +66,13 @@ export function enhanceVideoPrompt(
 ): EnhancedVideoPrompt {
   const shotDesc = SHOT_TYPE_DESCRIPTORS[scene.shotType ?? ''] ?? '';
   const motionDesc = CAMERA_MOTION_DESCRIPTORS[scene.cameraMotion ?? ''] ?? '';
+  const charMotion = CHARACTER_MOTION_BY_SHOT[scene.shotType ?? ''] ?? '';
   const emotionMod =
     EMOTION_VISUAL_MODIFIERS[scene.emotion ?? ''] ??
     EMOTION_VISUAL_MODIFIERS['neutral']!;
 
   const prefix = [shotDesc, motionDesc].filter(Boolean).join(', ');
-  const prompt = [prefix, raw.trim(), emotionMod, VIDEO_QUALITY_SUFFIX]
+  const prompt = [prefix, raw.trim(), charMotion, emotionMod, VIDEO_QUALITY_SUFFIX]
     .filter(Boolean)
     .join(', ');
 
