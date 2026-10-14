@@ -511,7 +511,10 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
 
   let audioMap: string[] = [];
   if (allAudioInputs.length > 1) {
-    filters.push(`${allAudioInputs.join('')}amix=inputs=${allAudioInputs.length}:duration=first:dropout_transition=2[aout]`);
+    // duration=longest so the mix covers all delayed SFX (sfx0 starts at 30 s;
+    // duration=first would end amix at sfx0's end ~30.5 s and -shortest would
+    // kill the whole encode there). -t on the output trims to the right length.
+    filters.push(`${allAudioInputs.join('')}amix=inputs=${allAudioInputs.length}:duration=longest:dropout_transition=2[aout]`);
     audioMap = ['-map', '[aout]'];
   } else if (allAudioInputs.length === 1) {
     const only = allAudioInputs[0]!;
@@ -549,7 +552,6 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     ...videoQualityArgs,
     ...audioQualityArgs,
     '-t', String(effectiveTotalSecs),
-    '-shortest',
     '-movflags', '+faststart',
     outPath,
   ];
