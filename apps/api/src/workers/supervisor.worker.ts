@@ -1412,8 +1412,13 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         for (let i = 0; i < sceneDurations.length; i++) {
           const videoPath = await resolveKey(videoAssets[i]);
           const imagePath = await resolveKey(imageAssets[i]);
-          if (videoPath) scenes.push({ videoPath, durationSecs: sceneDurations[i]! });
-          else if (imagePath) scenes.push({ imagePath, durationSecs: sceneDurations[i]! });
+          if (videoPath) {
+            const storedMs = videoAssets[i]?.versions[0]?.durationMs;
+            const actualDurationSecs = storedMs ? storedMs / 1000 : undefined;
+            scenes.push({ videoPath, durationSecs: sceneDurations[i]!, actualDurationSecs });
+          } else if (imagePath) {
+            scenes.push({ imagePath, durationSecs: sceneDurations[i]! });
+          }
         }
 
         // ── Feature 3: Auto B-roll fill ──────────────────────────────────────

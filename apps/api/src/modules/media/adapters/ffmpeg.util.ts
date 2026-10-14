@@ -304,6 +304,12 @@ export interface ComposeScene {
   videoPath?: string;
   imagePath?: string;
   durationSecs: number;
+  /**
+   * Actual stored clip duration in seconds (from DB durationMs).
+   * When shorter than durationSecs, the input is looped by a bounded count
+   * so FFmpeg knows where the stream ends and avoids unbounded buffering.
+   */
+  actualDurationSecs?: number;
 }
 
 export interface SfxOptions {
@@ -400,11 +406,19 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
 
   scenes.forEach((s, i) => {
     if (s.videoPath) {
-      // -stream_loop -1 loops the clip indefinitely so that short AI tiles
-      // (Kling/Luma/Runway are typically 5–10 s) fill the full planned scene
-      // duration. trim= cuts to exactly durationSecs. fps= at the end of the
-      // chain sets frame_rate on the output link so xfade sees valid CFR.
-      args.push('-stream_loop', '-1', '-i', s.videoPath);
+      // Use a bounded loop count when the clip is shorter than the planned scene
+      // duration (AI tiles like Kling/Luma are 5–10 s; scenes are typically 30 s).
+      // -stream_loop -1 (infinite) causes OOM when 12 streams are buffered at once;
+      // a finite count lets FFmpeg know when each stream ends.
+      const actual = s.actualDurationSecs ?? s.durationSecs;
+      const loopCount = actual > 0 && actual < s.durationSecs - 0.5
+        ? Math.ceil(s.durationSecs / actual) - 1
+        : 0;
+      if (loopCount > 0) {
+        args.push('-stream_loop', String(loopCount), '-i', s.videoPath);
+      } else {
+        args.push('-i', s.videoPath);
+      }
       filters.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,trim=duration=${s.durationSecs},setpts=PTS-STARTPTS,fps=fps=${fps}[v${i}]`);
     } else if (s.imagePath) {
       // Still image: zoompan generates durationSecs*fps frames.
