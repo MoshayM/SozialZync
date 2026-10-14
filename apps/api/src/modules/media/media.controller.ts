@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Post, Body, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Query, Req, Res, UseGuards, StreamableFile, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors, UploadedFile, Logger, HttpCode, HttpStatus } from '@nestjs/common';
+import { callAI, enhanceVideoPrompt } from '@cf/shared';
 import type { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createHash } from 'crypto';
@@ -752,6 +753,40 @@ export class MediaController {
         'Free accounts cannot download or export files. Upgrade to Starter or higher to unlock downloads and exports.',
       );
     }
+  }
+
+  /** Enhance a weak or short video/image prompt using template expansion + optional LLM. */
+  @Post('content-guard/enhance-prompt')
+  @HttpCode(HttpStatus.OK)
+  async enhancePrompt(
+    @Body() body: { prompt?: string; context?: string },
+  ): Promise<{ enhanced: string; original: string }> {
+    const original = (body.prompt ?? '').trim();
+    if (!original) throw new BadRequestException('prompt required');
+
+    // Template-based enhancement is always fast and free
+    const { prompt: templateEnhanced } = enhanceVideoPrompt(original, {});
+
+    // For very short prompts also call the LLM for a more descriptive expansion
+    const wordCount = original.split(/\s+/).length;
+    if (wordCount < 6) {
+      try {
+        const result = await callAI(
+          [{ role: 'user', content: original }],
+          {
+            systemPrompt: 'You are a video prompt engineer. Expand this brief scene description into a detailed, cinematic 2-sentence video generation prompt. Specify motion, lighting, camera angle, and mood. Never add inappropriate content. Reply with ONLY the prompt text.',
+            maxTokens: 120,
+            temperature: 0.7,
+          },
+        );
+        const aiEnhanced = result.content.trim();
+        if (aiEnhanced && aiEnhanced.length > original.length) {
+          return { enhanced: aiEnhanced, original };
+        }
+      } catch { /* LLM unavailable — fall back to template */ }
+    }
+
+    return { enhanced: templateEnhanced, original };
   }
 
   private async assertOwner(projectId: string, userId: string): Promise<void> {

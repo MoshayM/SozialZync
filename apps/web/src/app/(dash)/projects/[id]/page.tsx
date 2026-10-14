@@ -1,5 +1,5 @@
 ﻿'use client';
-import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -606,6 +606,41 @@ function ResultPreview({ job }: { job: Job }) {
   }
 }
 
+// ─── Per-tab error boundary ───────────────────────────────────────────────────
+// Prevents a render error in one tab from destroying the whole page. Each
+// non-pipeline tab is wrapped so a failure shows a contained "Retry" card.
+
+class TabErrorBoundary extends React.Component<
+  { children: React.ReactNode; tabName: string },
+  { hasError: boolean; msg: string }
+> {
+  constructor(props: { children: React.ReactNode; tabName: string }) {
+    super(props);
+    this.state = { hasError: false, msg: '' };
+  }
+  static getDerivedStateFromError(error: Error) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    return { hasError: true, msg: error.message ?? 'Unknown error' };
+  }
+  override render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-10 text-center space-y-3">
+          <p className="text-sm font-semibold text-red-700">{this.props.tabName} failed to render</p>
+          <p className="text-xs text-red-400 max-w-sm mx-auto break-all">{this.state.msg}</p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false, msg: '' })}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage() {
@@ -954,6 +989,7 @@ export default function ProjectDetailPage() {
 
       {/* ── Script Writer tab ─────────────────────────────────────────────── */}
       {activeTab === 'script' && (
+        <TabErrorBoundary tabName="Script">
         <div className="space-y-5">
           {/* Generation form */}
           <div className="bg-white border border-gray-200 rounded-2xl p-6">
@@ -1138,10 +1174,12 @@ export default function ProjectDetailPage() {
             </div>
           )}
         </div>
+        </TabErrorBoundary>
       )}
 
       {/* ── Storyboard tab ───────────────────────────────────────────────── */}
       {activeTab === 'storyboard' && (
+        <TabErrorBoundary tabName="Storyboard">
         <div>
           {!storyboardData ? (
             <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
@@ -1195,10 +1233,12 @@ export default function ProjectDetailPage() {
             </div>
           )}
         </div>
+        </TabErrorBoundary>
       )}
 
       {/* ── SEO & Audience tab ───────────────────────────────────────────── */}
       {activeTab === 'seo' && (
+        <TabErrorBoundary tabName="SEO &amp; Audience">
         <div className="space-y-6">
 
           {/* SEO Optimizer */}
@@ -1434,10 +1474,12 @@ export default function ProjectDetailPage() {
             )}
           </div>
         </div>
+        </TabErrorBoundary>
       )}
 
       {/* ── Checks tab ───────────────────────────────────────────────────── */}
       {activeTab === 'checks' && (
+        <TabErrorBoundary tabName="Checks">
         <div className="space-y-6">
 
           {/* Fact Check */}
@@ -1562,6 +1604,7 @@ export default function ProjectDetailPage() {
           </div>
 
         </div>
+        </TabErrorBoundary>
       )}
 
       {/* ── Pipeline tab (existing content) ──────────────────────────────── */}

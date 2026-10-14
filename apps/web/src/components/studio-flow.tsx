@@ -944,14 +944,16 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   function startVoiceInput(sceneIndex: number) {
     const hasSR = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
     if (!hasSR) { alert('Voice input requires Chrome or Edge.'); return; }
+    // @reason: SpeechRecognition DOM types not available in this tsconfig; cast to any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR: new () => SpeechRecognition = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    const recognition = new SR();
+    const SR: new () => any = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition: any = new SR();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
     setVoiceRecording(sceneIndex);
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0]?.[0]?.transcript ?? '';
       if (transcript) {
         setScenePromptOverrides((prev) => ({ ...prev, [sceneIndex]: transcript }));

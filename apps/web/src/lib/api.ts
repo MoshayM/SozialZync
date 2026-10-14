@@ -1063,6 +1063,10 @@ export const api = {
         `/media/versions/${versionId}/extract-audio`,
       ),
   },
+  contentGuard: {
+    enhancePrompt: (prompt: string, context?: string) =>
+      apiClient.post<{ enhanced: string; original: string }>('/media/content-guard/enhance-prompt', { prompt, context }),
+  },
   settings: {
     getApiKeys: () =>
       apiClient.get<Array<{ key: string; label: string; masked: string; set: boolean }>>('/settings/api-keys'),
