@@ -58,8 +58,9 @@ export class RunwayVideoAdapter implements VideoAdapter {
       watermark: false,
     };
 
-    // Cloud adapters need a public HTTPS URL; imageUrl takes priority over local imagePath
-    const imgSource = req.imageUrl ?? req.imagePath;
+    // Cloud adapters require a public HTTPS URL with no auth gating.
+    // Only pass image when imageUrl is a clean CDN URL (no ?token= query params).
+    const imgSource = req.imageUrl && !req.imageUrl.includes('?') ? req.imageUrl : undefined;
     if (imgSource) {
       body['promptImage'] = imgSource;
     }

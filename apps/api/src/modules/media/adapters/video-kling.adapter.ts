@@ -58,8 +58,10 @@ export class KlingVideoAdapter implements VideoAdapter {
       aspect_ratio: ratio,
     };
 
-    // Cloud adapters need a public HTTPS URL; imageUrl takes priority over local imagePath
-    const imgSource = req.imageUrl ?? req.imagePath;
+    // Cloud adapters require a public HTTPS URL with no auth gating.
+    // Only pass image_url when imageUrl is a clean CDN URL (no ?token= query params).
+    // Auth-token URLs (Railway API media endpoint) are inaccessible to external services.
+    const imgSource = req.imageUrl && !req.imageUrl.includes('?') ? req.imageUrl : undefined;
     if (imgSource) input['image_url'] = imgSource;
 
     const startRes = await fetch(`${BASE_URL}/task`, {
