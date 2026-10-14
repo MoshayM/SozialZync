@@ -988,6 +988,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             const customNeg = (payload['regenNegativePrompt'] as string | undefined) ?? brief?.negativePrompt;
             if (!customPrompt) throw new Error(`No prompt available for scene ${regenOneIndex + 1}`);
             this.log(jobId, projectId, `Regenerating scene ${regenOneIndex + 1}…`);
+            this.events.emitJobUpdate(jobId, { step: 'IMAGE_GENERATE', status: 'RUNNING', regenOneIndex }, projectId);
             const stored = await this.media.generateImage(
               projectId,
               `Scene ${regenOneIndex + 1} · ${brief?.sceneId ?? 'custom'} · regen-${regenOneIndex}-${Date.now()}`,

@@ -11,6 +11,7 @@ import {
 import { api } from '@/lib/api';
 import { ElapsedBadge, formatElapsed } from '@/components/ai-activity';
 import { getErrorMessage } from '@/lib/getErrorMessage';
+import { useLiveStageProgress, type StageProgressState } from '@/hooks/use-job-events';
 
 /**
  * Guided in-project production flow (design refs: image.png layout —
@@ -455,7 +456,7 @@ function MicButton({
 // ── Tile shell ────────────────────────────────────────────────────────────────
 
 function Tile({
-  icon, title, subtitle, status, running, failed, updatedAt, selected, hasDetail, onToggle, action,
+  icon, title, subtitle, status, running, failed, updatedAt, selected, hasDetail, onToggle, action, stageProgress,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -468,9 +469,19 @@ function Tile({
   hasDetail: boolean;
   onToggle: () => void;
   action?: React.ReactNode;
+  stageProgress?: StageProgressState;
 }) {
   const badgeState = running ? 'running' : failed ? 'failed' : status === 'done' ? 'done' : 'notStarted';
   const expandable = hasDetail && status !== 'locked';
+
+  // Compute fill %: explicit pct wins, then scene/totalScenes ratio, else indeterminate
+  const hasBatch = stageProgress?.scene != null && stageProgress.totalScenes != null && stageProgress.totalScenes > 0;
+  const fillPct = stageProgress?.pct != null
+    ? Math.max(3, stageProgress.pct)
+    : hasBatch
+    ? Math.max(3, Math.round(((stageProgress!.scene! - 1) / stageProgress!.totalScenes!) * 100))
+    : running ? 8 : 0;
+
   return (
     <div className={`rounded-3xl p-5 transition-all duration-200 ${
       status === 'locked'
@@ -504,6 +515,30 @@ function Tile({
         <StatusBadge state={badgeState} updatedAt={updatedAt} />
         {action}
       </div>
+      {/* Inline stage progress bar — shows live scene count + fill when running */}
+      {running && (
+        <div className="mt-2.5">
+          {hasBatch && (
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-gray-500">
+                Scene {stageProgress!.scene} / {stageProgress!.totalScenes}
+              </span>
+              <span className="text-[10px] text-gray-500 tabular-nums">{fillPct}%</span>
+            </div>
+          )}
+          {stageProgress?.regenOneIndex != null && !hasBatch && (
+            <p className="text-[10px] text-gray-500 mb-1">
+              Regenerating scene {stageProgress.regenOneIndex + 1}…
+            </p>
+          )}
+          <div className="h-1 rounded-full bg-white/60 overflow-hidden">
+            <div
+              className={`h-full bg-brand-500 rounded-full transition-all duration-700 ease-out${fillPct <= 8 ? ' animate-pulse' : ''}`}
+              style={{ width: `${fillPct}%` }}
+            />
+          </div>
+        </div>
+      )}
       {failed && !running && (
         <p className="text-[11px] text-red-500 mt-2 line-clamp-2" title={(failed as { error?: string }).error ?? ''}>
           {(failed as { error?: string }).error ?? 'The last run failed — try again.'}
@@ -864,6 +899,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   }
 
   const busy = enqueue.isPending || anyPipelineRunning;
+
+  // Live per-step progress from WebSocket (scene index, totalScenes, pct)
+  const liveProgress = useLiveStageProgress(projectId);
 
   // Stage state
   const analyseJob = latest(jobs, 'TREND_ANALYSIS');
@@ -2937,12 +2975,33 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
         {videoResult?.videos?.length ? (
           <div className="space-y-2">
             {/* sceneId comes from the LLM scene plan and is not guaranteed unique */}
-            {videoResult.videos.map((v, i) => (
-              <div key={`${v.sceneId}-${i}`} className="flex items-center justify-between gap-3">
-                <p className="text-xs text-gray-600 truncate">Scene {i + 1} · {v.provider}</p>
-                {v.versionId && <MediaPlayer versionId={v.versionId} kind="video" />}
-              </div>
-            ))}
+            {videoResult.videos.map((v, i) => {
+              const vidLive = liveProgress['VIDEO_GENERATE'];
+              const isThisClipGenerating = !!isRunning(jobs, 'VIDEO_GENERATE') && vidLive?.scene === i + 1;
+              return (
+                <div key={`${v.sceneId}-${i}`} className={`relative rounded-lg border transition-colors ${isThisClipGenerating ? 'border-brand-200 bg-brand-50' : 'border-transparent'}`}>
+                  <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {isThisClipGenerating
+                        ? <Loader2 className="w-3 h-3 animate-spin text-brand-600 shrink-0" />
+                        : <CheckCircle className="w-3 h-3 text-green-500 shrink-0" />}
+                      <p className="text-xs text-gray-600 truncate">
+                        Scene {i + 1}
+                        <span className="text-gray-400 ml-1">· {v.provider}</span>
+                        {isThisClipGenerating && <span className="ml-1 text-brand-600">generating…</span>}
+                      </p>
+                    </div>
+                    {v.versionId && !isThisClipGenerating && <MediaPlayer versionId={v.versionId} kind="video" />}
+                  </div>
+                  {/* Bottom filler bar for actively-generating scene */}
+                  {isThisClipGenerating && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-lg overflow-hidden bg-brand-100">
+                      <div className="h-full bg-brand-500 animate-[pulse_2s_ease-in-out_infinite]" style={{ width: '50%' }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <p className="text-sm text-gray-500">Run to storyboard the script and generate every scene.</p>
@@ -3267,6 +3326,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             {imageGenResult.images.map((img, i) => {
               const brief = imageBriefResult?.briefs?.[i];
               const isEditingThis = imgEditIdx === i;
+              // This card is actively generating when batch hits scene i+1, or single-regen targets index i
+              const imgLive = liveProgress['IMAGE_GENERATE'];
+              const isThisGenerating = !!isRunning(jobs, 'IMAGE_GENERATE') && (
+                imgLive?.scene === i + 1 || imgLive?.regenOneIndex === i
+              );
               return (
                 <div key={img.sceneId} className="rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm">
                   {/* Image — click to expand */}
@@ -3276,6 +3340,16 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     ) : (
                       <div className="w-full aspect-video bg-gray-100 flex items-center justify-center">
                         <ImageIcon className="w-6 h-6 text-gray-300" />
+                      </div>
+                    )}
+                    {/* Generating overlay — shown when this specific scene is being (re)generated */}
+                    {isThisGenerating && (
+                      <div className="absolute inset-0 rounded-xl bg-black/40 flex flex-col items-center justify-center pointer-events-none">
+                        <Loader2 className="w-5 h-5 text-white animate-spin mb-1" />
+                        <span className="text-[11px] text-white font-medium">Generating…</span>
+                        <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl overflow-hidden bg-white/20">
+                          <div className="h-full bg-brand-400 animate-[pulse_1.5s_ease-in-out_infinite]" style={{ width: '65%' }} />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -3309,14 +3383,16 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         {isEditingThis ? 'Close' : 'Edit Prompt'}
                       </button>
                       <button
-                        className="flex-1 text-[10px] font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1.5 transition-colors disabled:opacity-40"
+                        className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1.5 transition-colors disabled:opacity-40"
                         disabled={busy}
                         onClick={() => enqueue.mutate({
                           type: 'FULL_PRODUCTION',
                           payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, visualStyle, imageQuality, ...prefsPayload },
                         })}
                       >
-                        Regenerate
+                        {isThisGenerating
+                          ? <><Loader2 className="w-3 h-3 animate-spin" />Generating…</>
+                          : 'Regenerate'}
                       </button>
                     </div>
 
@@ -3642,6 +3718,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             selected={expanded === 'images'}
             hasDetail={true}
             onToggle={() => toggle('images')}
+            stageProgress={liveProgress['IMAGE_GENERATE'] ?? liveProgress['IMAGE_BRIEF']}
             action={
               <RunButton
                 label={imageGenResult ? 'Regenerate' : 'Run'}
@@ -3682,6 +3759,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             selected={expanded === 'voice'}
             hasDetail={true}
             onToggle={() => toggle('voice')}
+            stageProgress={liveProgress['VOICE_GENERATE'] ?? liveProgress['VOICE_SPEC']}
             action={
               <RunButton
                 label={voiceResult ? 'Regenerate' : 'Run'}
@@ -3712,6 +3790,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             selected={expanded === 'music'}
             hasDetail={true}
             onToggle={() => toggle('music')}
+            stageProgress={liveProgress['MUSIC_GENERATE'] ?? liveProgress['MUSIC_BRIEF']}
             action={
               <RunButton
                 label={musicResult ? 'Regenerate' : 'Run'}
@@ -3749,6 +3828,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             selected={expanded === 'video'}
             hasDetail={true}
             onToggle={() => toggle('video')}
+            stageProgress={liveProgress['VIDEO_GENERATE'] ?? liveProgress['IMAGE_GENERATE'] ?? liveProgress['VIDEO_SCENE_PLAN']}
             action={
               <RunButton
                 label={videoResult ? 'Regenerate' : 'Run'}
