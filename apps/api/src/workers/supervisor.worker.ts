@@ -1197,6 +1197,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           : plan.scenes.length;
         const bustVideoCache = Boolean(payload['forceRegenerate']);
         const videoQuality = (payload['videoQuality'] as 'fast' | 'cinematic' | undefined) ?? 'fast';
+        const motionStyleOverride = payload['motionStyle'] as import('../modules/media/media.types').SceneMotionStyle | undefined;
 
         // Scene clip dimensions must match the render target to avoid aspect-ratio padding.
         // Vertical (Shorts/Reels/TikTok) → 720×1280; Square → 1080×1080; Landscape → 1280×720.
@@ -1256,6 +1257,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               height: sceneH,
               sceneIndex: regenOneVidIndex,
               quality: videoQuality,
+              ...(motionStyleOverride ? { motionStyle: motionStyleOverride } : {}),
             },
             true,
           );
@@ -1330,6 +1332,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               height: sceneH,
               sceneIndex: i,
               quality: videoQuality,
+              ...(motionStyleOverride ? { motionStyle: motionStyleOverride } : {}),
             }, bustVideoCache);
             videos.push({ sceneId: scene.id, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
             this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, `${stored.provider}${stored.notes ? ` · ${stored.notes.slice(0, 60)}` : ''}`);
@@ -1973,6 +1976,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (stage.type === 'VIDEO_GENERATE') {
               if (payload['regenOneIndex'] != null) stagePayload['regenOneIndex'] = payload['regenOneIndex'];
               if (payload['videoQuality'] != null) stagePayload['videoQuality'] = payload['videoQuality'];
+              if (payload['motionStyle'] != null) stagePayload['motionStyle'] = payload['motionStyle'];
             }
             // Forward content language to every stage that generates text
             if (payload['lang']) stagePayload['lang'] = payload['lang'];

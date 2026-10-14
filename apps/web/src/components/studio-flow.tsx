@@ -271,7 +271,7 @@ function StatusBadge({ state, updatedAt }: { state: 'done' | 'running' | 'failed
 
 // ── Small blob-backed media player (auth header needed, so no direct <audio src>) ──
 
-function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | 'video' }) {
+function MediaPlayer({ versionId, kind, onLoadError }: { versionId: string; kind: 'audio' | 'video'; onLoadError?: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [retries, setRetries] = useState(0);
@@ -298,6 +298,9 @@ function MediaPlayer({ versionId, kind }: { versionId: string; kind: 'audio' | '
     const t = setTimeout(() => { setRetries((r) => r + 1); void load(); }, 1500);
     return () => clearTimeout(t);
   }, [loadError]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (loadError && retries >= 1) onLoadError?.();
+  }, [loadError, retries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!url) {
     return (
@@ -682,6 +685,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [imgEditPrompt, setImgEditPrompt] = useState('');
   const [imgAddOpen, setImgAddOpen] = useState(false);
   const [imgAddPrompt, setImgAddPrompt] = useState('');
+  const [imgUploadingIdx, setImgUploadingIdx] = useState<number | null>(null);
+  const imgFileInputRef = useRef<HTMLInputElement>(null);
+  const imgUploadTargetIdx = useRef<number>(-1);
   const [imgLightbox, setImgLightbox] = useState<string | null>(null);
   type ImageVisualStyle =
     | 'ai-best'
@@ -692,6 +698,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     | 'animation' | 'minimal';
   const [visualStyle, setVisualStyle] = useState<ImageVisualStyle>('ai-best');
   const [imageQuality, setImageQuality] = useState<'fast' | 'standard' | 'high'>('standard');
+  const [videoGenQuality, setVideoGenQuality] = useState<'fast' | 'cinematic'>('fast');
+  const [sceneMotionOverrides, setSceneMotionOverrides] = useState<Record<number, string>>({});
+  const [musicFileUnavailable, setMusicFileUnavailable] = useState(false);
 
   const { data: channels = [] } = useQuery({
     queryKey: ['channels'],
@@ -2901,7 +2910,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
       {musicResult?.versionId ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <MediaPlayer versionId={musicResult.versionId} kind="audio" />
+            <MediaPlayer
+              versionId={musicResult.versionId}
+              kind="audio"
+              onLoadError={() => setMusicFileUnavailable(true)}
+            />
             <button
               onClick={async () => {
                 const res = await api.media.versionFile(musicResult.versionId!);
@@ -2913,6 +2926,22 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               <Download className="w-3 h-3" />
             </button>
           </div>
+          {musicFileUnavailable && (
+            <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <p className="text-[11px] text-amber-700 flex-1">Music file lost — regenerate to rebuild it.</p>
+              <button
+                disabled={busy}
+                onClick={() => {
+                  setMusicFileUnavailable(false);
+                  enqueue.mutate({ type: 'FULL_PRODUCTION', payload: { scope: 'MUSIC', regenerate: ['MUSIC_GENERATE'], ...prefsPayload } });
+                }}
+                className="text-[11px] font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg px-2.5 py-1 transition-colors disabled:opacity-40 shrink-0"
+              >
+                Regenerate
+              </button>
+            </div>
+          )}
           {musicResult.notes && <p className="text-xs text-amber-600">{musicResult.notes}</p>}
         </div>
       ) : <p className="text-xs text-gray-500">Set a mood/genre (or leave blank for AI&rsquo;s pick) and run.</p>}
@@ -2997,6 +3026,30 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
   const videoDetail = (
     <div className="space-y-5 pb-20 md:pb-0">
+      {/* Motion Quality toggle */}
+      <div>
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Motion Quality</p>
+        <div className="flex gap-2">
+          {([
+            { key: 'fast',      label: '⚡ Fast',      desc: 'Free · FFmpeg Ken Burns' },
+            { key: 'cinematic', label: '🎬 Cinematic', desc: 'Paid · AI video motion' },
+          ] as { key: 'fast' | 'cinematic'; label: string; desc: string }[]).map(({ key, label, desc }) => (
+            <button
+              key={key}
+              onClick={() => setVideoGenQuality(key)}
+              className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl border text-center transition-all ${
+                videoGenQuality === key
+                  ? 'border-brand-400 bg-brand-50 text-brand-700'
+                  : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-white'
+              }`}
+            >
+              <span className="text-[11px] font-semibold">{label}</span>
+              <span className="text-[9px] text-gray-400 mt-0.5">{desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Scenes */}
       <div>
         <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Scenes</p>
@@ -3029,17 +3082,42 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         <span title="Music: shared track" className="text-[9px] text-gray-400 px-1">♫</span>
                       )}
                       {!isThisClipGenerating && (
-                        <button
-                          title="Regenerate this scene"
-                          disabled={busy}
-                          onClick={() => enqueue.mutate({
-                            type: 'FULL_PRODUCTION',
-                            payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE'], regenOneIndex: i, ...prefsPayload },
-                          })}
-                          className="p-1 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                        </button>
+                        <>
+                          <select
+                            value={sceneMotionOverrides[i] ?? ''}
+                            onChange={(e) => setSceneMotionOverrides((prev) => ({ ...prev, [i]: e.target.value }))}
+                            title="Motion style for this scene"
+                            className="text-[9px] border border-gray-200 rounded-lg px-1 py-0.5 bg-white text-gray-500 cursor-pointer"
+                          >
+                            <option value="">Auto</option>
+                            <option value="zoom-in">Zoom in</option>
+                            <option value="pan-right">Pan right</option>
+                            <option value="tilt-up">Tilt up</option>
+                            <option value="zoom-out">Zoom out</option>
+                            <option value="pan-left">Pan left</option>
+                            <option value="tilt-down">Tilt down</option>
+                            <option value="drift">Drift</option>
+                            <option value="diagonal">Diagonal</option>
+                          </select>
+                          <button
+                            title="Regenerate this scene"
+                            disabled={busy}
+                            onClick={() => enqueue.mutate({
+                              type: 'FULL_PRODUCTION',
+                              payload: {
+                                scope: 'VIDEO',
+                                regenerate: ['VIDEO_GENERATE'],
+                                regenOneIndex: i,
+                                videoQuality: videoGenQuality,
+                                ...(sceneMotionOverrides[i] ? { motionStyle: sceneMotionOverrides[i] } : {}),
+                                ...prefsPayload,
+                              },
+                            })}
+                            className="p-1 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -3414,10 +3492,36 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             </div>
           )}
 
+          {/* Hidden file input for per-scene image upload */}
+          <input
+            ref={imgFileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const targetIdx = imgUploadTargetIdx.current;
+              e.target.value = '';
+              setImgUploadingIdx(targetIdx);
+              try {
+                const uploadRes = await api.media.uploadMedia(file, projectId);
+                const { assetId, versionId } = uploadRes.data as { assetId: string; versionId: string };
+                await api.projects.pinSceneImage(projectId, targetIdx, { versionId, assetId });
+                invalidate();
+              } catch {
+                // silent — the scene card stays as-is
+              } finally {
+                setImgUploadingIdx(null);
+              }
+            }}
+          />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {imageGenResult.images.map((img, i) => {
               const brief = imageBriefResult?.briefs?.[i];
               const isEditingThis = imgEditIdx === i;
+              const isUploadingThis = imgUploadingIdx === i;
               // This card is actively generating when batch hits scene i+1, or single-regen targets index i
               const imgLive = liveProgress['IMAGE_GENERATE'];
               const isThisGenerating = !!isRunning(jobs, 'IMAGE_GENERATE') && (
@@ -3434,7 +3538,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         <ImageIcon className="w-6 h-6 text-gray-300" />
                       </div>
                     )}
-                    {/* Generating overlay — shown when this specific scene is being (re)generated */}
+                    {/* Generating overlay */}
                     {isThisGenerating && (
                       <div className="absolute inset-0 rounded-xl bg-black/40 flex flex-col items-center justify-center pointer-events-none">
                         <Loader2 className="w-5 h-5 text-white animate-spin mb-1" />
@@ -3442,6 +3546,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl overflow-hidden bg-white/20">
                           <div className="h-full bg-brand-400 animate-[pulse_1.5s_ease-in-out_infinite]" style={{ width: '65%' }} />
                         </div>
+                      </div>
+                    )}
+                    {/* Uploading overlay */}
+                    {isUploadingThis && (
+                      <div className="absolute inset-0 rounded-xl bg-black/50 flex flex-col items-center justify-center pointer-events-none">
+                        <Loader2 className="w-5 h-5 text-white animate-spin mb-1" />
+                        <span className="text-[11px] text-white font-medium">Uploading…</span>
                       </div>
                     )}
                   </div>
@@ -3473,6 +3584,19 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         }}
                       >
                         {isEditingThis ? 'Close' : 'Edit Prompt'}
+                      </button>
+                      <button
+                        className="flex items-center justify-center gap-1 text-[10px] font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1.5 transition-colors disabled:opacity-40"
+                        disabled={busy || isUploadingThis}
+                        title="Upload your own image for this scene"
+                        onClick={() => {
+                          imgUploadTargetIdx.current = i;
+                          imgFileInputRef.current?.click();
+                        }}
+                      >
+                        {isUploadingThis
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Upload className="w-3 h-3" />}
                       </button>
                       <button
                         className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-2 py-1.5 transition-colors disabled:opacity-40"
@@ -3532,7 +3656,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL', 'RENDER'], ...prefsPayload },
+                  payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL', 'RENDER'], videoQuality: videoGenQuality, ...prefsPayload },
                 })}
               >
                 Sync Video
@@ -3928,7 +4052,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !scriptDone}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VIDEO', ...prefsPayload, ...(videoResult ? { regenerate: ['VIDEO_SCENE_PLAN', 'IMAGE_BRIEF', 'IMAGE_GENERATE', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL', 'RENDER'] } : {}) },
+                  payload: { scope: 'VIDEO', videoQuality: videoGenQuality, ...prefsPayload, ...(videoResult ? { regenerate: ['VIDEO_SCENE_PLAN', 'IMAGE_BRIEF', 'IMAGE_GENERATE', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL', 'RENDER'] } : {}) },
                 })}
               />
             }
