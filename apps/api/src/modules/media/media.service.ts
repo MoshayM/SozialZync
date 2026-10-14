@@ -159,8 +159,8 @@ export class MediaService {
     return this.generate(projectId, 'MUSIC', label, req, this.orderedAdapters(this.music), (a, r) => a.compose(r));
   }
 
-  generateSceneVideo(projectId: string, label: string, req: SceneVideoRequest): Promise<StoredAsset> {
-    return this.generate(projectId, 'VIDEO', label, req, this.orderedAdapters(this.video), (a, r) => a.renderScene(r));
+  generateSceneVideo(projectId: string, label: string, req: SceneVideoRequest, bustCache = false): Promise<StoredAsset> {
+    return this.generate(projectId, 'VIDEO', label, req, this.orderedAdapters(this.video), (a, r) => a.renderScene(r), bustCache);
   }
 
   private orderedAdapters<T extends { name: string; available(): boolean }>(chain: AdapterChain<T>): T[] {
@@ -178,6 +178,7 @@ export class MediaService {
     req: TReq,
     adapters: TAdapter[],
     call: (adapter: TAdapter, req: TReq) => Promise<GeneratedMedia>,
+    bustCache = false,
   ): Promise<StoredAsset> {
     if (adapters.length === 0) {
       throw new Error(`No available ${kind} provider — configure a provider API key (VOICE_PROVIDER / IMAGE_PROVIDER / MUSIC_PROVIDER / VIDEO_PROVIDER). Refusing to fabricate output.`);
@@ -191,7 +192,7 @@ export class MediaService {
       .update(`${kind}:${label}:${adapters[0]!.name}:${JSON.stringify(req)}`)
       .digest('hex');
     // Select only scalar metadata — never load the data blob in cache checks.
-    const cachedMeta = await this.prisma.assetVersion.findFirst({
+    const cachedMeta = bustCache ? null : await this.prisma.assetVersion.findFirst({
       where: {
         params: { path: ['requestHash'], equals: requestHash },
         asset: { projectId, kind, deletedAt: null, status: { in: ['READY', 'ACCEPTED'] } },

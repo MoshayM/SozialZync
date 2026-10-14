@@ -1145,6 +1145,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const maxScenes = payload['maxScenes'] !== undefined
           ? Math.min(plan.scenes.length, Number(payload['maxScenes']))
           : plan.scenes.length;
+        const bustVideoCache = Boolean(payload['forceRegenerate']);
         const t0 = Date.now();
         this.log(jobId, projectId, `Generating ${maxScenes}/${plan.scenes.length} scene video(s)…`);
 
@@ -1216,7 +1217,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               width: 1280,
               height: 720,
               sceneIndex: i,
-            });
+            }, bustVideoCache);
             videos.push({ sceneId: scene.id, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
             this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, `${stored.provider}${stored.notes ? ` · ${stored.notes.slice(0, 60)}` : ''}`);
           } catch (vidErr) {
