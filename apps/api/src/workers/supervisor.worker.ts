@@ -1197,8 +1197,19 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           : plan.scenes.length;
         const bustVideoCache = Boolean(payload['forceRegenerate']);
         const videoQuality = (payload['videoQuality'] as 'fast' | 'cinematic' | undefined) ?? 'fast';
+
+        // Scene clip dimensions must match the render target to avoid aspect-ratio padding.
+        // Vertical (Shorts/Reels/TikTok) → 720×1280; Square → 1080×1080; Landscape → 1280×720.
+        const rawPlatformVid = (payload['platform'] as string | undefined)?.toUpperCase();
+        const rawPresetVid = (payload['preset'] as string | undefined)?.toUpperCase();
+        const VERTICAL_PLATFORMS = new Set(['INSTAGRAM_REELS', 'TIKTOK', 'YOUTUBE_SHORTS']);
+        const isVerticalVid = rawPresetVid === 'VERTICAL' || (!!rawPlatformVid && VERTICAL_PLATFORMS.has(rawPlatformVid));
+        const isSquareVid = rawPresetVid === 'SQUARE' || rawPlatformVid === 'INSTAGRAM_FEED';
+        const sceneW = isVerticalVid ? 720 : (isSquareVid ? 1080 : 1280);
+        const sceneH = isVerticalVid ? 1280 : (isSquareVid ? 1080 : 720);
+
         const t0 = Date.now();
-        this.log(jobId, projectId, `Generating ${maxScenes}/${plan.scenes.length} scene video(s)…`);
+        this.log(jobId, projectId, `Generating ${maxScenes}/${plan.scenes.length} scene video(s) at ${sceneW}×${sceneH}…`);
         if (videoQuality === 'cinematic') {
           const estimatedCostUsd = (maxScenes * 0.08).toFixed(2);
           this.log(jobId, projectId, `[Cost] Cinematic quality: ~$${estimatedCostUsd} estimated (${maxScenes} × ~$0.08 Kling clip). Use videoQuality:"fast" for zero-cost FFmpeg.`);
@@ -1241,8 +1252,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               imageUrl: regenImageUrl,
               prompt: scene.videoPrompt,
               durationSecs: Math.min(Math.max(scene.durationSecs, 2), 30),
-              width: 1280,
-              height: 720,
+              width: sceneW,
+              height: sceneH,
               sceneIndex: regenOneVidIndex,
               quality: videoQuality,
             },
@@ -1297,7 +1308,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (!imgDownloaded) {
               try {
                 const still = await this.media.generateImage(projectId, `Scene ${i + 1} still · ${scene.id}`, {
-                  prompt: scene.videoPrompt, width: 1280, height: 720,
+                  prompt: scene.videoPrompt, width: sceneW, height: sceneH,
                 });
                 imagePath = still.absPath;
                 if (cdnBase) imageUrl = `${cdnBase}/${still.key}`;
@@ -1315,8 +1326,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               imageUrl,
               prompt: scene.videoPrompt,
               durationSecs: Math.min(Math.max(scene.durationSecs, 2), 30),
-              width: 1280,
-              height: 720,
+              width: sceneW,
+              height: sceneH,
               sceneIndex: i,
               quality: videoQuality,
             }, bustVideoCache);
@@ -1349,8 +1360,10 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           if (activeRender) {
             this.log(jobId, projectId, 'RENDER already queued/running — skipping auto-trigger');
           } else if (voiceCount > 0 && musicCount > 0) {
-            await this.jobs.enqueue(projectId, 'RENDER', { platform: 'YOUTUBE', preset: 'LANDSCAPE', autoTriggered: true });
-            this.log(jobId, projectId, 'Auto-triggered RENDER — voice and music are ready ✓');
+            const autoPreset = isVerticalVid ? 'VERTICAL' : (isSquareVid ? 'SQUARE' : 'LANDSCAPE');
+            const autoPlatform = rawPlatformVid ?? 'YOUTUBE';
+            await this.jobs.enqueue(projectId, 'RENDER', { platform: autoPlatform, preset: autoPreset, autoTriggered: true });
+            this.log(jobId, projectId, `Auto-triggered RENDER — voice and music are ready ✓ (${autoPlatform} · ${autoPreset})`);
           } else {
             this.log(jobId, projectId,
               `RENDER not auto-triggered — missing: ${[voiceCount === 0 ? 'voice-over' : '', musicCount === 0 ? 'background music' : ''].filter(Boolean).join(' + ')}. Run those steps, then click Render.`);
