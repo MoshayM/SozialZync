@@ -400,8 +400,11 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
 
   scenes.forEach((s, i) => {
     if (s.videoPath) {
-      args.push('-i', s.videoPath);
-      filters.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},trim=duration=${s.durationSecs},setpts=PTS-STARTPTS[v${i}]`);
+      // Force CFR at decode time so xfade gets a valid, constant frame rate.
+      // AI-generated clips (Kling, Luma, Runway) often have VFR or 1/0 container
+      // rate; -r on the input decoder is the only reliable fix before filtergraph.
+      args.push('-r', String(fps), '-i', s.videoPath);
+      filters.push(`[${i}:v]fps=fps=${fps},scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,trim=duration=${s.durationSecs},setpts=PTS-STARTPTS[v${i}]`);
     } else if (s.imagePath) {
       // Still image: zoompan generates durationSecs*fps frames.
       // Cycle 4 KB variants per scene for naturalistic motion variety.
