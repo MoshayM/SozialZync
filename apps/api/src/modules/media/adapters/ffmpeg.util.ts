@@ -400,10 +400,11 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
 
   scenes.forEach((s, i) => {
     if (s.videoPath) {
-      args.push('-i', s.videoPath);
-      // fps=fps=N must be the LAST filter before the output label so that [vi]'s
-      // frame_rate metadata = N. trim and setpts do not propagate frame_rate, so
-      // placing fps earlier leaves [vi] with 1/0 which xfade rejects at config time.
+      // -stream_loop -1 loops the clip indefinitely so that short AI tiles
+      // (Kling/Luma/Runway are typically 5–10 s) fill the full planned scene
+      // duration. trim= cuts to exactly durationSecs. fps= at the end of the
+      // chain sets frame_rate on the output link so xfade sees valid CFR.
+      args.push('-stream_loop', '-1', '-i', s.videoPath);
       filters.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,trim=duration=${s.durationSecs},setpts=PTS-STARTPTS,fps=fps=${fps}[v${i}]`);
     } else if (s.imagePath) {
       // Still image: zoompan generates durationSecs*fps frames.
