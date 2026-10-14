@@ -52,7 +52,8 @@ export class KlingVideoAdapter implements VideoAdapter {
     const ratio = klingRatio(req.width, req.height);
 
     const input: Record<string, unknown> = {
-      prompt: req.prompt,
+      // Kling prompt limit is ~2500 chars — truncate to stay safe
+      prompt: req.prompt.slice(0, 2400),
       duration,
       aspect_ratio: ratio,
     };
@@ -67,14 +68,15 @@ export class KlingVideoAdapter implements VideoAdapter {
       body: JSON.stringify({ model: 'kling', task_type: 'video_generation', input }),
     });
 
-    if (!startRes.ok) {
-      const text = await startRes.text().catch(() => '');
-      throw new Error(`Kling/PiAPI start failed: ${startRes.status} ${text.slice(0, 200)}`);
+    // PiAPI returns HTTP 500 for immediately-failed tasks (still has a response body).
+    // Always parse the body to extract the real error detail.
+    const startData = await startRes.json().catch(() => null) as PiResponse | null;
+    if (!startRes.ok || !startData || (startData.code !== 200 && startData.code !== 0)) {
+      const detail = startData?.data?.error?.message ?? startData?.message ?? String(startRes.status);
+      throw new Error(`Kling/PiAPI start failed: ${detail}`);
     }
-
-    const startData = (await startRes.json()) as PiResponse;
-    if (startData.code !== 200 && startData.code !== 0) {
-      throw new Error(`Kling/PiAPI error: ${startData.message ?? startData.code}`);
+    if (startData.data.status === 'failed') {
+      throw new Error(`Kling/PiAPI task immediately failed: ${startData.data.error?.message ?? 'unknown'}`);
     }
 
     const taskId = startData.data.task_id;
