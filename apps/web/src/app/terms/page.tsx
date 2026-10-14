@@ -76,7 +76,15 @@ AI-Generated Content: You acknowledge that AI outputs — including scripts, cha
 • Every piece of content must pass the Compliance Intelligence Engine before it is made available for publishing. You must not use or implement any code path that bypasses this compliance gate.
 • Compliance tools are designed to help identify potential issues but do not constitute a guarantee that content will be monetized or approved by YouTube or any other platform.
 • AI-generated voice narrations, characters, and music use licensed AI providers. Provenance metadata is stored with every generated asset. You agree not to remove or alter this metadata.
-• Human approval is required before content is published to YouTube, unless you have explicitly enabled scheduled auto-publish and the item has already passed compliance.`,
+• Human approval is required before content is published to YouTube, unless you have explicitly enabled scheduled auto-publish and the item has already passed compliance.
+
+AI-Generated Content Disclosure: SozialZynk is an AI-powered platform. Content generated through our service — including scripts, images, videos, voice narration, and music — is produced using artificial intelligence. By using SozialZynk:
+
+1. You acknowledge that all content created with our platform may be labelled or disclosed as AI-generated when published to third-party platforms (YouTube, Instagram, TikTok, etc.), as required by those platforms' policies. We automatically set the YouTube "Contains Synthetic Media" disclosure flag on all AI-generated videos.
+2. You agree not to use AI-generated content to deceive, defraud, or mislead others — including using AI-generated likenesses of real persons without their explicit consent (deepfakes), creating disinformation, or violating any applicable law.
+3. You are responsible for ensuring that AI-generated content you publish complies with the terms and policies of the destination platform. Equivalent disclosures to YouTube's synthetic media disclosure are required on other platforms where mandated by their policies.
+4. Generating or publishing harmful deepfakes, non-consensual intimate imagery, or AI-generated content designed to deceive voters or undermine democratic processes is strictly prohibited and will result in immediate account termination and reporting to relevant authorities.
+5. AI-generated voice cloning of real, identifiable individuals requires their documented consent. Using voice cloning to impersonate public figures or private individuals without consent is prohibited.`,
   },
   {
     id: 'ad-revenue-programme',
@@ -122,11 +130,26 @@ Cancellation: You may cancel your subscription at any time from your account set
 
 Price Changes: We will notify you at least 30 days before any price changes take effect. Continued use of the Service after the effective date constitutes acceptance of the new pricing.
 
-Taxes: Prices may be exclusive of applicable taxes. You are responsible for all taxes applicable to your subscription in your jurisdiction.`,
+Taxes: Prices may be exclusive of applicable taxes. You are responsible for all taxes applicable to your subscription in your jurisdiction.
+
+EU/EEA Consumers — Right of Withdrawal: If you are a consumer located in the EU or EEA, you have the right to withdraw from a digital service subscription within 14 days of purchase without giving any reason (the "cooling-off period"), unless you expressly requested the service to begin during that period and acknowledged losing the withdrawal right. To exercise this right, contact us at billing@sozialzynk.com within 14 days of your first payment. Refunds will be processed within 14 days of receiving your request.
+
+Auto-Renewal Disclosure: Paid subscriptions renew automatically each month unless cancelled before the end of the current billing period. You may cancel at any time from Settings → Billing. No partial-period refunds are issued except where required by applicable law.`,
+  },
+  {
+    id: 'dmca',
+    title: '10. DMCA Safe Harbor and Copyright',
+    content: `SozialZynk respects intellectual property rights and complies with the Digital Millennium Copyright Act (DMCA), 17 U.S.C. § 512. We operate as a service provider and may host user-generated and AI-generated content.
+
+To report copyright infringement, follow our DMCA Policy at sozialzynk.com/dmca. Upon receiving a valid takedown notice, we will remove or disable access to the infringing material promptly. Repeat infringers may have their accounts terminated.
+
+Users are responsible for ensuring they have all necessary rights, licences, and permissions for any content they upload, import, or publish through SozialZynk, including images, audio, video clips, and third-party assets used as inputs to AI generation.
+
+DMCA Agent: dmca@sozialzynk.com — subject line "DMCA Takedown Request".`,
   },
   {
     id: 'prohibited',
-    title: '10. Prohibited Activities',
+    title: '11. Prohibited Activities',
     content: `In addition to the Acceptable Use policy in Section 4, the following are expressly prohibited:
 
 • Using the Service to generate content designed to manipulate search engines or YouTube's recommendation algorithm in a deceptive manner.
@@ -173,8 +196,12 @@ If you are a consumer in the European Union, you may also be entitled to the pro
 Legal inquiries: legal@sozialzynk.com
 General support: support@sozialzynk.com
 Privacy matters: privacy@sozialzynk.com
+DMCA / Copyright: dmca@sozialzynk.com
+Billing / Refunds: billing@sozialzynk.com
 
-We aim to respond to all inquiries within 5 business days.`,
+We aim to respond to all inquiries within 5 business days.
+
+India Grievance Officer: In accordance with the Information Technology Act, 2000 and the Digital Personal Data Protection Act, 2023, our Grievance Officer can be contacted at grievance@sozialzynk.com. We will acknowledge complaints within 24 hours and resolve them within 15 days.`,
   },
 ];
 
@@ -197,7 +224,7 @@ export default function TermsPage() {
             Terms of Service
           </h1>
           <p className="text-white/65 text-base">
-            Effective date: <strong className="text-white/85">August 7, 2026</strong>
+            Effective date: <strong className="text-white/85">October 15, 2026</strong>
           </p>
         </div>
       </div>
@@ -233,11 +260,15 @@ export default function TermsPage() {
 
         {/* Footer */}
         <div className="mt-10 text-center text-sm text-gray-400 space-y-2">
-          <p>Last updated: August 7, 2026</p>
+          <p>Last updated: October 15, 2026</p>
           <p>
             Also read our{' '}
             <Link href="/privacy" className="text-[#374151] hover:underline font-medium">
               Privacy Policy
+            </Link>
+            {' · '}
+            <Link href="/dmca" className="text-[#374151] hover:underline font-medium">
+              DMCA Policy
             </Link>
           </p>
           <p>

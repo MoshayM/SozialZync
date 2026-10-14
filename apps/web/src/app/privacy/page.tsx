@@ -36,7 +36,9 @@ Browse & Ad Revenue Data: When your project is published to the SozialZynk Brows
 • Send transactional emails such as password resets, billing receipts, and service notifications. We do not send marketing emails without your consent.
 • Run compliance checks on all content before it is made available for publishing, to ensure it meets YouTube's policies and copyright requirements.
 • Detect and prevent fraud, abuse, and violations of our Terms of Service.
-• Respond to your support requests and communicate about your account.`,
+• Respond to your support requests and communicate about your account.
+
+Legal Basis for Processing (GDPR): We process your personal data on the following legal bases: (a) Contract — processing necessary to provide the service you signed up for; (b) Consent — where you have explicitly opted in (e.g., marketing communications); (c) Legitimate Interests — to prevent fraud, improve our service, and ensure security, provided these interests are not overridden by your rights; (d) Legal Obligation — where required by law.`,
   },
   {
     id: 'data-sharing',
@@ -73,13 +75,20 @@ You may request deletion of specific data at any time by contacting privacy@sozi
 
 Access: Request a copy of the personal data we hold about you.
 Correction: Request that we correct inaccurate or incomplete data.
-Deletion: Request that we delete your personal data ("right to be forgotten").
-Portability: Request an export of your data in a machine-readable format.
+Deletion: Request that we delete your personal data ("right to be forgotten"). You can delete your account directly from Settings → Account.
+Portability: Request an export of your data in a machine-readable format. You can export your data from Settings → Account → Export My Data.
 Opt-out of AI Training: Opt out of having your content used to improve our AI models via Settings → Privacy.
 Restriction: Request that we restrict processing of your data in certain circumstances.
 Objection: Object to our processing of your data where we rely on legitimate interests.
+Withdrawal of Consent: Where processing is based on consent, you may withdraw it at any time without affecting the lawfulness of processing before withdrawal.
 
-To exercise any of these rights, email privacy@sozialzynk.com. We will respond within 30 days. Users in the European Economic Area (EEA), United Kingdom, and California have additional rights under GDPR, UK GDPR, and CCPA respectively.`,
+GDPR / UK GDPR (EEA & United Kingdom): Users in the European Economic Area and United Kingdom have the above rights under the General Data Protection Regulation and UK GDPR. You also have the right to lodge a complaint with your local supervisory authority.
+
+CCPA / CPRA (California): California residents have the right to know what personal information we collect and how we use it, to delete their personal information, to opt out of the sale of their personal information (we do not sell personal information), and to non-discrimination for exercising these rights.
+
+India — Digital Personal Data Protection Act (DPDP Act, 2023): If you are located in India, you have the right to access your personal data, correct inaccurate data, erase your data, nominate a person to exercise rights on your behalf in the event of death or incapacity, and withdraw consent at any time. We will respond to verified requests within 30 days. Contact our Grievance Officer at privacy@sozialzynk.com.
+
+To exercise any of these rights, email privacy@sozialzynk.com with "Data Subject Request" in the subject line. We will respond within 30 days.`,
   },
   {
     id: 'cookies',
@@ -122,10 +131,17 @@ While we take extensive precautions, no system is completely secure. If you disc
     title: '9. Contact Us',
     content: `If you have questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact our Privacy team:
 
-Email: privacy@sozialzynk.com
-Response time: We aim to respond within 5 business days.
+Data Protection Officer / Grievance Officer: privacy@sozialzynk.com
+General Privacy Inquiries: privacy@sozialzynk.com
+DMCA Copyright Takedowns: dmca@sozialzynk.com
+Security Vulnerabilities: security@sozialzynk.com
+Response time: We aim to respond within 5 business days; data subject requests within 30 days.
 
-For data subject requests under GDPR or CCPA, please include "Data Subject Request" in the subject line and specify the right you are exercising.`,
+For data subject requests under GDPR, UK GDPR, CCPA, or India's DPDP Act, please include "Data Subject Request" in the subject line and specify the right you are exercising.
+
+EU Representative: SozialZynk commits to responding to all EU data subject requests within 30 days and cooperating with EU supervisory authorities as required by GDPR Article 27. As a startup with fewer than 250 employees that processes EU personal data only occasionally, we may qualify for the SME exemption from the formal Article 27 representative requirement; however, EU users may contact us directly at privacy@sozialzynk.com for all data protection matters.
+
+For copyright infringement notices, see our DMCA Policy at sozialzynk.com/dmca.`,
   },
   {
     id: 'changes',
@@ -159,7 +175,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="text-white/65 text-base">
-            Effective date: <strong className="text-white/85">August 24, 2026</strong>
+            Effective date: <strong className="text-white/85">October 15, 2026</strong>
           </p>
         </div>
       </div>
@@ -195,11 +211,15 @@ export default function PrivacyPage() {
 
         {/* Footer */}
         <div className="mt-10 text-center text-sm text-gray-400 space-y-2">
-          <p>Last updated: August 24, 2026</p>
+          <p>Last updated: October 15, 2026</p>
           <p>
             Also read our{' '}
             <Link href="/terms" className="text-[#374151] hover:underline font-medium">
               Terms of Service
+            </Link>
+            {' · '}
+            <Link href="/dmca" className="text-[#374151] hover:underline font-medium">
+              DMCA Policy
             </Link>
           </p>
           <p>
