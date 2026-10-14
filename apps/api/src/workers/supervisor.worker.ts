@@ -1233,6 +1233,29 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         }
         await this.jobs.logStep(jobId, 'VideoAgent', 'generate', { scenes: maxScenes }, { videos }, 0, 0, Date.now() - t0);
         this.events.emitJobUpdate(jobId, { step: 'VIDEO_GENERATE', status: 'COMPLETED' }, projectId);
+
+        // Auto-chain RENDER when voice + music are already available.
+        // Eliminates the manual "click Render" step that users frequently miss.
+        // Skipped if a RENDER job is already queued/running to avoid duplicates.
+        try {
+          const [voiceCount, musicCount, activeRender] = await Promise.all([
+            this.prisma.asset.count({ where: { projectId, kind: 'VOICE', deletedAt: null, status: { in: ['READY', 'ACCEPTED'] } } }),
+            this.prisma.asset.count({ where: { projectId, kind: 'MUSIC', deletedAt: null, status: { in: ['READY', 'ACCEPTED'] } } }),
+            this.prisma.agentJob.findFirst({ where: { projectId, type: 'RENDER', status: { in: ['QUEUED', 'RUNNING', 'PENDING'] } }, select: { id: true } }),
+          ]);
+          if (activeRender) {
+            this.log(jobId, projectId, 'RENDER already queued/running — skipping auto-trigger');
+          } else if (voiceCount > 0 && musicCount > 0) {
+            await this.jobs.enqueue(projectId, 'RENDER', { platform: 'YOUTUBE', preset: 'LANDSCAPE', autoTriggered: true });
+            this.log(jobId, projectId, 'Auto-triggered RENDER — voice and music are ready ✓');
+          } else {
+            this.log(jobId, projectId,
+              `RENDER not auto-triggered — missing: ${[voiceCount === 0 ? 'voice-over' : '', musicCount === 0 ? 'background music' : ''].filter(Boolean).join(' + ')}. Run those steps, then click Render.`);
+          }
+        } catch (autoErr) {
+          this.log(jobId, projectId, 'Auto-RENDER trigger skipped', autoErr instanceof Error ? autoErr.message : String(autoErr));
+        }
+
         return { videos };
       }
 
@@ -1410,6 +1433,13 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         const voicePath = await resolveKey(voiceAssets[voiceAssets.length - 1]);
         const musicPath = await resolveKey(musicAssets[musicAssets.length - 1]);
+
+        if (voiceAssets.length > 0 && !voicePath) {
+          this.log(jobId, projectId, 'Warning: voice-over asset exists in DB but could not be fetched — render will be silent. Check ASSET_CDN_URL / API_BASE_URL environment variables.');
+        }
+        if (musicAssets.length > 0 && !musicPath) {
+          this.log(jobId, projectId, 'Warning: music asset exists in DB but could not be fetched — render will have no background music. Check ASSET_CDN_URL / API_BASE_URL environment variables.');
+        }
 
         // ── Total scene duration (needed for subtitle rescaling and quality) ──
         const totalSceneSecs = scenes.reduce((s, sc) => s + sc.durationSecs, 0);

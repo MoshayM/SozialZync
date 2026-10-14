@@ -374,11 +374,14 @@ export interface ComposeOptions {
  */
 // Ken Burns motion variants — cycle per scene for naturalistic still-image motion.
 // Variables: zoom (current zoom), on (output frame number), d (total frames), iw/ih.
+// 6 variants match the STYLE_CYCLE in video-ffmpeg.adapter.ts for consistent per-scene variety.
 const KB_VARIANTS = [
-  (d: number) => `z='min(zoom+0.0006,1.15)'`,                                          // zoom in (center)
-  (d: number) => `z='max(1.0,1.15-on*0.15/${d})'`,                                    // zoom out (center)
-  (d: number) => `z='min(zoom+0.0004,1.08)':x='iw/2-(iw/zoom/2)+iw*0.03*on/${d}'`,   // pan right + zoom
-  (d: number) => `z='min(zoom+0.0004,1.08)':x='max(0,iw/2-(iw/zoom/2)-iw*0.03*on/${d})'`, // pan left + zoom
+  (d: number) => `z='min(zoom+0.0006,1.15)'`,                                                                // zoom in (center)
+  (d: number) => `z='max(1.0,1.15-on*0.15/${d})'`,                                                         // zoom out (center)
+  (d: number) => `z='min(zoom+0.0004,1.08)':x='iw/2-(iw/zoom/2)+iw*0.03*on/${d}'`,                        // pan right + zoom
+  (d: number) => `z='min(zoom+0.0004,1.08)':x='max(0,iw/2-(iw/zoom/2)-iw*0.03*on/${d})'`,                 // pan left + zoom
+  (d: number) => `z='min(zoom+0.0003,1.1)':x='iw*0.008*on/${d}':y='ih*0.005*on/${d}'`,                    // drift diagonal
+  (d: number) => `z='min(zoom+0.0005,1.12)':y='max(0,ih/2-(ih/zoom/2)+ih*0.02*on/${d})'`,                 // tilt up
 ];
 
 export async function composeVideo(opts: ComposeOptions): Promise<void> {
