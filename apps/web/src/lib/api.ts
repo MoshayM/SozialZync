@@ -826,8 +826,8 @@ export const api = {
   auth: {
     login: (email: string, password: string) =>
       apiClient.post<{ accessToken: string; refreshToken: string; user: { id: string; email: string; name: string } }>('/auth/login', { email, password }),
-    register: (email: string, password: string, name?: string, phone?: string) =>
-      apiClient.post<{ accessToken: string; refreshToken: string; user: { id: string; email: string; name: string } }>('/auth/register', { email, password, ...(name ? { name } : {}), ...(phone ? { phone } : {}) }),
+    register: (email: string, password: string, name?: string, phone?: string, opts?: { marketingConsent?: boolean }) =>
+      apiClient.post<{ accessToken: string; refreshToken: string; user: { id: string; email: string; name: string } }>('/auth/register', { email, password, ...(name ? { name } : {}), ...(phone ? { phone } : {}), ...(opts?.marketingConsent != null ? { marketingConsent: opts.marketingConsent } : {}) }),
     me: () =>
       apiClient.get<{ id: string; email: string; name: string | null; role: string; phone: string | null; avatarUrl: string | null }>('/auth/me'),
     updateProfile: (data: { name?: string; avatarUrl?: string }) =>

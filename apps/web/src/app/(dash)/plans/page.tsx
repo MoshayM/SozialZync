@@ -309,20 +309,25 @@ function PlansContent() {
                       Downgrade via cancel
                     </div>
                   ) : (
-                    <button
-                      onClick={() => handleSelectPlan(plan.id)}
-                      disabled={isMutating}
-                      className="w-full py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-                      style={{ background: `linear-gradient(135deg, ${plan.color} 0%, #7c5ae8 100%)` }}
-                    >
-                      {(changeMut.isPending || checkoutMut.isPending) ? (
-                        <Loader2 className="w-3 h-3 animate-spin mx-auto" />
-                      ) : isUpgrade ? (
-                        `Upgrade to ${plan.label}`
-                      ) : (
-                        `Switch to ${plan.label}`
-                      )}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleSelectPlan(plan.id)}
+                        disabled={isMutating}
+                        className="w-full py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+                        style={{ background: `linear-gradient(135deg, ${plan.color} 0%, #7c5ae8 100%)` }}
+                      >
+                        {(changeMut.isPending || checkoutMut.isPending) ? (
+                          <Loader2 className="w-3 h-3 animate-spin mx-auto" />
+                        ) : isUpgrade ? (
+                          `Upgrade to ${plan.label}`
+                        ) : (
+                          `Switch to ${plan.label}`
+                        )}
+                      </button>
+                      <p className="text-[10px] text-gray-400 text-center mt-1 leading-relaxed">
+                        Billed monthly. Renews automatically. Cancel anytime in Settings.
+                      </p>
+                    </>
                   )}
                 </div>
               </div>

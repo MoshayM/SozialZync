@@ -7,7 +7,7 @@ import {
   LogOut, XCircle, Eye,
   Key, Save, EyeOff, Shield, Monitor, Unlink, Link2, User,
   Webhook, Trash2, Play, Plus, Cpu,
-  Fingerprint, Camera, X as XIcon, Bell, BellOff,
+  Fingerprint, Camera, X as XIcon, Bell, BellOff, Download,
 } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { startRegistration } from '@simplewebauthn/browser';
@@ -62,6 +62,44 @@ function SettingsContent() {
     unsubscribe: pushUnsubscribe,
   } = usePushNotifications();
   const [pushBanner, setPushBanner] = useState<string | null>(null);
+
+  // ── Data & Privacy ──────────────────────────────────────────────────────────
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  async function handleExportData() {
+    setExportLoading(true);
+    try {
+      const { data } = await apiClient.get<Record<string, unknown>>('/auth/me/export');
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sozialzync-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setBanner({ type: 'error', message: 'Export failed. Please try again or contact support.' });
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirm !== 'DELETE') return;
+    setDeleteLoading(true);
+    try {
+      await apiClient.delete('/auth/me');
+      localStorage.removeItem('cf_token');
+      localStorage.removeItem('cf_refresh');
+      window.location.href = '/';
+    } catch {
+      setBanner({ type: 'error', message: 'Account deletion failed. Please contact support@sozialzync.com.' });
+      setDeleteLoading(false);
+    }
+  }
 
   async function handlePushSubscribe() {
     try {
@@ -1109,6 +1147,89 @@ function SettingsContent() {
               )}
             </div>
           </section>
+        )}
+
+        {/* Data & Privacy */}
+        <section>
+          <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <Shield className="w-4 h-4" style={{ color: '#374151' }} />
+            Data &amp; Privacy
+          </h2>
+          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #e5e7eb' }}>
+            <div className="px-4 py-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <p className="text-sm font-semibold text-gray-800 mb-0.5">Download Your Data</p>
+              <p className="text-xs text-gray-500 mb-3">
+                Get a JSON export of your profile, projects, channels, and usage history. Your data belongs to you.
+              </p>
+              <button
+                type="button"
+                onClick={() => { void handleExportData(); }}
+                disabled={exportLoading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-sm transition-colors disabled:opacity-50"
+                style={{ border: '1.5px solid #d1d5db', color: '#374151' }}
+              >
+                {exportLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                Export my data
+              </button>
+            </div>
+            <div className="px-4 py-4">
+              <p className="text-sm font-semibold text-red-700 mb-0.5">Delete Account</p>
+              <p className="text-xs text-gray-500 mb-3">
+                Permanently delete your account and all associated data. This cannot be undone.
+                Per our Privacy Policy, personal data is fully purged within 30 days.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-semibold text-sm transition-colors"
+                style={{ border: '1.5px solid #fecaca', color: '#dc2626' }}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete my account
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+              <h3 className="text-base font-bold text-gray-900 mb-2">Delete your account?</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                This is permanent. Your projects, channels, and subscription will be cancelled immediately.
+                All personal data will be purged within 30 days.
+              </p>
+              <p className="text-xs font-semibold text-gray-700 mb-1">
+                Type{' '}
+                <span className="font-mono bg-gray-100 px-1 rounded">DELETE</span>
+                {' '}to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder="DELETE"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowDeleteModal(false); setDeleteConfirm(''); }}
+                  className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { void handleDeleteAccount(); }}
+                  disabled={deleteConfirm !== 'DELETE' || deleteLoading}
+                  className="flex-1 px-4 py-2 rounded-xl text-sm font-bold bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40"
+                >
+                  {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Delete forever'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
       </div>

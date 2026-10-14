@@ -64,6 +64,8 @@ function RegisterInner() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [birthYear, setBirthYear] = useState('');
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   useEffect(() => {
     // Already logged in — no need to register again
@@ -78,6 +80,16 @@ function RegisterInner() {
     setLoading(true);
     setError('');
 
+    // Age gate: COPPA requires 13+, Privacy Policy enforces this
+    if (birthYear) {
+      const age = new Date().getFullYear() - parseInt(birthYear, 10);
+      if (age < 13) {
+        setError('You must be at least 13 years old to create an account.');
+        setLoading(false);
+        return;
+      }
+    }
+
     if (MOCK_MODE) {
       localStorage.setItem('cf_token', MOCK_TOKEN);
       router.push('/home');
@@ -85,7 +97,7 @@ function RegisterInner() {
     }
 
     try {
-      const { data } = await api.auth.register(email, password, name);
+      const { data } = await api.auth.register(email, password, name, undefined, { marketingConsent });
       setTokens(data.accessToken, data.refreshToken);
       const pending = localStorage.getItem('cf.pendingReferralCode');
       if (pending) {
@@ -161,6 +173,39 @@ function RegisterInner() {
             </button>
           }
         />
+
+        {/* Age gate — COPPA compliance */}
+        <div>
+          <label htmlFor="birthYear" className="block text-xs font-medium text-gray-600 mb-1">
+            Year of birth <span className="text-gray-400">(required)</span>
+          </label>
+          <select
+            id="birthYear"
+            value={birthYear}
+            onChange={(e) => setBirthYear(e.target.value)}
+            required
+            className="w-full rounded-xl px-4 py-3 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#374151]/20"
+            style={{ border: '1.5px solid #e5e7eb' }}
+          >
+            <option value="">Select your birth year</option>
+            {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i - 5).map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Marketing consent — GDPR opt-in */}
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={marketingConsent}
+            onChange={(e) => setMarketingConsent(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded accent-[#374151] shrink-0"
+          />
+          <span className="text-xs text-gray-500 leading-relaxed">
+            I agree to receive product updates, tips, and occasional offers from SozialZynk. You can unsubscribe at any time.
+          </span>
+        </label>
 
         {error && <ErrorNote msg={error} />}
 
