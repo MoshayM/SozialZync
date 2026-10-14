@@ -688,6 +688,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [imgUploadingIdx, setImgUploadingIdx] = useState<number | null>(null);
   const imgFileInputRef = useRef<HTMLInputElement>(null);
   const imgUploadTargetIdx = useRef<number>(-1);
+  const [sceneStyleOverrides, setSceneStyleOverrides] = useState<Record<number, ImageVisualStyle>>({});
   const [imgLightbox, setImgLightbox] = useState<string | null>(null);
   type ImageVisualStyle =
     | 'ai-best'
@@ -3573,6 +3574,44 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       <p className="text-[10px] text-gray-500 leading-relaxed line-clamp-2">{brief.prompt}</p>
                     )}
 
+                    {/* Per-scene style override */}
+                    <select
+                      className="w-full text-[10px] rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400 text-gray-700"
+                      value={sceneStyleOverrides[i] ?? visualStyle}
+                      onChange={e => setSceneStyleOverrides(prev => ({ ...prev, [i]: e.target.value as ImageVisualStyle }))}
+                      disabled={busy}
+                    >
+                      {([
+                        ['✨ AI Picks', 'ai-best'],
+                        ['📷 Realistic', 'realistic'],
+                        ['🔍 Hyper-Real', 'hyper-realistic'],
+                        ['🎬 Cinematic', 'cinematic'],
+                        ['🎥 Documentary', 'documentary'],
+                        ['📢 Commercial', 'commercial'],
+                        ['🎲 3D Anim', '3d-animation'],
+                        ['🎨 Cartoon', 'cartoon'],
+                        ['⛩️ Anime', 'anime'],
+                        ['🧸 Claymation', 'claymation'],
+                        ['🔷 Low Poly', 'low-poly'],
+                        ['🕹️ Pixel Art', 'pixel-art'],
+                        ['🖌️ Watercolor', 'watercolor'],
+                        ['🖼️ Oil Paint', 'oil-painting'],
+                        ['✏️ Sketch', 'sketch'],
+                        ['📚 Storybook', 'storybook'],
+                        ['✂️ Paper Cut', 'paper-cutout'],
+                        ['💥 Comic Book', 'comic-book'],
+                        ['🌆 Cyberpunk', 'cyberpunk'],
+                        ['🌈 Synthwave', 'neon-synthwave'],
+                        ['📻 Retro', 'vintage-retro'],
+                        ['⬛ B&W Noir', 'black-white-noir'],
+                        ['🌀 Surreal', 'surreal'],
+                        ['◻️ Minimalist', 'minimalist'],
+                        ['📊 Slides', 'text-carousel'],
+                      ] as [string, ImageVisualStyle][]).map(([label, key]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+
                     {/* Action buttons */}
                     <div className="flex gap-1.5 pt-0.5">
                       <button
@@ -3603,7 +3642,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         disabled={busy}
                         onClick={() => enqueue.mutate({
                           type: 'FULL_PRODUCTION',
-                          payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, visualStyle, imageQuality, ...prefsPayload },
+                          payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, visualStyle: sceneStyleOverrides[i] ?? visualStyle, imageQuality, ...prefsPayload },
                         })}
                       >
                         {isThisGenerating
@@ -3628,7 +3667,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                           onClick={() => {
                             enqueue.mutate({
                               type: 'FULL_PRODUCTION',
-                              payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, regenPrompt: imgEditPrompt.trim(), visualStyle, imageQuality, ...prefsPayload },
+                              payload: { scope: 'IMAGES', regenerate: ['IMAGE_GENERATE'], regenOneIndex: i, regenPrompt: imgEditPrompt.trim(), visualStyle: sceneStyleOverrides[i] ?? visualStyle, imageQuality, ...prefsPayload },
                             });
                             setImgEditIdx(null);
                           }}
