@@ -373,23 +373,27 @@ export interface ComposeOptions {
  * LLM involved (docs1/media-pipeline.md §8).
  */
 // Ken Burns motion variants — cycle per scene for naturalistic still-image motion.
-// Variables: zoom (current zoom), on (output frame number), d (total frames), iw/ih.
+// All use sin/cos easing for smooth acceleration (no linear or incremental zoom).
 // 6 variants match the STYLE_CYCLE in video-ffmpeg.adapter.ts for consistent per-scene variety.
-const KB_VARIANTS = [
-  (d: number) => `z='min(zoom+0.0006,1.15)'`,                                                                // zoom in (center)
-  (d: number) => `z='max(1.0,1.15-on*0.15/${d})'`,                                                         // zoom out (center)
-  (d: number) => `z='min(zoom+0.0004,1.08)':x='iw/2-(iw/zoom/2)+iw*0.03*on/${d}'`,                        // pan right + zoom
-  (d: number) => `z='min(zoom+0.0004,1.08)':x='max(0,iw/2-(iw/zoom/2)-iw*0.03*on/${d})'`,                 // pan left + zoom
-  (d: number) => `z='min(zoom+0.0003,1.1)':x='iw*0.008*on/${d}':y='ih*0.005*on/${d}'`,                    // drift diagonal
-  (d: number) => `z='min(zoom+0.0005,1.12)':y='max(0,ih/2-(ih/zoom/2)+ih*0.02*on/${d})'`,                 // tilt up
+const KB_VARIANTS: Array<(d: number) => string> = [
+  (d) => `z='1.0+0.22*sin(PI/2*on/${d})':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2'`,                  // centered zoom-in ease-out
+  (d) => `z='1.22-0.22*(1-cos(PI/2*on/${d}))':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2'`,             // centered zoom-out ease-in
+  (d) => `z=1.18:x='(iw-iw/zoom)*sin(PI/2*on/${d})'`,                                              // pan-right ease-out
+  (d) => `z=1.18:x='(iw-iw/zoom)*(1-sin(PI/2*on/${d}))'`,                                         // pan-left ease-in
+  (d) => `z='1.08+0.07*sin(PI*on/${d})':x='(iw-iw/zoom)*0.4*on/${d}':y='(ih-ih/zoom)*0.3*(1-cos(PI*on/${d}))'`, // drift+breathe
+  (d) => `z='1.0+0.18*sin(PI/2*on/${d})':x='(iw-iw/zoom)*sin(PI/2*on/${d})':y='(ih-ih/zoom)*(1-cos(PI/2*on/${d}))'`, // diagonal push
 ];
 
 export async function composeVideo(opts: ComposeOptions): Promise<void> {
   const { scenes, voicePath, musicPath, subtitlePath, outPath, width, height, fps } = opts;
   if (scenes.length === 0) throw new Error('composeVideo: no scenes provided');
 
-  // Compute totalSecs early — needed for audio fade offsets.
+  // Compute totalSecs and the effective duration after xfade overlaps.
+  // XFADE_DUR must match the constant used in the scene-assembly block below.
+  const XFADE_DUR = 0.35;
   const totalSecs = scenes.reduce((s, sc) => s + sc.durationSecs, 0);
+  // Each xfade overlap shortens the output by XFADE_DUR; audio fades target the real end.
+  const effectiveTotalSecs = scenes.length > 1 ? totalSecs - (scenes.length - 1) * XFADE_DUR : totalSecs;
 
   const args: string[] = [];
   const filters: string[] = [];
@@ -415,8 +419,8 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
   if (voicePath) {
     args.push('-i', voicePath);
     // Fade voice in (0.3s) and out (0.8s) for polished, human-sounding delivery.
-    if ((opts.audioFade ?? true) && totalSecs > 1.5) {
-      const fadeOutStart = Math.max(0, totalSecs - 0.8);
+    if ((opts.audioFade ?? true) && effectiveTotalSecs > 1.5) {
+      const fadeOutStart = Math.max(0, effectiveTotalSecs - 0.8);
       filters.push(`[${audioIdx}:a]afade=t=in:st=0:d=0.3,afade=t=out:st=${fadeOutStart}:d=0.8[voice_faded]`);
       audioInputs.push('[voice_faded]');
     } else {
@@ -450,11 +454,30 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     });
   }
 
-  const concatIn = scenes.map((_, i) => `[v${i}]`).join('');
-  const videoOut = subtitlePath ? '[vc]' : '[vpre]';
-  filters.push(`${concatIn}concat=n=${scenes.length}:v=1:a=0${videoOut}`);
+  // Scene assembly: xfade crossfade transitions give smooth scene-to-scene cuts.
+  // 0.35 s overlap keeps each clip feeling complete while removing harsh jump cuts.
+  let videoChain: string;
+  if (scenes.length === 1) {
+    videoChain = '[v0]';
+  } else {
+    let xOffset = 0;
+    let prev = '[v0]';
+    for (let i = 1; i < scenes.length; i++) {
+      xOffset += Math.max(0.1, scenes[i - 1]!.durationSecs - XFADE_DUR);
+      const out = i < scenes.length - 1 ? `[xf${i}]` : '[xfinal]';
+      filters.push(`${prev}[v${i}]xfade=transition=fade:duration=${XFADE_DUR}:offset=${xOffset.toFixed(3)}${out}`);
+      prev = out;
+    }
+    videoChain = '[xfinal]';
+  }
+
+  // Subtitles burned in after assembly so they span the correct timeline.
+  let prePost: string;
   if (subtitlePath) {
-    filters.push(`[vc]subtitles='${escapeFilterPath(subtitlePath)}'[vpre]`);
+    filters.push(`${videoChain}subtitles='${escapeFilterPath(subtitlePath)}'[vsub]`);
+    prePost = '[vsub]';
+  } else {
+    prePost = videoChain;
   }
 
   // Post-processing: film grain + vignette chain on the composed video.
@@ -463,7 +486,7 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
   if (opts.filmGrain ?? true) postChain.push('noise=c0s=6:c0f=t');
   if (opts.vignette ?? true) postChain.push('vignette=PI/4');
   // Always produce [vout]; use null passthrough when no post-processing is active.
-  filters.push(`[vpre]${postChain.length > 0 ? postChain.join(',') : 'null'}[vout]`);
+  filters.push(`${prePost}${postChain.length > 0 ? postChain.join(',') : 'null'}[vout]`);
 
   // Merge SFX labels into the audio input list before deciding mix strategy
   const allAudioInputs = [...audioInputs, ...sfxLabels];
@@ -507,12 +530,12 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
     ...videoQualityArgs,
     ...audioQualityArgs,
-    '-t', String(totalSecs),
+    '-t', String(effectiveTotalSecs),
     '-shortest',
     '-movflags', '+faststart',
     outPath,
   ];
-  if (opts.onProgress) await runFfmpegWithProgress(finalArgs, totalSecs, opts.onProgress);
+  if (opts.onProgress) await runFfmpegWithProgress(finalArgs, effectiveTotalSecs, opts.onProgress);
   else await runFfmpeg(finalArgs);
 }
 

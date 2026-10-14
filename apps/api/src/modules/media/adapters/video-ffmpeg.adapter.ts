@@ -18,37 +18,46 @@ function buildMotion(style: SceneMotionStyle, width: number, height: number, fra
   const sw120 = Math.round(width * 1.2);
   const sh120 = Math.round(height * 1.2);
   const wh = `${width}x${height}`;
+  // All motion uses sin/cos easing instead of linear interpolation: smoother
+  // acceleration curves that feel more like real camera movement.
+  const f = frames;
 
   switch (style) {
     case 'zoom-in':
+      // Ease-out zoom: fast start, slows as it approaches 1.25×. Centered.
       return {
         scaleW: sw130, scaleH: sh130,
-        filter: `zoompan=z='min(zoom+0.0008,1.25)':d=${frames}:s=${wh}:fps=${fps}`,
+        filter: `zoompan=z='1.0+0.25*sin(PI/2*on/${f})':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':d=${f}:s=${wh}:fps=${fps}`,
       };
     case 'zoom-out':
+      // Ease-in zoom-out: starts at 1.25×, decelerates to 1.0×. Centered.
       return {
         scaleW: sw130, scaleH: sh130,
-        filter: `zoompan=z='max(1.25-0.0015*(on-1),1.0)':d=${frames}:s=${wh}:fps=${fps}`,
+        filter: `zoompan=z='1.25-0.25*(1-cos(PI/2*on/${f}))':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':d=${f}:s=${wh}:fps=${fps}`,
       };
     case 'pan-right':
+      // Ease-out pan from left to right at constant 1.18× zoom.
       return {
         scaleW: sw125, scaleH: sh125,
-        filter: `zoompan=z=1.15:x='(iw-iw/zoom)*on/${frames}':d=${frames}:s=${wh}:fps=${fps}`,
+        filter: `zoompan=z=1.18:x='(iw-iw/zoom)*sin(PI/2*on/${f})':d=${f}:s=${wh}:fps=${fps}`,
       };
     case 'pan-left':
+      // Ease-in pan from right to left at constant 1.18× zoom.
       return {
         scaleW: sw125, scaleH: sh125,
-        filter: `zoompan=z=1.15:x='(iw-iw/zoom)*(1-on/${frames})':d=${frames}:s=${wh}:fps=${fps}`,
+        filter: `zoompan=z=1.18:x='(iw-iw/zoom)*(1-sin(PI/2*on/${f}))':d=${f}:s=${wh}:fps=${fps}`,
       };
     case 'drift':
+      // Diagonal drift with a gentle breathing zoom (organic floating feel).
       return {
         scaleW: sw120, scaleH: sh120,
-        filter: `zoompan=z='min(zoom+0.0004,1.15)':x='iw*0.002*on/${frames}':y='ih*0.001*on/${frames}':d=${frames}:s=${wh}:fps=${fps}`,
+        filter: `zoompan=z='1.08+0.07*sin(PI*on/${f})':x='(iw-iw/zoom)*0.4*on/${f}':y='(ih-ih/zoom)*0.3*(1-cos(PI*on/${f}))':d=${f}:s=${wh}:fps=${fps}`,
       };
     case 'diagonal':
+      // Diagonal push: ease-out zoom + rightward + downward pan together.
       return {
         scaleW: sw120, scaleH: sh120,
-        filter: `zoompan=z='min(zoom+0.0005,1.15)':x='iw*0.015*on/${frames}':y='ih*0.01*on/${frames}':d=${frames}:s=${wh}:fps=${fps}`,
+        filter: `zoompan=z='1.0+0.18*sin(PI/2*on/${f})':x='(iw-iw/zoom)*sin(PI/2*on/${f})':y='(ih-ih/zoom)*(1-cos(PI/2*on/${f}))':d=${f}:s=${wh}:fps=${fps}`,
       };
   }
 }

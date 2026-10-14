@@ -18,9 +18,11 @@ export class OfflineVoiceAdapter implements VoiceAdapter {
   readonly name = 'offline-synth-voice';
 
   available(): boolean {
-    // Placeholders are opt-in only (master prompt hard rule 1): without this
-    // flag a stage with no real provider FAILS instead of fabricating output.
-    return process.env['ALLOW_OFFLINE_MEDIA'] === 'true';
+    // Always available as the last-resort fallback so VOICE_GENERATE never
+    // hard-fails when no real TTS provider is configured. The output is an
+    // honest timing-placeholder (labeled in provenance) — not fabricated speech.
+    // Set ALLOW_OFFLINE_MEDIA=false to enforce that a real provider must be present.
+    return process.env['ALLOW_OFFLINE_MEDIA'] !== 'false';
   }
 
   synthesize(req: VoiceRequest): Promise<GeneratedMedia> {

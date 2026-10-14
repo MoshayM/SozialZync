@@ -42,12 +42,14 @@ describe('planPipeline', () => {
     expect(voice).not.toContain('RENDER');
   });
 
-  it('VIDEO scope includes SUBTITLE_GENERATE and THUMBNAIL before PACKAGE', () => {
+  it('VIDEO scope includes SUBTITLE_GENERATE, THUMBNAIL, and RENDER before PACKAGE', () => {
     const video = planPipeline('VIDEO').map((s) => s.type);
     expect(video).toContain('SUBTITLE_GENERATE');
     expect(video).toContain('THUMBNAIL');
+    expect(video).toContain('RENDER');
     const subtitleIdx = video.indexOf('SUBTITLE_GENERATE');
     const thumbnailIdx = video.indexOf('THUMBNAIL');
+    const renderIdx = video.indexOf('RENDER');
     const packageIdx = video.indexOf('PACKAGE');
     const videoGenIdx = video.indexOf('VIDEO_GENERATE');
     // SUBTITLE_GENERATE and THUMBNAIL appear after VIDEO_GENERATE, before PACKAGE
@@ -55,7 +57,10 @@ describe('planPipeline', () => {
     expect(thumbnailIdx).toBeGreaterThan(videoGenIdx);
     expect(subtitleIdx).toBeLessThan(packageIdx);
     expect(thumbnailIdx).toBeLessThan(packageIdx);
-    // Final order: ...VIDEO_GENERATE, SUBTITLE_GENERATE, THUMBNAIL, PACKAGE
+    // RENDER appears after VIDEO_GENERATE, before PACKAGE
+    expect(renderIdx).toBeGreaterThan(videoGenIdx);
+    expect(renderIdx).toBeLessThan(packageIdx);
+    // Final order: ...RENDER, PACKAGE
     expect(video[video.length - 1]).toBe('PACKAGE');
   });
 });

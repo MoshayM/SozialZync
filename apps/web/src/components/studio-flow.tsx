@@ -3364,7 +3364,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL'], ...prefsPayload },
+                  payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL', 'RENDER'], ...prefsPayload },
                 })}
               >
                 Sync Video
@@ -3756,7 +3756,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !scriptDone}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VIDEO', ...prefsPayload, ...(videoResult ? { regenerate: ['VIDEO_SCENE_PLAN', 'IMAGE_BRIEF', 'IMAGE_GENERATE', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL'] } : {}) },
+                  payload: { scope: 'VIDEO', ...prefsPayload, ...(videoResult ? { regenerate: ['VIDEO_SCENE_PLAN', 'IMAGE_BRIEF', 'IMAGE_GENERATE', 'VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL', 'RENDER'] } : {}) },
                 })}
               />
             }

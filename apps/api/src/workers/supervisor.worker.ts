@@ -1433,6 +1433,16 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         const voicePath = await resolveKey(voiceAssets[voiceAssets.length - 1]);
         const musicPath = await resolveKey(musicAssets[musicAssets.length - 1]);
+        if (!voicePath) {
+          this.log(jobId, projectId, voiceAssets.length === 0
+            ? 'No voice asset found — run Voice Over step first for narration audio. Rendering video-only.'
+            : 'Voice asset could not be resolved from disk/DB — rendering without narration.');
+        }
+        if (!musicPath) {
+          this.log(jobId, projectId, musicAssets.length === 0
+            ? 'No music asset found — run Background Music step first. Rendering without background music.'
+            : 'Music asset could not be resolved from disk/DB — rendering without background music.');
+        }
 
         if (voiceAssets.length > 0 && !voicePath) {
           this.log(jobId, projectId, 'Warning: voice-over asset exists in DB but could not be fetched — render will be silent. Check ASSET_CDN_URL / API_BASE_URL environment variables.');

@@ -75,6 +75,7 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
     S('VIDEO_GENERATE', 'Scene Videos', 60),
     S('SUBTITLE_GENERATE', 'Subtitles', 45, { optional: true }),
     S('THUMBNAIL', 'Thumbnail', 10),
+    S('RENDER', 'Rendering', 90),
     S('PACKAGE', 'Package', 5),
   ],
   // Multi-character short-form video (Instagram Reel / TikTok / Shorts style)
