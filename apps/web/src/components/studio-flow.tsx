@@ -648,6 +648,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [cloneAvailability, setCloneAvailability] = useState<{ available: boolean; reason?: string; provider?: string } | null>(null);
   const [clonedVoiceId, setClonedVoiceId] = useState<string | null>(null);
   const [voiceStyle, setVoiceStyle] = useState<VoiceStyleId>('default');
+  const [perSceneVoice, setPerSceneVoice] = useState(false);
   const [elevenLabsOpen, setElevenLabsOpen] = useState(false);
   // Pre-render settings dialog
   const [showRenderDialog, setShowRenderDialog] = useState(false);
@@ -912,7 +913,10 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const scriptDone = isDone(jobs, 'SCRIPT');
   const script = scriptJob?.status === 'COMPLETED' ? (scriptJob.result as ScriptResult) : null;
   const voiceJob = latest(jobs, 'VOICE_GENERATE');
-  const voiceResult = voiceJob?.status === 'COMPLETED' ? (voiceJob.result as { versionId?: string; provider?: string; durationMs?: number; notes?: string }) : null;
+  type VoiceSceneClip = { sceneId: string; versionId: string; durationMs: number };
+  type VoiceJobResult = { versionId?: string; provider?: string; durationMs?: number; notes?: string; perScene?: boolean; scenes?: VoiceSceneClip[] };
+  const voiceResult = voiceJob?.status === 'COMPLETED' ? (voiceJob.result as VoiceJobResult) : null;
+  const voicePerSceneMap = Object.fromEntries((voiceResult?.scenes ?? []).map((c) => [c.sceneId, c]));
   const specJob = latest(jobs, 'VOICE_SPEC');
   type DetectedCharacter = { name: string; gender?: string; style?: string; tone?: string; pace?: string; description?: string };
   const detectedCharacters: DetectedCharacter[] = (specJob?.status === 'COMPLETED'
@@ -2135,7 +2139,18 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           {/* ── AI Narration tab ── */}
           {aiVoiceTab === 'narration' && (
             <div className="space-y-3">
-              {voiceResult?.versionId && (
+              {voiceResult?.perScene && voiceResult.scenes?.length ? (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold text-brand-600 uppercase tracking-wide">Per-scene narration · {voiceResult.scenes.length} clips</p>
+                  {voiceResult.scenes.map((clip, i) => (
+                    <div key={clip.sceneId} className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-500 w-14 shrink-0">Scene {i + 1}</span>
+                      <MediaPlayer versionId={clip.versionId} kind="audio" />
+                      <span className="text-[10px] text-gray-400">{Math.round(clip.durationMs / 1000)}s</span>
+                    </div>
+                  ))}
+                </div>
+              ) : voiceResult?.versionId ? (
                 <div className="flex items-center gap-2">
                   <MediaPlayer versionId={voiceResult.versionId} kind="audio" />
                   <button
@@ -2149,7 +2164,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     <Download className="w-3 h-3" />
                   </button>
                 </div>
-              )}
+              ) : null}
               {voiceResult?.notes && <p className="text-xs text-amber-600">{voiceResult.notes}</p>}
 
               {/* Voice Timeline — section-by-section word-count bars */}
@@ -2203,6 +2218,17 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 <p className="text-[11px] text-gray-400">{VOICE_STYLES.find((s) => s.id === voiceStyle)?.desc}</p>
               </div>
 
+              {/* Per-scene narration toggle */}
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <div
+                  onClick={() => setPerSceneVoice((v) => !v)}
+                  className={`relative w-8 h-4 rounded-full transition-colors ${perSceneVoice ? 'bg-brand-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${perSceneVoice ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+                <span className="text-[11px] text-gray-600">Per-scene narration <span className="text-gray-400">(separate audio per scene, better sync)</span></span>
+              </label>
+
               <button
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
@@ -2212,6 +2238,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
                     voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
                     characterVoices: false,
+                    ...(perSceneVoice ? { perScene: true } : {}),
                   },
                 })}
                 disabled={busy}
@@ -2994,6 +3021,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {v.versionId && !isThisClipGenerating && <MediaPlayer versionId={v.versionId} kind="video" />}
+                      {/* Per-scene narration audio player */}
+                      {voicePerSceneMap[v.sceneId]?.versionId && !isThisClipGenerating && (
+                        <MediaPlayer versionId={voicePerSceneMap[v.sceneId]!.versionId} kind="audio" />
+                      )}
+                      {musicResult?.versionId && !isThisClipGenerating && !voicePerSceneMap[v.sceneId] && (
+                        <span title="Music: shared track" className="text-[9px] text-gray-400 px-1">♫</span>
+                      )}
                       {!isThisClipGenerating && (
                         <button
                           title="Regenerate this scene"

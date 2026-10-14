@@ -34,7 +34,7 @@ import { CaptionGenerationService } from '../modules/shorts-studio/caption-gener
 import { ShortsRenderService } from '../modules/shorts-studio/shorts-render.service';
 import { ShortsExportService } from '../modules/shorts-studio/shorts-export.service';
 import { SHORTS_IMPORT_STAGES } from '../modules/shorts-studio/shorts-studio.service';
-import { composeVideo, ffmpegPath, runFfmpegCapture, type ComposeScene } from '../modules/media/adapters/ffmpeg.util';
+import { composeVideo, ffmpegPath, runFfmpeg, runFfmpegCapture, type ComposeScene } from '../modules/media/adapters/ffmpeg.util';
 import { encodeWhooshWav } from '../modules/media/adapters/codec.util';
 import { checkDurations, analyzeLoudness } from '../modules/media/quality.util';
 import { validateMediaFile, formatIssues } from '../modules/media/media-validation.util';
@@ -908,6 +908,31 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const spec = (payload['voiceSpec'] as VoiceSpecOutput | undefined)
           ?? await this.lastResult<VoiceSpecOutput>(projectId, 'VOICE_SPEC');
 
+        const t0 = Date.now();
+        const referenceVoiceId = payload['referenceVoiceId'] as string | undefined;
+
+        // ── Per-scene narration mode ─────────────────────────────────────────
+        // Each scene gets its own TTS clip from scene.narration, enabling
+        // scene-accurate audio preview in the studio and precise RENDER mixing.
+        if (payload['perScene'] === true) {
+          const scenePlan = await this.lastResult<VideoScenePlanOutput>(projectId, 'VIDEO_SCENE_PLAN');
+          if (!scenePlan?.scenes?.length) throw new Error('Scene plan not found — run Video Scene Plan first.');
+          const voiceId = referenceVoiceId ?? spec?.sections?.[0]?.voiceId;
+          const lang = (payload['lang'] as string | undefined) ?? project.targetLang;
+          const results: Array<{ sceneId: string; assetId: string; versionId: string; durationMs: number }> = [];
+          for (const [i, scene] of scenePlan.scenes.entries()) {
+            const text = scene.narration?.trim();
+            if (!text) { this.log(jobId, projectId, `Scene ${i + 1} has no narration — skipping`); continue; }
+            const speed = scene.voiceSettings?.pace === 'slow' ? 0.9 : scene.voiceSettings?.pace === 'fast' ? 1.1 : spec?.sections?.[0]?.speed;
+            this.log(jobId, projectId, `Scene ${i + 1}/${scenePlan.scenes.length} voice…`, `${text.split(/\s+/).length} words`);
+            const stored = await this.media.generateVoice(projectId, `Scene-${i + 1}-narration`, { text, voiceId, speed, language: lang });
+            results.push({ sceneId: scene.id || `scene-${i}`, assetId: stored.assetId, versionId: stored.versionId, durationMs: stored.durationMs ?? 0 });
+          }
+          this.log(jobId, projectId, `Per-scene voice ready ✓`, `${results.length} clips`);
+          this.events.emitJobUpdate(jobId, { step: 'VOICE_GENERATE', status: 'COMPLETED' }, projectId);
+          return { perScene: true, scenes: results };
+        }
+
         const rawNarration = [
           script.hook,
           ...script.sections.map((s) => s.content),
@@ -918,9 +943,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         // fall back to plain text for providers that do not support SSML (e.g. OpenAI TTS).
         const narration = buildVoiceNarration(spec, rawNarration);
 
-        const t0 = Date.now();
         this.log(jobId, projectId, 'Generating voice-over narration…', `${rawNarration.split(/\s+/).length} words`);
-        const referenceVoiceId = payload['referenceVoiceId'] as string | undefined;
 
         // In-app voice style cloning: "local:<versionId>" references a user-uploaded audio sample.
         if (referenceVoiceId?.startsWith('local:')) {
@@ -1516,7 +1539,47 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         if (scenes.length === 0) throw new Error('No scene videos or images available — run Scene Images / Scene Videos first.');
 
-        const voicePath = await resolveKey(voiceAssets[voiceAssets.length - 1]);
+        // ── Per-scene voice pre-mix ──────────────────────────────────────────
+        // When VOICE_GENERATE ran in perScene mode, voiceAssets has N clips (one
+        // per scene). We adelay each clip to its scene start offset and amix them
+        // into a single WAV that is then passed as voicePath to composeVideo.
+        const voiceJobResult = (
+          (stageResults['VOICE_GENERATE'] as { perScene?: boolean } | undefined)
+          ?? await this.lastResult<{ perScene?: boolean }>(projectId, 'VOICE_GENERATE')
+        );
+        let perSceneVoicePremix: string | undefined;
+        if (voiceJobResult?.perScene === true && voiceAssets.length > 0) {
+          this.log(jobId, projectId, `Per-scene voice: pre-mixing ${voiceAssets.length} clip(s) with scene offsets…`);
+          const sfxArgs: string[] = [];
+          const sfxFilters: string[] = [];
+          let offsetMs = 0;
+          let validIdx = 0;
+          for (let i = 0; i < voiceAssets.length; i++) {
+            const clipPath = await resolveKey(voiceAssets[i]);
+            const sceneDur = sceneDurations[i] ?? 0;
+            if (clipPath) {
+              sfxArgs.push('-i', clipPath);
+              sfxFilters.push(`[${validIdx}:a]adelay=${offsetMs}|${offsetMs}[sv${validIdx}]`);
+              validIdx++;
+            }
+            offsetMs += Math.round(sceneDur * 1000);
+          }
+          if (validIdx > 0) {
+            const mixInputs = Array.from({ length: validIdx }, (_, i) => `[sv${i}]`).join('');
+            sfxFilters.push(`${mixInputs}amix=inputs=${validIdx}:duration=longest:dropout_transition=2[psout]`);
+            perSceneVoicePremix = path.join(os.tmpdir(), `ps-voice-${randomUUID()}.wav`);
+            await runFfmpeg([
+              ...sfxArgs,
+              '-filter_complex', sfxFilters.join(';'),
+              '-map', '[psout]',
+              '-c:a', 'pcm_s16le', '-ar', '22050', '-ac', '1',
+              perSceneVoicePremix,
+            ]);
+            this.log(jobId, projectId, 'Per-scene voice pre-mix ready ✓');
+          }
+        }
+
+        const voicePath = perSceneVoicePremix ?? await resolveKey(voiceAssets[voiceAssets.length - 1]);
         const musicPath = await resolveKey(musicAssets[musicAssets.length - 1]);
         if (!voicePath) {
           this.log(jobId, projectId, voiceAssets.length === 0
@@ -1679,6 +1742,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           }
         } finally {
           if (tmpDir) await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+          if (perSceneVoicePremix) await fsp.unlink(perSceneVoicePremix).catch(() => undefined);
         }
 
         // Upload the render output to R2 (no-op for local driver)
@@ -1860,6 +1924,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (stage.type === 'VOICE_SPEC' && payload['voiceProfile']) stagePayload['voiceProfile'] = payload['voiceProfile'];
             if (stage.type === 'VOICE_SPEC' && payload['characterVoices']) stagePayload['characterVoices'] = payload['characterVoices'];
             if (stage.type === 'VOICE_GENERATE' && payload['referenceVoiceId']) stagePayload['referenceVoiceId'] = payload['referenceVoiceId'];
+            if (stage.type === 'VOICE_GENERATE' && payload['perScene']) stagePayload['perScene'] = payload['perScene'];
             // CHARACTER_STORY scope: auto-enable character-aware voice direction and
             // forward the CHARACTER_CAST result to CHARACTER_IMAGE_GENERATE.
             if (scope === 'CHARACTER_STORY' && stage.type === 'VOICE_SPEC') stagePayload['characterVoices'] = true;
