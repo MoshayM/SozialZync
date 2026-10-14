@@ -574,6 +574,7 @@ model AssetVersion {
   provenance     Json?
   sizeBytes      BigInt   @default(0)
   durationMs     Int?
+  costUsd        Float?
   wordTimestamps Json?
   data           Bytes?
   createdAt      DateTime @default(now())

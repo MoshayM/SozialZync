@@ -4,6 +4,14 @@ const BASE_URL = 'https://api.piapi.ai/api/v1';
 const POLL_INTERVAL_MS = 8000;
 const MAX_POLLS = 100;
 
+// Module-level flag: set to true when PiAPI returns "Insufficient credits".
+// Prevents billing for subsequent scenes after credits run out.
+// Resets on process restart (new deployment = fresh state).
+let creditsExhausted = false;
+
+/** Cost per clip in USD (PiAPI Kling pricing, approximate). */
+const KLING_COST_USD: Record<number, number> = { 5: 0.04, 10: 0.08 };
+
 type PiStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'canceled';
 
 interface PiTaskData {
@@ -37,14 +45,14 @@ function klingRatio(width: number, height: number): '16:9' | '9:16' | '1:1' {
 /**
  * AI video generation via Kling AI through PiAPI (api.piapi.ai/api/v1).
  * Supports text-to-video and image-to-video (imageUrl preferred).
- * Activates when PIAPI_API_KEY is set.
+ * Activates when PIAPI_API_KEY is set and credits are not exhausted.
  * Env: PIAPI_API_KEY
  */
 export class KlingVideoAdapter implements VideoAdapter {
   readonly name = 'kling-ai';
 
   available(): boolean {
-    return !!process.env['PIAPI_API_KEY'];
+    return !!process.env['PIAPI_API_KEY'] && !creditsExhausted;
   }
 
   async renderScene(req: SceneVideoRequest): Promise<GeneratedMedia> {
@@ -77,6 +85,10 @@ export class KlingVideoAdapter implements VideoAdapter {
     const startData = await startRes.json().catch(() => null) as PiResponse | null;
     if (!startRes.ok || !startData || (startData.code !== 200 && startData.code !== 0)) {
       const detail = startData?.data?.error?.message ?? startData?.message ?? String(startRes.status);
+      // Mark adapter unavailable for rest of job when credits are exhausted
+      if (detail.toLowerCase().includes('insufficient credits') || detail.toLowerCase().includes('insufficient balance')) {
+        creditsExhausted = true;
+      }
       throw new Error(`Kling/PiAPI start failed: ${detail}`);
     }
     if (startData.data.status === 'failed') {
@@ -112,6 +124,7 @@ export class KlingVideoAdapter implements VideoAdapter {
       durationMs: duration * 1000,
       model: 'kling-v1-via-piapi',
       notes: imgSource ? 'image-to-video' : 'text-to-video',
+      costUsd: KLING_COST_USD[duration] ?? 0.08,
     };
   }
 }

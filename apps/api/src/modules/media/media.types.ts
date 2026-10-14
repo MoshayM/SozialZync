@@ -12,6 +12,8 @@ export interface GeneratedMedia {
   durationMs?: number;
   model: string;
   notes?: string;
+  /** Estimated provider cost for this generation in USD. 0 for free/internal. */
+  costUsd?: number;
 }
 
 export interface VoiceRequest {
@@ -81,6 +83,12 @@ export interface SceneVideoRequest {
   sceneIndex?: number;
   /** Explicit motion style override; internal adapters cycle styles when omitted. */
   motionStyle?: SceneMotionStyle;
+  /**
+   * Cost/quality tier (default: 'fast').
+   *  fast     — FFmpeg Ken Burns only, zero API cost, always available
+   *  cinematic — AI video providers (Kling/Luma/Runway) with FFmpeg fallback
+   */
+  quality?: 'fast' | 'cinematic';
 }
 
 export interface MediaAdapter {

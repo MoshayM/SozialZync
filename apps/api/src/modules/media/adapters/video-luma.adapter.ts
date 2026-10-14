@@ -5,6 +5,10 @@ const MAX_DURATION_SECS = 9; // Luma Dream Machine clip limit
 const POLL_INTERVAL_MS = 5000;
 const MAX_POLLS = 120;
 
+// Module-level flag: set when API returns credit/quota errors.
+// Prevents burning remaining budget on subsequent scenes. Resets on restart.
+let creditsExhausted = false;
+
 interface LumaAssets { video?: string; }
 
 interface LumaGen {
@@ -31,15 +35,15 @@ function authHeaders(): Record<string, string> {
 
 /**
  * AI video generation via Luma AI Dream Machine.
- * Supports text-to-video and image-to-video (imageUrl preferred; imagePath as fallback).
- * Activates when LUMA_API_KEY is set.
+ * Supports text-to-video and image-to-video (imageUrl preferred).
+ * Activates when LUMA_API_KEY is set and credits are not exhausted.
  * Env: LUMA_API_KEY
  */
 export class LumaVideoAdapter implements VideoAdapter {
   readonly name = 'luma-dream-machine';
 
   available(): boolean {
-    return !!process.env['LUMA_API_KEY'];
+    return !!process.env['LUMA_API_KEY'] && !creditsExhausted;
   }
 
   async renderScene(req: SceneVideoRequest): Promise<GeneratedMedia> {
@@ -69,6 +73,9 @@ export class LumaVideoAdapter implements VideoAdapter {
 
     if (!startRes.ok) {
       const text = await startRes.text().catch(() => '');
+      if (text.toLowerCase().includes('insufficient') || text.toLowerCase().includes('credit') || text.toLowerCase().includes('quota')) {
+        creditsExhausted = true;
+      }
       throw new Error(`Luma start failed: ${startRes.status} ${text.slice(0, 200)}`);
     }
 

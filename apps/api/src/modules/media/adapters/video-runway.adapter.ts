@@ -5,6 +5,10 @@ const MAX_DURATION_SECS = 10; // Runway Gen-3 Alpha max clip
 const POLL_INTERVAL_MS = 6000;
 const MAX_POLLS = 100;
 
+// Module-level flag: set when API returns credit/quota errors.
+// Prevents burning remaining budget on subsequent scenes. Resets on restart.
+let creditsExhausted = false;
+
 type TaskStatus = 'PENDING' | 'THROTTLED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
 
 interface RunwayTask {
@@ -35,15 +39,15 @@ function ratio(width: number, height: number): '1280:720' | '720:1280' | '1104:8
 
 /**
  * AI video generation via Runway Gen-4 Turbo.
- * Supports text-to-video and image-to-video (when req.imagePath is a URL).
- * Activates when RUNWAYML_API_SECRET is set.
+ * Supports text-to-video and image-to-video (when req.imageUrl is a public URL).
+ * Activates when RUNWAYML_API_SECRET is set and credits are not exhausted.
  * Env: RUNWAYML_API_SECRET
  */
 export class RunwayVideoAdapter implements VideoAdapter {
   readonly name = 'runway-gen4-turbo';
 
   available(): boolean {
-    return !!process.env['RUNWAYML_API_SECRET'];
+    return !!process.env['RUNWAYML_API_SECRET'] && !creditsExhausted;
   }
 
   async renderScene(req: SceneVideoRequest): Promise<GeneratedMedia> {
@@ -73,6 +77,9 @@ export class RunwayVideoAdapter implements VideoAdapter {
 
     if (!startRes.ok) {
       const text = await startRes.text().catch(() => '');
+      if (text.toLowerCase().includes('insufficient') || text.toLowerCase().includes('credit') || text.toLowerCase().includes('quota')) {
+        creditsExhausted = true;
+      }
       throw new Error(`Runway start failed: ${startRes.status} ${text.slice(0, 200)}`);
     }
 
@@ -99,7 +106,7 @@ export class RunwayVideoAdapter implements VideoAdapter {
       ext: 'mp4',
       durationMs: duration * 1000,
       model: 'runway-gen4-turbo',
-      notes: req.imagePath ? 'image-to-video' : 'text-to-video',
+      notes: imgSource ? 'image-to-video' : 'text-to-video',
     };
   }
 }

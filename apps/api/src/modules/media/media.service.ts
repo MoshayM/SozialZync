@@ -160,7 +160,29 @@ export class MediaService {
   }
 
   generateSceneVideo(projectId: string, label: string, req: SceneVideoRequest, bustCache = false): Promise<StoredAsset> {
-    return this.generate(projectId, 'VIDEO', label, req, this.orderedAdapters(this.video), (a, r) => a.renderScene(r), bustCache);
+    const adapters = this.videoPriorityAdapters(req.quality ?? 'fast');
+    return this.generate(projectId, 'VIDEO', label, req, adapters, (a, r) => a.renderScene(r), bustCache);
+  }
+
+  /**
+   * Quality-aware adapter ordering for video generation.
+   *  fast (default) — FFmpeg only, zero API cost, always available.
+   *  cinematic      — AI cloud providers first, FFmpeg as reliable fallback.
+   * When VIDEO_PROVIDER env is set AND quality is 'cinematic', the env override wins first position.
+   */
+  private videoPriorityAdapters(quality: 'fast' | 'cinematic'): VideoAdapter[] {
+    const avail = (names: string[]) =>
+      names.flatMap((n) => this.video.adapters.filter((a) => a.name === n && a.available()));
+
+    if (quality === 'cinematic') {
+      // Respect VIDEO_PROVIDER override if set, prepend it to the AI order
+      const aiProviders = this.video.configured
+        ? [this.video.configured, 'kling-ai', 'luma-dream-machine', 'runway-gen4-turbo', 'pika-labs', 'google-veo-2']
+        : ['kling-ai', 'luma-dream-machine', 'runway-gen4-turbo', 'pika-labs', 'google-veo-2'];
+      return avail([...new Set(aiProviders), 'ffmpeg-kenburns', 'comfyui-video', 'ffmpeg-local']);
+    }
+    // fast (default): internal adapters only — never calls a paid API
+    return avail(['ffmpeg-kenburns', 'comfyui-video', 'ffmpeg-local']);
   }
 
   private orderedAdapters<T extends { name: string; available(): boolean }>(chain: AdapterChain<T>): T[] {
@@ -277,6 +299,7 @@ export class MediaService {
             contentHash,
             provider: adapter.name,
             model: media.model,
+            ...(media.costUsd !== undefined ? { costUsd: media.costUsd } : {}),
             prompt: { request: JSON.parse(JSON.stringify(req)) as object } as never,
             params: { requestHash } as never,
             // Write-once provenance (claude.md golden rule 4 / security.md §10)

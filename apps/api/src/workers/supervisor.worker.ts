@@ -1146,8 +1146,13 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           ? Math.min(plan.scenes.length, Number(payload['maxScenes']))
           : plan.scenes.length;
         const bustVideoCache = Boolean(payload['forceRegenerate']);
+        const videoQuality = (payload['videoQuality'] as 'fast' | 'cinematic' | undefined) ?? 'fast';
         const t0 = Date.now();
         this.log(jobId, projectId, `Generating ${maxScenes}/${plan.scenes.length} scene video(s)…`);
+        if (videoQuality === 'cinematic') {
+          const estimatedCostUsd = (maxScenes * 0.08).toFixed(2);
+          this.log(jobId, projectId, `[Cost] Cinematic quality: ~$${estimatedCostUsd} estimated (${maxScenes} × ~$0.08 Kling clip). Use videoQuality:"fast" for zero-cost FFmpeg.`);
+        }
 
         // Build a public base URL for cloud img2vid adapters (Kling, Runway, etc.).
         // ASSET_CDN_URL = Cloudflare R2 public bucket URL (preferred, no token needed).
@@ -1217,6 +1222,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               width: 1280,
               height: 720,
               sceneIndex: i,
+              quality: videoQuality,
             }, bustVideoCache);
             videos.push({ sceneId: scene.id, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
             this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, `${stored.provider}${stored.notes ? ` · ${stored.notes.slice(0, 60)}` : ''}`);

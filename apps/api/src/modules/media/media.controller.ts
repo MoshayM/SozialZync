@@ -72,6 +72,28 @@ export class MediaController {
     return this.mediaSvc.getProviderStatus();
   }
 
+  /** Returns cost estimate for video generation before committing credits. */
+  @Get('providers/video-cost-estimate')
+  getVideoCostEstimate(
+    @Query('scenes') scenesStr?: string,
+    @Query('quality') quality?: string,
+  ) {
+    const scenes = Math.max(1, Math.min(100, parseInt(scenesStr ?? '12', 10)));
+    const q = quality === 'cinematic' ? 'cinematic' : 'fast';
+    if (q === 'fast') {
+      return { quality: 'fast', provider: 'ffmpeg-kenburns', perSceneUsd: 0, totalUsd: 0, scenes, notes: 'FFmpeg Ken Burns — zero API cost, always available.' };
+    }
+    const perScene = 0.08;
+    return {
+      quality: 'cinematic',
+      provider: 'kling-ai',
+      perSceneUsd: perScene,
+      totalUsd: parseFloat((scenes * perScene).toFixed(2)),
+      scenes,
+      notes: `Kling AI 10s clips via PiAPI — ~$${perScene} per scene. Ensure PIAPI_API_KEY has sufficient credits before starting.`,
+    };
+  }
+
   /** Synthesise a short test phrase with the active voice provider. Returns MP3 audio. */
   @Post('providers/test-voice')
   async testVoice(@Res() res: Response): Promise<void> {
