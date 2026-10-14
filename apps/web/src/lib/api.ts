@@ -931,6 +931,8 @@ export const api = {
     delete: (id: string) => apiClient.delete(`/projects/${id}`),
     saveScript: (id: string, script: Record<string, unknown>) =>
       apiClient.post(`/projects/${id}/script`, script),
+    pinSceneImage: (id: string, sceneIndex: number, data: { versionId: string; assetId: string }) =>
+      apiClient.patch(`/projects/${id}/scene-image`, { sceneIndex, ...data }),
   },
   content: {
     repurpose: (scriptText: string, title: string, platforms: string[]) =>

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ScriptOutputSchema, type ScriptOutput } from '@cf/shared';
 import { decodeCursor, keysetWhereDesc, clampLimit, pageResult } from '../../common/pagination/cursor';
@@ -171,6 +171,57 @@ export class ProjectsService {
       },
     });
     return script;
+  }
+
+  /**
+   * Pin a user-uploaded image asset to a specific scene in the IMAGE_GENERATE result.
+   * Creates a new completed IMAGE_GENERATE job with the patched images array so that
+   * lastResult('IMAGE_GENERATE') picks it up without re-running image generation.
+   */
+  async pinSceneImage(
+    userId: string,
+    projectId: string,
+    sceneIndex: number,
+    data: { versionId: string; assetId: string },
+  ): Promise<{ images: unknown[] }> {
+    const project = await this.prisma.project.findFirst({ where: { id: projectId, userId } });
+    if (!project) throw new NotFoundException('Project not found');
+
+    type ImgEntry = { sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean };
+    const prev = await this.prisma.agentJob.findFirst({
+      where: { projectId, type: 'IMAGE_GENERATE', status: 'COMPLETED' },
+      orderBy: { completedAt: 'desc' },
+      select: { result: true },
+    });
+    const prevImages: ImgEntry[] = (prev?.result as { images?: ImgEntry[] })?.images ?? [];
+
+    if (sceneIndex < 0 || (prevImages.length > 0 && sceneIndex >= prevImages.length)) {
+      throw new BadRequestException(`Scene index ${sceneIndex} out of range`);
+    }
+
+    const placeholder: ImgEntry = { sceneId: `scene-${sceneIndex}`, assetId: data.assetId, versionId: data.versionId, provider: 'user-upload', cached: false };
+    const patched: ImgEntry[] = prevImages.length === 0
+      ? [placeholder]
+      : prevImages.map((img, i) =>
+          i === sceneIndex
+            ? { ...img, assetId: data.assetId, versionId: data.versionId, provider: 'user-upload', cached: false }
+            : img,
+        );
+
+    const now = new Date();
+    await this.prisma.agentJob.create({
+      data: {
+        projectId,
+        type: 'IMAGE_GENERATE',
+        status: 'COMPLETED',
+        payload: { source: 'user-pin', sceneIndex } as never,
+        result: { images: patched } as never,
+        startedAt: now,
+        completedAt: now,
+      },
+    });
+
+    return { images: patched };
   }
 
   /** Returns public demo/advertisement projects visible to all users (no auth required). */

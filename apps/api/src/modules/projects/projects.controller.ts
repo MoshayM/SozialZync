@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString, IsOptional, IsArray } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -131,5 +131,20 @@ export class ProjectsController {
   @HttpCode(HttpStatus.OK)
   saveScript(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: JwtPayload) {
     return this.svc.saveScript(user.sub, id, body);
+  }
+
+  /**
+   * Pin a user-uploaded image to scene sceneIndex in the IMAGE_GENERATE result.
+   * Accepts the asset IDs returned by POST /media/media/upload and writes a new
+   * completed IMAGE_GENERATE job so lastResult picks it up without re-generating.
+   */
+  @Patch(':id/scene-image')
+  @HttpCode(HttpStatus.OK)
+  pinSceneImage(
+    @Param('id') id: string,
+    @Body() body: { sceneIndex: number; versionId: string; assetId: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.svc.pinSceneImage(user.sub, id, body.sceneIndex, { versionId: body.versionId, assetId: body.assetId });
   }
 }
