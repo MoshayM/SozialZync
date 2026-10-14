@@ -1543,10 +1543,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         // When VOICE_GENERATE ran in perScene mode, voiceAssets has N clips (one
         // per scene). We adelay each clip to its scene start offset and amix them
         // into a single WAV that is then passed as voicePath to composeVideo.
-        const voiceJobResult = (
-          (stageResults['VOICE_GENERATE'] as { perScene?: boolean } | undefined)
-          ?? await this.lastResult<{ perScene?: boolean }>(projectId, 'VOICE_GENERATE')
-        );
+        const voiceJobResult = await this.lastResult<{ perScene?: boolean }>(projectId, 'VOICE_GENERATE');
         let perSceneVoicePremix: string | undefined;
         if (voiceJobResult?.perScene === true && voiceAssets.length > 0) {
           this.log(jobId, projectId, `Per-scene voice: pre-mixing ${voiceAssets.length} clip(s) with scene offsets…`);
