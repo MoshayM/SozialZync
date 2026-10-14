@@ -394,6 +394,9 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
   const { scenes, voicePath, musicPath, subtitlePath, outPath, width, height, fps } = opts;
   if (scenes.length === 0) throw new Error('composeVideo: no scenes provided');
 
+  // Create output directory early — the SFX pre-mix step writes there before the main encode.
+  await fs.mkdir(path.dirname(outPath), { recursive: true });
+
   // Compute totalSecs and the effective duration after xfade overlaps.
   // XFADE_DUR must match the constant used in the scene-assembly block below.
   const XFADE_DUR = 0.35;
@@ -453,23 +456,37 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     audioIdx++;
   }
 
-  // SFX: add one input per timestamp occurrence (simpler than asplit + delay
-  // chain), delay each to the correct position with adelay (takes ms, all=1
-  // for mono), apply volume, then mix everything together in the final amix.
+  // SFX: pre-mix all occurrences into a single audio file before the main
+  // compose call. Using N separate inputs (one per occurrence) blows up the
+  // filtergraph to 23+ inputs for a 12-scene video — FFmpeg may fail with a
+  // spawn error or OOM. A single pre-mixed WAV reduces it to 13 inputs and
+  // keeps the main filtergraph simple.
   const sfxLabels: string[] = [];
+  let sfxPremixPath: string | undefined;
   if (opts.sfx && opts.sfx.atSecs.length > 0) {
     const sfxVol = opts.sfx.volume ?? 0.4;
-    opts.sfx.atSecs.forEach((atSec, i) => {
-      // One copy of the file per occurrence — no asplit needed
-      args.push('-i', opts.sfx!.path);
-      const delayMs = Math.round(atSec * 1000);
-      const label = `[sfx${i}]`;
-      // adelay=<ms>|<ms> (pipe-separated per-channel values) + all=1 is the
-      // correct syntax for mono files; all=1 avoids specifying channel count.
-      filters.push(`[${audioIdx}:a]volume=${sfxVol},adelay=${delayMs}|${delayMs}[sfx${i}]`);
-      sfxLabels.push(label);
-      audioIdx++;
-    });
+    const n = opts.sfx.atSecs.length;
+    const sfxArgs: string[] = [];
+    const sfxFilters: string[] = [];
+    for (let i = 0; i < n; i++) {
+      sfxArgs.push('-i', opts.sfx.path);
+      const delayMs = Math.round(opts.sfx.atSecs[i]! * 1000);
+      sfxFilters.push(`[${i}:a]volume=${sfxVol},adelay=${delayMs}|${delayMs}[s${i}]`);
+    }
+    const sfxInputLabels = opts.sfx.atSecs.map((_, i) => `[s${i}]`).join('');
+    sfxFilters.push(`${sfxInputLabels}amix=inputs=${n}:duration=longest:dropout_transition=2[sfxout]`);
+    sfxPremixPath = outPath.replace(/\.[^.]+$/, '') + '-sfxpremix.wav';
+    await runFfmpeg([
+      ...sfxArgs,
+      '-filter_complex', sfxFilters.join(';'),
+      '-map', '[sfxout]',
+      '-t', String(effectiveTotalSecs),
+      '-c:a', 'pcm_s16le', '-ar', '22050', '-ac', '1',
+      sfxPremixPath,
+    ]);
+    args.push('-i', sfxPremixPath);
+    sfxLabels.push(`[${audioIdx}:a]`);
+    audioIdx++;
   }
 
   // Scene assembly: xfade crossfade transitions give smooth scene-to-scene cuts.
@@ -523,8 +540,6 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     audioMap = ['-map', inner.includes(':') ? inner : only];
   }
 
-  await fs.mkdir(path.dirname(outPath), { recursive: true });
-
   // ── Video quality args ────────────────────────────────────────────────────
   // CRF mode: constant perceptual quality. Pair with -maxrate/-bufsize for
   // platform streaming compliance (avoids overshooting on static scenes).
@@ -555,8 +570,12 @@ export async function composeVideo(opts: ComposeOptions): Promise<void> {
     '-movflags', '+faststart',
     outPath,
   ];
-  if (opts.onProgress) await runFfmpegWithProgress(finalArgs, effectiveTotalSecs, opts.onProgress);
-  else await runFfmpeg(finalArgs);
+  try {
+    if (opts.onProgress) await runFfmpegWithProgress(finalArgs, effectiveTotalSecs, opts.onProgress);
+    else await runFfmpeg(finalArgs);
+  } finally {
+    if (sfxPremixPath) await fs.unlink(sfxPremixPath).catch(() => undefined);
+  }
 }
 
 /** Write a buffer to a temp file and return its path (caller cleans up the dir). */
