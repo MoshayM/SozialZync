@@ -1689,10 +1689,6 @@ export default function ProjectDetailPage() {
         }
       />
 
-      <Suspense fallback={null}>
-        <PublishFromRenderPanel projectId={id} />
-      </Suspense>
-
       <AdRevenuePanel projectId={id} />
 
       {/* Full Job History — section collapses to one clickable bar */}
@@ -1914,6 +1910,11 @@ export default function ProjectDetailPage() {
         )}
       </div>
       </> /* end pipeline tab */}
+
+      {/* Always-mounted so useSearchParams opt-in Suspense never disappears from the tree */}
+      <Suspense fallback={null}>
+        <PublishFromRenderPanel projectId={id} />
+      </Suspense>
     </div>
   );
 }
