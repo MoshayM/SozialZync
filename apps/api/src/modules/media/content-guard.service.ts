@@ -59,7 +59,7 @@ export class ContentGuardService {
     return { allowed: true };
   }
 
-  private detectCategory(text: string): GuardResult['category'] {
+  private detectCategory(text: string): NonNullable<GuardResult['category']> {
     const t = text.toLowerCase();
     if (/porn|sex|adult|nude|erotic|hentai/.test(t)) return 'adult';
     if (/genocide|mass.?murder/.test(t)) return 'violence';
