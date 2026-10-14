@@ -654,6 +654,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [renderPlatform, setRenderPlatform] = useState<RenderPlatformValue>(() =>
     PLATFORM_TO_RENDER[platform] ?? 'YOUTUBE');
   const [renderVideoType, setRenderVideoType] = useState<typeof VIDEO_TYPES[number]['value']>('long-form');
+  const [renderVideoQuality, setRenderVideoQuality] = useState<'fast' | 'cinematic'>('fast');
 
   // ── Creative Preferences (optional pre-script user guidance) ─────────────
   const [prefsOpen, setPrefsOpen] = useState(false);
@@ -2979,7 +2980,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               const vidLive = liveProgress['VIDEO_GENERATE'];
               const isThisClipGenerating = !!isRunning(jobs, 'VIDEO_GENERATE') && vidLive?.scene === i + 1;
               return (
-                <div key={`${v.sceneId}-${i}`} className={`relative rounded-lg border transition-colors ${isThisClipGenerating ? 'border-brand-200 bg-brand-50' : 'border-transparent'}`}>
+                <div key={`${v.sceneId}-${i}`} className={`relative rounded-lg border transition-colors ${isThisClipGenerating ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-white'}`}>
                   <div className="flex items-center justify-between gap-3 px-2 py-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
                       {isThisClipGenerating
@@ -2991,7 +2992,22 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         {isThisClipGenerating && <span className="ml-1 text-brand-600">generating…</span>}
                       </p>
                     </div>
-                    {v.versionId && !isThisClipGenerating && <MediaPlayer versionId={v.versionId} kind="video" />}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {v.versionId && !isThisClipGenerating && <MediaPlayer versionId={v.versionId} kind="video" />}
+                      {!isThisClipGenerating && (
+                        <button
+                          title="Regenerate this scene"
+                          disabled={busy}
+                          onClick={() => enqueue.mutate({
+                            type: 'FULL_PRODUCTION',
+                            payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE'], regenOneIndex: i, ...prefsPayload },
+                          })}
+                          className="p-1 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {/* Bottom filler bar for actively-generating scene */}
                   {isThisClipGenerating && (
@@ -3007,6 +3023,48 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           <p className="text-sm text-gray-500">Run to storyboard the script and generate every scene.</p>
         )}
       </div>
+
+      {/* Image / Video alignment note */}
+      {videoResult?.videos?.length ? (
+        <div className="mt-1 px-1">
+          {imageGenResult?.images?.length && imageGenResult.images.length !== videoResult.videos.length ? (
+            <p className="text-[10px] text-amber-600">
+              {imageGenResult.images.length} image(s) vs {videoResult.videos.length} video scene(s) — counts differ.
+              Re-run Images to align.
+            </p>
+          ) : imageGenResult?.images?.length ? (
+            <p className="text-[10px] text-gray-400">{imageGenResult.images.length} scene image(s) · {videoResult.videos.length} video clip(s) — aligned</p>
+          ) : (
+            <p className="text-[10px] text-amber-500">No scene images — run Images step first for best results.</p>
+          )}
+        </div>
+      ) : null}
+
+      {/* Audio tracks (mixed into final render) */}
+      {(voiceResult?.versionId || musicResult?.versionId) && (
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Audio (mixed at render)</p>
+          <div className="space-y-2">
+            {voiceResult?.versionId && (
+              <div>
+                <p className="text-[10px] text-gray-400 mb-1">Voice-over · {voiceResult.provider} · {Math.round((voiceResult.durationMs ?? 0) / 1000)}s</p>
+                <MediaPlayer versionId={voiceResult.versionId} kind="audio" />
+              </div>
+            )}
+            {musicResult?.versionId && (
+              <div>
+                <p className="text-[10px] text-gray-400 mb-1">Background music · {musicResult.provider} · {Math.round((musicResult.durationMs ?? 0) / 1000)}s</p>
+                <MediaPlayer versionId={musicResult.versionId} kind="audio" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {videoResult?.videos?.length && !voiceResult && !musicResult ? (
+        <div className="border-t border-gray-100 pt-3">
+          <p className="text-[10px] text-gray-400">No audio yet — run Voice and Music steps to add narration and background music to the final render.</p>
+        </div>
+      ) : null}
 
       {/* Rendering */}
       <div className="border-t border-gray-100 pt-4">
@@ -3920,7 +3978,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             </div>
 
             {/* Video type */}
-            <div className="px-5 pt-3 pb-4">
+            <div className="px-5 pt-3 pb-2">
               <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Video type</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                 {VIDEO_TYPES.map((t) => (
@@ -3938,6 +3996,35 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Scene video quality */}
+            <div className="px-5 pt-3 pb-4">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Scene video quality</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {([
+                  { value: 'fast' as const, label: 'Fast (free)', hint: 'Ken Burns on still images — instant, no credits' },
+                  { value: 'cinematic' as const, label: 'Cinematic (AI)', hint: 'Kling/Runway motion clips — ~$0.08/scene' },
+                ]).map((q) => (
+                  <button
+                    key={q.value}
+                    onClick={() => setRenderVideoQuality(q.value)}
+                    className={`flex flex-col px-3 py-2 rounded-xl border text-left transition-colors ${
+                      renderVideoQuality === q.value
+                        ? 'border-brand-500 bg-brand-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-xs font-semibold text-gray-900">{q.label}</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">{q.hint}</span>
+                  </button>
+                ))}
+              </div>
+              {renderVideoQuality === 'cinematic' && videoResult?.videos?.length && (
+                <p className="text-[10px] text-amber-600 mt-1.5">
+                  Estimated cost: ~${(videoResult.videos.length * 0.08).toFixed(2)} for {videoResult.videos.length} scene(s).
+                </p>
+              )}
             </div>
           </div>
 
@@ -3958,6 +4045,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     scope: productionMode,
                     platform: renderPlatform,
                     videoType: renderVideoType,
+                    videoQuality: renderVideoQuality,
                     ...prefsPayload,
                     ...(refreshMedia
                       ? { regenerate: [...FULL_MEDIA_REGENERATE] }

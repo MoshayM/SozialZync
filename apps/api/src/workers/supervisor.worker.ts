@@ -973,6 +973,32 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           this.log(jobId, projectId, `Auto-generated ${briefs.length} image brief(s) ✓`);
         }
 
+        // ── Scene count alignment with VIDEO_SCENE_PLAN ─────────────────────
+        // IMAGE_BRIEF is script-section driven (typically 6 briefs) while
+        // VIDEO_SCENE_PLAN is a cinematic-director AI producing 8-20 scenes.
+        // Pad briefs to match the scene plan so every video scene has an image.
+        {
+          const scenePlanForBriefs = (payload['scenePlan'] as VideoScenePlanOutput | undefined)
+            ?? await this.lastResult<VideoScenePlanOutput>(projectId, 'VIDEO_SCENE_PLAN');
+          if (scenePlanForBriefs?.scenes?.length && scenePlanForBriefs.scenes.length > briefs.length) {
+            const origLen = briefs.length;
+            for (let i = origLen; i < scenePlanForBriefs.scenes.length; i++) {
+              const s = scenePlanForBriefs.scenes[i]!;
+              (briefs as ImageBriefOutput['briefs']).push({
+                sceneId: s.id || `scene-${i}`,
+                sectionHeading: s.narration?.slice(0, 80) ?? s.title ?? `Scene ${i + 1}`,
+                prompt: s.imagePrompt || s.videoPrompt || `Cinematic visual for scene ${i + 1}`,
+                negativePrompt: s.negativePrompt,
+                style: visualStyle === 'ai-best' ? 'realistic' : visualStyle,
+                aspectRatio: '16:9',
+                count: 1,
+                purpose: 'b-roll',
+              });
+            }
+            this.log(jobId, projectId, `Image briefs padded ${origLen} → ${briefs.length} to match video scene plan`);
+          }
+        }
+
         // ── Single-image regen / add new scene ──────────────────────────────
         type ImgEntry = { sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean };
         const regenOneIndex = typeof payload['regenOneIndex'] === 'number' ? (payload['regenOneIndex'] as number) : null;
@@ -1162,7 +1188,53 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const apiBase = (process.env['API_BASE_URL'] ?? '').replace(/\/$/, '');
         const internalToken = process.env['INTERNAL_MEDIA_TOKEN'] ?? '';
 
-        const videos: Array<{ sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean }> = [];
+        // ── Single-scene video regeneration ─────────────────────────────────
+        type VidEntry = { sceneId: string; assetId: string; versionId: string; provider: string; cached: boolean };
+        const regenOneVidIndex = typeof payload['regenOneIndex'] === 'number' ? (payload['regenOneIndex'] as number) : null;
+        if (regenOneVidIndex !== null) {
+          const scene = plan.scenes[regenOneVidIndex];
+          if (!scene) throw new Error(`Scene ${regenOneVidIndex + 1} not found in scene plan (plan has ${plan.scenes.length} scenes)`);
+          const prevVidResult = await this.lastResult<{ videos: VidEntry[] }>(projectId, 'VIDEO_GENERATE');
+          const existingVideos: VidEntry[] = prevVidResult?.videos ?? [];
+          const imgAsset = imageAssets[regenOneVidIndex];
+          const imgVersion = imgAsset?.versions[0];
+          const imgKey = imgVersion?.r2Key;
+          const imgVersionId = imgVersion?.id;
+          const tokenParam = internalToken ? `?token=${encodeURIComponent(internalToken)}` : '';
+          let regenImagePath: string | undefined;
+          let regenImageUrl: string | undefined;
+          if (imgKey && this.storage.exists(imgKey)) {
+            regenImagePath = this.storage.resolve(imgKey);
+            if (cdnBase) regenImageUrl = `${cdnBase}/${imgKey}`;
+            else if (apiBase && imgVersionId) regenImageUrl = `${apiBase}/media/versions/${imgVersionId}/file${tokenParam}`;
+          }
+          this.log(jobId, projectId, `Regenerating scene video ${regenOneVidIndex + 1}…`, scene.id);
+          this.events.emitJobUpdate(jobId, { step: 'VIDEO_GENERATE', status: 'RUNNING', scene: regenOneVidIndex + 1, totalScenes: plan.scenes.length }, projectId);
+          const regenStored = await this.media.generateSceneVideo(
+            projectId,
+            `Scene video ${regenOneVidIndex + 1} regen · ${scene.id}`,
+            {
+              imagePath: regenImagePath,
+              imageUrl: regenImageUrl,
+              prompt: scene.videoPrompt,
+              durationSecs: Math.min(Math.max(scene.durationSecs, 2), 30),
+              width: 1280,
+              height: 720,
+              sceneIndex: regenOneVidIndex,
+              quality: videoQuality,
+            },
+            true,
+          );
+          const regenUpdated = [...existingVideos];
+          const regenEntry: VidEntry = { sceneId: scene.id, assetId: regenStored.assetId, versionId: regenStored.versionId, provider: regenStored.provider, cached: regenStored.cached };
+          if (regenOneVidIndex < regenUpdated.length) regenUpdated[regenOneVidIndex] = regenEntry;
+          else regenUpdated.push(regenEntry);
+          this.log(jobId, projectId, `Scene video ${regenOneVidIndex + 1} regenerated ✓`, regenStored.provider);
+          this.events.emitJobUpdate(jobId, { step: 'VIDEO_GENERATE', status: 'COMPLETED' }, projectId);
+          return { videos: regenUpdated };
+        }
+
+        const videos: Array<VidEntry> = [];
         let failedVideoScenes = 0;
         let lastVidError = '';
         for (let i = 0; i < maxScenes; i++) {
@@ -1805,6 +1877,13 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               if (payload['addNewScene'] != null) stagePayload['addNewScene'] = payload['addNewScene'];
               if (payload['regenPrompt'] != null) stagePayload['regenPrompt'] = payload['regenPrompt'];
               if (payload['regenNegativePrompt'] != null) stagePayload['regenNegativePrompt'] = payload['regenNegativePrompt'];
+              // Pass VIDEO_SCENE_PLAN result so IMAGE_GENERATE can align brief count with video scenes
+              if (stageResults['VIDEO_SCENE_PLAN']) stagePayload['scenePlan'] = stageResults['VIDEO_SCENE_PLAN'];
+            }
+            // Forward per-scene video regen index and quality to VIDEO_GENERATE
+            if (stage.type === 'VIDEO_GENERATE') {
+              if (payload['regenOneIndex'] != null) stagePayload['regenOneIndex'] = payload['regenOneIndex'];
+              if (payload['videoQuality'] != null) stagePayload['videoQuality'] = payload['videoQuality'];
             }
             // Forward content language to every stage that generates text
             if (payload['lang']) stagePayload['lang'] = payload['lang'];
