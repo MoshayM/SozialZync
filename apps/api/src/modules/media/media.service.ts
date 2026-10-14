@@ -248,8 +248,11 @@ export class MediaService {
         // duration/undersized output BEFORE it can become a READY asset. A
         // failed validation is an adapter failure — fall through to the next
         // provider, or fail the stage. Never store fake-valid media.
+        // VIDEO clips from AI adapters (Kling, Luma, Runway) are short tiles (5-10s)
+        // assembled by RENDER into full-length scenes — their duration never matches
+        // the scene's durationSecs. Only enforce duration for VOICE / MUSIC.
         const expectedDurationMs =
-          typeof (req as { durationSecs?: number }).durationSecs === 'number'
+          kind !== 'VIDEO' && typeof (req as { durationSecs?: number }).durationSecs === 'number'
             ? (req as { durationSecs: number }).durationSecs * 1000
             : undefined;
         const validation = await validateMediaBuffer(
