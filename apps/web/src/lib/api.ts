@@ -1066,6 +1066,11 @@ export const api = {
   contentGuard: {
     enhancePrompt: (prompt: string, context?: string) =>
       apiClient.post<{ enhanced: string; original: string }>('/media/content-guard/enhance-prompt', { prompt, context }),
+    checkPrompt: (prompt: string, context?: string) =>
+      apiClient.post<{ allowed: boolean; reason?: string; suggestedAlternative?: string; category?: string }>(
+        '/media/content-guard/check',
+        { prompt, context },
+      ),
   },
   settings: {
     getApiKeys: () =>

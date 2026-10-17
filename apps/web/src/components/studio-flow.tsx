@@ -716,6 +716,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [scenePromptOverrides, setScenePromptOverrides] = useState<Record<number, string>>({});
   const [scenePromptEditing, setScenePromptEditing] = useState<Record<number, boolean>>({});
   const [scenePromptEnhancing, setScenePromptEnhancing] = useState<Record<number, boolean>>({});
+  const [scenePromptGuardMsg, setScenePromptGuardMsg] = useState<Record<number, { reason: string; suggestion?: string }>>({});
   const [voiceRecording, setVoiceRecording] = useState<number | null>(null);
   const [musicFileUnavailable, setMusicFileUnavailable] = useState(false);
 
@@ -930,13 +931,20 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
   async function enhanceScenePrompt(sceneIndex: number, currentPrompt: string) {
     if (!currentPrompt.trim() || scenePromptEnhancing[sceneIndex]) return;
+    setScenePromptGuardMsg((prev) => { const m = { ...prev }; delete m[sceneIndex]; return m; });
     setScenePromptEnhancing((prev) => ({ ...prev, [sceneIndex]: true }));
     try {
       const result = await api.contentGuard.enhancePrompt(currentPrompt, 'video-scene');
       if (result.data.enhanced && result.data.enhanced !== currentPrompt) {
         setScenePromptOverrides((prev) => ({ ...prev, [sceneIndex]: result.data.enhanced }));
       }
-    } catch { /* non-critical — leave prompt as-is */ }
+    } catch (e) {
+      // Server returned a guard block — show the reason + suggestion inline
+      const err = e as { response?: { data?: { message?: string; suggestedAlternative?: string } } };
+      const reason = err.response?.data?.message ?? 'This prompt is not allowed.';
+      const suggestion = err.response?.data?.suggestedAlternative;
+      setScenePromptGuardMsg((prev) => ({ ...prev, [sceneIndex]: { reason, suggestion } }));
+    }
     finally { setScenePromptEnhancing((prev) => ({ ...prev, [sceneIndex]: false })); }
   }
 
@@ -3115,9 +3123,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               const isThisClipGenerating = !!isRunning(jobs, 'VIDEO_GENERATE') && vidLive?.scene === i + 1;
               const sceneVideoPrompt = (videoResult as { videos: Array<{ sceneId: string; provider: string; versionId?: string; prompt?: string }> }).videos[i]?.prompt;
               return (
-                <div key={`${v.sceneId}-${i}`} className={`relative rounded-lg border transition-colors ${isThisClipGenerating ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-white'}`}>
-                  <div className="flex items-center justify-between gap-3 px-2 py-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                <div key={`${v.sceneId}-${i}`} className={`relative rounded-lg border transition-colors overflow-x-hidden ${isThisClipGenerating ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-white'}`}>
+                  <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       {isThisClipGenerating
                         ? <Loader2 className="w-3 h-3 animate-spin text-brand-600 shrink-0" />
                         : <CheckCircle className="w-3 h-3 text-green-500 shrink-0" />}
@@ -3142,7 +3150,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                             value={sceneMotionOverrides[i] ?? ''}
                             onChange={(e) => setSceneMotionOverrides((prev) => ({ ...prev, [i]: e.target.value }))}
                             title="Motion style for this scene"
-                            className="text-[9px] border border-gray-200 rounded-lg px-1 py-0.5 bg-white text-gray-500 cursor-pointer"
+                            className="text-[9px] border border-gray-200 rounded-lg px-1 py-0.5 bg-white text-gray-500 cursor-pointer max-w-[72px]"
                           >
                             <option value="">Auto</option>
                             <option value="zoom-in">Zoom in</option>
@@ -3164,6 +3172,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                                 regenerate: ['VIDEO_GENERATE'],
                                 regenOneIndex: i,
                                 videoQuality: videoGenQuality,
+                                visualStyle,
                                 ...(sceneMotionOverrides[i] ? { motionStyle: sceneMotionOverrides[i] } : {}),
                                 ...(scenePromptOverrides[i] ? { prompt: scenePromptOverrides[i] } : {}),
                                 ...prefsPayload,
@@ -3185,11 +3194,22 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                         <div className="flex flex-col gap-1">
                           <textarea
                             value={scenePromptOverrides[i] ?? sceneVideoPrompt ?? ''}
-                            onChange={(e) => setScenePromptOverrides((prev) => ({ ...prev, [i]: e.target.value }))}
+                            onChange={(e) => {
+                              setScenePromptOverrides((prev) => ({ ...prev, [i]: e.target.value }));
+                              setScenePromptGuardMsg((prev) => { const m = { ...prev }; delete m[i]; return m; });
+                            }}
                             rows={2}
                             placeholder="Describe what should happen in this scene…"
-                            className="w-full text-[10px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#374151]/20 resize-none"
+                            className={`w-full text-[10px] border rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 resize-none ${scenePromptGuardMsg[i] ? 'border-amber-300 focus:ring-amber-200' : 'border-gray-200 focus:ring-[#374151]/20'}`}
                           />
+                          {scenePromptGuardMsg[i] && (
+                            <div className="rounded-md bg-amber-50 border border-amber-200 px-2 py-1.5 space-y-0.5">
+                              <p className="text-[9px] font-semibold text-amber-800">⚠️ {scenePromptGuardMsg[i]!.reason}</p>
+                              {scenePromptGuardMsg[i]!.suggestion && (
+                                <p className="text-[9px] text-amber-700">💡 {scenePromptGuardMsg[i]!.suggestion}</p>
+                              )}
+                            </div>
+                          )}
                           <div className="flex items-center gap-1 flex-wrap">
                             <button
                               type="button"
@@ -3215,7 +3235,10 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                             </button>
                             <button
                               type="button"
-                              onClick={() => setScenePromptEditing((prev) => ({ ...prev, [i]: false }))}
+                              onClick={() => {
+                                setScenePromptEditing((prev) => ({ ...prev, [i]: false }));
+                                setScenePromptGuardMsg((prev) => { const m = { ...prev }; delete m[i]; return m; });
+                              }}
                               className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-[#374151] text-white hover:opacity-90 transition-opacity"
                             >
                               Done
@@ -3811,7 +3834,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL', 'RENDER'], videoQuality: videoGenQuality, ...prefsPayload },
+                  payload: { scope: 'VIDEO', regenerate: ['VIDEO_GENERATE', 'SUBTITLE_GENERATE', 'THUMBNAIL', 'RENDER'], videoQuality: videoGenQuality, visualStyle, ...prefsPayload },
                 })}
               >
                 Sync Video

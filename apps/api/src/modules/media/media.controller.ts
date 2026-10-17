@@ -19,6 +19,7 @@ import { StorageService } from './storage.service';
 import { ExportsService } from './exports.service';
 import { MediaService } from './media.service';
 import { SocialDownloadService } from './social-download.service';
+import { ContentGuardService } from './content-guard.service';
 import { SignedMediaOrJwtGuard } from './signed-media.guard';
 import { clampTtl, signMedia, signingSecret } from './signed-url.util';
 
@@ -65,6 +66,7 @@ export class MediaController {
     private readonly exportsSvc: ExportsService,
     private readonly mediaSvc: MediaService,
     private readonly socialDl: SocialDownloadService,
+    private readonly contentGuard: ContentGuardService,
   ) {}
 
   /** Returns which image/voice/music/video providers are currently active. */
@@ -755,6 +757,17 @@ export class MediaController {
     }
   }
 
+  /** Pre-flight content guard check — returns allowed/reason/suggestion without queuing a job. */
+  @Post('content-guard/check')
+  @HttpCode(HttpStatus.OK)
+  checkPrompt(
+    @Body() body: { prompt?: string; context?: 'script' | 'image' | 'video' | 'prompt' },
+  ): { allowed: boolean; reason?: string; suggestedAlternative?: string; category?: string } {
+    const text = (body.prompt ?? '').trim();
+    if (!text) return { allowed: true };
+    return this.contentGuard.check(text, body.context ?? 'prompt');
+  }
+
   /** Enhance a weak or short video/image prompt using template expansion + optional LLM. */
   @Post('content-guard/enhance-prompt')
   @HttpCode(HttpStatus.OK)
@@ -763,6 +776,15 @@ export class MediaController {
   ): Promise<{ enhanced: string; original: string }> {
     const original = (body.prompt ?? '').trim();
     if (!original) throw new BadRequestException('prompt required');
+
+    // Guard the input before calling the LLM
+    const guard = this.contentGuard.check(original, 'prompt');
+    if (!guard.allowed) {
+      throw new BadRequestException({
+        message: guard.reason ?? 'This prompt is not allowed.',
+        suggestedAlternative: guard.suggestedAlternative,
+      });
+    }
 
     // Template-based enhancement is always fast and free
     const { prompt: templateEnhanced } = enhanceVideoPrompt(original, {});
