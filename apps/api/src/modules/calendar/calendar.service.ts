@@ -48,6 +48,7 @@ Mix content types for variety. Return exactly ${safeCount} entries.`,
         CalendarResultSchema,
         {
           systemPrompt: SYSTEM_PROMPT,
+          provider: 'anthropic',
           model: 'claude-haiku-4-5-20251001',
           maxTokens: 2048,
         },

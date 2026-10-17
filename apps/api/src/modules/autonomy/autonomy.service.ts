@@ -443,7 +443,7 @@ export class AutonomyService {
         },
       ],
       CritiqueSchema,
-      { systemPrompt: CALENDAR_SYSTEM, model: 'claude-haiku-4-5-20251001', maxTokens: 1500 },
+      { systemPrompt: CALENDAR_SYSTEM, provider: 'anthropic', model: 'claude-haiku-4-5-20251001', maxTokens: 1500 },
     );
 
     const byIndex = new Map(critique.verdicts.map((v) => [v.index, v]));
@@ -968,7 +968,7 @@ export class AutonomyService {
       CrossChannelSchema,
       {
         systemPrompt: 'You are a YouTube growth strategist analyzing multiple channels for cross-channel optimization.',
-        model: 'claude-haiku-4-5-20251001', maxTokens: 1500,
+        provider: 'anthropic', model: 'claude-haiku-4-5-20251001', maxTokens: 1500,
       },
     );
 

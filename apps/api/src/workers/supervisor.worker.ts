@@ -743,7 +743,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const raw = await callAIStructured(
           [{ role: 'user', content: userMsg }],
           VideoScenePlanOutputSchema,
-          { systemPrompt: CINEMATIC_DIRECTOR_PROMPT, maxTokens: 3000 },
+          { systemPrompt: CINEMATIC_DIRECTOR_PROMPT, maxTokens: 8192 },
         );
 
         // Enforce cumulative timestamps in code so model drift can't break pipeline
