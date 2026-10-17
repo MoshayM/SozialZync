@@ -22,12 +22,20 @@ const S = (
   extra: Partial<PipelineStage> = {},
 ): PipelineStage => ({ type, label, defaultSecs, ...extra });
 
-// Content foundation shared by every scope — compliance is always in the path;
-// no scope may generate media from an un-audited script.
+// Content foundation: research + script + compliance. Required for any scope
+// that generates the script from scratch.
 const FOUNDATION: PipelineStage[] = [
   S('RESEARCH', 'Research', 40),
   S('SCRIPT', 'Script', 45),
   S('FACT_CHECK', 'Fact Check', 40),
+  S('COMPLIANCE', 'Compliance Audit', 35, { gate: true }),
+];
+
+// Media scopes (VOICE, MUSIC, IMAGES, VIDEO, SONG, SMART_MIX) operate on an
+// already-completed script. They skip RESEARCH/SCRIPT/FACT_CHECK but must still
+// pass the compliance gate (golden rule: no content reaches media generation
+// without a compliance audit).
+const MEDIA_GATE: PipelineStage[] = [
   S('COMPLIANCE', 'Compliance Audit', 35, { gate: true }),
 ];
 
@@ -54,13 +62,13 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
     S('PACKAGE', 'Upload-Ready Package', 5),
   ],
   SCRIPT: [...FOUNDATION],
-  VOICE: [...FOUNDATION, S('VOICE_SPEC', 'Voice Direction', 35), S('VOICE_GENERATE', 'Voice Over', 30), S('PACKAGE', 'Package', 5)],
-  MUSIC: [...FOUNDATION, S('MUSIC_BRIEF', 'Music Brief', 30), S('MUSIC_GENERATE', 'Background Music', 20), S('PACKAGE', 'Package', 5)],
-  IMAGES: [...FOUNDATION, S('IMAGE_BRIEF', 'Image Briefs', 35), S('IMAGE_GENERATE', 'Scene Images', 40), S('PACKAGE', 'Package', 5)],
-  SONG: [...FOUNDATION, S('SONG_GENERATE', 'AI Song', 90)],
+  VOICE: [...MEDIA_GATE, S('VOICE_SPEC', 'Voice Direction', 35), S('VOICE_GENERATE', 'Voice Over', 30), S('PACKAGE', 'Package', 5)],
+  MUSIC: [...MEDIA_GATE, S('MUSIC_BRIEF', 'Music Brief', 30), S('MUSIC_GENERATE', 'Background Music', 20), S('PACKAGE', 'Package', 5)],
+  IMAGES: [...MEDIA_GATE, S('IMAGE_BRIEF', 'Image Briefs', 35), S('IMAGE_GENERATE', 'Scene Images', 40), S('PACKAGE', 'Package', 5)],
+  SONG: [...MEDIA_GATE, S('SONG_GENERATE', 'AI Song', 90)],
   // Narration + background music — FFmpeg-mixed, free by default (no Suno needed)
   SMART_MIX: [
-    ...FOUNDATION,
+    ...MEDIA_GATE,
     S('VOICE_SPEC', 'Voice Direction', 35, { parallelGroup: 1 }),
     S('MUSIC_BRIEF', 'Music Brief', 30, { parallelGroup: 1 }),
     S('VOICE_GENERATE', 'Narration', 30, { parallelGroup: 2 }),
@@ -68,7 +76,7 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
     S('AUDIO_MIX', 'Mix Audio', 15),
   ],
   VIDEO: [
-    ...FOUNDATION,
+    ...MEDIA_GATE,
     S('VIDEO_SCENE_PLAN', 'Storyboard', 40),
     S('IMAGE_BRIEF', 'Image Briefs', 35),
     S('IMAGE_GENERATE', 'Scene Images', 40),

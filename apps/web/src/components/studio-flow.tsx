@@ -637,6 +637,10 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   // 'smart' = free narration+music FFmpeg mix; 'song' = AI vocal song via Suno
   const [mixMode, setMixMode] = useState<'smart' | 'song'>('smart');
   const [scriptDraft, setScriptDraft] = useState<ScriptResult | null>(null);
+  // After saving script edits: prompt user to validate without regenerating
+  const [scriptJustSaved, setScriptJustSaved] = useState(false);
+  // Let user re-open script config (topic/duration/lang) after script is done
+  const [showScriptSettings, setShowScriptSettings] = useState(false);
   // Repurpose panel state
   const [repurposeOpen, setRepurposeOpen] = useState(false);
   const [repurposePlatforms, setRepurposePlatforms] = useState<Set<string>>(new Set(['shorts', 'twitter', 'linkedin']));
@@ -688,6 +692,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [episodeDurationMins, setEpisodeDurationMins] = useState<number>(10);
   const [customDurationInput, setCustomDurationInput] = useState('');
   const [customDurationOpen, setCustomDurationOpen] = useState(false);
+
+  // ── Script config panel (collapsed after script is done) ─────────────────
+  const [scriptConfigOpen, setScriptConfigOpen] = useState(false);
 
   // ── Creative Preferences (optional pre-script user guidance) ─────────────
   const [prefsOpen, setPrefsOpen] = useState(false);
@@ -769,7 +776,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
         .join(' ').trim().split(/\s+/).length;
       return api.jobs.overrideResult(projectId, 'SCRIPT', { ...result, totalWordCount: words });
     },
-    onSuccess: () => { setScriptDraft(null); invalidate(); },
+    onSuccess: () => { setScriptDraft(null); setScriptJustSaved(true); setShowScriptSettings(false); invalidate(); },
     onError: (err: unknown) => setError(getErrorMessage(err) || 'Failed to save script'),
   });
 
@@ -1044,7 +1051,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     ? (renderJob.result as { versionId?: string; preset?: string; durationSecs?: number } | undefined)
     : undefined;
 
-  const runningFoundation = isRunning(jobs, 'RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE', 'FULL_PRODUCTION');
+  const runningFoundation = isRunning(jobs, 'RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE');
   const effectiveTopic = topic || pendingTopic || customTopic;
 
   const toggle = (key: string) => setExpanded((e) => (e === key ? null : key));
@@ -1684,23 +1691,26 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
     const hasPublishing = !!(metaResult || seoResult);
 
-    return (
-      <div className="space-y-3">
-        <div>
-          <label htmlFor="studio-script-topic" className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Script topic</label>
-          <input
-            id="studio-script-topic"
-            value={effectiveTopic}
-            onChange={(e) => chooseTopic(e.target.value)}
-            placeholder="Pick a topic in Suggestion or type one here"
-            aria-label="Script topic"
-            className="mt-1 w-full text-sm px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400"
-          />
-          <p className="text-[11px] text-gray-500 mt-1">Selected suggestions appear here automatically — edit freely before running.</p>
-        </div>
+    // ── Shared blocks reused across states ──────────────────────────────────
 
-        {/* ── Content Structure: Duration + Series ── */}
-        {(() => {
+    const topicBlock = (
+      <div>
+        <label htmlFor="studio-script-topic" className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Script topic</label>
+        <input
+          id="studio-script-topic"
+          value={effectiveTopic}
+          onChange={(e) => chooseTopic(e.target.value)}
+          placeholder="Pick a topic in Suggestion or type one here"
+          aria-label="Script topic"
+          className="mt-1 w-full text-sm px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400"
+        />
+        <p className="text-[11px] text-gray-500 mt-1">Selected suggestions appear here automatically — edit freely before running.</p>
+      </div>
+    );
+
+    // ── Shared content-structure + language blocks ────────────────────────────
+
+    const contentStructureBlock = (() => {
           const DURATION_PRESETS: Array<{ label: string; mins: number }> = [
             { label: '5s',   mins: 0.083 },
             { label: '30s',  mins: 0.5   },
@@ -1804,10 +1814,9 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               )}
             </div>
           );
-        })()}
+        })();
 
-        {/* Content language picker */}
-        {(() => {
+    const languageBlock = (() => {
           const activeLang = CONTENT_LANGS.find(l => l.code === targetLang) ?? CONTENT_LANGS[0]!;
           const q = langSearch.trim().toLowerCase();
           const filtered = q
@@ -1936,64 +1945,236 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               )}
             </div>
           );
-        })()}
-        {script ? (
-          scriptDraft ? (
-            <div className="space-y-3">
-              <input
-                value={scriptDraft.title}
-                onChange={(e) => setScriptDraft({ ...scriptDraft, title: e.target.value })}
-                aria-label="Script title"
-                className="w-full text-sm font-semibold px-3 py-2 border border-gray-200 rounded-xl"
-              />
-              <textarea
-                value={scriptDraft.hook}
-                onChange={(e) => setScriptDraft({ ...scriptDraft, hook: e.target.value })}
-                aria-label="Hook"
-                rows={2}
-                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl"
-              />
-              {scriptDraft.sections.map((s, i) => (
-                <div key={i}>
-                  <input
-                    value={s.heading}
-                    onChange={(e) => setScriptDraft({ ...scriptDraft, sections: scriptDraft.sections.map((x, j) => j === i ? { ...x, heading: e.target.value } : x) })}
-                    aria-label={`Section ${i + 1} heading`}
-                    className="w-full text-xs font-semibold px-3 py-1.5 border border-gray-200 rounded-t-xl"
-                  />
-                  <textarea
-                    value={s.content}
-                    onChange={(e) => setScriptDraft({ ...scriptDraft, sections: scriptDraft.sections.map((x, j) => j === i ? { ...x, content: e.target.value } : x) })}
-                    aria-label={`Section ${i + 1} content`}
-                    rows={4}
-                    className="w-full text-sm px-3 py-2 border border-t-0 border-gray-200 rounded-b-xl"
-                  />
-                </div>
-              ))}
-              <textarea
-                value={scriptDraft.callToAction}
-                onChange={(e) => setScriptDraft({ ...scriptDraft, callToAction: e.target.value })}
-                aria-label="Call to action"
-                rows={2}
-                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => saveScript.mutate(scriptDraft)}
-                  disabled={saveScript.isPending}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-full disabled:opacity-50"
-                >
-                  {saveScript.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                  Save edits
-                </button>
-                <button onClick={() => setScriptDraft(null)} className="px-4 py-2 text-xs text-gray-500">Cancel</button>
+        })();
+
+    // ── Creative Brief block reused in state 1 and state 3 collapsed settings ──
+    const creativeBriefBlock = (
+      <div className="border-t border-gray-100 pt-4">
+        <button
+          className="w-full flex items-center justify-between text-left group"
+          onClick={() => setPrefsOpen(!prefsOpen)}
+        >
+          <div>
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Creative Brief</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {hasPrefs ? 'Preferences set — AI will follow these' : 'Optional: guide the AI before running'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasPrefs && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">Active</span>}
+            {prefsOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+          </div>
+        </button>
+        {prefsOpen && (
+          <div className="mt-3 space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[11px] font-medium text-gray-600">What do you think about this title?</p>
+                <MicButton
+                  targetLang={targetLang}
+                  onText={(text, translated, fromLang) => {
+                    savePrefs({ ...creativePrefs, titleFeedback: (creativePrefs.titleFeedback ? creativePrefs.titleFeedback + ' ' : '') + text });
+                    if (translated) console.log(`Translated from ${fromLang} → ${targetLang}`);
+                  }}
+                />
               </div>
-              <p className="text-xs text-gray-500">Saved edits flow into voice, subtitles, and video automatically.</p>
+              <textarea
+                rows={2}
+                placeholder="e.g. Make it more attention-grabbing, focus on the surprise factor… (or tap mic to speak)"
+                value={creativePrefs.titleFeedback}
+                onChange={e => savePrefs({ ...creativePrefs, titleFeedback: e.target.value })}
+                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
+              />
             </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500">{script.totalWordCount ?? '?'} words · {script.sections.length} sections</p>
+            <div>
+              <p className="text-[11px] font-medium text-gray-600 mb-1.5">Script style</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['Educational', 'Storytelling', 'Tutorial', 'Commentary', 'Listicle', 'Review'].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => savePrefs({ ...creativePrefs, scriptStyle: creativePrefs.scriptStyle === s.toLowerCase() ? '' : s.toLowerCase() })}
+                    className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                      creativePrefs.scriptStyle === s.toLowerCase()
+                        ? 'bg-brand-600 text-white border-brand-600'
+                        : 'border-gray-200 text-gray-600 hover:border-brand-300'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-gray-600 mb-1.5">Video style</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['Talking Head', 'Cinematic', 'Screencast', 'Animated', 'Vlog'].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => savePrefs({ ...creativePrefs, videoStyle: creativePrefs.videoStyle === s.toLowerCase().replace(' ', '-') ? '' : s.toLowerCase().replace(' ', '-') })}
+                    className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                      creativePrefs.videoStyle === s.toLowerCase().replace(' ', '-')
+                        ? 'bg-brand-600 text-white border-brand-600'
+                        : 'border-gray-200 text-gray-600 hover:border-brand-300'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-gray-600 mb-1.5">Tone</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['Professional', 'Casual', 'Energetic', 'Calm', 'Humorous'].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => savePrefs({ ...creativePrefs, tone: creativePrefs.tone === s.toLowerCase() ? '' : s.toLowerCase() })}
+                    className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                      creativePrefs.tone === s.toLowerCase()
+                        ? 'bg-brand-600 text-white border-brand-600'
+                        : 'border-gray-200 text-gray-600 hover:border-brand-300'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[11px] font-medium text-gray-600">Target audience</p>
+                <MicButton
+                  targetLang={targetLang}
+                  onText={(text) => savePrefs({ ...creativePrefs, targetAudience: text })}
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="e.g. Tech enthusiasts aged 25-35, beginners, parents… (or tap mic)"
+                value={creativePrefs.targetAudience}
+                onChange={e => savePrefs({ ...creativePrefs, targetAudience: e.target.value })}
+                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[11px] font-medium text-gray-600">Any other notes for the AI?</p>
+                <MicButton
+                  targetLang={targetLang}
+                  onText={(text) => savePrefs({ ...creativePrefs, notes: (creativePrefs.notes ? creativePrefs.notes + ' ' : '') + text })}
+                />
+              </div>
+              <textarea
+                rows={2}
+                placeholder="e.g. Include real examples, avoid technical jargon… (or tap mic to speak)"
+                value={creativePrefs.notes}
+                onChange={e => savePrefs({ ...creativePrefs, notes: e.target.value })}
+                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
+              />
+            </div>
+            {hasPrefs && (
+              <button
+                onClick={() => savePrefs({ scriptStyle: '', videoStyle: '', tone: '', targetAudience: '', titleFeedback: '', notes: '' })}
+                className="text-[11px] text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Clear preferences
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+
+    return (
+      <div className="space-y-3">
+
+        {/* ── STATE 1: No script yet — show generation config ── */}
+        {!scriptDone && (
+          <>
+            {topicBlock}
+            {contentStructureBlock}
+            {languageBlock}
+            {creativeBriefBlock}
+            <p className="text-sm text-gray-500">Pick a topic above, then run — includes research, fact-check and compliance gate.</p>
+          </>
+        )}
+
+        {/* ── STATE 2: Script done, actively editing ── */}
+        {scriptDone && scriptDraft && (
+          <div className="space-y-3">
+            <input
+              value={scriptDraft.title}
+              onChange={(e) => setScriptDraft({ ...scriptDraft, title: e.target.value })}
+              aria-label="Script title"
+              className="w-full text-sm font-semibold px-3 py-2 border border-gray-200 rounded-xl"
+            />
+            <textarea
+              value={scriptDraft.hook}
+              onChange={(e) => setScriptDraft({ ...scriptDraft, hook: e.target.value })}
+              aria-label="Hook"
+              rows={2}
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl"
+            />
+            {scriptDraft.sections.map((s, i) => (
+              <div key={i}>
+                <input
+                  value={s.heading}
+                  onChange={(e) => setScriptDraft({ ...scriptDraft, sections: scriptDraft.sections.map((x, j) => j === i ? { ...x, heading: e.target.value } : x) })}
+                  aria-label={`Section ${i + 1} heading`}
+                  className="w-full text-xs font-semibold px-3 py-1.5 border border-gray-200 rounded-t-xl"
+                />
+                <textarea
+                  value={s.content}
+                  onChange={(e) => setScriptDraft({ ...scriptDraft, sections: scriptDraft.sections.map((x, j) => j === i ? { ...x, content: e.target.value } : x) })}
+                  aria-label={`Section ${i + 1} content`}
+                  rows={4}
+                  className="w-full text-sm px-3 py-2 border border-t-0 border-gray-200 rounded-b-xl"
+                />
+              </div>
+            ))}
+            <textarea
+              value={scriptDraft.callToAction}
+              onChange={(e) => setScriptDraft({ ...scriptDraft, callToAction: e.target.value })}
+              aria-label="Call to action"
+              rows={2}
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => saveScript.mutate(scriptDraft)}
+                disabled={saveScript.isPending}
+                className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-full disabled:opacity-50"
+              >
+                {saveScript.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                Save edits
+              </button>
+              <button onClick={() => setScriptDraft(null)} className="px-4 py-2 text-xs text-gray-500">Cancel</button>
+            </div>
+            <p className="text-xs text-gray-500">Saved edits flow into voice, subtitles, and video automatically.</p>
+          </div>
+        )}
+
+        {/* ── STATE 3: Script done, viewing ── */}
+        {scriptDone && !scriptDraft && script && (
+          <div className="space-y-2">
+            {scriptJustSaved && (
+              <div className="flex items-center justify-between gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-xs text-amber-800">Edits saved — run compliance &amp; fact-check on your updated script?</p>
+                <button
+                  onClick={() => {
+                    setScriptJustSaved(false);
+                    enqueue.mutate({ type: 'FULL_PRODUCTION', payload: { scope: 'SCRIPT', regenerate: ['FACT_CHECK', 'COMPLIANCE'] } });
+                  }}
+                  disabled={busy}
+                  className="shrink-0 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition-colors"
+                >
+                  Validate
+                </button>
+              </div>
+            )}
+            <div className="flex items-center justify-between flex-wrap gap-1">
+              <p className="text-xs text-gray-500">{script.totalWordCount ?? '?'} words · {script.sections.length} sections</p>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setScriptDraft(JSON.parse(JSON.stringify(script)) as ScriptResult)}
                   className="flex items-center gap-1 text-xs font-medium text-brand-700 hover:underline"
@@ -2007,277 +2188,182 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   <Repeat className="w-3 h-3" /> Repurpose
                 </button>
               </div>
+            </div>
 
-              {/* Repurpose panel */}
-              {repurposeOpen && (
-                <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100 space-y-3">
-                  <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Repurpose for platforms</p>
-                  <div className="flex flex-wrap gap-2">
-                    {(['shorts', 'instagram', 'tiktok', 'twitter', 'linkedin', 'newsletter'] as const).map((p) => (
-                      <label key={p} className="flex items-center gap-1 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={repurposePlatforms.has(p)}
-                          onChange={(e) => {
-                            const next = new Set(repurposePlatforms);
-                            if (e.target.checked) next.add(p); else next.delete(p);
-                            setRepurposePlatforms(next);
-                          }}
-                          className="accent-emerald-600 w-3 h-3"
-                        />
-                        <span className="text-xs text-gray-700 capitalize">{p === 'tiktok' ? 'TikTok' : p === 'twitter' ? 'X/Twitter' : p}</span>
-                      </label>
+            {/* Repurpose panel */}
+            {repurposeOpen && (
+              <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100 space-y-3">
+                <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Repurpose for platforms</p>
+                <div className="flex flex-wrap gap-2">
+                  {(['shorts', 'instagram', 'tiktok', 'twitter', 'linkedin', 'newsletter'] as const).map((p) => (
+                    <label key={p} className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={repurposePlatforms.has(p)}
+                        onChange={(e) => {
+                          const next = new Set(repurposePlatforms);
+                          if (e.target.checked) next.add(p); else next.delete(p);
+                          setRepurposePlatforms(next);
+                        }}
+                        className="accent-emerald-600 w-3 h-3"
+                      />
+                      <span className="text-xs text-gray-700 capitalize">{p === 'tiktok' ? 'TikTok' : p === 'twitter' ? 'X/Twitter' : p}</span>
+                    </label>
+                  ))}
+                </div>
+                {repurposeError && <p className="text-xs text-red-600">{repurposeError}</p>}
+                <button
+                  disabled={repurposing || repurposePlatforms.size === 0}
+                  onClick={async () => {
+                    if (!script) return;
+                    setRepurposing(true); setRepurposeError(''); setRepurposeResults(null);
+                    try {
+                      const scriptText = script.sections.map((s) => `${s.heading}\n${s.content}`).join('\n\n');
+                      const res = await api.content.repurpose(scriptText, script.title, Array.from(repurposePlatforms));
+                      setRepurposeResults(res.data.items ?? []);
+                    } catch (err) {
+                      setRepurposeError(getErrorMessage(err) || 'Repurpose failed');
+                    } finally {
+                      setRepurposing(false);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+                >
+                  {repurposing ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</> : <><Repeat className="w-3 h-3" /> Generate repurposed content</>}
+                </button>
+                {repurposeResults && repurposeResults.length > 0 && (
+                  <div className="space-y-3 pt-1">
+                    {repurposeResults.map((item) => (
+                      <div key={item.platform} className="bg-white rounded-lg border border-emerald-100 p-3 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">
+                            {item.platform === 'twitter' ? 'X/Twitter' : item.platform === 'tiktok' ? 'TikTok' : item.platform}
+                          </p>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(item.content)}
+                            className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
+                          >
+                            <Copy className="w-3 h-3" /> Copy
+                          </button>
+                        </div>
+                        {item.hook && <p className="text-xs font-medium text-gray-800 italic">&ldquo;{item.hook}&rdquo;</p>}
+                        <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">{item.content}</p>
+                        {item.hashtags && item.hashtags.length > 0 && (
+                          <p className="text-[11px] text-emerald-600">{item.hashtags.map((h) => `#${h}`).join(' ')}</p>
+                        )}
+                      </div>
                     ))}
                   </div>
-                  {repurposeError && <p className="text-xs text-red-600">{repurposeError}</p>}
-                  <button
-                    disabled={repurposing || repurposePlatforms.size === 0}
-                    onClick={async () => {
-                      if (!script) return;
-                      setRepurposing(true); setRepurposeError(''); setRepurposeResults(null);
-                      try {
-                        const scriptText = script.sections.map((s) => `${s.heading}\n${s.content}`).join('\n\n');
-                        const res = await api.content.repurpose(scriptText, script.title, Array.from(repurposePlatforms));
-                        setRepurposeResults(res.data.items ?? []);
-                      } catch (err) {
-                        setRepurposeError(getErrorMessage(err) || 'Repurpose failed');
-                      } finally {
-                        setRepurposing(false);
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50 transition-colors"
-                  >
-                    {repurposing ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</> : <><Repeat className="w-3 h-3" /> Generate repurposed content</>}
-                  </button>
+                )}
+              </div>
+            )}
 
-                  {repurposeResults && repurposeResults.length > 0 && (
-                    <div className="space-y-3 pt-1">
-                      {repurposeResults.map((item) => (
-                        <div key={item.platform} className="bg-white rounded-lg border border-emerald-100 p-3 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">
-                              {item.platform === 'twitter' ? 'X/Twitter' : item.platform === 'tiktok' ? 'TikTok' : item.platform}
-                            </p>
-                            <button
-                              onClick={() => navigator.clipboard.writeText(item.content)}
-                              className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700"
-                            >
-                              <Copy className="w-3 h-3" /> Copy
-                            </button>
-                          </div>
-                          {item.hook && <p className="text-xs font-medium text-gray-800 italic">&ldquo;{item.hook}&rdquo;</p>}
-                          <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">{item.content}</p>
-                          {item.hashtags && item.hashtags.length > 0 && (
-                            <p className="text-[11px] text-emerald-600">{item.hashtags.map((h) => `#${h}`).join(' ')}</p>
-                          )}
-                        </div>
+            <p className="text-sm font-semibold text-gray-800">{script.title}</p>
+            <p className="text-sm text-gray-600 italic">&ldquo;{script.hook}&rdquo;</p>
+            <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+              {script.sections.map((s, i) => (
+                <div key={i}>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">{s.heading}</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Publishing content */}
+            {hasPublishing && (
+              <div className="mt-3 border-t border-gray-100 pt-3 space-y-3">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Publishing content</p>
+                {(metaResult?.title ?? seoResult?.title) && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">SEO Title</p>
+                    <p className="text-sm text-gray-800 font-medium">{metaResult?.title ?? seoResult?.title}</p>
+                  </div>
+                )}
+                {(metaResult?.description ?? seoResult?.description) && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Description</p>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {((metaResult?.description ?? seoResult?.description) ?? '').slice(0, 200)}
+                      {((metaResult?.description ?? seoResult?.description) ?? '').length > 200 ? '…' : ''}
+                    </p>
+                  </div>
+                )}
+                {((metaResult?.tags ?? seoResult?.tags) ?? []).length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Hashtags</p>
+                    <div className="flex flex-wrap gap-1">
+                      {((metaResult?.tags ?? seoResult?.tags) ?? []).map((tag, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-brand-50 text-brand-700 text-xs rounded-full">#{tag}</span>
                       ))}
                     </div>
-                  )}
-                </div>
-              )}
-              <p className="text-sm font-semibold text-gray-800">{script.title}</p>
-              <p className="text-sm text-gray-600 italic">&ldquo;{script.hook}&rdquo;</p>
-              <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
-                {script.sections.map((s, i) => (
-                  <div key={i}>
-                    <p className="text-xs font-semibold text-gray-500 uppercase">{s.heading}</p>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content}</p>
                   </div>
-                ))}
+                )}
+                {chapters.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Chapters</p>
+                    <div className="font-mono text-[11px] text-gray-600 space-y-0.5">
+                      {chapters.map((line, i) => (
+                        <div key={i}>{line}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )
-        ) : <p className="text-sm text-gray-500">Pick a topic, then run — includes fact-check and the compliance gate.</p>}
+            )}
 
-        {/* Publishing content section */}
-        <div className="mt-3 border-t border-gray-100 pt-3">
-          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Publishing content</p>
-          {hasPublishing ? (
-            <div className="space-y-3">
-              {(metaResult?.title ?? seoResult?.title) && (
+            {/* Change Settings & Regenerate — collapsed accordion */}
+            <div className="border-t border-gray-100 pt-3">
+              <button
+                className="w-full flex items-center justify-between text-left"
+                onClick={() => setScriptConfigOpen(o => !o)}
+              >
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">SEO Title</p>
-                  <p className="text-sm text-gray-800 font-medium">{metaResult?.title ?? seoResult?.title}</p>
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Change Settings</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Adjust topic, duration, style — then regenerate</p>
                 </div>
-              )}
-              {(metaResult?.description ?? seoResult?.description) && (
-                <div>
-                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Description</p>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    {((metaResult?.description ?? seoResult?.description) ?? '').slice(0, 200)}
-                    {((metaResult?.description ?? seoResult?.description) ?? '').length > 200 ? '…' : ''}
-                  </p>
+                <div className="flex items-center gap-2">
+                  {scriptConfigOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                 </div>
-              )}
-              {((metaResult?.tags ?? seoResult?.tags) ?? []).length > 0 && (
-                <div>
-                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Hashtags</p>
-                  <div className="flex flex-wrap gap-1">
-                    {((metaResult?.tags ?? seoResult?.tags) ?? []).map((tag, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-brand-50 text-brand-700 text-xs rounded-full">#{tag}</span>
-                    ))}
+              </button>
+              {scriptConfigOpen && (
+                <div className="mt-3 space-y-3">
+                  {topicBlock}
+                  {contentStructureBlock}
+                  {languageBlock}
+                  {creativeBriefBlock}
+                  <div className="pt-2 border-t border-gray-100">
+                    <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 mb-2">
+                      This will replace your current script with a newly generated one.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setScriptConfigOpen(false);
+                        enqueue.mutate({
+                          type: 'FULL_PRODUCTION',
+                          payload: {
+                            scope: 'SCRIPT',
+                            topic: effectiveTopic,
+                            platform,
+                            lang: targetLang,
+                            ...prefsPayload,
+                            regenerate: ['RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE'],
+                            targetDurationMins: numEpisodes > 1 ? episodeDurationMins : targetDurationMins,
+                            ...(numEpisodes > 1 ? { numEpisodes } : {}),
+                          },
+                        });
+                      }}
+                      disabled={busy || !effectiveTopic}
+                      className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-brand-600 text-white text-xs font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-40 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Regenerate script with AI
+                    </button>
                   </div>
                 </div>
               )}
-              {chapters.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Chapters</p>
-                  <div className="font-mono text-[11px] text-gray-600 space-y-0.5">
-                    {chapters.map((line, i) => (
-                      <div key={i}>{line}</div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-          ) : (
-            <p className="text-xs text-gray-500">Generated during the Video stage.</p>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Creative Brief — optional pre-script user preferences */}
-        <div className="border-t border-gray-100 pt-4">
-          <button
-            className="w-full flex items-center justify-between text-left group"
-            onClick={() => setPrefsOpen(!prefsOpen)}
-          >
-            <div>
-              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Creative Brief</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {hasPrefs ? 'Preferences set — AI will follow these' : 'Optional: guide the AI before running'}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {hasPrefs && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">Active</span>}
-              {prefsOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-            </div>
-          </button>
-
-          {prefsOpen && (
-            <div className="mt-3 space-y-3">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-[11px] font-medium text-gray-600">What do you think about this title?</p>
-                  <MicButton
-                    targetLang={targetLang}
-                    onText={(text, translated, fromLang) => {
-                      savePrefs({ ...creativePrefs, titleFeedback: (creativePrefs.titleFeedback ? creativePrefs.titleFeedback + ' ' : '') + text });
-                      if (translated) console.log(`Translated from ${fromLang} → ${targetLang}`);
-                    }}
-                  />
-                </div>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Make it more attention-grabbing, focus on the surprise factor… (or tap mic to speak)"
-                  value={creativePrefs.titleFeedback}
-                  onChange={e => savePrefs({ ...creativePrefs, titleFeedback: e.target.value })}
-                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
-                />
-              </div>
-
-              <div>
-                <p className="text-[11px] font-medium text-gray-600 mb-1.5">Script style</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Educational', 'Storytelling', 'Tutorial', 'Commentary', 'Listicle', 'Review'].map(s => (
-                    <button
-                      key={s}
-                      onClick={() => savePrefs({ ...creativePrefs, scriptStyle: creativePrefs.scriptStyle === s.toLowerCase() ? '' : s.toLowerCase() })}
-                      className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
-                        creativePrefs.scriptStyle === s.toLowerCase()
-                          ? 'bg-brand-600 text-white border-brand-600'
-                          : 'border-gray-200 text-gray-600 hover:border-brand-300'
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[11px] font-medium text-gray-600 mb-1.5">Video style</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Talking Head', 'Cinematic', 'Screencast', 'Animated', 'Vlog'].map(s => (
-                    <button
-                      key={s}
-                      onClick={() => savePrefs({ ...creativePrefs, videoStyle: creativePrefs.videoStyle === s.toLowerCase().replace(' ', '-') ? '' : s.toLowerCase().replace(' ', '-') })}
-                      className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
-                        creativePrefs.videoStyle === s.toLowerCase().replace(' ', '-')
-                          ? 'bg-brand-600 text-white border-brand-600'
-                          : 'border-gray-200 text-gray-600 hover:border-brand-300'
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[11px] font-medium text-gray-600 mb-1.5">Tone</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Professional', 'Casual', 'Energetic', 'Calm', 'Humorous'].map(s => (
-                    <button
-                      key={s}
-                      onClick={() => savePrefs({ ...creativePrefs, tone: creativePrefs.tone === s.toLowerCase() ? '' : s.toLowerCase() })}
-                      className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
-                        creativePrefs.tone === s.toLowerCase()
-                          ? 'bg-brand-600 text-white border-brand-600'
-                          : 'border-gray-200 text-gray-600 hover:border-brand-300'
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-[11px] font-medium text-gray-600">Target audience</p>
-                  <MicButton
-                    targetLang={targetLang}
-                    onText={(text) => savePrefs({ ...creativePrefs, targetAudience: text })}
-                  />
-                </div>
-                <input
-                  type="text"
-                  placeholder="e.g. Tech enthusiasts aged 25-35, beginners, parents… (or tap mic)"
-                  value={creativePrefs.targetAudience}
-                  onChange={e => savePrefs({ ...creativePrefs, targetAudience: e.target.value })}
-                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-[11px] font-medium text-gray-600">Any other notes for the AI?</p>
-                  <MicButton
-                    targetLang={targetLang}
-                    onText={(text) => savePrefs({ ...creativePrefs, notes: (creativePrefs.notes ? creativePrefs.notes + ' ' : '') + text })}
-                  />
-                </div>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Include real examples, avoid technical jargon… (or tap mic to speak)"
-                  value={creativePrefs.notes}
-                  onChange={e => savePrefs({ ...creativePrefs, notes: e.target.value })}
-                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-400"
-                />
-              </div>
-
-              {hasPrefs && (
-                <button
-                  onClick={() => savePrefs({ scriptStyle: '', videoStyle: '', tone: '', targetAudience: '', titleFeedback: '', notes: '' })}
-                  className="text-[11px] text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  Clear preferences
-                </button>
-              )}
-            </div>
-          )}
-        </div>
       </div>
     );
   })();
@@ -4278,20 +4364,21 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             hasDetail={true}
             onToggle={() => toggle('script')}
             action={
-              <RunButton
-                label={scriptDone ? 'Re-run' : 'Run'}
-                rerun={scriptDone}
-                disabled={busy || !effectiveTopic}
-                onClick={() => enqueue.mutate({
-                  type: 'FULL_PRODUCTION',
-                  payload: {
-                    scope: 'SCRIPT', topic: effectiveTopic, platform, lang: targetLang, ...prefsPayload,
-                    targetDurationMins: numEpisodes > 1 ? episodeDurationMins : targetDurationMins,
-                    ...(numEpisodes > 1 ? { numEpisodes } : {}),
-                    ...(scriptDone ? { regenerate: ['RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE'] } : {}),
-                  },
-                })}
-              />
+              scriptDone ? undefined : (
+                <RunButton
+                  label="Run"
+                  rerun={false}
+                  disabled={busy || !effectiveTopic}
+                  onClick={() => enqueue.mutate({
+                    type: 'FULL_PRODUCTION',
+                    payload: {
+                      scope: 'SCRIPT', topic: effectiveTopic, platform, lang: targetLang, ...prefsPayload,
+                      targetDurationMins: numEpisodes > 1 ? episodeDurationMins : targetDurationMins,
+                      ...(numEpisodes > 1 ? { numEpisodes } : {}),
+                    },
+                  })}
+                />
+              )
             }
           />
           {isMobile && expanded === 'script' && (
