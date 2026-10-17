@@ -4411,7 +4411,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   disabled={busy || !scriptDone}
                   onClick={() => enqueue.mutate({
                     type: 'FULL_PRODUCTION',
-                    payload: { scope: 'CHARACTER_STORY', lang: targetLang, ...prefsPayload, ...(castResult ? { regenerate: ['CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE'] } : {}) },
+                    payload: { scope: 'CHARACTER_CAST', lang: targetLang, ...prefsPayload, ...(castResult ? { regenerate: ['CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE'] } : {}) },
                   })}
                 />
               }

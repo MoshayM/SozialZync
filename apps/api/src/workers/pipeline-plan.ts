@@ -1,6 +1,6 @@
 import type { JobType } from '@cf/shared';
 
-export type PipelineScope = 'FULL' | 'SCRIPT' | 'VOICE' | 'MUSIC' | 'IMAGES' | 'VIDEO' | 'SONG' | 'SMART_MIX' | 'CHARACTER_STORY';
+export type PipelineScope = 'FULL' | 'SCRIPT' | 'VOICE' | 'MUSIC' | 'IMAGES' | 'VIDEO' | 'SONG' | 'SMART_MIX' | 'CHARACTER_STORY' | 'CHARACTER_CAST';
 
 export interface PipelineStage {
   type: JobType | 'PACKAGE' | 'AUDIO_MIX';
@@ -89,6 +89,13 @@ const SCOPE_STAGES: Record<PipelineScope, PipelineStage[]> = {
   // Multi-character short-form video (Instagram Reel / TikTok / Shorts style)
   // Each character gets a distinct voice and a generated portrait image.
   // Scene images + videos are generated for all dialogue scenes.
+  // Focused scope: only (re-)run the cast extraction + portrait generation on an existing script.
+  // Uses MEDIA_GATE (compliance check) instead of FOUNDATION so RESEARCH/SCRIPT are never re-triggered.
+  CHARACTER_CAST: [
+    ...MEDIA_GATE,
+    S('CHARACTER_CAST', 'Character Cast', 40),
+    S('CHARACTER_IMAGE_GENERATE', 'Character Portraits', 45),
+  ],
   CHARACTER_STORY: [
     ...FOUNDATION,
     SEO_STAGE,

@@ -703,6 +703,21 @@ export default function ProjectDetailPage() {
   });
 
   const [enqueuePending, setEnqueuePending] = useState(false);
+  const [storyboardPct, setStoryboardPct] = useState(0);
+  const storyboardTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (storyboardRunning) {
+      setStoryboardPct(prev => prev === 0 ? 5 : prev);
+      storyboardTimerRef.current = setInterval(() => {
+        setStoryboardPct(prev => prev < 90 ? prev + 2 : 90);
+      }, 800);
+    } else {
+      if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
+      setStoryboardPct(0);
+    }
+    return () => { if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current); };
+  }, [storyboardRunning]);
+
   async function enqueueStoryboard() {
     setEnqueuePending(true);
     try {
@@ -896,6 +911,7 @@ export default function ProjectDetailPage() {
     .filter((j) => j.type === 'VIDEO_SCENE_PLAN' && j.status === 'COMPLETED')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
   const storyboardData = latestStoryboardJob?.result as VideoScenePlan | undefined;
+  const storyboardRunning = jobs.some(j => j.type === 'VIDEO_SCENE_PLAN' && ['RUNNING', 'QUEUED', 'PENDING'].includes(j.status));
 
   const latestFactCheckJob = [...jobs]
     .filter((j) => j.type === 'FACT_CHECK')
@@ -1189,11 +1205,19 @@ export default function ProjectDetailPage() {
               <p className="text-gray-500 mb-4">No storyboard yet.</p>
               <button
                 onClick={() => { void enqueueStoryboard(); }}
-                disabled={enqueuePending}
-                className="px-5 py-2 bg-brand-600 text-white rounded-lg text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
+                disabled={enqueuePending || storyboardRunning}
+                className="relative overflow-hidden px-5 py-2 bg-brand-600 text-white rounded-lg text-sm font-semibold hover:bg-brand-700 disabled:opacity-80 transition-colors"
               >
-                {enqueuePending ? <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> : null}
-                Generate Storyboard (Stage 4)
+                {storyboardRunning && (
+                  <span
+                    className="absolute inset-y-0 left-0 bg-brand-400 transition-all duration-700"
+                    style={{ width: `${storyboardPct}%` }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {(enqueuePending || storyboardRunning) ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {storyboardRunning ? `Generating… ${storyboardPct}%` : 'Generate Storyboard (Stage 4)'}
+                </span>
               </button>
             </div>
           ) : (
@@ -1212,11 +1236,16 @@ export default function ProjectDetailPage() {
                 )}
                 <button
                   onClick={() => { void enqueueStoryboard(); }}
-                  disabled={enqueuePending}
-                  className="ml-auto sm:ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  disabled={enqueuePending || storyboardRunning}
+                  className="relative overflow-hidden ml-auto sm:ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
                 >
-                  {enqueuePending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                  Regenerate
+                  {storyboardRunning && (
+                    <span className="absolute inset-y-0 left-0 bg-brand-100 transition-all duration-700 rounded-lg" style={{ width: `${storyboardPct}%` }} />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    {(enqueuePending || storyboardRunning) ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    {storyboardRunning ? `${storyboardPct}%` : 'Regenerate'}
+                  </span>
                 </button>
               </div>
 
