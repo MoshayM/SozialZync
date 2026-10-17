@@ -10,7 +10,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import type { AuthTokens } from './auth.service';
 import type { SessionMeta } from './sessions.service';
-import { DemoSeedService } from '../projects/demo-seed.service';
 import { ProviderRegistry } from './providers/provider.registry';
 
 // ── Pure exported helpers (unit-testable without DI) ─────────────────────────
@@ -63,7 +62,6 @@ export class OAuthService {
     private readonly prisma: PrismaService,
     private readonly registry: ProviderRegistry,
     private readonly auth: AuthService,
-    private readonly demoSeed: DemoSeedService,
   ) {}
 
   /**
