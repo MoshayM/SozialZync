@@ -57,7 +57,13 @@ export class ElevenLabsVoiceAdapter implements VoiceAdapter {
         body: JSON.stringify({
           text: chunk,
           model_id: DEFAULT_MODEL,
-          voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: req.speed ?? 1 },
+          voice_settings: {
+            stability:         req.stability        ?? 0.5,
+            similarity_boost:  req.similarityBoost  ?? 0.75,
+            style:             req.styleExaggeration ?? 0,
+            use_speaker_boost: true,
+            speed:             req.speed            ?? 1,
+          },
         }),
       });
       if (!res.ok) {

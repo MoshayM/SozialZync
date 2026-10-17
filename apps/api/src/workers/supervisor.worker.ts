@@ -928,6 +928,11 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
 
         const t0 = Date.now();
         const referenceVoiceId = payload['referenceVoiceId'] as string | undefined;
+        const voicePitch          = payload['voicePitch']          as number | undefined;
+        const voiceStability      = payload['voiceStability']      as number | undefined;
+        const voiceSimilarityBoost = payload['voiceSimilarityBoost'] as number | undefined;
+        const voiceStyleExag      = payload['voiceStyleExaggeration'] as number | undefined;
+        const voiceEffects        = payload['voiceEffects']        as import('../modules/media/media.types').VoiceEffect[] | undefined;
 
         // ── Per-scene narration mode ─────────────────────────────────────────
         // Each scene gets its own TTS clip from scene.narration, enabling
@@ -943,7 +948,11 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (!text) { this.log(jobId, projectId, `Scene ${i + 1} has no narration — skipping`); continue; }
             const speed = scene.voiceSettings?.pace === 'slow' ? 0.9 : scene.voiceSettings?.pace === 'fast' ? 1.1 : spec?.sections?.[0]?.speed;
             this.log(jobId, projectId, `Scene ${i + 1}/${scenePlan.scenes.length} voice…`, `${text.split(/\s+/).length} words`);
-            const stored = await this.media.generateVoice(projectId, `Scene-${i + 1}-narration`, { text, voiceId, speed, language: lang });
+            const stored = await this.media.generateVoice(projectId, `Scene-${i + 1}-narration`, {
+              text, voiceId, speed, language: lang,
+              pitch: voicePitch, stability: voiceStability, similarityBoost: voiceSimilarityBoost,
+              styleExaggeration: voiceStyleExag, effects: voiceEffects,
+            });
             results.push({ sceneId: scene.id || `scene-${i}`, assetId: stored.assetId, versionId: stored.versionId, durationMs: stored.durationMs ?? 0 });
           }
           this.log(jobId, projectId, `Per-scene voice ready ✓`, `${results.length} clips`);
@@ -980,6 +989,11 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
           voiceId: referenceVoiceId ?? spec?.sections?.[0]?.voiceId,
           speed: spec?.sections?.[0]?.speed,
           language: (payload['lang'] as string | undefined) ?? project.targetLang,
+          pitch: voicePitch,
+          stability: voiceStability,
+          similarityBoost: voiceSimilarityBoost,
+          styleExaggeration: voiceStyleExag,
+          effects: voiceEffects,
         });
         this.log(jobId, projectId, stored.cached ? 'Voice-over reused from cache ✓' : 'Voice-over generated ✓',
           `${stored.provider} · ${Math.round((stored.durationMs ?? 0) / 1000)}s audio`);
@@ -1994,6 +2008,11 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (stage.type === 'VOICE_SPEC' && payload['characterVoices']) stagePayload['characterVoices'] = payload['characterVoices'];
             if (stage.type === 'VOICE_GENERATE' && payload['referenceVoiceId']) stagePayload['referenceVoiceId'] = payload['referenceVoiceId'];
             if (stage.type === 'VOICE_GENERATE' && payload['perScene']) stagePayload['perScene'] = payload['perScene'];
+            if (stage.type === 'VOICE_GENERATE' && payload['voicePitch'] !== undefined) stagePayload['voicePitch'] = payload['voicePitch'];
+            if (stage.type === 'VOICE_GENERATE' && payload['voiceStability'] !== undefined) stagePayload['voiceStability'] = payload['voiceStability'];
+            if (stage.type === 'VOICE_GENERATE' && payload['voiceSimilarityBoost'] !== undefined) stagePayload['voiceSimilarityBoost'] = payload['voiceSimilarityBoost'];
+            if (stage.type === 'VOICE_GENERATE' && payload['voiceStyleExaggeration'] !== undefined) stagePayload['voiceStyleExaggeration'] = payload['voiceStyleExaggeration'];
+            if (stage.type === 'VOICE_GENERATE' && payload['voiceEffects']) stagePayload['voiceEffects'] = payload['voiceEffects'];
             // CHARACTER_STORY scope: auto-enable character-aware voice direction and
             // forward the CHARACTER_CAST result to CHARACTER_IMAGE_GENERATE.
             if (scope === 'CHARACTER_STORY' && stage.type === 'VOICE_SPEC') stagePayload['characterVoices'] = true;

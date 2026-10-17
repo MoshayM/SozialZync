@@ -16,11 +16,23 @@ export interface GeneratedMedia {
   costUsd?: number;
 }
 
+export type VoiceEffect = 'studio-eq' | 'room-reverb' | 'normalize';
+
 export interface VoiceRequest {
   text: string;
   voiceId?: string;
   speed?: number;
   language?: string;
+  /** Pitch shift in semitones (-12 to +12). Applied via FFmpeg post-processing. */
+  pitch?: number;
+  /** Voice consistency/stability 0–1 (ElevenLabs stability param). */
+  stability?: number;
+  /** Voice clarity/similarity boost 0–1 (ElevenLabs similarity_boost param). */
+  similarityBoost?: number;
+  /** Style expressiveness 0–1 (ElevenLabs style_exaggeration). */
+  styleExaggeration?: number;
+  /** FFmpeg post-processing effects applied after TTS synthesis. */
+  effects?: VoiceEffect[];
 }
 
 export type ImageVisualStyle =

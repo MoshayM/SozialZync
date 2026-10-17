@@ -10,6 +10,7 @@ import type {
   GeneratedMedia, VoiceAdapter, ImageAdapter, MusicAdapter, VideoAdapter,
   VoiceRequest, ImageRequest, MusicRequest, SceneVideoRequest,
 } from './media.types';
+import { applyVoiceEffects } from './adapters/voice-effects.util';
 import { CoquiVoiceAdapter } from './adapters/voice-coqui.adapter';
 import { FishSpeechVoiceAdapter } from './adapters/voice-fish-speech.adapter';
 import { StyleTTS2VoiceAdapter } from './adapters/voice-styletts2.adapter';
@@ -125,7 +126,13 @@ export class MediaService {
   }
 
   generateVoice(projectId: string, label: string, req: VoiceRequest): Promise<StoredAsset> {
-    return this.generate(projectId, 'VOICE', label, req, this.orderedAdapters(this.voice), (a, r) => a.synthesize(r));
+    const needsPostProcess = (req.pitch && Math.abs(req.pitch) >= 0.5) || (req.effects?.length ?? 0) > 0;
+    return this.generate(projectId, 'VOICE', label, req, this.orderedAdapters(this.voice), async (a, r) => {
+      const media = await a.synthesize(r);
+      if (!needsPostProcess) return media;
+      const processed = await applyVoiceEffects(media.buffer, { pitch: r.pitch, effects: r.effects });
+      return { ...media, buffer: processed };
+    });
   }
 
   generateImage(projectId: string, label: string, req: ImageRequest): Promise<StoredAsset> {

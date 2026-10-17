@@ -151,14 +151,20 @@ const CONTENT_LANGS = [
   { code: 'sw',    name: 'Swahili',             nativeName: 'Kiswahili',        flag: '🇰🇪' },
 ];
 
-type VoiceStyleId = 'default' | 'male' | 'female' | 'storyteller' | 'deep' | 'warm';
-const VOICE_STYLES: Array<{ id: VoiceStyleId; label: string; icon: string; desc: string; voiceProfile: Record<string, string> }> = [
-  { id: 'default',     label: 'Default',     icon: '🎙️', desc: 'AI auto-selects best voice',         voiceProfile: { gender: 'neutral', style: 'conversational', tone: 'engaging',     pace: 'moderate' } },
-  { id: 'male',        label: 'Male',         icon: '👨', desc: 'Clear confident male voice',          voiceProfile: { gender: 'male',    style: 'professional',  tone: 'confident',    pace: 'moderate' } },
-  { id: 'female',      label: 'Female',       icon: '👩', desc: 'Friendly energetic female voice',     voiceProfile: { gender: 'female',  style: 'friendly',      tone: 'warm',         pace: 'moderate' } },
-  { id: 'storyteller', label: 'Storyteller',  icon: '📖', desc: 'Warm narrative storytelling tone',    voiceProfile: { gender: 'neutral', style: 'narrative',     tone: 'dramatic',     pace: 'slow'     } },
-  { id: 'deep',        label: 'Deep',         icon: '🎚️', desc: 'Rich authoritative deep voice',       voiceProfile: { gender: 'male',    style: 'authoritative', tone: 'serious',      pace: 'slow'     } },
-  { id: 'warm',        label: 'Warm',         icon: '✨', desc: 'Soft expressive female voice',        voiceProfile: { gender: 'female',  style: 'expressive',    tone: 'soft',         pace: 'gentle'   } },
+type VoiceStyleId = 'default' | 'professional' | 'warm' | 'energetic' | 'deep' | 'soft' | 'narrator' | 'podcast';
+const VOICE_STYLES: Array<{
+  id: VoiceStyleId; label: string; icon: string; desc: string;
+  voiceProfile: Record<string, string>;
+  ttsParams: { stability: number; similarityBoost: number; styleExaggeration: number };
+}> = [
+  { id: 'default',      label: 'Default',      icon: '🎙️', desc: 'AI auto-selects best voice',              voiceProfile: { gender: 'neutral', style: 'conversational', tone: 'engaging',    pace: 'moderate' }, ttsParams: { stability: 0.50, similarityBoost: 0.75, styleExaggeration: 0.20 } },
+  { id: 'professional', label: 'Professional', icon: '💼', desc: 'Polished, confident, broadcast quality',   voiceProfile: { gender: 'neutral', style: 'professional',  tone: 'confident',   pace: 'moderate' }, ttsParams: { stability: 0.70, similarityBoost: 0.80, styleExaggeration: 0.10 } },
+  { id: 'warm',         label: 'Warm',         icon: '✨', desc: 'Friendly, inviting, conversational',       voiceProfile: { gender: 'female',  style: 'friendly',      tone: 'warm',        pace: 'gentle'   }, ttsParams: { stability: 0.55, similarityBoost: 0.78, styleExaggeration: 0.30 } },
+  { id: 'energetic',    label: 'Energetic',    icon: '⚡', desc: 'High energy, exciting, dynamic delivery',  voiceProfile: { gender: 'neutral', style: 'expressive',    tone: 'energetic',   pace: 'fast'     }, ttsParams: { stability: 0.35, similarityBoost: 0.70, styleExaggeration: 0.65 } },
+  { id: 'deep',         label: 'Deep',         icon: '🎚️', desc: 'Rich, authoritative, commanding presence', voiceProfile: { gender: 'male',    style: 'authoritative', tone: 'serious',     pace: 'slow'     }, ttsParams: { stability: 0.75, similarityBoost: 0.85, styleExaggeration: 0.05 } },
+  { id: 'soft',         label: 'Soft',         icon: '🌙', desc: 'Gentle, soothing, intimate delivery',      voiceProfile: { gender: 'female',  style: 'gentle',        tone: 'soft',        pace: 'slow'     }, ttsParams: { stability: 0.80, similarityBoost: 0.80, styleExaggeration: 0.10 } },
+  { id: 'narrator',     label: 'Narrator',     icon: '📖', desc: 'Epic storytelling, cinematic tone',        voiceProfile: { gender: 'neutral', style: 'narrative',     tone: 'dramatic',    pace: 'slow'     }, ttsParams: { stability: 0.60, similarityBoost: 0.78, styleExaggeration: 0.40 } },
+  { id: 'podcast',      label: 'Podcast',      icon: '🎧', desc: 'Natural, relaxed, long-form conversational', voiceProfile: { gender: 'neutral', style: 'conversational', tone: 'natural',   pace: 'moderate' }, ttsParams: { stability: 0.60, similarityBoost: 0.75, styleExaggeration: 0.25 } },
 ];
 
 const SONG_STYLES = [
@@ -663,6 +669,10 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [cloneAvailability, setCloneAvailability] = useState<{ available: boolean; reason?: string; provider?: string } | null>(null);
   const [clonedVoiceId, setClonedVoiceId] = useState<string | null>(null);
   const [voiceStyle, setVoiceStyle] = useState<VoiceStyleId>('default');
+  const [voicePitch, setVoicePitch] = useState(0);
+  const [voiceStabilityPct, setVoiceStabilityPct] = useState(50);
+  const [voiceExpressivenessPct, setVoiceExpressivenessPct] = useState(50);
+  const [voiceEffects, setVoiceEffects] = useState<string[]>([]);
   const [perSceneVoice, setPerSceneVoice] = useState(false);
   const [elevenLabsOpen, setElevenLabsOpen] = useState(false);
   // Pre-render settings dialog
@@ -2273,7 +2283,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   {VOICE_STYLES.map((s) => (
                     <button
                       key={s.id}
-                      onClick={() => setVoiceStyle(s.id)}
+                      onClick={() => {
+                        setVoiceStyle(s.id);
+                        setVoiceStabilityPct(Math.round(s.ttsParams.stability * 100));
+                        setVoiceExpressivenessPct(Math.round(s.ttsParams.styleExaggeration * 100));
+                      }}
                       title={s.desc}
                       className={`flex flex-col items-center gap-0.5 p-2 rounded-xl border text-center transition-all ${
                         voiceStyle === s.id
@@ -2287,6 +2301,84 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   ))}
                 </div>
                 <p className="text-[11px] text-gray-400">{VOICE_STYLES.find((s) => s.id === voiceStyle)?.desc}</p>
+              </div>
+
+              {/* ── Voice fine-tuning controls ── */}
+              <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Fine-Tune Voice</p>
+
+                {/* Pitch */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-gray-600">Pitch</span>
+                    <span className="text-[11px] font-semibold text-brand-600 tabular-nums">
+                      {voicePitch === 0 ? '0 st' : `${voicePitch > 0 ? '+' : ''}${voicePitch} st`}
+                    </span>
+                  </div>
+                  <input
+                    type="range" min={-6} max={6} step={0.5} value={voicePitch}
+                    onChange={(e) => setVoicePitch(Number(e.target.value))}
+                    className="w-full h-1.5 rounded-full accent-brand-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-gray-400">
+                    <span>−6 st</span><span>0</span><span>+6 st</span>
+                  </div>
+                </div>
+
+                {/* Tone & Depth (stability) */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-gray-600">Tone & Depth</span>
+                    <span className="text-[11px] font-semibold text-brand-600 tabular-nums">{voiceStabilityPct}%</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={100} step={5} value={voiceStabilityPct}
+                    onChange={(e) => setVoiceStabilityPct(Number(e.target.value))}
+                    className="w-full h-1.5 rounded-full accent-brand-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-gray-400">
+                    <span>Variable</span><span>Balanced</span><span>Consistent</span>
+                  </div>
+                </div>
+
+                {/* Expressiveness */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-gray-600">Expressiveness</span>
+                    <span className="text-[11px] font-semibold text-brand-600 tabular-nums">{voiceExpressivenessPct}%</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={100} step={5} value={voiceExpressivenessPct}
+                    onChange={(e) => setVoiceExpressivenessPct(Number(e.target.value))}
+                    className="w-full h-1.5 rounded-full accent-brand-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-gray-400">
+                    <span>Flat</span><span>Natural</span><span>Dramatic</span>
+                  </div>
+                </div>
+
+                {/* Professional Effects */}
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-medium text-gray-600">Effects</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(['studio-eq', 'room-reverb', 'normalize'] as const).map((fx) => {
+                      const labels: Record<string, string> = { 'studio-eq': 'Studio EQ', 'room-reverb': 'Room Reverb', 'normalize': 'Normalize' };
+                      const active = voiceEffects.includes(fx);
+                      return (
+                        <button
+                          key={fx}
+                          onClick={() => setVoiceEffects((prev) => active ? prev.filter((e) => e !== fx) : [...prev, fx])}
+                          className={`px-2.5 py-1 text-[10px] font-semibold rounded-full border transition-colors ${
+                            active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-500 hover:border-brand-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          {labels[fx]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-gray-400">Studio EQ — presence lift · Room Reverb — subtle ambience · Normalize — broadcast loudness</p>
+                </div>
               </div>
 
               {/* Per-scene narration toggle */}
@@ -2310,6 +2402,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                     voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
                     characterVoices: false,
                     ...(perSceneVoice ? { perScene: true } : {}),
+                    ...(voicePitch !== 0 ? { voicePitch } : {}),
+                    voiceStability: voiceStabilityPct / 100,
+                    voiceSimilarityBoost: VOICE_STYLES.find((s) => s.id === voiceStyle)?.ttsParams.similarityBoost ?? 0.75,
+                    voiceStyleExaggeration: voiceExpressivenessPct / 100,
+                    ...(voiceEffects.length > 0 ? { voiceEffects } : {}),
                   },
                 })}
                 disabled={busy}
@@ -2920,6 +3017,11 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                               regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'],
                               voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
                               lang: targetLang,
+                              ...(voicePitch !== 0 ? { voicePitch } : {}),
+                              voiceStability: voiceStabilityPct / 100,
+                              voiceSimilarityBoost: VOICE_STYLES.find((s) => s.id === voiceStyle)?.ttsParams.similarityBoost ?? 0.75,
+                              voiceStyleExaggeration: voiceExpressivenessPct / 100,
+                              ...(voiceEffects.length > 0 ? { voiceEffects } : {}),
                             },
                           });
                         }}
@@ -4140,7 +4242,16 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !scriptDone}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'VOICE', lang: targetLang, ...prefsPayload, ...(voiceResult ? { regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } : {}) },
+                  payload: {
+                    scope: 'VOICE', lang: targetLang, ...prefsPayload,
+                    ...(voiceResult ? { regenerate: ['VOICE_SPEC', 'VOICE_GENERATE'] } : {}),
+                    voiceProfile: VOICE_STYLES.find((s) => s.id === voiceStyle)?.voiceProfile,
+                    ...(voicePitch !== 0 ? { voicePitch } : {}),
+                    voiceStability: voiceStabilityPct / 100,
+                    voiceSimilarityBoost: VOICE_STYLES.find((s) => s.id === voiceStyle)?.ttsParams.similarityBoost ?? 0.75,
+                    voiceStyleExaggeration: voiceExpressivenessPct / 100,
+                    ...(voiceEffects.length > 0 ? { voiceEffects } : {}),
+                  },
                 })}
               />
             }
