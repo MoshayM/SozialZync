@@ -3361,6 +3361,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               const sceneVideoPrompt = (videoResult as { videos: Array<{ sceneId: string; provider: string; versionId?: string; prompt?: string }> }).videos[i]?.prompt;
               return (
                 <div key={`${v.sceneId}-${i}`} className={`relative rounded-lg border transition-colors overflow-x-hidden ${isThisClipGenerating ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-white'}`}>
+                  {/* Compact header row — no video player here */}
                   <div className="flex items-center justify-between gap-2 px-2 py-1.5">
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       {isThisClipGenerating
@@ -3373,7 +3374,6 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {v.versionId && !isThisClipGenerating && <MediaPlayer versionId={v.versionId} kind="video" />}
                       {/* Per-scene narration audio player */}
                       {voicePerSceneMap[v.sceneId]?.versionId && !isThisClipGenerating && (
                         <MediaPlayer versionId={voicePerSceneMap[v.sceneId]!.versionId!} kind="audio" />
@@ -3423,6 +3423,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                       )}
                     </div>
                   </div>
+
+                  {/* Video player — full-width block below header */}
+                  {v.versionId && !isThisClipGenerating && (
+                    <div className="px-2 pb-1">
+                      <MediaPlayer versionId={v.versionId} kind="video" />
+                    </div>
+                  )}
 
                   {/* Per-scene prompt editor */}
                   {!isThisClipGenerating && (
@@ -4513,7 +4520,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             }
           />
           {isMobile && expanded === 'video' && (
-            <div key="video" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('video')}</div>
+            <div key="video" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-x-hidden">{detailFor('video')}</div>
           )}
         </div>
 
