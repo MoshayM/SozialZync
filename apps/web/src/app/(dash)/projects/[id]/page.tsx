@@ -705,20 +705,6 @@ export default function ProjectDetailPage() {
   const [enqueuePending, setEnqueuePending] = useState(false);
   const [storyboardPct, setStoryboardPct] = useState(0);
   const storyboardTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Computed before early returns via optional chaining so hooks order is stable
-  const storyboardRunningEarly = (project?.jobs ?? []).some(j => j.type === 'VIDEO_SCENE_PLAN' && ['RUNNING', 'QUEUED', 'PENDING'].includes(j.status));
-  useEffect(() => {
-    if (storyboardRunningEarly) {
-      setStoryboardPct(prev => prev === 0 ? 5 : prev);
-      storyboardTimerRef.current = setInterval(() => {
-        setStoryboardPct(prev => prev < 90 ? prev + 2 : 90);
-      }, 800);
-    } else {
-      if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
-      setStoryboardPct(0);
-    }
-    return () => { if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current); };
-  }, [storyboardRunningEarly]);
 
   async function enqueueStoryboard() {
     setEnqueuePending(true);
@@ -860,6 +846,21 @@ export default function ProjectDetailPage() {
       setAudienceForm((f) => f.niche ? f : { niche: project.title });
     }
   }, [project?.title]);
+
+  // Must be after useQuery so `project` is in scope, and before early returns so hook order is stable
+  const storyboardRunningEarly = (project?.jobs ?? []).some(j => j.type === 'VIDEO_SCENE_PLAN' && ['RUNNING', 'QUEUED', 'PENDING'].includes(j.status));
+  useEffect(() => {
+    if (storyboardRunningEarly) {
+      setStoryboardPct(prev => prev === 0 ? 5 : prev);
+      storyboardTimerRef.current = setInterval(() => {
+        setStoryboardPct(prev => prev < 90 ? prev + 2 : 90);
+      }, 800);
+    } else {
+      if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
+      setStoryboardPct(0);
+    }
+    return () => { if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current); };
+  }, [storyboardRunningEarly]);
 
   function toggle(key: string) {
     setExpandedIds((prev) => {
