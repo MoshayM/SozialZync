@@ -384,7 +384,14 @@ export default function AnalyticsPage() {
                   {(tokenUsage.byVideo ?? []).length > 0 && (
                     <div className="bg-white rounded-2xl p-5" style={{ border: '1.5px solid #e3ddf8' }}>
                       <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-3">Cost by Video</p>
-                      <table className="w-full text-sm">
+                      <div className="overflow-x-auto">
+                      <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: '360px' }}>
+                        <colgroup>
+                          <col style={{ width: '50%' }} />
+                          <col style={{ width: '15%' }} />
+                          <col style={{ width: '20%' }} />
+                          <col style={{ width: '15%' }} />
+                        </colgroup>
                         <thead>
                           <tr className="text-left">
                             <th className="pb-1 text-[10px] font-extrabold uppercase tracking-widest text-gray-600">Video</th>
@@ -396,7 +403,7 @@ export default function AnalyticsPage() {
                         <tbody>
                           {tokenUsage.byVideo.map((v) => (
                             <tr key={v.importedVideoId} className="hover:bg-[#faf9ff]" style={{ borderBottom: '1px solid #f3f4f6' }}>
-                              <td className="py-1.5 text-gray-800 truncate max-w-[280px]" title={v.title}>{v.title}</td>
+                              <td className="py-1.5 text-gray-800 truncate" title={v.title}>{v.title}</td>
                               <td className="py-1.5 text-right text-gray-600">{v.calls}</td>
                               <td className="py-1.5 text-right text-gray-600">{(v.tokensIn + v.tokensOut).toLocaleString()}</td>
                               <td className="py-1.5 text-right font-bold text-gray-900">${v.costUsd.toFixed(3)}</td>
@@ -404,6 +411,7 @@ export default function AnalyticsPage() {
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   )}
                 </>
@@ -791,15 +799,13 @@ export default function AnalyticsPage() {
         {/* Benchmark tab */}
         {activeView === 'benchmark' && (
           <div className="space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-extrabold text-gray-900">Channel Benchmark</h2>
-                <p className="text-sm text-gray-600 mt-0.5">Compare your channel against similar channels on YouTube</p>
-              </div>
+            <div>
+              <h2 className="text-lg font-extrabold text-gray-900">Channel Benchmark</h2>
+              <p className="text-sm text-gray-600 mt-0.5">Compare your channel against similar channels on YouTube</p>
               <button
                 onClick={runBenchmark}
                 disabled={loadingBenchmark || !channelId}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
+                className="mt-3 flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold text-white hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all"
                 style={{ background: 'linear-gradient(135deg, #374151 0%, #7c5ae8 100%)', boxShadow: '0 4px 20px rgba(55,65,81,0.35)' }}
               >
                 {loadingBenchmark ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
