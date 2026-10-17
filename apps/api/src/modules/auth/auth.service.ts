@@ -6,7 +6,6 @@ import type { User } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { resolveElevatedRole } from '../../common/rbac';
-import { DemoSeedService } from '../projects/demo-seed.service';
 import { SessionsService, hashRefreshToken } from './sessions.service';
 import type { SessionMeta } from './sessions.service';
 
@@ -35,7 +34,6 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly sessions: SessionsService,
-    private readonly demoSeed: DemoSeedService,
   ) {}
 
   async register(
@@ -63,8 +61,6 @@ export class AuthService {
         consentedAt: new Date(),
       },
     }) as Awaited<ReturnType<typeof this.prisma.user.create>>;
-
-    await this.demoSeed.seedDemoProjectsForUser(user.id).catch(() => undefined);
 
     const tokens = await this.issueSessionTokens(user.id, user.email, {
       device: signals.device,
@@ -164,8 +160,6 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: { email, name, passwordHash: null, role: isFirst ? 'OWNER' : 'MEMBER', emailVerified: new Date() },
     });
-
-    await this.demoSeed.seedDemoProjectsForUser(user.id).catch(() => undefined);
 
     const tokens = await this.issueSessionTokens(user.id, user.email, {
       device: signals.device,

@@ -3086,8 +3086,28 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     </div>
   );
 
+  const VISUAL_STYLE_LABELS: Record<string, string> = {
+    'ai-best': '✨ AI Picks Best', 'realistic': '📷 Realistic', 'hyper-realistic': '🔍 Hyper-Realistic',
+    'cinematic': '🎬 Cinematic', 'documentary': '🎥 Documentary', 'commercial': '📢 Commercial',
+    '3d-animation': '🎲 3D Animation', 'cartoon': '🎨 Cartoon', 'anime': '⛩️ Anime',
+    'claymation': '🧸 Claymation', 'low-poly': '🔷 Low Poly', 'pixel-art': '🕹️ Pixel Art',
+    'watercolor': '🖌️ Watercolor', 'oil-painting': '🖼️ Oil Painting', 'sketch': '✏️ Sketch',
+    'storybook': '📚 Storybook', 'paper-cutout': '✂️ Paper Cutout', 'comic-book': '💥 Comic Book',
+    'cyberpunk': '🌆 Cyberpunk', 'neon-synthwave': '🌈 Neon Synthwave', 'vintage-retro': '📻 Retro',
+    'black-white-noir': '⬛ B&W / Noir', 'surreal': '🌀 Surreal', 'minimalist': '◻️ Minimalist',
+    'text-carousel': '📊 Slides',
+  };
+
   const videoDetail = (
     <div className="space-y-5 pb-20 md:pb-0">
+      {/* Visual style inherited from Images step */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100">
+        <span className="text-[10px] text-gray-500 font-medium shrink-0">Visual style</span>
+        <span className="text-[11px] font-semibold text-gray-700 flex-1 truncate">
+          {VISUAL_STYLE_LABELS[visualStyle] ?? visualStyle}
+        </span>
+        <span className="text-[9px] text-gray-400 shrink-0">from Images ↑</span>
+      </div>
       {/* Motion Quality toggle */}
       <div>
         <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Motion Quality</p>
@@ -3428,92 +3448,51 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
 
       {/* ── Visual Style Picker ── */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Visual Style</p>
-          {visualStyle !== 'ai-best' && (
-            <button
-              className="text-[10px] text-gray-400 hover:text-gray-600 underline"
-              onClick={() => setVisualStyle('ai-best')}
-            >
-              Reset to AI picks best
-            </button>
-          )}
-        </div>
-        <div className="space-y-2.5">
-          {([
-            {
-              group: 'Auto',
-              styles: [{ key: 'ai-best', emoji: '✨', label: 'AI Picks' }],
-            },
-            {
-              group: 'Realistic & Cinematic',
-              styles: [
-                { key: 'realistic',       emoji: '📷', label: 'Realistic' },
-                { key: 'hyper-realistic', emoji: '🔍', label: 'Hyper-Real' },
-                { key: 'cinematic',       emoji: '🎬', label: 'Cinematic' },
-                { key: 'documentary',     emoji: '🎥', label: 'Documentary' },
-                { key: 'commercial',      emoji: '📢', label: 'Commercial' },
-              ],
-            },
-            {
-              group: 'Animation & 3D',
-              styles: [
-                { key: '3d-animation', emoji: '🎲', label: '3D Anim' },
-                { key: 'cartoon',      emoji: '🎨', label: 'Cartoon' },
-                { key: 'anime',        emoji: '⛩️', label: 'Anime' },
-                { key: 'claymation',   emoji: '🧸', label: 'Claymation' },
-                { key: 'low-poly',     emoji: '🔷', label: 'Low Poly' },
-                { key: 'pixel-art',    emoji: '🕹️', label: 'Pixel Art' },
-              ],
-            },
-            {
-              group: 'Artistic & Illustrated',
-              styles: [
-                { key: 'watercolor',   emoji: '🖌️', label: 'Watercolor' },
-                { key: 'oil-painting', emoji: '🖼️', label: 'Oil Paint' },
-                { key: 'sketch',       emoji: '✏️', label: 'Sketch' },
-                { key: 'storybook',    emoji: '📚', label: 'Storybook' },
-                { key: 'paper-cutout', emoji: '✂️', label: 'Paper Cut' },
-                { key: 'comic-book',   emoji: '💥', label: 'Comic Book' },
-              ],
-            },
-            {
-              group: 'Stylized & Creative',
-              styles: [
-                { key: 'cyberpunk',       emoji: '🌆', label: 'Cyberpunk' },
-                { key: 'neon-synthwave',  emoji: '🌈', label: 'Synthwave' },
-                { key: 'vintage-retro',   emoji: '📻', label: 'Retro' },
-                { key: 'black-white-noir',emoji: '⬛', label: 'B&W / Noir' },
-                { key: 'surreal',         emoji: '🌀', label: 'Surreal' },
-                { key: 'minimalist',      emoji: '◻️', label: 'Minimalist' },
-                { key: 'text-carousel',   emoji: '📊', label: 'Slides' },
-              ],
-            },
-          ] as { group: string; styles: { key: ImageVisualStyle; emoji: string; label: string }[] }[]).map(({ group, styles }) => (
-            <div key={group}>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{group}</p>
-              <div className="grid grid-cols-4 gap-1">
-                {styles.map(({ key, emoji, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setVisualStyle(key)}
-                    className={`flex flex-col items-center gap-0.5 py-1.5 px-0.5 rounded-xl border text-center transition-all ${
-                      visualStyle === key
-                        ? 'border-brand-400 bg-brand-50 text-brand-700'
-                        : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-white'
-                    }`}
-                  >
-                    <span className="text-base leading-none">{emoji}</span>
-                    <span className="text-[8px] font-semibold leading-tight">{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        {visualStyle === 'ai-best' && (
-          <p className="mt-1.5 text-[10px] text-gray-400">AI will choose the best style for each scene automatically. Select a style above to override.</p>
-        )}
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Visual Style</p>
+        <select
+          value={visualStyle}
+          onChange={(e) => setVisualStyle(e.target.value as ImageVisualStyle)}
+          className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-300 cursor-pointer"
+        >
+          <option value="ai-best">✨ AI Picks Best (recommended)</option>
+          <optgroup label="Realistic &amp; Cinematic">
+            <option value="realistic">📷 Realistic</option>
+            <option value="hyper-realistic">🔍 Hyper-Realistic</option>
+            <option value="cinematic">🎬 Cinematic</option>
+            <option value="documentary">🎥 Documentary</option>
+            <option value="commercial">📢 Commercial</option>
+          </optgroup>
+          <optgroup label="Animation &amp; 3D">
+            <option value="3d-animation">🎲 3D Animation</option>
+            <option value="cartoon">🎨 Cartoon</option>
+            <option value="anime">⛩️ Anime</option>
+            <option value="claymation">🧸 Claymation</option>
+            <option value="low-poly">🔷 Low Poly</option>
+            <option value="pixel-art">🕹️ Pixel Art</option>
+          </optgroup>
+          <optgroup label="Artistic &amp; Illustrated">
+            <option value="watercolor">🖌️ Watercolor</option>
+            <option value="oil-painting">🖼️ Oil Painting</option>
+            <option value="sketch">✏️ Sketch</option>
+            <option value="storybook">📚 Storybook</option>
+            <option value="paper-cutout">✂️ Paper Cutout</option>
+            <option value="comic-book">💥 Comic Book</option>
+          </optgroup>
+          <optgroup label="Stylized &amp; Creative">
+            <option value="cyberpunk">🌆 Cyberpunk</option>
+            <option value="neon-synthwave">🌈 Neon Synthwave</option>
+            <option value="vintage-retro">📻 Vintage / Retro</option>
+            <option value="black-white-noir">⬛ B&amp;W / Noir</option>
+            <option value="surreal">🌀 Surreal</option>
+            <option value="minimalist">◻️ Minimalist</option>
+            <option value="text-carousel">📊 Slides / Text</option>
+          </optgroup>
+        </select>
+        <p className="mt-1.5 text-[10px] text-gray-400">
+          {visualStyle === 'ai-best'
+            ? 'AI will choose the best style for each scene automatically.'
+            : 'This style carries forward to video generation automatically — no need to re-select.'}
+        </p>
       </div>
 
       {/* ── Image Quality / Cost Selector ── */}
@@ -3974,7 +3953,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             action={<RunButton label={analyseDone ? 'Re-run' : 'Run'} rerun={analyseDone} disabled={busy} onClick={() => enqueue.mutate({ type: 'TREND_ANALYSIS' })} />}
           />
           {isMobile && expanded === 'analyse' && (
-            <div key="analyse" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('analyse')}</div>
+            <div key="analyse" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('analyse')}</div>
           )}
         </div>
 
@@ -3990,7 +3969,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             onToggle={() => toggle('suggestion')}
           />
           {isMobile && expanded === 'suggestion' && (
-            <div key="suggestion" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('suggestion')}</div>
+            <div key="suggestion" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('suggestion')}</div>
           )}
         </div>
 
@@ -4020,7 +3999,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             }
           />
           {isMobile && expanded === 'script' && (
-            <div key="script" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('script')}</div>
+            <div key="script" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('script')}</div>
           )}
         </div>
 
@@ -4055,7 +4034,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               }
             />
             {isMobile && expanded === 'character_cast' && (
-              <div key="character_cast" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">
+              <div key="character_cast" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">
                 {castResult?.characters && castResult.characters.length > 0 ? (
                   <div className="space-y-3">
                     {castResult.characters.map((char, i) => {
@@ -4136,7 +4115,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             }
           />
           {isMobile && expanded === 'images' && (
-            <div key="images" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('images')}</div>
+            <div key="images" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('images')}</div>
           )}
         </div>
 
@@ -4167,7 +4146,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             }
           />
           {isMobile && expanded === 'voice' && (
-            <div key="voice" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('voice')}</div>
+            <div key="voice" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('voice')}</div>
           )}
         </div>
 
@@ -4205,7 +4184,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             }
           />
           {isMobile && expanded === 'music' && (
-            <div key="music" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('music')}</div>
+            <div key="music" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('music')}</div>
           )}
         </div>
 
@@ -4236,7 +4215,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
             }
           />
           {isMobile && expanded === 'video' && (
-            <div key="video" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner">{detailFor('video')}</div>
+            <div key="video" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('video')}</div>
           )}
         </div>
       </div>
@@ -4257,7 +4236,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="bg-white rounded-2xl p-4 shadow-inner">{detailFor(expanded)}</div>
+          <div className="bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor(expanded)}</div>
         </div>
       )}
 

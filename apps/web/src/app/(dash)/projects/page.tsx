@@ -804,7 +804,7 @@ function ProjectsTab({
                   className="block bg-white rounded-2xl p-5 transition-all hover:border-[#374151]/40 hover:shadow-lg hover:-translate-y-0.5"
                   style={{ border: '1.5px solid #e3ddf8' }}
                 >
-                  <div className="flex items-start gap-3 mb-4 pr-10">
+                  <div className="flex items-start gap-3 mb-4">
                     <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0" style={{ background: pdCfg.bg }}>
                       {formatEmoji(format)}
                     </div>
@@ -838,34 +838,36 @@ function ProjectsTab({
                         )}
                         {p.niche && <><span>·</span><span className="truncate">{p.niche}</span></>}
                       </div>
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        <StatusBadge status={p.status} />
+                        {p.publishingStatus && p.publishingStatus !== 'NOT_PUBLISHED' && (
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{
+                              background:
+                                p.publishingStatus === 'PUBLISHED'  ? '#dcfce7' :
+                                p.publishingStatus === 'SCHEDULED'  ? '#dbeafe' :
+                                p.publishingStatus === 'FAILED'     ? '#fee2e2' :
+                                p.publishingStatus === 'READY'      ? '#f0fdf4' :
+                                '#f3f4f6',
+                              color:
+                                p.publishingStatus === 'PUBLISHED'  ? '#16a34a' :
+                                p.publishingStatus === 'SCHEDULED'  ? '#1d4ed8' :
+                                p.publishingStatus === 'FAILED'     ? '#dc2626' :
+                                p.publishingStatus === 'READY'      ? '#15803d' :
+                                '#374151',
+                            }}
+                          >
+                            {p.publishingStatus === 'PUBLISHED' ? '✓ Published' :
+                             p.publishingStatus === 'SCHEDULED' ? '🕐 Scheduled' :
+                             p.publishingStatus === 'FAILED'    ? '✗ Failed' :
+                             p.publishingStatus === 'READY'     ? '● Ready' :
+                             p.publishingStatus === 'DRAFT'     ? '◌ Draft' :
+                             p.publishingStatus}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <StatusBadge status={p.status} />
-                    {p.publishingStatus && p.publishingStatus !== 'NOT_PUBLISHED' && (
-                      <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                        style={{
-                          background:
-                            p.publishingStatus === 'PUBLISHED'  ? '#dcfce7' :
-                            p.publishingStatus === 'SCHEDULED'  ? '#dbeafe' :
-                            p.publishingStatus === 'FAILED'     ? '#fee2e2' :
-                            p.publishingStatus === 'READY'      ? '#f0fdf4' :
-                            '#f3f4f6',
-                          color:
-                            p.publishingStatus === 'PUBLISHED'  ? '#16a34a' :
-                            p.publishingStatus === 'SCHEDULED'  ? '#1d4ed8' :
-                            p.publishingStatus === 'FAILED'     ? '#dc2626' :
-                            p.publishingStatus === 'READY'      ? '#15803d' :
-                            '#374151',
-                        }}
-                      >
-                        {p.publishingStatus === 'PUBLISHED' ? '✓ Published' :
-                         p.publishingStatus === 'SCHEDULED' ? '🕐 Scheduled' :
-                         p.publishingStatus === 'FAILED'    ? '✗ Failed' :
-                         p.publishingStatus === 'READY'     ? '● Ready' :
-                         p.publishingStatus === 'DRAFT'     ? '◌ Draft' :
-                         p.publishingStatus}
-                      </span>
-                    )}
                   </div>
                   <div className="h-px mb-3" style={{ background: '#f3f4f6' }} />
                   <div className="flex items-center justify-between">
