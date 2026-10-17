@@ -95,6 +95,8 @@ export interface SceneVideoRequest {
   sceneIndex?: number;
   /** Explicit motion style override; internal adapters cycle styles when omitted. */
   motionStyle?: SceneMotionStyle;
+  /** Visual style from the Images step — drives style-appropriate motion patterns and color grading in the FFmpeg adapter. */
+  visualStyle?: ImageVisualStyle;
   /**
    * Cost/quality tier (default: 'fast').
    *  fast     — FFmpeg Ken Burns only, zero API cost, always available

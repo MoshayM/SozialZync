@@ -1,8 +1,8 @@
 ﻿'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Sparkles, Plus, X, Loader2, Check, FolderPlus, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -448,8 +448,9 @@ function GenerateModal({
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
-export default function ContentCalendarPage() {
+function ContentCalendarPageInner() {
   const now = new Date();
+  const searchParams = useSearchParams();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -467,6 +468,16 @@ export default function ContentCalendarPage() {
 
   // Load from localStorage on mount
   useEffect(() => { setEntries(loadEntries()); }, []);
+
+  // Auto-open entry modal when navigated from a project
+  useEffect(() => {
+    const projTitle = searchParams?.get('projectTitle');
+    if (!projTitle) return;
+    const rawPlat = (searchParams?.get('platform') ?? 'youtube').toLowerCase();
+    const platform: EntryPlatform = (rawPlat === 'instagram' || rawPlat === 'tiktok') ? rawPlat : 'youtube';
+    setEditEntry({ date: today, title: decodeURIComponent(projTitle), platform, status: 'scheduled', category: 'Tutorial' });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const persist = useCallback((next: CalendarEntry[]) => {
     setEntries(next);
@@ -951,5 +962,13 @@ export default function ContentCalendarPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ContentCalendarPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <ContentCalendarPageInner />
+    </Suspense>
   );
 }

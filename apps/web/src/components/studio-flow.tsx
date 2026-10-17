@@ -682,6 +682,13 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
   const [renderVideoType, setRenderVideoType] = useState<typeof VIDEO_TYPES[number]['value']>('long-form');
   const [renderVideoQuality, setRenderVideoQuality] = useState<'fast' | 'cinematic'>('fast');
 
+  // ── Content Structure (duration + series, set before script generation) ──
+  const [targetDurationMins, setTargetDurationMins] = useState<number>(10);
+  const [numEpisodes, setNumEpisodes] = useState<number>(1);
+  const [episodeDurationMins, setEpisodeDurationMins] = useState<number>(10);
+  const [customDurationInput, setCustomDurationInput] = useState('');
+  const [customDurationOpen, setCustomDurationOpen] = useState(false);
+
   // ── Creative Preferences (optional pre-script user guidance) ─────────────
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [creativePrefs, setCreativePrefs] = useState<{
@@ -1691,6 +1698,114 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           />
           <p className="text-[11px] text-gray-500 mt-1">Selected suggestions appear here automatically — edit freely before running.</p>
         </div>
+
+        {/* ── Content Structure: Duration + Series ── */}
+        {(() => {
+          const DURATION_PRESETS: Array<{ label: string; mins: number }> = [
+            { label: '5s',   mins: 0.083 },
+            { label: '30s',  mins: 0.5   },
+            { label: '1 min',mins: 1     },
+            { label: '5 min',mins: 5     },
+            { label: '10 min',mins: 10   },
+            { label: '40 min',mins: 40   },
+            { label: '1 hr', mins: 60    },
+          ];
+          const effectiveSingleMins = numEpisodes > 1 ? episodeDurationMins : targetDurationMins;
+          const totalMins = numEpisodes * effectiveSingleMins;
+          const fmtMins = (m: number) => m < 1 ? `${Math.round(m * 60)}s` : m >= 60 ? `${(m / 60).toFixed(m % 60 === 0 ? 0 : 1)}h` : `${m}min`;
+          return (
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 space-y-3">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Content Structure</p>
+
+              {/* Duration quick-pick */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-gray-600">{numEpisodes > 1 ? 'Duration per episode' : 'Video duration'}</span>
+                  <span className="text-[11px] font-semibold text-brand-600">{fmtMins(effectiveSingleMins)}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {DURATION_PRESETS.map((p) => {
+                    const active = Math.abs(effectiveSingleMins - p.mins) < 0.01;
+                    return (
+                      <button
+                        key={p.label}
+                        onClick={() => { numEpisodes > 1 ? setEpisodeDurationMins(p.mins) : setTargetDurationMins(p.mins); setCustomDurationOpen(false); }}
+                        className={`px-2.5 py-1 text-[10px] font-semibold rounded-full border transition-colors ${active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-500 hover:border-brand-200 hover:bg-gray-50'}`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setCustomDurationOpen((o) => !o)}
+                    className={`px-2.5 py-1 text-[10px] font-semibold rounded-full border transition-colors ${customDurationOpen ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-500 hover:border-brand-200'}`}
+                  >
+                    Custom
+                  </button>
+                </div>
+                {customDurationOpen && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="number" min={0.1} max={180} step={0.5}
+                      placeholder="e.g. 15"
+                      value={customDurationInput}
+                      onChange={(e) => setCustomDurationInput(e.target.value)}
+                      className="w-20 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                    />
+                    <span className="text-[11px] text-gray-500">minutes</span>
+                    <button
+                      onClick={() => {
+                        const v = parseFloat(customDurationInput);
+                        if (!isNaN(v) && v > 0) {
+                          numEpisodes > 1 ? setEpisodeDurationMins(v) : setTargetDurationMins(v);
+                          setCustomDurationOpen(false);
+                        }
+                      }}
+                      className="text-[10px] font-semibold text-brand-600 border border-brand-200 rounded-lg px-2.5 py-1 hover:bg-brand-50"
+                    >
+                      Set
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Series toggle + episode count */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-gray-600">Series / Episodes</span>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <div
+                      onClick={() => setNumEpisodes((n) => n > 1 ? 1 : 3)}
+                      className={`relative w-8 h-4 rounded-full transition-colors ${numEpisodes > 1 ? 'bg-brand-500' : 'bg-gray-300'}`}
+                    >
+                      <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${numEpisodes > 1 ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </div>
+                    <span className="text-[10px] text-gray-500">{numEpisodes > 1 ? 'Series on' : 'Single video'}</span>
+                  </label>
+                </div>
+                {numEpisodes > 1 && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-gray-600">Episodes</span>
+                      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                        <button onClick={() => setNumEpisodes((n) => Math.max(2, n - 1))} className="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm font-bold leading-none">−</button>
+                        <span className="px-2.5 text-[12px] font-semibold text-gray-700 tabular-nums">{numEpisodes}</span>
+                        <button onClick={() => setNumEpisodes((n) => Math.min(52, n + 1))} className="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm font-bold leading-none">+</button>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-gray-400">→ Total: {fmtMins(totalMins)}</span>
+                  </div>
+                )}
+              </div>
+              {numEpisodes > 1 && (
+                <p className="text-[10px] text-gray-400 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+                  Series mode: each episode script is generated individually. Run Script once per episode and adjust the topic for each.
+                </p>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Content language picker */}
         {(() => {
           const activeLang = CONTENT_LANGS.find(l => l.code === targetLang) ?? CONTENT_LANGS[0]!;
@@ -3942,6 +4057,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     music:          { icon: <Music className="w-5 h-5" />,        title: 'Music' },
     images:         { icon: <ImageIcon className="w-5 h-5" />,    title: 'Images' },
     video:          { icon: <Clapperboard className="w-5 h-5" />, title: 'Video' },
+    automate:       { icon: <Sparkles className="w-5 h-5" />,     title: 'Automate & Publish' },
   };
 
   const characterCastDetail = castResult?.characters && castResult.characters.length > 0 ? (
@@ -3980,6 +4096,71 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     </div>
   ) : null;
 
+  const channelId = channel?.id ?? '';
+  const projectTitle = encodeURIComponent(script?.title ?? 'New Video');
+  const automateDetail = (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500 leading-relaxed">
+        Your content is ready. Connect it to Auto Publishing, AI Calendar, and Auto Mode for hands-free distribution.
+      </p>
+
+      {/* Schedule to Calendar */}
+      <Link
+        href={`/calendar?projectId=${projectId}&projectTitle=${projectTitle}&platform=${platform.toLowerCase()}`}
+        className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50 transition-colors group"
+      >
+        <span className="text-lg">📅</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-gray-800 group-hover:text-brand-700">Schedule to AI Calendar</p>
+          <p className="text-[10px] text-gray-500">Add this video to your content calendar and plan publication date</p>
+        </div>
+        <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-brand-500 shrink-0" />
+      </Link>
+
+      {/* Auto Publishing */}
+      <Link
+        href={channelId ? `/automation?channelId=${channelId}&from=project` : '/automation'}
+        className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors group"
+      >
+        <span className="text-lg">🚀</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-gray-800 group-hover:text-green-700">AI Auto Publishing</p>
+          <p className="text-[10px] text-gray-500">Enable automatic publishing to {platform} with smart scheduling</p>
+        </div>
+        <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-green-500 shrink-0" />
+      </Link>
+
+      {/* Auto Mode / Autonomy */}
+      <Link
+        href={channelId ? `/autonomy?channelId=${channelId}&from=project` : '/autonomy'}
+        className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors group"
+      >
+        <span className="text-lg">🤖</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-gray-800 group-hover:text-purple-700">AI Auto Mode</p>
+          <p className="text-[10px] text-gray-500">Let AI research, create, and publish content automatically on a schedule</p>
+        </div>
+        <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-500 shrink-0" />
+      </Link>
+
+      {/* Direct Publish */}
+      <div className="pt-1 border-t border-gray-100">
+        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Quick Publish</p>
+        <Link
+          href="/publish"
+          className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-red-300 hover:bg-red-50 transition-colors group"
+        >
+          <Youtube className="w-4 h-4 text-red-500" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-gray-800 group-hover:text-red-700">Publish to YouTube</p>
+            <p className="text-[10px] text-gray-500">Upload rendered video with AI-generated title, description & tags</p>
+          </div>
+          <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-red-500 shrink-0" />
+        </Link>
+      </div>
+    </div>
+  );
+
   function detailFor(key: string): React.ReactNode {
     switch (key) {
       case 'analyse':        return analyseDetail;
@@ -3990,6 +4171,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
       case 'music':          return musicDetail;
       case 'images':         return imageDetail;
       case 'video':          return videoDetail;
+      case 'automate':       return automateDetail;
       default:               return null;
     }
   }
@@ -4095,7 +4277,12 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                 disabled={busy || !effectiveTopic}
                 onClick={() => enqueue.mutate({
                   type: 'FULL_PRODUCTION',
-                  payload: { scope: 'SCRIPT', topic: effectiveTopic, platform, lang: targetLang, ...prefsPayload, ...(scriptDone ? { regenerate: ['RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE'] } : {}) },
+                  payload: {
+                    scope: 'SCRIPT', topic: effectiveTopic, platform, lang: targetLang, ...prefsPayload,
+                    targetDurationMins: numEpisodes > 1 ? episodeDurationMins : targetDurationMins,
+                    ...(numEpisodes > 1 ? { numEpisodes } : {}),
+                    ...(scriptDone ? { regenerate: ['RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE'] } : {}),
+                  },
                 })}
               />
             }
@@ -4327,6 +4514,22 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
           />
           {isMobile && expanded === 'video' && (
             <div key="video" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('video')}</div>
+          )}
+        </div>
+
+        {/* 8 · Automate & Publish */}
+        <div>
+          <Tile
+            icon={<Sparkles className="w-5 h-5" />}
+            title="Automate & Publish"
+            subtitle="Schedule, auto-publish, and set up AI Auto Mode"
+            status={videoResult ? 'done' : 'ready'}
+            selected={expanded === 'automate'}
+            hasDetail={true}
+            onToggle={() => toggle('automate')}
+          />
+          {isMobile && expanded === 'automate' && (
+            <div key="automate" className="md:hidden fade-in mt-3 bg-white rounded-2xl p-4 shadow-inner overflow-hidden">{detailFor('automate')}</div>
           )}
         </div>
       </div>

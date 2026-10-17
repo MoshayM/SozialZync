@@ -344,8 +344,11 @@ export class SupervisorWorker extends WorkerHost {
         const t0 = Date.now();
         const scriptLang = (payload['lang'] as string | undefined) ?? project.targetLang ?? 'en';
         const scriptPrefs = payload['creativePrefs'] as Record<string, string> | undefined;
-        this.log(jobId, projectId, 'Calling AI script writer…', `Topic: "${research.topic.slice(0, 60)}" · lang=${scriptLang}`);
-        const script = await this.content.writeScript(research, undefined, scriptLang, scriptPrefs);
+        const targetDurationMins = (payload['targetDurationMins'] as number | undefined);
+        const numEpisodes = (payload['numEpisodes'] as number | undefined);
+        const episodeLabel = numEpisodes && numEpisodes > 1 ? ` · ${numEpisodes} episodes` : '';
+        this.log(jobId, projectId, 'Calling AI script writer…', `Topic: "${research.topic.slice(0, 60)}" · lang=${scriptLang}${episodeLabel}`);
+        const script = await this.content.writeScript(research, targetDurationMins, scriptLang, scriptPrefs);
         const s = script as { totalWordCount?: number; sections?: unknown[]; estimatedDurationMins?: number; title?: string };
         this.log(jobId, projectId, 'Script ready', `${s.totalWordCount ?? '?'} words · ${s.sections?.length ?? '?'} sections · ~${s.estimatedDurationMins ?? '?'} min`);
         await this.jobs.logStep(jobId, 'ScriptAgent', 'write', { research: research.topic }, script, 0, 0, Date.now() - t0);
@@ -1242,6 +1245,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
         const bustVideoCache = Boolean(payload['forceRegenerate']);
         const videoQuality = (payload['videoQuality'] as 'fast' | 'cinematic' | undefined) ?? 'fast';
         const motionStyleOverride = payload['motionStyle'] as import('../modules/media/media.types').SceneMotionStyle | undefined;
+        const visualStyleVid = payload['visualStyle'] as import('../modules/media/media.types').ImageVisualStyle | undefined;
 
         // Scene clip dimensions must match the render target to avoid aspect-ratio padding.
         // Vertical (Shorts/Reels/TikTok) → 720×1280; Square → 1080×1080; Landscape → 1280×720.
@@ -1314,6 +1318,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               sceneIndex: regenOneVidIndex,
               quality: videoQuality,
               ...(motionStyleOverride ? { motionStyle: motionStyleOverride } : {}),
+              ...(visualStyleVid ? { visualStyle: visualStyleVid } : {}),
             },
             true,
           );
@@ -1389,6 +1394,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               sceneIndex: i,
               quality: videoQuality,
               ...(motionStyleOverride ? { motionStyle: motionStyleOverride } : {}),
+              ...(visualStyleVid ? { visualStyle: visualStyleVid } : {}),
             }, bustVideoCache);
             videos.push({ sceneId: scene.id, assetId: stored.assetId, versionId: stored.versionId, provider: stored.provider, cached: stored.cached });
             this.log(jobId, projectId, `Scene video ${i + 1}/${maxScenes} ${stored.cached ? 'reused ✓' : 'rendered ✓'}`, `${stored.provider}${stored.notes ? ` · ${stored.notes.slice(0, 60)}` : ''}`);
@@ -2013,6 +2019,8 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (stage.type === 'VOICE_GENERATE' && payload['voiceSimilarityBoost'] !== undefined) stagePayload['voiceSimilarityBoost'] = payload['voiceSimilarityBoost'];
             if (stage.type === 'VOICE_GENERATE' && payload['voiceStyleExaggeration'] !== undefined) stagePayload['voiceStyleExaggeration'] = payload['voiceStyleExaggeration'];
             if (stage.type === 'VOICE_GENERATE' && payload['voiceEffects']) stagePayload['voiceEffects'] = payload['voiceEffects'];
+            if (stage.type === 'SCRIPT' && payload['targetDurationMins'] !== undefined) stagePayload['targetDurationMins'] = payload['targetDurationMins'];
+            if (stage.type === 'SCRIPT' && payload['numEpisodes'] !== undefined) stagePayload['numEpisodes'] = payload['numEpisodes'];
             // CHARACTER_STORY scope: auto-enable character-aware voice direction and
             // forward the CHARACTER_CAST result to CHARACTER_IMAGE_GENERATE.
             if (scope === 'CHARACTER_STORY' && stage.type === 'VOICE_SPEC') stagePayload['characterVoices'] = true;
@@ -2038,6 +2046,7 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
               if (payload['regenOneIndex'] != null) stagePayload['regenOneIndex'] = payload['regenOneIndex'];
               if (payload['videoQuality'] != null) stagePayload['videoQuality'] = payload['videoQuality'];
               if (payload['motionStyle'] != null) stagePayload['motionStyle'] = payload['motionStyle'];
+              if (payload['visualStyle'] != null) stagePayload['visualStyle'] = payload['visualStyle'];
             }
             // Forward content language to every stage that generates text
             if (payload['lang']) stagePayload['lang'] = payload['lang'];

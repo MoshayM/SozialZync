@@ -43,12 +43,12 @@ const STYLE_SUFFIX: Record<ImageVisualStyle, string> = {
   'ai-best':          ', high quality, professional, detailed',
   realistic:          ', photorealistic, DSLR photography, sharp focus, natural lighting',
   'hyper-realistic':  ', hyper-realistic, ultra-detailed, 8K photography, medium format camera',
-  cinematic:          ', cinematic shot, anamorphic lens, dramatic color grading, film quality',
+  cinematic:          ', cinematic 35mm anamorphic lens, dramatic chiaroscuro lighting, shallow depth of field, film grain, rich color grading, characters with expressive natural body language and realistic facial expressions, award-winning cinematography, IMAX quality',
   documentary:        ', documentary photography, handheld, natural lighting, candid, photojournalism',
   commercial:         ', commercial photography, studio lighting, product shot, advertising quality',
-  '3d-animation':     ', Pixar 3D animation style, smooth shading, studio lighting, high quality render',
-  cartoon:            ', flat illustration, bold clean outlines, vibrant colors, vector art',
-  anime:              ', anime art style, cel-shaded, expressive eyes, Studio Ghibli quality',
+  '3d-animation':     ', Pixar/DreamWorks 3D animation, fluid character motion blur, expressive facial rigs, subsurface skin shading, volumetric studio lighting, photorealistic textures, characters showing clear emotional gestures and body language, 4K render quality',
+  cartoon:            ', professional cartoon illustration, bold expressive outlines, vivid saturated colors, clear character expressions and poses, dynamic action lines, Disney/Cartoon Network quality, vector art',
+  anime:              ', anime art style, cel-shaded, highly expressive eyes and facial emotions, dynamic character poses with flowing motion, Studio Ghibli/Makoto Shinkai quality, detailed backgrounds, cinematic framing',
   claymation:         ', claymation stop-motion, clay texture, soft plasticine figures, tactile material',
   'low-poly':         ', low poly art, geometric faceted shapes, flat shading, digital minimalist',
   'pixel-art':        ', pixel art, 8-bit retro game style, chunky pixels, limited colour palette',
@@ -66,7 +66,7 @@ const STYLE_SUFFIX: Record<ImageVisualStyle, string> = {
   minimalist:         ', minimalist composition, white space, clean lines, editorial photography',
   'text-carousel':    ', clean slide design, bold typography, minimal background, infographic style',
   // Legacy aliases
-  animation:          ', Pixar 3D animation style, smooth shading, studio lighting, high quality render',
+  animation:          ', Pixar/DreamWorks 3D animation, fluid character motion blur, expressive facial rigs, subsurface skin shading, volumetric studio lighting, photorealistic textures, characters showing clear emotional gestures and body language, 4K render quality',
   minimal:            ', minimalist composition, white space, clean lines, editorial photography',
 };
 

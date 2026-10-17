@@ -74,12 +74,23 @@ function buildMotion(style: SceneMotionStyle, width: number, height: number, fra
   }
 }
 
-// 8-step cycle: zoom, pan, tilt, and drift styles so consecutive scenes always look different.
+// Standard Ken Burns cycle — used for most styles
 const STYLE_CYCLE: SceneMotionStyle[] = ['zoom-in', 'pan-right', 'tilt-up', 'zoom-out', 'pan-left', 'tilt-down', 'drift', 'diagonal'];
+// Cinematic cycle — slower rack-focus push-ins, wide pans, held shots
+const CINEMATIC_CYCLE: SceneMotionStyle[] = ['zoom-in', 'drift', 'pan-right', 'tilt-up', 'zoom-out', 'drift', 'diagonal', 'pan-left'];
+// Animated cycle — bouncy floating motion, oscillating drift
+const ANIMATED_CYCLE: SceneMotionStyle[] = ['drift', 'zoom-in', 'drift', 'pan-right', 'drift', 'zoom-out', 'drift', 'diagonal'];
 
 function pickStyle(req: SceneVideoRequest): SceneMotionStyle {
   if (req.motionStyle) return req.motionStyle;
   const idx = req.sceneIndex ?? 0;
+  const vs = req.visualStyle ?? '';
+  if (vs === 'cinematic' || vs === 'documentary' || vs === 'commercial' || vs === 'realistic' || vs === 'hyper-realistic') {
+    return CINEMATIC_CYCLE[idx % CINEMATIC_CYCLE.length]!;
+  }
+  if (vs === '3d-animation' || vs === 'animation' || vs === 'cartoon' || vs === 'anime' || vs === 'claymation') {
+    return ANIMATED_CYCLE[idx % ANIMATED_CYCLE.length]!;
+  }
   return STYLE_CYCLE[idx % STYLE_CYCLE.length]!;
 }
 
@@ -136,12 +147,30 @@ export class FfmpegSceneVideoAdapter implements VideoAdapter {
       }
 
       if (imagePath) {
-        // Ken Burns motion on the provided image
+        // Ken Burns motion on the provided image, with style-specific color grading
         const style = pickStyle(req);
         const { scaleW, scaleH, filter } = buildMotion(style, width, height, frames);
+
+        // Style-specific post-processing appended after the motion filter
+        const vs = req.visualStyle ?? '';
+        let styleFilter = '';
+        if (vs === 'cinematic' || vs === 'hyper-realistic') {
+          styleFilter = ',eq=saturation=1.15:contrast=1.05,unsharp=3:3:0.5:3:3:0,vignette=PI/5';
+        } else if (vs === 'vintage-retro') {
+          styleFilter = ',colorchannelmixer=rr=1.1:gg=0.95:bb=0.85,eq=saturation=0.75:brightness=0.02';
+        } else if (vs === 'black-white-noir') {
+          styleFilter = ',hue=s=0,eq=contrast=1.3:brightness=-0.02';
+        } else if (vs === 'neon-synthwave' || vs === 'cyberpunk') {
+          styleFilter = ',colorchannelmixer=rr=0.9:gg=0.9:bb=1.1,eq=saturation=1.4:contrast=1.1';
+        } else if (vs === '3d-animation' || vs === 'animation' || vs === 'cartoon') {
+          styleFilter = ',unsharp=5:5:1.0:5:5:0,eq=saturation=1.2';
+        } else if (vs === 'anime') {
+          styleFilter = ',eq=saturation=1.3:contrast=1.05,unsharp=3:3:0.8:3:3:0';
+        }
+
         await runFfmpeg([
           '-i', imagePath,
-          '-filter_complex', `[0:v]scale=${scaleW}:${scaleH},${filter},setsar=1[v]`,
+          '-filter_complex', `[0:v]scale=${scaleW}:${scaleH},${filter},setsar=1${styleFilter}[v]`,
           '-map', '[v]',
           '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
           outPath,
@@ -152,8 +181,8 @@ export class FfmpegSceneVideoAdapter implements VideoAdapter {
           mimeType: 'video/mp4',
           ext: 'mp4',
           durationMs: Math.round(req.durationSecs * 1000),
-          model: `ffmpeg-${style}`,
-          notes: `Internal motion (${style}). Set VIDEO_PROVIDER=kling-ai for AI-generated motion.`,
+          model: `ffmpeg-${style}${vs ? `-${vs}` : ''}`,
+          notes: `Internal motion (${style}${styleFilter ? ', color graded' : ''}). Set VIDEO_PROVIDER=kling-ai for AI-generated motion.`,
         };
       }
 
