@@ -705,8 +705,10 @@ export default function ProjectDetailPage() {
   const [enqueuePending, setEnqueuePending] = useState(false);
   const [storyboardPct, setStoryboardPct] = useState(0);
   const storyboardTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Computed before early returns via optional chaining so hooks order is stable
+  const storyboardRunningEarly = (project?.jobs ?? []).some(j => j.type === 'VIDEO_SCENE_PLAN' && ['RUNNING', 'QUEUED', 'PENDING'].includes(j.status));
   useEffect(() => {
-    if (storyboardRunning) {
+    if (storyboardRunningEarly) {
       setStoryboardPct(prev => prev === 0 ? 5 : prev);
       storyboardTimerRef.current = setInterval(() => {
         setStoryboardPct(prev => prev < 90 ? prev + 2 : 90);
@@ -716,7 +718,7 @@ export default function ProjectDetailPage() {
       setStoryboardPct(0);
     }
     return () => { if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current); };
-  }, [storyboardRunning]);
+  }, [storyboardRunningEarly]);
 
   async function enqueueStoryboard() {
     setEnqueuePending(true);
