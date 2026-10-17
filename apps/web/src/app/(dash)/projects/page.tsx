@@ -1342,7 +1342,6 @@ function ProjectsInner() {
         title: form.title,
         niche: form.niche || undefined,
         contentFormat: form.contentFormat,
-        contentType: form.contentType,
         targetLang: form.targetLang !== 'en' ? form.targetLang : undefined,
         platforms: [
           form.platform,
