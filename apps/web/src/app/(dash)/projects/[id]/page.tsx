@@ -883,38 +883,40 @@ export default function ProjectDetailPage() {
     SHORT: { label: 'YouTube Short', color: 'bg-blue-100 text-blue-700' },
   };
 
+  const jobs = project.jobs ?? [];
+
   // Derive latest completed SCRIPT job for the Script tab
-  const latestScriptJob = [...project.jobs]
+  const latestScriptJob = [...jobs]
     .filter((j) => j.type === 'SCRIPT' && j.status === 'COMPLETED')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
-  const pendingScriptJob = project.jobs.find((j) => j.type === 'SCRIPT' && ['PENDING', 'QUEUED', 'RUNNING'].includes(j.status));
+  const pendingScriptJob = jobs.find((j) => j.type === 'SCRIPT' && ['PENDING', 'QUEUED', 'RUNNING'].includes(j.status));
 
   // Derive latest completed VIDEO_SCENE_PLAN job for the Storyboard tab
-  const latestStoryboardJob = [...project.jobs]
+  const latestStoryboardJob = [...jobs]
     .filter((j) => j.type === 'VIDEO_SCENE_PLAN' && j.status === 'COMPLETED')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
   const storyboardData = latestStoryboardJob?.result as VideoScenePlan | undefined;
 
-  const latestFactCheckJob = [...project.jobs]
+  const latestFactCheckJob = [...jobs]
     .filter((j) => j.type === 'FACT_CHECK')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
   const factCheckResult = latestFactCheckJob?.status === 'COMPLETED' ? latestFactCheckJob.result as FactCheckResult | undefined : undefined;
   const hasDoneFactCheck = !!factCheckResult;
 
-  const latestComplianceJob = [...project.jobs]
+  const latestComplianceJob = [...jobs]
     .filter((j) => j.type === 'COMPLIANCE')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
   const complianceResult = latestComplianceJob?.status === 'COMPLETED' ? latestComplianceJob.result as ComplianceResult | undefined : undefined;
   const hasDoneCompliance = !!complianceResult;
 
-  const latestMetadataJob = [...project.jobs]
+  const latestMetadataJob = [...jobs]
     .filter((j) => j.type === 'METADATA')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
   const metadataResult = latestMetadataJob?.status === 'COMPLETED'
     ? (latestMetadataJob.result as { title: string; description: string; tags: string[]; category: string; language: string; thumbnailPrompt: string } | undefined)
     : undefined;
 
-  const latestThumbnailJob = [...project.jobs]
+  const latestThumbnailJob = [...jobs]
     .filter((j) => j.type === 'THUMBNAIL')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
   const thumbnailResult = latestThumbnailJob?.status === 'COMPLETED'
@@ -1611,7 +1613,7 @@ export default function ProjectDetailPage() {
       {activeTab === 'pipeline' && <>
 
       {/* Welcome panel for new projects with no jobs */}
-      {project.jobs.length === 0 && (
+      {jobs.length === 0 && (
         <div className="mb-6 rounded-2xl overflow-hidden border border-[#d4c9f9]"
              style={{ background: 'linear-gradient(135deg, #f3f4f6 0%, #faf9ff 100%)' }}>
           <div className="px-6 py-5">
@@ -1679,11 +1681,11 @@ export default function ProjectDetailPage() {
       <StudioFlow
         projectId={id}
         channel={project.channel}
-        jobs={project.jobs}
-        anyPipelineRunning={project.jobs.some((j) => j.type === 'FULL_PRODUCTION' && ['RUNNING', 'QUEUED', 'PENDING'].includes(j.status))}
+        jobs={jobs}
+        anyPipelineRunning={jobs.some((j) => j.type === 'FULL_PRODUCTION' && ['RUNNING', 'QUEUED', 'PENDING'].includes(j.status))}
         progress={pipelineProgress}
         runningPipeline={
-          project.jobs
+          jobs
             .filter((j) => j.type === 'FULL_PRODUCTION' && ['RUNNING', 'QUEUED', 'PENDING'].includes(j.status))
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null
         }
@@ -1704,34 +1706,34 @@ export default function ProjectDetailPage() {
           <div>
             <h2 className="font-semibold text-gray-900 flex items-center gap-2">
               Recent Jobs
-              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[11px] font-medium">{project.jobs.length}</span>
+              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[11px] font-medium">{jobs.length}</span>
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">All AI agent runs for this project</p>
           </div>
-          {jobsOpen && project.jobs.length > 0 && (
+          {jobsOpen && jobs.length > 0 && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setExpandedIds((prev) => {
-                  const allKeys = project.jobs.map((j) => (j.result ? `hist-${j.id}` : `log-${j.id}`));
+                  const allKeys = jobs.map((j) => (j.result ? `hist-${j.id}` : `log-${j.id}`));
                   const allOpen = allKeys.every((k) => prev.has(k));
                   return allOpen ? new Set() : new Set(allKeys);
                 });
               }}
               className="ml-auto text-xs text-brand-600 hover:underline shrink-0"
             >
-              {project.jobs.every((j) => expandedIds.has(j.result ? `hist-${j.id}` : `log-${j.id}`)) ? 'Collapse all' : 'Expand all'}
+              {jobs.every((j) => expandedIds.has(j.result ? `hist-${j.id}` : `log-${j.id}`)) ? 'Collapse all' : 'Expand all'}
             </button>
           )}
         </div>
-        {!jobsOpen ? null : project.jobs.length === 0 ? (
+        {!jobsOpen ? null : jobs.length === 0 ? (
           <div className="text-center py-14 text-gray-500">
             <Play className="w-8 h-8 mx-auto mb-3 opacity-20" />
             <p className="text-sm">No jobs yet — run an agent above to start creating content.</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {project.jobs.map((job) => {
+            {jobs.map((job) => {
               const histKey = `hist-${job.id}`;
               const isExpanded = expandedIds.has(histKey);
               // Live transient status

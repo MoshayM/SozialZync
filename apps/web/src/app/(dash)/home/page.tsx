@@ -71,12 +71,12 @@ const QUICK_PROMPTS = [
 
 type QuickAction = { href?: string; prompt?: string; copilot?: boolean; icon: React.ElementType; label: string; sub: string; iconBg: string; iconColor: string };
 const QUICK_ACTIONS: QuickAction[] = [
-  { href: '/content',              icon: TrendingUp,  label: 'Research Trends', sub: 'Discover viral topics',         iconBg: '#f3f4f6', iconColor: '#374151' },
-  { prompt: 'Write a YouTube script for my next video', icon: FileText,   label: 'Write Script',    sub: 'AI-powered scripts',             iconBg: '#eff6ff', iconColor: '#2563eb' },
-  { href: '/studio',               icon: ImageIcon,   label: 'Gen Thumbnail',   sub: 'AI image generation',           iconBg: '#fdf2f8', iconColor: '#db2777' },
-  { href: '/publish?tab=calendar', icon: CalendarDays,label: 'Schedule Post',   sub: 'Plan your calendar',            iconBg: '#ecfdf5', iconColor: '#059669' },
-  { href: '/analytics',            icon: BarChart2,   label: 'View Analytics',  sub: 'Channel performance',           iconBg: '#fffbeb', iconColor: '#d97706' },
-  { copilot: true,                 icon: Bot,         label: 'Open Copilot',    sub: 'Chat with your AI',             iconBg: '#f5f3ff', iconColor: '#7c3aed' },
+  { prompt: 'Create a new AI video project for my YouTube channel', icon: Film,      label: 'Create AI Video',   sub: 'Full video pipeline',     iconBg: '#eff6ff', iconColor: '#2563eb' },
+  { href: '/shorts-studio',        icon: Scissors,    label: 'Shorts from Video', sub: 'Repurpose long content',  iconBg: '#fdf2f8', iconColor: '#db2777' },
+  { href: '/automation',           icon: Zap,         label: 'Enable Autopilot',  sub: 'Auto publish & schedule', iconBg: '#ecfdf5', iconColor: '#059669' },
+  { href: '/editor',               icon: Sparkles,    label: 'Edit with AI',      sub: 'Polish existing content', iconBg: '#fffbeb', iconColor: '#d97706' },
+  { href: '/publish',              icon: Upload,      label: 'Publish & Earn',    sub: 'Upload & monetize',       iconBg: '#faf5ff', iconColor: '#7c3aed' },
+  { copilot: true,                 icon: Bot,         label: 'Open Copilot',      sub: 'Chat with your AI',       iconBg: '#f5f3ff', iconColor: '#7c3aed' },
 ];
 
 function greet(name: string): string {
