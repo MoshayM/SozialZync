@@ -915,6 +915,12 @@ export default function ProjectDetailPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
   const storyboardData = latestStoryboardJob?.result as VideoScenePlan | undefined;
   const storyboardRunning = jobs.some(j => j.type === 'VIDEO_SCENE_PLAN' && ['RUNNING', 'QUEUED', 'PENDING'].includes(j.status));
+  const latestStoryboardFailedJob = !storyboardRunning && !storyboardData
+    ? [...jobs]
+        .filter((j) => j.type === 'VIDEO_SCENE_PLAN' && j.status === 'FAILED')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null
+    : null;
+  const storyboardError = latestStoryboardFailedJob?.error ?? null;
 
   const latestFactCheckJob = [...jobs]
     .filter((j) => j.type === 'FACT_CHECK')
@@ -1205,7 +1211,11 @@ export default function ProjectDetailPage() {
           {!storyboardData ? (
             <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
               <Film className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500 mb-4">No storyboard yet.</p>
+              {storyboardError ? (
+                <p className="text-sm text-red-500 mb-4 max-w-sm mx-auto">{storyboardError}</p>
+              ) : (
+                <p className="text-gray-500 mb-4">No storyboard yet.</p>
+              )}
               <button
                 onClick={() => { void enqueueStoryboard(); }}
                 disabled={enqueuePending || storyboardRunning}

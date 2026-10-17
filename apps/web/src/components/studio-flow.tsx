@@ -1051,7 +1051,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
     ? (renderJob.result as { versionId?: string; preset?: string; durationSecs?: number } | undefined)
     : undefined;
 
-  const runningFoundation = isRunning(jobs, 'RESEARCH', 'SCRIPT', 'FACT_CHECK', 'COMPLIANCE');
+  const runningFoundation = isRunning(jobs, 'RESEARCH', 'SCRIPT', 'FACT_CHECK');
   const effectiveTopic = topic || pendingTopic || customTopic;
 
   const toggle = (key: string) => setExpanded((e) => (e === key ? null : key));
@@ -4398,7 +4398,7 @@ export function StudioFlow({ projectId, channel, jobs, anyPipelineRunning, progr
                   : 'Extract characters, voices & portraits'
               }
               status={castResult ? 'done' : scriptDone ? 'ready' : 'locked'}
-              running={isRunning(jobs, 'CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE')}
+              running={isRunning(jobs, 'CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE') ?? (!castResult && !runningFoundation ? isRunning(jobs, 'FULL_PRODUCTION') : undefined)}
               failed={latestFailure(jobs, 'CHARACTER_CAST', 'CHARACTER_IMAGE_GENERATE')}
               updatedAt={completedAt(jobs, 'CHARACTER_CAST')}
               selected={expanded === 'character_cast'}

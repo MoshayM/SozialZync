@@ -2021,10 +2021,9 @@ Return a VideoScenePlanOutput with semanticMethod="cinematic-director", sceneCou
             if (stage.type === 'VOICE_GENERATE' && payload['voiceEffects']) stagePayload['voiceEffects'] = payload['voiceEffects'];
             if (stage.type === 'SCRIPT' && payload['targetDurationMins'] !== undefined) stagePayload['targetDurationMins'] = payload['targetDurationMins'];
             if (stage.type === 'SCRIPT' && payload['numEpisodes'] !== undefined) stagePayload['numEpisodes'] = payload['numEpisodes'];
-            // CHARACTER_STORY scope: auto-enable character-aware voice direction and
-            // forward the CHARACTER_CAST result to CHARACTER_IMAGE_GENERATE.
+            // CHARACTER_STORY/CHARACTER_CAST scope: forward cast result to portrait stage.
             if (scope === 'CHARACTER_STORY' && stage.type === 'VOICE_SPEC') stagePayload['characterVoices'] = true;
-            if (scope === 'CHARACTER_STORY' && stage.type === 'CHARACTER_IMAGE_GENERATE') {
+            if ((scope === 'CHARACTER_STORY' || scope === 'CHARACTER_CAST') && stage.type === 'CHARACTER_IMAGE_GENERATE') {
               stagePayload['characterCast'] = stageResults['CHARACTER_CAST']
                 ?? await this.lastResult<CharacterCastOutput>(projectId, 'CHARACTER_CAST');
             }

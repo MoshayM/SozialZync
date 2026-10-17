@@ -751,7 +751,7 @@ async function callAIProvider(
 
   if (provider === 'anthropic') {
     const client = getAnthropic();
-    const model = opts.model ?? DEFAULT_ANTHROPIC_MODEL;
+    const model = opts.model ?? process.env['ANTHROPIC_MODEL'] ?? DEFAULT_ANTHROPIC_MODEL;
     const anthropicMessages = messages
       .filter((m) => m.role !== 'system')
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
